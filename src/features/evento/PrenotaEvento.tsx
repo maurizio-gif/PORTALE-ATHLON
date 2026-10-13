@@ -1,91 +1,151 @@
 import { useState } from 'react'
-import { Linking, StyleSheet, Text, View } from 'react-native'
+import { Linking, ScrollView, StyleSheet, Text, View } from 'react-native'
 
 import { chiamaLink } from '@/api/link'
 import { Avviso } from '@/components/Avviso'
 import { Bottone } from '@/components/Bottone'
-import { Casella } from '@/components/Casella'
+import { Griglia } from '@/components/Griglia'
 import { Pagina } from '@/components/Pagina'
 import { Scelta } from '@/components/Scelta'
 import { Forte, Testo } from '@/components/Testo'
-import { giornoEsteso, nomeDi, ora, paginaEventoSito, type EsitoPrenotazione, type PaginaEvento, type Turno } from '@/lib/eventi'
-import { spazio, useColori } from '@/theme'
+import { FinestraLezione, Fotina } from '@/features/lab/SchedaLezione'
+import { giornoEsteso, nomeDi, ora, paginaEventoSito, type EsitoPrenotazione, type PaginaEvento, type Persona, type Turno } from '@/lib/eventi'
+import { spazio, stileTono, useColori, type Tono } from '@/theme'
 
-// Prima il turno, poi i bambini. Ripreso dal CRM (`app/eventi/[codice]/PrenotaEvento.tsx`).
+// La prenotazione di un evento dal link per email, come il calendario del
+// laboratorio: in alto per chi si prenota («Stai prenotando per …»), sotto le
+// lezioni dell'evento con foto, scheda e posti liberi. Senza login: il link
+// vale per il nucleo dell'email che l'ha chiesto, e chi si puo' prenotare lo
+// decide perfectgym-eventi (fascia dell'evento e regole d'eta' del calendario).
 //
-// I turni vengono prima perche' sono la cosa contesa: con due figli, sapere se
-// nello stesso turno restano due posti e' la prima domanda. Nel secondo passo
-// non si possono spuntare piu' bambini dei posti che restano. Un bambino gia'
-// prenotato si vede, e non si riprenota: l'evento e' uno, e la funzione
-// rifiuta comunque un secondo turno per lo stesso bambino.
+// L'evento e' uno: chi e' gia' prenotato in un turno non si prenota in un
+// altro (la funzione lo rifiuta comunque), e la scheda lo dice.
 
-type Schermata = 'turni' | 'bambini' | 'esito'
+function minuti(t: Turno): number {
+  return Math.round((new Date(t.fine).getTime() - new Date(t.inizio).getTime()) / 60000)
+}
 
-function postiLeggibili(t: Turno): string {
-  if (t.chiuso) return 'Già cominciato'
-  if (t.liberi <= 0) return 'Completo'
-  if (t.liberi === 1) return 'Ultimo posto'
-  return `${t.liberi} posti liberi`
+function RigaTurno({
+  t,
+  nome,
+  pagina,
+  persona,
+  occupato,
+  onScheda,
+  onPrenota,
+}: {
+  t: Turno
+  nome: string
+  pagina: PaginaEvento
+  persona: Persona | null
+  occupato: boolean
+  onScheda: (() => void) | null
+  onPrenota: () => Promise<{ testo: string; tono: Tono } | null>
+}) {
+  const c = useColori()
+  const [attesa, setAttesa] = useState(false)
+  const [esito, setEsito] = useState<{ testo: string; tono: Tono } | null>(null)
+  const suo = persona?.prenotato ?? null
+  const qui = suo?.class_id === t.class_id
+  const altrove = suo && !qui ? pagina.turni.find((x) => x.class_id === suo.class_id) : null
+  // Chi del nucleo e' gia' prenotato qui: si vede su ogni turno.
+  const loro = (pagina.persone ?? pagina.bambini).filter((p) => p.prenotato?.class_id === t.class_id)
+
+  const tono = t.liberi <= 0 ? ('errore' as const) : t.liberi < 5 ? ('attenzione' as const) : ('ok' as const)
+
+  async function prenota() {
+    setEsito(null)
+    setAttesa(true)
+    setEsito(await onPrenota())
+    setAttesa(false)
+  }
+
+  let azione: React.ReactNode
+  if (t.chiuso) azione = <Testo variante="piccolo">Già cominciato.</Testo>
+  else if (!persona) azione = null
+  else if (qui) azione = <Avviso tono={suo!.attesa ? 'attenzione' : 'ok'}>{`${persona.nome ?? nomeDi(persona)} è ${suo!.attesa ? 'in lista d’attesa' : 'prenotato'} qui.`}</Avviso>
+  else if (altrove) azione = <Bottone testo={`Già prenotato alle ${ora(altrove.inizio)}`} variante="contorno" onPress={() => {}} disabilitato />
+  else if (t.liberi <= 0) azione = <Bottone testo="Completo" variante="contorno" onPress={() => {}} disabilitato />
+  else azione = <Bottone testo={`Prenota per ${persona.nome ?? nomeDi(persona)}`} onPress={prenota} inCorso={attesa} disabilitato={occupato} />
+
+  return (
+    <View style={[stili.lezione, { borderColor: c.bordo, backgroundColor: c.superficie }, qui ? stileTono(c, suo!.attesa ? 'attenzione' : 'ok') : null]}>
+      <View style={stili.testa}>
+        {pagina.scheda && onScheda ? <Fotina scheda={pagina.scheda} onApri={onScheda} /> : null}
+        <View style={{ flex: 1, gap: 3 }}>
+          <Text style={[stili.nome, { color: c.testo }]}>{nome}</Text>
+          <Text style={[stili.ora, { color: c.testo }]}>
+            {ora(t.inizio)}–{ora(t.fine)}
+            <Text style={{ color: c.testoSecondario, fontWeight: '400' }}>{` · ${minuti(t)} min`}</Text>
+          </Text>
+          {t.istruttore ? <Testo variante="piccolo">{t.istruttore}</Testo> : null}
+        </View>
+        {t.chiuso ? null : (
+          <View style={[stili.posti, stileTono(c, tono)]} accessibilityLabel={t.liberi <= 0 ? 'Completo' : `${t.liberi} posti liberi`}>
+            {t.liberi <= 0 ? (
+              <Text style={[stili.completa, { color: c[tono] }]}>Completo</Text>
+            ) : (
+              <>
+                <Text style={[stili.numeroPosti, { color: c[tono] }]}>{t.liberi}</Text>
+                <Text style={[stili.etichettaPosti, { color: c.testoSecondario }]}>{t.liberi === 1 ? 'posto' : 'posti'}</Text>
+              </>
+            )}
+          </View>
+        )}
+      </View>
+      {loro.length ? <Testo variante="piccolo">{`Prenotati qui: ${loro.map((p) => p.nome ?? nomeDi(p)).join(', ')}`}</Testo> : null}
+      {azione}
+      {esito ? <Avviso tono={esito.tono}>{esito.testo}</Avviso> : null}
+    </View>
+  )
 }
 
 export function PrenotaEvento({ token, nome, iniziale }: { token: string; nome: string | null; iniziale: PaginaEvento }) {
   const c = useColori()
   const [pagina, setPagina] = useState(iniziale)
-  const [schermata, setSchermata] = useState<Schermata>('turni')
-  const [turnoId, setTurnoId] = useState<number | null>(null)
-  const [scelti, setScelti] = useState<Set<number>>(new Set())
-  const [risultati, setRisultati] = useState<EsitoPrenotazione[]>([])
-  const [errore, setErrore] = useState('')
-  const [attesa, setAttesa] = useState(false)
+  const [sceltaId, setSceltaId] = useState<number | null>(null)
+  const [occupato, setOccupato] = useState(false)
+  const [schedaAperta, setSchedaAperta] = useState(false)
 
-  const { evento, turni, bambini, fuori_fascia } = pagina
-  const turno = turni.find((t) => t.class_id === turnoId) ?? null
-  const daPrenotare = bambini.filter((b) => !b.prenotato)
-  const fascia = `nati dal ${evento.nati_dal} al ${evento.nati_al}`
-  const titolo = nome ? `Ciao ${nome}` : evento.titolo
-  const sottotitolo = `${nome ? `${evento.titolo} · ` : ''}${giornoEsteso(evento.data)}`
+  const { evento, turni, fuori_fascia } = pagina
+  const persone = pagina.persone ?? pagina.bambini
+  const famiglia = evento.per === 'famiglia'
+  // Si parte dal primo che non e' ancora prenotato: il caso normale e' «prenoto me, poi gli altri».
+  const persona = persone.find((p) => p.member_id === sceltaId) ?? persone.find((p) => !p.prenotato) ?? persone[0] ?? null
+  const nomeLezione = evento.lezione ?? evento.titolo
+  const fascia =
+    evento.nati_dal != null && evento.nati_al != null
+      ? `nati dal ${evento.nati_dal} al ${evento.nati_al}`
+      : evento.nati_dal != null
+        ? `nati dal ${evento.nati_dal}`
+        : evento.nati_al != null
+          ? `nati fino al ${evento.nati_al}`
+          : null
 
   async function ricarica() {
     const { ok, dati } = await chiamaLink(token, 'pagina')
     if (ok) setPagina(dati as unknown as PaginaEvento)
   }
 
-  function scegliTurno(t: Turno) {
-    setErrore('')
-    setTurnoId(t.class_id)
-    // Si parte coi bambini da prenotare gia' spuntati, fino ai posti che
-    // restano: il caso normale e' «tutti i miei figli, nello stesso turno».
-    setScelti(new Set(daPrenotare.slice(0, Math.max(0, t.liberi)).map((b) => b.member_id)))
-    setSchermata('bambini')
-  }
-
-  function cambia(id: number) {
-    setScelti((prima) => {
-      const dopo = new Set(prima)
-      if (dopo.has(id)) dopo.delete(id)
-      else dopo.add(id)
-      return dopo
-    })
-  }
-
-  async function prenota() {
-    if (!turno || !scelti.size) return
-    setErrore('')
-    setAttesa(true)
-    const { ok, dati } = await chiamaLink(token, 'prenota', { class_id: turno.class_id, membri: [...scelti] })
-    if (ok && Array.isArray(dati.risultati)) {
-      setRisultati(dati.risultati as EsitoPrenotazione[])
-      setSchermata('esito')
-    } else {
-      setErrore(dati.errore ?? 'Non siamo riusciti a prenotare adesso. Riprova fra qualche minuto.')
-    }
+  async function prenota(t: Turno): Promise<{ testo: string; tono: Tono } | null> {
+    if (!persona) return null
+    // Resta su chi si e' appena prenotato, anche se la scelta era quella di partenza.
+    setSceltaId(persona.member_id)
+    setOccupato(true)
+    const { ok, dati } = await chiamaLink(token, 'prenota', { class_id: t.class_id, membri: [persona.member_id] })
     await ricarica()
-    setAttesa(false)
+    setOccupato(false)
+    const chi = persona.nome ?? nomeDi(persona)
+    if (!ok || !Array.isArray(dati.risultati)) return { testo: dati.errore ?? 'Non siamo riusciti a prenotare adesso. Riprova fra qualche minuto.', tono: 'errore' }
+    const r = (dati.risultati as EsitoPrenotazione[])[0]
+    if (r?.esito === 'prenotato') return { testo: `Fatto: ${chi} è prenotato ${giornoEsteso(evento.data)} alle ${ora(t.inizio)}. Lo trovi anche nell’app Athlon.`, tono: 'ok' }
+    if (r?.esito === 'attesa') return { testo: `${chi} è in lista d’attesa: i posti sono finiti mentre prenotavi.`, tono: 'attenzione' }
+    return { testo: r?.errore ?? 'PerfectGym non ha accettato la prenotazione.', tono: 'errore' }
   }
 
-  const aggiungi = (
+  const aggiungi = famiglia ? null : (
     <Testo variante="piccolo">
-      Manca un bambino nato fra il {evento.nati_dal} e il {evento.nati_al}? Aggiungilo dalla{' '}
+      {`Manca un bambino${fascia ? ` ${fascia}` : ''}? Aggiungilo dalla `}
       <Text style={{ color: c.accento, textDecorationLine: 'underline' }} onPress={() => Linking.openURL(`${paginaEventoSito(evento.slug)}#prenota`)}>
         pagina dell’evento
       </Text>
@@ -93,155 +153,87 @@ export function PrenotaEvento({ token, nome, iniziale }: { token: string; nome: 
     </Testo>
   )
 
-  if (schermata === 'esito' && turno) {
-    const tutti = risultati.length > 0 && risultati.every((r) => r.esito === 'prenotato')
-    return (
-      <Pagina titolo={tutti ? 'Prenotazione fatta!' : 'Ecco com’è andata'} sottotitolo={sottotitolo}>
-        <View style={{ gap: spazio.due }}>
-          {risultati.map((r) => {
-            const b = bambini.find((x) => x.member_id === r.member_id)
-            return (
-              <Avviso key={r.member_id} tono={r.esito === 'prenotato' ? 'ok' : r.esito === 'attesa' ? 'attenzione' : 'errore'}>
-                <Testo>
-                  <Forte>{b ? nomeDi(b) : 'Bambino'}</Forte>
-                  {' — '}
-                  {r.esito === 'prenotato' ? `prenotato alle ${ora(turno.inizio)}` : null}
-                  {r.esito === 'attesa' ? `in lista d’attesa alle ${ora(turno.inizio)}: i posti sono finiti mentre prenotavi` : null}
-                  {r.esito === 'errore' ? r.errore : null}
-                </Testo>
-              </Avviso>
-            )
-          })}
-        </View>
-        {risultati.some((r) => r.esito === 'prenotato') ? (
-          <Testo>
-            Vi aspettiamo {giornoEsteso(evento.data)} alle <Forte>{ora(turno.inizio)}</Forte>. La prenotazione la trovi anche nell’app Athlon,
-            alla voce Prenotazioni, a nome del bambino.
-          </Testo>
-        ) : null}
-        <Bottone
-          testo="Torna ai turni"
-          variante="contorno"
-          onPress={() => {
-            setSchermata('turni')
-            setTurnoId(null)
-          }}
-        />
-      </Pagina>
-    )
-  }
-
-  if (schermata === 'bambini' && turno) {
-    const pieno = scelti.size >= turno.liberi
-    return (
-      <Pagina titolo="Per chi prenoti?" sottotitolo={`Turno delle ${ora(turno.inizio)} · ${postiLeggibili(turno)}`}>
-        <View style={{ gap: spazio.due }}>
-          {bambini.map((b) => {
-            if (b.prenotato) {
-              const suo = turni.find((t) => t.class_id === b.prenotato!.class_id)
-              return (
-                <View key={b.member_id} style={[stili.spento, { borderColor: c.bordo }]}>
-                  <Testo>
-                    <Forte>{nomeDi(b)}</Forte>
-                    {b.anno ? ` · ${b.anno}` : ''}
-                  </Testo>
-                  <Testo variante="piccolo">
-                    {b.prenotato.attesa ? 'In lista d’attesa' : 'Già prenotato'}
-                    {suo ? ` alle ${ora(suo.inizio)}` : ''}
-                  </Testo>
-                </View>
-              )
-            }
-            const preso = scelti.has(b.member_id)
-            const bloccato = !preso && pieno
-            return (
-              <View key={b.member_id} style={{ opacity: bloccato ? 0.5 : 1 }} pointerEvents={bloccato ? 'none' : 'auto'}>
-                <Casella riquadro spuntata={preso} onCambia={() => cambia(b.member_id)} etichetta={nomeDi(b)}>
-                  <Testo>
-                    <Forte>{nomeDi(b)}</Forte>
-                    {b.anno ? ` · ${b.anno}` : ''}
-                  </Testo>
-                </Casella>
-              </View>
-            )
-          })}
-        </View>
-        {pieno && daPrenotare.length > scelti.size ? (
-          <Testo variante="piccolo">
-            In questo turno {turno.liberi === 1 ? 'resta un posto solo' : `restano ${turno.liberi} posti`}: per gli altri bambini scegli un altro turno.
-          </Testo>
-        ) : null}
-        {errore ? <Avviso>{errore}</Avviso> : null}
-        <Bottone
-          testo={scelti.size > 1 ? `Prenota ${scelti.size} posti alle ${ora(turno.inizio)}` : `Prenota alle ${ora(turno.inizio)}`}
-          onPress={prenota}
-          inCorso={attesa}
-          disabilitato={scelti.size === 0}
-        />
-        <Bottone
-          testo="Cambia turno"
-          variante="contorno"
-          disabilitato={attesa}
-          onPress={() => {
-            setErrore('')
-            setSchermata('turni')
-          }}
-        />
-        {aggiungi}
-      </Pagina>
-    )
-  }
-
-  const tuttiPrenotati = bambini.length > 0 && daPrenotare.length === 0
   return (
-    <Pagina titolo={titolo} sottotitolo={sottotitolo}>
+    <Pagina larga titolo={evento.titolo} sottotitolo={`${nome ? `Ciao ${nome} · ` : ''}${giornoEsteso(evento.data)}`}>
+      {persone.length > 1 ? (
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={stili.fila}>
+          {persone.map((p) => {
+            const attivo = p.member_id === persona?.member_id
+            return (
+              <Scelta key={p.member_id} scelta={attivo} onPress={() => setSceltaId(p.member_id)} etichetta={`Prenota per ${nomeDi(p)}`} stile={attivo ? stili.personaScelta : stili.persona}>
+                <Text style={[attivo ? stili.nomeScelto : stili.nomePersona, { color: attivo ? c.suAccento : c.testoSecondario }]}>
+                  {nomeDi(p)}
+                  {p.prenotato ? ' ✓' : ''}
+                </Text>
+              </Scelta>
+            )
+          })}
+        </ScrollView>
+      ) : null}
+      {persona ? (
+        <Testo>
+          Stai prenotando per <Forte>{nomeDi(persona)}</Forte>
+        </Testo>
+      ) : null}
+
       {turni.length === 0 ? (
-        <Testo variante="attenuato">I turni di questo evento non sono ancora in calendario. Riprova più tardi, o scrivici a desk@athlonroma.it.</Testo>
+        <Testo variante="attenuato">Le lezioni di questo evento non sono ancora in calendario. Riprova più tardi, o scrivici a desk@athlonroma.it.</Testo>
       ) : (
-        <>
-          <Testo variante="sottotitolo" style={{ fontSize: 17 }}>
-            Scegli il turno
-          </Testo>
-          <View style={{ gap: spazio.due }}>
-            {turni.map((t) => {
-              const spento = t.chiuso || t.liberi <= 0 || daPrenotare.length === 0
-              const loro = bambini.filter((b) => b.prenotato?.class_id === t.class_id)
-              return (
-                <Scelta key={t.class_id} scelta={false} spento={spento} onPress={() => scegliTurno(t)} stile={stili.turno} etichetta={`Turno ${ora(t.inizio)}, ${postiLeggibili(t)}`}>
-                  <Text style={[stili.oraTurno, { color: c.testo }]}>
-                    {ora(t.inizio)} – {ora(t.fine)}
-                  </Text>
-                  <View style={{ flex: 1 }}>
-                    <Testo variante="piccolo" style={{ color: c.testo }}>
-                      {postiLeggibili(t)}
-                    </Testo>
-                    {loro.length ? <Testo variante="piccolo">Prenotato: {loro.map((b) => b.nome ?? nomeDi(b)).join(', ')}</Testo> : null}
-                  </View>
-                </Scelta>
-              )
-            })}
-          </View>
-        </>
+        <Griglia minima={400}>
+          {turni.map((t) => (
+            <RigaTurno
+              key={t.class_id}
+              t={t}
+              nome={nomeLezione}
+              pagina={pagina}
+              persona={persona}
+              occupato={occupato}
+              onScheda={pagina.scheda ? () => setSchedaAperta(true) : null}
+              onPrenota={() => prenota(t)}
+            />
+          ))}
+        </Griglia>
       )}
-      {bambini.length === 0 ? (
+
+      {persone.length === 0 ? (
         <>
-          <Testo>Nel tuo account non troviamo bambini {fascia}, che è la fascia di questo evento.</Testo>
+          <Testo>
+            {famiglia
+              ? `Nella tua famiglia non troviamo nessuno che possa partecipare a questo evento${fascia ? ` (${fascia})` : ''}.`
+              : `Nel tuo account non troviamo bambini${fascia ? ` ${fascia}` : ''}, che è la fascia di questo evento.`}
+          </Testo>
           {fuori_fascia.length ? (
             <Testo variante="piccolo">Risultano: {fuori_fascia.map((p) => `${p.nome ?? 'senza nome'}${p.anno ? ` (${p.anno})` : ''}`).join(', ')}.</Testo>
           ) : null}
         </>
-      ) : tuttiPrenotati ? (
-        <Testo>Tutti i tuoi bambini {fascia} sono già prenotati: vi aspettiamo!</Testo>
-      ) : (
-        <Testo variante="piccolo">Al passo dopo scegli per quali bambini prenotare. Sono quelli del tuo account {fascia}.</Testo>
-      )}
+      ) : null}
+      {persone.length && fuori_fascia.length ? (
+        <Testo variante="piccolo">
+          {`Per età non ${fuori_fascia.length === 1 ? 'può' : 'possono'} partecipare: ${fuori_fascia.map((p) => `${p.nome ?? 'senza nome'}${p.anno ? ` (${p.anno})` : ''}`).join(', ')}.`}
+        </Testo>
+      ) : null}
+      {persone.length && persone.every((p) => p.prenotato) ? (
+        <Testo>{persone.length > 1 ? 'Siete tutti prenotati: vi aspettiamo!' : 'Sei prenotato: ti aspettiamo!'}</Testo>
+      ) : null}
       {aggiungi}
+
+      <FinestraLezione scheda={schedaAperta ? pagina.scheda ?? null : null} titolo={nomeLezione} onChiudi={() => setSchedaAperta(false)} />
     </Pagina>
   )
 }
 
 const stili = StyleSheet.create({
-  turno: { flexDirection: 'row', alignItems: 'center', gap: spazio.tre, paddingVertical: spazio.tre },
-  oraTurno: { fontSize: 17, fontWeight: '700', minWidth: 112 },
-  spento: { borderWidth: 1, borderRadius: 12, padding: spazio.tre, opacity: 0.6 },
+  fila: { gap: spazio.due, paddingBottom: spazio.uno, alignItems: 'center' },
+  persona: { borderRadius: 999, paddingVertical: spazio.uno, paddingHorizontal: spazio.due + 2 },
+  personaScelta: { borderRadius: 999, paddingVertical: spazio.due + 2, paddingHorizontal: spazio.tre + 2 },
+  nomePersona: { fontSize: 13, fontWeight: '600' },
+  nomeScelto: { fontSize: 16, fontWeight: '700' },
+  lezione: { borderWidth: 1, borderRadius: 20, padding: spazio.tre, gap: spazio.tre },
+  testa: { flexDirection: 'row', gap: spazio.tre, alignItems: 'center' },
+  nome: { fontSize: 18, fontWeight: '700', lineHeight: 23 },
+  ora: { fontSize: 15, fontWeight: '600', fontVariant: ['tabular-nums'] },
+  posti: { minWidth: 62, borderRadius: 10, paddingVertical: spazio.uno, paddingHorizontal: spazio.due, alignItems: 'center', justifyContent: 'center' },
+  numeroPosti: { fontSize: 24, fontWeight: '800', lineHeight: 28, fontVariant: ['tabular-nums'] },
+  etichettaPosti: { fontSize: 11, fontWeight: '600', textTransform: 'uppercase' },
+  completa: { fontSize: 12, fontWeight: '800', textTransform: 'uppercase', paddingVertical: spazio.due },
 })
