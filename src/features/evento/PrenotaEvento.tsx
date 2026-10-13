@@ -1,5 +1,6 @@
-import { useState } from 'react'
-import { Linking, ScrollView, StyleSheet, Text, View } from 'react-native'
+import { useLocalSearchParams } from 'expo-router'
+import { useEffect, useRef, useState } from 'react'
+import { ActivityIndicator, Linking, Platform, ScrollView, StyleSheet, Text, View } from 'react-native'
 
 import { chiamaLink } from '@/api/link'
 import { Avviso } from '@/components/Avviso'
@@ -9,7 +10,7 @@ import { Pagina } from '@/components/Pagina'
 import { Scelta } from '@/components/Scelta'
 import { Forte, Testo } from '@/components/Testo'
 import { FinestraLezione, Fotina } from '@/features/lab/SchedaLezione'
-import { giornoEsteso, nomeDi, ora, paginaEventoSito, type EsitoPrenotazione, type PaginaEvento, type Persona, type Turno } from '@/lib/eventi'
+import { euro, giornoEsteso, nomeDi, ora, paginaEventoSito, type EsitoPrenotazione, type PaginaEvento, type Persona, type Prodotto, type Turno } from '@/lib/eventi'
 import { spazio, stileTono, useColori, type Tono } from '@/theme'
 
 // La prenotazione di un evento dal link per email, come il calendario del
@@ -20,6 +21,13 @@ import { spazio, stileTono, useColori, type Tono } from '@/theme'
 //
 // L'evento e' uno: chi e' gia' prenotato in un turno non si prenota in un
 // altro (la funzione lo rifiuta comunque), e la scheda lo dice.
+//
+// **A pagamento** (Master Class, Eventi): se PerfectGym dice che alla persona
+// manca il prodotto, «Prenota» diventa «Acquista e prenota»: si paga sulla
+// pagina di PerfectGym e si torna qui con ?acquisto=<id>, dove la
+// prenotazione si riprova finche' PerfectGym vede l'acquisto.
+
+type Esito = { testo: string; tono: Tono; daPagare?: Prodotto | null }
 
 function minuti(t: Turno): number {
   return Math.round((new Date(t.fine).getTime() - new Date(t.inizio).getTime()) / 60000)
@@ -33,6 +41,7 @@ function RigaTurno({
   occupato,
   onScheda,
   onPrenota,
+  onAcquista,
 }: {
   t: Turno
   nome: string
@@ -40,11 +49,12 @@ function RigaTurno({
   persona: Persona | null
   occupato: boolean
   onScheda: (() => void) | null
-  onPrenota: () => Promise<{ testo: string; tono: Tono } | null>
+  onPrenota: () => Promise<Esito | null>
+  onAcquista: () => Promise<string | null>
 }) {
   const c = useColori()
   const [attesa, setAttesa] = useState(false)
-  const [esito, setEsito] = useState<{ testo: string; tono: Tono } | null>(null)
+  const [esito, setEsito] = useState<Esito | null>(null)
   const suo = persona?.prenotato ?? null
   const qui = suo?.class_id === t.class_id
   const altrove = suo && !qui ? pagina.turni.find((x) => x.class_id === suo.class_id) : null
@@ -60,12 +70,33 @@ function RigaTurno({
     setAttesa(false)
   }
 
+  async function acquista() {
+    setAttesa(true)
+    const problema = await onAcquista()
+    // Se tutto va bene il browser e' gia' sulla pagina di pagamento.
+    setAttesa(false)
+    if (problema) setEsito({ testo: problema, tono: 'errore' })
+  }
+
+  const prodotto = pagina.pagamento?.prodotto ?? null
+  // Il prezzo si cambia per persona: si ricomincia da «Prenota» scegliendo un altro.
+  useEffect(() => setEsito(null), [persona?.member_id])
+
   let azione: React.ReactNode
   if (t.chiuso) azione = <Testo variante="piccolo">Già cominciato.</Testo>
   else if (!persona) azione = null
   else if (qui) azione = <Avviso tono={suo!.attesa ? 'attenzione' : 'ok'}>{`${persona.nome ?? nomeDi(persona)} è ${suo!.attesa ? 'in lista d’attesa' : 'prenotato'} qui.`}</Avviso>
   else if (altrove) azione = <Bottone testo={`Già prenotato alle ${ora(altrove.inizio)}`} variante="contorno" onPress={() => {}} disabilitato />
   else if (t.liberi <= 0) azione = <Bottone testo="Completo" variante="contorno" onPress={() => {}} disabilitato />
+  else if (esito?.daPagare)
+    azione = (
+      <Bottone
+        testo={`Acquista e prenota${esito.daPagare.prezzo != null ? ` · ${euro(esito.daPagare.prezzo)}` : ''}`}
+        onPress={acquista}
+        inCorso={attesa}
+        disabilitato={occupato}
+      />
+    )
   else azione = <Bottone testo={`Prenota per ${persona.nome ?? nomeDi(persona)}`} onPress={prenota} inCorso={attesa} disabilitato={occupato} />
 
   return (
@@ -93,9 +124,13 @@ function RigaTurno({
           </View>
         )}
       </View>
+      {prodotto?.prezzo != null && !t.chiuso ? (
+        <Testo variante="piccolo">{`Compresa negli abbonamenti che la includono; per gli altri ${euro(prodotto.prezzo)} a persona, da pagare online.`}</Testo>
+      ) : null}
       {loro.length ? <Testo variante="piccolo">{`Prenotati qui: ${loro.map((p) => p.nome ?? nomeDi(p)).join(', ')}`}</Testo> : null}
       {azione}
-      {esito ? <Avviso tono={esito.tono}>{esito.testo}</Avviso> : null}
+      {esito && !esito.daPagare ? <Avviso tono={esito.tono}>{esito.testo}</Avviso> : null}
+      {esito?.daPagare ? <Testo variante="piccolo">{esito.testo}</Testo> : null}
     </View>
   )
 }
@@ -127,7 +162,7 @@ export function PrenotaEvento({ token, nome, iniziale }: { token: string; nome: 
     if (ok) setPagina(dati as unknown as PaginaEvento)
   }
 
-  async function prenota(t: Turno): Promise<{ testo: string; tono: Tono } | null> {
+  async function prenota(t: Turno): Promise<Esito | null> {
     if (!persona) return null
     // Resta su chi si e' appena prenotato, anche se la scelta era quella di partenza.
     setSceltaId(persona.member_id)
@@ -140,8 +175,74 @@ export function PrenotaEvento({ token, nome, iniziale }: { token: string; nome: 
     const r = (dati.risultati as EsitoPrenotazione[])[0]
     if (r?.esito === 'prenotato') return { testo: `Fatto: ${chi} è prenotato ${giornoEsteso(evento.data)} alle ${ora(t.inizio)}. Lo trovi anche nell’app Athlon.`, tono: 'ok' }
     if (r?.esito === 'attesa') return { testo: `${chi} è in lista d’attesa: i posti sono finiti mentre prenotavi.`, tono: 'attenzione' }
+    if (r?.esito === 'da_pagare')
+      return {
+        testo: `Per ${chi} questa lezione non è compresa nell’abbonamento: si acquista online e la prenotazione parte subito dopo il pagamento.`,
+        tono: 'attenzione',
+        daPagare: r.prodotto ?? pagina.pagamento?.prodotto ?? null,
+      }
     return { testo: r?.errore ?? 'PerfectGym non ha accettato la prenotazione.', tono: 'errore' }
   }
+
+  async function acquista(t: Turno): Promise<string | null> {
+    if (!persona) return null
+    const { ok, dati } = await chiamaLink(token, 'acquista', { class_id: t.class_id, member_id: persona.member_id })
+    if (!ok || typeof dati.url !== 'string') return dati.errore ?? 'Non riusciamo ad aprire il pagamento adesso. Riprova fra qualche minuto.'
+    if (Platform.OS === 'web') window.location.assign(dati.url)
+    else await Linking.openURL(dati.url)
+    return null
+  }
+
+  // Il ritorno dal pagamento: si chiede com'e' andata finche' la prenotazione
+  // non c'e' (il pagamento arriva a PerfectGym qualche secondo dopo), per due minuti.
+  const { acquisto } = useLocalSearchParams<{ acquisto?: string }>()
+  const [ritorno, setRitorno] = useState<{ stato: string; errore?: string | null; class_id?: number; member_id?: number } | null>(null)
+  const avviato = useRef(false)
+  useEffect(() => {
+    if (!acquisto || avviato.current) return
+    avviato.current = true
+    let giri = 0
+    let fermo = false
+    const giro = async () => {
+      const { ok, dati } = await chiamaLink(token, 'esito_acquisto', { acquisto_id: acquisto })
+      if (fermo) return
+      if (!ok) return setRitorno({ stato: 'errore', errore: dati.errore ?? null })
+      if (dati.stato === 'avviato' && ++giri < 30) {
+        setRitorno(dati as any)
+        setTimeout(giro, 4000)
+        return
+      }
+      setRitorno(dati.stato === 'avviato' ? { stato: 'errore', errore: null } : (dati as any))
+      ricarica()
+    }
+    setRitorno({ stato: 'avviato' })
+    giro()
+    return () => {
+      fermo = true
+    }
+  }, [acquisto, token])
+
+  const chiRitorno = ritorno?.member_id ? persone.find((p) => p.member_id === ritorno.member_id) : null
+  const turnoRitorno = ritorno?.class_id ? turni.find((t) => t.class_id === ritorno.class_id) : null
+  const avvisoRitorno = !ritorno ? null : ritorno.stato === 'avviato' ? (
+    <Avviso tono="attenzione">
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: spazio.due }}>
+        <ActivityIndicator color={c.attenzione} />
+        <Testo>Aspettiamo da PerfectGym la conferma del pagamento, poi prenotiamo. Non chiudere la pagina.</Testo>
+      </View>
+    </Avviso>
+  ) : ritorno.stato === 'prenotato' ? (
+    <Avviso tono="ok">
+      {`Pagamento ricevuto: ${chiRitorno ? chiRitorno.nome ?? nomeDi(chiRitorno) : 'la persona'} è prenotato${turnoRitorno ? ` ${giornoEsteso(evento.data)} alle ${ora(turnoRitorno.inizio)}` : ''}. Lo trovi anche nell’app Athlon.`}
+    </Avviso>
+  ) : ritorno.stato === 'attesa' ? (
+    <Avviso tono="attenzione">Pagamento ricevuto, ma i posti sono finiti mentre pagavi: sei in lista d’attesa. Ti scriviamo noi.</Avviso>
+  ) : (
+    <Avviso>
+      {ritorno.errore ??
+        'Non vediamo ancora il pagamento. Se hai pagato, la prenotazione la sistemiamo noi: scrivici a desk@athlonroma.it.'}
+    </Avviso>
+  )
 
   const aggiungi = famiglia ? null : (
     <Testo variante="piccolo">
@@ -155,6 +256,7 @@ export function PrenotaEvento({ token, nome, iniziale }: { token: string; nome: 
 
   return (
     <Pagina larga titolo={evento.titolo} sottotitolo={`${nome ? `Ciao ${nome} · ` : ''}${giornoEsteso(evento.data)}`}>
+      {avvisoRitorno}
       {persone.length > 1 ? (
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={stili.fila}>
           {persone.map((p) => {
@@ -190,6 +292,7 @@ export function PrenotaEvento({ token, nome, iniziale }: { token: string; nome: 
               occupato={occupato}
               onScheda={pagina.scheda ? () => setSchedaAperta(true) : null}
               onPrenota={() => prenota(t)}
+              onAcquista={() => acquista(t)}
             />
           ))}
         </Griglia>

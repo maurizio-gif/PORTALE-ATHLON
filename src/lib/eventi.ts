@@ -48,9 +48,19 @@ export type PaginaEvento = {
   fuori_fascia: { nome: string | null; anno: number | null }[]
   /** La scheda della lezione dal sito (foto, video, descrizione), se c'e'. */
   scheda?: SchedaLezione | null
+  /** Se la lezione e' a pagamento aggiuntivo (Master Class, Eventi): il prodotto da comprare per chi non lo ha compreso. */
+  pagamento?: { prodotto: Prodotto | null } | null
 }
 
-export type EsitoPrenotazione = { member_id: number; esito: 'prenotato' | 'attesa' | 'errore'; errore?: string }
+/** Il prodotto PerfectGym che apre la prenotazione di una lezione a pagamento. */
+export type Prodotto = { product_id: number; nome: string; prezzo: number | null }
+
+/** «10 €», «7,50 €». */
+export function euro(prezzo: number): string {
+  return `${prezzo.toLocaleString('it-IT', { minimumFractionDigits: Number.isInteger(prezzo) ? 0 : 2, maximumFractionDigits: 2 })} €`
+}
+
+export type EsitoPrenotazione = { member_id: number; esito: 'prenotato' | 'attesa' | 'errore' | 'da_pagare'; errore?: string; prodotto?: Prodotto | null }
 
 /** L'ora di un turno, a Roma: «16:30». */
 export function ora(iso: string): string {
