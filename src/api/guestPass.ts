@@ -1,26 +1,27 @@
 import { SUPABASE_URL } from '@/config'
 import { supabase } from '@/lib/supabase'
 
-// Il Guest Pass dal link (in prova, solo per i tester del laboratorio): la
-// richiesta con l'email (Edge Function `guest-pass`), e dal laboratorio la
+// Il Guest Pass dal link (in prova): prima l'email, poi i dati (nome, cognome,
+// cellulare e la privacy, sempre) con la Edge Function `guest-pass`, e dal laboratorio la
 // richiesta per un famigliare. Il resto si fa dal link /r/<codice>
 // (portale-link → guest-pass).
 
-export type StatoVerifica = 'non_disponibile' | 'non_idoneo' | 'socio' | 'registrazione'
+/** Chi e' per PerfectGym: nessuno (diventera' un Lead), un Lead, un Guest o un Member. */
+export type TipoVerifica = 'nuovo' | 'lead' | 'guest' | 'member'
 
-/** I dati di chi si registra: quelli di AddGuestMember, coi consensi. */
-export type DatiRegistrazione = {
+/** I dati del secondo passo: sempre, gia' compilati per chi il club conosce. */
+export type DatiContatto = {
   nome: string
   cognome: string
   cellulare: string
-  nascita: string
-  codice_fiscale: string
-  via: string
-  cap: string
-  citta: string
   privacy: boolean
   marketing: boolean
 }
+
+export type EsitoVerifica =
+  | { ok: true; idoneo: false; motivo: string | null }
+  | { ok: true; idoneo: true; tipo: TipoVerifica; persona: { nome: string | null; cognome: string | null; telefono: string | null } | null }
+  | { ok: false; errore: string }
 
 async function chiama(corpo: Record<string, unknown>, token?: string): Promise<{ ok: boolean; stato: number; dati: Record<string, any> }> {
   try {
@@ -36,16 +37,20 @@ async function chiama(corpo: Record<string, unknown>, token?: string): Promise<{
   }
 }
 
-export async function verificaGuestPass(email: string): Promise<{ ok: true; stato: StatoVerifica; motivo: string | null } | { ok: false; errore: string }> {
+export async function verificaGuestPass(email: string): Promise<EsitoVerifica> {
   const { ok, dati } = await chiama({ azione: 'verifica', email })
-  if (ok) return { ok: true, stato: dati.stato, motivo: dati.motivo ?? null }
-  return { ok: false, errore: dati.errore ?? 'Non riusciamo a controllare l’email adesso.' }
+  if (!ok) return { ok: false, errore: dati.errore ?? 'Non riusciamo a controllare l’email adesso.' }
+  if (dati.stato === 'non_idoneo' || dati.stato === 'non_disponibile') return { ok: true, idoneo: false, motivo: dati.motivo ?? null }
+  return { ok: true, idoneo: true, tipo: (dati.tipo ?? 'nuovo') as TipoVerifica, persona: dati.persona ?? null }
 }
 
-export async function richiediGuestPass(email: string, dati?: DatiRegistrazione): Promise<{ ok: true } | { ok: false; errore: string }> {
-  const r = await chiama({ azione: 'richiedi', email, ...(dati ? { dati } : {}) })
+export async function richiediGuestPass(
+  email: string,
+  dati: DatiContatto,
+): Promise<{ ok: true } | { ok: false; nonIdoneo: boolean; errore: string }> {
+  const r = await chiama({ azione: 'richiedi', email, dati })
   if (r.ok) return { ok: true }
-  return { ok: false, errore: r.dati.errore ?? 'Non siamo riusciti a mandarti il link adesso.' }
+  return { ok: false, nonIdoneo: r.dati.non_idoneo === true, errore: r.dati.errore ?? 'Non siamo riusciti a mandarti il link adesso.' }
 }
 
 /** Dal laboratorio: il Guest Pass per un famigliare, col link al tester. */
