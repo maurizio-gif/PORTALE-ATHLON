@@ -1,14 +1,27 @@
-import { useCallback, useEffect, useState } from 'react'
-import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-native'
+import { useLocalSearchParams } from 'expo-router'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { ActivityIndicator, Linking, Platform, ScrollView, StyleSheet, Text, View } from 'react-native'
 
-import { disdiciLezione, leggiGiorno, prenotaLezione, type Giorno, type Lezione, type PersonaCalendario, type SchedaLezione } from '@/api/lab'
+import {
+  acquistaLezione,
+  disdiciLezione,
+  esitoAcquistoLezione,
+  leggiGiorno,
+  prenotaLezione,
+  type EsitoAcquisto,
+  type Giorno,
+  type Lezione,
+  type PersonaCalendario,
+  type ProdottoLezione,
+  type SchedaLezione,
+} from '@/api/lab'
 import { Avviso } from '@/components/Avviso'
 import { Bottone } from '@/components/Bottone'
 import { Pagina } from '@/components/Pagina'
 import { Scelta } from '@/components/Scelta'
 import { Griglia } from '@/components/Griglia'
 import { Forte, Testo } from '@/components/Testo'
-import { giornoEsteso, ora } from '@/lib/eventi'
+import { euro, giornoEsteso, ora } from '@/lib/eventi'
 
 import { FinestraLezione, Fotina } from './SchedaLezione'
 import { spazio, stileTono, useColori } from '@/theme'
@@ -49,17 +62,22 @@ function RigaLezione({
   onScheda,
   occupato,
   onPrenota,
+  onAcquista,
   onDisdici,
 }: {
   l: Lezione
   scheda: SchedaLezione | null
   onScheda: () => void
   occupato: boolean
-  onPrenota: () => Promise<string | null>
+  /** Null se e' andata; altrimenti il motivo e, se manca solo il prodotto, cosa comprare. */
+  onPrenota: () => Promise<{ errore: string; prodotto?: ProdottoLezione } | null>
+  onAcquista: () => Promise<string | null>
   onDisdici: () => Promise<string | null>
 }) {
   const c = useColori()
   const [conferma, setConferma] = useState(false)
+  // Il prodotto da comprare, dopo che PerfectGym ha detto che la lezione non e' compresa.
+  const [daPagare, setDaPagare] = useState<ProdottoLezione | null>(null)
   const [attesa, setAttesa] = useState(false)
   const [errore, setErrore] = useState<string | null>(null)
   const b = l.prenotazione
@@ -127,8 +145,28 @@ function RigaLezione({
         )
       ) : l.prenotabile_dal ? (
         <Bottone testo={`Prenotabile da ${apertura(l.prenotabile_dal)}`} variante="contorno" onPress={() => {}} disabilitato />
+      ) : daPagare ? (
+        <Bottone
+          testo={`Acquista e prenota${daPagare.prezzo != null ? ` · ${euro(daPagare.prezzo)}` : ''}`}
+          onPress={() => esegui(onAcquista)}
+          inCorso={attesa}
+          disabilitato={occupato}
+        />
       ) : (
-        <Bottone testo={l.liberi <= 0 ? 'Mettiti in lista d’attesa' : 'Prenota'} variante="contorno" onPress={() => esegui(onPrenota)} inCorso={attesa} disabilitato={occupato} />
+        <Bottone
+          testo={l.liberi <= 0 ? 'Mettiti in lista d’attesa' : 'Prenota'}
+          variante="contorno"
+          onPress={async () => {
+            setErrore(null)
+            setAttesa(true)
+            const r = await onPrenota()
+            setAttesa(false)
+            if (r) setErrore(r.errore)
+            if (r?.prodotto) setDaPagare(r.prodotto)
+          }}
+          inCorso={attesa}
+          disabilitato={occupato}
+        />
       )}
     </View>
   )
@@ -158,6 +196,36 @@ export function Calendario() {
     leggi()
   }, [leggi])
 
+  // Il ritorno dal pagamento di PerfectGym (?acquisto=<id>): si chiede
+  // com'e' andata finche' la prenotazione non c'e' (il pagamento arriva a
+  // PerfectGym qualche secondo dopo), per due minuti; poi si rilegge il giorno.
+  const { acquisto } = useLocalSearchParams<{ acquisto?: string }>()
+  const [ritorno, setRitorno] = useState<EsitoAcquisto | { stato: 'avviato' } | null>(null)
+  const avviato = useRef(false)
+  useEffect(() => {
+    if (!acquisto || avviato.current) return
+    avviato.current = true
+    let giri = 0
+    let fermo = false
+    const giro = async () => {
+      const r = await esitoAcquistoLezione(acquisto)
+      if (fermo) return
+      if (!r.ok) return setRitorno({ stato: 'errore', errore: r.errore, class_id: 0, member_id: 0 })
+      if (r.esito.stato === 'avviato' && ++giri < 30) {
+        setRitorno(r.esito)
+        setTimeout(giro, 4000)
+        return
+      }
+      setRitorno(r.esito.stato === 'avviato' ? { ...r.esito, stato: 'errore', errore: null } : r.esito)
+      leggi(undefined, r.esito.member_id || undefined)
+    }
+    setRitorno({ stato: 'avviato' })
+    giro()
+    return () => {
+      fermo = true
+    }
+  }, [acquisto, leggi])
+
   // Dopo un clic si aggiorna la riga subito, con quello che dice PerfectGym,
   // senza ricaricare la giornata: il mirror puo' essere indietro.
   function aggiorna(classId: number, prenotazione: Lezione['prenotazione'], delta: number) {
@@ -173,13 +241,25 @@ export function Calendario() {
     )
   }
 
-  async function prenota(l: Lezione): Promise<string | null> {
+  async function prenota(l: Lezione): Promise<{ errore: string; prodotto?: ProdottoLezione } | null> {
     if (!giorno) return null
     setOccupato(true)
     const esito = await prenotaLezione(l.class_id, giorno.member_id)
     setOccupato(false)
-    if (!esito.ok) return esito.errore
+    if (!esito.ok) return { errore: esito.errore, prodotto: esito.prodotto }
     aggiorna(l.class_id, { booking_id: esito.booking_id ?? 0, attesa: esito.esito === 'attesa' }, esito.esito === 'attesa' ? 0 : 1)
+    return null
+  }
+
+  /** Alla pagina di pagamento di PerfectGym; si torna qui con ?acquisto=<id>. */
+  async function acquista(l: Lezione): Promise<string | null> {
+    if (!giorno) return null
+    setOccupato(true)
+    const r = await acquistaLezione(l.class_id, giorno.member_id)
+    setOccupato(false)
+    if (!r.ok) return r.errore
+    if (Platform.OS === 'web') window.location.assign(r.url)
+    else await Linking.openURL(r.url)
     return null
   }
 
@@ -220,6 +300,25 @@ export function Calendario() {
   const perChi = giorno.persone.find((p) => p.member_id === giorno.member_id)
   return (
     <Pagina larga titolo="Calendario lezioni" sottotitolo="Laboratorio · le prenotazioni sono vere: le trovi anche nell’app Athlon.">
+      {ritorno ? (
+        ritorno.stato === 'avviato' ? (
+          <Avviso tono="attenzione">
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: spazio.due }}>
+              <ActivityIndicator color={c.attenzione} />
+              <Testo>Aspettiamo da PerfectGym la conferma del pagamento, poi prenotiamo. Non chiudere la pagina.</Testo>
+            </View>
+          </Avviso>
+        ) : ritorno.stato === 'prenotato' ? (
+          <Avviso tono="ok">Pagamento ricevuto: la lezione è prenotata. La trovi qui sotto e nell’app Athlon.</Avviso>
+        ) : ritorno.stato === 'attesa' ? (
+          <Avviso tono="attenzione">Pagamento ricevuto, ma i posti sono finiti mentre pagavi: sei in lista d’attesa.</Avviso>
+        ) : (
+          <Avviso>
+            {('errore' in ritorno && ritorno.errore) ||
+              'Non vediamo ancora il pagamento. Se hai pagato, la prenotazione la sistemiamo noi: scrivici a desk@athlonroma.it.'}
+          </Avviso>
+        )
+      ) : null}
       {giorno.persone.length > 1 ? (
         // Chi e' scelto e' grande; gli altri della famiglia piccoli, finche' non li si tocca.
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={[stili.fila, { alignItems: 'center' }]}>
@@ -301,12 +400,14 @@ export function Calendario() {
           <Griglia minima={400}>
             {filtrate.map((l) => (
               <RigaLezione
-                key={l.class_id}
+                // Con la persona cambia anche cosa le manca: la riga riparte da «Prenota».
+                key={`${giorno.member_id}-${l.class_id}`}
                 l={l}
                 scheda={l.scheda ? giorno.schede?.[l.scheda] ?? null : null}
                 onScheda={() => setAperta(l)}
                 occupato={occupato}
                 onPrenota={() => prenota(l)}
+                onAcquista={() => acquista(l)}
                 onDisdici={() => disdici(l)}
               />
             ))}

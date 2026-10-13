@@ -151,10 +151,33 @@ export async function leggiGiorno(data?: string, memberId?: number): Promise<{ o
   return { ok: false, errore: dati.errore ?? 'Non riusciamo a leggere il calendario adesso.' }
 }
 
-export async function prenotaLezione(classId: number, memberId: number): Promise<{ ok: true; esito: 'prenotato' | 'attesa'; booking_id: number | null } | { ok: false; errore: string }> {
+/** Il prodotto PerfectGym che apre la prenotazione di una lezione, per chi non ce l'ha compreso. */
+export type ProdottoLezione = { product_id: number; nome: string; prezzo: number | null }
+
+export async function prenotaLezione(
+  classId: number,
+  memberId: number,
+): Promise<{ ok: true; esito: 'prenotato' | 'attesa'; booking_id: number | null } | { ok: false; errore: string; prodotto?: ProdottoLezione }> {
   const { ok, dati } = await calendario({ azione: 'prenota', class_id: classId, member_id: memberId })
   if (ok) return { ok: true, esito: dati.esito, booking_id: dati.booking_id ?? null }
+  // Manca il prodotto (niente abbonamento che comprenda la lezione): si puo' comprare.
+  if (dati.da_pagare && dati.prodotto) return { ok: false, errore: dati.errore ?? 'Questa lezione non è compresa nel tuo abbonamento.', prodotto: dati.prodotto }
   return { ok: false, errore: dati.errore ?? 'Non siamo riusciti a prenotare adesso.' }
+}
+
+/** Il link di pagamento di PerfectGym per il prodotto della lezione; dopo il pagamento si torna al calendario con ?acquisto=<id>. */
+export async function acquistaLezione(classId: number, memberId: number): Promise<{ ok: true; url: string } | { ok: false; errore: string }> {
+  const { ok, dati } = await calendario({ azione: 'acquista', class_id: classId, member_id: memberId })
+  if (ok && typeof dati.url === 'string') return { ok: true, url: dati.url }
+  return { ok: false, errore: dati.errore ?? 'Non riusciamo ad aprire il pagamento adesso.' }
+}
+
+export type EsitoAcquisto = { stato: 'avviato' | 'prenotato' | 'attesa' | 'errore'; errore: string | null; class_id: number; member_id: number }
+
+export async function esitoAcquistoLezione(acquistoId: string): Promise<{ ok: true; esito: EsitoAcquisto } | { ok: false; errore: string }> {
+  const { ok, dati } = await calendario({ azione: 'esito_acquisto', acquisto_id: acquistoId })
+  if (ok) return { ok: true, esito: dati as unknown as EsitoAcquisto }
+  return { ok: false, errore: dati.errore ?? 'Non riusciamo a verificare il pagamento adesso.' }
 }
 
 export async function disdiciLezione(classId: number, memberId: number): Promise<{ ok: true } | { ok: false; errore: string }> {
