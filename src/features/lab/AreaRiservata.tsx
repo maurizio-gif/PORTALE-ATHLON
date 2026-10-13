@@ -150,7 +150,7 @@ export function AreaRiservata({ email }: { email: string }) {
       </Scheda>
 
       <Voce titolo="Calendario lezioni" descrizione="Posti liberi, prenota e disdici: prenotazioni vere su PerfectGym." href="/lab/calendario" />
-      <Voce titolo="Pagamenti" descrizione="Pagamento diretto con Adyen, con il tetto di prova." etichetta="tappa 4" />
+      <Voce titolo="Pagamenti" descrizione="Pagamento diretto con carta e rate automatiche, con il tetto di prova di 5 €." href="/lab/pagamenti" />
       {uscita}
     </Pagina>
   )
