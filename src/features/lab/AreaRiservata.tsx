@@ -155,6 +155,7 @@ export function AreaRiservata({ email }: { email: string }) {
       <Griglia minima={360}>
         <Voce titolo="Calendario lezioni" descrizione="Posti liberi, prenota e disdici: prenotazioni vere su PerfectGym." href="/lab/calendario" />
         <Voce titolo="Pagamenti" descrizione="Pagamento diretto con carta e rate automatiche, con il tetto di prova di 5 €." href="/lab/pagamenti" />
+        <Voce titolo="Guest Pass (prova)" descrizione="La procedura nuova dal link: dati, consensi, inizio e pagamento." href="/lab/guest-pass" />
       </Griglia>
       {uscita}
     </Pagina>

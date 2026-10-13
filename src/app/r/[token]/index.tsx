@@ -5,16 +5,18 @@ import { eTokenAppuntamento, leggiAppuntamento, type Appuntamento, type Calendar
 import { chiamaLink } from '@/api/link'
 import { GestioneAppuntamento } from '@/features/appuntamento/GestioneAppuntamento'
 import { PrenotaEvento } from '@/features/evento/PrenotaEvento'
+import { AttivaGuestPass } from '@/features/guest-pass/AttivaGuestPass'
 import { AppuntamentoNonTrovato, Guasto, InCaricamento, LinkScaduto } from '@/features/link/Stati'
 import { GestioneNucleo } from '@/features/metodo-pagamento/GestioneNucleo'
 import type { PaginaEvento } from '@/lib/eventi'
+import type { PaginaGuestPass } from '@/lib/guestPass'
 import type { ContrattoNucleo } from '@/lib/metodoPagamento'
 
 // L'arrivo di ogni link via email: `https://app.athlonroma.it/r/<token>`. Un
 // solo prefisso, cosi' i deep link dell'app si registrano una volta (app.json).
 //
 //   <uuid>.<firma>  ->  appuntamento col desk o col Direttore Tecnico (rotte del CRM)
-//   altrimenti      ->  `portale-link` dice di che si tratta: metodo di pagamento, evento
+//   altrimenti      ->  `portale-link` dice di che si tratta: metodo di pagamento, evento, Guest Pass
 
 type Stato =
   | { fase: 'carica' }
@@ -23,6 +25,7 @@ type Stato =
   | { fase: 'guasto' }
   | { fase: 'metodo_pagamento'; nome: string | null; nomeTitolare: string; evidenziato: number | null; contratti: ContrattoNucleo[] }
   | { fase: 'evento'; nome: string | null; pagina: PaginaEvento }
+  | { fase: 'guest_pass'; nome: string | null; pagina: PaginaGuestPass }
   | { fase: 'appuntamento'; calendario: Calendario; appuntamento: Appuntamento; giorni: GiornoPrenotabile[] }
 
 export default function ArrivoDaLink() {
@@ -53,6 +56,10 @@ export default function ArrivoDaLink() {
       const { ok: _ok, tipo: _tipo, nome, ...pagina } = dati
       return setStato({ fase: 'evento', nome: nome ?? null, pagina: pagina as unknown as PaginaEvento })
     }
+    if (dati.tipo === 'guest_pass') {
+      const { ok: _ok, tipo: _tipo, nome, ...pagina } = dati
+      return setStato({ fase: 'guest_pass', nome: nome ?? null, pagina: pagina as unknown as PaginaGuestPass })
+    }
     setStato({ fase: 'guasto' })
   }, [token])
 
@@ -75,6 +82,8 @@ export default function ArrivoDaLink() {
       )
     case 'evento':
       return <PrenotaEvento token={token} nome={stato.nome} iniziale={stato.pagina} />
+    case 'guest_pass':
+      return <AttivaGuestPass token={token} nome={stato.nome} iniziale={stato.pagina} />
     case 'appuntamento':
       return <GestioneAppuntamento token={token} calendario={stato.calendario} iniziale={stato.appuntamento} giorni={stato.giorni} />
   }
