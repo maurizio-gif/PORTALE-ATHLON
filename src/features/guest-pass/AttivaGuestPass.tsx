@@ -126,6 +126,8 @@ export function AttivaGuestPass({ token, nome, iniziale }: { token: string; nome
   const [conto, setConto] = useState({ iban: '', intestatario: '', via: iniziale.persona.via ?? '', cap: iniziale.persona.cap ?? '', citta: iniziale.persona.citta ?? '' })
   const [occupato, setOccupato] = useState<string | null>(null)
   const [errore, setErrore] = useState<string | null>(null)
+  // L'errore dei dati, mostrato nel primo blocco: la verifica si fa li', alla spunta.
+  const [erroreDati, setErroreDati] = useState<string | null>(null)
   const [avviso, setAvviso] = useState<{ testo: string; tono: 'ok' | 'attenzione' | 'errore' } | null>(null)
   const giaFatto = useRef(false)
 
@@ -223,8 +225,33 @@ export function AttivaGuestPass({ token, nome, iniziale }: { token: string; nome
       metodo,
       ...extra,
     })
-    if (!ok) setErrore(d.errore ?? 'Non siamo riusciti a salvare adesso.')
+    if (!ok && d.campo === 'dati') {
+      setConfermati(false)
+      setErroreDati(d.errore ?? 'Controlla i tuoi dati.')
+    } else if (!ok) setErrore(d.errore ?? 'Non siamo riusciti a salvare adesso.')
     return ok
+  }
+
+  // «I miei dati sono corretti»: la verifica si fa subito (decisione del
+  // 13/10/2026), non alla conferma finale. Il server controlla i dati e li porta
+  // su PerfectGym; se uno non va, lo dice qui e la spunta si toglie.
+  async function confermaDati() {
+    setErroreDati(null)
+    if (confermati) return setConfermati(false)
+    if (erroreCf) return // l'avviso del codice fiscale e' gia' sotto i dati
+    if (!datiCompleti) return setErroreDati('Completa tutti i dati prima di confermarli.')
+    setConfermati(true)
+    setOccupato('dati')
+    const { ok, dati: d } = await chiamaLink(token, 'salva', {
+      ...(Object.keys(cambiati).length ? { dati: cambiati } : {}),
+      dati_confermati: true,
+    })
+    setOccupato(null)
+    if (!ok) {
+      setConfermati(false)
+      return setErroreDati(d.errore ?? 'Non siamo riusciti a controllare i dati adesso. Riprova fra qualche minuto.')
+    }
+    await ricarica()
   }
 
   async function salvaConto() {
@@ -352,6 +379,7 @@ export function AttivaGuestPass({ token, nome, iniziale }: { token: string; nome
               const cambia = (v: string) => {
                 setDati((x) => ({ ...x, [k]: v }))
                 setConfermati(false)
+                setErroreDati(null)
               }
               if (k === 'nascita') {
                 return <CampoData key={k} etichetta={CAMPI[k]} value={dati[k] ?? ''} onChange={cambia} errore={!(dati[k] ?? '').trim()} sfondo={c.sfondo} />
@@ -379,10 +407,19 @@ export function AttivaGuestPass({ token, nome, iniziale }: { token: string; nome
           </Gruppo>
         ))}
         {erroreCf ? <Avviso>{erroreCf}</Avviso> : null}
-        <Casella spuntata={confermati} onCambia={() => setConfermati((x) => !x)} etichetta="I miei dati sono corretti">
+        <Casella spuntata={confermati} onCambia={confermaDati} etichetta="I miei dati sono corretti">
           <Testo style={{ fontWeight: '700' }}>I miei dati sono corretti</Testo>
         </Casella>
-        {Object.keys(cambiati).length ? <Testo variante="piccolo">Le correzioni vanno sulla tua scheda del club quando confermi.</Testo> : null}
+        {occupato === 'dati' ? (
+          <View style={{ flexDirection: 'row', gap: spazio.due, alignItems: 'center' }}>
+            <ActivityIndicator color={c.accento} />
+            <Testo variante="piccolo">Controlliamo i tuoi dati…</Testo>
+          </View>
+        ) : null}
+        {erroreDati ? <Avviso>{erroreDati}</Avviso> : null}
+        {Object.keys(cambiati).length && !confermati ? (
+          <Testo variante="piccolo">Le correzioni vanno sulla tua scheda del club quando spunti «I miei dati sono corretti».</Testo>
+        ) : null}
         <Gruppo titolo={passwordObbligatoria ? 'La tua password' : 'Password (facoltativa)'} due={dueColonne}>
           <Campo
             etichetta={passwordObbligatoria ? 'Scegli la password' : 'Nuova password'}
