@@ -26,6 +26,7 @@ import {
   type PaginaGuestPass,
 } from '@/lib/guestPass'
 
+import { problemaCodiceFiscale } from '@/lib/codiceFiscale'
 import { spazio, tinta, useColori } from '@/theme'
 
 // Il Guest Pass dal link (in prova): una pagina sola, in quattro blocchi.
@@ -180,7 +181,9 @@ export function AttivaGuestPass({ token, nome, iniziale }: { token: string; nome
   const tuttiIConsensi = p.consensi.every((k) => consensi.has(k.id))
   const originali = daPerfectGym(p)
   const cambiati = Object.fromEntries(Object.entries(dati).filter(([k, v]) => v.trim() !== (originali[k] ?? '').trim()))
-  const datiCompleti = Object.keys(CAMPI).every((k) => (dati[k] ?? '').trim())
+  // Il codice fiscale deve essere ben scritto e di questa persona (cognome, nome, nascita).
+  const erroreCf = problemaCodiceFiscale(dati)
+  const datiCompleti = Object.keys(CAMPI).every((k) => (dati[k] ?? '').trim()) && !erroreCf
   const salvati = p.salvati ?? []
   const cartaSalvata = salvati.find((m) => m.tipo === 'carta') ?? null
   const salvatoScelto = sceltaMetodo?.startsWith('s') ? (salvati.find((m) => `s${m.id}` === sceltaMetodo) ?? null) : null
@@ -354,13 +357,14 @@ export function AttivaGuestPass({ token, nome, iniziale }: { token: string; nome
                   }
                   maxLength={k === 'codice_fiscale' ? 16 : k === 'cap' ? 5 : undefined}
                   placeholder={k === 'codice_fiscale' ? 'RSSMRA80A01H501U' : k === 'telefono' ? '+39 340 123 4567' : undefined}
-                  errore={!(dati[k] ?? '').trim()}
+                  errore={!(dati[k] ?? '').trim() || (k === 'codice_fiscale' && !!erroreCf)}
                   style={{ backgroundColor: c.sfondo }}
                 />
               )
             })}
           </Gruppo>
         ))}
+        {erroreCf ? <Avviso>{erroreCf}</Avviso> : null}
         <Casella spuntata={confermati} onCambia={() => setConfermati((x) => !x)} etichetta="I miei dati sono corretti">
           <Testo style={{ fontWeight: '700' }}>I miei dati sono corretti</Testo>
         </Casella>
@@ -507,7 +511,7 @@ export function AttivaGuestPass({ token, nome, iniziale }: { token: string; nome
       <Bottone testo={metodo === 'carta' ? `Conferma e paga · ${p.prezzo} €` : `Conferma e attiva · ${p.prezzo} €`} onPress={conferma} inCorso={occupato === 'conferma'} disabilitato={!pronto || !!occupato} />
       {!pronto ? (
         <Testo variante="piccolo">
-          {!datiCompleti ? 'Completa i tuoi dati. ' : !confermati ? 'Conferma che i tuoi dati sono corretti. ' : ''}
+          {erroreCf ? 'Controlla il codice fiscale. ' : !datiCompleti ? 'Completa i tuoi dati. ' : !confermati ? 'Conferma che i tuoi dati sono corretti. ' : ''}
           {!inizio ? 'Scegli il giorno d’inizio. ' : ''}
           {!metodoPronto ? 'Completa il metodo di pagamento. ' : ''}
           {!tuttiIConsensi ? 'Accetta i Termini e Condizioni e il Regolamento del club.' : ''}
