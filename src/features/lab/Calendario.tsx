@@ -1,13 +1,15 @@
 import { useCallback, useEffect, useState } from 'react'
 import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-native'
 
-import { disdiciLezione, leggiGiorno, prenotaLezione, type Giorno, type Lezione } from '@/api/lab'
+import { disdiciLezione, leggiGiorno, prenotaLezione, type Giorno, type Lezione, type SchedaLezione } from '@/api/lab'
 import { Avviso } from '@/components/Avviso'
 import { Bottone } from '@/components/Bottone'
 import { Pagina } from '@/components/Pagina'
 import { Scelta } from '@/components/Scelta'
 import { Forte, Testo } from '@/components/Testo'
 import { giornoEsteso, ora } from '@/lib/eventi'
+
+import { FinestraLezione, Fotina } from './SchedaLezione'
 import { spazio, stileTono, useColori } from '@/theme'
 
 // Il calendario del laboratorio: le lezioni di gruppo di oggi e dei tre giorni
@@ -26,11 +28,15 @@ function etichettaGiorno(data: string): { settimana: string; numero: string } {
 
 function RigaLezione({
   l,
+  scheda,
+  onScheda,
   occupato,
   onPrenota,
   onDisdici,
 }: {
   l: Lezione
+  scheda: SchedaLezione | null
+  onScheda: () => void
   occupato: boolean
   onPrenota: () => Promise<string | null>
   onDisdici: () => Promise<string | null>
@@ -74,8 +80,9 @@ function RigaLezione({
   return (
     <View style={[stili.lezione, { borderColor: c.bordo, backgroundColor: c.superficie }, b ? stileTono(c, b.attesa ? 'attenzione' : 'ok') : null]}>
       <View style={stili.testa}>
-        <Text style={[stili.ora, { color: c.testo }]}>{ora(l.inizio)}</Text>
+        {scheda ? <Fotina scheda={scheda} onApri={onScheda} /> : null}
         <View style={{ flex: 1, gap: 2 }}>
+          <Text style={[stili.ora, { color: c.testo }]}>{ora(l.inizio)}</Text>
           <Testo>
             <Forte>{l.nome}</Forte>
           </Testo>
@@ -114,9 +121,10 @@ export function Calendario() {
   const [errore, setErrore] = useState<string | null>(null)
   const [carica, setCarica] = useState(true)
   const [occupato, setOccupato] = useState(false)
-  // L'attivita' scelta resta passando da un giorno all'altro: chi cerca il
-  // Pilates lo cerca in tutta la settimana.
+  // La categoria scelta (Corsi Fitness, Group Reformer, …) resta passando da
+  // un giorno all'altro: chi cerca il Reformer lo cerca in tutta la settimana.
   const [attivita, setAttivita] = useState<string | null>(null)
+  const [aperta, setAperta] = useState<Lezione | null>(null)
 
   const leggi = useCallback(async (data?: string, memberId?: number) => {
     setCarica(true)
@@ -187,9 +195,9 @@ export function Calendario() {
   const visibili = giorno.lezioni.filter((l) => !l.iniziata || l.prenotazione)
   const nascoste = giorno.lezioni.length - visibili.length
   const conteggi = new Map<string, number>()
-  for (const l of visibili) conteggi.set(l.nome, (conteggi.get(l.nome) ?? 0) + 1)
+  for (const l of visibili) conteggi.set(l.categoria, (conteggi.get(l.categoria) ?? 0) + 1)
   const attivitaDelGiorno = [...conteggi.keys()].sort((x, y) => x.localeCompare(y, 'it'))
-  const filtrate = attivita ? visibili.filter((l) => l.nome === attivita) : visibili
+  const filtrate = attivita ? visibili.filter((l) => l.categoria === attivita) : visibili
   return (
     <Pagina titolo="Calendario lezioni" sottotitolo="Laboratorio · le prenotazioni sono vere: le trovi anche nell’app Athlon.">
       {giorno.persone.length > 1 ? (
@@ -252,17 +260,30 @@ export function Calendario() {
         <Testo variante="attenuato">Nessuna lezione ancora da cominciare in questo giorno.</Testo>
       ) : filtrate.length === 0 ? (
         <>
-          <Testo variante="attenuato">Nessuna lezione di {attivita} ancora da cominciare in questo giorno.</Testo>
+          <Testo variante="attenuato">Nessuna lezione di «{attivita}» ancora da cominciare in questo giorno.</Testo>
           <Bottone testo="Mostra tutte le attività" variante="contorno" onPress={() => setAttivita(null)} />
         </>
       ) : (
         <View style={{ gap: spazio.due }}>
           {nascoste && !attivita ? <Testo variante="piccolo">{nascoste === 1 ? 'Una lezione è già cominciata.' : `${nascoste} lezioni sono già cominciate.`}</Testo> : null}
           {filtrate.map((l) => (
-            <RigaLezione key={l.class_id} l={l} occupato={occupato} onPrenota={() => prenota(l)} onDisdici={() => disdici(l)} />
+            <RigaLezione
+              key={l.class_id}
+              l={l}
+              scheda={l.scheda ? giorno.schede?.[l.scheda] ?? null : null}
+              onScheda={() => setAperta(l)}
+              occupato={occupato}
+              onPrenota={() => prenota(l)}
+              onDisdici={() => disdici(l)}
+            />
           ))}
         </View>
       )}
+      <FinestraLezione
+        scheda={aperta?.scheda ? giorno.schede?.[aperta.scheda] ?? null : null}
+        titolo={aperta?.nome ?? ''}
+        onChiudi={() => setAperta(null)}
+      />
     </Pagina>
   )
 }
@@ -274,7 +295,7 @@ const stili = StyleSheet.create({
   numero: { fontSize: 18, fontWeight: '700' },
   lezione: { borderWidth: 1, borderRadius: 12, padding: spazio.tre, gap: spazio.due },
   testa: { flexDirection: 'row', gap: spazio.tre, alignItems: 'flex-start' },
-  ora: { fontSize: 17, fontWeight: '700', minWidth: 52, fontVariant: ['tabular-nums'] },
+  ora: { fontSize: 15, fontWeight: '700', fontVariant: ['tabular-nums'] },
   azioni: { flexDirection: 'row', gap: spazio.due },
   posti: { minWidth: 62, borderRadius: 10, paddingVertical: spazio.uno, paddingHorizontal: spazio.due, alignItems: 'center', justifyContent: 'center' },
   numeroPosti: { fontSize: 24, fontWeight: '800', lineHeight: 28, fontVariant: ['tabular-nums'] },

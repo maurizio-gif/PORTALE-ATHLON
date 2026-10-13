@@ -184,6 +184,12 @@ Le ultime pagine cliente del CRM passano sul portale. Il CRM non ha più pagine 
   - prenota con `BookClass` e disdice con `CancelSingleBooking`, senza saltare le regole della disdetta in ritardo, come l'app del club;
   - traduce i rifiuti di PerfectGym e registra ogni azione in `audit_log` (`portale_lab.*`).
 - `_shared/sito.ts` ammette l'intestazione `Authorization` per le funzioni del laboratorio.
+- **Filtro per macrocategoria** di PerfectGym (Corsi Fitness, Group Reformer, Aqua Fitness, …) e **posti liberi in evidenza**: verde da 5 in su, arancione sotto, rosso quando la lezione è completa.
+- **Lezioni per età.** Si vedono solo quelle adatte a chi si prenota, in base alla data di nascita:
+  - «Recupero (Nati 2015-14-13)» ai nati in quegli anni;
+  - «Baby Nuoto 3-15 Mesi» a chi ha quei mesi il giorno della lezione;
+  - Corsi Fitness, Gym Floor, Group Reformer, Aqua Fitness, Nuoto Libero e Scuola Nuoto Adulti dai 13 anni.
+- **Foto e scheda della lezione.** La foto piccola apre una finestra con video, descrizione e caratteristiche, la stessa del planning del sito. I contenuti vengono da `https://www.athlonroma.it/lezioni.json` (repo athlon-roma), generato dalle fonti del planning: non c'è nessuna copia nel portale.
 
 ## Le tappe
 

@@ -87,12 +87,28 @@ export type Lezione = {
   inizio: string
   fine: string
   nome: string
+  /** La macrocategoria di PerfectGym: Corsi Fitness, Group Reformer, Aqua Fitness, … */
+  categoria: string
   istruttore: string | null
   posti: number
   iscritti: number
   liberi: number
   iniziata: boolean
   prenotazione: { booking_id: number; attesa: boolean } | null
+  /** La chiave della sua scheda in `Giorno.schede`, se il sito ne ha una. */
+  scheda: string | null
+}
+
+/** La scheda di una lezione, da https://www.athlonroma.it/lezioni.json (la stessa del planning del sito). */
+export type SchedaLezione = {
+  nome: string
+  /** HTML semplice: <b> e <br>. */
+  descrizione: string
+  video: string | null
+  inizioVideo: number | null
+  foto: string | null
+  fuoco: string | null
+  caratteristiche: { l: string; v: number }[]
 }
 
 export type PersonaCalendario = { member_id: number; nome: string | null; cognome: string | null; titolare: boolean }
@@ -104,6 +120,7 @@ export type Giorno = {
   member_id: number
   prenotazioni_lette: boolean
   lezioni: Lezione[]
+  schede: Record<string, SchedaLezione>
 }
 
 async function calendario(corpo: Record<string, unknown>): Promise<{ ok: boolean; stato: number; dati: Record<string, any> }> {
