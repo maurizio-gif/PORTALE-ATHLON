@@ -1,19 +1,34 @@
 import { useLocalSearchParams } from 'expo-router'
 import { useEffect, useRef, useState } from 'react'
-import { ActivityIndicator, Linking, Platform, ScrollView, StyleSheet, Text, View } from 'react-native'
+import { ActivityIndicator, Linking, Platform, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native'
 
 import { chiamaLink } from '@/api/link'
 import { Avviso } from '@/components/Avviso'
 import { Bottone } from '@/components/Bottone'
 import { Campo } from '@/components/Campo'
+import { CampoData, dataItaliana } from '@/components/CampoData'
+import { ChiGestisceCarta, ChiGestisceConto } from '@/components/ChiGestisce'
 import { Casella } from '@/components/Casella'
 import { Pagina } from '@/components/Pagina'
 import { Scelta } from '@/components/Scelta'
 import { Forte, Testo } from '@/components/Testo'
-import { CAMPI, COSA_COMPRENDE, fineSettimana, giornoBreve, giorniFra, giornoLungo, REGOLE_PRENOTAZIONE, type PaginaGuestPass } from '@/lib/guestPass'
+import {
+  CAMPI,
+  COSA_COMPRENDE,
+  fineSettimana,
+  giornoBreve,
+  giorniFra,
+  giornoLungo,
+  GRUPPI,
+  nomeMetodo,
+  PRIVACY_URL,
+  REGOLAMENTO_URL,
+  REGOLE_PRENOTAZIONE,
+  type PaginaGuestPass,
+} from '@/lib/guestPass'
 
 import { FirmaPad, firmaDisponibile } from './FirmaPad'
-import { spazio, useColori } from '@/theme'
+import { spazio, tinta, useColori } from '@/theme'
 
 // Il Guest Pass dal link (in prova): una pagina sola, in quattro blocchi.
 //   1. i tuoi dati: tutti, gia' compilati da PerfectGym e modificabili, e
@@ -21,8 +36,9 @@ import { spazio, useColori } from '@/theme'
 //   2. il Guest Pass in breve (cosa comprende, senza impegno, come si paga) e
 //      tre caselle per i consensi, coi testi completi di PerfectGym a richiesta;
 //   3. il giorno d'inizio, entro 14 giorni;
-//   4. come pagare: carta (salvata sulla pagina protetta di PerfectGym) o
-//      addebito su conto (IBAN);
+//   4. come pagare: la carta o il conto gia' salvati (si mostrano), una carta
+//      nuova (si paga e si salva in un passo, sulla pagina di Adyen) o un IBAN
+//      nuovo; accanto, chi li custodisce (Adyen, GoCardless);
 //   5. l'anteprima del contratto (come nella prevendita di Lume): chi, da
 //      quando a quando, quanto e come si paga, cosa comprende, le regole di
 //      prenotazione; si firma col dito o col mouse, e la firma va sul contratto
@@ -33,6 +49,32 @@ import { spazio, useColori } from '@/theme'
 function apri(url: string) {
   if (Platform.OS === 'web') window.location.assign(url)
   else Linking.openURL(url)
+}
+
+/** Una pagina del sito in un'altra scheda: chi legge non perde quello che ha compilato. */
+function apriAccanto(url: string) {
+  if (Platform.OS === 'web') window.open(url, '_blank', 'noopener')
+  else Linking.openURL(url)
+}
+
+// Sopra questa larghezza (desktop) i dati vanno su due colonne; tablet e telefono una.
+const DUE_COLONNE = 1024
+
+/** Un gruppo di campi, col suo titoletto: due colonne su desktop. */
+function Gruppo({ titolo, due, children }: { titolo: string; due: boolean; children: React.ReactNode[] }) {
+  const c = useColori()
+  return (
+    <View style={[stili.gruppo, { borderColor: c.bordo, backgroundColor: tinta(c.testo, 0.025) }]}>
+      <Text style={[stili.titoloGruppo, { color: c.accento }]}>{titolo.toUpperCase()}</Text>
+      <View style={due ? { flexDirection: 'row', flexWrap: 'wrap', marginHorizontal: -spazio.tre / 2 } : { gap: spazio.tre }}>
+        {children.map((figlio, i) => (
+          <View key={i} style={due ? { width: '50%', paddingHorizontal: spazio.tre / 2, paddingBottom: spazio.tre } : undefined}>
+            {figlio}
+          </View>
+        ))}
+      </View>
+    </View>
+  )
 }
 
 function Blocco({ numero, titolo, fatto, children }: { numero: number; titolo: string; fatto: boolean; children: React.ReactNode }) {
@@ -56,27 +98,36 @@ export function AttivaGuestPass({ token, nome, iniziale }: { token: string; nome
     Object.fromEntries(Object.keys(CAMPI).map((k) => [k, String((pp.persona as Record<string, unknown>)[k] ?? '')]))
   const [dati, setDati] = useState<Record<string, string>>(daPerfectGym(iniziale))
   const [confermati, setConfermati] = useState(!!iniziale.scelte.dati_confermati)
-  const [aperto, setAperto] = useState<number | null>(null)
   const [firma, setFirma] = useState<string | null>(null)
   const [firmato, setFirmato] = useState(!!iniziale.scelte.firmato)
   const [cancellaFirma, setCancellaFirma] = useState(0)
   const [consensi, setConsensi] = useState<Set<number>>(new Set(iniziale.scelte.consensi))
   const [inizio, setInizio] = useState<string | null>(iniziale.inizio.scelto)
-  const [metodo, setMetodo] = useState<'carta' | 'iban' | null>(iniziale.scelte.metodo)
+  // La scelta del metodo: uno gia' salvato («s<id>»), una carta nuova o un IBAN nuovo.
+  const [sceltaMetodo, setSceltaMetodo] = useState<string | null>(() => {
+    const id = iniziale.scelte.payment_source_id
+    if (id && (iniziale.salvati ?? []).some((m) => m.id === id)) return `s${id}`
+    return iniziale.scelte.metodo
+  })
+  const { width } = useWindowDimensions()
+  const dueColonne = width >= DUE_COLONNE
   const [conto, setConto] = useState({ iban: '', intestatario: '', via: iniziale.persona.via ?? '', cap: iniziale.persona.cap ?? '', citta: iniziale.persona.citta ?? '' })
   const [occupato, setOccupato] = useState<string | null>(null)
   const [errore, setErrore] = useState<string | null>(null)
   const [avviso, setAvviso] = useState<{ testo: string; tono: 'ok' | 'attenzione' | 'errore' } | null>(null)
   const giaFatto = useRef(false)
-  const primaScelta = useRef(`${iniziale.inizio.scelto}|${iniziale.scelte.metodo}`)
+  const primaScelta = useRef<string | null>(null)
   useEffect(() => {
-    const ora = `${inizio}|${metodo}`
-    if (ora === primaScelta.current) return
+    const ora = `${inizio}|${sceltaMetodo}`
+    if (primaScelta.current === null || ora === primaScelta.current) {
+      primaScelta.current = ora
+      return
+    }
     primaScelta.current = ora
     setFirma(null)
     setFirmato(false)
     setCancellaFirma((n) => n + 1)
-  }, [inizio, metodo])
+  }, [inizio, sceltaMetodo])
 
   async function ricarica() {
     const { ok, dati: d } = await chiamaLink(token, 'pagina')
@@ -142,6 +193,22 @@ export function AttivaGuestPass({ token, nome, iniziale }: { token: string; nome
   const originali = daPerfectGym(p)
   const cambiati = Object.fromEntries(Object.entries(dati).filter(([k, v]) => v.trim() !== (originali[k] ?? '').trim()))
   const datiCompleti = Object.keys(CAMPI).every((k) => (dati[k] ?? '').trim())
+  const salvati = p.salvati ?? []
+  const cartaSalvata = salvati.find((m) => m.tipo === 'carta') ?? null
+  const salvatoScelto = sceltaMetodo?.startsWith('s') ? (salvati.find((m) => `s${m.id}` === sceltaMetodo) ?? null) : null
+  const metodo: 'carta' | 'iban' | null = salvatoScelto ? salvatoScelto.tipo : sceltaMetodo === 'carta' || sceltaMetodo === 'iban' ? sceltaMetodo : null
+  const metodoPronto =
+    !!salvatoScelto || sceltaMetodo === 'carta' || (sceltaMetodo === 'iban' && p.scelte.metodo === 'iban' && p.scelte.metodo_pronto)
+
+  async function scegliMetodo(scelta: string) {
+    setSceltaMetodo(scelta)
+    setErrore(null)
+    const m = salvati.find((x) => `s${x.id}` === scelta)
+    if (m) await salva({ metodo: m.tipo, usa_salvato: m.id })
+    else if (scelta === 'carta') await salva({ metodo: 'carta', nuovo: true })
+    else await salva({ metodo: 'iban' })
+    await ricarica()
+  }
 
   async function salva(extra: Record<string, unknown> = {}): Promise<boolean> {
     setErrore(null)
@@ -156,15 +223,6 @@ export function AttivaGuestPass({ token, nome, iniziale }: { token: string; nome
     })
     if (!ok) setErrore(d.errore ?? 'Non siamo riusciti a salvare adesso.')
     return ok
-  }
-
-  async function cartaAvvia() {
-    setOccupato('carta')
-    if (p.stato === 'aperta' && !(await salva({ metodo: 'carta' }))) return setOccupato(null)
-    const { ok, dati: d } = await chiamaLink(token, 'carta_avvia')
-    setOccupato(null)
-    if (!ok || typeof d.url !== 'string') return setErrore(d.errore ?? 'Non riusciamo ad aprire la pagina della carta adesso.')
-    apri(d.url)
   }
 
   async function salvaConto() {
@@ -198,10 +256,10 @@ export function AttivaGuestPass({ token, nome, iniziale }: { token: string; nome
     await ricarica()
   }
 
-  async function ripaga() {
+  async function ripaga(come: { nuova?: boolean; usa_salvato?: number } = {}) {
     setErrore(null)
-    setOccupato('ripaga')
-    const { ok, dati: d } = await chiamaLink(token, 'ripaga')
+    setOccupato(come.nuova ? 'nuova' : 'ripaga')
+    const { ok, dati: d } = await chiamaLink(token, 'ripaga', come)
     setOccupato(null)
     if (ok && typeof d.url === 'string') return apri(d.url)
     if (ok && d.pagamento === 'pagato') {
@@ -232,12 +290,25 @@ export function AttivaGuestPass({ token, nome, iniziale }: { token: string; nome
             <Testo>Aspettiamo l’esito del pagamento…</Testo>
           </View>
         ) : null}
-        {p.scelte.metodo === 'carta' && p.scelte.metodo_pronto ? (
-          <Bottone testo={`Riprova il pagamento · ${p.resta ?? p.prezzo} €`} onPress={ripaga} inCorso={occupato === 'ripaga'} disabilitato={!!occupato} />
+        {cartaSalvata ? (
+          <Bottone
+            testo={`Paga ${p.resta ?? p.prezzo} € con la ${nomeMetodo(cartaSalvata).replace(/^Carta/, 'carta')}`}
+            onPress={() => ripaga({ usa_salvato: cartaSalvata.id })}
+            inCorso={occupato === 'ripaga'}
+            disabilitato={!!occupato}
+          />
         ) : null}
-        <Bottone testo="Usa un’altra carta" variante="contorno" onPress={cartaAvvia} inCorso={occupato === 'carta'} disabilitato={!!occupato} />
+        <Bottone
+          testo={cartaSalvata ? 'Paga con un’altra carta' : `Paga ${p.resta ?? p.prezzo} € con la carta`}
+          variante={cartaSalvata ? 'contorno' : undefined}
+          onPress={() => ripaga({ nuova: true })}
+          inCorso={occupato === 'nuova'}
+          disabilitato={!!occupato}
+        />
+        <ChiGestisceCarta salvaPagando={!cartaSalvata} />
         <Blocco numero={1} titolo="Oppure: addebito su conto" fatto={false}>
           <Testo variante="piccolo">Salva il conto e i {p.prezzo} € li addebitiamo noi: il Guest Pass resta com’è.</Testo>
+          <ChiGestisceConto />
           <Campo etichetta="IBAN" value={conto.iban} onChangeText={(v) => setConto((x) => ({ ...x, iban: v }))} autoCapitalize="characters" />
           <Campo etichetta="Intestatario del conto" value={conto.intestatario} onChangeText={(v) => setConto((x) => ({ ...x, intestatario: v }))} />
           <Campo etichetta="Via e numero civico" value={conto.via} onChangeText={(v) => setConto((x) => ({ ...x, via: v }))} />
@@ -254,27 +325,53 @@ export function AttivaGuestPass({ token, nome, iniziale }: { token: string; nome
 
   // L'anteprima cambia con il giorno e il metodo: una firma messa prima non vale piu'.
   const firmaValida = !!firma || firmato
-  const pronto = datiCompleti && confermati && tuttiIConsensi && !!inizio && p.scelte.metodo_pronto && firmaValida
-  const metodoLeggibile = p.scelte.metodo === 'carta' ? 'carta, con il pagamento subito' : p.scelte.metodo === 'iban' ? 'addebito su conto (SEPA)' : null
+  const pronto = datiCompleti && confermati && tuttiIConsensi && !!inizio && metodoPronto && firmaValida
+  const metodoLeggibile = salvatoScelto
+    ? salvatoScelto.tipo === 'carta'
+      ? `${nomeMetodo(salvatoScelto)}, addebito alla conferma`
+      : `addebito su conto (SEPA), ${nomeMetodo(salvatoScelto).toLowerCase()}`
+    : sceltaMetodo === 'carta'
+      ? 'carta, pagamento alla conferma sulla pagina protetta di Adyen'
+      : sceltaMetodo === 'iban'
+        ? 'addebito su conto (SEPA)'
+        : null
   return (
     <Pagina titolo={nome ? `Ciao ${nome}, attiva il tuo Guest Pass` : 'Attiva il tuo Guest Pass'} sottotitolo={`Una settimana al club a ${p.prezzo} €.`}>
       {avviso ? <Avviso tono={avviso.tono}>{avviso.testo}</Avviso> : null}
 
       <Blocco numero={1} titolo="I tuoi dati" fatto={datiCompleti && confermati}>
         <Testo variante="piccolo">Controlla i tuoi dati: sono quelli della tua scheda del club. Se qualcosa non va, correggilo qui.</Testo>
-        {Object.entries(CAMPI).map(([k, etichetta]) => (
-          <Campo
-            key={k}
-            etichetta={etichetta}
-            value={dati[k] ?? ''}
-            onChangeText={(v) => {
-              setDati((x) => ({ ...x, [k]: v }))
-              setConfermati(false)
-            }}
-            autoCapitalize={k === 'codice_fiscale' ? 'characters' : k === 'email' ? 'none' : 'sentences'}
-            keyboardType={k === 'email' ? 'email-address' : k === 'telefono' ? 'phone-pad' : k === 'cap' ? 'number-pad' : 'default'}
-            errore={!(dati[k] ?? '').trim()}
-          />
+        {GRUPPI.map((g) => (
+          <Gruppo key={g.titolo} titolo={g.titolo} due={dueColonne}>
+            {g.campi.map((k) => {
+              const cambia = (v: string) => {
+                setDati((x) => ({ ...x, [k]: v }))
+                setConfermati(false)
+              }
+              if (k === 'nascita') {
+                return <CampoData key={k} etichetta={CAMPI[k]} value={dati[k] ?? ''} onChange={cambia} errore={!(dati[k] ?? '').trim()} sfondo={c.sfondo} />
+              }
+              return (
+                <Campo
+                  key={k}
+                  etichetta={CAMPI[k]}
+                  value={dati[k] ?? ''}
+                  onChangeText={k === 'codice_fiscale' ? (v) => cambia(v.toUpperCase()) : cambia}
+                  autoCapitalize={k === 'codice_fiscale' ? 'characters' : k === 'email' ? 'none' : 'words'}
+                  keyboardType={k === 'email' ? 'email-address' : k === 'telefono' ? 'phone-pad' : k === 'cap' ? 'number-pad' : 'default'}
+                  autoComplete={
+                    ({ nome: 'given-name', cognome: 'family-name', email: 'email', telefono: 'tel', via: 'street-address', cap: 'postal-code', citta: 'address-level2' } as const)[
+                      k as 'nome'
+                    ]
+                  }
+                  maxLength={k === 'codice_fiscale' ? 16 : k === 'cap' ? 5 : undefined}
+                  placeholder={k === 'codice_fiscale' ? 'RSSMRA80A01H501U' : k === 'telefono' ? '+39 340 123 4567' : undefined}
+                  errore={!(dati[k] ?? '').trim()}
+                  style={{ backgroundColor: c.sfondo }}
+                />
+              )
+            })}
+          </Gruppo>
         ))}
         <Casella spuntata={confermati} onCambia={() => setConfermati((x) => !x)} etichetta="I miei dati sono corretti">
           <Testo style={{ fontWeight: '700' }}>I miei dati sono corretti</Testo>
@@ -321,25 +418,13 @@ export function AttivaGuestPass({ token, nome, iniziale }: { token: string; nome
                   {g.etichetta}
                 </Testo>
               </Casella>
-              <View style={{ flexDirection: 'row', gap: spazio.tre, marginLeft: 34, flexWrap: 'wrap' }}>
-                <Text style={{ color: c.accento, fontSize: 13 }} onPress={() => setAperto(aperto === g.ids[0] ? null : g.ids[0])}>
-                  {aperto === g.ids[0] ? 'Chiudi il testo' : 'Leggi il testo completo'}
-                </Text>
-                {testi
-                  .filter((k) => k.allegato)
-                  .map((k) => (
-                    <Text key={k.id} style={{ color: c.accento, fontSize: 13, textDecorationLine: 'underline' }} onPress={() => Linking.openURL(k.allegato!)}>
-                      {k.id === 23 ? 'Informativa privacy' : 'Termini e Condizioni (documento)'}
-                    </Text>
-                  ))}
-              </View>
-              {aperto === g.ids[0]
-                ? testi.map((k) => (
-                    <Testo key={k.id} variante="piccolo" style={{ marginLeft: 34 }}>
-                      {k.testo}
-                    </Testo>
-                  ))
-                : null}
+              <Text
+                accessibilityRole="link"
+                style={{ color: c.accento, fontSize: 13, textDecorationLine: 'underline', marginLeft: 34 }}
+                onPress={() => apriAccanto(g.ids.includes(23) ? PRIVACY_URL : REGOLAMENTO_URL)}
+              >
+                {g.ids.includes(23) ? 'Leggi l’informativa privacy ↗' : g.ids.includes(29) ? 'Leggi le clausole nel Regolamento ↗' : 'Leggi il Regolamento e i Termini e Condizioni ↗'}
+              </Text>
             </View>
           )
         })}
@@ -363,51 +448,77 @@ export function AttivaGuestPass({ token, nome, iniziale }: { token: string; nome
         {inizio ? <Testo variante="piccolo">{`Dal ${giornoLungo(inizio)} al ${giornoLungo(fineSettimana(inizio))}.`}</Testo> : null}
       </Blocco>
 
-      <Blocco numero={4} titolo="Come vuoi pagare" fatto={p.scelte.metodo_pronto}>
-        <View style={{ flexDirection: 'row', gap: spazio.due }}>
-          <Scelta scelta={metodo === 'carta'} onPress={() => setMetodo('carta')} etichetta="Carta">
-            <Text style={{ color: metodo === 'carta' ? c.suAccento : c.testo, fontWeight: '600' }}>Carta</Text>
+      <Blocco numero={4} titolo="Come vuoi pagare" fatto={metodoPronto}>
+        {salvati.length ? <Testo variante="piccolo">Hai già un metodo salvato al club: puoi usare quello.</Testo> : null}
+        <View style={{ flexDirection: 'row', gap: spazio.due, flexWrap: 'wrap' }}>
+          {salvati.map((m) => (
+            <Scelta key={m.id} scelta={sceltaMetodo === `s${m.id}`} onPress={() => scegliMetodo(`s${m.id}`)} etichetta={nomeMetodo(m)} spento={!!occupato}>
+              <Text style={{ color: sceltaMetodo === `s${m.id}` ? c.suAccento : c.testo, fontWeight: '600' }}>{nomeMetodo(m)}</Text>
+            </Scelta>
+          ))}
+          <Scelta scelta={sceltaMetodo === 'carta'} onPress={() => scegliMetodo('carta')} etichetta="Carta" spento={!!occupato}>
+            <Text style={{ color: sceltaMetodo === 'carta' ? c.suAccento : c.testo, fontWeight: '600' }}>{cartaSalvata ? 'Un’altra carta' : 'Carta'}</Text>
           </Scelta>
-          <Scelta scelta={metodo === 'iban'} onPress={() => setMetodo('iban')} etichetta="Addebito su conto">
-            <Text style={{ color: metodo === 'iban' ? c.suAccento : c.testo, fontWeight: '600' }}>Addebito su conto</Text>
+          <Scelta scelta={sceltaMetodo === 'iban'} onPress={() => scegliMetodo('iban')} etichetta="Addebito su conto" spento={!!occupato}>
+            <Text style={{ color: sceltaMetodo === 'iban' ? c.suAccento : c.testo, fontWeight: '600' }}>
+              {salvati.some((m) => m.tipo === 'iban') ? 'Un altro conto' : 'Addebito su conto'}
+            </Text>
           </Scelta>
         </View>
-        {metodo === 'carta' ? (
-          p.scelte.metodo === 'carta' && p.scelte.metodo_pronto ? (
-            <Avviso tono="ok">Carta salvata.</Avviso>
-          ) : (
-            <>
-              <Testo variante="piccolo">La inserisci sulla pagina protetta del club, che la custodisce: qui non passa. Dopo la conferma paghi i {p.prezzo} €.</Testo>
-              <Bottone testo="Inserisci la carta" onPress={cartaAvvia} inCorso={occupato === 'carta'} disabilitato={!!occupato} />
-            </>
-          )
+        {salvatoScelto?.tipo === 'carta' ? (
+          <>
+            <Testo variante="piccolo">Alla conferma addebitiamo i {p.prezzo} € su questa carta, senza riscriverla.</Testo>
+            <ChiGestisceCarta />
+          </>
         ) : null}
-        {metodo === 'iban' ? (
+        {salvatoScelto?.tipo === 'iban' ? (
+          <>
+            <Testo variante="piccolo">I {p.prezzo} € li addebitiamo su questo conto, dopo la conferma.</Testo>
+            <ChiGestisceConto />
+          </>
+        ) : null}
+        {sceltaMetodo === 'carta' ? (
+          <>
+            <Testo variante="piccolo">
+              Alla conferma si apre la pagina protetta di Adyen: scrivi la carta e paghi i {p.prezzo} € in un passo solo. Poi torni qui.
+            </Testo>
+            <ChiGestisceCarta salvaPagando />
+          </>
+        ) : null}
+        {sceltaMetodo === 'iban' ? (
           p.scelte.metodo === 'iban' && p.scelte.metodo_pronto ? (
-            <Avviso tono="ok">Conto salvato: i {p.prezzo} € saranno addebitati sul conto.</Avviso>
+            <>
+              <Avviso tono="ok">Conto salvato: i {p.prezzo} € saranno addebitati sul conto.</Avviso>
+              <ChiGestisceConto />
+            </>
           ) : (
             <>
-              <Campo etichetta="IBAN" value={conto.iban} onChangeText={(v) => setConto((x) => ({ ...x, iban: v }))} autoCapitalize="characters" />
-              <Campo etichetta="Intestatario del conto" value={conto.intestatario} onChangeText={(v) => setConto((x) => ({ ...x, intestatario: v }))} />
-              <Campo etichetta="Via e numero civico" value={conto.via} onChangeText={(v) => setConto((x) => ({ ...x, via: v }))} />
-              <View style={{ flexDirection: 'row', gap: spazio.due }}>
-                <Campo etichetta="CAP" value={conto.cap} onChangeText={(v) => setConto((x) => ({ ...x, cap: v }))} keyboardType="number-pad" />
-                <Campo etichetta="Città" value={conto.citta} onChangeText={(v) => setConto((x) => ({ ...x, citta: v }))} />
+              <View style={dueColonne ? { flexDirection: 'row', gap: spazio.tre } : { gap: spazio.tre }}>
+                <Campo etichetta="IBAN" value={conto.iban} onChangeText={(v) => setConto((x) => ({ ...x, iban: v.toUpperCase() }))} autoCapitalize="characters" placeholder="IT60 X054 2811 1010 0000 0123 456" style={{ backgroundColor: c.sfondo }} />
+                <Campo etichetta="Intestatario del conto" value={conto.intestatario} onChangeText={(v) => setConto((x) => ({ ...x, intestatario: v }))} style={{ backgroundColor: c.sfondo }} />
               </View>
+              <View style={dueColonne ? { flexDirection: 'row', gap: spazio.tre } : { gap: spazio.tre }}>
+                <Campo etichetta="Via e numero civico" value={conto.via} onChangeText={(v) => setConto((x) => ({ ...x, via: v }))} style={{ backgroundColor: c.sfondo }} />
+                <View style={{ flexDirection: 'row', gap: spazio.due, flex: 1 }}>
+                  <Campo etichetta="CAP" value={conto.cap} onChangeText={(v) => setConto((x) => ({ ...x, cap: v }))} keyboardType="number-pad" maxLength={5} style={{ backgroundColor: c.sfondo }} />
+                  <Campo etichetta="Città" value={conto.citta} onChangeText={(v) => setConto((x) => ({ ...x, citta: v }))} style={{ backgroundColor: c.sfondo }} />
+                </View>
+              </View>
+              <ChiGestisceConto />
               <Bottone testo="Salva il conto" onPress={salvaConto} inCorso={occupato === 'iban'} disabilitato={!!occupato} />
             </>
           )
         ) : null}
       </Blocco>
 
-      {inizio && p.scelte.metodo_pronto ? (
+      {inizio && metodoPronto ? (
         <Blocco numero={5} titolo="Anteprima del contratto" fatto={firmaValida}>
           <View style={[stili.contratto, { borderColor: c.bordo, backgroundColor: c.sfondo }]}>
             <Text style={[stili.titoloContratto, { color: c.testo }]}>Guest Pass Athlon Club · 1 settimana</Text>
             {[
               ['Intestatario', [dati.nome, dati.cognome].filter(Boolean).join(' ')],
               ['Codice fiscale', dati.codice_fiscale],
-              ['Nato il', dati.nascita],
+              ['Nato il', dataItaliana(dati.nascita)],
               ['Indirizzo', [dati.via, [dati.cap, dati.citta].filter(Boolean).join(' ')].filter(Boolean).join(', ')],
               ['Email e cellulare', [dati.email, dati.telefono].filter(Boolean).join(' · ')],
               ['Validità', `dal ${giornoLungo(inizio)} al ${giornoLungo(fineSettimana(inizio))} compresi`],
@@ -459,19 +570,19 @@ export function AttivaGuestPass({ token, nome, iniziale }: { token: string; nome
 
       {errore ? <Avviso>{errore}</Avviso> : null}
       {occupato === 'carta' && tornatoCarta ? <ActivityIndicator color={c.accento} /> : null}
-      <Bottone testo={`Conferma e attiva · ${p.prezzo} €`} onPress={conferma} inCorso={occupato === 'conferma'} disabilitato={!pronto || !!occupato} />
+      <Bottone testo={metodo === 'carta' ? `Conferma e paga · ${p.prezzo} €` : `Conferma e attiva · ${p.prezzo} €`} onPress={conferma} inCorso={occupato === 'conferma'} disabilitato={!pronto || !!occupato} />
       {!pronto ? (
         <Testo variante="piccolo">
           {!datiCompleti ? 'Completa i tuoi dati. ' : !confermati ? 'Conferma che i tuoi dati sono corretti. ' : ''}
           {!tuttiIConsensi ? 'Spunta i consensi. ' : ''}
           {!inizio ? 'Scegli il giorno d’inizio. ' : ''}
-          {!p.scelte.metodo_pronto ? 'Completa il metodo di pagamento. ' : ''}
-          {inizio && p.scelte.metodo_pronto && !firmaValida ? 'Firma l’anteprima del contratto.' : ''}
+          {!metodoPronto ? 'Completa il metodo di pagamento. ' : ''}
+          {inizio && metodoPronto && !firmaValida ? 'Firma l’anteprima del contratto.' : ''}
         </Testo>
       ) : (
         <Testo variante="piccolo">
           Confermando attivi il Guest Pass <Forte>dal {giornoLungo(inizio!)}</Forte>
-          {p.scelte.metodo === 'carta' ? ' e paghi subito i 19 € con la carta.' : ' con l’addebito dei 19 € sul conto.'}
+          {metodo === 'carta' ? ` e paghi subito i ${p.prezzo} € con la carta.` : ` con l’addebito dei ${p.prezzo} € sul conto.`}
         </Testo>
       )}
     </Pagina>
@@ -489,4 +600,6 @@ const stili = StyleSheet.create({
   chiave: { width: 130, fontSize: 13 },
   valore: { flex: 1, fontSize: 13, fontWeight: '600' },
   sezione: { fontSize: 14, fontWeight: '700', marginTop: spazio.due },
+  gruppo: { borderWidth: 1, borderRadius: 12, padding: spazio.tre, gap: spazio.tre },
+  titoloGruppo: { fontSize: 12, fontWeight: '800', letterSpacing: 1.2 },
 })

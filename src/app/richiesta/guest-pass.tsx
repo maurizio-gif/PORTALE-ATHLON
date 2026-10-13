@@ -6,6 +6,7 @@ import { emailValida } from '@/api/richieste'
 import { Avviso } from '@/components/Avviso'
 import { Bottone } from '@/components/Bottone'
 import { Campo } from '@/components/Campo'
+import { CampoData } from '@/components/CampoData'
 import { Casella } from '@/components/Casella'
 import { Pagina } from '@/components/Pagina'
 import { Testo } from '@/components/Testo'
@@ -77,8 +78,9 @@ export default function RichiestaGuestPass() {
 
   if (fase === 'no') {
     return (
-      <Pagina titolo="Guest Pass" sottotitolo={motivo ?? 'Non è possibile attivare il Guest Pass.'}>
-        <Bottone testo="Usa un’altra email" variante="contorno" onPress={() => setFase('email')} />
+      // Niente «Usa un'altra email»: inviterebbe a riprovare con un altro indirizzo.
+      <Pagina titolo="Guest Pass non disponibile">
+        <Testo>{motivo ?? 'Non è possibile attivare il Guest Pass.'}</Testo>
       </Pagina>
     )
   }
@@ -91,7 +93,7 @@ export default function RichiestaGuestPass() {
           <Campo etichetta="Cognome" value={d.cognome} onChangeText={campo('cognome')} autoComplete="family-name" />
         </View>
         <Campo etichetta="Cellulare" value={d.cellulare} onChangeText={campo('cellulare')} keyboardType="phone-pad" autoComplete="tel" placeholder="3401234567" />
-        <Campo etichetta="Data di nascita (AAAA-MM-GG)" value={d.nascita} onChangeText={campo('nascita')} placeholder="1990-05-31" />
+        <CampoData etichetta="Data di nascita" value={d.nascita} onChange={campo('nascita')} />
         <Campo etichetta="Codice fiscale" value={d.codice_fiscale} onChangeText={campo('codice_fiscale')} autoCapitalize="characters" maxLength={16} />
         <Campo etichetta="Via e numero civico" value={d.via} onChangeText={campo('via')} autoComplete="street-address" />
         <View style={{ flexDirection: 'row', gap: spazio.due }}>
