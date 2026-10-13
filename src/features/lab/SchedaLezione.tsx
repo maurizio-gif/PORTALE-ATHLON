@@ -118,14 +118,14 @@ export function Fotina({ scheda, onApri }: { scheda: SchedaLezione; onApri: () =
         <Image source={{ uri: scheda.foto }} style={stili.fotina} contentFit="cover" contentPosition={posizione(scheda.fuoco)} transition={150} />
       ) : (
         <View style={[stili.fotina, { backgroundColor: c.superficie, alignItems: 'center', justifyContent: 'center' }]}>
-          <Text style={{ color: c.accento, fontSize: 18 }}>▶</Text>
+          <Text style={{ color: c.testoSecondario, fontSize: 12 }}>Scheda</Text>
         </View>
       )}
-      {scheda.video ? (
-        <View style={stili.play}>
-          <Text style={stili.iconaPlay}>▶</Text>
-        </View>
-      ) : null}
+      {/* Una «i» ben visibile su ogni foto: dice che toccandola si apre la
+          scheda (video, descrizione), non solo che c'e' un video. */}
+      <View style={[stili.info, { backgroundColor: c.accento, borderColor: c.sfondo }]}>
+        <Text style={stili.iconaInfo}>i</Text>
+      </View>
     </Pressable>
   )
 }
@@ -141,6 +141,6 @@ const stili = StyleSheet.create({
   barra: { height: 8, borderRadius: 4, overflow: 'hidden' },
   pieno: { height: 8, borderRadius: 4 },
   fotina: { width: 56, height: 56, borderRadius: 10 },
-  play: { position: 'absolute', right: 4, bottom: 4, width: 20, height: 20, borderRadius: 10, backgroundColor: 'rgba(0,0,0,0.6)', alignItems: 'center', justifyContent: 'center' },
-  iconaPlay: { color: '#fff', fontSize: 9, marginLeft: 1 },
+  info: { position: 'absolute', right: -5, bottom: -5, width: 24, height: 24, borderRadius: 12, borderWidth: 2, alignItems: 'center', justifyContent: 'center' },
+  iconaInfo: { color: '#fff', fontSize: 14, fontWeight: '800', fontStyle: 'italic', fontFamily: 'Georgia, serif', lineHeight: 16 },
 })
