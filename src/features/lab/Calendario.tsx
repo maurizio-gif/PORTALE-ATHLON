@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-native'
 
-import { disdiciLezione, leggiGiorno, prenotaLezione, type Giorno, type Lezione, type SchedaLezione } from '@/api/lab'
+import { disdiciLezione, leggiGiorno, prenotaLezione, type Giorno, type Lezione, type PersonaCalendario, type SchedaLezione } from '@/api/lab'
 import { Avviso } from '@/components/Avviso'
 import { Bottone } from '@/components/Bottone'
 import { Pagina } from '@/components/Pagina'
@@ -16,6 +16,11 @@ import { spazio, stileTono, useColori } from '@/theme'
 // dopo, e la prenotazione vera su PerfectGym, per se' o per un figlio.
 // Le regole (apertura, posti, disdetta, quote da saldare) le applica
 // PerfectGym; qui si mostrano i suoi rifiuti.
+
+/** Nome e cognome per esteso, come sulla scheda del club. */
+function nomeCompleto(p: Pick<PersonaCalendario, 'nome' | 'cognome'>): string {
+  return [p.nome, p.cognome].filter(Boolean).join(' ') || 'Senza nome'
+}
 
 function maiuscola(t: string): string {
   return t.charAt(0).toUpperCase() + t.slice(1)
@@ -198,6 +203,7 @@ export function Calendario() {
   for (const l of visibili) conteggi.set(l.categoria, (conteggi.get(l.categoria) ?? 0) + 1)
   const attivitaDelGiorno = [...conteggi.keys()].sort((x, y) => x.localeCompare(y, 'it'))
   const filtrate = attivita ? visibili.filter((l) => l.categoria === attivita) : visibili
+  const perChi = giorno.persone.find((p) => p.member_id === giorno.member_id)
   return (
     <Pagina titolo="Calendario lezioni" sottotitolo="Laboratorio · le prenotazioni sono vere: le trovi anche nell’app Athlon.">
       {giorno.persone.length > 1 ? (
@@ -205,12 +211,17 @@ export function Calendario() {
           {giorno.persone.map((p) => {
             const attivo = p.member_id === giorno.member_id
             return (
-              <Scelta key={p.member_id} scelta={attivo} onPress={() => leggi(giorno.data, p.member_id)} etichetta={`Prenota per ${p.nome ?? ''}`}>
-                <Text style={{ color: attivo ? c.suAccento : c.testo, fontWeight: '600' }}>{p.titolare ? 'Io' : p.nome ?? 'Senza nome'}</Text>
+              <Scelta key={p.member_id} scelta={attivo} onPress={() => leggi(giorno.data, p.member_id)} etichetta={`Prenota per ${nomeCompleto(p)}`}>
+                <Text style={{ color: attivo ? c.suAccento : c.testo, fontWeight: '600' }}>{nomeCompleto(p)}</Text>
               </Scelta>
             )
           })}
         </ScrollView>
+      ) : null}
+      {perChi ? (
+        <Testo>
+          Stai prenotando per <Forte>{nomeCompleto(perChi)}</Forte>
+        </Testo>
       ) : null}
 
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={stili.fila}>
