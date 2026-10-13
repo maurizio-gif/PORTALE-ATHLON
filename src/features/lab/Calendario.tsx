@@ -1,6 +1,6 @@
 import { useLocalSearchParams } from 'expo-router'
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { ActivityIndicator, Linking, Platform, ScrollView, StyleSheet, Text, View } from 'react-native'
+import { ActivityIndicator, Linking, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
 
 import {
   acquistaLezione,
@@ -69,15 +69,15 @@ function RigaLezione({
   scheda: SchedaLezione | null
   onScheda: () => void
   occupato: boolean
-  /** Null se e' andata; altrimenti il motivo e, se manca solo il prodotto, cosa comprare. */
-  onPrenota: () => Promise<{ errore: string; prodotto?: ProdottoLezione } | null>
-  onAcquista: () => Promise<string | null>
+  /** Null se e' andata; altrimenti il motivo e, se manca solo il prodotto, cosa comprare (col link gia' aperto). */
+  onPrenota: () => Promise<{ errore: string; prodotto?: ProdottoLezione; url?: string } | null>
+  onAcquista: (url?: string) => Promise<string | null>
   onDisdici: () => Promise<string | null>
 }) {
   const c = useColori()
   const [conferma, setConferma] = useState(false)
   // Il prodotto da comprare, dopo che PerfectGym ha detto che la lezione non e' compresa.
-  const [daPagare, setDaPagare] = useState<ProdottoLezione | null>(null)
+  const [daPagare, setDaPagare] = useState<{ prodotto: ProdottoLezione; url?: string } | null>(null)
   const [attesa, setAttesa] = useState(false)
   const [errore, setErrore] = useState<string | null>(null)
   const b = l.prenotazione
@@ -143,12 +143,14 @@ function RigaLezione({
         ) : (
           <Bottone testo="Disdici" variante="contorno" onPress={() => setConferma(true)} disabilitato={occupato} />
         )
+      ) : l.limite ? (
+        <Avviso tono="attenzione">{l.limite.messaggio}</Avviso>
       ) : l.prenotabile_dal ? (
         <Bottone testo={`Prenotabile da ${apertura(l.prenotabile_dal)}`} variante="contorno" onPress={() => {}} disabilitato />
       ) : daPagare ? (
         <Bottone
-          testo={`Acquista e prenota${daPagare.prezzo != null ? ` · ${euro(daPagare.prezzo)}` : ''}`}
-          onPress={() => esegui(onAcquista)}
+          testo={`Acquista e prenota${daPagare.prodotto.prezzo != null ? ` · ${euro(daPagare.prodotto.prezzo)}` : ''}`}
+          onPress={() => esegui(() => onAcquista(daPagare.url))}
           inCorso={attesa}
           disabilitato={occupato}
         />
@@ -162,12 +164,90 @@ function RigaLezione({
             const r = await onPrenota()
             setAttesa(false)
             if (r) setErrore(r.errore)
-            if (r?.prodotto) setDaPagare(r.prodotto)
+            if (r?.prodotto) setDaPagare({ prodotto: r.prodotto, url: r.url })
           }}
           inCorso={attesa}
           disabilitato={occupato}
         />
       )}
+    </View>
+  )
+}
+
+const SUBENTRO = 'Potrai ricevere una notifica via email in caso di subentro, entro massimo un’ora dal suo inizio.'
+
+/** La «i» della lista d'attesa: sul web al passaggio del mouse, sul telefono al tocco. */
+function InfoAttesa() {
+  const c = useColori()
+  const [aperta, setAperta] = useState(false)
+  return (
+    <View style={{ position: 'relative' }}>
+      <Pressable
+        onPress={() => setAperta((a) => !a)}
+        onHoverIn={() => setAperta(true)}
+        onHoverOut={() => setAperta(false)}
+        accessibilityRole="button"
+        accessibilityLabel={SUBENTRO}
+        hitSlop={8}
+        style={[stili.infoAttesa, { borderColor: c.attenzione }]}
+      >
+        <Text style={[stili.infoAttesaI, { color: c.attenzione }]}>i</Text>
+      </Pressable>
+      {aperta ? (
+        <View style={[stili.fumetto, { backgroundColor: c.superficie, borderColor: c.bordo }]}>
+          <Text style={{ color: c.testo, fontSize: 13, lineHeight: 18 }}>{SUBENTRO}</Text>
+        </View>
+      ) : null}
+    </View>
+  )
+}
+
+/** Le lezioni prenotate del giorno, per la persona scelta: prenotata o in lista d'attesa, e Annulla. */
+function LezioniPrenotate({ lezioni, occupato, onAnnulla }: { lezioni: Lezione[]; occupato: boolean; onAnnulla: (l: Lezione) => Promise<string | null> }) {
+  const c = useColori()
+  const [conferma, setConferma] = useState<number | null>(null)
+  const [inCorso, setInCorso] = useState<number | null>(null)
+  const [errore, setErrore] = useState<string | null>(null)
+
+  async function annulla(l: Lezione) {
+    setErrore(null)
+    setInCorso(l.class_id)
+    const problema = await onAnnulla(l)
+    setInCorso(null)
+    setConferma(null)
+    if (problema) setErrore(problema)
+  }
+
+  return (
+    <View style={[stili.prenotate, { borderColor: c.bordo, backgroundColor: c.superficie }]}>
+      <Testo style={{ fontWeight: '700' }}>Lezioni prenotate:</Testo>
+      {lezioni.map((l) => {
+        const attesa = !!l.prenotazione?.attesa
+        return (
+          <View key={l.class_id} style={[stili.prenotata, { borderTopColor: c.bordo }]}>
+            <View style={{ flex: 1, gap: 2 }}>
+              <Text style={{ color: c.testo, fontSize: 15, fontWeight: '600' }}>
+                {ora(l.inizio)} · {l.nome}
+              </Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: spazio.uno + 2 }}>
+                <Text style={[stili.statoPrenotata, stileTono(c, attesa ? 'attenzione' : 'ok'), { color: attesa ? c.attenzione : c.ok }]}>
+                  {attesa ? 'In lista d’attesa' : 'Prenotata'}
+                </Text>
+                {attesa ? <InfoAttesa /> : null}
+              </View>
+            </View>
+            {l.iniziata ? null : conferma === l.class_id ? (
+              <View style={{ flexDirection: 'row', gap: spazio.uno + 2 }}>
+                <Bottone testo="Sì, annulla" onPress={() => annulla(l)} inCorso={inCorso === l.class_id} />
+                <Bottone testo="No" variante="contorno" onPress={() => setConferma(null)} disabilitato={inCorso !== null} />
+              </View>
+            ) : (
+              <Bottone testo="Annulla" variante="contorno" onPress={() => setConferma(l.class_id)} disabilitato={occupato || inCorso !== null} />
+            )}
+          </View>
+        )
+      })}
+      {errore ? <Avviso>{errore}</Avviso> : null}
     </View>
   )
 }
@@ -241,25 +321,29 @@ export function Calendario() {
     )
   }
 
-  async function prenota(l: Lezione): Promise<{ errore: string; prodotto?: ProdottoLezione } | null> {
+  async function prenota(l: Lezione): Promise<{ errore: string; prodotto?: ProdottoLezione; url?: string } | null> {
     if (!giorno) return null
     setOccupato(true)
     const esito = await prenotaLezione(l.class_id, giorno.member_id)
     setOccupato(false)
-    if (!esito.ok) return { errore: esito.errore, prodotto: esito.prodotto }
+    if (!esito.ok) return { errore: esito.errore, prodotto: esito.prodotto, url: esito.url }
     aggiorna(l.class_id, { booking_id: esito.booking_id ?? 0, attesa: esito.esito === 'attesa' }, esito.esito === 'attesa' ? 0 : 1)
     return null
   }
 
   /** Alla pagina di pagamento di PerfectGym; si torna qui con ?acquisto=<id>. */
-  async function acquista(l: Lezione): Promise<string | null> {
+  async function acquista(l: Lezione, pronto?: string): Promise<string | null> {
     if (!giorno) return null
-    setOccupato(true)
-    const r = await acquistaLezione(l.class_id, giorno.member_id)
-    setOccupato(false)
-    if (!r.ok) return r.errore
-    if (Platform.OS === 'web') window.location.assign(r.url)
-    else await Linking.openURL(r.url)
+    let url = pronto
+    if (!url) {
+      setOccupato(true)
+      const r = await acquistaLezione(l.class_id, giorno.member_id)
+      setOccupato(false)
+      if (!r.ok) return r.errore
+      url = r.url
+    }
+    if (Platform.OS === 'web') window.location.assign(url)
+    else await Linking.openURL(url)
     return null
   }
 
@@ -315,7 +399,7 @@ export function Calendario() {
         ) : (
           <Avviso>
             {('errore' in ritorno && ritorno.errore) ||
-              'Non vediamo ancora il pagamento. Se hai pagato, la prenotazione la sistemiamo noi: scrivici a desk@athlonroma.it.'}
+              'Non vediamo ancora il pagamento. Se l’hai completato, ricarica la pagina fra qualche minuto.'}
           </Avviso>
         )
       ) : null}
@@ -379,11 +463,7 @@ export function Calendario() {
         </ScrollView>
       ) : null}
       {!giorno.prenotazioni_lette ? <Avviso tono="attenzione">PerfectGym non risponde: le tue prenotazioni potrebbero non comparire.</Avviso> : null}
-      {mie.length ? (
-        <Testo variante="piccolo">
-          Prenotato quel giorno: {mie.map((l) => `${l.nome} alle ${ora(l.inizio)}`).join(', ')}.
-        </Testo>
-      ) : null}
+      {mie.length ? <LezioniPrenotate lezioni={mie} occupato={occupato} onAnnulla={disdici} /> : null}
 
       {carica ? (
         <ActivityIndicator color={c.accento} style={{ alignSelf: 'flex-start' }} />
@@ -407,7 +487,7 @@ export function Calendario() {
                 onScheda={() => setAperta(l)}
                 occupato={occupato}
                 onPrenota={() => prenota(l)}
-                onAcquista={() => acquista(l)}
+                onAcquista={(url) => acquista(l, url)}
                 onDisdici={() => disdici(l)}
               />
             ))}
@@ -440,5 +520,11 @@ const stili = StyleSheet.create({
   posti: { minWidth: 62, borderRadius: 10, paddingVertical: spazio.uno, paddingHorizontal: spazio.due, alignItems: 'center', justifyContent: 'center' },
   numeroPosti: { fontSize: 24, fontWeight: '800', lineHeight: 28, fontVariant: ['tabular-nums'] },
   etichettaPosti: { fontSize: 11, fontWeight: '600', textTransform: 'uppercase' },
+  prenotate: { borderWidth: 1, borderRadius: 16, padding: spazio.tre, gap: spazio.due, zIndex: 2 },
+  prenotata: { flexDirection: 'row', alignItems: 'center', gap: spazio.tre, borderTopWidth: StyleSheet.hairlineWidth, paddingTop: spazio.due },
+  statoPrenotata: { fontSize: 12, fontWeight: '700', borderRadius: 999, paddingHorizontal: spazio.due, paddingVertical: 2, overflow: 'hidden' },
+  infoAttesa: { width: 20, height: 20, borderRadius: 10, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center' },
+  infoAttesaI: { fontSize: 12, fontWeight: '800', fontStyle: 'italic', fontFamily: 'Georgia, serif', lineHeight: 14 },
+  fumetto: { position: 'absolute', top: 26, left: -8, width: 260, borderWidth: 1, borderRadius: 10, padding: spazio.due, zIndex: 10, elevation: 4 },
   completa: { fontSize: 12, fontWeight: '800', textTransform: 'uppercase', paddingVertical: spazio.due },
 })

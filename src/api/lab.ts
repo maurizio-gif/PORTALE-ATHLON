@@ -97,6 +97,12 @@ export type Lezione = {
   /** Se la prenotazione non e' ancora aperta: da quando (ISO). Si apre tre giorni prima. */
   prenotabile_dal: string | null
   prenotazione: { booking_id: number; attesa: boolean } | null
+  /**
+   * Il limite delle prenotazioni attive della categoria, se e' gia' pieno (tre
+   * per Corsi Fitness, Aqua Fitness e Scuola Nuoto Adulti, una per Group
+   * Reformer): `messaggio` dice perche' non si prenota, con le lezioni che lo occupano.
+   */
+  limite?: { categoria: string; massimo: number; messaggio: string; prenotate: { class_id: number; nome: string; inizio: string; attesa: boolean }[] } | null
   /** La chiave della sua scheda in `Giorno.schede`, se il sito ne ha una. */
   scheda: string | null
 }
@@ -157,11 +163,21 @@ export type ProdottoLezione = { product_id: number; nome: string; prezzo: number
 export async function prenotaLezione(
   classId: number,
   memberId: number,
-): Promise<{ ok: true; esito: 'prenotato' | 'attesa'; booking_id: number | null } | { ok: false; errore: string; prodotto?: ProdottoLezione }> {
+): Promise<
+  { ok: true; esito: 'prenotato' | 'attesa'; booking_id: number | null } | { ok: false; errore: string; prodotto?: ProdottoLezione; url?: string }
+> {
   const { ok, dati } = await calendario({ azione: 'prenota', class_id: classId, member_id: memberId })
   if (ok) return { ok: true, esito: dati.esito, booking_id: dati.booking_id ?? null }
-  // Manca il prodotto (niente abbonamento che comprenda la lezione): si puo' comprare.
-  if (dati.da_pagare && dati.prodotto) return { ok: false, errore: dati.errore ?? 'Questa lezione non è compresa nel tuo abbonamento.', prodotto: dati.prodotto }
+  // Manca il prodotto (niente abbonamento che comprenda la lezione) e PerfectGym
+  // lo vende: il link di pagamento e' gia' aperto.
+  if (dati.da_pagare && dati.prodotto) {
+    return {
+      ok: false,
+      errore: dati.errore ?? 'Questa lezione non è compresa nel tuo abbonamento.',
+      prodotto: dati.prodotto,
+      url: typeof dati.url === 'string' ? dati.url : undefined,
+    }
+  }
   return { ok: false, errore: dati.errore ?? 'Non siamo riusciti a prenotare adesso.' }
 }
 
