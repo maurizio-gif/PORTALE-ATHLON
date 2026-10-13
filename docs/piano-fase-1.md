@@ -175,6 +175,22 @@ Le ultime pagine cliente del CRM passano sul portale. Il CRM non ha più pagine 
 
 **Ordine di rilascio:** `portale-link` pubblicata (fatto), poi merge del portale, poi merge del CRM.
 
+## Tappa 4a: il calendario del laboratorio (13/10/2026)
+
+- **`/lab/calendario`:** le lezioni di gruppo di oggi e dei tre giorni dopo, dal mirror, senza i corsi a iscrizione e senza quelle già cominciate. Si prenota e si disdice per sé o per un figlio del nucleo; si entra in lista d'attesa quando la lezione è completa.
+- **Edge Function `portale-lab-calendario`:**
+  - verifica la sessione del laboratorio con Supabase Auth e l'elenco dei tester;
+  - legge le prenotazioni della persona dal vivo su PerfectGym;
+  - prenota con `BookClass` e disdice con `CancelSingleBooking`, senza saltare le regole della disdetta in ritardo, come l'app del club;
+  - traduce i rifiuti di PerfectGym e registra ogni azione in `audit_log` (`portale_lab.*`).
+- `_shared/sito.ts` ammette l'intestazione `Authorization` per le funzioni del laboratorio.
+- **Filtro per macrocategoria** di PerfectGym (Corsi Fitness, Group Reformer, Aqua Fitness, …) e **posti liberi in evidenza**: verde da 5 in su, arancione sotto, rosso quando la lezione è completa.
+- **Lezioni per età.** Si vedono solo quelle adatte a chi si prenota, in base alla data di nascita:
+  - «Recupero (Nati 2015-14-13)» ai nati in quegli anni;
+  - «Baby Nuoto 3-15 Mesi» a chi ha quei mesi il giorno della lezione;
+  - Corsi Fitness, Gym Floor, Group Reformer, Aqua Fitness, Nuoto Libero e Scuola Nuoto Adulti dai 13 anni.
+- **Foto e scheda della lezione.** La foto piccola apre una finestra con video, descrizione e caratteristiche, la stessa del planning del sito. I contenuti vengono da `https://www.athlonroma.it/lezioni.json` (repo athlon-roma), generato dalle fonti del planning: non c'è nessuna copia nel portale.
+
 ## Le tappe
 
 | # | Binario | Cosa | Perché in quest'ordine |

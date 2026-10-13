@@ -149,10 +149,7 @@ export function AreaRiservata({ email }: { email: string }) {
         )}
       </Scheda>
 
-      <Avviso tono="attenzione">
-        <Testo variante="piccolo">Prossimi passi del laboratorio: il calendario per prenotare le lezioni e i pagamenti di prova.</Testo>
-      </Avviso>
-      <Voce titolo="Calendario lezioni" descrizione="Posti liberi, prenota e disdici: prenotazioni vere su PerfectGym." etichetta="tappa 4" />
+      <Voce titolo="Calendario lezioni" descrizione="Posti liberi, prenota e disdici: prenotazioni vere su PerfectGym." href="/lab/calendario" />
       <Voce titolo="Pagamenti" descrizione="Pagamento diretto con Adyen, con il tetto di prova." etichetta="tappa 4" />
       {uscita}
     </Pagina>
