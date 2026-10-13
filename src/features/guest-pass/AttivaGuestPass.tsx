@@ -6,7 +6,7 @@ import { chiamaLink } from '@/api/link'
 import { Avviso } from '@/components/Avviso'
 import { Bottone } from '@/components/Bottone'
 import { Campo } from '@/components/Campo'
-import { CampoData, dataItaliana } from '@/components/CampoData'
+import { CampoData } from '@/components/CampoData'
 import { ChiGestisceCarta, ChiGestisceConto } from '@/components/ChiGestisce'
 import { Casella } from '@/components/Casella'
 import { Pagina } from '@/components/Pagina'
@@ -21,28 +21,28 @@ import {
   giornoLungo,
   GRUPPI,
   nomeMetodo,
-  PRIVACY_URL,
   REGOLAMENTO_URL,
   REGOLE_PRENOTAZIONE,
   type PaginaGuestPass,
 } from '@/lib/guestPass'
 
-import { FirmaPad, firmaDisponibile } from './FirmaPad'
 import { spazio, tinta, useColori } from '@/theme'
 
 // Il Guest Pass dal link (in prova): una pagina sola, in quattro blocchi.
-//   1. i tuoi dati: tutti, gia' compilati da PerfectGym e modificabili, e
-//      «I miei dati sono corretti» (senza, non si attiva);
-//   2. il Guest Pass in breve (cosa comprende, senza impegno, come si paga) e
-//      tre caselle per i consensi, coi testi completi di PerfectGym a richiesta;
-//   3. il giorno d'inizio, entro 14 giorni;
-//   4. come pagare: la carta o il conto gia' salvati (si mostrano), una carta
+//   1. i tuoi dati: tutti, gia' compilati (da PerfectGym e da quello che la
+//      persona ha confermato sul sito) e modificabili; quelli che mancano —
+//      codice fiscale, nascita, indirizzo — sono obbligatori. «I miei dati sono
+//      corretti»: senza, non si attiva. Le correzioni vanno su PerfectGym alla
+//      conferma, e un Lead si converte li';
+//   2. il giorno d'inizio, entro 14 giorni;
+//   3. come pagare: la carta o il conto gia' salvati (si mostrano), una carta
 //      nuova (si paga e si salva in un passo, sulla pagina di Adyen) o un IBAN
 //      nuovo; accanto, chi li custodisce (Adyen, GoCardless);
-//   5. l'anteprima del contratto (come nella prevendita di Lume): chi, da
-//      quando a quando, quanto e come si paga, cosa comprende, le regole di
-//      prenotazione; si firma col dito o col mouse, e la firma va sul contratto
-//      di PerfectGym alla conferma.
+//   4. il riepilogo (decisione del 13/10/2026): chi, da quando a quando,
+//      quanto e come si paga, senza impegno, cosa comprende, le regole di
+//      prenotazione, e un solo consenso — Termini e Condizioni Generali e
+//      Regolamento del club. Niente privacy (data sul sito), niente clausole
+//      vessatorie, niente firma.
 // Poi «Conferma e attiva»: solo allora il Guest Pass si carica su PerfectGym;
 // con la carta si paga la quota sulla pagina di PerfectGym e si torna qui.
 
@@ -56,6 +56,9 @@ function apriAccanto(url: string) {
   if (Platform.OS === 'web') window.open(url, '_blank', 'noopener')
   else Linking.openURL(url)
 }
+
+/** Il solo consenso del link (36 su PerfectGym). La privacy l'ha data sul sito. */
+const ACCETTO = 'Accetto i Termini e Condizioni Generali e il Regolamento del club.'
 
 // Sopra questa larghezza (desktop) i dati vanno su due colonne; tablet e telefono una.
 const DUE_COLONNE = 1024
@@ -98,9 +101,6 @@ export function AttivaGuestPass({ token, nome, iniziale }: { token: string; nome
     Object.fromEntries(Object.keys(CAMPI).map((k) => [k, String((pp.persona as Record<string, unknown>)[k] ?? '')]))
   const [dati, setDati] = useState<Record<string, string>>(daPerfectGym(iniziale))
   const [confermati, setConfermati] = useState(!!iniziale.scelte.dati_confermati)
-  const [firma, setFirma] = useState<string | null>(null)
-  const [firmato, setFirmato] = useState(!!iniziale.scelte.firmato)
-  const [cancellaFirma, setCancellaFirma] = useState(0)
   const [consensi, setConsensi] = useState<Set<number>>(new Set(iniziale.scelte.consensi))
   const [inizio, setInizio] = useState<string | null>(iniziale.inizio.scelto)
   // La scelta del metodo: uno gia' salvato («s<id>»), una carta nuova o un IBAN nuovo.
@@ -116,18 +116,6 @@ export function AttivaGuestPass({ token, nome, iniziale }: { token: string; nome
   const [errore, setErrore] = useState<string | null>(null)
   const [avviso, setAvviso] = useState<{ testo: string; tono: 'ok' | 'attenzione' | 'errore' } | null>(null)
   const giaFatto = useRef(false)
-  const primaScelta = useRef<string | null>(null)
-  useEffect(() => {
-    const ora = `${inizio}|${sceltaMetodo}`
-    if (primaScelta.current === null || ora === primaScelta.current) {
-      primaScelta.current = ora
-      return
-    }
-    primaScelta.current = ora
-    setFirma(null)
-    setFirmato(false)
-    setCancellaFirma((n) => n + 1)
-  }, [inizio, sceltaMetodo])
 
   async function ricarica() {
     const { ok, dati: d } = await chiamaLink(token, 'pagina')
@@ -215,7 +203,6 @@ export function AttivaGuestPass({ token, nome, iniziale }: { token: string; nome
     const { ok, dati: d } = await chiamaLink(token, 'salva', {
       ...(Object.keys(cambiati).length ? { dati: cambiati } : {}),
       dati_confermati: confermati && datiCompleti,
-      ...(firma ? { firma } : {}),
       consensi: [...consensi],
       inizio,
       metodo,
@@ -323,9 +310,7 @@ export function AttivaGuestPass({ token, nome, iniziale }: { token: string; nome
     )
   }
 
-  // L'anteprima cambia con il giorno e il metodo: una firma messa prima non vale piu'.
-  const firmaValida = !!firma || firmato
-  const pronto = datiCompleti && confermati && tuttiIConsensi && !!inizio && metodoPronto && firmaValida
+  const pronto = datiCompleti && confermati && tuttiIConsensi && !!inizio && metodoPronto
   const metodoLeggibile = salvatoScelto
     ? salvatoScelto.tipo === 'carta'
       ? `${nomeMetodo(salvatoScelto)}, addebito alla conferma`
@@ -340,7 +325,10 @@ export function AttivaGuestPass({ token, nome, iniziale }: { token: string; nome
       {avviso ? <Avviso tono={avviso.tono}>{avviso.testo}</Avviso> : null}
 
       <Blocco numero={1} titolo="I tuoi dati" fatto={datiCompleti && confermati}>
-        <Testo variante="piccolo">Controlla i tuoi dati: sono quelli della tua scheda del club. Se qualcosa non va, correggilo qui.</Testo>
+        <Testo variante="piccolo">
+          Controlla i tuoi dati e correggili se serve. Quelli che mancano — di solito codice fiscale, data di nascita e indirizzo — servono
+          per registrarti al club.
+        </Testo>
         {GRUPPI.map((g) => (
           <Gruppo key={g.titolo} titolo={g.titolo} due={dueColonne}>
             {g.campi.map((k) => {
@@ -376,61 +364,10 @@ export function AttivaGuestPass({ token, nome, iniziale }: { token: string; nome
         <Casella spuntata={confermati} onCambia={() => setConfermati((x) => !x)} etichetta="I miei dati sono corretti">
           <Testo style={{ fontWeight: '700' }}>I miei dati sono corretti</Testo>
         </Casella>
-        {Object.keys(cambiati).length ? <Testo variante="piccolo">Le correzioni si salvano sulla tua scheda quando continui.</Testo> : null}
+        {Object.keys(cambiati).length ? <Testo variante="piccolo">Le correzioni vanno sulla tua scheda del club quando confermi.</Testo> : null}
       </Blocco>
 
-      <Blocco numero={2} titolo="Il Guest Pass in breve" fatto={tuttiIConsensi}>
-        <View style={{ gap: spazio.uno + 2 }}>
-          {COSA_COMPRENDE.map((t) => (
-            <View key={t} style={{ flexDirection: 'row', gap: spazio.due }}>
-              <Text style={{ color: c.accento, fontWeight: '800' }}>✓</Text>
-              <Testo variante="piccolo" style={{ flex: 1, color: c.testo }}>
-                {t}
-              </Testo>
-            </View>
-          ))}
-        </View>
-        {[
-          { ids: [36, 20], etichetta: 'Accetto il Regolamento del club, i Termini e Condizioni e le Condizioni di pagamento.' },
-          { ids: [29], etichetta: 'Approvo in modo specifico le clausole dei Termini e Condizioni indicate qui (artt. 1341 e 1342 del Codice civile).' },
-          { ids: [23], etichetta: 'Acconsento al trattamento dei miei dati personali, vista l’informativa privacy.' },
-        ].map((g) => {
-          const testi = p.consensi.filter((k) => g.ids.includes(k.id))
-          if (!testi.length) return null
-          const spuntata = testi.every((k) => consensi.has(k.id))
-          return (
-            <View key={g.ids.join('-')} style={{ gap: 4 }}>
-              <Casella
-                spuntata={spuntata}
-                onCambia={() =>
-                  setConsensi((s0) => {
-                    const n = new Set(s0)
-                    for (const k of testi) {
-                      if (spuntata) n.delete(k.id)
-                      else n.add(k.id)
-                    }
-                    return n
-                  })
-                }
-                etichetta={g.etichetta}
-              >
-                <Testo variante="piccolo" style={{ color: c.testo }}>
-                  {g.etichetta}
-                </Testo>
-              </Casella>
-              <Text
-                accessibilityRole="link"
-                style={{ color: c.accento, fontSize: 13, textDecorationLine: 'underline', marginLeft: 34 }}
-                onPress={() => apriAccanto(g.ids.includes(23) ? PRIVACY_URL : REGOLAMENTO_URL)}
-              >
-                {g.ids.includes(23) ? 'Leggi l’informativa privacy ↗' : g.ids.includes(29) ? 'Leggi le clausole nel Regolamento ↗' : 'Leggi il Regolamento e i Termini e Condizioni ↗'}
-              </Text>
-            </View>
-          )
-        })}
-      </Blocco>
-
-      <Blocco numero={3} titolo="Quando vuoi cominciare" fatto={!!inizio}>
+      <Blocco numero={2} titolo="Quando vuoi cominciare" fatto={!!inizio}>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: spazio.due }}>
           {giorni.map((g) => {
             const b = giornoBreve(g)
@@ -448,7 +385,7 @@ export function AttivaGuestPass({ token, nome, iniziale }: { token: string; nome
         {inizio ? <Testo variante="piccolo">{`Dal ${giornoLungo(inizio)} al ${giornoLungo(fineSettimana(inizio))}.`}</Testo> : null}
       </Blocco>
 
-      <Blocco numero={4} titolo="Come vuoi pagare" fatto={metodoPronto}>
+      <Blocco numero={3} titolo="Come vuoi pagare" fatto={metodoPronto}>
         {salvati.length ? <Testo variante="piccolo">Hai già un metodo salvato al club: puoi usare quello.</Testo> : null}
         <View style={{ flexDirection: 'row', gap: spazio.due, flexWrap: 'wrap' }}>
           {salvati.map((m) => (
@@ -511,62 +448,59 @@ export function AttivaGuestPass({ token, nome, iniziale }: { token: string; nome
         ) : null}
       </Blocco>
 
-      {inizio && metodoPronto ? (
-        <Blocco numero={5} titolo="Anteprima del contratto" fatto={firmaValida}>
-          <View style={[stili.contratto, { borderColor: c.bordo, backgroundColor: c.sfondo }]}>
-            <Text style={[stili.titoloContratto, { color: c.testo }]}>Guest Pass Athlon Club · 1 settimana</Text>
-            {[
-              ['Intestatario', [dati.nome, dati.cognome].filter(Boolean).join(' ')],
-              ['Codice fiscale', dati.codice_fiscale],
-              ['Nato il', dataItaliana(dati.nascita)],
-              ['Indirizzo', [dati.via, [dati.cap, dati.citta].filter(Boolean).join(' ')].filter(Boolean).join(', ')],
-              ['Email e cellulare', [dati.email, dati.telefono].filter(Boolean).join(' · ')],
-              ['Validità', `dal ${giornoLungo(inizio)} al ${giornoLungo(fineSettimana(inizio))} compresi`],
-              ['Prezzo', `${p.prezzo} € una tantum, IVA inclusa`],
-              ['Rinnovo', 'nessuno: finisce da solo, senza impegno e senza altri addebiti'],
-              ['Pagamento', metodoLeggibile ?? ''],
-            ].map(([k, v]) => (
-              <View key={k} style={[stili.riga, { borderTopColor: c.bordo }]}>
-                <Text style={[stili.chiave, { color: c.testoSecondario }]}>{k}</Text>
-                <Text style={[stili.valore, { color: c.testo }]}>{v}</Text>
+      <Blocco numero={4} titolo="Riepilogo e condizioni" fatto={tuttiIConsensi && !!inizio && metodoPronto}>
+        <View style={[stili.contratto, { borderColor: c.bordo, backgroundColor: c.sfondo }]}>
+          <Text style={[stili.titoloContratto, { color: c.testo }]}>Guest Pass Athlon Club · 1 settimana</Text>
+          {[
+            ['Intestatario', [dati.nome, dati.cognome].filter(Boolean).join(' ')],
+            ['Validità', inizio ? `dal ${giornoLungo(inizio)} al ${giornoLungo(fineSettimana(inizio))} compresi` : 'scegli il giorno d’inizio'],
+            ['Prezzo', `${p.prezzo} € una tantum, IVA inclusa`],
+            ['Rinnovo', 'nessuno: finisce da solo, senza impegno e senza altri addebiti'],
+            ['Pagamento', metodoLeggibile ?? 'scegli come pagare'],
+          ].map(([k, v]) => (
+            <View key={k} style={[stili.riga, { borderTopColor: c.bordo }]}>
+              <Text style={[stili.chiave, { color: c.testoSecondario }]}>{k}</Text>
+              <Text style={[stili.valore, { color: c.testo }]}>{v}</Text>
+            </View>
+          ))}
+          <Text style={[stili.sezione, { color: c.testo }]}>Le condizioni in breve</Text>
+          <View style={{ gap: spazio.uno + 2 }}>
+            {COSA_COMPRENDE.map((t) => (
+              <View key={t} style={{ flexDirection: 'row', gap: spazio.due }}>
+                <Text style={{ color: c.accento, fontWeight: '800' }}>✓</Text>
+                <Testo variante="piccolo" style={{ flex: 1, color: c.testo }}>
+                  {t}
+                </Testo>
               </View>
             ))}
-            <Text style={[stili.sezione, { color: c.testo }]}>Cosa comprende</Text>
-            <Testo variante="piccolo">
-              Accesso a tutto il club agli orari di un abbonamento Premium: sala pesi, corsi fitness, piscine, aqua fitness e nuoto libero. Il
-              certificato medico non agonistico va consegnato entro 15 giorni dall’inizio.
-            </Testo>
-            <Text style={[stili.sezione, { color: c.testo }]}>Regole di prenotazione</Text>
-            {REGOLE_PRENOTAZIONE.map((t) => (
-              <Testo key={t} variante="piccolo">{`• ${t}`}</Testo>
-            ))}
-            <Text style={[stili.sezione, { color: c.testo }]}>Condizioni</Text>
-            <Testo variante="piccolo">
-              Valgono il Regolamento del club e i Termini e Condizioni generali che hai accettato sopra, con le clausole approvate in modo
-              specifico (artt. 1341 e 1342 c.c.). Società Sportiva Dilettantistica Point 2000 SSD, Via Ugo Ojetti 134, 00137 Roma.
-            </Testo>
           </View>
-          {firmato && !firma ? (
-            <View style={{ gap: spazio.uno }}>
-              <Avviso tono="ok">Contratto firmato.</Avviso>
-              <Text style={{ color: c.accento, fontSize: 13 }} onPress={() => setFirmato(false)}>
-                Rifai la firma
-              </Text>
-            </View>
-          ) : (
-            <View style={{ gap: spazio.uno }}>
-              <Testo style={{ fontWeight: '700' }}>Firma qui con il dito o con il mouse</Testo>
-              <FirmaPad onFirma={setFirma} cancella={cancellaFirma} />
-              {firmaDisponibile ? (
-                <Text style={{ color: c.accento, fontSize: 13, alignSelf: 'flex-end' }} onPress={() => setCancellaFirma((n) => n + 1)}>
-                  Cancella
-                </Text>
-              ) : null}
-              <Testo variante="piccolo">La firma si applica al tuo contratto quando confermi.</Testo>
-            </View>
-          )}
-        </Blocco>
-      ) : null}
+          <Text style={[stili.sezione, { color: c.testo }]}>Regole di prenotazione</Text>
+          {REGOLE_PRENOTAZIONE.map((t) => (
+            <Testo key={t} variante="piccolo">{`• ${t}`}</Testo>
+          ))}
+          <Testo variante="piccolo">Società Sportiva Dilettantistica Point 2000 SSD, Via Ugo Ojetti 134, 00137 Roma.</Testo>
+        </View>
+        {p.consensi.length ? (
+          <View style={{ gap: 4 }}>
+            <Casella
+              spuntata={tuttiIConsensi}
+              onCambia={() => setConsensi(tuttiIConsensi ? new Set() : new Set(p.consensi.map((k) => k.id)))}
+              etichetta={ACCETTO}
+            >
+              <Testo variante="piccolo" style={{ color: c.testo }}>
+                {ACCETTO}
+              </Testo>
+            </Casella>
+            <Text
+              accessibilityRole="link"
+              style={{ color: c.accento, fontSize: 13, textDecorationLine: 'underline', marginLeft: 34 }}
+              onPress={() => apriAccanto(REGOLAMENTO_URL)}
+            >
+              Leggi il Regolamento e i Termini e Condizioni ↗
+            </Text>
+          </View>
+        ) : null}
+      </Blocco>
 
       {errore ? <Avviso>{errore}</Avviso> : null}
       {occupato === 'carta' && tornatoCarta ? <ActivityIndicator color={c.accento} /> : null}
@@ -574,10 +508,9 @@ export function AttivaGuestPass({ token, nome, iniziale }: { token: string; nome
       {!pronto ? (
         <Testo variante="piccolo">
           {!datiCompleti ? 'Completa i tuoi dati. ' : !confermati ? 'Conferma che i tuoi dati sono corretti. ' : ''}
-          {!tuttiIConsensi ? 'Spunta i consensi. ' : ''}
           {!inizio ? 'Scegli il giorno d’inizio. ' : ''}
           {!metodoPronto ? 'Completa il metodo di pagamento. ' : ''}
-          {inizio && metodoPronto && !firmaValida ? 'Firma l’anteprima del contratto.' : ''}
+          {!tuttiIConsensi ? 'Accetta i Termini e Condizioni e il Regolamento del club.' : ''}
         </Testo>
       ) : (
         <Testo variante="piccolo">
