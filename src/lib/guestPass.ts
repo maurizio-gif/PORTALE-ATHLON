@@ -27,6 +27,9 @@ export type PaginaGuestPass = {
   scelte: { consensi: number[]; metodo: 'carta' | 'iban' | null; metodo_pronto: boolean; dati_confermati?: boolean; firmato?: boolean }
   contratto: number | null
   pagamento: string | null
+  /** Per un Guest Pass attivato: come sta il pagamento, e quanto resta. */
+  pagamento_stato?: 'pagato' | 'addebito' | 'da_pagare' | 'sconosciuto' | null
+  resta?: number | null
 }
 
 /** I dati del riepilogo, nell'ordine in cui si mostrano. */

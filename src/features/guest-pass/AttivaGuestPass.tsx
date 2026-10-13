@@ -97,23 +97,41 @@ export function AttivaGuestPass({ token, nome, iniziale }: { token: string; nome
       ;(async () => {
         setOccupato('carta')
         const { ok, dati: d } = await chiamaLink(token, 'carta_esito')
+        if (ok && d.salvata && d.attivato) {
+          // Il Guest Pass c'e' gia': con la carta nuova si paga subito.
+          const r = await chiamaLink(token, 'ripaga')
+          setOccupato(null)
+          if (r.ok && typeof r.dati.url === 'string') return apri(r.dati.url)
+          setAvviso({ testo: 'Carta salvata. Ora puoi pagare il Guest Pass.', tono: 'ok' })
+          return void (await ricarica())
+        }
         setOccupato(null)
         if (ok && d.salvata) setAvviso({ testo: 'Carta salvata. Ora conferma per attivare il Guest Pass.', tono: 'ok' })
+        else if (ok && d.motivo) setAvviso({ testo: `La carta non è stata salvata. ${d.motivo}`, tono: 'errore' })
         else setAvviso({ testo: 'Non vediamo ancora la carta: se hai completato la pagina, riprova fra un minuto, altrimenti inseriscila di nuovo.', tono: 'attenzione' })
         await ricarica()
       })()
     }
     if (tornatoPagato) {
       ;(async () => {
+        setOccupato('pagamento')
         for (let i = 0; i < 20; i++) {
           const { ok, dati: d } = await chiamaLink(token, 'pagamento_esito')
           if (ok && d.pagato) {
+            setOccupato(null)
             setAvviso({ testo: 'Pagamento ricevuto: il tuo Guest Pass è attivo.', tono: 'ok' })
+            return ricarica()
+          }
+          if (ok && d.fallito) {
+            setOccupato(null)
+            setAvviso({ testo: `Il pagamento non è andato a buon fine. ${d.motivo ?? ''}`.trim(), tono: 'errore' })
             return ricarica()
           }
           await new Promise((r) => setTimeout(r, 4000))
         }
+        setOccupato(null)
         setAvviso({ testo: 'Non vediamo ancora il pagamento. Se l’hai completato, ricarica la pagina fra qualche minuto.', tono: 'attenzione' })
+        await ricarica()
       })()
     }
   }, [tornatoCarta, tornatoPagato, token])
@@ -142,7 +160,7 @@ export function AttivaGuestPass({ token, nome, iniziale }: { token: string; nome
 
   async function cartaAvvia() {
     setOccupato('carta')
-    if (!(await salva({ metodo: 'carta' }))) return setOccupato(null)
+    if (p.stato === 'aperta' && !(await salva({ metodo: 'carta' }))) return setOccupato(null)
     const { ok, dati: d } = await chiamaLink(token, 'carta_avvia')
     setOccupato(null)
     if (!ok || typeof d.url !== 'string') return setErrore(d.errore ?? 'Non riusciamo ad aprire la pagina della carta adesso.')
@@ -151,11 +169,11 @@ export function AttivaGuestPass({ token, nome, iniziale }: { token: string; nome
 
   async function salvaConto() {
     setOccupato('iban')
-    if (!(await salva({ metodo: 'iban' }))) return setOccupato(null)
+    if (p.stato === 'aperta' && !(await salva({ metodo: 'iban' }))) return setOccupato(null)
     const { ok, dati: d } = await chiamaLink(token, 'iban', conto)
     setOccupato(null)
     if (!ok) return setErrore(d.errore ?? 'Non siamo riusciti a salvare il conto.')
-    setAvviso({ testo: 'Conto salvato. Ora conferma per attivare il Guest Pass.', tono: 'ok' })
+    setAvviso({ testo: d.addebito ? `Conto salvato: i ${p.prezzo} € li addebitiamo sul conto. Il tuo Guest Pass è attivo.` : 'Conto salvato. Ora conferma per attivare il Guest Pass.', tono: 'ok' })
     await ricarica()
   }
 
@@ -166,6 +184,10 @@ export function AttivaGuestPass({ token, nome, iniziale }: { token: string; nome
     setOccupato(null)
     if (!ok) return setErrore(d.errore ?? 'Non siamo riusciti ad attivare il Guest Pass adesso.')
     if (d.pagamento === 'da_pagare' && typeof d.url === 'string') return apri(d.url)
+    if (d.pagamento === 'link_non_aperto') {
+      setAvviso({ testo: 'Il Guest Pass è registrato, ma non riusciamo ad aprire il pagamento adesso: riprova da qui fra qualche minuto.', tono: 'attenzione' })
+      return void (await ricarica())
+    }
     setAvviso({
       testo:
         d.pagamento === 'addebito'
@@ -176,14 +198,56 @@ export function AttivaGuestPass({ token, nome, iniziale }: { token: string; nome
     await ricarica()
   }
 
+  async function ripaga() {
+    setErrore(null)
+    setOccupato('ripaga')
+    const { ok, dati: d } = await chiamaLink(token, 'ripaga')
+    setOccupato(null)
+    if (ok && typeof d.url === 'string') return apri(d.url)
+    if (ok && d.pagamento === 'pagato') {
+      setAvviso({ testo: 'Pagamento ricevuto: il tuo Guest Pass è attivo.', tono: 'ok' })
+      return void (await ricarica())
+    }
+    setErrore(d.errore ?? 'Non riusciamo ad aprire il pagamento adesso. Riprova fra qualche minuto.')
+  }
+
   if (p.stato === 'attivato') {
+    const daPagare = p.pagamento_stato === 'da_pagare' || p.pagamento_stato === 'sconosciuto'
+    const periodo = p.inizio.scelto ? `dal ${giornoLungo(p.inizio.scelto)} al ${giornoLungo(fineSettimana(p.inizio.scelto))}` : null
+    if (!daPagare) {
+      return (
+        <Pagina titolo="Il tuo Guest Pass è attivo" sottotitolo={periodo ? periodo.charAt(0).toUpperCase() + periodo.slice(1) : undefined}>
+          {avviso ? <Avviso tono={avviso.tono}>{avviso.testo}</Avviso> : null}
+          {p.pagamento_stato === 'addebito' ? <Testo>I {p.prezzo} € saranno addebitati sul conto che hai indicato.</Testo> : null}
+          <Testo>Ti aspettiamo al club. Per prenotare le lezioni usa l’app Athlon con la tua email.</Testo>
+        </Pagina>
+      )
+    }
     return (
-      <Pagina titolo="Il tuo Guest Pass è attivo" sottotitolo={p.inizio.scelto ? `Dal ${giornoLungo(p.inizio.scelto)} al ${giornoLungo(fineSettimana(p.inizio.scelto))}` : undefined}>
+      <Pagina titolo="Manca il pagamento" sottotitolo={`Il tuo Guest Pass ${periodo ? `(${periodo}) ` : ''}è registrato: per usarlo manca il pagamento di ${p.resta ?? p.prezzo} €.`}>
         {avviso ? <Avviso tono={avviso.tono}>{avviso.testo}</Avviso> : null}
-        {p.pagamento?.startsWith('avviato') ? (
-          <Avviso tono="attenzione">Il pagamento dei 19 € non risulta ancora completato.</Avviso>
+        {occupato === 'pagamento' ? (
+          <View style={{ flexDirection: 'row', gap: spazio.due, alignItems: 'center' }}>
+            <ActivityIndicator color={c.accento} />
+            <Testo>Aspettiamo l’esito del pagamento…</Testo>
+          </View>
         ) : null}
-        <Testo>Ti aspettiamo al club. Per prenotare le lezioni usa l’app Athlon con questa email.</Testo>
+        {p.scelte.metodo === 'carta' && p.scelte.metodo_pronto ? (
+          <Bottone testo={`Riprova il pagamento · ${p.resta ?? p.prezzo} €`} onPress={ripaga} inCorso={occupato === 'ripaga'} disabilitato={!!occupato} />
+        ) : null}
+        <Bottone testo="Usa un’altra carta" variante="contorno" onPress={cartaAvvia} inCorso={occupato === 'carta'} disabilitato={!!occupato} />
+        <Blocco numero={1} titolo="Oppure: addebito su conto" fatto={false}>
+          <Testo variante="piccolo">Salva il conto e i {p.prezzo} € li addebitiamo noi: il Guest Pass resta com’è.</Testo>
+          <Campo etichetta="IBAN" value={conto.iban} onChangeText={(v) => setConto((x) => ({ ...x, iban: v }))} autoCapitalize="characters" />
+          <Campo etichetta="Intestatario del conto" value={conto.intestatario} onChangeText={(v) => setConto((x) => ({ ...x, intestatario: v }))} />
+          <Campo etichetta="Via e numero civico" value={conto.via} onChangeText={(v) => setConto((x) => ({ ...x, via: v }))} />
+          <View style={{ flexDirection: 'row', gap: spazio.due }}>
+            <Campo etichetta="CAP" value={conto.cap} onChangeText={(v) => setConto((x) => ({ ...x, cap: v }))} keyboardType="number-pad" />
+            <Campo etichetta="Città" value={conto.citta} onChangeText={(v) => setConto((x) => ({ ...x, citta: v }))} />
+          </View>
+          <Bottone testo="Salva il conto" variante="contorno" onPress={salvaConto} inCorso={occupato === 'iban'} disabilitato={!!occupato} />
+        </Blocco>
+        {errore ? <Avviso>{errore}</Avviso> : null}
       </Pagina>
     )
   }
