@@ -429,21 +429,42 @@ export function AttivaGuestPass({ token, nome, iniziale }: { token: string; nome
 
       <Blocco numero={3} titolo="Come vuoi pagare" fatto={metodoPronto}>
         {salvati.length ? <Testo variante="piccolo">Hai già un metodo salvato al club: puoi usare quello.</Testo> : null}
-        <View style={{ flexDirection: 'row', gap: spazio.due, flexWrap: 'wrap' }}>
-          {salvati.map((m) => (
-            <Scelta key={m.id} scelta={sceltaMetodo === `s${m.id}`} onPress={() => scegliMetodo(`s${m.id}`)} etichetta={nomeMetodo(m)} spento={!!occupato}>
-              <Text style={{ color: sceltaMetodo === `s${m.id}` ? c.suAccento : c.testo, fontWeight: '600' }}>{nomeMetodo(m)}</Text>
-            </Scelta>
-          ))}
-          <Scelta scelta={sceltaMetodo === 'carta'} onPress={() => scegliMetodo('carta')} etichetta="Carta" spento={!!occupato}>
-            <Text style={{ color: sceltaMetodo === 'carta' ? c.suAccento : c.testo, fontWeight: '600' }}>{cartaSalvata ? 'Un’altra carta' : 'Carta'}</Text>
-          </Scelta>
-          <Scelta scelta={sceltaMetodo === 'iban'} onPress={() => scegliMetodo('iban')} etichetta="Addebito su conto" spento={!!occupato}>
-            <Text style={{ color: sceltaMetodo === 'iban' ? c.suAccento : c.testo, fontWeight: '600' }}>
-              {salvati.some((m) => m.tipo === 'iban') ? 'Un altro conto' : 'Addebito su conto'}
-            </Text>
-          </Scelta>
-        </View>
+        {(
+          [
+            { tipo: 'carta', titolo: 'Carte', nuovo: 'carta', altro: 'Usa un’altra carta', primo: 'Paga con la carta' },
+            { tipo: 'iban', titolo: 'Conto corrente', nuovo: 'iban', altro: 'Usa un altro conto', primo: 'Addebito su conto' },
+          ] as const
+        ).map((g) => {
+          const suoi = salvati.filter((m) => m.tipo === g.tipo)
+          return (
+            <View key={g.tipo} style={{ gap: spazio.due }}>
+              <Text style={[stili.titoloGruppo, { color: c.accento }]}>{g.titolo.toUpperCase()}</Text>
+              {suoi.map((m) => (
+                <Scelta
+                  key={m.id}
+                  scelta={sceltaMetodo === `s${m.id}`}
+                  onPress={() => scegliMetodo(`s${m.id}`)}
+                  etichetta={nomeMetodo(m)}
+                  spento={!!occupato}
+                  stile={{ alignSelf: 'stretch' }}
+                >
+                  <Text style={{ color: sceltaMetodo === `s${m.id}` ? c.suAccento : c.testo, fontWeight: '600' }}>{nomeMetodo(m)}</Text>
+                </Scelta>
+              ))}
+              <Scelta
+                scelta={sceltaMetodo === g.nuovo}
+                onPress={() => scegliMetodo(g.nuovo)}
+                etichetta={suoi.length ? g.altro : g.primo}
+                spento={!!occupato}
+                stile={{ alignSelf: 'stretch' }}
+              >
+                <Text style={{ color: sceltaMetodo === g.nuovo ? c.suAccento : c.testo, fontWeight: '600' }}>
+                  {suoi.length ? `+ ${g.altro}` : g.primo}
+                </Text>
+              </Scelta>
+            </View>
+          )
+        })}
         {salvatoScelto?.tipo === 'carta' ? (
           <>
             <Testo variante="piccolo">Alla conferma addebitiamo i {p.prezzo} € su questa carta, senza riscriverla.</Testo>
