@@ -21,11 +21,13 @@ import {
   giornoLungo,
   GRUPPI,
   nomeMetodo,
+  problemaPassword,
   REGOLAMENTO_URL,
   REGOLE_PRENOTAZIONE,
   type PaginaGuestPass,
 } from '@/lib/guestPass'
 
+import { problemaCodiceFiscale } from '@/lib/codiceFiscale'
 import { spazio, tinta, useColori } from '@/theme'
 
 // Il Guest Pass dal link (in prova): una pagina sola, in quattro blocchi.
@@ -40,8 +42,9 @@ import { spazio, tinta, useColori } from '@/theme'
 //      nuovo; accanto, chi li custodisce (Adyen, GoCardless);
 //   4. il riepilogo (decisione del 13/10/2026): chi, da quando a quando,
 //      quanto e come si paga, senza impegno, cosa comprende, le regole di
-//      prenotazione, e un solo consenso — Termini e Condizioni Generali e
-//      Regolamento del club. Niente privacy (data sul sito), niente clausole
+//      prenotazione, e un solo flag — Termini e Condizioni Generali,
+//      Regolamento del club e Condizioni di pagamento (consensi 36 e 20).
+//      Niente privacy (data sul sito), niente clausole
 //      vessatorie, niente firma.
 // Poi «Conferma e attiva»: solo allora il Guest Pass si carica su PerfectGym;
 // con la carta si paga la quota sulla pagina di PerfectGym e si torna qui.
@@ -57,8 +60,12 @@ function apriAccanto(url: string) {
   else Linking.openURL(url)
 }
 
-/** Il solo consenso del link (36 su PerfectGym). La privacy l'ha data sul sito. */
-const ACCETTO = 'Accetto i Termini e Condizioni Generali e il Regolamento del club.'
+/**
+ * Il solo flag del link, che vale due consensi su PerfectGym: Termini e
+ * Condizioni Generali e Regolamento (36) e Consenso Contratto con le condizioni
+ * di pagamento (20). La privacy l'ha data sul sito.
+ */
+const ACCETTO = 'Accetto i Termini e Condizioni Generali, il Regolamento del club e le Condizioni di pagamento.'
 
 // Sopra questa larghezza (desktop) i dati vanno su due colonne; tablet e telefono una.
 const DUE_COLONNE = 1024
@@ -101,6 +108,8 @@ export function AttivaGuestPass({ token, nome, iniziale }: { token: string; nome
     Object.fromEntries(Object.keys(CAMPI).map((k) => [k, String((pp.persona as Record<string, unknown>)[k] ?? '')]))
   const [dati, setDati] = useState<Record<string, string>>(daPerfectGym(iniziale))
   const [confermati, setConfermati] = useState(!!iniziale.scelte.dati_confermati)
+  // La password non si salva fra un passo e l'altro: va su PerfectGym solo alla conferma.
+  const [password, setPassword] = useState({ nuova: '', conferma: '' })
   const [consensi, setConsensi] = useState<Set<number>>(new Set(iniziale.scelte.consensi))
   const [inizio, setInizio] = useState<string | null>(iniziale.inizio.scelto)
   // La scelta del metodo: uno gia' salvato («s<id>»), una carta nuova o un IBAN nuovo.
@@ -180,7 +189,9 @@ export function AttivaGuestPass({ token, nome, iniziale }: { token: string; nome
   const tuttiIConsensi = p.consensi.every((k) => consensi.has(k.id))
   const originali = daPerfectGym(p)
   const cambiati = Object.fromEntries(Object.entries(dati).filter(([k, v]) => v.trim() !== (originali[k] ?? '').trim()))
-  const datiCompleti = Object.keys(CAMPI).every((k) => (dati[k] ?? '').trim())
+  // Il codice fiscale deve essere ben scritto e di questa persona (cognome, nome, nascita).
+  const erroreCf = problemaCodiceFiscale(dati)
+  const datiCompleti = Object.keys(CAMPI).every((k) => (dati[k] ?? '').trim()) && !erroreCf
   const salvati = p.salvati ?? []
   const cartaSalvata = salvati.find((m) => m.tipo === 'carta') ?? null
   const salvatoScelto = sceltaMetodo?.startsWith('s') ? (salvati.find((m) => `s${m.id}` === sceltaMetodo) ?? null) : null
@@ -225,7 +236,7 @@ export function AttivaGuestPass({ token, nome, iniziale }: { token: string; nome
   async function conferma() {
     setOccupato('conferma')
     if (!(await salva())) return setOccupato(null)
-    const { ok, dati: d } = await chiamaLink(token, 'conferma')
+    const { ok, dati: d } = await chiamaLink(token, 'conferma', password.nuova ? { password: password.nuova } : {})
     setOccupato(null)
     if (!ok) return setErrore(d.errore ?? 'Non siamo riusciti ad attivare il Guest Pass adesso.')
     if (d.pagamento === 'da_pagare' && typeof d.url === 'string') return apri(d.url)
@@ -310,7 +321,9 @@ export function AttivaGuestPass({ token, nome, iniziale }: { token: string; nome
     )
   }
 
-  const pronto = datiCompleti && confermati && tuttiIConsensi && !!inizio && metodoPronto
+  const passwordObbligatoria = !!p.password?.obbligatoria
+  const errorePassword = problemaPassword(password.nuova, password.conferma, passwordObbligatoria)
+  const pronto = datiCompleti && confermati && !errorePassword && tuttiIConsensi && !!inizio && metodoPronto
   const metodoLeggibile = salvatoScelto
     ? salvatoScelto.tipo === 'carta'
       ? `${nomeMetodo(salvatoScelto)}, addebito alla conferma`
@@ -354,17 +367,46 @@ export function AttivaGuestPass({ token, nome, iniziale }: { token: string; nome
                   }
                   maxLength={k === 'codice_fiscale' ? 16 : k === 'cap' ? 5 : undefined}
                   placeholder={k === 'codice_fiscale' ? 'RSSMRA80A01H501U' : k === 'telefono' ? '+39 340 123 4567' : undefined}
-                  errore={!(dati[k] ?? '').trim()}
+                  errore={!(dati[k] ?? '').trim() || (k === 'codice_fiscale' && !!erroreCf)}
                   style={{ backgroundColor: c.sfondo }}
                 />
               )
             })}
           </Gruppo>
         ))}
+        {erroreCf ? <Avviso>{erroreCf}</Avviso> : null}
         <Casella spuntata={confermati} onCambia={() => setConfermati((x) => !x)} etichetta="I miei dati sono corretti">
           <Testo style={{ fontWeight: '700' }}>I miei dati sono corretti</Testo>
         </Casella>
         {Object.keys(cambiati).length ? <Testo variante="piccolo">Le correzioni vanno sulla tua scheda del club quando confermi.</Testo> : null}
+        <Gruppo titolo={passwordObbligatoria ? 'La tua password' : 'Password (facoltativa)'} due={dueColonne}>
+          <Campo
+            etichetta={passwordObbligatoria ? 'Scegli la password' : 'Nuova password'}
+            value={password.nuova}
+            onChangeText={(v) => setPassword((x) => ({ ...x, nuova: v }))}
+            secureTextEntry
+            autoCapitalize="none"
+            autoComplete="new-password"
+            errore={passwordObbligatoria && !password.nuova}
+            style={{ backgroundColor: c.sfondo }}
+          />
+          <Campo
+            etichetta="Ripeti la password"
+            value={password.conferma}
+            onChangeText={(v) => setPassword((x) => ({ ...x, conferma: v }))}
+            secureTextEntry
+            autoCapitalize="none"
+            autoComplete="new-password"
+            errore={!!password.nuova && password.conferma !== password.nuova}
+            style={{ backgroundColor: c.sfondo }}
+          />
+        </Gruppo>
+        <Testo variante="piccolo">
+          {passwordObbligatoria
+            ? 'Con la tua email e questa password entri nell’app Athlon e nel portale, per prenotare le lezioni. Almeno 8 caratteri, con lettere e numeri.'
+            : 'Hai già un accesso all’app? Lascia vuoto. Se non ricordi la password, o vuoi cambiarla, scrivine una nuova: almeno 8 caratteri, con lettere e numeri.'}
+        </Testo>
+        {(password.nuova || password.conferma) && errorePassword ? <Avviso tono="attenzione">{errorePassword}</Avviso> : null}
       </Blocco>
 
       <Blocco numero={2} titolo="Quando vuoi cominciare" fatto={!!inizio}>
@@ -507,10 +549,11 @@ export function AttivaGuestPass({ token, nome, iniziale }: { token: string; nome
       <Bottone testo={metodo === 'carta' ? `Conferma e paga · ${p.prezzo} €` : `Conferma e attiva · ${p.prezzo} €`} onPress={conferma} inCorso={occupato === 'conferma'} disabilitato={!pronto || !!occupato} />
       {!pronto ? (
         <Testo variante="piccolo">
-          {!datiCompleti ? 'Completa i tuoi dati. ' : !confermati ? 'Conferma che i tuoi dati sono corretti. ' : ''}
+          {errorePassword ? `${errorePassword} ` : ''}
+          {erroreCf ? 'Controlla il codice fiscale. ' : !datiCompleti ? 'Completa i tuoi dati. ' : !confermati ? 'Conferma che i tuoi dati sono corretti. ' : ''}
           {!inizio ? 'Scegli il giorno d’inizio. ' : ''}
           {!metodoPronto ? 'Completa il metodo di pagamento. ' : ''}
-          {!tuttiIConsensi ? 'Accetta i Termini e Condizioni e il Regolamento del club.' : ''}
+          {!tuttiIConsensi ? 'Accetta i Termini e Condizioni, il Regolamento e le Condizioni di pagamento.' : ''}
         </Testo>
       ) : (
         <Testo variante="piccolo">
