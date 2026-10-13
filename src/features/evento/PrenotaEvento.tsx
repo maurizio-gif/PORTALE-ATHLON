@@ -236,7 +236,9 @@ export function PrenotaEvento({ token, nome, iniziale }: { token: string; nome: 
       {`Pagamento ricevuto: ${chiRitorno ? chiRitorno.nome ?? nomeDi(chiRitorno) : 'la persona'} è prenotato${turnoRitorno ? ` ${giornoEsteso(evento.data)} alle ${ora(turnoRitorno.inizio)}` : ''}. Lo trovi anche nell’app Athlon.`}
     </Avviso>
   ) : ritorno.stato === 'attesa' ? (
-    <Avviso tono="attenzione">Pagamento ricevuto, ma i posti sono finiti mentre pagavi: sei in lista d’attesa. Ti scriviamo noi.</Avviso>
+    <Avviso tono="attenzione">
+      {`Pagamento ricevuto: sei in lista d’attesa. I posti${turnoRitorno ? ` delle ${ora(turnoRitorno.inizio)}` : ''} sono finiti mentre pagavi, quindi ti abbiamo messo in lista d’attesa: se si libera un posto subentri tu, e ti avvisiamo via email. Se non subentrerai, l’ingresso che hai acquistato resta valido per un’altra prenotazione ${evento.categoria ? `di ${evento.categoria}` : 'della stessa categoria'}.`}
+    </Avviso>
   ) : (
     <Avviso>
       {ritorno.errore ??

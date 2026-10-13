@@ -395,7 +395,21 @@ export function Calendario() {
         ) : ritorno.stato === 'prenotato' ? (
           <Avviso tono="ok">Pagamento ricevuto: la lezione è prenotata. La trovi qui sotto e nell’app Athlon.</Avviso>
         ) : ritorno.stato === 'attesa' ? (
-          <Avviso tono="attenzione">Pagamento ricevuto, ma i posti sono finiti mentre pagavi: sei in lista d’attesa.</Avviso>
+          <Avviso tono="attenzione">
+            <View style={{ gap: spazio.due }}>
+              <Testo style={{ fontWeight: '700' }}>Pagamento ricevuto: sei in lista d’attesa</Testo>
+              <Testo variante="piccolo" style={{ color: c.testo }}>
+                {`I posti di ${'lezione' in ritorno && ritorno.lezione ? `«${ritorno.lezione}»` : 'questa lezione'}${
+                  'inizio' in ritorno && ritorno.inizio ? ` del ${giornoEsteso(ritorno.giorno ?? ritorno.inizio.slice(0, 10))} alle ${ora(ritorno.inizio)}` : ''
+                } sono finiti mentre pagavi, quindi ti abbiamo messo in lista d’attesa. Se si libera un posto subentri tu, e ti avvisiamo via email. Se non subentrerai, l’ingresso che hai acquistato resta valido per un’altra prenotazione ${
+                  'categoria' in ritorno && ritorno.categoria ? `di ${ritorno.categoria}` : 'della stessa categoria'
+                }.`}
+              </Testo>
+              {'categoria' in ritorno && ritorno.categoria ? (
+                <Bottone testo={`Vedi le altre lezioni di ${ritorno.categoria}`} variante="contorno" onPress={() => setAttivita(ritorno.categoria ?? null)} />
+              ) : null}
+            </View>
+          </Avviso>
         ) : (
           <Avviso>
             {('errore' in ritorno && ritorno.errore) ||
