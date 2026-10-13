@@ -21,6 +21,7 @@ import {
   giornoLungo,
   GRUPPI,
   nomeMetodo,
+  problemaPassword,
   REGOLAMENTO_URL,
   REGOLE_PRENOTAZIONE,
   type PaginaGuestPass,
@@ -107,6 +108,8 @@ export function AttivaGuestPass({ token, nome, iniziale }: { token: string; nome
     Object.fromEntries(Object.keys(CAMPI).map((k) => [k, String((pp.persona as Record<string, unknown>)[k] ?? '')]))
   const [dati, setDati] = useState<Record<string, string>>(daPerfectGym(iniziale))
   const [confermati, setConfermati] = useState(!!iniziale.scelte.dati_confermati)
+  // La password non si salva fra un passo e l'altro: va su PerfectGym solo alla conferma.
+  const [password, setPassword] = useState({ nuova: '', conferma: '' })
   const [consensi, setConsensi] = useState<Set<number>>(new Set(iniziale.scelte.consensi))
   const [inizio, setInizio] = useState<string | null>(iniziale.inizio.scelto)
   // La scelta del metodo: uno gia' salvato («s<id>»), una carta nuova o un IBAN nuovo.
@@ -233,7 +236,7 @@ export function AttivaGuestPass({ token, nome, iniziale }: { token: string; nome
   async function conferma() {
     setOccupato('conferma')
     if (!(await salva())) return setOccupato(null)
-    const { ok, dati: d } = await chiamaLink(token, 'conferma')
+    const { ok, dati: d } = await chiamaLink(token, 'conferma', password.nuova ? { password: password.nuova } : {})
     setOccupato(null)
     if (!ok) return setErrore(d.errore ?? 'Non siamo riusciti ad attivare il Guest Pass adesso.')
     if (d.pagamento === 'da_pagare' && typeof d.url === 'string') return apri(d.url)
@@ -318,7 +321,9 @@ export function AttivaGuestPass({ token, nome, iniziale }: { token: string; nome
     )
   }
 
-  const pronto = datiCompleti && confermati && tuttiIConsensi && !!inizio && metodoPronto
+  const passwordObbligatoria = !!p.password?.obbligatoria
+  const errorePassword = problemaPassword(password.nuova, password.conferma, passwordObbligatoria)
+  const pronto = datiCompleti && confermati && !errorePassword && tuttiIConsensi && !!inizio && metodoPronto
   const metodoLeggibile = salvatoScelto
     ? salvatoScelto.tipo === 'carta'
       ? `${nomeMetodo(salvatoScelto)}, addebito alla conferma`
@@ -374,6 +379,34 @@ export function AttivaGuestPass({ token, nome, iniziale }: { token: string; nome
           <Testo style={{ fontWeight: '700' }}>I miei dati sono corretti</Testo>
         </Casella>
         {Object.keys(cambiati).length ? <Testo variante="piccolo">Le correzioni vanno sulla tua scheda del club quando confermi.</Testo> : null}
+        <Gruppo titolo={passwordObbligatoria ? 'La tua password' : 'Password (facoltativa)'} due={dueColonne}>
+          <Campo
+            etichetta={passwordObbligatoria ? 'Scegli la password' : 'Nuova password'}
+            value={password.nuova}
+            onChangeText={(v) => setPassword((x) => ({ ...x, nuova: v }))}
+            secureTextEntry
+            autoCapitalize="none"
+            autoComplete="new-password"
+            errore={passwordObbligatoria && !password.nuova}
+            style={{ backgroundColor: c.sfondo }}
+          />
+          <Campo
+            etichetta="Ripeti la password"
+            value={password.conferma}
+            onChangeText={(v) => setPassword((x) => ({ ...x, conferma: v }))}
+            secureTextEntry
+            autoCapitalize="none"
+            autoComplete="new-password"
+            errore={!!password.nuova && password.conferma !== password.nuova}
+            style={{ backgroundColor: c.sfondo }}
+          />
+        </Gruppo>
+        <Testo variante="piccolo">
+          {passwordObbligatoria
+            ? 'Con la tua email e questa password entri nell’app Athlon e nel portale, per prenotare le lezioni. Almeno 8 caratteri, con lettere e numeri.'
+            : 'Hai già un accesso all’app? Lascia vuoto. Se non ricordi la password, o vuoi cambiarla, scrivine una nuova: almeno 8 caratteri, con lettere e numeri.'}
+        </Testo>
+        {(password.nuova || password.conferma) && errorePassword ? <Avviso tono="attenzione">{errorePassword}</Avviso> : null}
       </Blocco>
 
       <Blocco numero={2} titolo="Quando vuoi cominciare" fatto={!!inizio}>
@@ -516,6 +549,7 @@ export function AttivaGuestPass({ token, nome, iniziale }: { token: string; nome
       <Bottone testo={metodo === 'carta' ? `Conferma e paga · ${p.prezzo} €` : `Conferma e attiva · ${p.prezzo} €`} onPress={conferma} inCorso={occupato === 'conferma'} disabilitato={!pronto || !!occupato} />
       {!pronto ? (
         <Testo variante="piccolo">
+          {errorePassword ? `${errorePassword} ` : ''}
           {erroreCf ? 'Controlla il codice fiscale. ' : !datiCompleti ? 'Completa i tuoi dati. ' : !confermati ? 'Conferma che i tuoi dati sono corretti. ' : ''}
           {!inizio ? 'Scegli il giorno d’inizio. ' : ''}
           {!metodoPronto ? 'Completa il metodo di pagamento. ' : ''}

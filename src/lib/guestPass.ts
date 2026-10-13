@@ -32,6 +32,8 @@ export type PaginaGuestPass = {
   consensi: ConsensoGuestPass[]
   inizio: { dal: string; al: string; scelto: string | null }
   prezzo: number
+  /** La password per l'app e il portale: obbligatoria per chi non ha mai avuto un accesso (era nuovo o Lead). */
+  password?: { obbligatoria: boolean }
   /** La carta e il conto gia' salvati su PerfectGym: si mostrano, e si possono usare. */
   salvati?: MetodoSalvato[]
   scelte: { consensi: number[]; metodo: 'carta' | 'iban' | null; metodo_pronto: boolean; payment_source_id?: number | null; dati_confermati?: boolean; firmato?: boolean }
@@ -112,3 +114,13 @@ export const REGOLE_PRENOTAZIONE = [
   'Si disdice fino a 1 ora prima dell’inizio, così subentra chi è in lista d’attesa.',
   'Al massimo 3 prenotazioni attive per Corsi Fitness, Aqua Fitness e Scuola Nuoto Adulti; la lista d’attesa conta come una prenotazione.',
 ]
+
+/** La password scelta dal link: null se va bene (o se e' facoltativa e vuota), altrimenti cosa correggere. */
+export function problemaPassword(password: string, conferma: string, obbligatoria: boolean): string | null {
+  if (!password && !conferma) return obbligatoria ? 'Scegli la password per entrare nell’app e nel portale.' : null
+  if (password.length < 8) return 'La password deve avere almeno 8 caratteri.'
+  if (password.length > 64) return 'La password è troppo lunga: al massimo 64 caratteri.'
+  if (!/[A-Za-z]/.test(password) || !/\d/.test(password)) return 'La password deve contenere lettere e numeri.'
+  if (password !== conferma) return 'Le due password non coincidono.'
+  return null
+}
