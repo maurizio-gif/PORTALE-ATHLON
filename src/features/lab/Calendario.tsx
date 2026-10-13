@@ -221,12 +221,19 @@ export function Calendario() {
   return (
     <Pagina larga titolo="Calendario lezioni" sottotitolo="Laboratorio · le prenotazioni sono vere: le trovi anche nell’app Athlon.">
       {giorno.persone.length > 1 ? (
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={stili.fila}>
+        // Chi e' scelto e' grande; gli altri della famiglia piccoli, finche' non li si tocca.
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={[stili.fila, { alignItems: 'center' }]}>
           {giorno.persone.map((p) => {
             const attivo = p.member_id === giorno.member_id
             return (
-              <Scelta key={p.member_id} scelta={attivo} onPress={() => leggi(giorno.data, p.member_id)} etichetta={`Prenota per ${nomeCompleto(p)}`}>
-                <Text style={{ color: attivo ? c.suAccento : c.testo, fontWeight: '600' }}>{nomeCompleto(p)}</Text>
+              <Scelta
+                key={p.member_id}
+                scelta={attivo}
+                onPress={() => leggi(giorno.data, p.member_id)}
+                etichetta={`Prenota per ${nomeCompleto(p)}`}
+                stile={attivo ? stili.personaScelta : stili.persona}
+              >
+                <Text style={[attivo ? stili.nomeScelto : stili.nomePersona, { color: attivo ? c.suAccento : c.testoSecondario }]}>{nomeCompleto(p)}</Text>
               </Scelta>
             )
           })}
@@ -291,7 +298,7 @@ export function Calendario() {
       ) : (
         <View style={{ gap: spazio.due }}>
           {nascoste && !attivita ? <Testo variante="piccolo">{nascoste === 1 ? 'Una lezione è già cominciata.' : `${nascoste} lezioni sono già cominciate.`}</Testo> : null}
-          <Griglia>
+          <Griglia minima={400}>
             {filtrate.map((l) => (
               <RigaLezione
                 key={l.class_id}
@@ -318,6 +325,10 @@ export function Calendario() {
 const stili = StyleSheet.create({
   fila: { gap: spazio.due, paddingBottom: spazio.uno },
   giorno: { minWidth: 64, alignItems: 'center' },
+  persona: { borderRadius: 999, paddingVertical: spazio.uno, paddingHorizontal: spazio.due + 2 },
+  personaScelta: { borderRadius: 999, paddingVertical: spazio.due + 2, paddingHorizontal: spazio.tre + 2 },
+  nomePersona: { fontSize: 13, fontWeight: '600' },
+  nomeScelto: { fontSize: 16, fontWeight: '700' },
   settimana: { fontSize: 11, textTransform: 'uppercase', opacity: 0.8 },
   numero: { fontSize: 18, fontWeight: '700' },
   lezione: { borderWidth: 1, borderRadius: 20, padding: spazio.tre, gap: spazio.tre },
