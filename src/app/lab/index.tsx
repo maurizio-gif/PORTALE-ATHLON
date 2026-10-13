@@ -1,15 +1,13 @@
-import { Pagina } from '@/components/Pagina'
-import { Voce } from '@/components/Voce'
+import { InCaricamento } from '@/features/link/Stati'
+import { Accesso } from '@/features/lab/Accesso'
+import { AreaRiservata } from '@/features/lab/AreaRiservata'
+import { useSessione } from '@/features/lab/useSessione'
 
-// Il laboratorio (binario B): fuori da PerfectGym per l'accesso, solo per i
-// tester. Le voci si accendono tappa per tappa (docs/piano-fase-1.md).
+// Il laboratorio (binario B, docs/piano-fase-1.md): accesso con codice via
+// email per i tester, poi la loro area riservata in sola lettura.
 export default function Laboratorio() {
-  return (
-    <Pagina titolo="Laboratorio" sottotitolo="Area di prova riservata ai tester: qui nascono login, area riservata, calendario e pagamenti.">
-      <Voce titolo="Accesso con codice via email" descrizione="Login senza password, solo per gli indirizzi dei tester." etichetta="tappa 2" />
-      <Voce titolo="La mia area" descrizione="Abbonamenti, famiglia, metodo di pagamento, certificato." etichetta="tappa 2" />
-      <Voce titolo="Calendario lezioni" descrizione="Posti liberi, prenota e disdici: prenotazioni vere su PerfectGym." etichetta="tappa 4" />
-      <Voce titolo="Pagamenti" descrizione="Pagamento diretto con Adyen, con il tetto di prova." etichetta="tappa 4" />
-    </Pagina>
-  )
+  const sessione = useSessione()
+  if (sessione === undefined) return <InCaricamento />
+  if (!sessione) return <Accesso />
+  return <AreaRiservata email={sessione.user.email ?? ''} />
 }

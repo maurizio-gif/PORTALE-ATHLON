@@ -9,4 +9,7 @@ function senzaSlash(u: string): string {
 export const CRM_URL = senzaSlash(process.env.EXPO_PUBLIC_CRM_URL || 'https://crm.athlonroma.it')
 
 export const SUPABASE_URL = senzaSlash(process.env.EXPO_PUBLIC_SUPABASE_URL || 'https://kdbcwwpdazvtmjolybdm.supabase.co')
-export const SUPABASE_PUBLISHABLE_KEY = process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY || ''
+// La chiave pubblica del progetto (Supabase → API Keys → Publishable): e' fatta
+// per stare nel codice dell'app, i permessi li decide il database.
+export const SUPABASE_PUBLISHABLE_KEY =
+  process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY || 'sb_publishable_jj5Pt1OYpBJQ72Co_j4ImA_08n4Q3mT'
