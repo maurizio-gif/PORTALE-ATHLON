@@ -188,7 +188,17 @@ export async function acquistaLezione(classId: number, memberId: number): Promis
   return { ok: false, errore: dati.errore ?? 'Non riusciamo ad aprire il pagamento adesso.' }
 }
 
-export type EsitoAcquisto = { stato: 'avviato' | 'prenotato' | 'attesa' | 'errore'; errore: string | null; class_id: number; member_id: number }
+export type EsitoAcquisto = {
+  stato: 'avviato' | 'prenotato' | 'attesa' | 'errore'
+  errore: string | null
+  class_id: number
+  member_id: number
+  /** La lezione pagata, per dire cosa e' successo (la lista d'attesa vale per la stessa categoria). */
+  lezione?: string | null
+  categoria?: string | null
+  inizio?: string | null
+  giorno?: string | null
+}
 
 export async function esitoAcquistoLezione(acquistoId: string): Promise<{ ok: true; esito: EsitoAcquisto } | { ok: false; errore: string }> {
   const { ok, dati } = await calendario({ azione: 'esito_acquisto', acquisto_id: acquistoId })
