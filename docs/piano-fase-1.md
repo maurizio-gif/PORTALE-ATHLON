@@ -143,6 +143,28 @@ Il metodo di pagamento del nucleo è il primo flusso che vive sul portale.
 2. merge del portale, cioè le pagine `/r/*` su app.athlonroma.it;
 3. merge del CRM, cioè le email che puntano al portale.
 
+## Tappa 2: com'è stata fatta (13/10/2026)
+
+Login proprio per i tester e la loro area riservata, in sola lettura.
+
+- **Chi entra:** gli indirizzi della tabella `portale_lab_tester`, una riga per tester. Il primo è `maurizio@athlonroma.it`. Per aggiungerne uno: `insert into public.portale_lab_tester (email, nota) values ('nome@esempio.it', 'perché');`.
+- **Come si entra:** email, poi un codice di sei cifre. La funzione `portale-accesso` del CRM:
+  - crea l'account su Supabase Auth al primo codice;
+  - genera il codice con l'API di amministrazione, senza che Supabase spedisca email;
+  - lo manda dalla coda delle email del club, nello standard.
+
+  Le impostazioni e i modelli di Supabase Auth, che sono quelli dello staff, non si toccano. Il portale verifica il codice con `supabase.auth.verifyOtp`, e il metodo funziona uguale nell'app.
+- **L'area:** `public.portale_la_mia_area()`, aperta solo ad `authenticated`, ricontrolla l'elenco dei tester e legge dal mirror di PerfectGym:
+  - profilo;
+  - famiglia, cioè il nucleo di `metodo_nucleo_da_email`, coniuge escluso;
+  - abbonamenti vivi con il metodo di pagamento;
+  - certificato medico.
+
+  Non scrive niente.
+- **Sicurezza verificata prima di accendere gli account cliente:**
+  - nello schema `public` nessuna policy RLS, nessuna vista che salta i permessi, nessuna funzione privilegiata aperta ad `authenticated`;
+  - la timbratura del CRM ora chiede la sezione dello staff, come la sua pagina.
+
 ## Le tappe
 
 | # | Binario | Cosa | Perché in quest'ordine |

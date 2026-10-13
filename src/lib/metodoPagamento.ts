@@ -149,3 +149,19 @@ export function esitoRitornoCarta(query: string): 'fallito' | null {
   }
   return null
 }
+
+/**
+ * Il metodo come lo scrive PerfectGym (`paymentSource` del contratto: tipo,
+ * ultime cifre pubbliche, scadenza della carta), nella forma che mostra il
+ * portale. La stessa lettura di `metodoDi` in perfectgym-metodo-pagamento.
+ */
+export function metodoDaPerfectGym(ps: unknown): MetodoAttuale | null {
+  const p = ps as { paymentSource?: unknown; publicData?: unknown; validTo?: unknown; isDeleted?: unknown } | null
+  if (!p || p.isDeleted) return null
+  const tipo = String(p.paymentSource ?? '').trim()
+  if (!tipo) return null
+  const finale = String(p.publicData ?? '').replace(/\s+/g, '') || null
+  const scadenza = p.validTo ? String(p.validTo) : null
+  const t = scadenza ? new Date(scadenza).getTime() : NaN
+  return { tipo, finale, scadenza, scaduta: Number.isFinite(t) && t < Date.now() }
+}
