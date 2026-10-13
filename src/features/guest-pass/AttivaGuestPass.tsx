@@ -110,7 +110,10 @@ export function AttivaGuestPass({ token, nome, iniziale }: { token: string; nome
   const [confermati, setConfermati] = useState(!!iniziale.scelte.dati_confermati)
   // La password non si salva fra un passo e l'altro: va su PerfectGym solo alla conferma.
   const [password, setPassword] = useState({ nuova: '', conferma: '' })
-  const [consensi, setConsensi] = useState<Set<number>>(new Set(iniziale.scelte.consensi))
+  // Un solo flag, che vale tutti i consensi che la pagina riceve (oggi 36 e 20): si
+  // accetta il flag, non un elenco di id, cosi' un consenso aggiunto lato server
+  // non resta fuori da una spunta data prima.
+  const [accetto, setAccetto] = useState(() => iniziale.consensi.every((k) => iniziale.scelte.consensi.includes(k.id)))
   const [inizio, setInizio] = useState<string | null>(iniziale.inizio.scelto)
   // La scelta del metodo: uno gia' salvato («s<id>»), una carta nuova o un IBAN nuovo.
   const [sceltaMetodo, setSceltaMetodo] = useState<string | null>(() => {
@@ -186,7 +189,7 @@ export function AttivaGuestPass({ token, nome, iniziale }: { token: string; nome
 
   const persona = p.persona
   const giorni = giorniFra(p.inizio.dal, p.inizio.al)
-  const tuttiIConsensi = p.consensi.every((k) => consensi.has(k.id))
+  const tuttiIConsensi = accetto
   const originali = daPerfectGym(p)
   const cambiati = Object.fromEntries(Object.entries(dati).filter(([k, v]) => v.trim() !== (originali[k] ?? '').trim()))
   // Il codice fiscale deve essere ben scritto e di questa persona (cognome, nome, nascita).
@@ -214,7 +217,8 @@ export function AttivaGuestPass({ token, nome, iniziale }: { token: string; nome
     const { ok, dati: d } = await chiamaLink(token, 'salva', {
       ...(Object.keys(cambiati).length ? { dati: cambiati } : {}),
       dati_confermati: confermati && datiCompleti,
-      consensi: [...consensi],
+      // Solo a flag spuntato: una lista vuota il server la rifiuta, e il flag sta in fondo, dopo il metodo.
+      ...(accetto ? { consensi: p.consensi.map((k) => k.id) } : {}),
       inizio,
       metodo,
       ...extra,
@@ -547,7 +551,7 @@ export function AttivaGuestPass({ token, nome, iniziale }: { token: string; nome
           <View style={{ gap: 4 }}>
             <Casella
               spuntata={tuttiIConsensi}
-              onCambia={() => setConsensi(tuttiIConsensi ? new Set() : new Set(p.consensi.map((k) => k.id)))}
+              onCambia={() => setAccetto((x) => !x)}
               etichetta={ACCETTO}
             >
               <Testo variante="piccolo" style={{ color: c.testo }}>
