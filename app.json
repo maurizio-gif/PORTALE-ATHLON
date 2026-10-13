@@ -1,0 +1,65 @@
+{
+  "expo": {
+    "name": "Athlon Club",
+    "slug": "portale-athlon",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "icon": "./assets/images/icon.png",
+    "scheme": "athlon",
+    "userInterfaceStyle": "automatic",
+    "ios": {
+      "associatedDomains": [
+        "applinks:app.athlonroma.it"
+      ]
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#FF5701",
+        "foregroundImage": "./assets/images/android-icon-foreground.png",
+        "backgroundImage": "./assets/images/android-icon-background.png",
+        "monochromeImage": "./assets/images/android-icon-monochrome.png"
+      },
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "autoVerify": true,
+          "data": [
+            {
+              "scheme": "https",
+              "host": "app.athlonroma.it",
+              "pathPrefix": "/r/"
+            }
+          ],
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
+        }
+      ]
+    },
+    "web": {
+      "output": "single",
+      "favicon": "./assets/images/favicon.png",
+      "name": "Athlon Club",
+      "shortName": "Athlon",
+      "themeColor": "#FF5701",
+      "backgroundColor": "#FFFFFF"
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#FF5701",
+          "image": "./assets/images/splash-icon.png",
+          "imageWidth": 76
+        }
+      ],
+      "expo-sqlite"
+    ],
+    "experiments": {
+      "typedRoutes": true,
+      "reactCompiler": true
+    }
+  }
+}
