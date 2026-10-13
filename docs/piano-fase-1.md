@@ -175,6 +175,16 @@ Le ultime pagine cliente del CRM passano sul portale. Il CRM non ha più pagine 
 
 **Ordine di rilascio:** `portale-link` pubblicata (fatto), poi merge del portale, poi merge del CRM.
 
+## Tappa 4a: il calendario del laboratorio (13/10/2026)
+
+- **`/lab/calendario`:** le lezioni di gruppo di oggi e dei tre giorni dopo, dal mirror, senza i corsi a iscrizione e senza quelle già cominciate. Si prenota e si disdice per sé o per un figlio del nucleo; si entra in lista d'attesa quando la lezione è completa.
+- **Edge Function `portale-lab-calendario`:**
+  - verifica la sessione del laboratorio con Supabase Auth e l'elenco dei tester;
+  - legge le prenotazioni della persona dal vivo su PerfectGym;
+  - prenota con `BookClass` e disdice con `CancelSingleBooking`, senza saltare le regole della disdetta in ritardo, come l'app del club;
+  - traduce i rifiuti di PerfectGym e registra ogni azione in `audit_log` (`portale_lab.*`).
+- `_shared/sito.ts` ammette l'intestazione `Authorization` per le funzioni del laboratorio.
+
 ## Le tappe
 
 | # | Binario | Cosa | Perché in quest'ordine |
