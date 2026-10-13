@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useState } from 'react'
 import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-native'
 
-import { disdiciLezione, leggiGiorno, prenotaLezione, type Giorno, type Lezione, type SchedaLezione } from '@/api/lab'
+import { disdiciLezione, leggiGiorno, prenotaLezione, type Giorno, type Lezione, type PersonaCalendario, type SchedaLezione } from '@/api/lab'
 import { Avviso } from '@/components/Avviso'
 import { Bottone } from '@/components/Bottone'
 import { Pagina } from '@/components/Pagina'
 import { Scelta } from '@/components/Scelta'
+import { Griglia } from '@/components/Griglia'
 import { Forte, Testo } from '@/components/Testo'
 import { giornoEsteso, ora } from '@/lib/eventi'
 
@@ -17,6 +18,11 @@ import { spazio, stileTono, useColori } from '@/theme'
 // Le regole (apertura, posti, disdetta, quote da saldare) le applica
 // PerfectGym; qui si mostrano i suoi rifiuti.
 
+/** Nome e cognome per esteso, come sulla scheda del club. */
+function nomeCompleto(p: Pick<PersonaCalendario, 'nome' | 'cognome'>): string {
+  return [p.nome, p.cognome].filter(Boolean).join(' ') || 'Senza nome'
+}
+
 function maiuscola(t: string): string {
   return t.charAt(0).toUpperCase() + t.slice(1)
 }
@@ -24,6 +30,17 @@ function maiuscola(t: string): string {
 function etichettaGiorno(data: string): { settimana: string; numero: string } {
   const [settimana, numero] = giornoEsteso(data).split(' ')
   return { settimana: settimana.slice(0, 3), numero }
+}
+
+/** «gio 22 ott, 10:00», all'ora di Roma. */
+function apertura(iso: string): string {
+  const d = new Date(iso)
+  const giorno = new Intl.DateTimeFormat('it-IT', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'Europe/Rome' }).format(d)
+  return `${giorno}, ${ora(iso)}`
+}
+
+function minuti(inizio: string, fine: string): number {
+  return Math.round((new Date(fine).getTime() - new Date(inizio).getTime()) / 60000)
 }
 
 function RigaLezione({
@@ -81,15 +98,15 @@ function RigaLezione({
     <View style={[stili.lezione, { borderColor: c.bordo, backgroundColor: c.superficie }, b ? stileTono(c, b.attesa ? 'attenzione' : 'ok') : null]}>
       <View style={stili.testa}>
         {scheda ? <Fotina scheda={scheda} onApri={onScheda} /> : null}
-        <View style={{ flex: 1, gap: 2 }}>
-          <Text style={[stili.ora, { color: c.testo }]}>{ora(l.inizio)}</Text>
-          <Testo>
-            <Forte>{l.nome}</Forte>
-          </Testo>
-          <Testo variante="piccolo">
+        <View style={{ flex: 1, gap: 3 }}>
+          <Text style={[stili.nome, { color: c.testo }]}>{l.nome}</Text>
+          <Text style={[stili.ora, { color: c.testo }]}>
             {ora(l.inizio)}–{ora(l.fine)}
-            {l.istruttore ? ` · ${l.istruttore}` : ''}
-            {statoPrenotazione ? <Forte>{statoPrenotazione}</Forte> : null}
+            <Text style={{ color: c.testoSecondario, fontWeight: '400' }}>{` · ${minuti(l.inizio, l.fine)} min`}</Text>
+          </Text>
+          <Testo variante="piccolo">
+            {l.istruttore ?? ''}
+            {statoPrenotazione ? <Forte>{l.istruttore ? statoPrenotazione : statoPrenotazione.slice(3)}</Forte> : null}
           </Testo>
         </View>
         {posti}
@@ -108,6 +125,8 @@ function RigaLezione({
         ) : (
           <Bottone testo="Disdici" variante="contorno" onPress={() => setConferma(true)} disabilitato={occupato} />
         )
+      ) : l.prenotabile_dal ? (
+        <Bottone testo={`Prenotabile da ${apertura(l.prenotabile_dal)}`} variante="contorno" onPress={() => {}} disabilitato />
       ) : (
         <Bottone testo={l.liberi <= 0 ? 'Mettiti in lista d’attesa' : 'Prenota'} variante="contorno" onPress={() => esegui(onPrenota)} inCorso={attesa} disabilitato={occupato} />
       )}
@@ -198,19 +217,32 @@ export function Calendario() {
   for (const l of visibili) conteggi.set(l.categoria, (conteggi.get(l.categoria) ?? 0) + 1)
   const attivitaDelGiorno = [...conteggi.keys()].sort((x, y) => x.localeCompare(y, 'it'))
   const filtrate = attivita ? visibili.filter((l) => l.categoria === attivita) : visibili
+  const perChi = giorno.persone.find((p) => p.member_id === giorno.member_id)
   return (
-    <Pagina titolo="Calendario lezioni" sottotitolo="Laboratorio · le prenotazioni sono vere: le trovi anche nell’app Athlon.">
+    <Pagina larga titolo="Calendario lezioni" sottotitolo="Laboratorio · le prenotazioni sono vere: le trovi anche nell’app Athlon.">
       {giorno.persone.length > 1 ? (
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={stili.fila}>
+        // Chi e' scelto e' grande; gli altri della famiglia piccoli, finche' non li si tocca.
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={[stili.fila, { alignItems: 'center' }]}>
           {giorno.persone.map((p) => {
             const attivo = p.member_id === giorno.member_id
             return (
-              <Scelta key={p.member_id} scelta={attivo} onPress={() => leggi(giorno.data, p.member_id)} etichetta={`Prenota per ${p.nome ?? ''}`}>
-                <Text style={{ color: attivo ? c.suAccento : c.testo, fontWeight: '600' }}>{p.titolare ? 'Io' : p.nome ?? 'Senza nome'}</Text>
+              <Scelta
+                key={p.member_id}
+                scelta={attivo}
+                onPress={() => leggi(giorno.data, p.member_id)}
+                etichetta={`Prenota per ${nomeCompleto(p)}`}
+                stile={attivo ? stili.personaScelta : stili.persona}
+              >
+                <Text style={[attivo ? stili.nomeScelto : stili.nomePersona, { color: attivo ? c.suAccento : c.testoSecondario }]}>{nomeCompleto(p)}</Text>
               </Scelta>
             )
           })}
         </ScrollView>
+      ) : null}
+      {perChi ? (
+        <Testo>
+          Stai prenotando per <Forte>{nomeCompleto(perChi)}</Forte>
+        </Testo>
       ) : null}
 
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={stili.fila}>
@@ -266,17 +298,19 @@ export function Calendario() {
       ) : (
         <View style={{ gap: spazio.due }}>
           {nascoste && !attivita ? <Testo variante="piccolo">{nascoste === 1 ? 'Una lezione è già cominciata.' : `${nascoste} lezioni sono già cominciate.`}</Testo> : null}
-          {filtrate.map((l) => (
-            <RigaLezione
-              key={l.class_id}
-              l={l}
-              scheda={l.scheda ? giorno.schede?.[l.scheda] ?? null : null}
-              onScheda={() => setAperta(l)}
-              occupato={occupato}
-              onPrenota={() => prenota(l)}
-              onDisdici={() => disdici(l)}
-            />
-          ))}
+          <Griglia minima={400}>
+            {filtrate.map((l) => (
+              <RigaLezione
+                key={l.class_id}
+                l={l}
+                scheda={l.scheda ? giorno.schede?.[l.scheda] ?? null : null}
+                onScheda={() => setAperta(l)}
+                occupato={occupato}
+                onPrenota={() => prenota(l)}
+                onDisdici={() => disdici(l)}
+              />
+            ))}
+          </Griglia>
         </View>
       )}
       <FinestraLezione
@@ -291,11 +325,16 @@ export function Calendario() {
 const stili = StyleSheet.create({
   fila: { gap: spazio.due, paddingBottom: spazio.uno },
   giorno: { minWidth: 64, alignItems: 'center' },
+  persona: { borderRadius: 999, paddingVertical: spazio.uno, paddingHorizontal: spazio.due + 2 },
+  personaScelta: { borderRadius: 999, paddingVertical: spazio.due + 2, paddingHorizontal: spazio.tre + 2 },
+  nomePersona: { fontSize: 13, fontWeight: '600' },
+  nomeScelto: { fontSize: 16, fontWeight: '700' },
   settimana: { fontSize: 11, textTransform: 'uppercase', opacity: 0.8 },
   numero: { fontSize: 18, fontWeight: '700' },
-  lezione: { borderWidth: 1, borderRadius: 12, padding: spazio.tre, gap: spazio.due },
-  testa: { flexDirection: 'row', gap: spazio.tre, alignItems: 'flex-start' },
-  ora: { fontSize: 15, fontWeight: '700', fontVariant: ['tabular-nums'] },
+  lezione: { borderWidth: 1, borderRadius: 20, padding: spazio.tre, gap: spazio.tre },
+  testa: { flexDirection: 'row', gap: spazio.tre, alignItems: 'center' },
+  nome: { fontSize: 18, fontWeight: '700', lineHeight: 23 },
+  ora: { fontSize: 15, fontWeight: '600', fontVariant: ['tabular-nums'] },
   azioni: { flexDirection: 'row', gap: spazio.due },
   posti: { minWidth: 62, borderRadius: 10, paddingVertical: spazio.uno, paddingHorizontal: spazio.due, alignItems: 'center', justifyContent: 'center' },
   numeroPosti: { fontSize: 24, fontWeight: '800', lineHeight: 28, fontVariant: ['tabular-nums'] },

@@ -1,6 +1,8 @@
+import { useEventListener } from 'expo'
 import { Image, type ImageContentPosition } from 'expo-image'
-import { createElement, Fragment } from 'react'
-import { Linking, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
+import { useVideoPlayer, VideoView } from 'expo-video'
+import { Fragment, useEffect } from 'react'
+import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
 
 import type { SchedaLezione } from '@/api/lab'
 import { Bottone } from '@/components/Bottone'
@@ -40,34 +42,43 @@ function Descrizione({ html }: { html: string }) {
   )
 }
 
-function Video({ scheda }: { scheda: SchedaLezione }) {
-  const c = useColori()
-  if (!scheda.video) {
-    return scheda.foto ? (
-      <Image source={{ uri: scheda.foto }} style={stili.media} contentFit="cover" contentPosition={posizione(scheda.fuoco)} accessibilityLabel={scheda.nome} />
-    ) : null
-  }
-  // Sul web il video gira nella finestra, come sul sito; nell'app, per ora,
-  // si apre nel lettore del telefono.
-  if (Platform.OS === 'web') {
-    const sorgente = scheda.inizioVideo ? `${scheda.video}#t=${scheda.inizioVideo}` : scheda.video
-    return createElement('video', {
-      src: sorgente,
-      poster: scheda.foto ?? undefined,
-      controls: true,
-      playsInline: true,
-      autoPlay: true,
-      muted: true,
-      loop: true,
-      style: { width: '100%', aspectRatio: '16 / 9', borderRadius: 12, background: '#000', objectFit: 'cover', display: 'block' },
-    })
-  }
+/**
+ * Il video della lezione come sul sito: parte da solo, muto, in loop, senza
+ * controlli. E' una vetrina della lezione, non un filmato da guardare.
+ */
+function Lettore({ uri, inizio }: { uri: string; inizio: number | null }) {
+  const player = useVideoPlayer(uri, (p) => {
+    p.loop = true
+    p.muted = true
+    if (inizio) p.currentTime = inizio
+    p.play()
+  })
+  // Sul web il play() della preparazione arriva prima che il <video> sia
+  // montato e si perde: si riparte a montaggio fatto e quando il video e' pronto.
+  useEffect(() => {
+    player.play()
+  }, [player])
+  useEventListener(player, 'statusChange', ({ status }) => {
+    if (status === 'readyToPlay' && !player.playing) player.play()
+  })
   return (
-    <Pressable onPress={() => Linking.openURL(scheda.video!)} accessibilityRole="button" accessibilityLabel={`Guarda il video di ${scheda.nome}`}>
-      {scheda.foto ? <Image source={{ uri: scheda.foto }} style={stili.media} contentFit="cover" /> : null}
-      <Text style={[stili.guarda, { color: c.accento }]}>▶ Guarda il video</Text>
-    </Pressable>
+    <VideoView
+      player={player}
+      style={stili.media}
+      contentFit="cover"
+      nativeControls={false}
+      allowsPictureInPicture={false}
+      fullscreenOptions={{ enable: false }}
+      playsInline
+    />
   )
+}
+
+function Video({ scheda }: { scheda: SchedaLezione }) {
+  if (scheda.video) return <Lettore uri={scheda.video} inizio={scheda.inizioVideo} />
+  return scheda.foto ? (
+    <Image source={{ uri: scheda.foto }} style={stili.media} contentFit="cover" contentPosition={posizione(scheda.fuoco)} accessibilityLabel={scheda.nome} />
+  ) : null
 }
 
 export function FinestraLezione({ scheda, titolo, onChiudi }: { scheda: SchedaLezione | null; titolo: string; onChiudi: () => void }) {
@@ -135,12 +146,12 @@ const stili = StyleSheet.create({
   finestra: { width: '100%', maxWidth: 520, maxHeight: '90%', borderRadius: 16, padding: spazio.tre },
   testa: { flexDirection: 'row', alignItems: 'center', gap: spazio.due },
   chiudi: { fontSize: 26, lineHeight: 28 },
-  media: { width: '100%', aspectRatio: 16 / 9, borderRadius: 12 },
-  guarda: { fontSize: 15, fontWeight: '700', marginTop: spazio.due },
+  media: { width: '100%', aspectRatio: 16 / 9, borderRadius: 12, overflow: 'hidden', backgroundColor: '#000' },
   descrizione: { fontSize: 15, lineHeight: 22 },
   barra: { height: 8, borderRadius: 4, overflow: 'hidden' },
   pieno: { height: 8, borderRadius: 4 },
-  fotina: { width: 56, height: 56, borderRadius: 10 },
-  info: { position: 'absolute', right: -5, bottom: -5, width: 24, height: 24, borderRadius: 12, borderWidth: 2, alignItems: 'center', justifyContent: 'center' },
-  iconaInfo: { color: '#fff', fontSize: 14, fontWeight: '800', fontStyle: 'italic', fontFamily: 'Georgia, serif', lineHeight: 16 },
+  // Grande e tonda, come nelle app di prenotazione: e' la prima cosa che si riconosce.
+  fotina: { width: 84, height: 84, borderRadius: 42 },
+  info: { position: 'absolute', right: 0, bottom: 0, width: 28, height: 28, borderRadius: 14, borderWidth: 2, alignItems: 'center', justifyContent: 'center' },
+  iconaInfo: { color: '#fff', fontSize: 16, fontWeight: '800', fontStyle: 'italic', fontFamily: 'Georgia, serif', lineHeight: 18 },
 })
