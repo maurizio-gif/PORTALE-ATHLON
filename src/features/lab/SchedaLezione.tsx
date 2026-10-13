@@ -140,7 +140,8 @@ const stili = StyleSheet.create({
   descrizione: { fontSize: 15, lineHeight: 22 },
   barra: { height: 8, borderRadius: 4, overflow: 'hidden' },
   pieno: { height: 8, borderRadius: 4 },
-  fotina: { width: 56, height: 56, borderRadius: 10 },
-  info: { position: 'absolute', right: -5, bottom: -5, width: 24, height: 24, borderRadius: 12, borderWidth: 2, alignItems: 'center', justifyContent: 'center' },
-  iconaInfo: { color: '#fff', fontSize: 14, fontWeight: '800', fontStyle: 'italic', fontFamily: 'Georgia, serif', lineHeight: 16 },
+  // Grande e tonda, come nelle app di prenotazione: e' la prima cosa che si riconosce.
+  fotina: { width: 84, height: 84, borderRadius: 42 },
+  info: { position: 'absolute', right: 0, bottom: 0, width: 28, height: 28, borderRadius: 14, borderWidth: 2, alignItems: 'center', justifyContent: 'center' },
+  iconaInfo: { color: '#fff', fontSize: 16, fontWeight: '800', fontStyle: 'italic', fontFamily: 'Georgia, serif', lineHeight: 18 },
 })

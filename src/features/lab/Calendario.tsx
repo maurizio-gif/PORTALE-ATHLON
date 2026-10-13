@@ -31,6 +31,10 @@ function etichettaGiorno(data: string): { settimana: string; numero: string } {
   return { settimana: settimana.slice(0, 3), numero }
 }
 
+function minuti(inizio: string, fine: string): number {
+  return Math.round((new Date(fine).getTime() - new Date(inizio).getTime()) / 60000)
+}
+
 function RigaLezione({
   l,
   scheda,
@@ -86,15 +90,15 @@ function RigaLezione({
     <View style={[stili.lezione, { borderColor: c.bordo, backgroundColor: c.superficie }, b ? stileTono(c, b.attesa ? 'attenzione' : 'ok') : null]}>
       <View style={stili.testa}>
         {scheda ? <Fotina scheda={scheda} onApri={onScheda} /> : null}
-        <View style={{ flex: 1, gap: 2 }}>
-          <Text style={[stili.ora, { color: c.testo }]}>{ora(l.inizio)}</Text>
-          <Testo>
-            <Forte>{l.nome}</Forte>
-          </Testo>
-          <Testo variante="piccolo">
+        <View style={{ flex: 1, gap: 3 }}>
+          <Text style={[stili.nome, { color: c.testo }]}>{l.nome}</Text>
+          <Text style={[stili.ora, { color: c.testo }]}>
             {ora(l.inizio)}–{ora(l.fine)}
-            {l.istruttore ? ` · ${l.istruttore}` : ''}
-            {statoPrenotazione ? <Forte>{statoPrenotazione}</Forte> : null}
+            <Text style={{ color: c.testoSecondario, fontWeight: '400' }}>{` · ${minuti(l.inizio, l.fine)} min`}</Text>
+          </Text>
+          <Testo variante="piccolo">
+            {l.istruttore ?? ''}
+            {statoPrenotazione ? <Forte>{l.istruttore ? statoPrenotazione : statoPrenotazione.slice(3)}</Forte> : null}
           </Testo>
         </View>
         {posti}
@@ -304,9 +308,10 @@ const stili = StyleSheet.create({
   giorno: { minWidth: 64, alignItems: 'center' },
   settimana: { fontSize: 11, textTransform: 'uppercase', opacity: 0.8 },
   numero: { fontSize: 18, fontWeight: '700' },
-  lezione: { borderWidth: 1, borderRadius: 12, padding: spazio.tre, gap: spazio.due },
-  testa: { flexDirection: 'row', gap: spazio.tre, alignItems: 'flex-start' },
-  ora: { fontSize: 15, fontWeight: '700', fontVariant: ['tabular-nums'] },
+  lezione: { borderWidth: 1, borderRadius: 20, padding: spazio.tre, gap: spazio.tre },
+  testa: { flexDirection: 'row', gap: spazio.tre, alignItems: 'center' },
+  nome: { fontSize: 18, fontWeight: '700', lineHeight: 23 },
+  ora: { fontSize: 15, fontWeight: '600', fontVariant: ['tabular-nums'] },
   azioni: { flexDirection: 'row', gap: spazio.due },
   posti: { minWidth: 62, borderRadius: 10, paddingVertical: spazio.uno, paddingHorizontal: spazio.due, alignItems: 'center', justifyContent: 'center' },
   numeroPosti: { fontSize: 24, fontWeight: '800', lineHeight: 28, fontVariant: ['tabular-nums'] },
