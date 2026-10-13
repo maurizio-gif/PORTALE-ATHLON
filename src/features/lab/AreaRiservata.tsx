@@ -5,6 +5,7 @@ import { esci, laMiaArea, type Area, type ContrattoArea, type PersonaArea } from
 import { Avviso } from '@/components/Avviso'
 import { Bottone } from '@/components/Bottone'
 import { Pagina } from '@/components/Pagina'
+import { Griglia } from '@/components/Griglia'
 import { Forte, Testo } from '@/components/Testo'
 import { Voce } from '@/components/Voce'
 import { MetodoAttualeBadge, statoLeggibile } from '@/features/metodo-pagamento/Metodo'
@@ -103,54 +104,58 @@ export function AreaRiservata({ email }: { email: string }) {
   const famiglia = area.persone.filter((p) => !p.titolare)
 
   return (
-    <Pagina titolo={titolare?.nome ? `Ciao ${titolare.nome}` : 'La mia area'} sottotitolo="Laboratorio · sola lettura: i dati vengono dal gestionale del club.">
-      <Scheda titolo="Il mio profilo">
-        <Testo>
-          <Forte>{titolare ? nome(titolare) : email}</Forte>
-        </Testo>
-        <Testo variante="piccolo">
-          {[titolare?.email || email, titolare?.telefono, titolare?.numero && `tessera n. ${titolare.numero}`].filter(Boolean).join(' · ')}
-        </Testo>
-      </Scheda>
-
-      {famiglia.length ? (
-        <Scheda titolo="La mia famiglia">
-          {famiglia.map((p) => (
-            <Testo key={p.member_id}>
-              {nome(p)}
-              {dataBreve(p.data_nascita) ? <Testo variante="piccolo">{`  ·  nato/a il ${dataBreve(p.data_nascita)}`}</Testo> : null}
-            </Testo>
-          ))}
+    <Pagina larga titolo={titolare?.nome ? `Ciao ${titolare.nome}` : 'La mia area'} sottotitolo="Laboratorio · sola lettura: i dati vengono dal gestionale del club.">
+      <Griglia minima={360}>
+        <Scheda titolo="Il mio profilo">
+          <Testo>
+            <Forte>{titolare ? nome(titolare) : email}</Forte>
+          </Testo>
+          <Testo variante="piccolo">
+            {[titolare?.email || email, titolare?.telefono, titolare?.numero && `tessera n. ${titolare.numero}`].filter(Boolean).join(' · ')}
+          </Testo>
         </Scheda>
-      ) : null}
 
-      <Scheda titolo="Abbonamenti">
-        {area.contratti.length ? (
-          area.contratti.map((k) => <RigaContratto key={k.contract_id} k={k} persona={perId.get(k.member_id)} />)
-        ) : (
-          <Testo variante="attenuato">Nessun abbonamento attivo, tuo o della tua famiglia.</Testo>
-        )}
-      </Scheda>
-
-      <Scheda titolo="Certificato medico">
-        {area.certificati.length ? (
-          area.certificati.map((ce) => {
-            const p = perId.get(ce.member_id)
-            return (
-              <Testo key={ce.member_id}>
-                {p ? nome(p) + ': ' : ''}
-                {ce.scadenza ? `scade il ${dataBreve(ce.scadenza)}` : 'nessun certificato registrato'}
-                {ce.stato ? <Testo variante="piccolo">{`  ·  ${ce.stato}`}</Testo> : null}
+        {famiglia.length ? (
+          <Scheda titolo="La mia famiglia">
+            {famiglia.map((p) => (
+              <Testo key={p.member_id}>
+                {nome(p)}
+                {dataBreve(p.data_nascita) ? <Testo variante="piccolo">{`  ·  nato/a il ${dataBreve(p.data_nascita)}`}</Testo> : null}
               </Testo>
-            )
-          })
-        ) : (
-          <Testo variante="attenuato">Nessun certificato registrato per te o per la tua famiglia.</Testo>
-        )}
-      </Scheda>
+            ))}
+          </Scheda>
+        ) : null}
 
-      <Voce titolo="Calendario lezioni" descrizione="Posti liberi, prenota e disdici: prenotazioni vere su PerfectGym." href="/lab/calendario" />
-      <Voce titolo="Pagamenti" descrizione="Pagamento diretto con carta e rate automatiche, con il tetto di prova di 5 €." href="/lab/pagamenti" />
+        <Scheda titolo="Abbonamenti">
+          {area.contratti.length ? (
+            area.contratti.map((k) => <RigaContratto key={k.contract_id} k={k} persona={perId.get(k.member_id)} />)
+          ) : (
+            <Testo variante="attenuato">Nessun abbonamento attivo, tuo o della tua famiglia.</Testo>
+          )}
+        </Scheda>
+
+        <Scheda titolo="Certificato medico">
+          {area.certificati.length ? (
+            area.certificati.map((ce) => {
+              const p = perId.get(ce.member_id)
+              return (
+                <Testo key={ce.member_id}>
+                  {p ? nome(p) + ': ' : ''}
+                  {ce.scadenza ? `scade il ${dataBreve(ce.scadenza)}` : 'nessun certificato registrato'}
+                  {ce.stato ? <Testo variante="piccolo">{`  ·  ${ce.stato}`}</Testo> : null}
+                </Testo>
+              )
+            })
+          ) : (
+            <Testo variante="attenuato">Nessun certificato registrato per te o per la tua famiglia.</Testo>
+          )}
+        </Scheda>
+
+      </Griglia>
+      <Griglia minima={360}>
+        <Voce titolo="Calendario lezioni" descrizione="Posti liberi, prenota e disdici: prenotazioni vere su PerfectGym." href="/lab/calendario" />
+        <Voce titolo="Pagamenti" descrizione="Pagamento diretto con carta e rate automatiche, con il tetto di prova di 5 €." href="/lab/pagamenti" />
+      </Griglia>
       {uscita}
     </Pagina>
   )

@@ -94,6 +94,8 @@ export type Lezione = {
   iscritti: number
   liberi: number
   iniziata: boolean
+  /** Se la prenotazione non e' ancora aperta: da quando (ISO). Si apre tre giorni prima. */
+  prenotabile_dal: string | null
   prenotazione: { booking_id: number; attesa: boolean } | null
   /** La chiave della sua scheda in `Giorno.schede`, se il sito ne ha una. */
   scheda: string | null

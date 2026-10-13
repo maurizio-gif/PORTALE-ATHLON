@@ -14,6 +14,7 @@ import {
 } from '@/api/lab'
 import { Avviso } from '@/components/Avviso'
 import { Bottone } from '@/components/Bottone'
+import { Griglia } from '@/components/Griglia'
 import { InfoAdyen } from '@/components/InfoAdyen'
 import { Pagina } from '@/components/Pagina'
 import { Forte, Testo } from '@/components/Testo'
@@ -204,7 +205,7 @@ export function Pagamenti() {
   }
 
   return (
-    <Pagina titolo="Pagamenti" sottotitolo="Laboratorio · pagamento diretto con carta e rate automatiche.">
+    <Pagina larga titolo="Pagamenti" sottotitolo="Laboratorio · pagamento diretto con carta e rate automatiche.">
       <Avviso tono="attenzione">
         <Testo variante="piccolo">
           <Forte>Soldi veri.</Forte> È il conto del club su <InfoAdyen />, non una prova finta: ogni rata è 1 € e si addebita davvero. Il
@@ -217,7 +218,7 @@ export function Pagamenti() {
           <ActivityIndicator color={c.accento} />
         </View>
       ) : checkout ? (
-        <View style={{ gap: spazio.tre }}>
+        <View style={{ gap: spazio.tre, maxWidth: 560 }}>
           <Testo variante="sottotitolo">{checkout.piano.nome}</Testo>
           <Testo variante="piccolo">{`Prima rata ${euro(checkout.piano.importo_cent)} · riferimento ${checkout.sessione.riferimento}`}</Testo>
           <DropIn sessione={checkout.sessione} onFine={fine} onErrore={setErroreCheckout} />
@@ -236,14 +237,20 @@ export function Pagamenti() {
         <>
           <Testo variante="sottotitolo">Prova un piano</Testo>
           {!pagamentoDisponibile ? <Avviso tono="attenzione">Il pagamento con carta, per ora, si prova dal sito: app.athlonroma.it/lab.</Avviso> : null}
-          {dati.piani.map((p) => (
-            <Piano key={p.id} piano={p} onScegli={() => scegli(p)} inCorso={avvio === p.id} spento={!pagamentoDisponibile || avvio !== null} />
-          ))}
+          <Griglia>
+            {dati.piani.map((p) => (
+              <Piano key={p.id} piano={p} onScegli={() => scegli(p)} inCorso={avvio === p.id} spento={!pagamentoDisponibile || avvio !== null} />
+            ))}
+          </Griglia>
           {erroreCheckout ? <Avviso>{erroreCheckout}</Avviso> : null}
 
           <Testo variante="sottotitolo">I miei abbonamenti di prova</Testo>
           {dati.abbonamenti.length ? (
-            dati.abbonamenti.map((a) => <Abbonamento key={a.id} a={a} onCambiato={carica} />)
+            <Griglia minima={380}>
+              {dati.abbonamenti.map((a) => (
+                <Abbonamento key={a.id} a={a} onCambiato={carica} />
+              ))}
+            </Griglia>
           ) : (
             <Testo variante="attenuato">Ancora nessuno: scegline uno qui sopra.</Testo>
           )}

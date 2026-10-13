@@ -6,6 +6,7 @@ import { Avviso } from '@/components/Avviso'
 import { Bottone } from '@/components/Bottone'
 import { Pagina } from '@/components/Pagina'
 import { Scelta } from '@/components/Scelta'
+import { Griglia } from '@/components/Griglia'
 import { Forte, Testo } from '@/components/Testo'
 import { giornoEsteso, ora } from '@/lib/eventi'
 
@@ -29,6 +30,13 @@ function maiuscola(t: string): string {
 function etichettaGiorno(data: string): { settimana: string; numero: string } {
   const [settimana, numero] = giornoEsteso(data).split(' ')
   return { settimana: settimana.slice(0, 3), numero }
+}
+
+/** «gio 22 ott, 10:00», all'ora di Roma. */
+function apertura(iso: string): string {
+  const d = new Date(iso)
+  const giorno = new Intl.DateTimeFormat('it-IT', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'Europe/Rome' }).format(d)
+  return `${giorno}, ${ora(iso)}`
 }
 
 function minuti(inizio: string, fine: string): number {
@@ -117,6 +125,8 @@ function RigaLezione({
         ) : (
           <Bottone testo="Disdici" variante="contorno" onPress={() => setConferma(true)} disabilitato={occupato} />
         )
+      ) : l.prenotabile_dal ? (
+        <Bottone testo={`Prenotabile da ${apertura(l.prenotabile_dal)}`} variante="contorno" onPress={() => {}} disabilitato />
       ) : (
         <Bottone testo={l.liberi <= 0 ? 'Mettiti in lista d’attesa' : 'Prenota'} variante="contorno" onPress={() => esegui(onPrenota)} inCorso={attesa} disabilitato={occupato} />
       )}
@@ -209,7 +219,7 @@ export function Calendario() {
   const filtrate = attivita ? visibili.filter((l) => l.categoria === attivita) : visibili
   const perChi = giorno.persone.find((p) => p.member_id === giorno.member_id)
   return (
-    <Pagina titolo="Calendario lezioni" sottotitolo="Laboratorio · le prenotazioni sono vere: le trovi anche nell’app Athlon.">
+    <Pagina larga titolo="Calendario lezioni" sottotitolo="Laboratorio · le prenotazioni sono vere: le trovi anche nell’app Athlon.">
       {giorno.persone.length > 1 ? (
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={stili.fila}>
           {giorno.persone.map((p) => {
@@ -281,17 +291,19 @@ export function Calendario() {
       ) : (
         <View style={{ gap: spazio.due }}>
           {nascoste && !attivita ? <Testo variante="piccolo">{nascoste === 1 ? 'Una lezione è già cominciata.' : `${nascoste} lezioni sono già cominciate.`}</Testo> : null}
-          {filtrate.map((l) => (
-            <RigaLezione
-              key={l.class_id}
-              l={l}
-              scheda={l.scheda ? giorno.schede?.[l.scheda] ?? null : null}
-              onScheda={() => setAperta(l)}
-              occupato={occupato}
-              onPrenota={() => prenota(l)}
-              onDisdici={() => disdici(l)}
-            />
-          ))}
+          <Griglia>
+            {filtrate.map((l) => (
+              <RigaLezione
+                key={l.class_id}
+                l={l}
+                scheda={l.scheda ? giorno.schede?.[l.scheda] ?? null : null}
+                onScheda={() => setAperta(l)}
+                occupato={occupato}
+                onPrenota={() => prenota(l)}
+                onDisdici={() => disdici(l)}
+              />
+            ))}
+          </Griglia>
         </View>
       )}
       <FinestraLezione
