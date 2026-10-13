@@ -1,4 +1,4 @@
-import { useLocalSearchParams } from 'expo-router'
+import { router, useLocalSearchParams } from 'expo-router'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { ActivityIndicator, Linking, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
 
@@ -7,15 +7,17 @@ import {
   disdiciLezione,
   esitoAcquistoLezione,
   leggiGiorno,
+  pagaLezioneConCarta,
   prenotaLezione,
+  type DaPagare,
   type EsitoAcquisto,
   type Giorno,
   type Lezione,
   type PersonaCalendario,
-  type ProdottoLezione,
   type SchedaLezione,
 } from '@/api/lab'
 import { Avviso } from '@/components/Avviso'
+import { InfoAdyen } from '@/components/InfoAdyen'
 import { Bottone } from '@/components/Bottone'
 import { Pagina } from '@/components/Pagina'
 import { Scelta } from '@/components/Scelta'
@@ -63,6 +65,7 @@ function RigaLezione({
   occupato,
   onPrenota,
   onAcquista,
+  onPagaCarta,
   onDisdici,
 }: {
   l: Lezione
@@ -70,14 +73,15 @@ function RigaLezione({
   onScheda: () => void
   occupato: boolean
   /** Null se e' andata; altrimenti il motivo e, se manca solo il prodotto, cosa comprare (col link gia' aperto). */
-  onPrenota: () => Promise<{ errore: string; prodotto?: ProdottoLezione; url?: string } | null>
+  onPrenota: () => Promise<({ errore: string } & Partial<DaPagare>) | null>
   onAcquista: (url?: string) => Promise<string | null>
+  onPagaCarta: (acquistoId: string) => Promise<string | null>
   onDisdici: () => Promise<string | null>
 }) {
   const c = useColori()
   const [conferma, setConferma] = useState(false)
   // Il prodotto da comprare, dopo che PerfectGym ha detto che la lezione non e' compresa.
-  const [daPagare, setDaPagare] = useState<{ prodotto: ProdottoLezione; url?: string } | null>(null)
+  const [daPagare, setDaPagare] = useState<DaPagare | null>(null)
   const [attesa, setAttesa] = useState(false)
   const [errore, setErrore] = useState<string | null>(null)
   const b = l.prenotazione
@@ -148,12 +152,39 @@ function RigaLezione({
       ) : l.prenotabile_dal ? (
         <Bottone testo={`Prenotabile da ${apertura(l.prenotabile_dal)}`} variante="contorno" onPress={() => {}} disabilitato />
       ) : daPagare ? (
-        <Bottone
-          testo={`Acquista e prenota${daPagare.prodotto.prezzo != null ? ` · ${euro(daPagare.prodotto.prezzo)}` : ''}`}
-          onPress={() => esegui(() => onAcquista(daPagare.url))}
-          inCorso={attesa}
-          disabilitato={occupato}
-        />
+        // Salva e paga: con la carta gia' salvata si paga con quella (o con
+        // un'altra); senza, sulla pagina di Adyen, e la carta resta salvata.
+        <View style={{ gap: spazio.due }}>
+          {daPagare.carta && daPagare.acquisto_id && daPagare.prodotto.prezzo != null ? (
+            <>
+              <Bottone
+                testo={`Paga ${euro(daPagare.prodotto.prezzo)} con la carta${daPagare.carta.finale ? ` •••• ${daPagare.carta.finale}` : ''}`}
+                onPress={() => esegui(() => onPagaCarta(daPagare.acquisto_id!))}
+                inCorso={attesa}
+                disabilitato={occupato}
+              />
+              <Text style={{ color: c.accento, fontSize: 13, textAlign: 'center' }} onPress={() => esegui(() => onAcquista(daPagare.url))}>
+                Usa un’altra carta
+              </Text>
+            </>
+          ) : (
+            <Bottone
+              testo={`Acquista e prenota${daPagare.prodotto.prezzo != null ? ` · ${euro(daPagare.prodotto.prezzo)}` : ''}`}
+              onPress={() => esegui(() => onAcquista(daPagare.url))}
+              inCorso={attesa}
+              disabilitato={occupato}
+            />
+          )}
+          <Testo variante="piccolo">
+            {daPagare.carta
+              ? 'La carta la custodisce '
+              : 'Paghi sulla pagina protetta di '}
+            <InfoAdyen />
+            {daPagare.carta
+              ? ': il club non vede mai il numero completo.'
+              : ', in un passo solo: la carta resta salvata per i prossimi acquisti e il club non ne vede mai il numero completo.'}
+          </Testo>
+        </View>
       ) : (
         <Bottone
           testo={l.liberi <= 0 ? 'Mettiti in lista d’attesa' : 'Prenota'}
@@ -164,7 +195,7 @@ function RigaLezione({
             const r = await onPrenota()
             setAttesa(false)
             if (r) setErrore(r.errore)
-            if (r?.prodotto) setDaPagare({ prodotto: r.prodotto, url: r.url })
+            if (r?.prodotto) setDaPagare({ prodotto: r.prodotto, url: r.url, acquisto_id: r.acquisto_id, carta: r.carta ?? null })
           }}
           inCorso={attesa}
           disabilitato={occupato}
@@ -321,12 +352,12 @@ export function Calendario() {
     )
   }
 
-  async function prenota(l: Lezione): Promise<{ errore: string; prodotto?: ProdottoLezione; url?: string } | null> {
+  async function prenota(l: Lezione): Promise<({ errore: string } & Partial<DaPagare>) | null> {
     if (!giorno) return null
     setOccupato(true)
     const esito = await prenotaLezione(l.class_id, giorno.member_id)
     setOccupato(false)
-    if (!esito.ok) return { errore: esito.errore, prodotto: esito.prodotto, url: esito.url }
+    if (!esito.ok) return esito
     aggiorna(l.class_id, { booking_id: esito.booking_id ?? 0, attesa: esito.esito === 'attesa' }, esito.esito === 'attesa' ? 0 : 1)
     return null
   }
@@ -344,6 +375,17 @@ export function Calendario() {
     }
     if (Platform.OS === 'web') window.location.assign(url)
     else await Linking.openURL(url)
+    return null
+  }
+
+  /** Con la carta salvata: l'addebito, poi l'esito come al ritorno dal pagamento. */
+  async function pagaCarta(acquistoId: string): Promise<string | null> {
+    setOccupato(true)
+    const r = await pagaLezioneConCarta(acquistoId)
+    setOccupato(false)
+    if (!r.ok) return r.errore
+    if (Platform.OS === 'web') window.location.assign(`/lab/calendario?acquisto=${acquistoId}`)
+    else router.replace({ pathname: '/lab/calendario', params: { acquisto: acquistoId } })
     return null
   }
 
@@ -502,6 +544,7 @@ export function Calendario() {
                 occupato={occupato}
                 onPrenota={() => prenota(l)}
                 onAcquista={(url) => acquista(l, url)}
+                onPagaCarta={pagaCarta}
                 onDisdici={() => disdici(l)}
               />
             ))}

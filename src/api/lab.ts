@@ -160,11 +160,17 @@ export async function leggiGiorno(data?: string, memberId?: number): Promise<{ o
 /** Il prodotto PerfectGym che apre la prenotazione di una lezione, per chi non ce l'ha compreso. */
 export type ProdottoLezione = { product_id: number; nome: string; prezzo: number | null }
 
+/** La carta gia' salvata su PerfectGym: si mostra, e si paga con quella. */
+export type CartaSalvata = { id: number; finale: string | null; scadenza: string | null }
+
+/** Cosa serve per comprare l'ingresso: il prodotto, il link gia' aperto e, se c'e', la carta salvata. */
+export type DaPagare = { prodotto: ProdottoLezione; url?: string; acquisto_id?: string; carta?: CartaSalvata | null }
+
 export async function prenotaLezione(
   classId: number,
   memberId: number,
 ): Promise<
-  { ok: true; esito: 'prenotato' | 'attesa'; booking_id: number | null } | { ok: false; errore: string; prodotto?: ProdottoLezione; url?: string }
+  { ok: true; esito: 'prenotato' | 'attesa'; booking_id: number | null } | ({ ok: false; errore: string } & Partial<DaPagare>)
 > {
   const { ok, dati } = await calendario({ azione: 'prenota', class_id: classId, member_id: memberId })
   if (ok) return { ok: true, esito: dati.esito, booking_id: dati.booking_id ?? null }
@@ -176,16 +182,25 @@ export async function prenotaLezione(
       errore: dati.errore ?? 'Questa lezione non è compresa nel tuo abbonamento.',
       prodotto: dati.prodotto,
       url: typeof dati.url === 'string' ? dati.url : undefined,
+      acquisto_id: typeof dati.acquisto_id === 'string' ? dati.acquisto_id : undefined,
+      carta: dati.carta ?? null,
     }
   }
   return { ok: false, errore: dati.errore ?? 'Non siamo riusciti a prenotare adesso.' }
 }
 
 /** Il link di pagamento di PerfectGym per il prodotto della lezione; dopo il pagamento si torna al calendario con ?acquisto=<id>. */
-export async function acquistaLezione(classId: number, memberId: number): Promise<{ ok: true; url: string } | { ok: false; errore: string }> {
+export async function acquistaLezione(classId: number, memberId: number): Promise<{ ok: true; url: string; acquisto_id: string } | { ok: false; errore: string }> {
   const { ok, dati } = await calendario({ azione: 'acquista', class_id: classId, member_id: memberId })
-  if (ok && typeof dati.url === 'string') return { ok: true, url: dati.url }
+  if (ok && typeof dati.url === 'string') return { ok: true, url: dati.url, acquisto_id: String(dati.acquisto_id ?? '') }
   return { ok: false, errore: dati.errore ?? 'Non riusciamo ad aprire il pagamento adesso.' }
+}
+
+/** L'ingresso addebitato sulla carta gia' salvata, senza uscire; l'esito come al ritorno dal pagamento. */
+export async function pagaLezioneConCarta(acquistoId: string): Promise<{ ok: true } | { ok: false; errore: string }> {
+  const { ok, dati } = await calendario({ azione: 'paga_con_carta', acquisto_id: acquistoId })
+  if (ok) return { ok: true }
+  return { ok: false, errore: dati.errore ?? 'La carta non è stata addebitata.' }
 }
 
 export type EsitoAcquisto = {

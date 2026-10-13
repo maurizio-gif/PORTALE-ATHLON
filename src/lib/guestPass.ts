@@ -16,6 +16,14 @@ export type PersonaGuestPass = {
   manca: string[]
 }
 
+export type MetodoSalvato = { id: number; tipo: 'carta' | 'iban'; finale: string | null; scadenza: string | null }
+
+/** «Carta •••• 1234 · scade 03/2028», «Conto •••• 5678». */
+export function nomeMetodo(m: MetodoSalvato): string {
+  const scade = m.scadenza && /^\d{4}-\d{2}/.test(m.scadenza) ? ` · scade ${m.scadenza.slice(5, 7)}/${m.scadenza.slice(0, 4)}` : ''
+  return `${m.tipo === 'carta' ? 'Carta' : 'Conto'}${m.finale ? ` •••• ${m.finale}` : ''}${m.tipo === 'carta' ? scade : ''}`
+}
+
 export type ConsensoGuestPass = { id: number; nome: string; testo: string; allegato: string | null }
 
 export type PaginaGuestPass = {
@@ -24,7 +32,9 @@ export type PaginaGuestPass = {
   consensi: ConsensoGuestPass[]
   inizio: { dal: string; al: string; scelto: string | null }
   prezzo: number
-  scelte: { consensi: number[]; metodo: 'carta' | 'iban' | null; metodo_pronto: boolean; dati_confermati?: boolean; firmato?: boolean }
+  /** La carta e il conto gia' salvati su PerfectGym: si mostrano, e si possono usare. */
+  salvati?: MetodoSalvato[]
+  scelte: { consensi: number[]; metodo: 'carta' | 'iban' | null; metodo_pronto: boolean; payment_source_id?: number | null; dati_confermati?: boolean; firmato?: boolean }
   contratto: number | null
   pagamento: string | null
   /** Per un Guest Pass attivato: come sta il pagamento, e quanto resta. */
@@ -38,12 +48,23 @@ export const CAMPI: Record<string, string> = {
   cognome: 'Cognome',
   email: 'Email',
   telefono: 'Cellulare',
-  nascita: 'Data di nascita (AAAA-MM-GG)',
+  nascita: 'Data di nascita',
   codice_fiscale: 'Codice fiscale',
   via: 'Via e numero civico',
   cap: 'CAP',
   citta: 'Città',
 }
+
+/** I dati del primo passo, in tre gruppi: chi sei, come ti troviamo, dove abiti. */
+export const GRUPPI: { titolo: string; campi: string[] }[] = [
+  { titolo: 'Chi sei', campi: ['nome', 'cognome', 'nascita', 'codice_fiscale'] },
+  { titolo: 'Contatti', campi: ['email', 'telefono'] },
+  { titolo: 'Residenza', campi: ['via', 'cap', 'citta'] },
+]
+
+/** Le pagine del sito coi testi completi: si aprono in un'altra scheda. */
+export const REGOLAMENTO_URL = 'https://www.athlonroma.it/regolamento/'
+export const PRIVACY_URL = 'https://www.athlonroma.it/privacy/'
 
 /** Cosa comprende il Guest Pass: le stesse parole della pagina «Attiva» del sito. */
 export const COSA_COMPRENDE = [
