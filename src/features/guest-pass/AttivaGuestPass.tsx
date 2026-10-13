@@ -41,8 +41,9 @@ import { spazio, tinta, useColori } from '@/theme'
 //      nuovo; accanto, chi li custodisce (Adyen, GoCardless);
 //   4. il riepilogo (decisione del 13/10/2026): chi, da quando a quando,
 //      quanto e come si paga, senza impegno, cosa comprende, le regole di
-//      prenotazione, e un solo consenso — Termini e Condizioni Generali e
-//      Regolamento del club. Niente privacy (data sul sito), niente clausole
+//      prenotazione, e un solo flag — Termini e Condizioni Generali,
+//      Regolamento del club e Condizioni di pagamento (consensi 36 e 20).
+//      Niente privacy (data sul sito), niente clausole
 //      vessatorie, niente firma.
 // Poi «Conferma e attiva»: solo allora il Guest Pass si carica su PerfectGym;
 // con la carta si paga la quota sulla pagina di PerfectGym e si torna qui.
@@ -58,8 +59,12 @@ function apriAccanto(url: string) {
   else Linking.openURL(url)
 }
 
-/** Il solo consenso del link (36 su PerfectGym). La privacy l'ha data sul sito. */
-const ACCETTO = 'Accetto i Termini e Condizioni Generali e il Regolamento del club.'
+/**
+ * Il solo flag del link, che vale due consensi su PerfectGym: Termini e
+ * Condizioni Generali e Regolamento (36) e Consenso Contratto con le condizioni
+ * di pagamento (20). La privacy l'ha data sul sito.
+ */
+const ACCETTO = 'Accetto i Termini e Condizioni Generali, il Regolamento del club e le Condizioni di pagamento.'
 
 // Sopra questa larghezza (desktop) i dati vanno su due colonne; tablet e telefono una.
 const DUE_COLONNE = 1024
@@ -514,7 +519,7 @@ export function AttivaGuestPass({ token, nome, iniziale }: { token: string; nome
           {erroreCf ? 'Controlla il codice fiscale. ' : !datiCompleti ? 'Completa i tuoi dati. ' : !confermati ? 'Conferma che i tuoi dati sono corretti. ' : ''}
           {!inizio ? 'Scegli il giorno d’inizio. ' : ''}
           {!metodoPronto ? 'Completa il metodo di pagamento. ' : ''}
-          {!tuttiIConsensi ? 'Accetta i Termini e Condizioni e il Regolamento del club.' : ''}
+          {!tuttiIConsensi ? 'Accetta i Termini e Condizioni, il Regolamento e le Condizioni di pagamento.' : ''}
         </Testo>
       ) : (
         <Testo variante="piccolo">
