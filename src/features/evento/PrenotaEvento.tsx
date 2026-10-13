@@ -240,7 +240,7 @@ export function PrenotaEvento({ token, nome, iniziale }: { token: string; nome: 
   ) : (
     <Avviso>
       {ritorno.errore ??
-        'Non vediamo ancora il pagamento. Se hai pagato, la prenotazione la sistemiamo noi: scrivici a desk@athlonroma.it.'}
+        'Non vediamo ancora il pagamento. Se l’hai completato, ricarica la pagina fra qualche minuto.'}
     </Avviso>
   )
 
@@ -279,7 +279,7 @@ export function PrenotaEvento({ token, nome, iniziale }: { token: string; nome: 
       ) : null}
 
       {turni.length === 0 ? (
-        <Testo variante="attenuato">Le lezioni di questo evento non sono ancora in calendario. Riprova più tardi, o scrivici a desk@athlonroma.it.</Testo>
+        <Testo variante="attenuato">Le lezioni di questo evento non sono ancora in calendario. Riprova più tardi.</Testo>
       ) : (
         <Griglia minima={400}>
           {turni.map((t) => (
