@@ -165,6 +165,16 @@ Login proprio per i tester e la loro area riservata, in sola lettura.
   - nello schema `public` nessuna policy RLS, nessuna vista che salta i permessi, nessuna funzione privilegiata aperta ad `authenticated`;
   - la timbratura del CRM ora chiede la sezione dello staff, come la sua pagina.
 
+## Tappa 3: com'è stata fatta (13/10/2026)
+
+Le ultime pagine cliente del CRM passano sul portale. Il CRM non ha più pagine per i clienti.
+
+- **Eventi (Open Day):** `/r/<codice>`. `portale-link` cerca il token anche in `eventi_richieste` e chiama `perfectgym-eventi` (`pagina`, `prenota`), con lo stesso audit di prima. Sostituisce `/api/eventi/link/[codice]` del CRM.
+- **Appuntamenti col desk e col Direttore Tecnico:** `/r/<uuid>.<firma>`. Il token è firmato dal CRM, e il portale usa le rotte del CRM `/api/prenotazioni/[token]` e `/api/appuntamenti-nuoto/[token]`. Il link non dice quale dei due calendari: si prova il desk, poi il nuoto. Spostando un appuntamento col desk ora si riarma il promemoria, come già succedeva col Direttore Tecnico.
+- **I link già spediti** con l'indirizzo del CRM (`/appuntamento/…`, `/appuntamento-nuoto/…`, `/eventi/…`, `/metodo-pagamento/nucleo/…` e il suo `/fatto`) si rimandano al portale con lo stesso token (`next.config.mjs`). Le vecchie pagine e le due rotte che servivano solo a loro sono state tolte. Resta solo il vecchio link per singolo contratto (`/metodo-pagamento/[token]`), che non si emette più.
+
+**Ordine di rilascio:** `portale-link` pubblicata (fatto), poi merge del portale, poi merge del CRM.
+
 ## Le tappe
 
 | # | Binario | Cosa | Perché in quest'ordine |
