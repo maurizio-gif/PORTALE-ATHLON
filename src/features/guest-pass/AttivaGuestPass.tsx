@@ -110,7 +110,10 @@ export function AttivaGuestPass({ token, nome, iniziale }: { token: string; nome
   const [confermati, setConfermati] = useState(!!iniziale.scelte.dati_confermati)
   // La password non si salva fra un passo e l'altro: va su PerfectGym solo alla conferma.
   const [password, setPassword] = useState({ nuova: '', conferma: '' })
-  const [consensi, setConsensi] = useState<Set<number>>(new Set(iniziale.scelte.consensi))
+  // Un solo flag, che vale tutti i consensi che la pagina riceve (oggi 36 e 20): si
+  // accetta il flag, non un elenco di id, cosi' un consenso aggiunto lato server
+  // non resta fuori da una spunta data prima.
+  const [accetto, setAccetto] = useState(() => iniziale.consensi.every((k) => iniziale.scelte.consensi.includes(k.id)))
   const [inizio, setInizio] = useState<string | null>(iniziale.inizio.scelto)
   // La scelta del metodo: uno gia' salvato («s<id>»), una carta nuova o un IBAN nuovo.
   const [sceltaMetodo, setSceltaMetodo] = useState<string | null>(() => {
@@ -186,7 +189,7 @@ export function AttivaGuestPass({ token, nome, iniziale }: { token: string; nome
 
   const persona = p.persona
   const giorni = giorniFra(p.inizio.dal, p.inizio.al)
-  const tuttiIConsensi = p.consensi.every((k) => consensi.has(k.id))
+  const tuttiIConsensi = accetto
   const originali = daPerfectGym(p)
   const cambiati = Object.fromEntries(Object.entries(dati).filter(([k, v]) => v.trim() !== (originali[k] ?? '').trim()))
   // Il codice fiscale deve essere ben scritto e di questa persona (cognome, nome, nascita).
@@ -214,7 +217,8 @@ export function AttivaGuestPass({ token, nome, iniziale }: { token: string; nome
     const { ok, dati: d } = await chiamaLink(token, 'salva', {
       ...(Object.keys(cambiati).length ? { dati: cambiati } : {}),
       dati_confermati: confermati && datiCompleti,
-      consensi: [...consensi],
+      // Solo a flag spuntato: una lista vuota il server la rifiuta, e il flag sta in fondo, dopo il metodo.
+      ...(accetto ? { consensi: p.consensi.map((k) => k.id) } : {}),
       inizio,
       metodo,
       ...extra,
@@ -429,21 +433,42 @@ export function AttivaGuestPass({ token, nome, iniziale }: { token: string; nome
 
       <Blocco numero={3} titolo="Come vuoi pagare" fatto={metodoPronto}>
         {salvati.length ? <Testo variante="piccolo">Hai già un metodo salvato al club: puoi usare quello.</Testo> : null}
-        <View style={{ flexDirection: 'row', gap: spazio.due, flexWrap: 'wrap' }}>
-          {salvati.map((m) => (
-            <Scelta key={m.id} scelta={sceltaMetodo === `s${m.id}`} onPress={() => scegliMetodo(`s${m.id}`)} etichetta={nomeMetodo(m)} spento={!!occupato}>
-              <Text style={{ color: sceltaMetodo === `s${m.id}` ? c.suAccento : c.testo, fontWeight: '600' }}>{nomeMetodo(m)}</Text>
-            </Scelta>
-          ))}
-          <Scelta scelta={sceltaMetodo === 'carta'} onPress={() => scegliMetodo('carta')} etichetta="Carta" spento={!!occupato}>
-            <Text style={{ color: sceltaMetodo === 'carta' ? c.suAccento : c.testo, fontWeight: '600' }}>{cartaSalvata ? 'Un’altra carta' : 'Carta'}</Text>
-          </Scelta>
-          <Scelta scelta={sceltaMetodo === 'iban'} onPress={() => scegliMetodo('iban')} etichetta="Addebito su conto" spento={!!occupato}>
-            <Text style={{ color: sceltaMetodo === 'iban' ? c.suAccento : c.testo, fontWeight: '600' }}>
-              {salvati.some((m) => m.tipo === 'iban') ? 'Un altro conto' : 'Addebito su conto'}
-            </Text>
-          </Scelta>
-        </View>
+        {(
+          [
+            { tipo: 'carta', titolo: 'Carte', nuovo: 'carta', altro: 'Usa un’altra carta', primo: 'Paga con la carta' },
+            { tipo: 'iban', titolo: 'Conto corrente', nuovo: 'iban', altro: 'Usa un altro conto', primo: 'Addebito su conto' },
+          ] as const
+        ).map((g) => {
+          const suoi = salvati.filter((m) => m.tipo === g.tipo)
+          return (
+            <View key={g.tipo} style={{ gap: spazio.due }}>
+              <Text style={[stili.titoloGruppo, { color: c.accento }]}>{g.titolo.toUpperCase()}</Text>
+              {suoi.map((m) => (
+                <Scelta
+                  key={m.id}
+                  scelta={sceltaMetodo === `s${m.id}`}
+                  onPress={() => scegliMetodo(`s${m.id}`)}
+                  etichetta={nomeMetodo(m)}
+                  spento={!!occupato}
+                  stile={{ alignSelf: 'stretch' }}
+                >
+                  <Text style={{ color: sceltaMetodo === `s${m.id}` ? c.suAccento : c.testo, fontWeight: '600' }}>{nomeMetodo(m)}</Text>
+                </Scelta>
+              ))}
+              <Scelta
+                scelta={sceltaMetodo === g.nuovo}
+                onPress={() => scegliMetodo(g.nuovo)}
+                etichetta={suoi.length ? g.altro : g.primo}
+                spento={!!occupato}
+                stile={{ alignSelf: 'stretch' }}
+              >
+                <Text style={{ color: sceltaMetodo === g.nuovo ? c.suAccento : c.testo, fontWeight: '600' }}>
+                  {suoi.length ? `+ ${g.altro}` : g.primo}
+                </Text>
+              </Scelta>
+            </View>
+          )
+        })}
         {salvatoScelto?.tipo === 'carta' ? (
           <>
             <Testo variante="piccolo">Alla conferma addebitiamo i {p.prezzo} € su questa carta, senza riscriverla.</Testo>
@@ -526,7 +551,7 @@ export function AttivaGuestPass({ token, nome, iniziale }: { token: string; nome
           <View style={{ gap: 4 }}>
             <Casella
               spuntata={tuttiIConsensi}
-              onCambia={() => setConsensi(tuttiIConsensi ? new Set() : new Set(p.consensi.map((k) => k.id)))}
+              onCambia={() => setAccetto((x) => !x)}
               etichetta={ACCETTO}
             >
               <Testo variante="piccolo" style={{ color: c.testo }}>
