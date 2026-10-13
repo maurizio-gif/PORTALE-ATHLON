@@ -12,12 +12,15 @@ export function Pagina({
   titolo,
   sottotitolo,
   indietro = true,
+  piede,
   children,
 }: {
   titolo: string
   sottotitolo?: string
   /** Il link «‹ Inizio» in alto; spento sulla home. */
   indietro?: boolean
+  /** Sotto il contenuto, fuori dal flusso dei paragrafi: i dati del club. */
+  piede?: ReactNode
   children: ReactNode
 }) {
   const c = useColori()
@@ -39,6 +42,7 @@ export function Pagina({
           </Text>
           {sottotitolo ? <Text style={[stili.sottotitolo, { color: c.testoSecondario }]}>{sottotitolo}</Text> : null}
           <View style={stili.contenuto}>{children}</View>
+          {piede}
         </View>
       </ScrollView>
     </SafeAreaView>

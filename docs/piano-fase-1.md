@@ -126,6 +126,23 @@ Il portale ne usa uno solo.
 
 **Nessuna nuova funzione cliente nelle rotte Next del CRM.**
 
+## Tappa 1: com'è stata fatta (13/10/2026)
+
+Il metodo di pagamento del nucleo è il primo flusso che vive sul portale.
+
+- **Edge Function `portale-link`** (APP-ATHLON, `supabase/functions/portale-link/`). È pubblica come le `sito-*` e riceve il token. Fa il lavoro della rotta del CRM `/api/metodo-pagamento/nucleo/[codice]`, con le stesse azioni (`apri`, `contratti`, `iban`, `carta`, `conferma`, `carta-fallita`), e chiama `perfectgym-metodo-pagamento` con la chiave di servizio.
+  - In più c'è un tetto di 30 tentativi IBAN all'ora per richiesta.
+  - Il ritorno della carta punta a `app.athlonroma.it/r/<token>/fatto`.
+- **Portale:** `/r/[token]` (elenco, IBAN, esiti) e `/r/[token]/fatto` (ritorno dalla carta). Le pagine sono riprese da quelle del CRM, con gli stessi testi e le stesse regole.
+- **CRM:** l'email del link (`lib/metodoPagamentoEmail.ts`) porta ora a `urlLinkPortale(token)`. Le pagine `/metodo-pagamento/nucleo/*` del CRM restano attive per i link già spediti, che scadono al più tardi dopo 7 giorni; dopo si possono togliere.
+
+**Cosa cambia rispetto al piano.** La tabella unica `portale_richieste` non è stata creata. Il token si risolve in un solo posto, `portale-link`, sulla tabella che esiste già (`metodo_pagamento_richieste`), così il flusso del desk e la funzione PerfectGym non si toccano. Quando arriveranno altri tipi (eventi, appuntamenti), `portale-link` cercherà il token nelle loro tabelle. Si deciderà allora se unificarle e se salvare i token come hash.
+
+**Ordine di rilascio**, perché i link non puntino a una pagina che non c'è:
+1. funzione `portale-link` pubblicata (fatto);
+2. merge del portale, cioè le pagine `/r/*` su app.athlonroma.it;
+3. merge del CRM, cioè le email che puntano al portale.
+
 ## Le tappe
 
 | # | Binario | Cosa | Perché in quest'ordine |

@@ -7,8 +7,8 @@ import { Pagina } from '@/components/Pagina'
 import { spazio, useColori } from '@/theme'
 
 // Il primo flusso del binario A, sopra la rotta che il CRM ha gia'
-// (`/api/metodo-pagamento/richiesta`): il link che arriva apre per ora la
-// pagina sul CRM. Alla tappa 1 la pagina trasloca qui, in `/r/[token]`.
+// (`/api/metodo-pagamento/richiesta`, la stessa del modulo del sito). Il link
+// che arriva per email porta qui, a `/r/<token>` (tappa 1).
 export default function RichiestaMetodoPagamento() {
   const c = useColori()
   const [email, setEmail] = useState('')
