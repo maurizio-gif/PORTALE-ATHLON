@@ -50,13 +50,26 @@ function RigaLezione({
     if (problema) setErrore(problema)
   }
 
-  const stato = b
-    ? { testo: b.attesa ? 'In lista d’attesa' : 'Prenotato', tono: b.attesa ? ('attenzione' as const) : ('ok' as const) }
-    : l.iniziata
-      ? { testo: 'Già cominciata', tono: null }
-      : l.liberi <= 0
-        ? { testo: 'Completa', tono: null }
-        : { testo: l.liberi === 1 ? 'Ultimo posto' : `${l.liberi} posti liberi`, tono: null }
+  // I posti liberi sono la cosa che si guarda per prima: un numero grande, a
+  // destra, verde quando ce n'e', arancione quando stanno finendo, rosso
+  // quando la lezione e' completa.
+  const tono = l.liberi <= 0 ? ('errore' as const) : l.liberi < 5 ? ('attenzione' as const) : ('ok' as const)
+  const posti = l.iniziata ? null : (
+    <View
+      style={[stili.posti, stileTono(c, tono)]}
+      accessibilityLabel={l.liberi <= 0 ? 'Lezione completa' : `${l.liberi} ${l.liberi === 1 ? 'posto libero' : 'posti liberi'}`}
+    >
+      {l.liberi <= 0 ? (
+        <Text style={[stili.completa, { color: c[tono] }]}>Completa</Text>
+      ) : (
+        <>
+          <Text style={[stili.numeroPosti, { color: c[tono] }]}>{l.liberi}</Text>
+          <Text style={[stili.etichettaPosti, { color: c.testoSecondario }]}>{l.liberi === 1 ? 'posto' : 'posti'}</Text>
+        </>
+      )}
+    </View>
+  )
+  const statoPrenotazione = b ? (b.attesa ? ' · In lista d’attesa' : ' · Prenotato') : l.iniziata ? ' · Già cominciata' : ''
 
   return (
     <View style={[stili.lezione, { borderColor: c.bordo, backgroundColor: c.superficie }, b ? stileTono(c, b.attesa ? 'attenzione' : 'ok') : null]}>
@@ -68,9 +81,11 @@ function RigaLezione({
           </Testo>
           <Testo variante="piccolo">
             {ora(l.inizio)}–{ora(l.fine)}
-            {l.istruttore ? ` · ${l.istruttore}` : ''} · {stato.testo}
+            {l.istruttore ? ` · ${l.istruttore}` : ''}
+            {statoPrenotazione ? <Forte>{statoPrenotazione}</Forte> : null}
           </Testo>
         </View>
+        {posti}
       </View>
       {errore ? <Avviso>{errore}</Avviso> : null}
       {l.iniziata ? null : b ? (
@@ -99,6 +114,9 @@ export function Calendario() {
   const [errore, setErrore] = useState<string | null>(null)
   const [carica, setCarica] = useState(true)
   const [occupato, setOccupato] = useState(false)
+  // L'attivita' scelta resta passando da un giorno all'altro: chi cerca il
+  // Pilates lo cerca in tutta la settimana.
+  const [attivita, setAttivita] = useState<string | null>(null)
 
   const leggi = useCallback(async (data?: string, memberId?: number) => {
     setCarica(true)
@@ -168,6 +186,10 @@ export function Calendario() {
   // con una prenotazione, che dicono «ci sei andato».
   const visibili = giorno.lezioni.filter((l) => !l.iniziata || l.prenotazione)
   const nascoste = giorno.lezioni.length - visibili.length
+  const conteggi = new Map<string, number>()
+  for (const l of visibili) conteggi.set(l.nome, (conteggi.get(l.nome) ?? 0) + 1)
+  const attivitaDelGiorno = [...conteggi.keys()].sort((x, y) => x.localeCompare(y, 'it'))
+  const filtrate = attivita ? visibili.filter((l) => l.nome === attivita) : visibili
   return (
     <Pagina titolo="Calendario lezioni" sottotitolo="Laboratorio · le prenotazioni sono vere: le trovi anche nell’app Athlon.">
       {giorno.persone.length > 1 ? (
@@ -200,6 +222,23 @@ export function Calendario() {
       <Testo variante="sottotitolo" style={{ fontSize: 17 }}>
         {maiuscola(giornoEsteso(giorno.data))}
       </Testo>
+      {attivitaDelGiorno.length > 1 || attivita ? (
+        // La scelta attiva subito dopo «Tutte», e la fila torna all'inizio a
+        // ogni giorno (key): l'attivita' scelta non resta mai fuori vista.
+        <ScrollView key={giorno.data} horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={stili.fila}>
+          {[null, ...(attivita ? [attivita] : []), ...attivitaDelGiorno.filter((x) => x !== attivita)].map((a) => {
+            const attivo = a === attivita
+            const n = a ? conteggi.get(a) ?? 0 : visibili.length
+            return (
+              <Scelta key={a ?? 'tutte'} scelta={attivo} onPress={() => setAttivita(a)} etichetta={`${a ?? 'Tutte le attività'}, ${n}`}>
+                <Text style={{ color: attivo ? c.suAccento : c.testo, fontWeight: '600' }}>
+                  {a ?? 'Tutte'} <Text style={{ fontWeight: '400', opacity: 0.75 }}>{n}</Text>
+                </Text>
+              </Scelta>
+            )
+          })}
+        </ScrollView>
+      ) : null}
       {!giorno.prenotazioni_lette ? <Avviso tono="attenzione">PerfectGym non risponde: le tue prenotazioni potrebbero non comparire.</Avviso> : null}
       {mie.length ? (
         <Testo variante="piccolo">
@@ -211,10 +250,15 @@ export function Calendario() {
         <ActivityIndicator color={c.accento} style={{ alignSelf: 'flex-start' }} />
       ) : visibili.length === 0 ? (
         <Testo variante="attenuato">Nessuna lezione ancora da cominciare in questo giorno.</Testo>
+      ) : filtrate.length === 0 ? (
+        <>
+          <Testo variante="attenuato">Nessuna lezione di {attivita} ancora da cominciare in questo giorno.</Testo>
+          <Bottone testo="Mostra tutte le attività" variante="contorno" onPress={() => setAttivita(null)} />
+        </>
       ) : (
         <View style={{ gap: spazio.due }}>
-          {nascoste ? <Testo variante="piccolo">{nascoste === 1 ? 'Una lezione è già cominciata.' : `${nascoste} lezioni sono già cominciate.`}</Testo> : null}
-          {visibili.map((l) => (
+          {nascoste && !attivita ? <Testo variante="piccolo">{nascoste === 1 ? 'Una lezione è già cominciata.' : `${nascoste} lezioni sono già cominciate.`}</Testo> : null}
+          {filtrate.map((l) => (
             <RigaLezione key={l.class_id} l={l} occupato={occupato} onPrenota={() => prenota(l)} onDisdici={() => disdici(l)} />
           ))}
         </View>
@@ -232,4 +276,8 @@ const stili = StyleSheet.create({
   testa: { flexDirection: 'row', gap: spazio.tre, alignItems: 'flex-start' },
   ora: { fontSize: 17, fontWeight: '700', minWidth: 52, fontVariant: ['tabular-nums'] },
   azioni: { flexDirection: 'row', gap: spazio.due },
+  posti: { minWidth: 62, borderRadius: 10, paddingVertical: spazio.uno, paddingHorizontal: spazio.due, alignItems: 'center', justifyContent: 'center' },
+  numeroPosti: { fontSize: 24, fontWeight: '800', lineHeight: 28, fontVariant: ['tabular-nums'] },
+  etichettaPosti: { fontSize: 11, fontWeight: '600', textTransform: 'uppercase' },
+  completa: { fontSize: 12, fontWeight: '800', textTransform: 'uppercase', paddingVertical: spazio.due },
 })
