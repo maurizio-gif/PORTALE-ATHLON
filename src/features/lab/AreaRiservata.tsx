@@ -160,12 +160,10 @@ function Metriche({ attivi, totali, famiglia, certificato }: { attivi: number; t
 
 /** Le funzioni in prova: tre schede grandi, una per colore. */
 function Novita() {
-  const p = usePalette()
   const { width } = useWindowDimensions()
   const voci: { titolo: string; testo: string; tag: string; icona: NomeIcona; href: Href; colori: readonly [string, string, ...string[]] }[] = [
     { titolo: 'Calendario lezioni', testo: 'Posti liberi, prenota e disdici: prenotazioni vere su PerfectGym.', tag: 'Prenotazioni vere', icona: 'calendario', href: '/lab/calendario', colori: MARE },
     { titolo: 'Pagamenti', testo: 'Pagamento diretto con carta e rate automatiche, con il tetto di prova di 5 €.', tag: 'Soldi veri · max 5 €', icona: 'carta', href: '/lab/pagamenti', colori: FUOCO },
-    { titolo: 'Guest Pass', testo: 'La procedura nuova dal link: dati, consensi, inizio e pagamento.', tag: 'In prova', icona: 'pass', href: '/lab/guest-pass', colori: [p.scuro ? '#2B2C31' : '#2A2B30', '#141518'] },
     { titolo: 'Animazioni esercizi', testo: 'Un giorno di scheda con le animazioni di tre librerie: quale ti piace di più?', tag: 'Da scegliere', icona: 'play', href: '/lab/animazioni', colori: ['#8B5CF6', '#5B21B6'] },
   ]
   return (

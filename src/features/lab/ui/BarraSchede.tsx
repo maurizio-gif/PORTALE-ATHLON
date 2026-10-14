@@ -18,7 +18,6 @@ const SCHEDE: { href: Href; percorso: string; titolo: string; icona: NomeIcona }
   { href: '/lab/calendario', percorso: '/lab/calendario', titolo: 'Lezioni', icona: 'calendario' },
   { href: '/lab/tv', percorso: '/lab/tv', titolo: 'TV', icona: 'play' },
   { href: '/lab/pagamenti', percorso: '/lab/pagamenti', titolo: 'Pagamenti', icona: 'carta' },
-  { href: '/lab/guest-pass', percorso: '/lab/guest-pass', titolo: 'Guest Pass', icona: 'pass' },
 ]
 
 const MOLLA = { damping: 20, stiffness: 220, mass: 0.7 }

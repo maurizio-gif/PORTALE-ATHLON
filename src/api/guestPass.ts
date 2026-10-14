@@ -1,10 +1,9 @@
 import { SUPABASE_URL } from '@/config'
-import { supabase } from '@/lib/supabase'
 
-// Il Guest Pass dal link (in prova): prima l'email, poi i dati (nome, cognome,
-// cellulare e la privacy, sempre) con la Edge Function `guest-pass`, e dal laboratorio la
-// richiesta per un famigliare. Il resto si fa dal link /r/<codice>
-// (portale-link → guest-pass).
+// Il Guest Pass dal link: prima l'email, poi i dati (nome, cognome,
+// cellulare e la privacy, sempre) con la Edge Function `guest-pass`. Il resto
+// si fa dal link /r/<codice> (portale-link → guest-pass). La prova dal
+// laboratorio non c'e' piu': il Guest Pass e' live (14/10/2026).
 
 /** Chi e' per PerfectGym: nessuno (diventera' un Lead), un Lead, un Guest o un Member. */
 export type TipoVerifica = 'nuovo' | 'lead' | 'guest' | 'member'
@@ -66,16 +65,6 @@ export async function riprendiGuestPass(
   const r = await chiama({ azione: 'riprendi', email })
   if (r.ok) return { ok: true, riprendi: String(r.dati.riprendi ?? '') }
   return { ok: false, nessuna: r.dati.nessuna === true, errore: r.dati.errore ?? 'Non siamo riusciti a rimandarti il link adesso.' }
-}
-
-/** Dal laboratorio: il Guest Pass per un famigliare, col link al tester. */
-export async function labRichiediGuestPass(memberId: number): Promise<{ ok: true } | { ok: false; errore: string }> {
-  const { data } = await supabase.auth.getSession()
-  const token = data.session?.access_token
-  if (!token) return { ok: false, errore: 'Sessione scaduta: entra di nuovo.' }
-  const r = await chiama({ azione: 'lab_richiedi', member_id: memberId }, token)
-  if (r.ok) return { ok: true }
-  return { ok: false, errore: r.dati.errore ?? 'Non siamo riusciti a mandarti il link adesso.' }
 }
 
 /**
