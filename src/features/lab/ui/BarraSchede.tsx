@@ -1,6 +1,6 @@
 import { BlurView } from 'expo-blur'
 import { router, usePathname, type Href } from 'expo-router'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Platform, StyleSheet, Text, View } from 'react-native'
 import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
@@ -16,7 +16,7 @@ import { Tocco } from './Tocco'
 const SCHEDE: { href: Href; percorso: string; titolo: string; icona: NomeIcona }[] = [
   { href: '/lab', percorso: '/lab', titolo: 'Home', icona: 'casa' },
   { href: '/lab/calendario', percorso: '/lab/calendario', titolo: 'Lezioni', icona: 'calendario' },
-  { href: '/lab/video', percorso: '/lab/video', titolo: 'Video', icona: 'play' },
+  { href: '/lab/tv', percorso: '/lab/tv', titolo: 'TV', icona: 'play' },
   { href: '/lab/pagamenti', percorso: '/lab/pagamenti', titolo: 'Pagamenti', icona: 'carta' },
   { href: '/lab/guest-pass', percorso: '/lab/guest-pass', titolo: 'Guest Pass', icona: 'pass' },
 ]
@@ -36,8 +36,15 @@ export function BarraSchede() {
   const x = useSharedValue(0)
   const passo = larghezza / SCHEDE.length
 
+  // La prima volta il tondo si mette subito al suo posto; poi, cambiando
+  // scheda, ci scivola con la molla.
+  const piazzato = useRef(false)
   useEffect(() => {
-    if (attiva >= 0 && passo) x.value = withSpring(attiva * passo, MOLLA)
+    if (attiva < 0 || !passo) return
+    if (!piazzato.current) {
+      x.value = attiva * passo
+      piazzato.current = true
+    } else x.value = withSpring(attiva * passo, MOLLA)
   }, [attiva, passo, x])
 
   const cursore = useAnimatedStyle(() => ({ transform: [{ translateX: x.value }] }))

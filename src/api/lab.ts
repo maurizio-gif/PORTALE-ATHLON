@@ -416,9 +416,10 @@ export async function confermaCambioEmail(email: string, codice: string): Promis
 }
 
 // ---------------------------------------------------------------------------
-// I video del club: gli showcase di Vimeo, da `portale-lab-video` (repo
-// APP-ATHLON), che tiene il token di Vimeo. I link per riprodurre un video
-// scadono: si chiedono quando lo si apre.
+// Athlon TV: gli showcase di Vimeo del club, da `portale-lab-video` (repo
+// APP-ATHLON), che tiene il token di Vimeo. Tre livelli: gli showcase, i
+// video di uno showcase, i link per riprodurne uno (che scadono: si chiedono
+// quando lo si apre).
 
 export type VideoClub = {
   id: string
@@ -431,20 +432,27 @@ export type VideoClub = {
   pubblicato_il: string | null
 }
 
-export type Vetrina = { id: string; titolo: string; descrizione: string | null; copertina: string | null; video: VideoClub[] }
+/** `fuoco`: il punto della copertina da tenere al centro («50% 70%»), se il sito lo indica. */
+export type Vetrina = { id: string; titolo: string; descrizione: string | null; copertina: string | null; fuoco?: string | null; totale: number }
 
 export type VideoDaGuardare = VideoClub & { vetrina: { id: string; titolo: string }; hls: string | null; mp4: string | null }
 
-const video = (corpo: Record<string, unknown>) => funzione('portale-lab-video', corpo)
+const tv = (corpo: Record<string, unknown>) => funzione('portale-lab-video', corpo)
 
 export async function leggiVetrine(): Promise<Esito<{ vetrine: Vetrina[] }>> {
-  const { ok, dati } = await video({ azione: 'vetrine' })
+  const { ok, dati } = await tv({ azione: 'vetrine' })
   if (ok) return { ok: true, vetrine: dati.vetrine as Vetrina[] }
   return { ok: false, errore: dati.errore ?? 'Non riusciamo a leggere i video adesso.' }
 }
 
-export async function apriVideo(id: string): Promise<Esito<{ video: VideoDaGuardare }>> {
-  const { ok, dati } = await video({ azione: 'video', id })
+export async function leggiVetrina(id: string): Promise<Esito<{ vetrina: Vetrina; video: VideoClub[] }>> {
+  const { ok, dati } = await tv({ azione: 'vetrina', id })
+  if (ok) return { ok: true, vetrina: dati.vetrina as Vetrina, video: dati.video as VideoClub[] }
+  return { ok: false, errore: dati.errore ?? 'Non riusciamo a leggere i video adesso.' }
+}
+
+export async function apriVideo(id: string, vetrina: string): Promise<Esito<{ video: VideoDaGuardare }>> {
+  const { ok, dati } = await tv({ azione: 'video', id, vetrina })
   if (ok) return { ok: true, video: dati.video as VideoDaGuardare }
   return { ok: false, errore: dati.errore ?? 'Non riusciamo ad aprire il video adesso.' }
 }
