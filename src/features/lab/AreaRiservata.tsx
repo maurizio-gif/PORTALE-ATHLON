@@ -4,12 +4,14 @@ import { router, type Href } from 'expo-router'
 import { useCallback, useEffect, useState } from 'react'
 import { ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native'
 
-import { esci, laMiaArea, type Area, type CertificatoArea, type ContrattoArea, type PersonaArea } from '@/api/lab'
+import { laMiaArea, leggiAnagrafica, leggiVetrine, elencoPagamenti, leggiGiorno, type Area, type CertificatoArea, type ContrattoArea, type PersonaArea } from '@/api/lab'
 import { LARGO } from '@/components/Pagina'
 import { MetodoAttualeBadge, statoLeggibile } from '@/features/metodo-pagamento/Metodo'
 import { dataBreve, metodoDaPerfectGym } from '@/lib/metodoPagamento'
 import { spazio } from '@/theme'
 
+import { esciDalLaboratorio, inMemoria, precarica, prendi } from './memoria'
+import { memoria as memoriaTv } from './tv/comune'
 import { Icona, type NomeIcona } from './ui/Icona'
 import { Avatar, Barra, Carta, Colonnine, Entra, Etichetta, Messaggio, Numero, Pulsante, Riga, SchedeInArrivo, Sezione, Tag } from './ui/kit'
 import { Schermata } from './ui/Schermata'
@@ -241,21 +243,29 @@ function SchedaContratto({ k, persona }: { k: ContrattoArea; persona: PersonaAre
 
 export function AreaRiservata({ email }: { email: string }) {
   const p = usePalette()
-  const [area, setArea] = useState<Area | null>(null)
+  const [area, setArea] = useState<Area | null>(inMemoria<{ ok: true; area: Area }>('area')?.area ?? null)
   const [errore, setErrore] = useState<{ testo: string; nonAmmesso: boolean } | null>(null)
 
   const carica = useCallback(async () => {
     setErrore(null)
-    const esito = await laMiaArea()
-    if (esito.ok) setArea(esito.area)
-    else setErrore({ testo: esito.errore, nonAmmesso: esito.nonAmmesso })
+    const esito = await prendi('area', laMiaArea)
+    if (!esito.ok) return setErrore({ testo: esito.errore, nonAmmesso: esito.nonAmmesso })
+    setArea(esito.area)
+    // Le schede che probabilmente si apriranno: i loro dati arrivano mentre si
+    // guarda la Home, cosi' toccandole sono gia' pronte.
+    if (esito.area.trovato) {
+      precarica('giorno::', () => leggiGiorno())
+      precarica('pagamenti', elencoPagamenti)
+      precarica('anagrafica', leggiAnagrafica)
+      if (!memoriaTv.vetrine) leggiVetrine().then((r) => r.ok && (memoriaTv.vetrine = r.vetrine))
+    }
   }, [])
 
   useEffect(() => {
     carica()
   }, [carica])
 
-  const uscita = <Pulsante testo="Esci dal laboratorio" icona="esci" variante="secondario" onPress={esci} />
+  const uscita = <Pulsante testo="Esci dal laboratorio" icona="esci" variante="secondario" onPress={esciDalLaboratorio} />
 
   if (errore) {
     return (

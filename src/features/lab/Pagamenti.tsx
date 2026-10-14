@@ -17,6 +17,7 @@ import { InfoAdyen } from '@/components/InfoAdyen'
 import { spazio, type Tono } from '@/theme'
 
 import { DropIn, pagamentoDisponibile } from './adyen'
+import { inMemoria, prendi } from './memoria'
 import { euro, quando, STATO_ABBONAMENTO, STATO_PAGAMENTO } from './etichettePagamenti'
 import { Icona } from './ui/Icona'
 import { Carta, Colonnine, Entra, Etichetta, Messaggio, Numero, Pulsante, Riga, SchedeInArrivo, Sezione, Tag } from './ui/kit'
@@ -199,14 +200,15 @@ function Abbonamento({ a, onCambiato }: { a: AbbonamentoLab; onCambiato: () => v
 export function Pagamenti() {
   const p = usePalette()
   const router = useRouter()
-  const [dati, setDati] = useState<{ piani: PianoLab[]; abbonamenti: AbbonamentoLab[] } | null>(null)
+  const giaLetti = inMemoria<{ piani: PianoLab[]; abbonamenti: AbbonamentoLab[] }>('pagamenti')
+  const [dati, setDati] = useState<{ piani: PianoLab[]; abbonamenti: AbbonamentoLab[] } | null>(giaLetti ? { piani: giaLetti.piani, abbonamenti: giaLetti.abbonamenti } : null)
   const [errore, setErrore] = useState<string | null>(null)
   const [avvio, setAvvio] = useState<string | null>(null)
   const [checkout, setCheckout] = useState<{ piano: PianoLab; sessione: SessioneAdyen } | null>(null)
   const [erroreCheckout, setErroreCheckout] = useState<string | null>(null)
 
   const carica = useCallback(async () => {
-    const r = await elencoPagamenti()
+    const r = await prendi('pagamenti', elencoPagamenti)
     if (r.ok) {
       setDati({ piani: r.piani, abbonamenti: r.abbonamenti })
       setErrore(null)

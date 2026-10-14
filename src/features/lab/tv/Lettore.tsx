@@ -5,7 +5,7 @@ import { useVideoPlayer, VideoView } from 'expo-video'
 import { useCallback, useEffect, useState } from 'react'
 import { Platform, StyleSheet, Text, View } from 'react-native'
 
-import { apriVideo, type VideoDaGuardare } from '@/api/lab'
+import { apriVideo, leggiVetrina, type VideoDaGuardare } from '@/api/lab'
 import { spazio } from '@/theme'
 
 import { Icona } from '../ui/Icona'
@@ -90,6 +90,18 @@ export function Lettore() {
   useEffect(() => {
     carica()
   }, [carica])
+
+  // Aperto da un link, senza passare dalla galleria: l'elenco della raccolta
+  // non c'e' ancora, e senza non ci sono i prossimi video.
+  const [, setElenco] = useState(0)
+  useEffect(() => {
+    if (memoria.video.has(String(raccolta))) return
+    leggiVetrina(String(raccolta)).then((r) => {
+      if (!r.ok) return
+      memoria.video.set(String(raccolta), r.video)
+      setElenco((n) => n + 1)
+    })
+  }, [raccolta])
 
   const sorgente = v ? (Platform.OS === 'web' ? v.mp4 ?? v.hls : v.hls ?? v.mp4) : null
   // I prossimi della raccolta, dopo questo; finita la raccolta si riparte dall'inizio.

@@ -22,6 +22,7 @@ import { InfoAdyen } from '@/components/InfoAdyen'
 import { euro, giornoEsteso, ora } from '@/lib/eventi'
 import { spazio } from '@/theme'
 
+import { inMemoria, prendi, ricorda } from './memoria'
 import { posizione } from './SchedaLezione'
 import { FoglioLezione } from './ui/FoglioLezione'
 import { Icona } from './ui/Icona'
@@ -341,7 +342,7 @@ function LezioniPrenotate({ lezioni, occupato, onAnnulla }: { lezioni: Lezione[]
 
 export function Calendario() {
   const p = usePalette()
-  const [giorno, setGiorno] = useState<Giorno | null>(null)
+  const [giorno, setGiorno] = useState<Giorno | null>(inMemoria<{ ok: true; giorno: Giorno }>('giorno::')?.giorno ?? null)
   const [errore, setErrore] = useState<string | null>(null)
   const [carica, setCarica] = useState(true)
   const [occupato, setOccupato] = useState(false)
@@ -350,10 +351,18 @@ export function Calendario() {
   const [attivita, setAttivita] = useState<string | null>(null)
   const [aperta, setAperta] = useState<Lezione | null>(null)
 
+  // Il giorno gia' letto si mostra subito (memoria del laboratorio) e intanto
+  // si rilegge; la Home precarica quello di oggi ('giorno::').
+  const chiaveGiorno = useRef('giorno::')
   const leggi = useCallback(async (data?: string, memberId?: number) => {
-    setCarica(true)
+    const chiave = `giorno:${data ?? ''}:${memberId ?? ''}`
+    chiaveGiorno.current = chiave
+    const gia = inMemoria<{ ok: true; giorno: Giorno }>(chiave)
+    if (gia) setGiorno(gia.giorno)
+    setCarica(!gia)
     setErrore(null)
-    const esito = await leggiGiorno(data, memberId)
+    const esito = await prendi(chiave, () => leggiGiorno(data, memberId))
+    if (chiaveGiorno.current !== chiave) return
     if (esito.ok) setGiorno(esito.giorno)
     else setErrore(esito.errore)
     setCarica(false)
@@ -396,16 +405,18 @@ export function Calendario() {
   // Dopo un clic si aggiorna la riga subito, con quello che dice PerfectGym,
   // senza ricaricare la giornata: il mirror puo' essere indietro.
   function aggiorna(classId: number, prenotazione: Lezione['prenotazione'], delta: number) {
-    setGiorno((g) =>
-      g
-        ? {
-            ...g,
-            lezioni: g.lezioni.map((l) =>
-              l.class_id === classId ? { ...l, prenotazione, iscritti: l.iscritti + delta, liberi: Math.max(0, l.liberi - delta) } : l
-            ),
-          }
-        : g
-    )
+    setGiorno((g) => {
+      if (!g) return g
+      const nuovo = {
+        ...g,
+        lezioni: g.lezioni.map((l) =>
+          l.class_id === classId ? { ...l, prenotazione, iscritti: l.iscritti + delta, liberi: Math.max(0, l.liberi - delta) } : l
+        ),
+      }
+      // Anche la memoria: tornando qui la prenotazione appena fatta c'e' gia'.
+      ricorda(chiaveGiorno.current, { ok: true, giorno: nuovo })
+      return nuovo
+    })
   }
 
   async function prenota(l: Lezione): Promise<({ errore: string } & Partial<DaPagare>) | null> {

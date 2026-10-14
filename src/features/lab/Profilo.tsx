@@ -16,6 +16,7 @@ import { controllaResidenza, controllaTelefono, indirizzoInRiga } from '@/lib/an
 import { dataBreve } from '@/lib/metodoPagamento'
 import { spazio } from '@/theme'
 
+import { inMemoria, prendi, ricorda } from './memoria'
 import { CampoCodice, CampoTesto } from './ui/Campi'
 import { Foglio } from './ui/Foglio'
 import { Icona, type NomeIcona } from './ui/Icona'
@@ -239,16 +240,18 @@ function ModificaPillola() {
 
 export function Profilo() {
   const p = usePalette()
-  const [dati, setDati] = useState<Anagrafica | null>(null)
-  const [famiglia, setFamiglia] = useState<number | null>(null)
-  const [modificabile, setModificabile] = useState(false)
+  const giaLetta = inMemoria<{ ok: true; anagrafica: Anagrafica }>('anagrafica')
+  const areaLetta = inMemoria<Awaited<ReturnType<typeof laMiaArea>>>('area')
+  const [dati, setDati] = useState<Anagrafica | null>(giaLetta?.anagrafica ?? null)
+  const [famiglia, setFamiglia] = useState<number | null>(areaLetta?.ok && areaLetta.area.trovato ? areaLetta.area.persone.length - 1 : null)
+  const [modificabile, setModificabile] = useState(!!giaLetta)
   const [errore, setErrore] = useState<string | null>(null)
   const [modifica, setModifica] = useState<Modifica>(null)
   const [fatto, setFatto] = useState<string | null>(null)
 
   const carica = useCallback(async () => {
     setErrore(null)
-    const [r, area] = await Promise.all([leggiAnagrafica(), laMiaArea()])
+    const [r, area] = await Promise.all([prendi('anagrafica', leggiAnagrafica), prendi('area', laMiaArea)])
     const trovata = area.ok && area.area.trovato ? area.area : null
     if (trovata) setFamiglia(trovata.persone.length - 1)
     if (r.ok) {
@@ -280,6 +283,7 @@ export function Profilo() {
   function salvato(cosa: string) {
     return (a: Anagrafica) => {
       colpetto('ok')
+      ricorda('anagrafica', { ok: true, anagrafica: a })
       setDati(a)
       setModifica(null)
       setFatto(cosa)

@@ -5,7 +5,6 @@ import { Platform, StyleSheet, Text, useWindowDimensions, View } from 'react-nat
 import Animated, { interpolate, useAnimatedScrollHandler, useAnimatedStyle, useSharedValue, Extrapolation } from 'react-native-reanimated'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
-import { IntestazioneLegale } from '@/components/IntestazioneLegale'
 import { LARGO } from '@/components/Pagina'
 import { spazio } from '@/theme'
 
@@ -15,8 +14,9 @@ import { Tocco } from './Tocco'
 
 // La cornice delle schermate del laboratorio, come un'app: il titolo grande in
 // alto che, scorrendo, lascia il posto a una testata sottile e sfocata col
-// titolo piccolo; sotto, lo spazio per la barra delle schede. In fondo, come
-// su ogni pagina dell'app, i dati legali del club.
+// titolo piccolo; sotto, lo spazio per la barra delle schede. Niente dati
+// legali in fondo, a differenza delle pagine pubbliche: nel laboratorio sotto
+// c'e' solo il menu (scelta dell'utente, 14/10/2026).
 
 /** Quanto spazio lasciare in fondo per la barra delle schede. */
 export const SPAZIO_BARRA = 96
@@ -105,12 +105,12 @@ export function Schermata({
             </Animated.View>
           )}
           <View style={[stili.contenuto, nascondiTitolo && { marginTop: 0 }]}>{children}</View>
-          <IntestazioneLegale />
         </View>
       </Animated.ScrollView>
 
-      {/* La testata sottile che compare scorrendo. */}
-      <Animated.View pointerEvents="box-none" style={[stili.testata, { paddingTop: ins.top, height: ins.top + 52 }, testata]}>
+      {/* La testata sottile che compare scorrendo. Non prende i tocchi: anche
+          trasparente, sopra la freccia indietro se li prendeva (14/10/2026). */}
+      <Animated.View pointerEvents="none" style={[stili.testata, { paddingTop: ins.top, height: ins.top + 52 }, testata]}>
         {Platform.OS === 'android' ? (
           <View style={[StyleSheet.absoluteFill, { backgroundColor: p.vetro }]} />
         ) : (

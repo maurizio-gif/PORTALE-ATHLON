@@ -7,6 +7,7 @@ import { labRichiediGuestPass } from '@/api/guestPass'
 import { laMiaArea, type PersonaArea } from '@/api/lab'
 import { spazio } from '@/theme'
 
+import { inMemoria, prendi } from './memoria'
 import { Icona } from './ui/Icona'
 import { Avatar, Carta, Entra, Messaggio, Numero, Pulsante, SchedeInArrivo, Sezione, Tag } from './ui/kit'
 import { Schermata } from './ui/Schermata'
@@ -51,12 +52,13 @@ function Biglietto() {
 
 export function GuestPassLab({ email }: { email: string }) {
   const p = usePalette()
-  const [persone, setPersone] = useState<PersonaArea[] | null>(null)
+  const giaLetta = inMemoria<Awaited<ReturnType<typeof laMiaArea>>>('area')
+  const [persone, setPersone] = useState<PersonaArea[] | null>(giaLetta?.ok && giaLetta.area.trovato ? giaLetta.area.persone : null)
   const [esiti, setEsiti] = useState<Record<number, { testo: string; tono: 'ok' | 'errore' }>>({})
   const [occupato, setOccupato] = useState<number | null>(null)
 
   useEffect(() => {
-    laMiaArea().then((r) => setPersone(r.ok && r.area.trovato ? r.area.persone : []))
+    prendi('area', laMiaArea).then((r) => setPersone(r.ok && r.area.trovato ? r.area.persone : []))
   }, [])
 
   async function chiedi(x: PersonaArea) {
