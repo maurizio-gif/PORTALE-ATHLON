@@ -1,6 +1,6 @@
 import { BlurView } from 'expo-blur'
 import { router, type Href } from 'expo-router'
-import type { ReactNode } from 'react'
+import type { ReactNode, Ref } from 'react'
 import { Platform, StyleSheet, Text, useWindowDimensions, View } from 'react-native'
 import Animated, { interpolate, useAnimatedScrollHandler, useAnimatedStyle, useSharedValue, Extrapolation } from 'react-native-reanimated'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
@@ -31,8 +31,11 @@ export function Schermata({
   barra = true,
   sopra,
   nascondiTitolo = false,
+  scorrimento,
   children,
 }: {
+  /** Per far scorrere la schermata da fuori (la Home scende all'elenco dei certificati). */
+  scorrimento?: Ref<Animated.ScrollView>
   /** Il titolo grande lo disegna `sopra`: qui resta solo quello piccolo della testata. */
   nascondiTitolo?: boolean
   titolo: string
@@ -82,6 +85,7 @@ export function Schermata({
   return (
     <View style={[stili.fondo, { backgroundColor: p.fondo }]}>
       <Animated.ScrollView
+        ref={scorrimento}
         onScroll={onScroll}
         scrollEventThrottle={16}
         keyboardShouldPersistTaps="handled"

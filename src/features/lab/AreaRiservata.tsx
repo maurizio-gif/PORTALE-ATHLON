@@ -1,8 +1,9 @@
 import { Image } from 'expo-image'
 import { LinearGradient } from 'expo-linear-gradient'
 import { router, type Href } from 'expo-router'
-import { useCallback, useEffect, useState } from 'react'
-import { ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native'
+import type Animated from 'react-native-reanimated'
 
 import { laMiaArea, leggiAnagrafica, leggiVetrine, elencoPagamenti, leggiGiorno, type Area, type CertificatoArea, type ContrattoArea, type PersonaArea } from '@/api/lab'
 import { LARGO } from '@/components/Pagina'
@@ -51,24 +52,126 @@ function giorni(n: number): string {
   return `${n} ${n === 1 ? 'giorno' : 'giorni'}`
 }
 
-/**
- * Lo stato del certificato (la fine del definitivo, dal database): valido o in
- * scadenza (30 giorni) fino a quando e per quanti giorni ancora, scaduto da
- * quando e da quanti giorni, mancante se non e' mai stato consegnato.
- */
-function statoCertificato(ce: CertificatoArea | undefined): {
+/** Il giorno dei 6 anni, dalla data di nascita: da li' il certificato e' obbligatorio. */
+function seiAnni(nascita: string | null | undefined): string | null {
+  const m = String(nascita ?? '').match(/^(\d{4})-(\d{2})-(\d{2})/)
+  if (!m) return null
+  // Date.UTC porta il 29 febbraio di un anno non bisestile al 1° marzo.
+  return new Date(Date.UTC(Number(m[1]) + 6, Number(m[2]) - 1, Number(m[3]))).toISOString().slice(0, 10)
+}
+
+type StatoCertificato = {
   testo: string
   tono: 'ok' | 'attenzione' | 'errore' | 'neutro'
+  /** I giorni alla scadenza (negativi se scaduto); null se non c'e' una scadenza da contare. */
   giorni: number | null
   /** La riga per esteso: «Valido fino al 31/07/2027 · ancora 289 giorni». */
   dettaglio: string
-} {
+  /** La riga corta del riquadro scuro, quando non ci sono giorni da contare. */
+  breve: string
+  /** Manca, e' scaduto o va consegnato: si spiega quale certificato serve. */
+  daConsegnare: boolean
+}
+
+/**
+ * Lo stato del certificato (la fine del definitivo, dal database): valido o in
+ * scadenza (30 giorni) fino a quando e per quanti giorni ancora, scaduto da
+ * quando e da quanti giorni, mancante se non e' mai stato consegnato. Sotto i
+ * 6 anni non serve; nell'ultimo mese prima dei 6 va consegnato, come nel CRM
+ * (certificati_stato: «non_dovuto», «compie_6_anni»).
+ */
+function statoCertificato(ce: CertificatoArea | undefined, nascita?: string | null): StatoCertificato {
   const g = giorniA(ce?.scadenza ?? null)
   const data = dataBreve(ce?.scadenza)
-  if (g == null || !data) return { testo: 'Mancante', tono: 'neutro', giorni: null, dettaglio: 'Non è mai stato consegnato' }
-  if (g < 0) return { testo: 'Scaduto', tono: 'errore', giorni: g, dettaglio: `Scaduto il ${data} · ${giorni(-g)} fa` }
-  if (g === 0) return { testo: 'Scade oggi', tono: 'attenzione', giorni: 0, dettaglio: `Valido fino a oggi, ${data}` }
-  return { testo: g <= 30 ? 'In scadenza' : 'Valido', tono: g <= 30 ? 'attenzione' : 'ok', giorni: g, dettaglio: `Valido fino al ${data} · ancora ${giorni(g)}` }
+  const sei = seiAnni(nascita)
+  const aiSei = giorniA(sei)
+  if (sei && aiSei != null && aiSei > 30) {
+    return { testo: 'Non serve', tono: 'neutro', giorni: null, dettaglio: `Non serve fino ai 6 anni, il ${dataBreve(sei)}`, breve: 'fino ai 6 anni', daConsegnare: false }
+  }
+  if (sei && aiSei != null && aiSei > 0 && (g == null || g < aiSei)) {
+    return { testo: 'Da consegnare', tono: 'attenzione', giorni: null, dettaglio: `Da consegnare entro il ${dataBreve(sei)}, quando compie 6 anni`, breve: `entro il ${dataBreve(sei)}`, daConsegnare: true }
+  }
+  if (g == null || !data) return { testo: 'Mancante', tono: 'neutro', giorni: null, dettaglio: 'Non è mai stato consegnato', breve: 'mai consegnato', daConsegnare: true }
+  if (g < 0) return { testo: 'Scaduto', tono: 'errore', giorni: g, dettaglio: `Scaduto il ${data} · ${giorni(-g)} fa`, breve: '', daConsegnare: true }
+  if (g === 0) return { testo: 'Scade oggi', tono: 'attenzione', giorni: 0, dettaglio: `Valido fino a oggi, ${data}`, breve: '', daConsegnare: false }
+  return { testo: g <= 30 ? 'In scadenza' : 'Valido', tono: g <= 30 ? 'attenzione' : 'ok', giorni: g, dettaglio: `Valido fino al ${data} · ancora ${giorni(g)}`, breve: '', daConsegnare: false }
+}
+
+/** Il colore del pallino di un certificato, sul riquadro scuro. */
+const PALLINO = { ok: '#6DD58C', attenzione: '#F2B84B', errore: '#FF6B6B', neutro: '#8E9098' } as const
+
+// Quale certificato serve, dal wiki del club (Generali → Certificato medico).
+// Senza «invialo al desk»: nel portale non si rimanda al desk (13/10/2026).
+const QUALE_CERTIFICATO = [
+  'Il certificato di idoneità all’attività sportiva non agonistica, obbligatorio dai 6 anni. Si consegna solo in formato digitale.',
+  'Lo rilasciano il medico di base o il pediatra (per i propri assistiti), o un medico dello sport.',
+  'Vale un anno dalla data di rilascio. Serve un ECG a riposo almeno una volta nella vita; ogni anno dopo i 60 anni, con fattori di rischio cardiovascolare.',
+  'Il certificato agonistico serve solo per pallanuoto Under 14 e Under 16, nuoto agonistico e nuoto propaganda: lo rilascia solo il medico dello sport, con il modulo della società.',
+]
+
+/** La «i» con il fumetto di quale certificato serve: sul web al passaggio del mouse, sul telefono al tocco. */
+function InfoCertificato({ aperta, onCambia }: { aperta: boolean; onCambia: (aperta: boolean) => void }) {
+  const p = usePalette()
+  // Aperto dal mouse, il clic che segue non lo deve richiudere.
+  const conMouse = useRef(false)
+  return (
+    <View style={{ position: 'relative' }}>
+      <Pressable
+        onPress={() => onCambia(conMouse.current ? true : !aperta)}
+        onHoverIn={() => {
+          conMouse.current = true
+          onCambia(true)
+        }}
+        onHoverOut={() => {
+          conMouse.current = false
+          onCambia(false)
+        }}
+        accessibilityRole="button"
+        accessibilityLabel={`Quale certificato serve. ${QUALE_CERTIFICATO.join(' ')}`}
+        hitSlop={10}
+        style={[stili.info, { backgroundColor: p.incavo }]}
+      >
+        <Icona nome="info" size={16} colore={p.testo} />
+      </Pressable>
+      {aperta ? (
+        <View style={[stili.fumetto, { backgroundColor: p.scuro ? '#2A2B31' : p.carbone }]} pointerEvents="none">
+          <Text style={stili.fumettoTitolo}>Quale certificato serve</Text>
+          {QUALE_CERTIFICATO.map((t) => (
+            <View key={t} style={{ flexDirection: 'row', gap: 8 }}>
+              <View style={stili.fumettoPunto} />
+              <Text style={stili.fumettoTesto}>{t}</Text>
+            </View>
+          ))}
+        </View>
+      ) : null}
+    </View>
+  )
+}
+
+/** Una riga dell'elenco dei certificati; se manca o e' scaduto, con la «i». */
+function RigaCertificato({ persona, ce, prima }: { persona: PersonaArea | undefined; ce: CertificatoArea; prima: boolean }) {
+  const p = usePalette()
+  const [aperta, setAperta] = useState(false)
+  const s = statoCertificato(ce, persona?.data_nascita)
+  return (
+    // Col fumetto aperto la riga sta sopra le altre, che altrimenti lo coprirebbero.
+    <View style={{ zIndex: aperta ? 10 : 0, elevation: aperta ? 10 : 0 }}>
+      <Riga
+        prima={prima}
+        icona="certificato"
+        tono={s.tono}
+        titolo={persona ? nome(persona) : 'Certificato'}
+        // L'etichetta sotto il testo e a destra solo la «i»: insieme a destra stringevano il nome e la data.
+        sotto={
+          <View style={{ gap: 6, alignItems: 'flex-start' }}>
+            <Text style={[stili.piccolo, { color: p.testoSecondario, fontSize: 13.5, lineHeight: 19 }]}>{s.dettaglio}</Text>
+            <Etichetta testo={s.testo} tono={s.tono} />
+          </View>
+        }
+        coda={s.daConsegnare ? <InfoCertificato aperta={aperta} onCambia={setAperta} /> : undefined}
+      />
+    </View>
+  )
 }
 
 // ---------------------------------------------------------------------------
@@ -120,7 +223,22 @@ function Benvenuto({ titolare, email, famiglia }: { titolare: PersonaArea | unde
 // ---------------------------------------------------------------------------
 
 /** I tre riquadri colorati: abbonamenti (arancio), famiglia (blu), certificato (carbone). */
-function Metriche({ attivi, totali, famiglia, certificato }: { attivi: number; totali: number; famiglia: PersonaArea[]; certificato: ReturnType<typeof statoCertificato> & { scadenza: string | null } }) {
+function Metriche({
+  attivi,
+  totali,
+  famiglia,
+  certificato,
+  certificatiFamiglia,
+  onCertificati,
+}: {
+  attivi: number
+  totali: number
+  famiglia: PersonaArea[]
+  certificato: StatoCertificato & { scadenza: string | null }
+  /** I familiari col loro certificato, per i pallini del riquadro. */
+  certificatiFamiglia: { persona: PersonaArea; stato: StatoCertificato }[]
+  onCertificati: () => void
+}) {
   const p = usePalette()
   const { width } = useWindowDimensions()
   const larghezza = width < LARGO ? 158 : undefined
@@ -148,26 +266,44 @@ function Metriche({ attivi, totali, famiglia, certificato }: { attivi: number; t
       </View>
       <Numero valore={String(famiglia.length + 1)} unita={famiglia.length ? 'persone' : 'persona'} size={38} colore="#fff" />
     </LinearGradient>,
-    <View key="c" style={[stili.metrica, { width: larghezza, backgroundColor: p.scuro ? p.incavo : '#2A2B30' }]}>
+    <Tocco
+      key="c"
+      onPress={onCertificati}
+      etichetta={`Certificato medico: ${certificato.dettaglio}. Apri l’elenco della famiglia`}
+      scala={0.98}
+      style={[stili.metrica, { width: larghezza, backgroundColor: p.scuro ? p.incavo : '#2A2B30' }]}
+    >
       <View style={stili.metricaTesta}>
         <Text style={stili.metricaTitolo}>Certificato</Text>
         <Icona nome="certificato" size={18} colore="#fff" />
       </View>
-      <View style={stili.puntini}>
-        {Array.from({ length: 12 }, (_, i) => (
-          <View
-            key={i}
-            style={[
-              stili.quadretto,
-              { backgroundColor: certificato.tono === 'ok' ? '#6DD58C' : certificato.tono === 'attenzione' ? '#F2B84B' : certificato.tono === 'errore' ? '#F2B8B5' : '#fff', opacity: i < 12 * Math.min(1, Math.max(0.1, (certificato.giorni ?? 0) / 365)) ? 1 : 0.18 },
-            ]}
-          />
-        ))}
-      </View>
+      {certificatiFamiglia.length ? (
+        // Gli altri del nucleo: l'avatar col pallino del loro certificato.
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+          {certificatiFamiglia.slice(0, 4).map(({ persona, stato }) => (
+            <View key={persona.member_id}>
+              <Avatar nome={persona.nome} cognome={persona.cognome} size={26} />
+              <View style={[stili.pallino, { backgroundColor: PALLINO[stato.tono], borderColor: p.scuro ? p.incavo : '#2A2B30' }]} />
+            </View>
+          ))}
+        </View>
+      ) : (
+        <View style={stili.puntini}>
+          {Array.from({ length: 12 }, (_, i) => (
+            <View
+              key={i}
+              style={[
+                stili.quadretto,
+                { backgroundColor: certificato.tono === 'ok' ? '#6DD58C' : certificato.tono === 'attenzione' ? '#F2B84B' : certificato.tono === 'errore' ? '#F2B8B5' : '#fff', opacity: i < 12 * Math.min(1, Math.max(0.1, (certificato.giorni ?? 0) / 365)) ? 1 : 0.18 },
+              ]}
+            />
+          ))}
+        </View>
+      )}
       {certificato.giorni == null ? (
         <View style={{ gap: 2 }}>
-          <Text style={stili.metricaGrande}>Mancante</Text>
-          <Text style={[stili.metricaNota, { fontSize: 12.5 }]}>mai consegnato</Text>
+          <Text style={stili.metricaGrande}>{certificato.testo}</Text>
+          <Text style={[stili.metricaNota, { fontSize: 12.5 }]}>{certificato.breve}</Text>
         </View>
       ) : (
         <View style={{ gap: 2 }}>
@@ -182,7 +318,7 @@ function Metriche({ attivi, totali, famiglia, certificato }: { attivi: number; t
           />
         </View>
       )}
-    </View>,
+    </Tocco>,
   ]
   if (width >= LARGO) return <View style={{ flexDirection: 'row', gap: spazio.tre }}>{riquadri.map((r, i) => <View key={i} style={{ flex: 1 }}>{r}</View>)}</View>
   return (
@@ -301,6 +437,7 @@ export function AreaRiservata({ email }: { email: string }) {
 
   // Nelle schermate d'errore si esce subito; dalla Home con la conferma.
   const uscita = <PulsanteEsci testo="Esci dal laboratorio" conferma={false} />
+  const scorrimento = useRef<Animated.ScrollView>(null)
 
   if (errore) {
     return (
@@ -336,17 +473,26 @@ export function AreaRiservata({ email }: { email: string }) {
   const famiglia = area.persone.filter((x) => !x.titolare)
   const attivi = area.contratti.filter((k) => statoLeggibile(k) === 'Attivo').length
   const certificatoTitolare = area.certificati.find((ce) => ce.member_id === area.titolare)
-  const certTitolare = { ...statoCertificato(certificatoTitolare), scadenza: certificatoTitolare?.scadenza ?? null }
+  const certTitolare = { ...statoCertificato(certificatoTitolare, titolare?.data_nascita), scadenza: certificatoTitolare?.scadenza ?? null }
+  const certificatiFamiglia = famiglia.map((persona) => ({ persona, stato: statoCertificato(area.certificati.find((ce) => ce.member_id === persona.member_id), persona.data_nascita) }))
 
   return (
-    <Schermata larga titolo={titolare?.nome ? `Ciao, ${titolare.nome}` : 'La mia area'} nascondiTitolo>
+    <Schermata larga titolo={titolare?.nome ? `Ciao, ${titolare.nome}` : 'La mia area'} nascondiTitolo scorrimento={scorrimento}>
       <Entra indice={0}>
         <Benvenuto titolare={titolare} email={email} famiglia={famiglia.length} />
       </Entra>
 
       <Entra indice={1}>
         <Sezione titolo="Il tuo club" destra={<Text style={{ color: p.testoTerzo, fontFamily: F.semi, fontSize: 12.5 }}>sola lettura</Text>}>
-          <Metriche attivi={attivi} totali={area.contratti.length} famiglia={famiglia} certificato={certTitolare} />
+          <Metriche
+            attivi={attivi}
+            totali={area.contratti.length}
+            famiglia={famiglia}
+            certificato={certTitolare}
+            certificatiFamiglia={certificatiFamiglia}
+            // L'elenco dei certificati e' in fondo alla Home.
+            onCertificati={() => scorrimento.current?.scrollToEnd({ animated: true })}
+          />
         </Sezione>
       </Entra>
 
@@ -392,21 +538,7 @@ export function AreaRiservata({ email }: { email: string }) {
         <Sezione titolo="Certificato medico" style={stili.cella}>
           <Carta style={{ paddingVertical: spazio.due }}>
             {area.certificati.length ? (
-              area.certificati.map((ce, i) => {
-                const x = perId.get(ce.member_id)
-                const s = statoCertificato(ce)
-                return (
-                  <Riga
-                    key={ce.member_id}
-                    prima={i === 0}
-                    icona="certificato"
-                    tono={s.tono}
-                    titolo={x ? nome(x) : 'Certificato'}
-                    sotto={s.dettaglio}
-                    coda={<Etichetta testo={s.testo} tono={s.tono} />}
-                  />
-                )
-              })
+              area.certificati.map((ce, i) => <RigaCertificato key={ce.member_id} persona={perId.get(ce.member_id)} ce={ce} prima={i === 0} />)
             ) : (
               <Riga prima icona="certificato" tono="neutro" titolo="Mancante" sotto="Nessun certificato consegnato per te o per la tua famiglia." />
             )}
@@ -443,6 +575,12 @@ const stili = StyleSheet.create({
   metricaGrande: { color: '#fff', fontFamily: F.extra, fontSize: 22, letterSpacing: -0.5 },
   puntini: { flexDirection: 'row', flexWrap: 'wrap', gap: 5, width: 110 },
   quadretto: { width: 14, height: 14, borderRadius: 4 },
+  pallino: { position: 'absolute', right: -3, bottom: -3, width: 11, height: 11, borderRadius: 6, borderWidth: 2 },
+  info: { width: 30, height: 30, borderRadius: 11, alignItems: 'center', justifyContent: 'center' },
+  fumetto: { position: 'absolute', bottom: 38, right: -4, width: 320, borderRadius: 18, padding: spazio.tre, gap: 8, zIndex: 10, elevation: 6, boxShadow: '0 14px 34px rgba(0,0,0,0.35)' },
+  fumettoTitolo: { color: '#fff', fontFamily: F.extra, fontSize: 14 },
+  fumettoTesto: { flex: 1, color: 'rgba(255,255,255,0.86)', fontFamily: F.medio, fontSize: 13, lineHeight: 18 },
+  fumettoPunto: { width: 5, height: 5, borderRadius: 3, backgroundColor: '#FF8A2B', marginTop: 7 },
   novita: { borderRadius: 30, padding: spazio.quattro - 2, gap: spazio.due, minHeight: 170, overflow: 'hidden' },
   novitaIcona: { position: 'absolute', right: -14, top: -10, transform: [{ rotate: '-12deg' }] },
   novitaTitolo: { color: '#fff', fontFamily: F.extra, fontSize: 24, letterSpacing: -0.7, marginTop: spazio.due },
