@@ -28,7 +28,7 @@ import { FoglioLezione } from './ui/FoglioLezione'
 import { Icona } from './ui/Icona'
 import { Avatar, Barra, Carta, Entra, Etichetta, Messaggio, Pulsante, Riga, SchedeInArrivo, Sezione, Tag } from './ui/kit'
 import { Schermata } from './ui/Schermata'
-import { F, FUOCO, NOTTE, usePalette } from './ui/tema'
+import { F, FUOCO, NOTTE, usePalette, velo } from './ui/tema'
 import { colpetto, Tocco } from './ui/Tocco'
 
 // Il calendario del laboratorio: le lezioni di gruppo di oggi e dei tre giorni
@@ -287,14 +287,20 @@ function RigaLezione(props: PropsLezione) {
 }
 
 // ---------------------------------------------------------------------------
-// La Gym Floor: turni da 80 minuti ogni mezz'ora, dalle 6 alle 20:30, una
-// trentina al giorno. Una card per turno faceva scorrere all'infinito
-// (15/10/2026): qui sono una card sola, con gli orari in griglia divisi per
-// fascia; si tocca un orario e sotto ci sono i prenotati e «Prenota». Niente
-// posti liberi: in sala la capienza non e' un problema, conta solo quanta
-// gente c'e' (scelta dell'utente, 15/10/2026).
+// Le attivita' a turni: la Gym Floor (turni da 80 minuti ogni mezz'ora, una
+// trentina al giorno) e il Nuoto Libero (un turno l'ora). Una card per turno
+// faceva scorrere all'infinito (15/10/2026): qui sono una card sola, con gli
+// orari in griglia divisi per fascia; si tocca un orario e sotto ci sono i
+// suoi numeri e «Prenota».
+//
+// Cosa dicono gli orari (scelta dell'utente, 15/10/2026): nella Gym Floor solo
+// i prenotati, perche' in sala la capienza non e' un problema; nel Nuoto
+// Libero i posti liberi, coi colori, perche' le corsie si riempiono.
 
-const GYM_FLOOR = 'Gym Floor'
+const A_TURNI = [
+  { categoria: 'Gym Floor', conPosti: false },
+  { categoria: 'Nuoto Libero', conPosti: true },
+] as const
 
 const FASCE = [
   { nome: 'Mattina', fino: 12 },
@@ -302,7 +308,9 @@ const FASCE = [
   { nome: 'Sera', fino: 24 },
 ] as const
 
-function TurniGymFloor({
+function TurniInGriglia({
+  nome,
+  conPosti,
   turni,
   scheda,
   onScheda,
@@ -312,6 +320,10 @@ function TurniGymFloor({
   onPagaCarta,
   onDisdici,
 }: {
+  /** Il nome dell'attivita', che e' anche la sua categoria: «Gym Floor», «Nuoto Libero». */
+  nome: string
+  /** Sugli orari i posti liberi coi colori (Nuoto Libero); senza, i prenotati (Gym Floor). */
+  conPosti: boolean
   turni: Lezione[]
   scheda: SchedaLezione | null
   onScheda: () => void
@@ -329,10 +341,13 @@ function TurniGymFloor({
   const scelto = turni.find((t) => t.class_id === sceltoId) ?? turni[0]
   const durata = minuti(turni[0].inizio, turni[0].fine)
   const prenotati = (t: Lezione) => `${t.iscritti} ${t.iscritti === 1 ? 'prenotato' : 'prenotati'}`
+  const tonoPosti = (t: Lezione): 'errore' | 'attenzione' | 'ok' => (t.liberi <= 0 ? 'errore' : t.liberi < 5 ? 'attenzione' : 'ok')
+  const colorePosti = (t: Lezione) => p[tonoPosti(t)]
+  const posti = (t: Lezione) => (t.liberi <= 0 ? 'completo' : `${t.liberi} ${t.liberi === 1 ? 'posto libero' : 'posti liberi'}`)
 
   return (
     <View style={[stili.lezione, { backgroundColor: p.carta, borderColor: p.linea, borderWidth: StyleSheet.hairlineWidth, boxShadow: p.ombra }]}>
-      <Tocco onPress={onScheda} scala={0.99} etichetta="Gym Floor: video e descrizione">
+      <Tocco onPress={onScheda} scala={0.99} etichetta={`${nome}: video e descrizione`}>
         <View style={[stili.copertina, { height: 124 }]}>
           {scheda?.foto ? (
             <Image source={{ uri: scheda.foto }} style={StyleSheet.absoluteFill} contentFit="cover" contentPosition={posizione(scheda.fuoco)} transition={200} />
@@ -340,9 +355,9 @@ function TurniGymFloor({
             <LinearGradient colors={NOTTE} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
           )}
           <LinearGradient colors={['rgba(0,0,0,0.1)', 'rgba(0,0,0,0.3)', 'rgba(0,0,0,0.85)']} locations={[0, 0.4, 1]} style={StyleSheet.absoluteFill} />
-          <Tag testo={GYM_FLOOR} colore="#fff" fondo="rgba(0,0,0,0.25)" />
+          <Tag testo={nome} colore="#fff" fondo="rgba(0,0,0,0.25)" />
           <View style={{ gap: 2 }}>
-            <Text style={stili.copertinaNome}>Gym Floor</Text>
+            <Text style={stili.copertinaNome}>{nome}</Text>
             <Text style={stili.copertinaIstruttore}>{`${turni.length} turni da ${durata} minuti · scegli l’orario`}</Text>
           </View>
           {scheda ? (
@@ -374,12 +389,12 @@ function TurniGymFloor({
                         vibra="scelta"
                         stato={{ selected: attivo }}
                         onPress={() => setSceltoId(t.class_id)}
-                        etichetta={`${ora(t.inizio)}, ${mio ? (t.prenotazione?.attesa ? 'sei in lista d’attesa' : 'ci sei anche tu') : prenotati(t)}`}
+                        etichetta={`${ora(t.inizio)}, ${mio ? (t.prenotazione?.attesa ? 'sei in lista d’attesa' : 'ci sei anche tu') : conPosti ? posti(t) : prenotati(t)}`}
                         style={[
                           stili.turno,
                           mio
                             ? { backgroundColor: t.prenotazione?.attesa ? p.attenzione : p.accento }
-                            : { backgroundColor: p.incavo },
+                            : { backgroundColor: conPosti && !t.iniziata ? velo(p, tonoPosti(t), 0.13) : p.incavo },
                           attivo && { borderColor: mio ? '#fff' : p.testo, borderWidth: 2 },
                         ]}
                       >
@@ -387,6 +402,10 @@ function TurniGymFloor({
                         {mio || t.iniziata ? (
                           <Text style={[stili.turnoPosti, { color: mio ? 'rgba(255,255,255,0.9)' : p.testoTerzo }]} numberOfLines={1}>
                             {mio ? (t.prenotazione?.attesa ? 'in attesa' : '✓ tuo') : 'iniziato'}
+                          </Text>
+                        ) : conPosti ? (
+                          <Text style={[stili.turnoPosti, { color: colorePosti(t) }]} numberOfLines={1}>
+                            {t.liberi <= 0 ? 'pieno' : `${t.liberi} posti`}
                           </Text>
                         ) : (
                           // Quanti prenotati: l'omino e il numero.
@@ -407,11 +426,22 @@ function TurniGymFloor({
         <View style={[stili.scelto, { borderTopColor: p.linea }]}>
           <View style={{ flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', gap: spazio.due }}>
             <Text style={[stili.sceltoOra, { color: p.testo }]}>{`${ora(scelto.inizio)} – ${ora(scelto.fine)}`}</Text>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-              <Icona nome="persone" size={16} colore={p.testoSecondario} />
-              <Text style={{ color: p.testoSecondario, fontFamily: F.extra, fontSize: 14 }}>{prenotati(scelto)}</Text>
-            </View>
+            {conPosti ? (
+              !scelto.iniziata ? (
+                <Text style={{ color: colorePosti(scelto), fontFamily: F.extra, fontSize: 14 }}>
+                  {scelto.liberi <= 0 ? 'Completo' : `${scelto.liberi}/${scelto.posti} posti liberi`}
+                </Text>
+              ) : null
+            ) : (
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                <Icona nome="persone" size={16} colore={p.testoSecondario} />
+                <Text style={{ color: p.testoSecondario, fontFamily: F.extra, fontSize: 14 }}>{prenotati(scelto)}</Text>
+              </View>
+            )}
           </View>
+          {conPosti && !scelto.iniziata ? (
+            <Barra key={`barra-${scelto.class_id}`} valore={scelto.posti ? scelto.iscritti / scelto.posti : 0} colore={colorePosti(scelto)} altezza={6} animata />
+          ) : null}
           <AzioniLezione
             // Cambiando turno i pulsanti ripartono da capo (conferme, errori, pagamento).
             key={scelto.class_id}
@@ -665,9 +695,10 @@ export function Calendario() {
   for (const l of visibili) conteggi.set(l.categoria, (conteggi.get(l.categoria) ?? 0) + 1)
   const attivitaDelGiorno = [...conteggi.keys()].sort((x, y) => x.localeCompare(y, 'it'))
   const filtrate = attivita ? visibili.filter((l) => l.categoria === attivita) : visibili
-  // I turni della Gym Floor vanno in una card sola, a griglia (vedi TurniGymFloor).
-  const turniGym = filtrate.filter((l) => l.categoria === GYM_FLOOR)
-  const altre = filtrate.filter((l) => l.categoria !== GYM_FLOOR)
+  // Le attivita' a turni (Gym Floor, Nuoto Libero) vanno ognuna in una card
+  // sola, a griglia (vedi TurniInGriglia), se quel giorno hanno piu' di un turno.
+  const aTurni = A_TURNI.map((a) => ({ ...a, turni: filtrate.filter((l) => l.categoria === a.categoria) })).filter((a) => a.turni.length > 1)
+  const altre = filtrate.filter((l) => !aTurni.some((a) => a.categoria === l.categoria))
   const perChi = giorno.persone.find((x) => x.member_id === giorno.member_id)
   const schedaAperta = aperta?.scheda ? giorno.schede?.[aperta.scheda] ?? null : null
   return (
@@ -810,14 +841,16 @@ export function Calendario() {
             <Text style={[stili.nota, { color: p.testoTerzo, paddingHorizontal: 2 }]}>{nascoste === 1 ? 'Una lezione è già cominciata.' : `${nascoste} lezioni sono già cominciate.`}</Text>
           ) : null}
           <View style={stili.griglia}>
-            {turniGym.length > 1 ? (
-              <Entra key={`${giorno.member_id}-${giorno.data}-gym`} indice={0} style={stili.cella}>
-                <TurniGymFloor
+            {aTurni.map((a, n) => (
+              <Entra key={`${giorno.member_id}-${giorno.data}-${a.categoria}`} indice={n} style={stili.cella}>
+                <TurniInGriglia
                   // Cambiando giorno o persona si riparte dal turno giusto.
                   key={`${giorno.member_id}-${giorno.data}`}
-                  turni={turniGym}
-                  scheda={turniGym[0].scheda ? giorno.schede?.[turniGym[0].scheda] ?? null : null}
-                  onScheda={() => setAperta(turniGym[0])}
+                  nome={a.categoria}
+                  conPosti={a.conPosti}
+                  turni={a.turni}
+                  scheda={a.turni[0].scheda ? giorno.schede?.[a.turni[0].scheda] ?? null : null}
+                  onScheda={() => setAperta(a.turni[0])}
                   occupato={occupato}
                   onPrenota={prenota}
                   onAcquista={acquista}
@@ -825,8 +858,8 @@ export function Calendario() {
                   onDisdici={disdici}
                 />
               </Entra>
-            ) : null}
-            {(turniGym.length > 1 ? altre : filtrate).map((l, i) => (
+            ))}
+            {altre.map((l, i) => (
               <Entra
                 // Con la persona cambia anche cosa le manca: la riga riparte da «Prenota».
                 key={`${giorno.member_id}-${l.class_id}`}
