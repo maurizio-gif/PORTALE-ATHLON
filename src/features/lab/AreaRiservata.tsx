@@ -162,7 +162,7 @@ function Metriche({ attivi, totali, famiglia, certificato }: { attivi: number; t
 function Novita() {
   const { width } = useWindowDimensions()
   const voci: { titolo: string; testo: string; tag: string; icona: NomeIcona; href: Href; colori: readonly [string, string, ...string[]] }[] = [
-    { titolo: 'Calendario lezioni', testo: 'Posti liberi, prenota e disdici: prenotazioni vere su PerfectGym.', tag: 'Prenotazioni vere', icona: 'calendario', href: '/lab/calendario', colori: MARE },
+    { titolo: 'Prenotazioni', testo: 'Le lezioni di gruppo: posti liberi, prenota e disdici, per te e per la tua famiglia.', tag: 'Lezioni di gruppo', icona: 'calendario', href: '/lab/calendario', colori: MARE },
     { titolo: 'Pagamenti', testo: 'Pagamento diretto con carta e rate automatiche, con il tetto di prova di 5 €.', tag: 'Soldi veri · max 5 €', icona: 'carta', href: '/lab/pagamenti', colori: FUOCO },
     { titolo: 'Animazioni esercizi', testo: 'Un giorno di scheda con le animazioni di tre librerie: quale ti piace di più?', tag: 'Da scegliere', icona: 'play', href: '/lab/animazioni', colori: ['#8B5CF6', '#5B21B6'] },
   ]

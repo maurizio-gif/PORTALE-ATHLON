@@ -468,7 +468,7 @@ export function Calendario() {
 
   if (errore && !giorno) {
     return (
-      <Schermata sopratitolo="Laboratorio" titolo="Lezioni">
+      <Schermata sopratitolo="Laboratorio" titolo="Prenotazioni">
         <Messaggio>{errore}</Messaggio>
         <Pulsante testo="Riprova" icona="aggiorna" onPress={() => leggi()} />
       </Schermata>
@@ -476,7 +476,7 @@ export function Calendario() {
   }
   if (!giorno) {
     return (
-      <Schermata sopratitolo="Laboratorio" titolo="Lezioni">
+      <Schermata sopratitolo="Laboratorio" titolo="Prenotazioni">
         <SchedeInArrivo />
       </Schermata>
     )
@@ -494,7 +494,7 @@ export function Calendario() {
   const perChi = giorno.persone.find((x) => x.member_id === giorno.member_id)
   const schedaAperta = aperta?.scheda ? giorno.schede?.[aperta.scheda] ?? null : null
   return (
-    <Schermata larga sopratitolo="Laboratorio · prenotazioni vere" titolo="Lezioni" sottotitolo="Le prenotazioni sono vere: le trovi anche nell’app Athlon.">
+    <Schermata larga sopratitolo="Laboratorio" titolo="Prenotazioni">
       {ritorno ? (
         ritorno.stato === 'avviato' ? (
           <Messaggio tono="attenzione" icona="clessidra" titolo="Aspettiamo la conferma">
@@ -529,7 +529,7 @@ export function Calendario() {
 
       <View style={{ gap: spazio.tre }}>
         {giorno.persone.length > 1 ? (
-          // Per chi si prenota: la persona scelta in scuro, gli altri della famiglia in chiaro.
+          // Per chi si prenota: la persona scelta in arancio come il giorno, gli altri della famiglia in chiaro.
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={stili.fila} style={stili.fuori}>
             {giorno.persone.map((x) => {
               const attivo = x.member_id === giorno.member_id
@@ -540,9 +540,9 @@ export function Calendario() {
                   stato={{ selected: attivo }}
                   onPress={() => leggi(giorno.data, x.member_id)}
                   etichetta={`Prenota per ${nomeCompleto(x)}`}
-                  style={[stili.persona, { backgroundColor: attivo ? p.carbone : p.carta, borderColor: attivo ? p.carbone : p.linea }]}
+                  style={[stili.persona, attivo ? { backgroundColor: p.accento, borderColor: p.accento, boxShadow: '0 8px 18px rgba(255,87,1,0.3)' } : { backgroundColor: p.carta, borderColor: p.linea }]}
                 >
-                  <Avatar nome={x.nome} cognome={x.cognome} size={30} />
+                  <Avatar nome={x.nome} cognome={x.cognome} size={30} anello={attivo ? 'rgba(255,255,255,0.9)' : undefined} />
                   <Text style={{ color: attivo ? '#fff' : p.testo, fontFamily: attivo ? F.extra : F.semi, fontSize: 14 }}>{x.nome || nomeCompleto(x)}</Text>
                 </Tocco>
               )

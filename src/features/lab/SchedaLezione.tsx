@@ -1,8 +1,8 @@
 import { useEventListener } from 'expo'
-import { Image, type ImageContentPosition } from 'expo-image'
+import { Image, type ImageContentPosition, type ImageStyle } from 'expo-image'
 import { useVideoPlayer, VideoView } from 'expo-video'
 import { Fragment, useEffect } from 'react'
-import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
+import { Modal, Pressable, ScrollView, StyleSheet, Text, View, type StyleProp, type TextStyle, type ViewStyle } from 'react-native'
 
 import type { SchedaLezione } from '@/api/lab'
 import { Bottone } from '@/components/Bottone'
@@ -19,19 +19,19 @@ export function posizione(fuoco: string | null): ImageContentPosition {
 }
 
 /** La descrizione del sito e' HTML semplice: <b> per il grassetto, <br> per andare a capo. */
-export function Descrizione({ html }: { html: string }) {
+export function Descrizione({ html, style, grassetto }: { html: string; style?: StyleProp<TextStyle>; grassetto?: StyleProp<TextStyle> }) {
   const c = useColori()
   const pezzi = html
     .replace(/<br\s*\/?>/gi, '\n')
     .split(/(<b>[\s\S]*?<\/b>)/gi)
     .filter(Boolean)
   return (
-    <Text style={[stili.descrizione, { color: c.testo }]}>
+    <Text style={[stili.descrizione, { color: c.testo }, style]}>
       {pezzi.map((p, i) => {
-        const grassetto = /^<b>/i.test(p)
+        const forte = /^<b>/i.test(p)
         const testo = p.replace(/<[^>]+>/g, '').replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&')
-        return grassetto ? (
-          <Text key={i} style={{ fontWeight: '700' }}>
+        return forte ? (
+          <Text key={i} style={[{ fontWeight: '700' }, grassetto]}>
             {testo}
           </Text>
         ) : (
@@ -46,7 +46,7 @@ export function Descrizione({ html }: { html: string }) {
  * Il video della lezione come sul sito: parte da solo, muto, in loop, senza
  * controlli. E' una vetrina della lezione, non un filmato da guardare.
  */
-function Lettore({ uri, inizio }: { uri: string; inizio: number | null }) {
+function Lettore({ uri, inizio, style }: { uri: string; inizio: number | null; style?: StyleProp<ViewStyle> }) {
   const player = useVideoPlayer(uri, (p) => {
     p.loop = true
     p.muted = true
@@ -64,7 +64,7 @@ function Lettore({ uri, inizio }: { uri: string; inizio: number | null }) {
   return (
     <VideoView
       player={player}
-      style={stili.media}
+      style={[stili.media, style]}
       contentFit="cover"
       nativeControls={false}
       allowsPictureInPicture={false}
@@ -74,10 +74,10 @@ function Lettore({ uri, inizio }: { uri: string; inizio: number | null }) {
   )
 }
 
-export function Video({ scheda }: { scheda: SchedaLezione }) {
-  if (scheda.video) return <Lettore uri={scheda.video} inizio={scheda.inizioVideo} />
+export function Video({ scheda, style }: { scheda: SchedaLezione; style?: StyleProp<ViewStyle> }) {
+  if (scheda.video) return <Lettore uri={scheda.video} inizio={scheda.inizioVideo} style={style} />
   return scheda.foto ? (
-    <Image source={{ uri: scheda.foto }} style={stili.media} contentFit="cover" contentPosition={posizione(scheda.fuoco)} accessibilityLabel={scheda.nome} />
+    <Image source={{ uri: scheda.foto }} style={[stili.media, style as StyleProp<ImageStyle>]} contentFit="cover" contentPosition={posizione(scheda.fuoco)} accessibilityLabel={scheda.nome} />
   ) : null
 }
 

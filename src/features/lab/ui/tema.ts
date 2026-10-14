@@ -42,15 +42,17 @@ export function usePalette(): Palette {
     scuro,
     testo: scuro ? '#F4F4F5' : '#121316',
     testoSecondario: scuro ? '#A1A3AA' : '#62646B',
-    fondo: scuro ? '#0D0E10' : '#F1F1F3',
-    carta: scuro ? '#18191C' : '#FFFFFF',
-    incavo: scuro ? '#24252A' : '#ECECEF',
+    // Fondo e schede ben distinti (14/10/2026): con due grigi vicini le
+    // schede delle lezioni si perdevano nel fondo.
+    fondo: scuro ? '#050506' : '#E4E5EA',
+    carta: scuro ? '#1D1E22' : '#FFFFFF',
+    incavo: scuro ? '#2A2B31' : '#EEEFF2',
     carbone: scuro ? '#222327' : '#17181B',
     blu: scuro ? '#5B8CFF' : '#2F6BFF',
-    linea: scuro ? 'rgba(255,255,255,0.07)' : 'rgba(17,17,20,0.06)',
+    linea: scuro ? 'rgba(255,255,255,0.1)' : 'rgba(17,17,20,0.08)',
     testoTerzo: scuro ? '#6E717A' : '#9A9CA3',
     vetro: scuro ? 'rgba(28,29,33,0.82)' : 'rgba(255,255,255,0.86)',
-    ombra: scuro ? '0 12px 32px rgba(0,0,0,0.5)' : '0 12px 32px rgba(18,19,22,0.07)',
+    ombra: scuro ? '0 12px 32px rgba(0,0,0,0.6)' : '0 12px 32px rgba(18,19,22,0.1)',
   }
 }
 
