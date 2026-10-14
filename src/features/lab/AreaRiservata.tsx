@@ -29,10 +29,16 @@ function nome(p: Pick<PersonaArea, 'nome' | 'cognome'>): string {
 
 const GIORNO = 86_400_000
 
+/**
+ * I giorni di calendario da oggi (a Roma) a quella data: 0 oggi, negativi nel
+ * passato. Fra due mezzogiorni, non da adesso: con l'ora del momento le date
+ * passate venivano un giorno corte.
+ */
 function giorniA(iso: string | null): number | null {
   if (!iso) return null
   const t = new Date(iso.slice(0, 10) + 'T12:00:00Z').getTime()
-  return Number.isFinite(t) ? Math.ceil((t - Date.now()) / GIORNO) : null
+  const oggi = new Date(new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Rome' }).format(new Date()) + 'T12:00:00Z').getTime()
+  return Number.isFinite(t) ? Math.round((t - oggi) / GIORNO) : null
 }
 
 /** «martedì 14 ottobre», all'ora di Roma. */
@@ -40,13 +46,29 @@ function oggi(): string {
   return new Intl.DateTimeFormat('it-IT', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'Europe/Rome' }).format(new Date())
 }
 
-/** Lo stato del certificato: valido, in scadenza (30 giorni), scaduto, assente. */
-function statoCertificato(ce: CertificatoArea | undefined): { testo: string; tono: 'ok' | 'attenzione' | 'errore' | 'neutro'; giorni: number | null } {
+/** «1 giorno», «76 giorni». */
+function giorni(n: number): string {
+  return `${n} ${n === 1 ? 'giorno' : 'giorni'}`
+}
+
+/**
+ * Lo stato del certificato (la fine del definitivo, dal database): valido o in
+ * scadenza (30 giorni) fino a quando e per quanti giorni ancora, scaduto da
+ * quando e da quanti giorni, mancante se non e' mai stato consegnato.
+ */
+function statoCertificato(ce: CertificatoArea | undefined): {
+  testo: string
+  tono: 'ok' | 'attenzione' | 'errore' | 'neutro'
+  giorni: number | null
+  /** La riga per esteso: «Valido fino al 31/07/2027 · ancora 289 giorni». */
+  dettaglio: string
+} {
   const g = giorniA(ce?.scadenza ?? null)
-  if (g == null) return { testo: 'Non registrato', tono: 'neutro', giorni: null }
-  if (g < 0) return { testo: 'Scaduto', tono: 'errore', giorni: g }
-  if (g <= 30) return { testo: 'In scadenza', tono: 'attenzione', giorni: g }
-  return { testo: 'Valido', tono: 'ok', giorni: g }
+  const data = dataBreve(ce?.scadenza)
+  if (g == null || !data) return { testo: 'Mancante', tono: 'neutro', giorni: null, dettaglio: 'Non è mai stato consegnato' }
+  if (g < 0) return { testo: 'Scaduto', tono: 'errore', giorni: g, dettaglio: `Scaduto il ${data} · ${giorni(-g)} fa` }
+  if (g === 0) return { testo: 'Scade oggi', tono: 'attenzione', giorni: 0, dettaglio: `Valido fino a oggi, ${data}` }
+  return { testo: g <= 30 ? 'In scadenza' : 'Valido', tono: g <= 30 ? 'attenzione' : 'ok', giorni: g, dettaglio: `Valido fino al ${data} · ancora ${giorni(g)}` }
 }
 
 // ---------------------------------------------------------------------------
@@ -98,7 +120,7 @@ function Benvenuto({ titolare, email, famiglia }: { titolare: PersonaArea | unde
 // ---------------------------------------------------------------------------
 
 /** I tre riquadri colorati: abbonamenti (arancio), famiglia (blu), certificato (carbone). */
-function Metriche({ attivi, totali, famiglia, certificato }: { attivi: number; totali: number; famiglia: PersonaArea[]; certificato: ReturnType<typeof statoCertificato> }) {
+function Metriche({ attivi, totali, famiglia, certificato }: { attivi: number; totali: number; famiglia: PersonaArea[]; certificato: ReturnType<typeof statoCertificato> & { scadenza: string | null } }) {
   const p = usePalette()
   const { width } = useWindowDimensions()
   const larghezza = width < LARGO ? 158 : undefined
@@ -142,10 +164,23 @@ function Metriche({ attivi, totali, famiglia, certificato }: { attivi: number; t
           />
         ))}
       </View>
-      {certificato.giorni != null && certificato.giorni >= 0 ? (
-        <Numero valore={String(certificato.giorni)} unita="giorni" size={38} colore="#fff" />
+      {certificato.giorni == null ? (
+        <View style={{ gap: 2 }}>
+          <Text style={stili.metricaGrande}>Mancante</Text>
+          <Text style={[stili.metricaNota, { fontSize: 12.5 }]}>mai consegnato</Text>
+        </View>
       ) : (
-        <Text style={[stili.metricaGrande]}>{certificato.testo}</Text>
+        <View style={{ gap: 2 }}>
+          <Text style={[stili.metricaNota, { fontSize: 12.5 }]}>
+            {certificato.giorni < 0 ? `scaduto il ${dataBreve(certificato.scadenza)}` : `fino al ${dataBreve(certificato.scadenza)}`}
+          </Text>
+          <Numero
+            valore={String(Math.abs(certificato.giorni))}
+            unita={certificato.giorni < 0 ? (certificato.giorni === -1 ? 'giorno fa' : 'giorni fa') : certificato.giorni === 1 ? 'giorno' : 'giorni'}
+            size={34}
+            colore={certificato.giorni < 0 ? '#F2B8B5' : '#fff'}
+          />
+        </View>
       )}
     </View>,
   ]
@@ -300,7 +335,8 @@ export function AreaRiservata({ email }: { email: string }) {
   const titolare = perId.get(area.titolare)
   const famiglia = area.persone.filter((x) => !x.titolare)
   const attivi = area.contratti.filter((k) => statoLeggibile(k) === 'Attivo').length
-  const certTitolare = statoCertificato(area.certificati.find((ce) => ce.member_id === area.titolare))
+  const certificatoTitolare = area.certificati.find((ce) => ce.member_id === area.titolare)
+  const certTitolare = { ...statoCertificato(certificatoTitolare), scadenza: certificatoTitolare?.scadenza ?? null }
 
   return (
     <Schermata larga titolo={titolare?.nome ? `Ciao, ${titolare.nome}` : 'La mia area'} nascondiTitolo>
@@ -366,13 +402,13 @@ export function AreaRiservata({ email }: { email: string }) {
                     icona="certificato"
                     tono={s.tono}
                     titolo={x ? nome(x) : 'Certificato'}
-                    sotto={ce.scadenza ? `${(giorniA(ce.scadenza) ?? 0) < 0 ? 'scaduto' : 'scade'} il ${dataBreve(ce.scadenza)}` : 'nessun certificato registrato'}
+                    sotto={s.dettaglio}
                     coda={<Etichetta testo={s.testo} tono={s.tono} />}
                   />
                 )
               })
             ) : (
-              <Riga prima icona="certificato" tono="neutro" titolo="Nessun certificato" sotto="Nessun certificato registrato per te o per la tua famiglia." />
+              <Riga prima icona="certificato" tono="neutro" titolo="Mancante" sotto="Nessun certificato consegnato per te o per la tua famiglia." />
             )}
           </Carta>
         </Sezione>
