@@ -3,10 +3,11 @@ import { Linking, StyleSheet, Text, View } from 'react-native'
 import { CLUB_LEGALE } from '@/lib/club-legale'
 import { spazio, useColori } from '@/theme'
 
-// Chi vende, per esteso, in fondo a ogni pagina del Guest Pass (14/10/2026,
-// scelta del club: prima stava in cima, e prendeva il posto del titolo). Ogni
-// schermata della procedura la porta, perche' chiede dati, una firma e un
-// pagamento, e chi la apre da un'email deve poter leggere con chi firma.
+// Chi siamo, per esteso, in fondo a ogni pagina dell'app (14/10/2026, scelta
+// del club). La mette `Pagina`, quindi non c'e' da ricordarsene: le pagine che
+// chiedono dati, una firma, una carta o un IBAN, aperte da un link in
+// un'email, sono quelle che una persona prudente non compila se non sa di chi
+// sono. Prima erano due componenti (questo e `DatiDelClub`), su meta' pagine.
 export function IntestazioneLegale() {
   const c = useColori()
   const l = CLUB_LEGALE
@@ -24,7 +25,11 @@ export function IntestazioneLegale() {
         <Text style={link} onPress={() => Linking.openURL(`mailto:${l.email}`)}>
           {l.email}
         </Text>
-        {'\n'}Affiliazioni {l.affiliazioni}
+        {'\n'}
+        <Text style={link} onPress={() => Linking.openURL(l.sito)}>
+          athlonroma.it
+        </Text>{' '}
+        · Affiliazioni {l.affiliazioni}
       </Text>
     </View>
   )

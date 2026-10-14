@@ -138,7 +138,7 @@ export function GuestPassAttivo({
   const chi = `${nome ?? ''} ${cognome ?? ''}`.trim()
   let i = 0
   return (
-    <Pagina legale titolo="Il tuo Guest Pass è attivo" sottotitolo={chi ? `${chi}, siamo lieti di confermarti l’attivazione del tuo Guest Pass.` : 'Siamo lieti di confermarti l’attivazione del tuo Guest Pass.'}>
+    <Pagina titolo="Il tuo Guest Pass è attivo" sottotitolo={chi ? `${chi}, siamo lieti di confermarti l’attivazione del tuo Guest Pass.` : 'Siamo lieti di confermarti l’attivazione del tuo Guest Pass.'}>
       <View style={stili.testa}>
         <Spunta />
         <View style={{ flex: 1 }}>

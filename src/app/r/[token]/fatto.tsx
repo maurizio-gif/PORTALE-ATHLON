@@ -4,7 +4,6 @@ import { Platform } from 'react-native'
 
 import { chiamaLink } from '@/api/link'
 import { Bottone } from '@/components/Bottone'
-import { DatiDelClub } from '@/components/DatiDelClub'
 import { Pagina } from '@/components/Pagina'
 import { Testo } from '@/components/Testo'
 import { CartaNonSalvata } from '@/features/metodo-pagamento/CartaNonSalvata'
@@ -108,7 +107,7 @@ export default function RitornoCarta() {
 
   if (stato === 'fatto') {
     return (
-      <Pagina titolo={tutti ? 'Fatto, grazie!' : 'Ecco com’è andata'} piede={<DatiDelClub />}>
+      <Pagina titolo={tutti ? 'Fatto, grazie!' : 'Ecco com’è andata'}>
         <Testo>La carta è stata collegata così:</Testo>
         <ElencoEsiti contratti={contratti} risultati={risultati} />
         <Bottone testo="Torna ai tuoi abbonamenti" variante="contorno" onPress={indietro} />
@@ -120,7 +119,7 @@ export default function RitornoCarta() {
   // collegata: non c'e' niente in sospeso, e l'elenco dice com'e' adesso.
   if (stato === 'nessuna') {
     return (
-      <Pagina titolo="Niente in sospeso" piede={<DatiDelClub />}>
+      <Pagina titolo="Niente in sospeso">
         <Testo variante="attenuato">
           Non c’è nessuna carta in attesa di essere collegata. Controlla i tuoi abbonamenti per vedere il metodo di ciascuno.
         </Testo>
@@ -131,14 +130,14 @@ export default function RitornoCarta() {
 
   if (stato === 'non-trovata') {
     return (
-      <Pagina titolo="Metodo di pagamento" piede={<DatiDelClub />}>
+      <Pagina titolo="Metodo di pagamento">
         <CartaNonSalvata motivo={motivo} onRiprova={indietro} />
       </Pagina>
     )
   }
 
   return (
-    <Pagina titolo="Non siamo riusciti a completare" piede={<DatiDelClub />}>
+    <Pagina titolo="Non siamo riusciti a completare">
       <Testo variante="attenuato">
         {errore || 'La carta potrebbe essere salvata ma non ancora collegata ai tuoi abbonamenti.'} Scrivici a desk@athlonroma.it e ci
         pensiamo noi.
