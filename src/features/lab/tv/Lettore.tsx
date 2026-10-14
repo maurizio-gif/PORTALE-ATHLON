@@ -1,3 +1,4 @@
+import { useEventListener } from 'expo'
 import { Image } from 'expo-image'
 import { router, useLocalSearchParams } from 'expo-router'
 import { useVideoPlayer, VideoView } from 'expo-video'
@@ -11,6 +12,7 @@ import { Icona } from '../ui/Icona'
 import { Carta, Messaggio, Pulsante, Riga, Scheletro, Sezione } from '../ui/kit'
 import { Schermata } from '../ui/Schermata'
 import { F, usePalette } from '../ui/tema'
+import { Tocco } from '../ui/Tocco'
 import { durata, memoria } from './comune'
 
 // Il lettore di Athlon TV: il video in alto (HLS nell'app, MP4 sul web, dove
@@ -20,11 +22,55 @@ import { durata, memoria } from './comune'
 
 const PROSSIMI = 12
 
+/**
+ * Il video parte da solo. Sul web il play() della preparazione arriva prima
+ * che il <video> sia montato e si perde (come nel calendario, SchedaLezione):
+ * si riparte a montaggio fatto e quando il video e' pronto. Se il browser
+ * blocca comunque l'avvio con l'audio (link aperto senza aver toccato la
+ * pagina), si parte senza audio, che e' sempre permesso, col tasto per accenderlo.
+ */
 function Video({ uri }: { uri: string }) {
+  const [muto, setMuto] = useState(false)
   const player = useVideoPlayer(uri, (p) => {
     p.play()
   })
-  return <VideoView player={player} style={stili.video} contentFit="contain" nativeControls allowsPictureInPicture fullscreenOptions={{ enable: true }} playsInline />
+
+  useEffect(() => {
+    player.play()
+  }, [player])
+
+  useEventListener(player, 'statusChange', ({ status }) => {
+    if (status !== 'readyToPlay' || player.playing) return
+    player.play()
+    if (Platform.OS !== 'web') return
+    // Mezzo secondo per partire; se non e' partito, l'audio era il problema.
+    setTimeout(() => {
+      if (player.playing) return
+      player.muted = true
+      player.play()
+      setMuto(true)
+    }, 500)
+  })
+
+  return (
+    <View style={StyleSheet.absoluteFill}>
+      <VideoView player={player} style={stili.video} contentFit="contain" nativeControls allowsPictureInPicture fullscreenOptions={{ enable: true }} playsInline />
+      {muto ? (
+        <Tocco
+          onPress={() => {
+            player.muted = false
+            if (!player.playing) player.play()
+            setMuto(false)
+          }}
+          etichetta="Attiva l’audio"
+          style={stili.audio}
+        >
+          <Icona nome="volume" size={18} colore="#141518" />
+          <Text style={stili.audioTesto}>Attiva l’audio</Text>
+        </Tocco>
+      ) : null}
+    </View>
+  )
 }
 
 export function Lettore() {
@@ -118,6 +164,8 @@ export function Lettore() {
 const stili = StyleSheet.create({
   cornice: { aspectRatio: 16 / 9, borderRadius: 26, overflow: 'hidden', backgroundColor: '#000' },
   video: { width: '100%', height: '100%' },
+  audio: { position: 'absolute', top: 12, left: 12, flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: '#fff', borderRadius: 14, paddingHorizontal: 12, paddingVertical: 8, boxShadow: '0 6px 18px rgba(0,0,0,0.3)' },
+  audioTesto: { color: '#141518', fontFamily: F.extra, fontSize: 13.5 },
   raccolta: { fontFamily: F.extra, fontSize: 11.5, letterSpacing: 1.4 },
   titolo: { fontFamily: F.extra, fontSize: 26, lineHeight: 31, letterSpacing: -0.8 },
   descrizione: { fontFamily: F.medio, fontSize: 15, lineHeight: 22, marginTop: spazio.uno },

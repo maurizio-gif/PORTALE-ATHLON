@@ -47,6 +47,7 @@ const ICONE = {
   impronta: ['touchid', 'fingerprint'],
   tessera: ['person.crop.square.filled.and.at.rectangle', 'card_membership'],
   chiocciola: ['at', 'alternate_email'],
+  volume: ['speaker.wave.2.fill', 'volume_up'],
 } as const satisfies Record<string, readonly [SFSymbol, AndroidSymbol]>
 
 export type NomeIcona = keyof typeof ICONE
