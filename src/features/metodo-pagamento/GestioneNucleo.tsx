@@ -5,7 +5,6 @@ import { chiamaLink } from '@/api/link'
 import { Avviso } from '@/components/Avviso'
 import { Bottone } from '@/components/Bottone'
 import { Casella } from '@/components/Casella'
-import { DatiDelClub } from '@/components/DatiDelClub'
 import { InfoAdyen } from '@/components/InfoAdyen'
 import { Pagina } from '@/components/Pagina'
 import { Forte, Testo } from '@/components/Testo'
@@ -102,7 +101,7 @@ export function GestioneNucleo({
   if (schermata === 'esito') {
     const tutti = risultati.length > 0 && risultati.every((r) => r.ok)
     return (
-      <Pagina titolo={tutti ? 'Fatto, grazie!' : 'Ecco com’è andata'} piede={<DatiDelClub />}>
+      <Pagina titolo={tutti ? 'Fatto, grazie!' : 'Ecco com’è andata'}>
         <Testo>
           {finale ? (
             <>
@@ -123,7 +122,7 @@ export function GestioneNucleo({
 
   if (schermata === 'iban') {
     return (
-      <Pagina titolo="Metodo di pagamento" piede={<DatiDelClub />}>
+      <Pagina titolo="Metodo di pagamento">
         <ModuloIban
           nomeCompleto={nomeTitolare}
           introduzione={
@@ -148,7 +147,7 @@ export function GestioneNucleo({
   }
 
   return (
-    <Pagina titolo={nome ? `Ciao ${nome}` : 'I tuoi abbonamenti'} piede={<DatiDelClub />}>
+    <Pagina titolo={nome ? `Ciao ${nome}` : 'I tuoi abbonamenti'}>
       {contratti.length === 0 ? (
         <Testo variante="attenuato">
           Non troviamo abbonamenti attivi a tuo nome o dei tuoi figli. Se pensi sia un errore scrivici a desk@athlonroma.it.

@@ -98,7 +98,7 @@ export default function RichiestaGuestPass() {
 
   if (fase === 'riprendi' && ripresa) {
     return (
-      <Pagina legale
+      <Pagina
         titolo={ripresa.nome ? `Ciao ${ripresa.nome}, hai già iniziato` : 'Hai già iniziato'}
         sottotitolo={`Il tuo Guest Pass con ${email.trim()} è a metà: quello che hai già fatto è salvato, e riparti ${ripresa.passo}. Ti rimandiamo il link per finire.`}
       >
@@ -111,7 +111,7 @@ export default function RichiestaGuestPass() {
 
   if (fase === 'inviata' && ripresa) {
     return (
-      <Pagina legale titolo="Controlla la tua email" sottotitolo={`Tra pochi minuti ti arriva a ${email.trim()} lo stesso link di prima. Vale 3 giorni da adesso.`}>
+      <Pagina titolo="Controlla la tua email" sottotitolo={`Tra pochi minuti ti arriva a ${email.trim()} lo stesso link di prima. Vale 3 giorni da adesso.`}>
         <Testo variante="attenuato">
           Quello che avevi già fatto è salvato, e riparti {ripresa.passo}. Non trovi l’email? Guarda nella posta indesiderata.
         </Testo>
@@ -122,7 +122,7 @@ export default function RichiestaGuestPass() {
 
   if (fase === 'inviata') {
     return (
-      <Pagina legale titolo="Controlla la tua email" sottotitolo={`Tra pochi minuti ti arriva a ${email.trim()} il link per attivare il Guest Pass. Vale 3 giorni.`}>
+      <Pagina titolo="Controlla la tua email" sottotitolo={`Tra pochi minuti ti arriva a ${email.trim()} il link per attivare il Guest Pass. Vale 3 giorni.`}>
         <Testo variante="attenuato">
           Dal link confermi i tuoi dati e completi quelli che mancano, scegli il giorno d’inizio, entro due settimane, e come pagare. Non trovi
           l’email? Guarda nella posta indesiderata.
@@ -135,7 +135,7 @@ export default function RichiestaGuestPass() {
   if (fase === 'no') {
     return (
       // Niente «Usa un'altra email»: inviterebbe a riprovare con un altro indirizzo.
-      <Pagina legale titolo="Guest Pass non disponibile">
+      <Pagina titolo="Guest Pass non disponibile">
         <Testo>{motivo ?? 'Non è possibile attivare il Guest Pass.'}</Testo>
       </Pagina>
     )
@@ -143,7 +143,7 @@ export default function RichiestaGuestPass() {
 
   if (fase === 'dati') {
     return (
-      <Pagina legale
+      <Pagina
         titolo="I tuoi dati"
         sottotitolo={
           tipo === 'nuovo'
@@ -171,7 +171,7 @@ export default function RichiestaGuestPass() {
   }
 
   return (
-    <Pagina legale titolo="Guest Pass" sottotitolo="Una settimana al club a 19 €, per chi non è iscritto dal 2024 in poi. Scrivi la tua email: ti mandiamo il link per attivarlo.">
+    <Pagina titolo="Guest Pass" sottotitolo="Una settimana al club a 19 €, per chi non è iscritto dal 2024 in poi. Scrivi la tua email: ti mandiamo il link per attivarlo.">
       <Campo etichetta="La tua email" value={email} onChangeText={setEmail} keyboardType="email-address" autoCapitalize="none" autoComplete="email" placeholder="nome@esempio.it" onSubmitEditing={continua} />
       {errore ? <Avviso>{errore}</Avviso> : null}
       <Bottone testo="Continua" onPress={continua} inCorso={attesa} />

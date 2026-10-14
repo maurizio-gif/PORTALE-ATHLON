@@ -10,7 +10,8 @@ import { spazio, useColori } from '@/theme'
 // La cornice di ogni schermata: logo, titolo, contenuto. Sul telefono la
 // colonna e' lo schermo; su uno schermo largo si allarga: un po' per le pagine
 // di testo e moduli, molto per quelle `larga` (calendario, area, pagamenti),
-// che dispongono le schede su piu' colonne (Griglia).
+// che dispongono le schede su piu' colonne (Griglia). In fondo, sempre, i
+// dati legali del club: valgono per ogni pagina dell'app (14/10/2026).
 
 /** Oltre questa larghezza si e' su un computer (o un tablet di traverso). */
 export const LARGO = 900
@@ -21,7 +22,6 @@ export function Pagina({
   indietro = true,
   larga = false,
   piede,
-  legale = false,
   children,
 }: {
   titolo: string
@@ -32,8 +32,6 @@ export function Pagina({
   larga?: boolean
   /** Sotto il contenuto, fuori dal flusso dei paragrafi: i dati del club. */
   piede?: ReactNode
-  /** Sotto il marchio, chi vende per esteso: le pagine del Guest Pass. */
-  legale?: boolean
   children: ReactNode
 }) {
   const c = useColori()
@@ -52,13 +50,13 @@ export function Pagina({
               </Link>
             ) : null}
           </View>
-          {legale ? <IntestazioneLegale /> : null}
           <Text style={[stili.titolo, { color: c.testo }]} accessibilityRole="header">
             {titolo}
           </Text>
           {sottotitolo ? <Text style={[stili.sottotitolo, { color: c.testoSecondario }]}>{sottotitolo}</Text> : null}
           <View style={stili.contenuto}>{children}</View>
           {piede}
+          <IntestazioneLegale />
         </View>
       </ScrollView>
     </SafeAreaView>

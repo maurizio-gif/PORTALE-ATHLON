@@ -319,7 +319,7 @@ export function AttivaGuestPass({ token, nome, iniziale }: { token: string; nome
       )
     }
     return (
-      <Pagina legale titolo="Manca il pagamento" sottotitolo={`Il tuo Guest Pass ${periodo ? `(${periodo}) ` : ''}è registrato: per usarlo manca il pagamento di ${p.resta ?? p.prezzo} €.`}>
+      <Pagina titolo="Manca il pagamento" sottotitolo={`Il tuo Guest Pass ${periodo ? `(${periodo}) ` : ''}è registrato: per usarlo manca il pagamento di ${p.resta ?? p.prezzo} €.`}>
         {avviso ? <Avviso tono={avviso.tono}>{avviso.testo}</Avviso> : null}
         {occupato === 'pagamento' ? (
           <View style={{ flexDirection: 'row', gap: spazio.due, alignItems: 'center' }}>
@@ -373,7 +373,7 @@ export function AttivaGuestPass({ token, nome, iniziale }: { token: string; nome
         ? 'addebito su conto (SEPA)'
         : null
   return (
-    <Pagina legale titolo={nome ? `Ciao ${nome}, attiva il tuo Guest Pass` : 'Attiva il tuo Guest Pass'} sottotitolo={`Una settimana al club a ${p.prezzo} €.`}>
+    <Pagina titolo={nome ? `Ciao ${nome}, attiva il tuo Guest Pass` : 'Attiva il tuo Guest Pass'} sottotitolo={`Una settimana al club a ${p.prezzo} €.`}>
       {avviso ? <Avviso tono={avviso.tono}>{avviso.testo}</Avviso> : null}
 
       <Blocco numero={1} titolo="I tuoi dati" fatto={datiCompleti && confermati}>
