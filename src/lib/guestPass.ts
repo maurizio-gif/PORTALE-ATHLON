@@ -124,3 +124,27 @@ export function problemaPassword(password: string, conferma: string, obbligatori
   if (password !== conferma) return 'Le due password non coincidono.'
   return null
 }
+
+const SITO = 'https://www.athlonroma.it'
+
+/**
+ * Le attività del Guest Pass nella pagina finale, ognuna con la sua pagina sul
+ * sito. Sono quelle del Premium, che il Guest Pass apre per una settimana
+ * (`plans` nel sito): il giorno che il Premium cambia, cambiano qui.
+ */
+export const ATTIVITA_GUEST_PASS: { nome: string; url: string }[] = [
+  { nome: 'Gym Floor', url: `${SITO}/gym-floor/` },
+  { nome: 'Corsi Fitness', url: `${SITO}/corsi-fitness/` },
+  { nome: 'Athlon TV', url: `${SITO}/athlon-tv/` },
+  { nome: 'Nuoto Libero Assistito', url: `${SITO}/nuoto-libero/` },
+  { nome: 'Aqua Fitness', url: `${SITO}/aqua-fitness/` },
+  { nome: 'Aqua Gym gestanti', url: `${SITO}/gestanti/` },
+  { nome: 'Scuola Nuoto Adulti', url: `${SITO}/scuola-nuoto-adulti/` },
+  { nome: 'Group Reformer', url: `${SITO}/reformer/` },
+]
+
+/** I due comandi della pagina finale. Il wiki vecchio reindirizza qui. */
+export const LINK_CONFERMA = {
+  prenotazioni: `${SITO}/wikiathlon/generali/prenotazioni/`,
+  chiamata: `${SITO}/prenota-chiamata/`,
+} as const
