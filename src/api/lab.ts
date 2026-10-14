@@ -71,7 +71,10 @@ export type EsitoArea = { ok: true; area: Area } | { ok: false; nonAmmesso: bool
 export async function laMiaArea(): Promise<EsitoArea> {
   const { data, error } = await supabase.rpc('portale_la_mia_area')
   if (!error) return { ok: true, area: data as Area }
-  const nonAmmesso = error.code === '42501'
+  // 42501 e' anche «permission denied»: e' il rifiuto del tester solo col
+  // messaggio della funzione, altrimenti e' un errore come gli altri.
+  const nonAmmesso = error.code === '42501' && /tester/i.test(error.message)
+  if (!nonAmmesso) console.error('portale_la_mia_area:', error.code, error.message)
   return {
     ok: false,
     nonAmmesso,
