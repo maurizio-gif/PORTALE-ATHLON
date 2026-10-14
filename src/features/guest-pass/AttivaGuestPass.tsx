@@ -10,6 +10,7 @@ import { CampoData } from '@/components/CampoData'
 import { ChiGestisceCarta, ChiGestisceConto } from '@/components/ChiGestisce'
 import { Casella } from '@/components/Casella'
 import { Pagina } from '@/components/Pagina'
+import { GuestPassAttivo } from '@/features/guest-pass/GuestPassAttivo'
 import { Scelta } from '@/components/Scelta'
 import { Forte, Testo } from '@/components/Testo'
 import {
@@ -303,15 +304,22 @@ export function AttivaGuestPass({ token, nome, iniziale }: { token: string; nome
     const periodo = p.inizio.scelto ? `dal ${giornoLungo(p.inizio.scelto)} al ${giornoLungo(fineSettimana(p.inizio.scelto))}` : null
     if (!daPagare) {
       return (
-        <Pagina titolo="Il tuo Guest Pass è attivo" sottotitolo={periodo ? periodo.charAt(0).toUpperCase() + periodo.slice(1) : undefined}>
-          {avviso ? <Avviso tono={avviso.tono}>{avviso.testo}</Avviso> : null}
-          {p.pagamento_stato === 'addebito' ? <Testo>I {p.prezzo} € saranno addebitati sul conto che hai indicato.</Testo> : null}
-          <Testo>Ti aspettiamo al club. Per prenotare le lezioni usa l’app Athlon con la tua email.</Testo>
-        </Pagina>
+        <GuestPassAttivo
+          email={p.persona.email}
+          nuovoAccount={!!p.password?.obbligatoria}
+          nome={p.persona.nome}
+          cognome={p.persona.cognome}
+          inizio={p.inizio.scelto}
+          fine={p.inizio.scelto ? fineSettimana(p.inizio.scelto) : null}
+          prezzo={p.prezzo}
+          // L'avviso appena confermato dice gia' dell'addebito: non due volte.
+          addebito={p.pagamento_stato === 'addebito' && !avviso}
+          avviso={avviso}
+        />
       )
     }
     return (
-      <Pagina titolo="Manca il pagamento" sottotitolo={`Il tuo Guest Pass ${periodo ? `(${periodo}) ` : ''}è registrato: per usarlo manca il pagamento di ${p.resta ?? p.prezzo} €.`}>
+      <Pagina legale titolo="Manca il pagamento" sottotitolo={`Il tuo Guest Pass ${periodo ? `(${periodo}) ` : ''}è registrato: per usarlo manca il pagamento di ${p.resta ?? p.prezzo} €.`}>
         {avviso ? <Avviso tono={avviso.tono}>{avviso.testo}</Avviso> : null}
         {occupato === 'pagamento' ? (
           <View style={{ flexDirection: 'row', gap: spazio.due, alignItems: 'center' }}>
@@ -365,7 +373,7 @@ export function AttivaGuestPass({ token, nome, iniziale }: { token: string; nome
         ? 'addebito su conto (SEPA)'
         : null
   return (
-    <Pagina titolo={nome ? `Ciao ${nome}, attiva il tuo Guest Pass` : 'Attiva il tuo Guest Pass'} sottotitolo={`Una settimana al club a ${p.prezzo} €.`}>
+    <Pagina legale titolo={nome ? `Ciao ${nome}, attiva il tuo Guest Pass` : 'Attiva il tuo Guest Pass'} sottotitolo={`Una settimana al club a ${p.prezzo} €.`}>
       {avviso ? <Avviso tono={avviso.tono}>{avviso.testo}</Avviso> : null}
 
       <Blocco numero={1} titolo="I tuoi dati" fatto={datiCompleti && confermati}>
@@ -420,34 +428,39 @@ export function AttivaGuestPass({ token, nome, iniziale }: { token: string; nome
         {Object.keys(cambiati).length && !confermati ? (
           <Testo variante="piccolo">Le correzioni vanno sulla tua scheda del club quando spunti «I miei dati sono corretti».</Testo>
         ) : null}
-        <Gruppo titolo={passwordObbligatoria ? 'La tua password' : 'Password (facoltativa)'} due={dueColonne}>
-          <Campo
-            etichetta={passwordObbligatoria ? 'Scegli la password' : 'Nuova password'}
-            value={password.nuova}
-            onChangeText={(v) => setPassword((x) => ({ ...x, nuova: v }))}
-            secureTextEntry
-            autoCapitalize="none"
-            autoComplete="new-password"
-            errore={passwordObbligatoria && !password.nuova}
-            style={{ backgroundColor: c.sfondo }}
-          />
-          <Campo
-            etichetta="Ripeti la password"
-            value={password.conferma}
-            onChangeText={(v) => setPassword((x) => ({ ...x, conferma: v }))}
-            secureTextEntry
-            autoCapitalize="none"
-            autoComplete="new-password"
-            errore={!!password.nuova && password.conferma !== password.nuova}
-            style={{ backgroundColor: c.sfondo }}
-          />
-        </Gruppo>
-        <Testo variante="piccolo">
-          {passwordObbligatoria
-            ? 'Con la tua email e questa password entri nell’app Athlon e nel portale, per prenotare le lezioni. Almeno 8 caratteri, con lettere e numeri.'
-            : 'Hai già un accesso all’app? Lascia vuoto. Se non ricordi la password, o vuoi cambiarla, scrivine una nuova: almeno 8 caratteri, con lettere e numeri.'}
-        </Testo>
-        {(password.nuova || password.conferma) && errorePassword ? <Avviso tono="attenzione">{errorePassword}</Avviso> : null}
+        {/* La password solo a chi sta creando l'account (14/10/2026): chi era gia'
+            Guest o Member ce l'ha, e se non la ricorda la reimposta dalla pagina finale. */}
+        {passwordObbligatoria ? (
+          <>
+            <Gruppo titolo="La tua password" due={dueColonne}>
+              <Campo
+                etichetta="Scegli la password"
+                value={password.nuova}
+                onChangeText={(v) => setPassword((x) => ({ ...x, nuova: v }))}
+                secureTextEntry
+                autoCapitalize="none"
+                autoComplete="new-password"
+                errore={!password.nuova}
+                style={{ backgroundColor: c.sfondo }}
+              />
+              <Campo
+                etichetta="Ripeti la password"
+                value={password.conferma}
+                onChangeText={(v) => setPassword((x) => ({ ...x, conferma: v }))}
+                secureTextEntry
+                autoCapitalize="none"
+                autoComplete="new-password"
+                errore={!!password.nuova && password.conferma !== password.nuova}
+                style={{ backgroundColor: c.sfondo }}
+              />
+            </Gruppo>
+            <Testo variante="piccolo">
+              Con la tua email e questa password entri nell’app Athlon Club e nel portale, per prenotare le lezioni. Almeno 8 caratteri,
+              con lettere e numeri.
+            </Testo>
+            {(password.nuova || password.conferma) && errorePassword ? <Avviso tono="attenzione">{errorePassword}</Avviso> : null}
+          </>
+        ) : null}
       </Blocco>
 
       <Blocco numero={2} titolo="Quando vuoi cominciare" fatto={!!inizio}>

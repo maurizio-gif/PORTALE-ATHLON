@@ -4,6 +4,7 @@ import type { ReactNode } from 'react'
 import { ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
+import { IntestazioneLegale } from '@/components/IntestazioneLegale'
 import { spazio, useColori } from '@/theme'
 
 // La cornice di ogni schermata: logo, titolo, contenuto. Sul telefono la
@@ -20,6 +21,7 @@ export function Pagina({
   indietro = true,
   larga = false,
   piede,
+  legale = false,
   children,
 }: {
   titolo: string
@@ -30,6 +32,8 @@ export function Pagina({
   larga?: boolean
   /** Sotto il contenuto, fuori dal flusso dei paragrafi: i dati del club. */
   piede?: ReactNode
+  /** Sotto il marchio, chi vende per esteso: le pagine del Guest Pass. */
+  legale?: boolean
   children: ReactNode
 }) {
   const c = useColori()
@@ -48,6 +52,7 @@ export function Pagina({
               </Link>
             ) : null}
           </View>
+          {legale ? <IntestazioneLegale /> : null}
           <Text style={[stili.titolo, { color: c.testo }]} accessibilityRole="header">
             {titolo}
           </Text>
