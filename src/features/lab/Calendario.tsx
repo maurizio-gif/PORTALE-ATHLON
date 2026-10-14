@@ -877,46 +877,81 @@ export function Calendario() {
           {nascoste && !attivita ? (
             <Text style={[stili.nota, { color: p.testoTerzo, paddingHorizontal: 2 }]}>{nascoste === 1 ? 'Una lezione è già cominciata.' : `${nascoste} lezioni sono già cominciate.`}</Text>
           ) : null}
-          <View style={stili.griglia}>
-            {aTurni.map((a, n) => (
-              <Entra key={`${giorno.member_id}-${giorno.data}-${a.categoria}`} indice={n} style={stili.cella}>
-                <TurniInGriglia
-                  // Cambiando giorno o persona si riparte dal turno giusto.
-                  key={`${giorno.member_id}-${giorno.data}`}
-                  nome={a.categoria}
-                  conPosti={a.conPosti}
-                  turni={a.turni}
-                  scheda={a.turni[0].scheda ? giorno.schede?.[a.turni[0].scheda] ?? null : null}
-                  onScheda={() => setAperta(a.turni[0])}
-                  occupato={occupato}
-                  onPrenota={prenota}
-                  onAcquista={acquista}
-                  onPagaCarta={pagaCarta}
-                  onDisdici={disdici}
-                  onMostra={mostra}
-                />
-              </Entra>
-            ))}
-            {altre.map((l, i) => (
-              <Entra
-                // Con la persona cambia anche cosa le manca: la riga riparte da «Prenota».
-                key={`${giorno.member_id}-${l.class_id}`}
-                indice={i}
-                style={stili.cella}
-              >
-                <RigaLezione
-                  l={l}
-                  scheda={l.scheda ? giorno.schede?.[l.scheda] ?? null : null}
-                  onScheda={() => setAperta(l)}
-                  occupato={occupato}
-                  onPrenota={() => prenota(l)}
-                  onAcquista={(url) => acquista(l, url)}
-                  onPagaCarta={pagaCarta}
-                  onDisdici={() => disdici(l)}
-                />
-              </Entra>
-            ))}
-          </View>
+          {aTurni.length ? (
+            // Due sezioni coi titoli: prima l'allenamento libero (le griglie), poi i corsi.
+            <>
+              <Sezione titolo="Allenamento libero">
+                <View style={stili.griglia}>
+                {aTurni.map((a, n) => (
+                  <Entra key={`${giorno.member_id}-${giorno.data}-${a.categoria}`} indice={n} style={stili.cella}>
+                    <TurniInGriglia
+                      // Cambiando giorno o persona si riparte dal turno giusto.
+                      key={`${giorno.member_id}-${giorno.data}`}
+                      nome={a.categoria}
+                      conPosti={a.conPosti}
+                      turni={a.turni}
+                      scheda={a.turni[0].scheda ? giorno.schede?.[a.turni[0].scheda] ?? null : null}
+                      onScheda={() => setAperta(a.turni[0])}
+                      occupato={occupato}
+                      onPrenota={prenota}
+                      onAcquista={acquista}
+                      onPagaCarta={pagaCarta}
+                      onDisdici={disdici}
+                      onMostra={mostra}
+                    />
+                  </Entra>
+                ))}
+                </View>
+              </Sezione>
+              {altre.length ? (
+                <Sezione titolo="Corsi" conteggio={altre.length} style={{ marginTop: spazio.due }}>
+                  <View style={stili.griglia}>
+                    {altre.map((l, i) => (
+                      <Entra
+                        // Con la persona cambia anche cosa le manca: la riga riparte da «Prenota».
+                        key={`${giorno.member_id}-${l.class_id}`}
+                        indice={i}
+                        style={stili.cella}
+                      >
+                        <RigaLezione
+                          l={l}
+                          scheda={l.scheda ? giorno.schede?.[l.scheda] ?? null : null}
+                          onScheda={() => setAperta(l)}
+                          occupato={occupato}
+                          onPrenota={() => prenota(l)}
+                          onAcquista={(url) => acquista(l, url)}
+                          onPagaCarta={pagaCarta}
+                          onDisdici={() => disdici(l)}
+                        />
+                      </Entra>
+                    ))}
+                  </View>
+                </Sezione>
+              ) : null}
+            </>
+          ) : (
+            <View style={stili.griglia}>
+                {altre.map((l, i) => (
+                  <Entra
+                    // Con la persona cambia anche cosa le manca: la riga riparte da «Prenota».
+                    key={`${giorno.member_id}-${l.class_id}`}
+                    indice={i}
+                    style={stili.cella}
+                  >
+                    <RigaLezione
+                      l={l}
+                      scheda={l.scheda ? giorno.schede?.[l.scheda] ?? null : null}
+                      onScheda={() => setAperta(l)}
+                      occupato={occupato}
+                      onPrenota={() => prenota(l)}
+                      onAcquista={(url) => acquista(l, url)}
+                      onPagaCarta={pagaCarta}
+                      onDisdici={() => disdici(l)}
+                    />
+                  </Entra>
+                ))}
+            </View>
+          )}
         </View>
       )}
       <FoglioLezione
