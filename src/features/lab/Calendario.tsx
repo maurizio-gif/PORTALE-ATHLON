@@ -28,7 +28,7 @@ import { FoglioLezione } from './ui/FoglioLezione'
 import { Icona } from './ui/Icona'
 import { Avatar, Barra, Carta, Entra, Etichetta, Messaggio, Pulsante, Riga, SchedeInArrivo, Sezione, Tag } from './ui/kit'
 import { Schermata } from './ui/Schermata'
-import { F, FUOCO, NOTTE, usePalette, velo } from './ui/tema'
+import { F, FUOCO, NOTTE, usePalette } from './ui/tema'
 import { colpetto, Tocco } from './ui/Tocco'
 
 // Il calendario del laboratorio: le lezioni di gruppo di oggi e dei tre giorni
@@ -290,7 +290,9 @@ function RigaLezione(props: PropsLezione) {
 // La Gym Floor: turni da 80 minuti ogni mezz'ora, dalle 6 alle 20:30, una
 // trentina al giorno. Una card per turno faceva scorrere all'infinito
 // (15/10/2026): qui sono una card sola, con gli orari in griglia divisi per
-// fascia; si tocca un orario e sotto ci sono i suoi posti e «Prenota».
+// fascia; si tocca un orario e sotto ci sono i prenotati e «Prenota». Niente
+// posti liberi: in sala la capienza non e' un problema, conta solo quanta
+// gente c'e' (scelta dell'utente, 15/10/2026).
 
 const GYM_FLOOR = 'Gym Floor'
 
@@ -326,7 +328,7 @@ function TurniGymFloor({
   )
   const scelto = turni.find((t) => t.class_id === sceltoId) ?? turni[0]
   const durata = minuti(turni[0].inizio, turni[0].fine)
-  const colorePosti = (t: Lezione) => (t.liberi <= 0 ? p.errore : t.liberi < 5 ? p.attenzione : p.ok)
+  const prenotati = (t: Lezione) => `${t.iscritti} ${t.iscritti === 1 ? 'prenotato' : 'prenotati'}`
 
   return (
     <View style={[stili.lezione, { backgroundColor: p.carta, borderColor: p.linea, borderWidth: StyleSheet.hairlineWidth, boxShadow: p.ombra }]}>
@@ -366,26 +368,33 @@ function TurniGymFloor({
                 {qui.map((t) => {
                   const attivo = t.class_id === scelto.class_id
                   const mio = !!t.prenotazione
-                  const c = colorePosti(t)
                   return (
                     <View key={t.class_id} style={stili.orarioCella}>
                       <Tocco
                         vibra="scelta"
                         stato={{ selected: attivo }}
                         onPress={() => setSceltoId(t.class_id)}
-                        etichetta={`${ora(t.inizio)}, ${mio ? (t.prenotazione?.attesa ? 'sei in lista d’attesa' : 'prenotato') : t.liberi <= 0 ? 'completo' : `${t.liberi} posti liberi`}`}
+                        etichetta={`${ora(t.inizio)}, ${mio ? (t.prenotazione?.attesa ? 'sei in lista d’attesa' : 'ci sei anche tu') : prenotati(t)}`}
                         style={[
                           stili.turno,
                           mio
                             ? { backgroundColor: t.prenotazione?.attesa ? p.attenzione : p.accento }
-                            : { backgroundColor: t.iniziata ? p.incavo : velo(p, t.liberi <= 0 ? 'errore' : t.liberi < 5 ? 'attenzione' : 'ok', 0.13) },
+                            : { backgroundColor: p.incavo },
                           attivo && { borderColor: mio ? '#fff' : p.testo, borderWidth: 2 },
                         ]}
                       >
                         <Text style={[stili.turnoOra, { color: mio ? '#fff' : t.iniziata ? p.testoTerzo : p.testo }]}>{ora(t.inizio)}</Text>
-                        <Text style={[stili.turnoPosti, { color: mio ? 'rgba(255,255,255,0.9)' : t.iniziata ? p.testoTerzo : c }]} numberOfLines={1}>
-                          {mio ? (t.prenotazione?.attesa ? 'in attesa' : '✓ tuo') : t.iniziata ? 'iniziato' : t.liberi <= 0 ? 'pieno' : `${t.liberi} posti`}
-                        </Text>
+                        {mio || t.iniziata ? (
+                          <Text style={[stili.turnoPosti, { color: mio ? 'rgba(255,255,255,0.9)' : p.testoTerzo }]} numberOfLines={1}>
+                            {mio ? (t.prenotazione?.attesa ? 'in attesa' : '✓ tuo') : 'iniziato'}
+                          </Text>
+                        ) : (
+                          // Quanti prenotati: l'omino e il numero.
+                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
+                            <Icona nome="persona" size={11} colore={p.testoSecondario} />
+                            <Text style={[stili.turnoPosti, { color: p.testoSecondario }]}>{t.iscritti}</Text>
+                          </View>
+                        )}
                       </Tocco>
                     </View>
                   )
@@ -398,13 +407,11 @@ function TurniGymFloor({
         <View style={[stili.scelto, { borderTopColor: p.linea }]}>
           <View style={{ flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', gap: spazio.due }}>
             <Text style={[stili.sceltoOra, { color: p.testo }]}>{`${ora(scelto.inizio)} – ${ora(scelto.fine)}`}</Text>
-            {!scelto.iniziata ? (
-              <Text style={{ color: colorePosti(scelto), fontFamily: F.extra, fontSize: 14 }}>
-                {scelto.liberi <= 0 ? 'Completo' : `${scelto.liberi}/${scelto.posti} posti liberi`}
-              </Text>
-            ) : null}
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+              <Icona nome="persone" size={16} colore={p.testoSecondario} />
+              <Text style={{ color: p.testoSecondario, fontFamily: F.extra, fontSize: 14 }}>{prenotati(scelto)}</Text>
+            </View>
           </View>
-          {!scelto.iniziata ? <Barra key={`barra-${scelto.class_id}`} valore={scelto.posti ? scelto.iscritti / scelto.posti : 0} colore={colorePosti(scelto)} altezza={6} animata /> : null}
           <AzioniLezione
             // Cambiando turno i pulsanti ripartono da capo (conferme, errori, pagamento).
             key={scelto.class_id}
