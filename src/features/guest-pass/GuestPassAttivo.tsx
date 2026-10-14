@@ -1,11 +1,12 @@
-import { useEffect, useRef, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { Animated, Easing, Linking, Platform, Pressable, StyleSheet, Text, View } from 'react-native'
 
 import { Avviso } from '@/components/Avviso'
 import { Bottone } from '@/components/Bottone'
 import { Pagina } from '@/components/Pagina'
 import { Forte, Testo } from '@/components/Testo'
-import { ATTIVITA_GUEST_PASS, LINK_CONFERMA } from '@/lib/guestPass'
+import { chiediResetPassword } from '@/api/guestPass'
+import { APP_ATHLON_URL, ATTIVITA_GUEST_PASS, LINK_CONFERMA } from '@/lib/guestPass'
 import { spazio, tinta, useColori, type Tono } from '@/theme'
 
 // La pagina finale del Guest Pass (14/10/2026): il testo della lettera di
@@ -74,7 +75,44 @@ function conAnno(g: string): string {
   return new Date(g + 'T12:00:00Z').toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' })
 }
 
+/**
+ * Come si entra nell'app (14/10/2026). Chi ha creato l'account in questa
+ * procedura ha appena scelto la password, e basta ricordargli quali sono le
+ * credenziali. Chi era gia' Guest o Member la password ce l'ha da prima: se non
+ * la ricorda la reimposta da qui, con la stessa funzione del sito.
+ */
+function Accesso({ email, nuovoAccount }: { email: string | null; nuovoAccount: boolean }) {
+  const [reset, setReset] = useState<'no' | 'invio' | 'inviata' | 'errore'>('no')
+  async function chiedi() {
+    if (!email) return
+    setReset('invio')
+    setReset((await chiediResetPassword(email)) ? 'inviata' : 'errore')
+  }
+  return (
+    <Scheda titolo="Entra nell’app">
+      <Testo>
+        Scarica l’app <Forte>Athlon Club</Forte> e accedi con la tua email{email ? <> (<Forte>{email}</Forte>)</> : null} come ID
+        {nuovoAccount ? <> e la <Forte>password che hai scelto</Forte>.</> : <> e la password che usi già.</>}
+      </Testo>
+      <Bottone testo="Scarica l’app Athlon Club" onPress={() => Linking.openURL(APP_ATHLON_URL)} />
+      {!nuovoAccount && email ? (
+        reset === 'inviata' ? (
+          <Avviso tono="ok">{`Ti abbiamo mandato a ${email} il link per scegliere una nuova password. Controlla anche lo spam.`}</Avviso>
+        ) : (
+          <>
+            <Testo variante="attenuato">Non ricordi la password? Ti mandiamo per email il link per sceglierne una nuova.</Testo>
+            <Bottone testo="Reimposta la password" variante="contorno" onPress={chiedi} inCorso={reset === 'invio'} />
+            {reset === 'errore' ? <Avviso tono="attenzione">Non siamo riusciti a mandare il link adesso. Riprova fra qualche minuto.</Avviso> : null}
+          </>
+        )
+      ) : null}
+    </Scheda>
+  )
+}
+
 export function GuestPassAttivo({
+  email,
+  nuovoAccount,
   nome,
   cognome,
   inizio,
@@ -83,6 +121,9 @@ export function GuestPassAttivo({
   addebito,
   avviso,
 }: {
+  email: string | null
+  /** L'account e' nato in questa procedura: la password l'ha appena scelta. */
+  nuovoAccount: boolean
   nome: string | null
   cognome: string | null
   inizio: string | null
@@ -121,6 +162,10 @@ export function GuestPassAttivo({
       ) : null}
 
       <Entra indice={i++}>
+        <Accesso email={email} nuovoAccount={nuovoAccount} />
+      </Entra>
+
+      <Entra indice={i++}>
         <Scheda titolo="Cosa comprende">
           <Testo>
             Hai accesso a <Forte>tutte le attività del Club</Forte>, in palestra, in piscina e online, e a tutti i vantaggi
@@ -147,7 +192,7 @@ export function GuestPassAttivo({
         <Scheda titolo="Prenota le attività">
           <Testo>
             Tutte le attività in presenza <Forte>si prenotano</Forte>, dal tuo account nell’app Athlon Club: la
-            prenotazione si apre 3 giorni prima.
+            prenotazione si apre 3 giorni prima. Hai dubbi o richieste? Siamo a disposizione.
           </Testo>
           <Bottone testo="Come si prenota" variante="contorno" onPress={() => Linking.openURL(LINK_CONFERMA.prenotazioni)} />
         </Scheda>

@@ -148,3 +148,6 @@ export const LINK_CONFERMA = {
   prenotazioni: `${SITO}/wikiathlon/generali/prenotazioni/`,
   chiamata: `${SITO}/prenota-chiamata/`,
 } as const
+
+/** L'app Athlon Club: un link solo, che porta allo store giusto per il telefono. */
+export const APP_ATHLON_URL = 'https://onelink.to/athlon'

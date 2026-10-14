@@ -77,3 +77,22 @@ export async function labRichiediGuestPass(memberId: number): Promise<{ ok: true
   if (r.ok) return { ok: true }
   return { ok: false, errore: r.dati.errore ?? 'Non siamo riusciti a mandarti il link adesso.' }
 }
+
+/**
+ * Il link per reimpostare la password, a chi aveva gia' un account (Guest o
+ * Member): la stessa funzione del sito (`sito-reset-password`), che chiede a
+ * PerfectGym di mandare la sua email di reset.
+ */
+export async function chiediResetPassword(email: string): Promise<boolean> {
+  try {
+    const r = await fetch(`${SUPABASE_URL}/functions/v1/sito-reset-password`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, pagina: '/r', origine: 'guest-pass-reset' }),
+    })
+    const d = (await r.json().catch(() => null)) as { esito?: string } | null
+    return d?.esito === 'inviata'
+  } catch {
+    return false
+  }
+}

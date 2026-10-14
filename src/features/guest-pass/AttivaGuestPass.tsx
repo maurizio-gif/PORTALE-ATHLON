@@ -305,6 +305,8 @@ export function AttivaGuestPass({ token, nome, iniziale }: { token: string; nome
     if (!daPagare) {
       return (
         <GuestPassAttivo
+          email={p.persona.email}
+          nuovoAccount={!!p.password?.obbligatoria}
           nome={p.persona.nome}
           cognome={p.persona.cognome}
           inizio={p.inizio.scelto}
@@ -426,34 +428,39 @@ export function AttivaGuestPass({ token, nome, iniziale }: { token: string; nome
         {Object.keys(cambiati).length && !confermati ? (
           <Testo variante="piccolo">Le correzioni vanno sulla tua scheda del club quando spunti «I miei dati sono corretti».</Testo>
         ) : null}
-        <Gruppo titolo={passwordObbligatoria ? 'La tua password' : 'Password (facoltativa)'} due={dueColonne}>
-          <Campo
-            etichetta={passwordObbligatoria ? 'Scegli la password' : 'Nuova password'}
-            value={password.nuova}
-            onChangeText={(v) => setPassword((x) => ({ ...x, nuova: v }))}
-            secureTextEntry
-            autoCapitalize="none"
-            autoComplete="new-password"
-            errore={passwordObbligatoria && !password.nuova}
-            style={{ backgroundColor: c.sfondo }}
-          />
-          <Campo
-            etichetta="Ripeti la password"
-            value={password.conferma}
-            onChangeText={(v) => setPassword((x) => ({ ...x, conferma: v }))}
-            secureTextEntry
-            autoCapitalize="none"
-            autoComplete="new-password"
-            errore={!!password.nuova && password.conferma !== password.nuova}
-            style={{ backgroundColor: c.sfondo }}
-          />
-        </Gruppo>
-        <Testo variante="piccolo">
-          {passwordObbligatoria
-            ? 'Con la tua email e questa password entri nell’app Athlon e nel portale, per prenotare le lezioni. Almeno 8 caratteri, con lettere e numeri.'
-            : 'Hai già un accesso all’app? Lascia vuoto. Se non ricordi la password, o vuoi cambiarla, scrivine una nuova: almeno 8 caratteri, con lettere e numeri.'}
-        </Testo>
-        {(password.nuova || password.conferma) && errorePassword ? <Avviso tono="attenzione">{errorePassword}</Avviso> : null}
+        {/* La password solo a chi sta creando l'account (14/10/2026): chi era gia'
+            Guest o Member ce l'ha, e se non la ricorda la reimposta dalla pagina finale. */}
+        {passwordObbligatoria ? (
+          <>
+            <Gruppo titolo="La tua password" due={dueColonne}>
+              <Campo
+                etichetta="Scegli la password"
+                value={password.nuova}
+                onChangeText={(v) => setPassword((x) => ({ ...x, nuova: v }))}
+                secureTextEntry
+                autoCapitalize="none"
+                autoComplete="new-password"
+                errore={!password.nuova}
+                style={{ backgroundColor: c.sfondo }}
+              />
+              <Campo
+                etichetta="Ripeti la password"
+                value={password.conferma}
+                onChangeText={(v) => setPassword((x) => ({ ...x, conferma: v }))}
+                secureTextEntry
+                autoCapitalize="none"
+                autoComplete="new-password"
+                errore={!!password.nuova && password.conferma !== password.nuova}
+                style={{ backgroundColor: c.sfondo }}
+              />
+            </Gruppo>
+            <Testo variante="piccolo">
+              Con la tua email e questa password entri nell’app Athlon Club e nel portale, per prenotare le lezioni. Almeno 8 caratteri,
+              con lettere e numeri.
+            </Testo>
+            {(password.nuova || password.conferma) && errorePassword ? <Avviso tono="attenzione">{errorePassword}</Avviso> : null}
+          </>
+        ) : null}
       </Blocco>
 
       <Blocco numero={2} titolo="Quando vuoi cominciare" fatto={!!inizio}>
