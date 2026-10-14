@@ -366,7 +366,7 @@ export function AreaRiservata({ email }: { email: string }) {
                     icona="certificato"
                     tono={s.tono}
                     titolo={x ? nome(x) : 'Certificato'}
-                    sotto={[ce.scadenza ? `scade il ${dataBreve(ce.scadenza)}` : 'nessun certificato registrato', ce.stato].filter(Boolean).join(' · ')}
+                    sotto={ce.scadenza ? `${(giorniA(ce.scadenza) ?? 0) < 0 ? 'scaduto' : 'scade'} il ${dataBreve(ce.scadenza)}` : 'nessun certificato registrato'}
                     coda={<Etichetta testo={s.testo} tono={s.tono} />}
                   />
                 )
