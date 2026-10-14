@@ -25,6 +25,7 @@ export default function LayoutLaboratorio() {
     <View style={{ flex: 1, backgroundColor: p.fondo }}>
       <Stack screenOptions={{ headerShown: false, animation: 'fade', contentStyle: { backgroundColor: p.fondo } }}>
         <Stack.Screen name="pagamenti/[riferimento]" options={{ animation: 'slide_from_right' }} />
+        <Stack.Screen name="video/[id]" options={{ animation: 'slide_from_bottom' }} />
       </Stack>
       {sessione ? <BarraSchede /> : null}
     </View>

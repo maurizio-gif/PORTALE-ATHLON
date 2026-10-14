@@ -414,3 +414,37 @@ export async function confermaCambioEmail(email: string, codice: string): Promis
   if (esito.ok) await supabase.auth.refreshSession().catch(() => undefined)
   return esito
 }
+
+// ---------------------------------------------------------------------------
+// I video del club: gli showcase di Vimeo, da `portale-lab-video` (repo
+// APP-ATHLON), che tiene il token di Vimeo. I link per riprodurre un video
+// scadono: si chiedono quando lo si apre.
+
+export type VideoClub = {
+  id: string
+  titolo: string
+  descrizione: string | null
+  /** In secondi. */
+  durata: number
+  copertina: string | null
+  miniatura: string | null
+  pubblicato_il: string | null
+}
+
+export type Vetrina = { id: string; titolo: string; descrizione: string | null; copertina: string | null; video: VideoClub[] }
+
+export type VideoDaGuardare = VideoClub & { vetrina: { id: string; titolo: string }; hls: string | null; mp4: string | null }
+
+const video = (corpo: Record<string, unknown>) => funzione('portale-lab-video', corpo)
+
+export async function leggiVetrine(): Promise<Esito<{ vetrine: Vetrina[] }>> {
+  const { ok, dati } = await video({ azione: 'vetrine' })
+  if (ok) return { ok: true, vetrine: dati.vetrine as Vetrina[] }
+  return { ok: false, errore: dati.errore ?? 'Non riusciamo a leggere i video adesso.' }
+}
+
+export async function apriVideo(id: string): Promise<Esito<{ video: VideoDaGuardare }>> {
+  const { ok, dati } = await video({ azione: 'video', id })
+  if (ok) return { ok: true, video: dati.video as VideoDaGuardare }
+  return { ok: false, errore: dati.errore ?? 'Non riusciamo ad aprire il video adesso.' }
+}

@@ -16,6 +16,7 @@ import { Tocco } from './Tocco'
 const SCHEDE: { href: Href; percorso: string; titolo: string; icona: NomeIcona }[] = [
   { href: '/lab', percorso: '/lab', titolo: 'Home', icona: 'casa' },
   { href: '/lab/calendario', percorso: '/lab/calendario', titolo: 'Lezioni', icona: 'calendario' },
+  { href: '/lab/video', percorso: '/lab/video', titolo: 'Video', icona: 'play' },
   { href: '/lab/pagamenti', percorso: '/lab/pagamenti', titolo: 'Pagamenti', icona: 'carta' },
   { href: '/lab/guest-pass', percorso: '/lab/guest-pass', titolo: 'Guest Pass', icona: 'pass' },
 ]
@@ -84,9 +85,9 @@ export function BarraSchede() {
 
 const stili = StyleSheet.create({
   ancora: { position: 'absolute', left: 0, right: 0, bottom: 0, alignItems: 'center', paddingHorizontal: 14 },
-  pillola: { width: '100%', maxWidth: 440, borderRadius: 28, borderWidth: StyleSheet.hairlineWidth, overflow: 'hidden', padding: 6 },
+  pillola: { width: '100%', maxWidth: 480, borderRadius: 28, borderWidth: StyleSheet.hairlineWidth, overflow: 'hidden', padding: 6 },
   fila: { flexDirection: 'row' },
   cursore: { position: 'absolute', top: 0, bottom: 0, left: 0, borderRadius: 22 },
   scheda: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 3, paddingVertical: 9, borderRadius: 22 },
-  testo: { fontSize: 11 },
+  testo: { fontSize: 10.5 },
 })
