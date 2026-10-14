@@ -20,7 +20,7 @@ import { Tocco } from './Tocco'
 // contenuti sono quelli del planning del sito (lezioni.json).
 //
 // Sul telefono sta tutto nello schermo, senza scorrere (14/10/2026): il video
-// si allarga o si stringe, mai sotto i 200 punti. Lo scorrimento resta solo
+// si allarga o si stringe, mai sotto i 180 punti. Lo scorrimento resta solo
 // per gli schermi troppo bassi. Si chiude con la X sul video.
 //
 // Si apre scendendo dall'alto e si chiude risalendo; appena arrivata, le
@@ -114,10 +114,10 @@ export function FoglioLezione({
                   return (
                     <View key={k.l} style={stili.caratteristica}>
                       <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 6 }}>
-                        <Text style={{ color: p.testoSecondario, fontFamily: F.semi, fontSize: 12, lineHeight: 15, flexShrink: 1 }}>{k.l}</Text>
-                        <Text style={{ color: p.testo, fontFamily: F.extra, fontSize: 12 }}>{valore}</Text>
+                        <Text style={{ color: p.testoSecondario, fontFamily: F.semi, fontSize: 13.5, lineHeight: 17, flexShrink: 1 }}>{k.l}</Text>
+                        <Text style={{ color: p.testo, fontFamily: F.extra, fontSize: 14 }}>{valore}</Text>
                       </View>
-                      <Barra valore={arrivata ? valore / 100 : 0} colore={i % 2 ? p.blu : p.accento} altezza={6} animata ritardo={i * 140} />
+                      <Barra valore={arrivata ? valore / 100 : 0} colore={i % 2 ? p.blu : p.accento} altezza={8} animata ritardo={i * 140} />
                     </View>
                   )
                 })}
@@ -134,7 +134,7 @@ const stili = StyleSheet.create({
   pagina: { flex: 1, alignItems: 'center' },
   colonna: { flex: 1, width: '100%', maxWidth: 760 },
   contenuto: { flexGrow: 1, gap: spazio.tre, paddingHorizontal: spazio.tre },
-  media: { flexGrow: 1, minHeight: 200, borderRadius: 24, overflow: 'hidden', backgroundColor: '#000' },
+  media: { flexGrow: 1, minHeight: 180, borderRadius: 24, overflow: 'hidden', backgroundColor: '#000' },
   riempi: { position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', aspectRatio: undefined, borderRadius: 0 },
   sulVideo: { position: 'absolute', left: spazio.tre + 2, right: spazio.tre + 2, bottom: spazio.tre + 2, gap: 6, alignItems: 'flex-start' },
   chiudi: { position: 'absolute', top: 12, right: 12, width: 40, height: 40, borderRadius: 14, backgroundColor: 'rgba(0,0,0,0.45)', alignItems: 'center', justifyContent: 'center' },
@@ -143,7 +143,7 @@ const stili = StyleSheet.create({
   dettaglio: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 1, paddingHorizontal: 4 },
   dettaglioValore: { fontFamily: F.extra, fontSize: 17, lineHeight: 20, letterSpacing: -0.4, textAlign: 'center' },
   dettaglioEtichetta: { fontFamily: F.semi, fontSize: 11 },
-  descrizione: { fontFamily: F.medio, fontSize: 13.5, lineHeight: 19.5 },
+  descrizione: { fontFamily: F.medio, fontSize: 15, lineHeight: 21.5 },
   caratteristiche: { flexDirection: 'row', flexWrap: 'wrap', columnGap: spazio.tre + 2, rowGap: spazio.due + 2 },
   caratteristica: { width: '47%', flexGrow: 1, gap: 5, justifyContent: 'flex-end' },
 })

@@ -185,7 +185,7 @@ function RigaLezione({
             </View>
           ))}
         </View>
-        {!l.iniziata ? <Barra valore={l.posti ? l.iscritti / l.posti : 0} colore={colorePosti} altezza={6} /> : null}
+        {!l.iniziata ? <Barra valore={l.posti ? l.iscritti / l.posti : 0} colore={colorePosti} altezza={6} animata ritardo={250} /> : null}
         {errore ? <Messaggio>{errore}</Messaggio> : null}
         {l.iniziata ? null : b ? (
           conferma ? (
