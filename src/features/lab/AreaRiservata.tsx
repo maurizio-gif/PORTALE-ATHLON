@@ -108,7 +108,7 @@ function Metriche({ attivi, totali, famiglia, certificato }: { attivi: number; t
         <Text style={stili.metricaTitolo}>Abbonamenti</Text>
         <Icona nome="abbonamento" size={18} colore="#fff" />
       </View>
-      <Colonnine quante={7} piene={Math.max(1, Math.round((attivi / Math.max(1, totali)) * 7))} altezza={46} larghezza={8} />
+      <Colonnine quante={7} piene={Math.max(1, Math.round((attivi / Math.max(1, totali)) * 7))} altezza={46} larghezza={8} animata ritardo={350} />
       <Numero valore={String(attivi)} unita={attivi === 1 ? 'attivo' : 'attivi'} size={38} colore="#fff" />
     </LinearGradient>,
     <LinearGradient key="f" colors={MARE} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[stili.metrica, { width: larghezza }]}>
@@ -216,7 +216,7 @@ function SchedaContratto({ k, persona }: { k: ContrattoArea; persona: PersonaAre
       </View>
       {avanzamento != null ? (
         <View style={{ gap: 8 }}>
-          <Barra valore={avanzamento} colore={p.accento} altezza={8} />
+          <Barra valore={avanzamento} colore={p.accento} altezza={8} animata ritardo={450} />
           <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
             <Text style={[stili.piccolo, { color: p.testoSecondario }]}>dal {dataBreve(k.data_inizio)}</Text>
             {restano != null && restano >= 0 ? (

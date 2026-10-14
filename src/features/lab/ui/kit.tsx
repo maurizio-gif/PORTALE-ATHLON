@@ -373,14 +373,48 @@ export function Barra({
   )
 }
 
-/** Le colonnine del riquadro «Score»: una per pezzo, piena se fatto. */
-export function Colonnine({ quante, piene, colore = '#fff', altezza = 56, larghezza = 9 }: { quante: number; piene: number; colore?: string; altezza?: number; larghezza?: number }) {
+/** Una colonnina: con `animata` cresce da zero dopo `ritardo` millisecondi. */
+function Colonnina({ altezza, larghezza, colore, opacita, animata, ritardo }: { altezza: number; larghezza: number; colore: string; opacita: number; animata: boolean; ritardo: number }) {
+  const h = useSharedValue(animata ? 0 : altezza)
+  useEffect(() => {
+    h.value = animata ? withDelay(ritardo, withTiming(altezza, { duration: 700, easing: Easing.out(Easing.back(1.4)) })) : altezza
+  }, [animata, ritardo, altezza, h])
+  const stile = useAnimatedStyle(() => ({ height: h.value }))
+  return <Animated.View style={[{ width: larghezza, borderRadius: larghezza / 2, backgroundColor: colore, opacity: opacita }, stile]} />
+}
+
+/** Le colonnine del riquadro «Score»: una per pezzo, piena se fatto. Con `animata` crescono una dopo l'altra. */
+export function Colonnine({
+  quante,
+  piene,
+  colore = '#fff',
+  altezza = 56,
+  larghezza = 9,
+  animata = false,
+  ritardo = 0,
+}: {
+  quante: number
+  piene: number
+  colore?: string
+  altezza?: number
+  larghezza?: number
+  animata?: boolean
+  ritardo?: number
+}) {
   // Altezze che salgono e scendono, come un grafico: non dicono nulla, danno ritmo.
   const ritmo = [0.55, 0.8, 0.62, 1, 0.74, 0.9, 0.5, 0.86, 0.68, 0.96]
   return (
     <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: larghezza * 0.6, height: altezza }}>
       {Array.from({ length: quante }, (_, i) => (
-        <View key={i} style={{ width: larghezza, height: altezza * ritmo[i % ritmo.length], borderRadius: larghezza / 2, backgroundColor: colore, opacity: i < piene ? 1 : 0.3 }} />
+        <Colonnina
+          key={i}
+          altezza={altezza * ritmo[i % ritmo.length]}
+          larghezza={larghezza}
+          colore={colore}
+          opacita={i < piene ? 1 : 0.3}
+          animata={animata}
+          ritardo={ritardo + i * 70}
+        />
       ))}
     </View>
   )
