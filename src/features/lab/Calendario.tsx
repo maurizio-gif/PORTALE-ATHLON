@@ -2,7 +2,8 @@ import { Image } from 'expo-image'
 import { LinearGradient } from 'expo-linear-gradient'
 import { router, useLocalSearchParams } from 'expo-router'
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { ActivityIndicator, Linking, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
+import { ActivityIndicator, Linking, Platform, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native'
+import type Animated from 'react-native-reanimated'
 
 import {
   acquistaLezione,
@@ -27,7 +28,7 @@ import { posizione } from './SchedaLezione'
 import { FoglioLezione } from './ui/FoglioLezione'
 import { Icona } from './ui/Icona'
 import { Avatar, Barra, Carta, Entra, Etichetta, Messaggio, Pulsante, Riga, SchedeInArrivo, Sezione, Tag } from './ui/kit'
-import { Schermata } from './ui/Schermata'
+import { Schermata, SPAZIO_BARRA } from './ui/Schermata'
 import { F, FUOCO, NOTTE, usePalette, velo } from './ui/tema'
 import { colpetto, Tocco } from './ui/Tocco'
 
@@ -319,7 +320,10 @@ function TurniInGriglia({
   onAcquista,
   onPagaCarta,
   onDisdici,
+  onMostra,
 }: {
+  /** Porta in vista il riquadro del turno scelto, col suo «Prenota». */
+  onMostra: (riquadro: View | null) => void
   /** Il nome dell'attivita', che e' anche la sua categoria: «Gym Floor», «Nuoto Libero». */
   nome: string
   /** Sugli orari i posti liberi coi colori (Nuoto Libero); senza, i prenotati (Gym Floor). */
@@ -339,6 +343,13 @@ function TurniInGriglia({
     () => (turni.find((t) => t.prenotazione) ?? turni.find((t) => !t.iniziata && t.liberi > 0) ?? turni[0]).class_id,
   )
   const scelto = turni.find((t) => t.class_id === sceltoId) ?? turni[0]
+  const riquadro = useRef<View>(null)
+
+  /** Sceglie il turno e scende al suo «Prenota», dopo che il riquadro si e' ridisegnato. */
+  function scegli(id: number) {
+    setSceltoId(id)
+    requestAnimationFrame(() => onMostra(riquadro.current))
+  }
   const durata = minuti(turni[0].inizio, turni[0].fine)
   const prenotati = (t: Lezione) => `${t.iscritti} ${t.iscritti === 1 ? 'prenotato' : 'prenotati'}`
   const tonoPosti = (t: Lezione): 'errore' | 'attenzione' | 'ok' => (t.liberi <= 0 ? 'errore' : t.liberi < 5 ? 'attenzione' : 'ok')
@@ -388,7 +399,7 @@ function TurniInGriglia({
                       <Tocco
                         vibra="scelta"
                         stato={{ selected: attivo }}
-                        onPress={() => setSceltoId(t.class_id)}
+                        onPress={() => scegli(t.class_id)}
                         etichetta={`${ora(t.inizio)}, ${mio ? (t.prenotazione?.attesa ? 'sei in lista d’attesa' : 'ci sei anche tu') : conPosti ? posti(t) : prenotati(t)}`}
                         style={[
                           stili.turno,
@@ -423,7 +434,7 @@ function TurniInGriglia({
           )
         })}
 
-        <View style={[stili.scelto, { borderTopColor: p.linea }]}>
+        <View ref={riquadro} style={[stili.scelto, { borderTopColor: p.linea }]}>
           <View style={{ flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', gap: spazio.due }}>
             <Text style={[stili.sceltoOra, { color: p.testo }]}>{`${ora(scelto.inizio)} – ${ora(scelto.fine)}`}</Text>
             {conPosti ? (
@@ -554,6 +565,32 @@ export function Calendario() {
   // un giorno all'altro: chi cerca il Reformer lo cerca in tutta la settimana.
   const [attivita, setAttivita] = useState<string | null>(null)
   const [aperta, setAperta] = useState<Lezione | null>(null)
+  const scorrimento = useRef<Animated.ScrollView>(null)
+  const { height: altezza } = useWindowDimensions()
+
+  /**
+   * L'ancora al «Prenota» del turno scelto nelle griglie. Sul web lo scorrimento
+   * del browser lo mette a meta' schermo; nell'app si misura dove sta e si
+   * scorre quanto basta perche' resti sopra la barra delle schede.
+   */
+  const mostra = useCallback(
+    (v: View | null) => {
+      if (!v) return
+      if (Platform.OS === 'web') {
+        ;(v as unknown as HTMLElement).scrollIntoView?.({ behavior: 'smooth', block: 'center' })
+        return
+      }
+      const sv = scorrimento.current as unknown as ScrollView | null
+      const contenuto = sv?.getInnerViewNode?.()
+      if (!sv || !contenuto) return
+      v.measureLayout(
+        contenuto,
+        (_x, y, _l, h) => sv.scrollTo({ y: Math.max(0, y + h - (altezza - SPAZIO_BARRA - spazio.tre)), animated: true }),
+        () => undefined,
+      )
+    },
+    [altezza],
+  )
 
   // Il giorno gia' letto si mostra subito (memoria del laboratorio) e intanto
   // si rilegge; la Home precarica quello di oggi ('giorno::').
@@ -702,7 +739,7 @@ export function Calendario() {
   const perChi = giorno.persone.find((x) => x.member_id === giorno.member_id)
   const schedaAperta = aperta?.scheda ? giorno.schede?.[aperta.scheda] ?? null : null
   return (
-    <Schermata larga sopratitolo="Laboratorio" titolo="Prenotazioni">
+    <Schermata larga sopratitolo="Laboratorio" titolo="Prenotazioni" scorrimento={scorrimento}>
       {ritorno ? (
         ritorno.stato === 'avviato' ? (
           <Messaggio tono="attenzione" icona="clessidra" titolo="Aspettiamo la conferma">
@@ -856,6 +893,7 @@ export function Calendario() {
                   onAcquista={acquista}
                   onPagaCarta={pagaCarta}
                   onDisdici={disdici}
+                  onMostra={mostra}
                 />
               </Entra>
             ))}
