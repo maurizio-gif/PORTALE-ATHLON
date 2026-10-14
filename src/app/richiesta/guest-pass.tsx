@@ -111,7 +111,7 @@ export default function RichiestaGuestPass() {
 
   if (fase === 'inviata' && ripresa) {
     return (
-      <Pagina titolo="Controlla la tua email" sottotitolo={`Tra pochi minuti ti arriva a ${email.trim()} lo stesso link di prima. Vale 3 giorni da adesso.`}>
+      <Pagina titolo="Controlla la tua email" sottotitolo={`Tra pochi minuti ti arriva a ${email.trim()} lo stesso link di prima, con quello che avevi già fatto. Vale 30 giorni dalla tua prima richiesta.`}>
         <Testo variante="attenuato">
           Quello che avevi già fatto è salvato, e riparti {ripresa.passo}. Non trovi l’email? Guarda nella posta indesiderata.
         </Testo>
@@ -122,7 +122,7 @@ export default function RichiestaGuestPass() {
 
   if (fase === 'inviata') {
     return (
-      <Pagina titolo="Controlla la tua email" sottotitolo={`Tra pochi minuti ti arriva a ${email.trim()} il link per attivare il Guest Pass. Vale 3 giorni.`}>
+      <Pagina titolo="Controlla la tua email" sottotitolo={`Tra pochi minuti ti arriva a ${email.trim()} il link per attivare il Guest Pass. Vale 30 giorni.`}>
         <Testo variante="attenuato">
           Dal link confermi i tuoi dati e completi quelli che mancano, scegli il giorno d’inizio, entro due settimane, e come pagare. Non trovi
           l’email? Guarda nella posta indesiderata.

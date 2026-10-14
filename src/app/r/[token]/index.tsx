@@ -6,7 +6,7 @@ import { chiamaLink } from '@/api/link'
 import { GestioneAppuntamento } from '@/features/appuntamento/GestioneAppuntamento'
 import { PrenotaEvento } from '@/features/evento/PrenotaEvento'
 import { AttivaGuestPass } from '@/features/guest-pass/AttivaGuestPass'
-import { AppuntamentoNonTrovato, Guasto, InCaricamento, LinkScaduto } from '@/features/link/Stati'
+import { AppuntamentoNonTrovato, GuestPassScaduto, Guasto, InCaricamento, LinkScaduto } from '@/features/link/Stati'
 import { GestioneNucleo } from '@/features/metodo-pagamento/GestioneNucleo'
 import type { PaginaEvento } from '@/lib/eventi'
 import type { PaginaGuestPass } from '@/lib/guestPass'
@@ -21,6 +21,7 @@ import type { ContrattoNucleo } from '@/lib/metodoPagamento'
 type Stato =
   | { fase: 'carica' }
   | { fase: 'scaduto' }
+  | { fase: 'guest-pass-scaduto' }
   | { fase: 'appuntamento-scaduto' }
   | { fase: 'guasto' }
   | { fase: 'metodo_pagamento'; nome: string | null; nomeTitolare: string; evidenziato: number | null; contratti: ContrattoNucleo[] }
@@ -41,7 +42,7 @@ export default function ArrivoDaLink() {
       return setStato({ fase: letto.scaduto ? 'appuntamento-scaduto' : 'guasto' })
     }
     const { ok, stato: http, dati } = await chiamaLink(token, 'apri')
-    if (http === 404 || dati.scaduto) return setStato({ fase: 'scaduto' })
+    if (http === 404 || dati.scaduto) return setStato({ fase: dati.tipo === 'guest_pass' ? 'guest-pass-scaduto' : 'scaduto' })
     if (!ok) return setStato({ fase: 'guasto' })
     if (dati.tipo === 'metodo_pagamento') {
       return setStato({
@@ -72,6 +73,8 @@ export default function ArrivoDaLink() {
       return <InCaricamento />
     case 'scaduto':
       return <LinkScaduto />
+    case 'guest-pass-scaduto':
+      return <GuestPassScaduto />
     case 'appuntamento-scaduto':
       return <AppuntamentoNonTrovato />
     case 'guasto':
