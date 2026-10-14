@@ -3,11 +3,10 @@ import { Linking, StyleSheet, Text, View } from 'react-native'
 import { CLUB_LEGALE } from '@/lib/club-legale'
 import { spazio, useColori } from '@/theme'
 
-// Chi vende, per esteso, in cima a ogni pagina del Guest Pass (14/10/2026,
-// scelta del club). `DatiDelClub` dice le stesse cose in fondo alle pagine del
-// metodo di pagamento; qui stanno in testa perche' la procedura chiede dati,
-// una firma e un pagamento fin dalla prima schermata, e chi la apre da
-// un'email deve sapere subito con chi sta firmando.
+// Chi vende, per esteso, in fondo a ogni pagina del Guest Pass (14/10/2026,
+// scelta del club: prima stava in cima, e prendeva il posto del titolo). Ogni
+// schermata della procedura la porta, perche' chiede dati, una firma e un
+// pagamento, e chi la apre da un'email deve poter leggere con chi firma.
 export function IntestazioneLegale() {
   const c = useColori()
   const l = CLUB_LEGALE
@@ -32,7 +31,7 @@ export function IntestazioneLegale() {
 }
 
 const stili = StyleSheet.create({
-  riquadro: { borderWidth: 1, borderRadius: 10, paddingVertical: spazio.due, paddingHorizontal: spazio.tre, marginBottom: spazio.quattro, gap: 2 },
+  riquadro: { borderWidth: 1, borderRadius: 10, paddingVertical: spazio.due, paddingHorizontal: spazio.tre, marginTop: spazio.cinque, gap: 2 },
   ragione: { fontSize: 12.5, fontWeight: '700' },
   riga: { fontSize: 12, lineHeight: 18 },
 })

@@ -79,7 +79,8 @@ function conAnno(g: string): string {
  * Come si entra nell'app (14/10/2026). Chi ha creato l'account in questa
  * procedura ha appena scelto la password, e basta ricordargli quali sono le
  * credenziali. Chi era gia' Guest o Member la password ce l'ha da prima: se non
- * la ricorda la reimposta da qui, con la stessa funzione del sito.
+ * la ricorda ne richiede il reset da qui, e solo premendo il pulsante — niente
+ * parte da se'. Usa la stessa funzione del sito.
  */
 function Accesso({ email, nuovoAccount }: { email: string | null; nuovoAccount: boolean }) {
   const [reset, setReset] = useState<'no' | 'invio' | 'inviata' | 'errore'>('no')
@@ -100,8 +101,8 @@ function Accesso({ email, nuovoAccount }: { email: string | null; nuovoAccount: 
           <Avviso tono="ok">{`Ti abbiamo mandato a ${email} il link per scegliere una nuova password. Controlla anche lo spam.`}</Avviso>
         ) : (
           <>
-            <Testo variante="attenuato">Non ricordi la password? Ti mandiamo per email il link per sceglierne una nuova.</Testo>
-            <Bottone testo="Reimposta la password" variante="contorno" onPress={chiedi} inCorso={reset === 'invio'} />
+            <Testo variante="attenuato">Non ricordi la password? Puoi richiederne il reset: premi il pulsante e ti mandiamo per email il link per sceglierne una nuova.</Testo>
+            <Bottone testo="Richiedi il reset della password" variante="contorno" onPress={chiedi} inCorso={reset === 'invio'} />
             {reset === 'errore' ? <Avviso tono="attenzione">Non siamo riusciti a mandare il link adesso. Riprova fra qualche minuto.</Avviso> : null}
           </>
         )

@@ -32,7 +32,7 @@ export function Pagina({
   larga?: boolean
   /** Sotto il contenuto, fuori dal flusso dei paragrafi: i dati del club. */
   piede?: ReactNode
-  /** Sotto il marchio, chi vende per esteso: le pagine del Guest Pass. */
+  /** In fondo, chi vende per esteso: le pagine del Guest Pass. */
   legale?: boolean
   children: ReactNode
 }) {
@@ -52,13 +52,13 @@ export function Pagina({
               </Link>
             ) : null}
           </View>
-          {legale ? <IntestazioneLegale /> : null}
           <Text style={[stili.titolo, { color: c.testo }]} accessibilityRole="header">
             {titolo}
           </Text>
           {sottotitolo ? <Text style={[stili.sottotitolo, { color: c.testoSecondario }]}>{sottotitolo}</Text> : null}
           <View style={stili.contenuto}>{children}</View>
           {piede}
+          {legale ? <IntestazioneLegale /> : null}
         </View>
       </ScrollView>
     </SafeAreaView>
