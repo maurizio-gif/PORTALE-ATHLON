@@ -35,6 +35,20 @@ export function LinkScaduto() {
   )
 }
 
+// Il link del Guest Pass vale 30 giorni dalla richiesta, e poi il pass non si
+// attiva piu' (14/10/2026): qui non si offre un link nuovo, perche' non c'e'.
+export function GuestPassScaduto() {
+  return (
+    <Pagina titolo="Il Guest Pass non è più attivabile">
+      <Testo variante="attenuato">
+        Il link per attivarlo valeva 30 giorni dalla richiesta, ed è scaduto. Se vuoi venire a provare il club, scrivici a desk@athlonroma.it
+        o passa in reception.
+      </Testo>
+      <Bottone testo="Vai al sito di Athlon" onPress={() => Linking.openURL('https://www.athlonroma.it/')} />
+    </Pagina>
+  )
+}
+
 // Il link di un appuntamento non scade: se non vale piu', l'appuntamento e'
 // stato cancellato dal desk (o il link e' stato copiato male).
 export function AppuntamentoNonTrovato() {

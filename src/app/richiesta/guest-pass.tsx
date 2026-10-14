@@ -111,7 +111,7 @@ export default function RichiestaGuestPass() {
 
   if (fase === 'inviata' && ripresa) {
     return (
-      <Pagina titolo="Controlla la tua email" sottotitolo={`Tra pochi minuti ti arriva a ${email.trim()} lo stesso link di prima. Vale 3 giorni da adesso.`}>
+      <Pagina titolo="Controlla la tua email" sottotitolo={`Tra pochi minuti ti arriva a ${email.trim()} lo stesso link di prima, con quello che avevi già fatto. Vale 30 giorni dalla tua prima richiesta.`}>
         <Testo variante="attenuato">
           Quello che avevi già fatto è salvato, e riparti {ripresa.passo}. Non trovi l’email? Guarda nella posta indesiderata.
         </Testo>
@@ -122,7 +122,7 @@ export default function RichiestaGuestPass() {
 
   if (fase === 'inviata') {
     return (
-      <Pagina titolo="Controlla la tua email" sottotitolo={`Tra pochi minuti ti arriva a ${email.trim()} il link per attivare il Guest Pass. Vale 3 giorni.`}>
+      <Pagina titolo="Controlla la tua email" sottotitolo={`Tra pochi minuti ti arriva a ${email.trim()} il link per attivare il Guest Pass. Vale 30 giorni.`}>
         <Testo variante="attenuato">
           Dal link confermi i tuoi dati e completi quelli che mancano, scegli il giorno d’inizio, entro due settimane, e come pagare. Non trovi
           l’email? Guarda nella posta indesiderata.
@@ -171,7 +171,7 @@ export default function RichiestaGuestPass() {
   }
 
   return (
-    <Pagina titolo="Guest Pass" sottotitolo="Una settimana al club a 19 €, per chi non è iscritto dal 2024 in poi. Scrivi la tua email: ti mandiamo il link per attivarlo.">
+    <Pagina titolo="Guest Pass" sottotitolo="Una settimana al club a 19 €, per chi non ha avuto abbonamenti o Guest Pass negli ultimi 3 anni. Scrivi la tua email: ti mandiamo il link per attivarlo.">
       <Campo etichetta="La tua email" value={email} onChangeText={setEmail} keyboardType="email-address" autoCapitalize="none" autoComplete="email" placeholder="nome@esempio.it" onSubmitEditing={continua} />
       {errore ? <Avviso>{errore}</Avviso> : null}
       <Bottone testo="Continua" onPress={continua} inCorso={attesa} />
