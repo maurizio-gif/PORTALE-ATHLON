@@ -297,11 +297,23 @@ function RigaLezione(props: PropsLezione) {
 // Cosa dicono gli orari (scelta dell'utente, 15/10/2026): nella Gym Floor solo
 // i prenotati, perche' in sala la capienza non e' un problema; nel Nuoto
 // Libero i posti liberi, coi colori, perche' le corsie si riempiono.
+//
+// L'istruttore (15/10/2026): nella Gym Floor su PerfectGym e' uno di due nomi
+// finti, «Con Assistenza» (c'e' l'assistente in sala) o «Allenamento Libero»
+// (non c'e'): gli orari con l'assistente hanno il bollino blu. Nel Nuoto
+// Libero e' l'assistente vero, col suo nome.
 
 const A_TURNI = [
-  { categoria: 'Gym Floor', conPosti: false },
-  { categoria: 'Nuoto Libero', conPosti: true },
+  { categoria: 'Gym Floor', conPosti: false, assistente: 'in sala' },
+  { categoria: 'Nuoto Libero', conPosti: true, assistente: 'nome' },
 ] as const
+
+/** Nella Gym Floor: c'e' l'assistente in sala? Dal nome finto dell'istruttore; null se non si sa. */
+function conAssistenza(istruttore: string | null): boolean | null {
+  if (/assisten/i.test(istruttore ?? '')) return true
+  if (/libero/i.test(istruttore ?? '')) return false
+  return null
+}
 
 const FASCE = [
   { nome: 'Mattina', fino: 12 },
@@ -309,9 +321,44 @@ const FASCE = [
   { nome: 'Sera', fino: 24 },
 ] as const
 
+/** Chi c'e' nel turno scelto: l'assistente in sala o no (Gym Floor), il suo nome (Nuoto Libero). */
+function Assistente({ turno, come }: { turno: Lezione; come: 'in sala' | 'nome' }) {
+  const p = usePalette()
+  if (come === 'nome') {
+    if (!turno.istruttore) return null
+    return (
+      <View style={stili.assistente}>
+        <Avatar nome={turno.istruttore.split(' ')[0]} cognome={turno.istruttore.split(' ').slice(1).join(' ')} size={30} />
+        <Text style={[stili.nota, { color: p.testoSecondario, flexShrink: 1 }]}>
+          Assistente: <Text style={{ color: p.testo, fontFamily: F.bold }}>{turno.istruttore}</Text>
+        </Text>
+      </View>
+    )
+  }
+  const c = conAssistenza(turno.istruttore)
+  if (c == null) return null
+  return (
+    <View style={[stili.assistente, { backgroundColor: c ? velo(p, 'blu', 0.12) : p.incavo, borderRadius: 14, padding: spazio.due }]}>
+      <View style={[stili.bollinoAssistente, { position: 'relative', top: 0, right: 0, width: 26, height: 26, borderRadius: 13, backgroundColor: c ? p.blu : p.testoTerzo }]}>
+        <Icona nome="persona" size={14} colore="#fff" />
+      </View>
+      <Text style={[stili.nota, { color: c ? p.testo : p.testoSecondario, flexShrink: 1 }]}>
+        {c ? (
+          <Text style={{ fontFamily: F.bold }}>Con l’assistente in sala</Text>
+        ) : (
+          <>
+            <Text style={{ fontFamily: F.bold }}>Allenamento libero</Text>: senza assistente in sala
+          </>
+        )}
+      </Text>
+    </View>
+  )
+}
+
 function TurniInGriglia({
   nome,
   conPosti,
+  assistente,
   turni,
   scheda,
   onScheda,
@@ -328,6 +375,8 @@ function TurniInGriglia({
   nome: string
   /** Sugli orari i posti liberi coi colori (Nuoto Libero); senza, i prenotati (Gym Floor). */
   conPosti: boolean
+  /** «in sala»: il bollino blu dove c'e' l'assistente (Gym Floor); «nome»: chi e' l'assistente (Nuoto Libero). */
+  assistente: 'in sala' | 'nome'
   turni: Lezione[]
   scheda: SchedaLezione | null
   onScheda: () => void
@@ -380,6 +429,17 @@ function TurniInGriglia({
       </Tocco>
 
       <View style={stili.corpo}>
+        {assistente === 'in sala' ? (
+          // La legenda del bollino.
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: spazio.due }}>
+            <View style={[stili.bollinoAssistente, { position: 'relative', top: 0, right: 0, backgroundColor: p.blu }]}>
+              <Icona nome="persona" size={9} colore="#fff" />
+            </View>
+            <Text style={[stili.nota, { color: p.testoSecondario, flexShrink: 1 }]}>
+              <Text style={{ color: p.testo, fontFamily: F.bold }}>Con l’assistente in sala</Text> · senza bollino: allenamento libero
+            </Text>
+          </View>
+        ) : null}
         {FASCE.map((f, i) => {
           const da = i ? FASCE[i - 1].fino : 0
           const qui = turni.filter((t) => {
@@ -394,13 +454,14 @@ function TurniInGriglia({
                 {qui.map((t) => {
                   const attivo = t.class_id === scelto.class_id
                   const mio = !!t.prenotazione
+                  const assistito = assistente === 'in sala' && conAssistenza(t.istruttore) === true
                   return (
                     <View key={t.class_id} style={stili.orarioCella}>
                       <Tocco
                         vibra="scelta"
                         stato={{ selected: attivo }}
                         onPress={() => scegli(t.class_id)}
-                        etichetta={`${ora(t.inizio)}, ${mio ? (t.prenotazione?.attesa ? 'sei in lista d’attesa' : 'ci sei anche tu') : conPosti ? posti(t) : prenotati(t)}`}
+                        etichetta={`${ora(t.inizio)}${assistito ? ', con l’assistente in sala' : ''}, ${mio ? (t.prenotazione?.attesa ? 'sei in lista d’attesa' : 'ci sei anche tu') : conPosti ? posti(t) : prenotati(t)}`}
                         style={[
                           stili.turno,
                           mio
@@ -425,6 +486,11 @@ function TurniInGriglia({
                             <Text style={[stili.turnoPosti, { color: p.testoSecondario }]}>{t.iscritti}</Text>
                           </View>
                         )}
+                        {assistito ? (
+                          <View style={[stili.bollinoAssistente, { backgroundColor: p.blu, borderColor: mio ? p.accento : p.carta }]}>
+                            <Icona nome="persona" size={9} colore="#fff" />
+                          </View>
+                        ) : null}
                       </Tocco>
                     </View>
                   )
@@ -450,6 +516,7 @@ function TurniInGriglia({
               </View>
             )}
           </View>
+          <Assistente turno={scelto} come={assistente} />
           {conPosti && !scelto.iniziata ? (
             <Barra key={`barra-${scelto.class_id}`} valore={scelto.posti ? scelto.iscritti / scelto.posti : 0} colore={colorePosti(scelto)} altezza={6} animata />
           ) : null}
@@ -889,6 +956,7 @@ export function Calendario() {
                       key={`${giorno.member_id}-${giorno.data}`}
                       nome={a.categoria}
                       conPosti={a.conPosti}
+                      assistente={a.assistente}
                       turni={a.turni}
                       scheda={a.turni[0].scheda ? giorno.schede?.[a.turni[0].scheda] ?? null : null}
                       onScheda={() => setAperta(a.turni[0])}
@@ -963,7 +1031,10 @@ export function Calendario() {
             ? [
                 { valore: ora(aperta.inizio), etichetta: 'Inizio' },
                 { valore: `${minuti(aperta.inizio, aperta.fine)} min`, etichetta: 'Durata' },
-                { valore: aperta.istruttore ? suDueRighe(aperta.istruttore) : '—', etichetta: 'Istruttore' },
+                // Nelle attivita' a turni l'istruttore cambia da un turno all'altro (e nella Gym Floor e' un nome finto): si contano i turni.
+                A_TURNI.some((a) => a.categoria === aperta.categoria)
+                  ? { valore: String(giorno.lezioni.filter((l) => l.categoria === aperta.categoria && !l.iniziata).length), etichetta: 'Turni' }
+                  : { valore: aperta.istruttore ? suDueRighe(aperta.istruttore) : '—', etichetta: 'Istruttore' },
               ]
             : undefined
         }
@@ -1010,6 +1081,8 @@ const stili = StyleSheet.create({
   turno: { borderRadius: 14, paddingVertical: 8, alignItems: 'center', gap: 1, borderWidth: 2, borderColor: 'transparent' },
   turnoOra: { fontFamily: F.extra, fontSize: 15, letterSpacing: -0.3, fontVariant: ['tabular-nums'] },
   turnoPosti: { fontFamily: F.bold, fontSize: 11 },
+  bollinoAssistente: { position: 'absolute', top: -5, right: -5, width: 18, height: 18, borderRadius: 9, borderWidth: 2, borderColor: 'transparent', alignItems: 'center', justifyContent: 'center' },
+  assistente: { flexDirection: 'row', alignItems: 'center', gap: spazio.due },
   scelto: { gap: spazio.tre, borderTopWidth: StyleSheet.hairlineWidth, paddingTop: spazio.tre },
   sceltoOra: { fontFamily: F.extra, fontSize: 20, letterSpacing: -0.5, fontVariant: ['tabular-nums'] },
   fumetto: { position: 'absolute', top: 26, left: -120, width: 250, borderRadius: 14, padding: spazio.tre - 4, zIndex: 10, elevation: 4 },
