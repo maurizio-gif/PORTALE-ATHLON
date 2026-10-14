@@ -22,6 +22,7 @@ import { Foglio } from './ui/Foglio'
 import { Icona, type NomeIcona } from './ui/Icona'
 import { Avatar, Carta, Entra, Messaggio, Pulsante, Riga, SchedeInArrivo, Sezione } from './ui/kit'
 import { Schermata } from './ui/Schermata'
+import { PulsanteEsci } from './ui/Uscita'
 import { F, NOTTE, usePalette } from './ui/tema'
 import { colpetto } from './ui/Tocco'
 
@@ -369,6 +370,12 @@ export function Profilo() {
           <Text style={[stili.nota, { color: p.testoTerzo, paddingHorizontal: 4 }]}>
             Vengono dalla tua scheda del club e non si modificano dall’app.
           </Text>
+        </Sezione>
+      </Entra>
+
+      <Entra indice={3}>
+        <Sezione titolo="Account">
+          <PulsanteEsci email={dati.email} testo="Esci dall’account" />
         </Sezione>
       </Entra>
 

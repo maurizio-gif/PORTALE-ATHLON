@@ -10,11 +10,12 @@ import { MetodoAttualeBadge, statoLeggibile } from '@/features/metodo-pagamento/
 import { dataBreve, metodoDaPerfectGym } from '@/lib/metodoPagamento'
 import { spazio } from '@/theme'
 
-import { esciDalLaboratorio, inMemoria, precarica, prendi } from './memoria'
+import { inMemoria, precarica, prendi } from './memoria'
 import { memoria as memoriaTv } from './tv/comune'
 import { Icona, type NomeIcona } from './ui/Icona'
 import { Avatar, Barra, Carta, Colonnine, Entra, Etichetta, Messaggio, Numero, Pulsante, Riga, SchedeInArrivo, Sezione, Tag } from './ui/kit'
 import { Schermata } from './ui/Schermata'
+import { PulsanteEsci } from './ui/Uscita'
 import { F, FUOCO, MARE, NOTTE, usePalette } from './ui/tema'
 import { Tocco } from './ui/Tocco'
 
@@ -263,7 +264,8 @@ export function AreaRiservata({ email }: { email: string }) {
     carica()
   }, [carica])
 
-  const uscita = <Pulsante testo="Esci dal laboratorio" icona="esci" variante="secondario" onPress={esciDalLaboratorio} />
+  // Nelle schermate d'errore si esce subito; dalla Home con la conferma.
+  const uscita = <PulsanteEsci testo="Esci dal laboratorio" conferma={false} />
 
   if (errore) {
     return (
@@ -377,7 +379,9 @@ export function AreaRiservata({ email }: { email: string }) {
       </View>
 
       <View style={{ flexDirection: 'row', justifyContent: 'center' }}>
-        <View style={{ width: '100%', maxWidth: 420 }}>{uscita}</View>
+        <View style={{ width: '100%', maxWidth: 420 }}>
+          <PulsanteEsci testo="Esci dal laboratorio" email={titolare?.email || email} />
+        </View>
       </View>
     </Schermata>
   )
