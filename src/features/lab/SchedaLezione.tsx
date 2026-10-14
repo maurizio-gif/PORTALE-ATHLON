@@ -14,12 +14,12 @@ import { spazio, useColori } from '@/theme'
 // (lezioni.json), quindi si aggiornano con lui.
 
 /** Il punto focale del sito («50% 74%»), come lo vuole expo-image. */
-function posizione(fuoco: string | null): ImageContentPosition {
+export function posizione(fuoco: string | null): ImageContentPosition {
   return (fuoco ?? 'center') as ImageContentPosition
 }
 
 /** La descrizione del sito e' HTML semplice: <b> per il grassetto, <br> per andare a capo. */
-function Descrizione({ html }: { html: string }) {
+export function Descrizione({ html }: { html: string }) {
   const c = useColori()
   const pezzi = html
     .replace(/<br\s*\/?>/gi, '\n')
@@ -74,7 +74,7 @@ function Lettore({ uri, inizio }: { uri: string; inizio: number | null }) {
   )
 }
 
-function Video({ scheda }: { scheda: SchedaLezione }) {
+export function Video({ scheda }: { scheda: SchedaLezione }) {
   if (scheda.video) return <Lettore uri={scheda.video} inizio={scheda.inizioVideo} />
   return scheda.foto ? (
     <Image source={{ uri: scheda.foto }} style={stili.media} contentFit="cover" contentPosition={posizione(scheda.fuoco)} accessibilityLabel={scheda.nome} />

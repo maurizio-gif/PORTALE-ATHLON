@@ -1,6 +1,7 @@
-import { Link, useRouter } from 'expo-router'
+import { LinearGradient } from 'expo-linear-gradient'
+import { router as navigatore, useRouter } from 'expo-router'
 import { useCallback, useEffect, useState } from 'react'
-import { ActivityIndicator, StyleSheet, Text, View } from 'react-native'
+import { StyleSheet, Text, View } from 'react-native'
 
 import {
   addebitaRata,
@@ -12,16 +13,16 @@ import {
   type PianoLab,
   type SessioneAdyen,
 } from '@/api/lab'
-import { Avviso } from '@/components/Avviso'
-import { Bottone } from '@/components/Bottone'
-import { Griglia } from '@/components/Griglia'
 import { InfoAdyen } from '@/components/InfoAdyen'
-import { Pagina } from '@/components/Pagina'
-import { Forte, Testo } from '@/components/Testo'
-import { spazio, stileTono, useColori, type Tono } from '@/theme'
+import { spazio, type Tono } from '@/theme'
 
 import { DropIn, pagamentoDisponibile } from './adyen'
 import { euro, quando, STATO_ABBONAMENTO, STATO_PAGAMENTO } from './etichettePagamenti'
+import { Icona } from './ui/Icona'
+import { Carta, Colonnine, Entra, Etichetta, Messaggio, Numero, Pulsante, Riga, SchedeInArrivo, Sezione, Tag } from './ui/kit'
+import { Schermata } from './ui/Schermata'
+import { F, FUOCO, MARE, NOTTE, usePalette } from './ui/tema'
+import { colpetto } from './ui/Tocco'
 
 // I pagamenti di prova del laboratorio (tappa 4b): si sceglie un piano, si paga
 // la prima rata con il Drop-in di Adyen, la carta resta salvata e le rate dopo
@@ -30,32 +31,59 @@ import { euro, quando, STATO_ABBONAMENTO, STATO_PAGAMENTO } from './etichettePag
 // **Soldi veri**, sul conto live del club, con il tetto di 5 euro. Quello che
 // si vede qui e' lo stato nel nostro database, aggiornato dal webhook di Adyen.
 
-function Etichetta({ testo, tono }: { testo: string; tono?: Tono }) {
-  const c = useColori()
+const COLORI_PIANI = [FUOCO, MARE, NOTTE] as const
+
+/** Un piano da provare: un riquadro colorato col prezzo grande. */
+function Piano({ piano, indice, onScegli, inCorso, spento }: { piano: PianoLab; indice: number; onScegli: () => void; inCorso: boolean; spento: boolean }) {
+  const colori = COLORI_PIANI[indice % COLORI_PIANI.length]
   return (
-    <Text style={[stili.etichetta, tono ? stileTono(c, tono) : { borderColor: c.bordo, borderWidth: 1 }, { color: c.testo }]}>{testo}</Text>
+    <LinearGradient colors={colori} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={stili.piano}>
+      <View style={stili.pianoIcona}>
+        <Icona nome="carta" size={120} colore="rgba(255,255,255,0.1)" />
+      </View>
+      <Tag testo={`${piano.rate_totali} rate · ogni ${piano.intervallo_giorni} ${piano.intervallo_giorni === 1 ? 'giorno' : 'giorni'}`} colore="rgba(255,255,255,0.92)" />
+      <Text style={stili.pianoNome}>{piano.nome}</Text>
+      <View style={{ flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', gap: spazio.tre }}>
+        <View>
+          <Numero valore={euro(piano.importo_cent).replace(' €', '')} unita="€" size={44} colore="#fff" />
+          <Text style={stili.pianoNota}>{`la prima rata adesso · in tutto ${euro(piano.importo_cent * piano.rate_totali)}`}</Text>
+        </View>
+        <Colonnine quante={piano.rate_totali} piene={1} altezza={44} larghezza={7} />
+      </View>
+      <BottoneBianco testo={`Paga ${euro(piano.importo_cent)}`} onPress={onScegli} inCorso={inCorso} spento={spento} />
+    </LinearGradient>
   )
 }
 
-function Riquadro({ children }: { children: React.ReactNode }) {
-  const c = useColori()
-  return <View style={[stili.riquadro, { backgroundColor: c.superficie, borderColor: c.bordo }]}>{children}</View>
+/** Il bottone bianco sopra un riquadro colorato. */
+function BottoneBianco({ testo, onPress, inCorso, spento }: { testo: string; onPress: () => void; inCorso: boolean; spento: boolean }) {
+  return (
+    <View style={{ borderRadius: 18, backgroundColor: '#fff', opacity: spento && !inCorso ? 0.5 : 1 }}>
+      <Pulsante testo={testo} icona="avanti" variante="fantasma" onPress={onPress} inCorso={inCorso} disabilitato={spento} />
+    </View>
+  )
 }
 
-function Piano({ piano, onScegli, inCorso, spento }: { piano: PianoLab; onScegli: () => void; inCorso: boolean; spento: boolean }) {
+/** La carta salvata, disegnata come una carta: il circuito, le ultime cifre, la scadenza. */
+function CartaSalvata({ metodo, finale, scadenza }: { metodo: string | null; finale: string | null; scadenza: string | null }) {
   return (
-    <Riquadro>
-      <Testo style={{ fontWeight: '700' }}>{piano.nome}</Testo>
-      <Testo variante="piccolo">
-        {`La prima rata adesso, poi una ogni ${piano.intervallo_giorni} giorni dalla carta salvata. In tutto ${euro(piano.importo_cent * piano.rate_totali)}.`}
-      </Testo>
-      <Bottone testo={`Paga ${euro(piano.importo_cent)}`} onPress={onScegli} inCorso={inCorso} disabilitato={spento} />
-    </Riquadro>
+    <LinearGradient colors={NOTTE} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={stili.carta}>
+      <View style={stili.cartaBagliore} />
+      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+        <View style={stili.chip} />
+        <Text style={stili.circuito}>{(metodo ?? 'carta').toUpperCase()}</Text>
+      </View>
+      <Text style={stili.cifreCarta}>{finale ? `••••  ••••  ••••  ${finale}` : 'Carta non ancora salvata'}</Text>
+      <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+        <Text style={stili.cartaPiccolo}>CUSTODITA DA ADYEN</Text>
+        {scadenza ? <Text style={stili.cartaPiccolo}>{`SCAD. ${scadenza}`}</Text> : null}
+      </View>
+    </LinearGradient>
   )
 }
 
 function Abbonamento({ a, onCambiato }: { a: AbbonamentoLab; onCambiato: () => void }) {
-  const c = useColori()
+  const p = usePalette()
   const [daConfermare, setDaConfermare] = useState(false)
   const [inCorso, setInCorso] = useState<'addebita' | 'chiudi' | null>(null)
   const [messaggio, setMessaggio] = useState<{ testo: string; tono: Tono } | null>(null)
@@ -63,8 +91,8 @@ function Abbonamento({ a, onCambiato }: { a: AbbonamentoLab; onCambiato: () => v
   const stato = STATO_ABBONAMENTO[a.stato]
   const aperto = a.stato !== 'chiuso' && a.stato !== 'completato'
   const haCarta = Boolean(a.ultime_quattro || a.metodo) && a.stato !== 'in_attesa'
-  const pagate = a.pagamenti.filter((p) => p.stato === 'autorizzato').length
-  const inAttesa = a.pagamenti.some((p) => STATI_IN_CORSO.includes(p.stato))
+  const pagate = a.pagamenti.filter((x) => x.stato === 'autorizzato').length
+  const inAttesa = a.pagamenti.some((x) => STATI_IN_CORSO.includes(x.stato))
   const carta = a.ultime_quattro ? `${a.metodo ? a.metodo.toUpperCase() + ' ' : ''}•••• ${a.ultime_quattro}${a.scadenza_carta ? ` (scad. ${a.scadenza_carta})` : ''}` : null
 
   async function addebita() {
@@ -77,6 +105,7 @@ function Abbonamento({ a, onCambiato }: { a: AbbonamentoLab; onCambiato: () => v
     else if (r.esito === 'Authorised') setMessaggio({ testo: `Rata ${r.rata} pagata.`, tono: 'ok' })
     else if (r.esito === 'Refused') setMessaggio({ testo: `Rata ${r.rata} rifiutata${r.motivo ? `: ${r.motivo}` : ''}.`, tono: 'errore' })
     else setMessaggio({ testo: `Rata ${r.rata} inviata ad Adyen: l’esito arriva fra poco.`, tono: 'attenzione' })
+    colpetto(r.ok && r.esito === 'Authorised' ? 'ok' : r.ok ? 'leggero' : 'errore')
     onCambiato()
   }
 
@@ -90,63 +119,85 @@ function Abbonamento({ a, onCambiato }: { a: AbbonamentoLab; onCambiato: () => v
   }
 
   return (
-    <Riquadro>
+    <Carta style={{ gap: spazio.tre + 2 }}>
       <View style={stili.testa}>
-        <Testo style={{ fontWeight: '700', flex: 1 }}>{a.piano}</Testo>
-        <Etichetta testo={stato.testo} tono={stato.tono} />
+        <View style={{ flex: 1, gap: 4 }}>
+          <Text style={[stili.abbNome, { color: p.testo }]}>{a.piano}</Text>
+          <Text style={[stili.nota, { color: p.testoSecondario }]}>
+            {aperto && a.prossima_il ? `prossima rata ${quando(a.prossima_il)}` : `${euro(a.importo_cent)} ogni ${a.intervallo_giorni} ${a.intervallo_giorni === 1 ? 'giorno' : 'giorni'}`}
+          </Text>
+        </View>
+        <Etichetta testo={stato.testo} tono={stato.tono ?? 'neutro'} />
       </View>
-      <Testo variante="piccolo">
-        {[`${pagate} di ${a.rate_totali} rate pagate`, carta, aperto && a.prossima_il ? `prossima rata ${quando(a.prossima_il)}` : null]
-          .filter(Boolean)
-          .join(' · ')}
-      </Testo>
-      {a.segnalazione ? <Avviso tono="attenzione">{a.segnalazione}</Avviso> : null}
 
-      <View style={{ gap: spazio.uno }}>
-        {a.pagamenti.map((p) => {
-          const e = STATO_PAGAMENTO[p.stato]
-          return (
-            <Link key={p.riferimento} href={`/lab/pagamenti/${p.riferimento}`} style={[stili.rata, { borderTopColor: c.bordo }]}>
-              <Text style={{ color: c.testo, fontSize: 14 }}>
-                {`Rata ${p.numero_rata}${p.tentativo > 1 ? ` (tentativo ${p.tentativo})` : ''} · ${euro(p.importo_cent)} · `}
-                <Text style={{ fontWeight: '700', color: e.tono ? c[e.tono] : c.testoSecondario }}>{e.testo}</Text>
-                <Text style={{ color: c.testoSecondario }}>{` · ${quando(p.aggiornato_il)}`}</Text>
-                {p.stato === 'rifiutato' && p.motivo ? <Text style={{ color: c.testoSecondario }}>{` · ${p.motivo}`}</Text> : null}
-              </Text>
-            </Link>
-          )
-        })}
+      <View style={[stili.rate, { backgroundColor: p.incavo }]}>
+        <View style={{ gap: 2 }}>
+          <Numero valore={`${pagate}/${a.rate_totali}`} size={34} />
+          <Text style={[stili.nota, { color: p.testoSecondario }]}>rate pagate</Text>
+        </View>
+        <Colonnine quante={a.rate_totali} piene={pagate} colore={p.accento} altezza={52} larghezza={9} />
       </View>
+
+      {a.ultime_quattro ? <CartaSalvata metodo={a.metodo} finale={a.ultime_quattro} scadenza={a.scadenza_carta} /> : null}
+      {a.segnalazione ? <Messaggio tono="attenzione">{a.segnalazione}</Messaggio> : null}
+
+      {a.pagamenti.length ? (
+        <View>
+          {a.pagamenti.map((x, i) => {
+            const e = STATO_PAGAMENTO[x.stato]
+            return (
+              <Riga
+                key={x.riferimento}
+                prima={i === 0}
+                icona={x.stato === 'autorizzato' ? 'ok' : STATI_IN_CORSO.includes(x.stato) ? 'clessidra' : e.tono === 'errore' ? 'no' : 'ricevuta'}
+                tono={e.tono ?? 'neutro'}
+                titolo={`Rata ${x.numero_rata}${x.tentativo > 1 ? ` · tentativo ${x.tentativo}` : ''}`}
+                sotto={[quando(x.aggiornato_il), x.stato === 'rifiutato' && x.motivo ? x.motivo : null].filter(Boolean).join(' · ')}
+                coda={
+                  <View style={{ alignItems: 'flex-end', gap: 2 }}>
+                    <Text style={{ color: p.testo, fontFamily: F.extra, fontSize: 15 }}>{euro(x.importo_cent)}</Text>
+                    <Text style={{ color: e.tono ? p[e.tono] : p.testoSecondario, fontFamily: F.bold, fontSize: 12 }}>{e.testo}</Text>
+                  </View>
+                }
+                onPress={() => navigatore.push({ pathname: '/lab/pagamenti/[riferimento]', params: { riferimento: x.riferimento } })}
+              />
+            )
+          })}
+        </View>
+      ) : null}
 
       {aperto ? (
         daConfermare ? (
           <View style={{ gap: spazio.due }}>
-            <Avviso tono="attenzione">{`Addebitiamo davvero ${euro(a.importo_cent)} sulla carta ${carta ?? 'salvata'}. Confermi?`}</Avviso>
-            <Bottone testo={`Sì, addebita ${euro(a.importo_cent)}`} onPress={addebita} />
-            <Bottone testo="No, lascia stare" variante="contorno" onPress={() => setDaConfermare(false)} />
+            <Messaggio tono="attenzione" titolo="Soldi veri">{`Addebitiamo davvero ${euro(a.importo_cent)} sulla carta ${carta ?? 'salvata'}. Confermi?`}</Messaggio>
+            <View style={stili.azioni}>
+              <Pulsante testo="No" variante="secondario" onPress={() => setDaConfermare(false)} />
+              <Pulsante testo={`Sì, ${euro(a.importo_cent)}`} onPress={addebita} />
+            </View>
           </View>
         ) : (
           <View style={{ gap: spazio.due }}>
             {haCarta ? (
-              <Bottone
+              <Pulsante
                 testo="Addebita la prossima rata ora"
+                icona="fulmine"
                 onPress={() => setDaConfermare(true)}
                 inCorso={inCorso === 'addebita'}
                 disabilitato={inCorso !== null || inAttesa}
               />
             ) : null}
-            <Bottone testo="Chiudi: niente altre rate" variante="contorno" onPress={chiudi} inCorso={inCorso === 'chiudi'} disabilitato={inCorso !== null} />
-            {!haCarta ? <Testo variante="piccolo">La carta si salva quando la prima rata risulta pagata.</Testo> : null}
+            <Pulsante testo="Chiudi: niente altre rate" variante="contorno" icona="stop" onPress={chiudi} inCorso={inCorso === 'chiudi'} disabilitato={inCorso !== null} />
+            {!haCarta ? <Text style={[stili.nota, { color: p.testoSecondario, textAlign: 'center' }]}>La carta si salva quando la prima rata risulta pagata.</Text> : null}
           </View>
         )
       ) : null}
-      {messaggio ? <Avviso tono={messaggio.tono}>{messaggio.testo}</Avviso> : null}
-    </Riquadro>
+      {messaggio ? <Messaggio tono={messaggio.tono}>{messaggio.testo}</Messaggio> : null}
+    </Carta>
   )
 }
 
 export function Pagamenti() {
-  const c = useColori()
+  const p = usePalette()
   const router = useRouter()
   const [dati, setDati] = useState<{ piani: PianoLab[]; abbonamenti: AbbonamentoLab[] } | null>(null)
   const [errore, setErrore] = useState<string | null>(null)
@@ -168,7 +219,7 @@ export function Pagamenti() {
 
   // Finche' qualche addebito aspetta l'esito, si rilegge ogni 5 secondi: il
   // webhook di Adyen arriva dopo il browser.
-  const inAttesa = dati?.abbonamenti.some((a) => a.pagamenti.some((p) => STATI_IN_CORSO.includes(p.stato))) ?? false
+  const inAttesa = dati?.abbonamenti.some((a) => a.pagamenti.some((x) => STATI_IN_CORSO.includes(x.stato))) ?? false
   useEffect(() => {
     if (!inAttesa || checkout) return
     const t = setInterval(carica, 5000)
@@ -195,37 +246,41 @@ export function Pagamenti() {
 
   if (errore && !dati) {
     return (
-      <Pagina titolo="Pagamenti" sottotitolo={errore}>
-        <Bottone testo="Riprova" onPress={carica} />
-        <Link href="/lab" style={{ color: c.accento, fontWeight: '600' }}>
-          ‹ La mia area
-        </Link>
-      </Pagina>
+      <Schermata sopratitolo="Laboratorio" titolo="Pagamenti">
+        <Messaggio>{errore}</Messaggio>
+        <Pulsante testo="Riprova" icona="aggiorna" onPress={carica} />
+      </Schermata>
     )
   }
 
+  const pagatoTotale = dati?.abbonamenti.reduce((t, a) => t + a.pagamenti.filter((x) => x.stato === 'autorizzato').reduce((s, x) => s + x.importo_cent, 0), 0) ?? 0
+
   return (
-    <Pagina larga titolo="Pagamenti" sottotitolo="Laboratorio · pagamento diretto con carta e rate automatiche.">
-      <Avviso tono="attenzione">
-        <Testo variante="piccolo">
-          <Forte>Soldi veri.</Forte> È il conto del club su <InfoAdyen />, non una prova finta: ogni rata è 1 € e si addebita davvero. Il
-          laboratorio non va oltre 5 €.
-        </Testo>
-      </Avviso>
+    <Schermata larga sopratitolo="Laboratorio · soldi veri" titolo="Pagamenti" sottotitolo="Pagamento diretto con carta e rate automatiche.">
+      <Messaggio tono="attenzione" icona="fulmine" titolo="Soldi veri, massimo 5 €">
+        <Text style={[stili.nota, { color: p.testoSecondario }]}>
+          È il conto del club su <InfoAdyen />, non una prova finta: ogni rata è 1 € e si addebita davvero. Il laboratorio non va oltre 5 €.
+        </Text>
+      </Messaggio>
 
       {!dati ? (
-        <View style={{ alignItems: 'flex-start' }}>
-          <ActivityIndicator color={c.accento} />
-        </View>
+        <SchedeInArrivo quante={2} />
       ) : checkout ? (
-        <View style={{ gap: spazio.tre, maxWidth: 560 }}>
-          <Testo variante="sottotitolo">{checkout.piano.nome}</Testo>
-          <Testo variante="piccolo">{`Prima rata ${euro(checkout.piano.importo_cent)} · riferimento ${checkout.sessione.riferimento}`}</Testo>
-          <DropIn sessione={checkout.sessione} onFine={fine} onErrore={setErroreCheckout} />
-          {erroreCheckout ? <Avviso>{erroreCheckout}</Avviso> : null}
-          <Bottone
+        <View style={{ gap: spazio.tre, maxWidth: 560, width: '100%', alignSelf: 'center' }}>
+          <Carta style={{ gap: spazio.tre }}>
+            <View style={stili.testa}>
+              <View style={{ flex: 1, gap: 4 }}>
+                <Text style={[stili.abbNome, { color: p.testo }]}>{checkout.piano.nome}</Text>
+                <Text style={[stili.nota, { color: p.testoSecondario }]}>{`riferimento ${checkout.sessione.riferimento}`}</Text>
+              </View>
+              <Numero valore={euro(checkout.piano.importo_cent).replace(' €', '')} unita="€" size={30} colore={p.accento} />
+            </View>
+            <DropIn sessione={checkout.sessione} onFine={fine} onErrore={setErroreCheckout} />
+          </Carta>
+          {erroreCheckout ? <Messaggio>{erroreCheckout}</Messaggio> : null}
+          <Pulsante
             testo="Annulla"
-            variante="contorno"
+            variante="secondario"
             onPress={() => {
               setCheckout(null)
               setErroreCheckout(null)
@@ -235,38 +290,57 @@ export function Pagamenti() {
         </View>
       ) : (
         <>
-          <Testo variante="sottotitolo">Prova un piano</Testo>
-          {!pagamentoDisponibile ? <Avviso tono="attenzione">Il pagamento con carta, per ora, si prova dal sito: app.athlonroma.it/lab.</Avviso> : null}
-          <Griglia>
-            {dati.piani.map((p) => (
-              <Piano key={p.id} piano={p} onScegli={() => scegli(p)} inCorso={avvio === p.id} spento={!pagamentoDisponibile || avvio !== null} />
-            ))}
-          </Griglia>
-          {erroreCheckout ? <Avviso>{erroreCheckout}</Avviso> : null}
-
-          <Testo variante="sottotitolo">I miei abbonamenti di prova</Testo>
-          {dati.abbonamenti.length ? (
-            <Griglia minima={380}>
-              {dati.abbonamenti.map((a) => (
-                <Abbonamento key={a.id} a={a} onCambiato={carica} />
+          <Sezione titolo="Prova un piano" destra={<Text style={{ color: p.testoTerzo, fontFamily: F.semi, fontSize: 12.5 }}>{`pagati finora ${euro(pagatoTotale)}`}</Text>}>
+            {!pagamentoDisponibile ? <Messaggio tono="attenzione">Il pagamento con carta, per ora, si prova dal sito: app.athlonroma.it/lab.</Messaggio> : null}
+            <View style={stili.griglia}>
+              {dati.piani.map((x, i) => (
+                <Entra key={x.id} indice={i} style={stili.cellaPiano}>
+                  <Piano piano={x} indice={i} onScegli={() => scegli(x)} inCorso={avvio === x.id} spento={!pagamentoDisponibile || avvio !== null} />
+                </Entra>
               ))}
-            </Griglia>
-          ) : (
-            <Testo variante="attenuato">Ancora nessuno: scegline uno qui sopra.</Testo>
-          )}
+            </View>
+            {erroreCheckout ? <Messaggio>{erroreCheckout}</Messaggio> : null}
+          </Sezione>
+
+          <Sezione titolo="I miei abbonamenti di prova" conteggio={dati.abbonamenti.length}>
+            {dati.abbonamenti.length ? (
+              <View style={stili.griglia}>
+                {dati.abbonamenti.map((a, i) => (
+                  <Entra key={a.id} indice={i + 2} style={stili.cella}>
+                    <Abbonamento a={a} onCambiato={carica} />
+                  </Entra>
+                ))}
+              </View>
+            ) : (
+              <Carta style={{ alignItems: 'center', gap: spazio.due, paddingVertical: spazio.cinque }}>
+                <Icona nome="carta" size={34} colore={p.testoTerzo} />
+                <Text style={[stili.nota, { color: p.testoSecondario }]}>Ancora nessuno: scegline uno qui sopra.</Text>
+              </Carta>
+            )}
+          </Sezione>
         </>
       )}
-
-      <Link href="/lab" style={{ color: c.accento, fontWeight: '600' }}>
-        ‹ La mia area
-      </Link>
-    </Pagina>
+    </Schermata>
   )
 }
 
 const stili = StyleSheet.create({
-  riquadro: { borderWidth: 1, borderRadius: 12, padding: spazio.tre, gap: spazio.due },
-  testa: { flexDirection: 'row', alignItems: 'center', gap: spazio.due },
-  etichetta: { fontSize: 12, fontWeight: '700', borderRadius: 999, paddingHorizontal: spazio.due, paddingVertical: 2, overflow: 'hidden' },
-  rata: { borderTopWidth: StyleSheet.hairlineWidth, paddingTop: spazio.uno + 2 },
+  testa: { flexDirection: 'row', alignItems: 'flex-start', gap: spazio.due },
+  nota: { fontSize: 13.5, lineHeight: 19, fontFamily: F.medio },
+  griglia: { flexDirection: 'row', flexWrap: 'wrap', gap: spazio.tre },
+  cella: { flexGrow: 1, flexBasis: 360, minWidth: 0, maxWidth: 580 },
+  cellaPiano: { flexGrow: 1, flexBasis: 300, minWidth: 0, maxWidth: 580 },
+  piano: { borderRadius: 30, padding: spazio.quattro - 2, gap: spazio.tre, overflow: 'hidden' },
+  pianoIcona: { position: 'absolute', right: -18, top: -16, transform: [{ rotate: '-14deg' }] },
+  pianoNome: { color: '#fff', fontFamily: F.extra, fontSize: 22, letterSpacing: -0.6 },
+  pianoNota: { color: 'rgba(255,255,255,0.75)', fontFamily: F.medio, fontSize: 12.5, marginTop: 2 },
+  abbNome: { fontFamily: F.extra, fontSize: 20, letterSpacing: -0.5 },
+  rate: { flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', borderRadius: 22, padding: spazio.tre },
+  carta: { borderRadius: 22, padding: spazio.tre + 2, gap: spazio.tre + 2, aspectRatio: 1.9, maxWidth: 360, width: '100%', justifyContent: 'space-between', overflow: 'hidden' },
+  cartaBagliore: { position: 'absolute', width: 200, height: 200, borderRadius: 100, right: -70, top: -90, backgroundColor: '#FF5701', opacity: 0.35, filter: 'blur(40px)' } as object,
+  chip: { width: 38, height: 28, borderRadius: 7, backgroundColor: '#E7C77A', opacity: 0.9 },
+  circuito: { color: '#fff', fontFamily: F.extra, fontSize: 15, letterSpacing: 1.2, fontStyle: 'italic' },
+  cifreCarta: { color: '#fff', fontFamily: F.bold, fontSize: 17, letterSpacing: 1.5, fontVariant: ['tabular-nums'] },
+  cartaPiccolo: { color: 'rgba(255,255,255,0.55)', fontFamily: F.extra, fontSize: 10, letterSpacing: 1.2 },
+  azioni: { flexDirection: 'row', gap: spazio.due },
 })

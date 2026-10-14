@@ -1,16 +1,19 @@
-import { Link, useLocalSearchParams, useRouter } from 'expo-router'
+import { LinearGradient } from 'expo-linear-gradient'
+import { useLocalSearchParams, useRouter } from 'expo-router'
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { ActivityIndicator, View } from 'react-native'
+import { StyleSheet, Text, View } from 'react-native'
+import Animated, { useAnimatedStyle, useSharedValue, withRepeat, withTiming, ZoomIn } from 'react-native-reanimated'
 
 import { configurazioneAdyen, esitoPagamento, STATI_IN_CORSO, statoPagamento, type StatoDelPagamento } from '@/api/lab'
-import { Avviso } from '@/components/Avviso'
-import { Bottone } from '@/components/Bottone'
-import { Pagina } from '@/components/Pagina'
-import { Testo } from '@/components/Testo'
-import { useColori } from '@/theme'
+import { spazio } from '@/theme'
 
 import { riprendiDopoRedirect } from './adyen'
 import { euro, quando } from './etichettePagamenti'
+import { Icona, type NomeIcona } from './ui/Icona'
+import { Carta, Messaggio, Numero, Pulsante, Riga, SchedeInArrivo } from './ui/kit'
+import { Schermata } from './ui/Schermata'
+import { F, usePalette } from './ui/tema'
+import { colpetto } from './ui/Tocco'
 
 // La pagina di stato di un pagamento: l'indirizzo porta il riferimento e si
 // riapre anche dopo aver chiuso il browser. Ci si arriva dal Drop-in (con
@@ -45,11 +48,32 @@ function primaVolta(chiave: string): boolean {
   return true
 }
 
+/** Il cerchio grande dell'esito; finche' si aspetta, un'onda gli pulsa attorno. */
+function Esito({ tono, icona, inCorso }: { tono: 'ok' | 'attenzione' | 'errore'; icona: NomeIcona; inCorso: boolean }) {
+  const p = usePalette()
+  const onda = useSharedValue(0)
+  useEffect(() => {
+    onda.value = inCorso ? withRepeat(withTiming(1, { duration: 1600 }), -1, false) : 0
+  }, [inCorso, onda])
+  const stileOnda = useAnimatedStyle(() => ({ opacity: inCorso ? 0.45 * (1 - onda.value) : 0, transform: [{ scale: 1 + onda.value * 0.6 }] }))
+  const colori = tono === 'ok' ? (['#34C46A', '#16803C'] as const) : tono === 'errore' ? (['#FF6B5E', '#B3261E'] as const) : (['#F5B33B', '#C27800'] as const)
+  return (
+    <View style={stili.esito}>
+      <Animated.View style={[stili.onda, { backgroundColor: p[tono] }, stileOnda]} />
+      <Animated.View entering={ZoomIn.springify().damping(12)}>
+        <LinearGradient colors={colori} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[stili.cerchio, { boxShadow: `0 16px 40px ${colori[1]}55` }]}>
+          <Icona nome={icona} size={52} colore="#fff" />
+        </LinearGradient>
+      </Animated.View>
+    </View>
+  )
+}
+
 export function StatoPagamento() {
-  const c = useColori()
+  const p = usePalette()
   const router = useRouter()
   const { riferimento, sessionId, sessionResult, redirectResult } = useLocalSearchParams<Parametri>()
-  const [p, setP] = useState<StatoDelPagamento | null>(null)
+  const [pag, setP] = useState<StatoDelPagamento | null>(null)
   const [errore, setErrore] = useState<string | null>(null)
   const [adyen, setAdyen] = useState<string | null>(null)
   const [nota, setNota] = useState<string | null>(null)
@@ -91,7 +115,7 @@ export function StatoPagamento() {
   }, [riferimento, sessionId, sessionResult, redirectResult, router, leggi])
 
   // Finche' l'esito non e' definitivo si rilegge ogni 5 secondi, per dieci minuti.
-  const inCorso = p ? STATI_IN_CORSO.includes(p.stato) : false
+  const inCorso = pag ? STATI_IN_CORSO.includes(pag.stato) : false
   useEffect(() => {
     if (!inCorso) return
     let giri = 0
@@ -102,27 +126,26 @@ export function StatoPagamento() {
     return () => clearInterval(t)
   }, [inCorso, leggi])
 
-  const indietro = (
-    <Link href="/lab/pagamenti" style={{ color: c.accento, fontWeight: '600' }}>
-      ‹ Pagamenti
-    </Link>
-  )
+  // Il colpetto quando l'esito arriva: buono o cattivo.
+  const stato = pag?.stato
+  useEffect(() => {
+    if (stato === 'autorizzato') colpetto('ok')
+    else if (stato === 'rifiutato' || stato === 'errore') colpetto('errore')
+  }, [stato])
 
-  if (errore && !p) {
+  if (errore && !pag) {
     return (
-      <Pagina titolo="Pagamento" sottotitolo={errore}>
-        <Bottone testo="Riprova" onPress={leggi} />
-        {indietro}
-      </Pagina>
+      <Schermata sopratitolo="Laboratorio" titolo="Pagamento" indietro="/lab/pagamenti" barra={false}>
+        <Messaggio>{errore}</Messaggio>
+        <Pulsante testo="Riprova" icona="aggiorna" onPress={leggi} />
+      </Schermata>
     )
   }
-  if (!p) {
+  if (!pag) {
     return (
-      <Pagina titolo="Verifichiamo il pagamento…">
-        <View style={{ alignItems: 'flex-start' }}>
-          <ActivityIndicator color={c.accento} />
-        </View>
-      </Pagina>
+      <Schermata sopratitolo="Laboratorio" titolo="Verifichiamo il pagamento…" indietro="/lab/pagamenti" barra={false}>
+        <SchedeInArrivo quante={1} />
+      </Schermata>
     )
   }
 
@@ -134,31 +157,51 @@ export function StatoPagamento() {
             ? 'Adyen dice che il pagamento è andato a buon fine: aspettiamo la conferma ufficiale.'
             : 'La pagina si aggiorna da sola. Puoi anche chiuderla e riaprire questo indirizzo più tardi.',
       }
-    : TITOLO[p.stato]
-  const tono = p.stato === 'autorizzato' ? 'ok' : inCorso || p.stato === 'scaduto' ? 'attenzione' : 'errore'
+    : TITOLO[pag.stato]
+  const tono = pag.stato === 'autorizzato' ? 'ok' : inCorso || pag.stato === 'scaduto' ? 'attenzione' : 'errore'
+  const icona: NomeIcona = pag.stato === 'autorizzato' ? 'spunta' : tono === 'attenzione' ? 'clessidra' : 'chiudi'
+  const righe: { icona: NomeIcona; titolo: string; valore: string }[] = [
+    { icona: 'ricevuta', titolo: 'Piano', valore: pag.piano },
+    { icona: 'calendario', titolo: 'Rata', valore: `${pag.numero_rata} di ${pag.rate_totali}${pag.tentativo > 1 ? ` · tentativo ${pag.tentativo}` : ''}` },
+    ...(pag.ultime_quattro ? [{ icona: 'carta' as const, titolo: 'Carta', valore: `${pag.metodo ? pag.metodo.toUpperCase() + ' ' : ''}•••• ${pag.ultime_quattro}` }] : []),
+    ...(pag.stato === 'autorizzato' && pag.prossima_il ? [{ icona: 'rinnovo' as const, titolo: 'Prossima rata', valore: quando(pag.prossima_il) }] : []),
+    { icona: 'documento', titolo: 'Riferimento', valore: pag.riferimento },
+  ]
 
   return (
-    <Pagina titolo={tit.titolo}>
-      <Avviso tono={tono}>{tit.testo}</Avviso>
-      {inCorso ? (
-        <View style={{ alignItems: 'flex-start' }}>
-          <ActivityIndicator color={c.accento} />
-        </View>
-      ) : null}
-      {p.stato === 'rifiutato' && p.motivo ? <Testo variante="attenuato">{`Motivo indicato dalla banca: ${p.motivo}.`}</Testo> : null}
-      {nota ? <Testo variante="piccolo">{nota}</Testo> : null}
-      <Testo variante="piccolo">
-        {[
-          p.piano,
-          `rata ${p.numero_rata} di ${p.rate_totali}, ${euro(p.importo_cent)}`,
-          p.ultime_quattro ? `carta •••• ${p.ultime_quattro}` : null,
-          p.stato === 'autorizzato' && p.prossima_il ? `prossima rata ${quando(p.prossima_il)}` : null,
-          `riferimento ${p.riferimento}`,
-        ]
-          .filter(Boolean)
-          .join(' · ')}
-      </Testo>
-      {indietro}
-    </Pagina>
+    <Schermata titolo={tit.titolo} nascondiTitolo indietro="/lab/pagamenti" barra={false}>
+      <View style={{ alignItems: 'center', gap: spazio.tre, paddingTop: spazio.tre }}>
+        <Esito tono={tono} icona={icona} inCorso={inCorso} />
+        <Numero valore={euro(pag.importo_cent).replace(' €', '')} unita="€" size={52} />
+        <Text style={[stili.titolo, { color: p.testo }]} accessibilityRole="header">
+          {tit.titolo}
+        </Text>
+        <Text style={[stili.testo, { color: p.testoSecondario }]}>{tit.testo}</Text>
+      </View>
+      {pag.stato === 'rifiutato' && pag.motivo ? <Messaggio tono="errore" titolo="Motivo indicato dalla banca">{pag.motivo}</Messaggio> : null}
+      {nota ? <Messaggio tono="attenzione">{nota}</Messaggio> : null}
+      <Carta style={{ paddingVertical: spazio.due }}>
+        {righe.map((r, i) => (
+          <Riga
+            key={r.titolo}
+            prima={i === 0}
+            icona={r.icona}
+            tono="neutro"
+            titolo={r.titolo}
+            stileTitolo={{ fontSize: 12, fontFamily: F.bold, color: p.testoSecondario }}
+            sotto={<Text style={{ color: p.testo, fontFamily: F.bold, fontSize: 15 }}>{r.valore}</Text>}
+          />
+        ))}
+      </Carta>
+      <Pulsante testo="Torna ai pagamenti" variante="scuro" icona="avanti" onPress={() => router.replace('/lab/pagamenti')} />
+    </Schermata>
   )
 }
+
+const stili = StyleSheet.create({
+  esito: { width: 150, height: 150, alignItems: 'center', justifyContent: 'center' },
+  onda: { position: 'absolute', width: 116, height: 116, borderRadius: 58 },
+  cerchio: { width: 116, height: 116, borderRadius: 58, alignItems: 'center', justifyContent: 'center' },
+  titolo: { fontFamily: F.extra, fontSize: 26, letterSpacing: -0.8, textAlign: 'center' },
+  testo: { fontFamily: F.medio, fontSize: 15, lineHeight: 22, textAlign: 'center', maxWidth: 420 },
+})

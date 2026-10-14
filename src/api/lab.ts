@@ -340,3 +340,77 @@ export async function chiudiAbbonamento(abbonamentoId: string): Promise<Esito<ob
   if (ok) return { ok: true }
   return { ok: false, errore: dati.errore ?? 'Non siamo riusciti a chiuderlo adesso.' }
 }
+
+// ---------------------------------------------------------------------------
+// L'anagrafica (laboratorio): i dati del titolare dalla scheda di PerfectGym,
+// e la modifica dei contatti. Il lavoro lo fa `portale-lab-anagrafica`
+// (repo APP-ATHLON), che controlla chi chiama e scrive su PerfectGym:
+//
+//   { azione: 'leggi' }                          -> { ok, anagrafica }
+//   { azione: 'salva', telefono } oppure
+//   { azione: 'salva', indirizzo: { via, cap, citta } }
+//                                                -> { ok, anagrafica }
+//   { azione: 'email', email }                   -> { ok }  (manda un codice al nuovo indirizzo)
+//   { azione: 'conferma_email', email, codice }  -> { ok, anagrafica }
+//
+// La funzione non risponde mai 404 per una scheda che non trova: qui il 404
+// vuol dire che non e' pubblicata, e il profilo resta in sola lettura.
+//
+// L'email e' anche quella con cui si entra e con cui il portale trova la
+// scheda: cambia solo dopo il codice arrivato al nuovo indirizzo, e la
+// funzione aggiorna insieme PerfectGym e l'utente di Supabase Auth.
+
+/** L'indirizzo come lo tiene PerfectGym: via, CAP e citta' (la provincia non e' un suo campo di testo). */
+export type Indirizzo = { via: string | null; cap: string | null; citta: string | null }
+
+export type Anagrafica = {
+  member_id: number
+  nome: string | null
+  cognome: string | null
+  sesso: string | null
+  data_nascita: string | null
+  luogo_nascita: string | null
+  codice_fiscale: string | null
+  numero: string | null
+  email: string | null
+  telefono: string | null
+  indirizzo: Indirizzo | null
+}
+
+/** `nonAttiva`: la funzione non c'e' ancora (404): si mostra la sola lettura. */
+export type EsitoAnagrafica = { ok: true; anagrafica: Anagrafica } | { ok: false; errore: string; nonAttiva: boolean }
+
+const anagrafica = (corpo: Record<string, unknown>) => funzione('portale-lab-anagrafica', corpo)
+
+function esitoAnagrafica(r: { ok: boolean; stato: number; dati: Record<string, any> }, predefinito: string): EsitoAnagrafica {
+  if (r.ok && r.dati.anagrafica) return { ok: true, anagrafica: r.dati.anagrafica as Anagrafica }
+  if (r.stato === 404) return { ok: false, nonAttiva: true, errore: 'La modifica dei dati non è ancora attiva nel laboratorio.' }
+  return { ok: false, nonAttiva: false, errore: r.dati.errore ?? predefinito }
+}
+
+export async function leggiAnagrafica(): Promise<EsitoAnagrafica> {
+  return esitoAnagrafica(await anagrafica({ azione: 'leggi' }), 'Non riusciamo a leggere i tuoi dati adesso.')
+}
+
+export async function salvaTelefono(telefono: string): Promise<EsitoAnagrafica> {
+  return esitoAnagrafica(await anagrafica({ azione: 'salva', telefono }), 'Non siamo riusciti a salvare il telefono.')
+}
+
+export async function salvaIndirizzo(indirizzo: Indirizzo): Promise<EsitoAnagrafica> {
+  return esitoAnagrafica(await anagrafica({ azione: 'salva', indirizzo }), 'Non siamo riusciti a salvare l’indirizzo.')
+}
+
+export async function chiediCambioEmail(email: string): Promise<{ ok: true } | { ok: false; errore: string }> {
+  const r = await anagrafica({ azione: 'email', email })
+  if (r.ok) return { ok: true }
+  if (r.stato === 404) return { ok: false, errore: 'La modifica dei dati non è ancora attiva nel laboratorio.' }
+  return { ok: false, errore: r.dati.errore ?? 'Non siamo riusciti a mandare il codice al nuovo indirizzo.' }
+}
+
+export async function confermaCambioEmail(email: string, codice: string): Promise<EsitoAnagrafica> {
+  const esito = esitoAnagrafica(await anagrafica({ azione: 'conferma_email', email, codice: codice.replace(/\D/g, '') }), 'Codice sbagliato o scaduto.')
+  // La funzione ha cambiato l'email anche su Supabase Auth: la sessione si
+  // rinnova, cosi' il token porta gia' quella nuova.
+  if (esito.ok) await supabase.auth.refreshSession().catch(() => undefined)
+  return esito
+}

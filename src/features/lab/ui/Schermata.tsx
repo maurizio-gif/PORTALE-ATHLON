@@ -1,0 +1,150 @@
+import { BlurView } from 'expo-blur'
+import { router, type Href } from 'expo-router'
+import type { ReactNode } from 'react'
+import { Platform, StyleSheet, Text, useWindowDimensions, View } from 'react-native'
+import Animated, { interpolate, useAnimatedScrollHandler, useAnimatedStyle, useSharedValue, Extrapolation } from 'react-native-reanimated'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
+
+import { IntestazioneLegale } from '@/components/IntestazioneLegale'
+import { LARGO } from '@/components/Pagina'
+import { spazio } from '@/theme'
+
+import { Icona } from './Icona'
+import { F, usePalette } from './tema'
+import { Tocco } from './Tocco'
+
+// La cornice delle schermate del laboratorio, come un'app: il titolo grande in
+// alto che, scorrendo, lascia il posto a una testata sottile e sfocata col
+// titolo piccolo; sotto, lo spazio per la barra delle schede. In fondo, come
+// su ogni pagina dell'app, i dati legali del club.
+
+/** Quanto spazio lasciare in fondo per la barra delle schede. */
+export const SPAZIO_BARRA = 96
+
+export function Schermata({
+  titolo,
+  sopratitolo,
+  sottotitolo,
+  indietro,
+  destra,
+  larga = false,
+  barra = true,
+  sopra,
+  nascondiTitolo = false,
+  children,
+}: {
+  /** Il titolo grande lo disegna `sopra`: qui resta solo quello piccolo della testata. */
+  nascondiTitolo?: boolean
+  titolo: string
+  /** La riga piccola arancione sopra il titolo. */
+  sopratitolo?: string
+  sottotitolo?: string
+  /** Dove porta la freccia in alto a sinistra; senza, niente freccia. */
+  indietro?: Href
+  /** Un'azione in alto a destra (un avatar, un bottone tondo). */
+  destra?: ReactNode
+  /** Su schermo largo usa tutta la larghezza (schede su piu' colonne). */
+  larga?: boolean
+  /** C'e' la barra delle schede sotto: si lascia il suo spazio. */
+  barra?: boolean
+  /** Qualcosa sopra il titolo, a tutta larghezza (la testata dell'accesso). */
+  sopra?: ReactNode
+  children: ReactNode
+}) {
+  const p = usePalette()
+  const ins = useSafeAreaInsets()
+  const { width } = useWindowDimensions()
+  const maxWidth = width < LARGO ? 640 : larga ? 1180 : 760
+  const y = useSharedValue(0)
+  const onScroll = useAnimatedScrollHandler((e) => {
+    y.value = e.contentOffset.y
+  })
+  const testata = useAnimatedStyle(() => ({ opacity: interpolate(y.value, [30, 70], [0, 1], Extrapolation.CLAMP) }))
+  const titoloPiccolo = useAnimatedStyle(() => ({
+    opacity: interpolate(y.value, [50, 80], [0, 1], Extrapolation.CLAMP),
+    transform: [{ translateY: interpolate(y.value, [50, 80], [6, 0], Extrapolation.CLAMP) }],
+  }))
+  const titoloGrande = useAnimatedStyle(() => ({
+    opacity: interpolate(y.value, [0, 60], [1, 0], Extrapolation.CLAMP),
+    transform: [{ scale: interpolate(y.value, [-100, 0], [1.08, 1], Extrapolation.CLAMP) }],
+  }))
+
+  const freccia = indietro ? (
+    <Tocco
+      onPress={() => (router.canGoBack() ? router.back() : router.replace(indietro))}
+      etichetta="Indietro"
+      style={[stili.tondo, { backgroundColor: p.carta, borderColor: p.linea, boxShadow: p.ombra }]}
+    >
+      <Icona nome="indietro" size={18} colore={p.testo} />
+    </Tocco>
+  ) : null
+
+  return (
+    <View style={[stili.fondo, { backgroundColor: p.fondo }]}>
+      <Animated.ScrollView
+        onScroll={onScroll}
+        scrollEventThrottle={16}
+        keyboardShouldPersistTaps="handled"
+        contentContainerStyle={{ paddingBottom: (barra ? SPAZIO_BARRA : spazio.cinque) + ins.bottom, paddingTop: sopra ? 0 : ins.top + spazio.tre }}
+      >
+        {sopra}
+        <View style={[stili.colonna, { maxWidth }]}>
+          {freccia || destra ? (
+            <View style={stili.barraAlta}>
+              {freccia ?? <View />}
+              {destra}
+            </View>
+          ) : null}
+          {nascondiTitolo ? null : (
+            <Animated.View style={[stili.titoli, titoloGrande, { transformOrigin: 'left' }]}>
+              {sopratitolo ? <Text style={[stili.sopratitolo, { color: p.accento }]}>{sopratitolo.toUpperCase()}</Text> : null}
+              <Text style={[stili.titolo, { color: p.testo }]} accessibilityRole="header">
+                {titolo}
+              </Text>
+              {sottotitolo ? <Text style={[stili.sottotitolo, { color: p.testoSecondario }]}>{sottotitolo}</Text> : null}
+            </Animated.View>
+          )}
+          <View style={[stili.contenuto, nascondiTitolo && { marginTop: 0 }]}>{children}</View>
+          <IntestazioneLegale />
+        </View>
+      </Animated.ScrollView>
+
+      {/* La testata sottile che compare scorrendo. */}
+      <Animated.View pointerEvents="box-none" style={[stili.testata, { paddingTop: ins.top, height: ins.top + 52 }, testata]}>
+        {Platform.OS === 'android' ? (
+          <View style={[StyleSheet.absoluteFill, { backgroundColor: p.vetro }]} />
+        ) : (
+          <BlurView intensity={60} tint={p.scuro ? 'dark' : 'light'} style={StyleSheet.absoluteFill} />
+        )}
+        <View style={[StyleSheet.absoluteFill, { top: undefined, height: StyleSheet.hairlineWidth, backgroundColor: p.linea }]} />
+        <Animated.Text numberOfLines={1} style={[stili.titoloPiccolo, { color: p.testo }, titoloPiccolo]}>
+          {titolo}
+        </Animated.Text>
+      </Animated.View>
+    </View>
+  )
+}
+
+/** Un bottone tondo con un'icona, per le testate. */
+export function BottoneTondo({ icona, onPress, etichetta }: { icona: Parameters<typeof Icona>[0]['nome']; onPress: () => void; etichetta: string }) {
+  const p = usePalette()
+  return (
+    <Tocco onPress={onPress} etichetta={etichetta} style={[stili.tondo, { backgroundColor: p.carta, borderColor: p.linea, boxShadow: p.ombra }]}>
+      <Icona nome={icona} size={18} colore={p.testo} />
+    </Tocco>
+  )
+}
+
+const stili = StyleSheet.create({
+  fondo: { flex: 1 },
+  colonna: { width: '100%', alignSelf: 'center', paddingHorizontal: spazio.tre + 2 },
+  barraAlta: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: spazio.tre },
+  tondo: { width: 44, height: 44, borderRadius: 16, alignItems: 'center', justifyContent: 'center', borderWidth: StyleSheet.hairlineWidth },
+  titoli: { gap: 6, paddingHorizontal: 2 },
+  sopratitolo: { fontSize: 12, fontFamily: F.extra, letterSpacing: 1.6 },
+  titolo: { fontSize: 34, lineHeight: 40, fontFamily: F.extra, letterSpacing: -1.2 },
+  sottotitolo: { fontSize: 15.5, lineHeight: 22, fontFamily: F.medio },
+  contenuto: { marginTop: spazio.quattro, gap: spazio.quattro + 4 },
+  testata: { position: 'absolute', top: 0, left: 0, right: 0, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
+  titoloPiccolo: { fontSize: 16, fontFamily: F.extra, letterSpacing: -0.3, paddingHorizontal: 64 },
+})

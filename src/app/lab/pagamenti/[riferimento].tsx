@@ -1,6 +1,6 @@
 import { Redirect } from 'expo-router'
 
-import { InCaricamento } from '@/features/link/Stati'
+import { SchermataInArrivo } from '@/features/lab/ui/Attesa'
 import { StatoPagamento } from '@/features/lab/StatoPagamento'
 import { useSessione } from '@/features/lab/useSessione'
 
@@ -8,7 +8,7 @@ import { useSessione } from '@/features/lab/useSessione'
 // (lab-pagamenti: returnUrl = <portale>/lab/pagamenti/<riferimento>).
 export default function PaginaStatoPagamento() {
   const sessione = useSessione()
-  if (sessione === undefined) return <InCaricamento />
+  if (sessione === undefined) return <SchermataInArrivo />
   if (!sessione) return <Redirect href="/lab" />
   return <StatoPagamento />
 }

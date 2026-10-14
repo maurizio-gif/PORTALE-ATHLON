@@ -1,4 +1,4 @@
-import { InCaricamento } from '@/features/link/Stati'
+import { SchermataInArrivo } from '@/features/lab/ui/Attesa'
 import { Accesso } from '@/features/lab/Accesso'
 import { AreaRiservata } from '@/features/lab/AreaRiservata'
 import { useSessione } from '@/features/lab/useSessione'
@@ -7,7 +7,7 @@ import { useSessione } from '@/features/lab/useSessione'
 // email per i tester, poi la loro area riservata in sola lettura.
 export default function Laboratorio() {
   const sessione = useSessione()
-  if (sessione === undefined) return <InCaricamento />
+  if (sessione === undefined) return <SchermataInArrivo />
   if (!sessione) return <Accesso />
   return <AreaRiservata email={sessione.user.email ?? ''} />
 }

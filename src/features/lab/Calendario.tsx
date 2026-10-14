@@ -1,3 +1,5 @@
+import { Image } from 'expo-image'
+import { LinearGradient } from 'expo-linear-gradient'
 import { router, useLocalSearchParams } from 'expo-router'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { ActivityIndicator, Linking, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
@@ -16,17 +18,17 @@ import {
   type PersonaCalendario,
   type SchedaLezione,
 } from '@/api/lab'
-import { Avviso } from '@/components/Avviso'
 import { InfoAdyen } from '@/components/InfoAdyen'
-import { Bottone } from '@/components/Bottone'
-import { Pagina } from '@/components/Pagina'
-import { Scelta } from '@/components/Scelta'
-import { Griglia } from '@/components/Griglia'
-import { Forte, Testo } from '@/components/Testo'
 import { euro, giornoEsteso, ora } from '@/lib/eventi'
+import { spazio } from '@/theme'
 
-import { FinestraLezione, Fotina } from './SchedaLezione'
-import { spazio, stileTono, useColori } from '@/theme'
+import { posizione } from './SchedaLezione'
+import { FoglioLezione } from './ui/FoglioLezione'
+import { Icona } from './ui/Icona'
+import { Avatar, Barra, Carta, Entra, Etichetta, Messaggio, Pulsante, Riga, SchedeInArrivo, Sezione, Tag } from './ui/kit'
+import { Schermata } from './ui/Schermata'
+import { F, FUOCO, NOTTE, usePalette } from './ui/tema'
+import { colpetto, Tocco } from './ui/Tocco'
 
 // Il calendario del laboratorio: le lezioni di gruppo di oggi e dei tre giorni
 // dopo, e la prenotazione vera su PerfectGym, per se' o per un figlio.
@@ -58,6 +60,63 @@ function minuti(inizio: string, fine: string): number {
   return Math.round((new Date(fine).getTime() - new Date(inizio).getTime()) / 60000)
 }
 
+/** La copertina della lezione: la foto del sito, sfumata, col nome sopra. */
+function Copertina({ l, scheda, onScheda }: { l: Lezione; scheda: SchedaLezione | null; onScheda: () => void }) {
+  const p = usePalette()
+  const b = l.prenotazione
+  const tono = l.liberi <= 0 ? 'errore' : l.liberi < 5 ? 'attenzione' : 'ok'
+  const corpo = (
+    <View style={stili.copertina}>
+      {scheda?.foto ? (
+        <Image source={{ uri: scheda.foto }} style={StyleSheet.absoluteFill} contentFit="cover" contentPosition={posizione(scheda.fuoco)} transition={200} />
+      ) : (
+        <LinearGradient colors={NOTTE} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill}>
+          <View style={{ position: 'absolute', right: -10, top: -6, transform: [{ rotate: '-14deg' }] }}>
+            <Icona nome="abbonamento" size={130} colore="rgba(255,255,255,0.07)" />
+          </View>
+        </LinearGradient>
+      )}
+      <LinearGradient colors={['rgba(0,0,0,0.05)', 'rgba(0,0,0,0.25)', 'rgba(0,0,0,0.82)']} locations={[0, 0.45, 1]} style={StyleSheet.absoluteFill} />
+      <View style={stili.copertinaAlto}>
+        <Tag testo={l.categoria} colore="#fff" fondo="rgba(0,0,0,0.25)" />
+        {b ? (
+          <View style={[stili.vetrino, { backgroundColor: b.attesa ? p.attenzione : p.ok }]}>
+            <Icona nome={b.attesa ? 'clessidra' : 'spunta'} size={13} colore="#fff" />
+            <Text style={stili.vetrinoTesto}>{b.attesa ? 'In attesa' : 'Prenotata'}</Text>
+          </View>
+        ) : l.iniziata ? (
+          <View style={stili.vetrino}>
+            <Text style={stili.vetrinoTesto}>Già cominciata</Text>
+          </View>
+        ) : (
+          <View style={stili.vetrino} accessibilityLabel={l.liberi <= 0 ? 'Lezione completa' : `${l.liberi} ${l.liberi === 1 ? 'posto libero' : 'posti liberi'}`}>
+            <View style={[stili.puntino, { backgroundColor: tono === 'ok' ? '#6DD58C' : tono === 'attenzione' ? '#F2B84B' : '#FF6B6B' }]} />
+            <Text style={stili.vetrinoTesto}>{l.liberi <= 0 ? 'Completa' : `${l.liberi} ${l.liberi === 1 ? 'posto' : 'posti'}`}</Text>
+          </View>
+        )}
+      </View>
+      <View style={{ gap: 2 }}>
+        <Text style={stili.copertinaNome} numberOfLines={2}>
+          {l.nome}
+        </Text>
+        {l.istruttore ? <Text style={stili.copertinaIstruttore}>con {l.istruttore}</Text> : null}
+      </View>
+      {scheda ? (
+        <View style={stili.info}>
+          <Icona nome="play" size={16} colore="#fff" />
+        </View>
+      ) : null}
+    </View>
+  )
+  return scheda ? (
+    <Tocco onPress={onScheda} scala={0.99} etichetta={`Scheda di ${l.nome}: video e descrizione`}>
+      {corpo}
+    </Tocco>
+  ) : (
+    corpo
+  )
+}
+
 function RigaLezione({
   l,
   scheda,
@@ -78,7 +137,7 @@ function RigaLezione({
   onPagaCarta: (acquistoId: string) => Promise<string | null>
   onDisdici: () => Promise<string | null>
 }) {
-  const c = useColori()
+  const p = usePalette()
   const [conferma, setConferma] = useState(false)
   // Il prodotto da comprare, dopo che PerfectGym ha detto che la lezione non e' compresa.
   const [daPagare, setDaPagare] = useState<DaPagare | null>(null)
@@ -92,115 +151,107 @@ function RigaLezione({
     const problema = await azione()
     setAttesa(false)
     setConferma(false)
-    if (problema) setErrore(problema)
+    if (problema) {
+      colpetto('errore')
+      setErrore(problema)
+    }
   }
 
-  // I posti liberi sono la cosa che si guarda per prima: un numero grande, a
-  // destra, verde quando ce n'e', arancione quando stanno finendo, rosso
-  // quando la lezione e' completa.
-  const tono = l.liberi <= 0 ? ('errore' as const) : l.liberi < 5 ? ('attenzione' as const) : ('ok' as const)
-  const posti = l.iniziata ? null : (
-    <View
-      style={[stili.posti, stileTono(c, tono)]}
-      accessibilityLabel={l.liberi <= 0 ? 'Lezione completa' : `${l.liberi} ${l.liberi === 1 ? 'posto libero' : 'posti liberi'}`}
-    >
-      {l.liberi <= 0 ? (
-        <Text style={[stili.completa, { color: c[tono] }]}>Completa</Text>
-      ) : (
-        <>
-          <Text style={[stili.numeroPosti, { color: c[tono] }]}>{l.liberi}</Text>
-          <Text style={[stili.etichettaPosti, { color: c.testoSecondario }]}>{l.liberi === 1 ? 'posto' : 'posti'}</Text>
-        </>
-      )}
-    </View>
-  )
-  const statoPrenotazione = b ? (b.attesa ? ' · In lista d’attesa' : ' · Prenotato') : l.iniziata ? ' · Già cominciata' : ''
+  // I posti sono la cosa che si guarda per prima: verdi quando ce n'e',
+  // gialli quando stanno finendo, rossi quando la lezione e' completa.
+  const colorePosti = l.liberi <= 0 ? p.errore : l.liberi < 5 ? p.attenzione : p.ok
+  const dettagli = [
+    { valore: ora(l.inizio), etichetta: 'Inizio' },
+    { valore: `${minuti(l.inizio, l.fine)}′`, etichetta: 'Durata' },
+    { valore: l.iniziata ? '—' : `${Math.max(0, l.liberi)}/${l.posti}`, etichetta: 'Posti liberi' },
+  ]
 
   return (
-    <View style={[stili.lezione, { borderColor: c.bordo, backgroundColor: c.superficie }, b ? stileTono(c, b.attesa ? 'attenzione' : 'ok') : null]}>
-      <View style={stili.testa}>
-        {scheda ? <Fotina scheda={scheda} onApri={onScheda} /> : null}
-        <View style={{ flex: 1, gap: 3 }}>
-          <Text style={[stili.nome, { color: c.testo }]}>{l.nome}</Text>
-          <Text style={[stili.ora, { color: c.testo }]}>
-            {ora(l.inizio)}–{ora(l.fine)}
-            <Text style={{ color: c.testoSecondario, fontWeight: '400' }}>{` · ${minuti(l.inizio, l.fine)} min`}</Text>
-          </Text>
-          <Testo variante="piccolo">
-            {l.istruttore ?? ''}
-            {statoPrenotazione ? <Forte>{l.istruttore ? statoPrenotazione : statoPrenotazione.slice(3)}</Forte> : null}
-          </Testo>
+    <View style={[stili.lezione, { backgroundColor: p.carta, borderColor: b ? (b.attesa ? p.attenzione : p.ok) : p.linea, borderWidth: b ? 2 : StyleSheet.hairlineWidth, boxShadow: p.ombra }]}>
+      <Copertina l={l} scheda={scheda} onScheda={onScheda} />
+      <View style={stili.corpo}>
+        <View style={stili.cifre}>
+          {dettagli.map((d, i) => (
+            <View key={d.etichetta} style={[stili.cifra, i > 0 && { borderLeftWidth: StyleSheet.hairlineWidth, borderLeftColor: p.linea }]}>
+              <Text style={[stili.cifraValore, { color: i === 2 && !l.iniziata ? colorePosti : p.testo }]}>{d.valore}</Text>
+              <Text style={[stili.cifraEtichetta, { color: p.testoSecondario }]}>{d.etichetta}</Text>
+            </View>
+          ))}
         </View>
-        {posti}
-      </View>
-      {errore ? <Avviso>{errore}</Avviso> : null}
-      {l.iniziata ? null : b ? (
-        conferma ? (
-          <View style={stili.azioni}>
-            <View style={{ flex: 1 }}>
-              <Bottone testo="Sì, disdici" onPress={() => esegui(onDisdici)} inCorso={attesa} />
+        {!l.iniziata ? <Barra valore={l.posti ? l.iscritti / l.posti : 0} colore={colorePosti} altezza={6} /> : null}
+        {errore ? <Messaggio>{errore}</Messaggio> : null}
+        {l.iniziata ? null : b ? (
+          conferma ? (
+            <View style={stili.azioni}>
+              <Pulsante testo="Sì, disdici" variante="pericolo" onPress={() => esegui(onDisdici)} inCorso={attesa} />
+              <Pulsante testo="No" variante="secondario" onPress={() => setConferma(false)} disabilitato={attesa} />
             </View>
-            <View style={{ flex: 1 }}>
-              <Bottone testo="No" variante="contorno" onPress={() => setConferma(false)} disabilitato={attesa} />
-            </View>
+          ) : (
+            <Pulsante testo="Disdici" variante="contorno" icona="chiudi" onPress={() => setConferma(true)} disabilitato={occupato} />
+          )
+        ) : l.limite ? (
+          <Messaggio tono="attenzione">{l.limite.messaggio}</Messaggio>
+        ) : l.prenotabile_dal ? (
+          <View style={[stili.apertura, { backgroundColor: p.incavo }]}>
+            <Icona nome="lucchetto" size={16} colore={p.testoSecondario} />
+            <Text style={{ color: p.testoSecondario, fontFamily: F.semi, fontSize: 14 }}>Prenotabile da {apertura(l.prenotabile_dal)}</Text>
           </View>
-        ) : (
-          <Bottone testo="Disdici" variante="contorno" onPress={() => setConferma(true)} disabilitato={occupato} />
-        )
-      ) : l.limite ? (
-        <Avviso tono="attenzione">{l.limite.messaggio}</Avviso>
-      ) : l.prenotabile_dal ? (
-        <Bottone testo={`Prenotabile da ${apertura(l.prenotabile_dal)}`} variante="contorno" onPress={() => {}} disabilitato />
-      ) : daPagare ? (
-        // Salva e paga: con la carta gia' salvata si paga con quella (o con
-        // un'altra); senza, sulla pagina di Adyen, e la carta resta salvata.
-        <View style={{ gap: spazio.due }}>
-          {daPagare.carta && daPagare.acquisto_id && daPagare.prodotto.prezzo != null ? (
-            <>
-              <Bottone
-                testo={`Paga ${euro(daPagare.prodotto.prezzo)} con la carta${daPagare.carta.finale ? ` •••• ${daPagare.carta.finale}` : ''}`}
-                onPress={() => esegui(() => onPagaCarta(daPagare.acquisto_id!))}
+        ) : daPagare ? (
+          // Salva e paga: con la carta gia' salvata si paga con quella (o con
+          // un'altra); senza, sulla pagina di Adyen, e la carta resta salvata.
+          <View style={{ gap: spazio.due }}>
+            {daPagare.carta && daPagare.acquisto_id && daPagare.prodotto.prezzo != null ? (
+              <>
+                <Pulsante
+                  testo={`Paga ${euro(daPagare.prodotto.prezzo)} con la carta${daPagare.carta.finale ? ` •••• ${daPagare.carta.finale}` : ''}`}
+                  icona="carta"
+                  onPress={() => esegui(() => onPagaCarta(daPagare.acquisto_id!))}
+                  inCorso={attesa}
+                  disabilitato={occupato}
+                />
+                <Pulsante testo="Usa un’altra carta" variante="fantasma" piccolo onPress={() => esegui(() => onAcquista(daPagare.url))} />
+              </>
+            ) : (
+              <Pulsante
+                testo={`Acquista e prenota${daPagare.prodotto.prezzo != null ? ` · ${euro(daPagare.prodotto.prezzo)}` : ''}`}
+                icona="carta"
+                onPress={() => esegui(() => onAcquista(daPagare.url))}
                 inCorso={attesa}
                 disabilitato={occupato}
               />
-              <Text style={{ color: c.accento, fontSize: 13, textAlign: 'center' }} onPress={() => esegui(() => onAcquista(daPagare.url))}>
-                Usa un’altra carta
-              </Text>
-            </>
-          ) : (
-            <Bottone
-              testo={`Acquista e prenota${daPagare.prodotto.prezzo != null ? ` · ${euro(daPagare.prodotto.prezzo)}` : ''}`}
-              onPress={() => esegui(() => onAcquista(daPagare.url))}
+            )}
+            <Text style={[stili.nota, { color: p.testoSecondario }]}>
+              {daPagare.carta ? 'La carta la custodisce ' : 'Paghi sulla pagina protetta di '}
+              <InfoAdyen />
+              {daPagare.carta
+                ? ': il club non vede mai il numero completo.'
+                : ', in un passo solo: la carta resta salvata per i prossimi acquisti e il club non ne vede mai il numero completo.'}
+            </Text>
+          </View>
+        ) : (
+          <View style={stili.azioni}>
+            {scheda ? <Pulsante testo="Dettagli" variante="contorno" onPress={onScheda} /> : null}
+            <Pulsante
+              testo={l.liberi <= 0 ? 'Lista d’attesa' : 'Prenota'}
+              icona={l.liberi <= 0 ? 'clessidra' : 'avanti'}
+              variante={l.liberi <= 0 ? 'scuro' : 'primario'}
+              onPress={async () => {
+                setErrore(null)
+                setAttesa(true)
+                const r = await onPrenota()
+                setAttesa(false)
+                if (r) {
+                  colpetto('errore')
+                  setErrore(r.errore)
+                } else colpetto('ok')
+                if (r?.prodotto) setDaPagare({ prodotto: r.prodotto, url: r.url, acquisto_id: r.acquisto_id, carta: r.carta ?? null })
+              }}
               inCorso={attesa}
               disabilitato={occupato}
             />
-          )}
-          <Testo variante="piccolo">
-            {daPagare.carta
-              ? 'La carta la custodisce '
-              : 'Paghi sulla pagina protetta di '}
-            <InfoAdyen />
-            {daPagare.carta
-              ? ': il club non vede mai il numero completo.'
-              : ', in un passo solo: la carta resta salvata per i prossimi acquisti e il club non ne vede mai il numero completo.'}
-          </Testo>
-        </View>
-      ) : (
-        <Bottone
-          testo={l.liberi <= 0 ? 'Mettiti in lista d’attesa' : 'Prenota'}
-          variante="contorno"
-          onPress={async () => {
-            setErrore(null)
-            setAttesa(true)
-            const r = await onPrenota()
-            setAttesa(false)
-            if (r) setErrore(r.errore)
-            if (r?.prodotto) setDaPagare({ prodotto: r.prodotto, url: r.url, acquisto_id: r.acquisto_id, carta: r.carta ?? null })
-          }}
-          inCorso={attesa}
-          disabilitato={occupato}
-        />
-      )}
+          </View>
+        )}
+      </View>
     </View>
   )
 }
@@ -209,7 +260,7 @@ const SUBENTRO = 'Potrai ricevere una notifica via email in caso di subentro, en
 
 /** La «i» della lista d'attesa: sul web al passaggio del mouse, sul telefono al tocco. */
 function InfoAttesa() {
-  const c = useColori()
+  const p = usePalette()
   const [aperta, setAperta] = useState(false)
   return (
     <View style={{ position: 'relative' }}>
@@ -220,13 +271,12 @@ function InfoAttesa() {
         accessibilityRole="button"
         accessibilityLabel={SUBENTRO}
         hitSlop={8}
-        style={[stili.infoAttesa, { borderColor: c.attenzione }]}
       >
-        <Text style={[stili.infoAttesaI, { color: c.attenzione }]}>i</Text>
+        <Icona nome="info" size={18} colore={p.attenzione} />
       </Pressable>
       {aperta ? (
-        <View style={[stili.fumetto, { backgroundColor: c.superficie, borderColor: c.bordo }]}>
-          <Text style={{ color: c.testo, fontSize: 13, lineHeight: 18 }}>{SUBENTRO}</Text>
+        <View style={[stili.fumetto, { backgroundColor: p.carbone }]}>
+          <Text style={{ color: '#fff', fontSize: 13, lineHeight: 18, fontFamily: F.medio }}>{SUBENTRO}</Text>
         </View>
       ) : null}
     </View>
@@ -235,7 +285,6 @@ function InfoAttesa() {
 
 /** Le lezioni prenotate del giorno, per la persona scelta: prenotata o in lista d'attesa, e Annulla. */
 function LezioniPrenotate({ lezioni, occupato, onAnnulla }: { lezioni: Lezione[]; occupato: boolean; onAnnulla: (l: Lezione) => Promise<string | null> }) {
-  const c = useColori()
   const [conferma, setConferma] = useState<number | null>(null)
   const [inCorso, setInCorso] = useState<number | null>(null)
   const [errore, setErrore] = useState<string | null>(null)
@@ -250,41 +299,48 @@ function LezioniPrenotate({ lezioni, occupato, onAnnulla }: { lezioni: Lezione[]
   }
 
   return (
-    <View style={[stili.prenotate, { borderColor: c.bordo, backgroundColor: c.superficie }]}>
-      <Testo style={{ fontWeight: '700' }}>Lezioni prenotate:</Testo>
-      {lezioni.map((l) => {
-        const attesa = !!l.prenotazione?.attesa
-        return (
-          <View key={l.class_id} style={[stili.prenotata, { borderTopColor: c.bordo }]}>
-            <View style={{ flex: 1, gap: 2 }}>
-              <Text style={{ color: c.testo, fontSize: 15, fontWeight: '600' }}>
-                {ora(l.inizio)} · {l.nome}
-              </Text>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: spazio.uno + 2 }}>
-                <Text style={[stili.statoPrenotata, stileTono(c, attesa ? 'attenzione' : 'ok'), { color: attesa ? c.attenzione : c.ok }]}>
-                  {attesa ? 'In lista d’attesa' : 'Prenotata'}
-                </Text>
-                {attesa ? <InfoAttesa /> : null}
-              </View>
+    <Sezione titolo="Le tue prenotazioni" conteggio={lezioni.length}>
+      <Carta style={{ paddingVertical: spazio.due, zIndex: 2 }}>
+        {lezioni.map((l, i) => {
+          const attesa = !!l.prenotazione?.attesa
+          return (
+            <View key={l.class_id} style={{ zIndex: lezioni.length - i }}>
+              <Riga
+                prima={i === 0}
+                testa={
+                  <LinearGradient colors={attesa ? ['#F5B33B', '#C27800'] : FUOCO} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={stili.orario}>
+                    <Text style={stili.orarioTesto}>{ora(l.inizio)}</Text>
+                  </LinearGradient>
+                }
+                titolo={l.nome}
+                sotto={
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 2 }}>
+                    <Etichetta testo={attesa ? 'In lista d’attesa' : 'Prenotata'} tono={attesa ? 'attenzione' : 'ok'} />
+                    {attesa ? <InfoAttesa /> : null}
+                  </View>
+                }
+                coda={
+                  l.iniziata ? null : conferma === l.class_id ? (
+                    <View style={{ flexDirection: 'row', gap: 6 }}>
+                      <Pulsante testo="Sì, annulla" variante="pericolo" piccolo pieno={false} onPress={() => annulla(l)} inCorso={inCorso === l.class_id} />
+                      <Pulsante testo="No" variante="secondario" piccolo pieno={false} onPress={() => setConferma(null)} disabilitato={inCorso !== null} />
+                    </View>
+                  ) : (
+                    <Pulsante testo="Annulla" variante="secondario" piccolo pieno={false} onPress={() => setConferma(l.class_id)} disabilitato={occupato || inCorso !== null} />
+                  )
+                }
+              />
             </View>
-            {l.iniziata ? null : conferma === l.class_id ? (
-              <View style={{ flexDirection: 'row', gap: spazio.uno + 2 }}>
-                <Bottone testo="Sì, annulla" onPress={() => annulla(l)} inCorso={inCorso === l.class_id} />
-                <Bottone testo="No" variante="contorno" onPress={() => setConferma(null)} disabilitato={inCorso !== null} />
-              </View>
-            ) : (
-              <Bottone testo="Annulla" variante="contorno" onPress={() => setConferma(l.class_id)} disabilitato={occupato || inCorso !== null} />
-            )}
-          </View>
-        )
-      })}
-      {errore ? <Avviso>{errore}</Avviso> : null}
-    </View>
+          )
+        })}
+        {errore ? <Messaggio>{errore}</Messaggio> : null}
+      </Carta>
+    </Sezione>
   )
 }
 
 export function Calendario() {
-  const c = useColori()
+  const p = usePalette()
   const [giorno, setGiorno] = useState<Giorno | null>(null)
   const [errore, setErrore] = useState<string | null>(null)
   const [carica, setCarica] = useState(true)
@@ -401,16 +457,17 @@ export function Calendario() {
 
   if (errore && !giorno) {
     return (
-      <Pagina titolo="Calendario lezioni" sottotitolo={errore}>
-        <Bottone testo="Riprova" onPress={() => leggi()} />
-      </Pagina>
+      <Schermata sopratitolo="Laboratorio" titolo="Lezioni">
+        <Messaggio>{errore}</Messaggio>
+        <Pulsante testo="Riprova" icona="aggiorna" onPress={() => leggi()} />
+      </Schermata>
     )
   }
   if (!giorno) {
     return (
-      <Pagina titolo="Calendario lezioni">
-        <ActivityIndicator color={c.accento} style={{ alignSelf: 'flex-start' }} />
-      </Pagina>
+      <Schermata sopratitolo="Laboratorio" titolo="Lezioni">
+        <SchedeInArrivo />
+      </Schermata>
     )
   }
 
@@ -423,165 +480,219 @@ export function Calendario() {
   for (const l of visibili) conteggi.set(l.categoria, (conteggi.get(l.categoria) ?? 0) + 1)
   const attivitaDelGiorno = [...conteggi.keys()].sort((x, y) => x.localeCompare(y, 'it'))
   const filtrate = attivita ? visibili.filter((l) => l.categoria === attivita) : visibili
-  const perChi = giorno.persone.find((p) => p.member_id === giorno.member_id)
+  const perChi = giorno.persone.find((x) => x.member_id === giorno.member_id)
+  const schedaAperta = aperta?.scheda ? giorno.schede?.[aperta.scheda] ?? null : null
   return (
-    <Pagina larga titolo="Calendario lezioni" sottotitolo="Laboratorio · le prenotazioni sono vere: le trovi anche nell’app Athlon.">
+    <Schermata larga sopratitolo="Laboratorio · prenotazioni vere" titolo="Lezioni" sottotitolo="Le prenotazioni sono vere: le trovi anche nell’app Athlon.">
       {ritorno ? (
         ritorno.stato === 'avviato' ? (
-          <Avviso tono="attenzione">
+          <Messaggio tono="attenzione" icona="clessidra" titolo="Aspettiamo la conferma">
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: spazio.due }}>
-              <ActivityIndicator color={c.attenzione} />
-              <Testo>Aspettiamo da PerfectGym la conferma del pagamento, poi prenotiamo. Non chiudere la pagina.</Testo>
+              <ActivityIndicator color={p.attenzione} />
+              <Text style={[stili.nota, { color: p.testo, flex: 1 }]}>Aspettiamo da PerfectGym la conferma del pagamento, poi prenotiamo. Non chiudere la pagina.</Text>
             </View>
-          </Avviso>
+          </Messaggio>
         ) : ritorno.stato === 'prenotato' ? (
-          <Avviso tono="ok">Pagamento ricevuto: la lezione è prenotata. La trovi qui sotto e nell’app Athlon.</Avviso>
+          <Messaggio tono="ok" titolo="Pagamento ricevuto">
+            La lezione è prenotata. La trovi qui sotto e nell’app Athlon.
+          </Messaggio>
         ) : ritorno.stato === 'attesa' ? (
-          <Avviso tono="attenzione">
+          <Messaggio tono="attenzione" titolo="Pagamento ricevuto: sei in lista d’attesa">
             <View style={{ gap: spazio.due }}>
-              <Testo style={{ fontWeight: '700' }}>Pagamento ricevuto: sei in lista d’attesa</Testo>
-              <Testo variante="piccolo" style={{ color: c.testo }}>
+              <Text style={[stili.nota, { color: p.testoSecondario }]}>
                 {`I posti di ${'lezione' in ritorno && ritorno.lezione ? `«${ritorno.lezione}»` : 'questa lezione'}${
                   'inizio' in ritorno && ritorno.inizio ? ` del ${giornoEsteso(ritorno.giorno ?? ritorno.inizio.slice(0, 10))} alle ${ora(ritorno.inizio)}` : ''
                 } sono finiti mentre pagavi, quindi ti abbiamo messo in lista d’attesa. Se si libera un posto subentri tu, e ti avvisiamo via email. Se non subentrerai, l’ingresso che hai acquistato resta valido per un’altra prenotazione ${
                   'categoria' in ritorno && ritorno.categoria ? `di ${ritorno.categoria}` : 'della stessa categoria'
                 }.`}
-              </Testo>
+              </Text>
               {'categoria' in ritorno && ritorno.categoria ? (
-                <Bottone testo={`Vedi le altre lezioni di ${ritorno.categoria}`} variante="contorno" onPress={() => setAttivita(ritorno.categoria ?? null)} />
+                <Pulsante testo={`Vedi le altre lezioni di ${ritorno.categoria}`} variante="contorno" piccolo onPress={() => setAttivita(ritorno.categoria ?? null)} />
               ) : null}
             </View>
-          </Avviso>
+          </Messaggio>
         ) : (
-          <Avviso>
-            {('errore' in ritorno && ritorno.errore) ||
-              'Non vediamo ancora il pagamento. Se l’hai completato, ricarica la pagina fra qualche minuto.'}
-          </Avviso>
+          <Messaggio>{('errore' in ritorno && ritorno.errore) || 'Non vediamo ancora il pagamento. Se l’hai completato, ricarica la pagina fra qualche minuto.'}</Messaggio>
         )
       ) : null}
-      {giorno.persone.length > 1 ? (
-        // Chi e' scelto e' grande; gli altri della famiglia piccoli, finche' non li si tocca.
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={[stili.fila, { alignItems: 'center' }]}>
-          {giorno.persone.map((p) => {
-            const attivo = p.member_id === giorno.member_id
+
+      <View style={{ gap: spazio.tre }}>
+        {giorno.persone.length > 1 ? (
+          // Per chi si prenota: la persona scelta in scuro, gli altri della famiglia in chiaro.
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={stili.fila} style={stili.fuori}>
+            {giorno.persone.map((x) => {
+              const attivo = x.member_id === giorno.member_id
+              return (
+                <Tocco
+                  key={x.member_id}
+                  vibra="scelta"
+                  stato={{ selected: attivo }}
+                  onPress={() => leggi(giorno.data, x.member_id)}
+                  etichetta={`Prenota per ${nomeCompleto(x)}`}
+                  style={[stili.persona, { backgroundColor: attivo ? p.carbone : p.carta, borderColor: attivo ? p.carbone : p.linea }]}
+                >
+                  <Avatar nome={x.nome} cognome={x.cognome} size={30} />
+                  <Text style={{ color: attivo ? '#fff' : p.testo, fontFamily: attivo ? F.extra : F.semi, fontSize: 14 }}>{x.nome || nomeCompleto(x)}</Text>
+                </Tocco>
+              )
+            })}
+          </ScrollView>
+        ) : null}
+        {perChi ? (
+          <Text style={[stili.nota, { color: p.testoSecondario, paddingHorizontal: 2 }]}>
+            Stai prenotando per <Text style={{ fontFamily: F.bold, color: p.testo }}>{nomeCompleto(perChi)}</Text>
+          </Text>
+        ) : null}
+
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={stili.fila} style={stili.fuori}>
+          {giorno.giorni.map((d) => {
+            const attivo = d === giorno.data
+            const e = etichettaGiorno(d)
+            const contenuto = (
+              <>
+                <Text style={[stili.settimana, { color: attivo ? 'rgba(255,255,255,0.85)' : p.testoSecondario }]}>{e.settimana}</Text>
+                <Text style={[stili.numero, { color: attivo ? '#fff' : p.testo }]}>{e.numero}</Text>
+              </>
+            )
             return (
-              <Scelta
-                key={p.member_id}
-                scelta={attivo}
-                onPress={() => leggi(giorno.data, p.member_id)}
-                etichetta={`Prenota per ${nomeCompleto(p)}`}
-                stile={attivo ? stili.personaScelta : stili.persona}
-              >
-                <Text style={[attivo ? stili.nomeScelto : stili.nomePersona, { color: attivo ? c.suAccento : c.testoSecondario }]}>{nomeCompleto(p)}</Text>
-              </Scelta>
+              <Tocco key={d} vibra="scelta" stato={{ selected: attivo }} onPress={() => leggi(d, giorno.member_id)} etichetta={giornoEsteso(d)}>
+                {attivo ? (
+                  <LinearGradient colors={FUOCO} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[stili.giorno, { boxShadow: '0 10px 20px rgba(255,87,1,0.3)' }]}>
+                    {contenuto}
+                  </LinearGradient>
+                ) : (
+                  <View style={[stili.giorno, { backgroundColor: p.carta, borderColor: p.linea, borderWidth: StyleSheet.hairlineWidth }]}>{contenuto}</View>
+                )}
+              </Tocco>
             )
           })}
         </ScrollView>
-      ) : null}
-      {perChi ? (
-        <Testo>
-          Stai prenotando per <Forte>{nomeCompleto(perChi)}</Forte>
-        </Testo>
-      ) : null}
+      </View>
 
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={stili.fila}>
-        {giorno.giorni.map((d) => {
-          const attivo = d === giorno.data
-          const e = etichettaGiorno(d)
-          const colore = attivo ? c.suAccento : c.testo
-          return (
-            <Scelta key={d} scelta={attivo} onPress={() => leggi(d, giorno.member_id)} stile={stili.giorno} etichetta={giornoEsteso(d)}>
-              <Text style={[stili.settimana, { color: colore }]}>{e.settimana}</Text>
-              <Text style={[stili.numero, { color: colore }]}>{e.numero}</Text>
-            </Scelta>
-          )
-        })}
-      </ScrollView>
+      <View style={{ gap: spazio.tre }}>
+        <View style={{ flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', paddingHorizontal: 2 }}>
+          <Text style={[stili.giornoTitolo, { color: p.testo }]}>{maiuscola(giornoEsteso(giorno.data))}</Text>
+          <Text style={{ color: p.testoTerzo, fontFamily: F.semi, fontSize: 13 }}>{`${visibili.length} ${visibili.length === 1 ? 'lezione' : 'lezioni'}`}</Text>
+        </View>
+        {attivitaDelGiorno.length > 1 || attivita ? (
+          // La scelta attiva subito dopo «Tutte», e la fila torna all'inizio a
+          // ogni giorno (key): l'attivita' scelta non resta mai fuori vista.
+          <ScrollView key={giorno.data} horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={stili.fila} style={stili.fuori}>
+            {[null, ...(attivita ? [attivita] : []), ...attivitaDelGiorno.filter((x) => x !== attivita)].map((a) => {
+              const attivo = a === attivita
+              const n = a ? conteggi.get(a) ?? 0 : visibili.length
+              return (
+                <Tocco
+                  key={a ?? 'tutte'}
+                  vibra="scelta"
+                  stato={{ selected: attivo }}
+                  onPress={() => setAttivita(a)}
+                  etichetta={`${a ?? 'Tutte le attività'}, ${n}`}
+                  style={[stili.filtro, { backgroundColor: attivo ? p.testo : p.carta, borderColor: attivo ? p.testo : p.linea }]}
+                >
+                  <Text style={{ color: attivo ? p.fondo : p.testo, fontFamily: attivo ? F.extra : F.semi, fontSize: 14 }}>{a ?? 'Tutte'}</Text>
+                  <View style={[stili.conta, { backgroundColor: attivo ? p.accento : p.incavo }]}>
+                    <Text style={{ color: attivo ? '#fff' : p.testoSecondario, fontFamily: F.extra, fontSize: 11 }}>{n}</Text>
+                  </View>
+                </Tocco>
+              )
+            })}
+          </ScrollView>
+        ) : null}
+      </View>
 
-      <Testo variante="sottotitolo" style={{ fontSize: 17 }}>
-        {maiuscola(giornoEsteso(giorno.data))}
-      </Testo>
-      {attivitaDelGiorno.length > 1 || attivita ? (
-        // La scelta attiva subito dopo «Tutte», e la fila torna all'inizio a
-        // ogni giorno (key): l'attivita' scelta non resta mai fuori vista.
-        <ScrollView key={giorno.data} horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={stili.fila}>
-          {[null, ...(attivita ? [attivita] : []), ...attivitaDelGiorno.filter((x) => x !== attivita)].map((a) => {
-            const attivo = a === attivita
-            const n = a ? conteggi.get(a) ?? 0 : visibili.length
-            return (
-              <Scelta key={a ?? 'tutte'} scelta={attivo} onPress={() => setAttivita(a)} etichetta={`${a ?? 'Tutte le attività'}, ${n}`}>
-                <Text style={{ color: attivo ? c.suAccento : c.testo, fontWeight: '600' }}>
-                  {a ?? 'Tutte'} <Text style={{ fontWeight: '400', opacity: 0.75 }}>{n}</Text>
-                </Text>
-              </Scelta>
-            )
-          })}
-        </ScrollView>
-      ) : null}
-      {!giorno.prenotazioni_lette ? <Avviso tono="attenzione">PerfectGym non risponde: le tue prenotazioni potrebbero non comparire.</Avviso> : null}
+      {!giorno.prenotazioni_lette ? <Messaggio tono="attenzione">PerfectGym non risponde: le tue prenotazioni potrebbero non comparire.</Messaggio> : null}
       {mie.length ? <LezioniPrenotate lezioni={mie} occupato={occupato} onAnnulla={disdici} /> : null}
 
       {carica ? (
-        <ActivityIndicator color={c.accento} style={{ alignSelf: 'flex-start' }} />
+        <SchedeInArrivo quante={2} />
       ) : visibili.length === 0 ? (
-        <Testo variante="attenuato">Nessuna lezione ancora da cominciare in questo giorno.</Testo>
+        <Carta style={{ alignItems: 'center', gap: spazio.due, paddingVertical: spazio.cinque }}>
+          <Icona nome="calendario" size={34} colore={p.testoTerzo} />
+          <Text style={[stili.nota, { color: p.testoSecondario, textAlign: 'center' }]}>Nessuna lezione ancora da cominciare in questo giorno.</Text>
+        </Carta>
       ) : filtrate.length === 0 ? (
-        <>
-          <Testo variante="attenuato">Nessuna lezione di «{attivita}» ancora da cominciare in questo giorno.</Testo>
-          <Bottone testo="Mostra tutte le attività" variante="contorno" onPress={() => setAttivita(null)} />
-        </>
+        <Carta style={{ alignItems: 'center', gap: spazio.tre, paddingVertical: spazio.cinque }}>
+          <Text style={[stili.nota, { color: p.testoSecondario, textAlign: 'center' }]}>Nessuna lezione di «{attivita}» ancora da cominciare in questo giorno.</Text>
+          <Pulsante testo="Mostra tutte le attività" variante="contorno" piccolo pieno={false} onPress={() => setAttivita(null)} />
+        </Carta>
       ) : (
-        <View style={{ gap: spazio.due }}>
-          {nascoste && !attivita ? <Testo variante="piccolo">{nascoste === 1 ? 'Una lezione è già cominciata.' : `${nascoste} lezioni sono già cominciate.`}</Testo> : null}
-          <Griglia minima={400}>
-            {filtrate.map((l) => (
-              <RigaLezione
+        <View style={{ gap: spazio.tre }}>
+          {nascoste && !attivita ? (
+            <Text style={[stili.nota, { color: p.testoTerzo, paddingHorizontal: 2 }]}>{nascoste === 1 ? 'Una lezione è già cominciata.' : `${nascoste} lezioni sono già cominciate.`}</Text>
+          ) : null}
+          <View style={stili.griglia}>
+            {filtrate.map((l, i) => (
+              <Entra
                 // Con la persona cambia anche cosa le manca: la riga riparte da «Prenota».
                 key={`${giorno.member_id}-${l.class_id}`}
-                l={l}
-                scheda={l.scheda ? giorno.schede?.[l.scheda] ?? null : null}
-                onScheda={() => setAperta(l)}
-                occupato={occupato}
-                onPrenota={() => prenota(l)}
-                onAcquista={(url) => acquista(l, url)}
-                onPagaCarta={pagaCarta}
-                onDisdici={() => disdici(l)}
-              />
+                indice={i}
+                style={stili.cella}
+              >
+                <RigaLezione
+                  l={l}
+                  scheda={l.scheda ? giorno.schede?.[l.scheda] ?? null : null}
+                  onScheda={() => setAperta(l)}
+                  occupato={occupato}
+                  onPrenota={() => prenota(l)}
+                  onAcquista={(url) => acquista(l, url)}
+                  onPagaCarta={pagaCarta}
+                  onDisdici={() => disdici(l)}
+                />
+              </Entra>
             ))}
-          </Griglia>
+          </View>
         </View>
       )}
-      <FinestraLezione
-        scheda={aperta?.scheda ? giorno.schede?.[aperta.scheda] ?? null : null}
+      <FoglioLezione
+        scheda={schedaAperta}
         titolo={aperta?.nome ?? ''}
+        categoria={aperta?.categoria}
+        dettagli={
+          aperta
+            ? [
+                { valore: ora(aperta.inizio), etichetta: 'Inizio' },
+                { valore: `${minuti(aperta.inizio, aperta.fine)} min`, etichetta: 'Durata' },
+                { valore: aperta.istruttore ?? '—', etichetta: 'Istruttore' },
+              ]
+            : undefined
+        }
         onChiudi={() => setAperta(null)}
       />
-    </Pagina>
+    </Schermata>
   )
 }
 
 const stili = StyleSheet.create({
-  fila: { gap: spazio.due, paddingBottom: spazio.uno },
-  giorno: { minWidth: 64, alignItems: 'center' },
-  persona: { borderRadius: 999, paddingVertical: spazio.uno, paddingHorizontal: spazio.due + 2 },
-  personaScelta: { borderRadius: 999, paddingVertical: spazio.due + 2, paddingHorizontal: spazio.tre + 2 },
-  nomePersona: { fontSize: 13, fontWeight: '600' },
-  nomeScelto: { fontSize: 16, fontWeight: '700' },
-  settimana: { fontSize: 11, textTransform: 'uppercase', opacity: 0.8 },
-  numero: { fontSize: 18, fontWeight: '700' },
-  lezione: { borderWidth: 1, borderRadius: 20, padding: spazio.tre, gap: spazio.tre },
-  testa: { flexDirection: 'row', gap: spazio.tre, alignItems: 'center' },
-  nome: { fontSize: 18, fontWeight: '700', lineHeight: 23 },
-  ora: { fontSize: 15, fontWeight: '600', fontVariant: ['tabular-nums'] },
+  fila: { gap: spazio.due, paddingHorizontal: spazio.tre + 2, paddingVertical: 4 },
+  fuori: { marginHorizontal: -(spazio.tre + 2), flexGrow: 0 },
+  persona: { flexDirection: 'row', alignItems: 'center', gap: spazio.due, borderRadius: 18, paddingVertical: 6, paddingLeft: 6, paddingRight: spazio.tre, borderWidth: StyleSheet.hairlineWidth },
+  giorno: { width: 64, height: 80, borderRadius: 22, alignItems: 'center', justifyContent: 'center', gap: 2 },
+  settimana: { fontSize: 11, fontFamily: F.extra, textTransform: 'uppercase', letterSpacing: 1 },
+  numero: { fontSize: 24, fontFamily: F.extra, letterSpacing: -0.6 },
+  giornoTitolo: { fontSize: 22, fontFamily: F.extra, letterSpacing: -0.6 },
+  filtro: { flexDirection: 'row', alignItems: 'center', gap: spazio.due, borderRadius: 999, paddingVertical: 9, paddingLeft: spazio.tre, paddingRight: 9, borderWidth: StyleSheet.hairlineWidth },
+  conta: { minWidth: 22, height: 22, borderRadius: 11, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 6 },
+  griglia: { flexDirection: 'row', flexWrap: 'wrap', gap: spazio.tre },
+  cella: { flexGrow: 1, flexBasis: 340, minWidth: 0, maxWidth: 560 },
+  lezione: { borderRadius: 30, overflow: 'hidden' },
+  copertina: { height: 178, padding: spazio.tre, justifyContent: 'space-between', backgroundColor: '#111' },
+  copertinaAlto: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: spazio.due },
+  copertinaNome: { color: '#fff', fontFamily: F.extra, fontSize: 25, lineHeight: 29, letterSpacing: -0.8, maxWidth: '85%' },
+  copertinaIstruttore: { color: 'rgba(255,255,255,0.78)', fontFamily: F.semi, fontSize: 13.5 },
+  vetrino: { flexDirection: 'row', alignItems: 'center', gap: 6, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 5, backgroundColor: 'rgba(0,0,0,0.45)' },
+  vetrinoTesto: { color: '#fff', fontFamily: F.extra, fontSize: 12 },
+  puntino: { width: 7, height: 7, borderRadius: 4 },
+  info: { position: 'absolute', right: spazio.tre, bottom: spazio.tre, width: 34, height: 34, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.22)', alignItems: 'center', justifyContent: 'center' },
+  corpo: { padding: spazio.tre + 2, gap: spazio.tre },
+  cifre: { flexDirection: 'row' },
+  cifra: { flex: 1, alignItems: 'center', gap: 1 },
+  cifraValore: { fontFamily: F.extra, fontSize: 20, letterSpacing: -0.5, fontVariant: ['tabular-nums'] },
+  cifraEtichetta: { fontFamily: F.semi, fontSize: 11.5 },
   azioni: { flexDirection: 'row', gap: spazio.due },
-  posti: { minWidth: 62, borderRadius: 10, paddingVertical: spazio.uno, paddingHorizontal: spazio.due, alignItems: 'center', justifyContent: 'center' },
-  numeroPosti: { fontSize: 24, fontWeight: '800', lineHeight: 28, fontVariant: ['tabular-nums'] },
-  etichettaPosti: { fontSize: 11, fontWeight: '600', textTransform: 'uppercase' },
-  prenotate: { borderWidth: 1, borderRadius: 16, padding: spazio.tre, gap: spazio.due, zIndex: 2 },
-  prenotata: { flexDirection: 'row', alignItems: 'center', gap: spazio.tre, borderTopWidth: StyleSheet.hairlineWidth, paddingTop: spazio.due },
-  statoPrenotata: { fontSize: 12, fontWeight: '700', borderRadius: 999, paddingHorizontal: spazio.due, paddingVertical: 2, overflow: 'hidden' },
-  infoAttesa: { width: 20, height: 20, borderRadius: 10, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center' },
-  infoAttesaI: { fontSize: 12, fontWeight: '800', fontStyle: 'italic', fontFamily: 'Georgia, serif', lineHeight: 14 },
-  fumetto: { position: 'absolute', top: 26, left: -8, width: 260, borderWidth: 1, borderRadius: 10, padding: spazio.due, zIndex: 10, elevation: 4 },
-  completa: { fontSize: 12, fontWeight: '800', textTransform: 'uppercase', paddingVertical: spazio.due },
+  apertura: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spazio.due, minHeight: 52, borderRadius: 18 },
+  nota: { fontSize: 13.5, lineHeight: 20, fontFamily: F.medio },
+  orario: { width: 56, height: 44, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
+  orarioTesto: { color: '#fff', fontFamily: F.extra, fontSize: 14, fontVariant: ['tabular-nums'] },
+  fumetto: { position: 'absolute', top: 26, left: -120, width: 250, borderRadius: 14, padding: spazio.tre - 4, zIndex: 10, elevation: 4 },
 })

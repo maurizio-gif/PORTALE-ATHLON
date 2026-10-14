@@ -1,18 +1,72 @@
+import { Image } from 'expo-image'
+import { LinearGradient } from 'expo-linear-gradient'
 import { useState } from 'react'
+import { StyleSheet, Text, View } from 'react-native'
+import Animated, { FadeInRight } from 'react-native-reanimated'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { chiediCodice, entra } from '@/api/lab'
 import { emailValida } from '@/api/richieste'
-import { Avviso } from '@/components/Avviso'
-import { Bottone } from '@/components/Bottone'
-import { Campo } from '@/components/Campo'
-import { Pagina } from '@/components/Pagina'
-import { Forte, Testo } from '@/components/Testo'
+import { spazio } from '@/theme'
+
+import { CampoCodice, CampoTesto } from './ui/Campi'
+import { Icona } from './ui/Icona'
+import { Carta, Messaggio, Pulsante } from './ui/kit'
+import { Schermata } from './ui/Schermata'
+import { F, FUOCO, NOTTE, usePalette } from './ui/tema'
+import { colpetto } from './ui/Tocco'
 
 // L'accesso al laboratorio: email, poi il codice di sei cifre che arriva per
 // email. Nessuna password. Chi non e' fra i tester non riceve niente, ma la
 // pagina dice la stessa cosa a tutti: non deve diventare il modo di sapere chi
 // lo e'.
+
+
+/** La testata scura, con il bagliore arancio e gli anelli che allargano il marchio. */
+function Testata({ fase }: { fase: 'email' | 'codice' }) {
+  const ins = useSafeAreaInsets()
+  return (
+    <LinearGradient colors={NOTTE} start={{ x: 0, y: 0 }} end={{ x: 0.4, y: 1 }} style={[stili.testata, { paddingTop: ins.top + spazio.cinque }]}>
+      <View style={stili.bagliore} />
+      {[300, 460, 620].map((d, i) => (
+        <View key={d} style={[stili.anello, { width: d, height: d, borderRadius: d / 2, right: -d / 2.4, top: -d / 3.2, opacity: 0.32 - i * 0.09 }]} />
+      ))}
+      <View style={stili.testataColonna}>
+        <LinearGradient colors={FUOCO} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={stili.logo}>
+          <Image source={require('@/../assets/images/pittogramma.png')} style={{ width: 32, height: 26, tintColor: '#fff' }} contentFit="contain" />
+        </LinearGradient>
+        <View style={stili.chip}>
+          <Icona nome="laboratorio" size={13} colore={FUOCO[0]} />
+          <Text style={stili.chipTesto}>ATHLON CLUB · AREA TESTER</Text>
+        </View>
+        <Text style={stili.titolo} accessibilityRole="header">
+          {fase === 'email' ? 'Il club, prima\ndi tutti' : 'Controlla\nla posta'}
+          <Text style={{ color: FUOCO[1] }}>.</Text>
+        </Text>
+        <Text style={stili.sotto}>
+          {fase === 'email'
+            ? 'Le funzioni nuove dell’app Athlon, in prova. Entri con la tua email, senza password.'
+            : 'Ti abbiamo mandato un codice di sei cifre: scrivilo qui sotto.'}
+        </Text>
+      </View>
+    </LinearGradient>
+  )
+}
+
+/** I due passi, come due trattini: quello fatto e quello in corso. */
+function Passi({ fase }: { fase: 'email' | 'codice' }) {
+  const p = usePalette()
+  return (
+    <View style={{ flexDirection: 'row', gap: 6, alignItems: 'center' }} accessibilityLabel={fase === 'email' ? 'Passo 1 di 2' : 'Passo 2 di 2'}>
+      <View style={[stili.passo, { width: 28, backgroundColor: p.accento }]} />
+      <View style={[stili.passo, { width: fase === 'codice' ? 28 : 12, backgroundColor: fase === 'codice' ? p.accento : p.incavo }]} />
+      <Text style={{ color: p.testoTerzo, fontSize: 12, fontFamily: F.extra, marginLeft: 4 }}>{fase === 'email' ? '1 / 2' : '2 / 2'}</Text>
+    </View>
+  )
+}
+
 export function Accesso() {
+  const p = usePalette()
   const [email, setEmail] = useState('')
   const [codice, setCodice] = useState('')
   const [fase, setFase] = useState<'email' | 'codice'>('email')
@@ -26,6 +80,7 @@ export function Accesso() {
     const esito = await chiediCodice(email.trim().toLowerCase())
     setAttesa(false)
     if (!esito.ok) return setErrore(esito.errore)
+    colpetto('ok')
     setCodice('')
     setFase('codice')
   }
@@ -36,55 +91,86 @@ export function Accesso() {
     setAttesa(true)
     const esito = await entra(email.trim().toLowerCase(), codice)
     setAttesa(false)
-    if (!esito.ok) setErrore(esito.errore)
+    if (!esito.ok) {
+      colpetto('errore')
+      setErrore(esito.errore)
+    }
     // Se e' andata, la sessione cambia e la pagina passa da sola all'area.
   }
 
-  if (fase === 'codice') {
-    return (
-      <Pagina titolo="Controlla la tua email" sottotitolo={`Se ${email.trim()} è fra i tester, ti abbiamo mandato un codice di sei cifre.`}>
-        <Campo
-          etichetta="Codice"
-          value={codice}
-          onChangeText={(v) => setCodice(v.replace(/\D/g, '').slice(0, 10))}
-          onSubmitEditing={verifica}
-          inputMode="numeric"
-          keyboardType="number-pad"
-          autoComplete="one-time-code"
-          textContentType="oneTimeCode"
-          placeholder="123456"
-          maxLength={10}
-          errore={!!errore}
-          style={{ fontSize: 22, letterSpacing: 6 }}
-        />
-        {errore ? <Avviso>{errore}</Avviso> : null}
-        <Bottone testo="Entra" onPress={verifica} inCorso={attesa} />
-        <Bottone testo="Usa un’altra email o chiedi un nuovo codice" variante="contorno" onPress={() => setFase('email')} disabilitato={attesa} />
-        <Testo variante="piccolo">Il codice vale un’ora. Non trovi l’email? Guarda nella posta indesiderata.</Testo>
-      </Pagina>
-    )
-  }
-
   return (
-    <Pagina titolo="Laboratorio" sottotitolo="Area di prova riservata ai tester: entri con la tua email, senza password.">
-      <Campo
-        etichetta="Email"
-        value={email}
-        onChangeText={setEmail}
-        onSubmitEditing={mandaCodice}
-        autoCapitalize="none"
-        autoComplete="email"
-        autoCorrect={false}
-        inputMode="email"
-        keyboardType="email-address"
-        placeholder="nome@esempio.it"
-        errore={!!errore}
-      />
-      {errore ? <Avviso>{errore}</Avviso> : null}
-      <Bottone testo="Mandami il codice" onPress={mandaCodice} inCorso={attesa} />
-      <Testo variante="piccolo">
-        Usa l’email con cui sei iscritto al club: è da lì che il laboratorio trova <Forte>i tuoi abbonamenti e la tua famiglia</Forte>.
-      </Testo>
-    </Pagina>
+    <Schermata titolo="Laboratorio" nascondiTitolo barra={false} sopra={<Testata fase={fase} />}>
+      <Carta style={stili.modulo}>
+        <Animated.View key={fase} entering={FadeInRight.duration(320)} style={{ gap: spazio.tre + 4 }}>
+          <Passi fase={fase} />
+          {fase === 'email' ? (
+            <>
+              <CampoTesto
+                etichetta="Email"
+                icona="email"
+                value={email}
+                onChangeText={setEmail}
+                onSubmitEditing={mandaCodice}
+                autoCapitalize="none"
+                autoComplete="email"
+                autoCorrect={false}
+                inputMode="email"
+                keyboardType="email-address"
+                placeholder="nome@esempio.it"
+                errore={!!errore}
+              />
+              {errore ? <Messaggio>{errore}</Messaggio> : null}
+              <Pulsante testo="Mandami il codice" icona="avanti" onPress={mandaCodice} inCorso={attesa} />
+              <Text style={[stili.nota, { color: p.testoSecondario }]}>
+                Usa l’email con cui sei iscritto al club: è da lì che il laboratorio trova{' '}
+                <Text style={{ fontFamily: F.bold, color: p.testo }}>i tuoi abbonamenti e la tua famiglia</Text>.
+              </Text>
+            </>
+          ) : (
+            <>
+              <Text style={[stili.nota, { color: p.testoSecondario, fontSize: 14.5 }]}>
+                Se <Text style={{ fontFamily: F.bold, color: p.testo }}>{email.trim()}</Text> è fra i tester, ti abbiamo mandato un codice di sei cifre.
+              </Text>
+              <CampoCodice value={codice} onChange={setCodice} onInvio={verifica} errore={!!errore} />
+              {errore ? <Messaggio>{errore}</Messaggio> : null}
+              <Pulsante testo="Entra" icona="avanti" onPress={verifica} inCorso={attesa} />
+              <Pulsante testo="Usa un’altra email o chiedi un nuovo codice" variante="fantasma" piccolo onPress={() => setFase('email')} disabilitato={attesa} />
+              <Text style={[stili.nota, { color: p.testoTerzo, textAlign: 'center' }]}>Il codice vale un’ora. Non trovi l’email? Guarda nella posta indesiderata.</Text>
+            </>
+          )}
+        </Animated.View>
+      </Carta>
+      <View style={stili.garanzie}>
+        {(
+          [
+            ['lucchetto', 'Niente password'],
+            ['scudo', 'Solo per i tester'],
+            ['laboratorio', 'Funzioni in prova'],
+          ] as const
+        ).map(([icona, testo]) => (
+          <View key={testo} style={stili.garanzia}>
+            <Icona nome={icona} size={16} colore={p.testoTerzo} />
+            <Text style={{ color: p.testoTerzo, fontSize: 12, fontFamily: F.semi }}>{testo}</Text>
+          </View>
+        ))}
+      </View>
+    </Schermata>
   )
 }
+
+const stili = StyleSheet.create({
+  testata: { paddingBottom: 100, borderBottomLeftRadius: 40, borderBottomRightRadius: 40, overflow: 'hidden' },
+  bagliore: { position: 'absolute', width: 380, height: 380, borderRadius: 190, right: -120, top: -140, backgroundColor: '#FF5701', opacity: 0.35, filter: 'blur(60px)' } as object,
+  chip: { flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'flex-start', borderRadius: 999, paddingHorizontal: 10, paddingVertical: 5, backgroundColor: 'rgba(255,255,255,0.08)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)' },
+  chipTesto: { color: 'rgba(255,255,255,0.85)', fontSize: 10.5, fontFamily: F.extra, letterSpacing: 1.4 },
+  testataColonna: { width: '100%', maxWidth: 640, alignSelf: 'center', paddingHorizontal: spazio.quattro, gap: spazio.due + 2 },
+  anello: { position: 'absolute', borderWidth: 1.5, borderColor: '#FF8A2B' },
+  logo: { width: 58, height: 58, borderRadius: 20, alignItems: 'center', justifyContent: 'center', marginBottom: spazio.due, boxShadow: '0 12px 30px rgba(255,87,1,0.45)' },
+  titolo: { color: '#fff', fontSize: 42, lineHeight: 46, fontFamily: F.extra, letterSpacing: -1.6, marginTop: spazio.uno },
+  sotto: { color: 'rgba(255,255,255,0.7)', fontSize: 15.5, lineHeight: 23, maxWidth: 420, fontFamily: F.medio },
+  modulo: { marginTop: -64, padding: spazio.quattro - 2 },
+  passo: { height: 6, borderRadius: 3 },
+  nota: { fontSize: 13.5, lineHeight: 20, fontFamily: F.medio },
+  garanzie: { flexDirection: 'row', justifyContent: 'center', flexWrap: 'wrap', gap: spazio.tre, marginTop: -spazio.due },
+  garanzia: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+})
