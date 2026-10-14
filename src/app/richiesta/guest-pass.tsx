@@ -171,7 +171,7 @@ export default function RichiestaGuestPass() {
   }
 
   return (
-    <Pagina titolo="Guest Pass" sottotitolo="Una settimana al club a 19 €, per chi non è iscritto dal 2024 in poi. Scrivi la tua email: ti mandiamo il link per attivarlo.">
+    <Pagina titolo="Guest Pass" sottotitolo="Una settimana al club a 19 €, per chi non ha avuto abbonamenti o Guest Pass negli ultimi 3 anni. Scrivi la tua email: ti mandiamo il link per attivarlo.">
       <Campo etichetta="La tua email" value={email} onChangeText={setEmail} keyboardType="email-address" autoCapitalize="none" autoComplete="email" placeholder="nome@esempio.it" onSubmitEditing={continua} />
       {errore ? <Avviso>{errore}</Avviso> : null}
       <Bottone testo="Continua" onPress={continua} inCorso={attesa} />
