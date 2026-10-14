@@ -20,6 +20,10 @@ export type DatiContatto = {
 
 export type EsitoVerifica =
   | { ok: true; idoneo: false; motivo: string | null }
+  // Un Guest Pass gia' in corso per questa email: si riprende, non si
+  // ricomincia. `riprendi` e' il passo da cui si riparte, gia' detto alla
+  // persona («dal metodo di pagamento»).
+  | { ok: true; inCorso: true; riprendi: string; nome: string | null }
   | { ok: true; idoneo: true; tipo: TipoVerifica; persona: { nome: string | null; cognome: string | null; telefono: string | null } | null }
   | { ok: false; errore: string }
 
@@ -41,16 +45,27 @@ export async function verificaGuestPass(email: string): Promise<EsitoVerifica> {
   const { ok, dati } = await chiama({ azione: 'verifica', email })
   if (!ok) return { ok: false, errore: dati.errore ?? 'Non riusciamo a controllare l’email adesso.' }
   if (dati.stato === 'non_idoneo' || dati.stato === 'non_disponibile') return { ok: true, idoneo: false, motivo: dati.motivo ?? null }
+  if (dati.stato === 'in_corso') return { ok: true, inCorso: true, riprendi: String(dati.riprendi ?? ''), nome: dati.nome ?? null }
   return { ok: true, idoneo: true, tipo: (dati.tipo ?? 'nuovo') as TipoVerifica, persona: dati.persona ?? null }
 }
 
 export async function richiediGuestPass(
   email: string,
   dati: DatiContatto,
-): Promise<{ ok: true } | { ok: false; nonIdoneo: boolean; errore: string }> {
+): Promise<{ ok: true; riprendi: string | null } | { ok: false; nonIdoneo: boolean; errore: string }> {
   const r = await chiama({ azione: 'richiedi', email, dati })
-  if (r.ok) return { ok: true }
+  // Una richiesta gia' in corso non si duplica: il server rimanda la sua.
+  if (r.ok) return { ok: true, riprendi: r.dati.ripresa ? String(r.dati.riprendi ?? '') : null }
   return { ok: false, nonIdoneo: r.dati.non_idoneo === true, errore: r.dati.errore ?? 'Non siamo riusciti a mandarti il link adesso.' }
+}
+
+/** Il link di prima, di nuovo, per chi ha un Guest Pass a meta'. `nessuna`: non c'e' piu' niente da riprendere. */
+export async function riprendiGuestPass(
+  email: string,
+): Promise<{ ok: true; riprendi: string } | { ok: false; nessuna: boolean; errore: string }> {
+  const r = await chiama({ azione: 'riprendi', email })
+  if (r.ok) return { ok: true, riprendi: String(r.dati.riprendi ?? '') }
+  return { ok: false, nessuna: r.dati.nessuna === true, errore: r.dati.errore ?? 'Non siamo riusciti a rimandarti il link adesso.' }
 }
 
 /** Dal laboratorio: il Guest Pass per un famigliare, col link al tester. */
