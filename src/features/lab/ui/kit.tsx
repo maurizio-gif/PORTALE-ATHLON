@@ -1,7 +1,7 @@
 import { LinearGradient } from 'expo-linear-gradient'
 import { useEffect, type ReactNode } from 'react'
 import { ActivityIndicator, StyleSheet, Text, View, type StyleProp, type TextStyle, type ViewStyle } from 'react-native'
-import Animated, { FadeInDown, useAnimatedStyle, useSharedValue, withRepeat, withTiming } from 'react-native-reanimated'
+import Animated, { Easing, FadeInDown, useAnimatedStyle, useSharedValue, withDelay, withRepeat, withTiming } from 'react-native-reanimated'
 
 import { spazio, type Tono } from '@/theme'
 
@@ -339,12 +339,36 @@ export function SchedeInArrivo({ quante = 3 }: { quante?: number }) {
 // ---------------------------------------------------------------------------
 
 /** Una barra di avanzamento orizzontale. */
-export function Barra({ valore, colore, altezza = 8, fondo }: { valore: number; colore: string; altezza?: number; fondo?: string }) {
+/**
+ * Una barra di avanzamento. Con `animata` si riempie da zero, dopo `ritardo`
+ * millisecondi: per le barre che si guardano appena compaiono (le
+ * caratteristiche di una lezione).
+ */
+export function Barra({
+  valore,
+  colore,
+  altezza = 8,
+  fondo,
+  animata = false,
+  ritardo = 0,
+}: {
+  valore: number
+  colore: string
+  altezza?: number
+  fondo?: string
+  animata?: boolean
+  ritardo?: number
+}) {
   const p = usePalette()
   const v = Math.max(0, Math.min(1, valore))
+  const pieno = useSharedValue(animata ? 0 : v)
+  useEffect(() => {
+    pieno.value = animata ? withDelay(ritardo, withTiming(v, { duration: 900, easing: Easing.out(Easing.cubic) })) : v
+  }, [animata, ritardo, v, pieno])
+  const larghezza = useAnimatedStyle(() => ({ width: `${pieno.value * 100}%` }))
   return (
     <View style={{ height: altezza, borderRadius: altezza, backgroundColor: fondo ?? p.incavo, overflow: 'hidden' }}>
-      <View style={{ width: `${v * 100}%`, height: '100%', borderRadius: altezza, backgroundColor: colore }} />
+      <Animated.View style={[{ height: '100%', borderRadius: altezza, backgroundColor: colore }, larghezza]} />
     </View>
   )
 }

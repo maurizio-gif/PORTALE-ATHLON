@@ -57,6 +57,12 @@ function apertura(iso: string): string {
   return `${giorno}, ${ora(iso)}`
 }
 
+/** Il nome sopra e il cognome sotto: in una riga sola un nome lungo veniva tagliato. */
+function suDueRighe(chi: string): string {
+  const [nome, ...resto] = chi.trim().split(/\s+/)
+  return resto.length ? `${nome}\n${resto.join(' ')}` : nome
+}
+
 function minuti(inizio: string, fine: string): number {
   return Math.round((new Date(fine).getTime() - new Date(inizio).getTime()) / 60000)
 }
@@ -664,7 +670,7 @@ export function Calendario() {
             ? [
                 { valore: ora(aperta.inizio), etichetta: 'Inizio' },
                 { valore: `${minuti(aperta.inizio, aperta.fine)} min`, etichetta: 'Durata' },
-                { valore: aperta.istruttore ?? '—', etichetta: 'Istruttore' },
+                { valore: aperta.istruttore ? suDueRighe(aperta.istruttore) : '—', etichetta: 'Istruttore' },
               ]
             : undefined
         }
