@@ -28,7 +28,7 @@ import { FoglioLezione } from './ui/FoglioLezione'
 import { Icona } from './ui/Icona'
 import { Avatar, Barra, Carta, Entra, Etichetta, Messaggio, Pulsante, Riga, SchedeInArrivo, Sezione, Tag } from './ui/kit'
 import { Schermata } from './ui/Schermata'
-import { F, FUOCO, NOTTE, usePalette } from './ui/tema'
+import { F, FUOCO, NOTTE, usePalette, velo } from './ui/tema'
 import { colpetto, Tocco } from './ui/Tocco'
 
 // Il calendario del laboratorio: le lezioni di gruppo di oggi e dei tre giorni
@@ -124,16 +124,7 @@ function Copertina({ l, scheda, onScheda }: { l: Lezione; scheda: SchedaLezione 
   )
 }
 
-function RigaLezione({
-  l,
-  scheda,
-  onScheda,
-  occupato,
-  onPrenota,
-  onAcquista,
-  onPagaCarta,
-  onDisdici,
-}: {
+type PropsLezione = {
   l: Lezione
   scheda: SchedaLezione | null
   onScheda: () => void
@@ -143,6 +134,26 @@ function RigaLezione({
   onAcquista: (url?: string) => Promise<string | null>
   onPagaCarta: (acquistoId: string) => Promise<string | null>
   onDisdici: () => Promise<string | null>
+}
+
+/**
+ * I pulsanti di una lezione: prenota (o lista d'attesa), disdici, paga se la
+ * lezione non e' compresa, e i motivi per cui non si prenota. Li usano la card
+ * della lezione e la griglia dei turni della Gym Floor.
+ */
+function AzioniLezione({
+  l,
+  scheda,
+  onScheda,
+  occupato,
+  onPrenota,
+  onAcquista,
+  onPagaCarta,
+  onDisdici,
+  testoPrenota,
+}: PropsLezione & {
+  /** Dopo «Prenota»: l'orario del turno, nella griglia della Gym Floor. */
+  testoPrenota?: string
 }) {
   const p = usePalette()
   const [conferma, setConferma] = useState(false)
@@ -163,6 +174,89 @@ function RigaLezione({
       setErrore(problema)
     }
   }
+
+  return (
+    <>
+      {errore ? <Messaggio>{errore}</Messaggio> : null}
+      {l.iniziata ? null : b ? (
+        conferma ? (
+          <View style={stili.azioni}>
+            <Pulsante testo="Sì, disdici" variante="pericolo" onPress={() => esegui(onDisdici)} inCorso={attesa} />
+            <Pulsante testo="No" variante="secondario" onPress={() => setConferma(false)} disabilitato={attesa} />
+          </View>
+        ) : (
+          <Pulsante testo="Disdici" variante="contorno" icona="chiudi" onPress={() => setConferma(true)} disabilitato={occupato} />
+        )
+      ) : l.limite ? (
+        <Messaggio tono="attenzione">{l.limite.messaggio}</Messaggio>
+      ) : l.prenotabile_dal ? (
+        <View style={[stili.apertura, { backgroundColor: p.incavo }]}>
+          <Icona nome="lucchetto" size={16} colore={p.testoSecondario} />
+          <Text style={{ color: p.testoSecondario, fontFamily: F.semi, fontSize: 14 }}>Prenotabile da {apertura(l.prenotabile_dal)}</Text>
+        </View>
+      ) : daPagare ? (
+        // Salva e paga: con la carta gia' salvata si paga con quella (o con
+        // un'altra); senza, sulla pagina di Adyen, e la carta resta salvata.
+        <View style={{ gap: spazio.due }}>
+          {daPagare.carta && daPagare.acquisto_id && daPagare.prodotto.prezzo != null ? (
+            <>
+              <Pulsante
+                testo={`Paga ${euro(daPagare.prodotto.prezzo)} con la carta${daPagare.carta.finale ? ` •••• ${daPagare.carta.finale}` : ''}`}
+                icona="carta"
+                onPress={() => esegui(() => onPagaCarta(daPagare.acquisto_id!))}
+                inCorso={attesa}
+                disabilitato={occupato}
+              />
+              <Pulsante testo="Usa un’altra carta" variante="fantasma" piccolo onPress={() => esegui(() => onAcquista(daPagare.url))} />
+            </>
+          ) : (
+            <Pulsante
+              testo={`Acquista e prenota${daPagare.prodotto.prezzo != null ? ` · ${euro(daPagare.prodotto.prezzo)}` : ''}`}
+              icona="carta"
+              onPress={() => esegui(() => onAcquista(daPagare.url))}
+              inCorso={attesa}
+              disabilitato={occupato}
+            />
+          )}
+          <Text style={[stili.nota, { color: p.testoSecondario }]}>
+            {daPagare.carta ? 'La carta la custodisce ' : 'Paghi sulla pagina protetta di '}
+            <InfoAdyen />
+            {daPagare.carta
+              ? ': il club non vede mai il numero completo.'
+              : ', in un passo solo: la carta resta salvata per i prossimi acquisti e il club non ne vede mai il numero completo.'}
+          </Text>
+        </View>
+      ) : (
+        <View style={stili.azioni}>
+          {scheda ? <Pulsante testo="Dettagli" variante="contorno" onPress={onScheda} /> : null}
+          <Pulsante
+            testo={`${l.liberi <= 0 ? 'Lista d’attesa' : 'Prenota'}${testoPrenota ? ` ${testoPrenota}` : ''}`}
+            icona={l.liberi <= 0 ? 'clessidra' : 'avanti'}
+            variante={l.liberi <= 0 ? 'scuro' : 'primario'}
+            onPress={async () => {
+              setErrore(null)
+              setAttesa(true)
+              const r = await onPrenota()
+              setAttesa(false)
+              if (r) {
+                colpetto('errore')
+                setErrore(r.errore)
+              } else colpetto('ok')
+              if (r?.prodotto) setDaPagare({ prodotto: r.prodotto, url: r.url, acquisto_id: r.acquisto_id, carta: r.carta ?? null })
+            }}
+            inCorso={attesa}
+            disabilitato={occupato}
+          />
+        </View>
+      )}
+    </>
+  )
+}
+
+function RigaLezione(props: PropsLezione) {
+  const { l, scheda, onScheda } = props
+  const p = usePalette()
+  const b = l.prenotazione
 
   // I posti sono la cosa che si guarda per prima: verdi quando ce n'e',
   // gialli quando stanno finendo, rossi quando la lezione e' completa.
@@ -186,78 +280,145 @@ function RigaLezione({
           ))}
         </View>
         {!l.iniziata ? <Barra valore={l.posti ? l.iscritti / l.posti : 0} colore={colorePosti} altezza={6} animata ritardo={250} /> : null}
-        {errore ? <Messaggio>{errore}</Messaggio> : null}
-        {l.iniziata ? null : b ? (
-          conferma ? (
-            <View style={stili.azioni}>
-              <Pulsante testo="Sì, disdici" variante="pericolo" onPress={() => esegui(onDisdici)} inCorso={attesa} />
-              <Pulsante testo="No" variante="secondario" onPress={() => setConferma(false)} disabilitato={attesa} />
-            </View>
+        <AzioniLezione {...props} />
+      </View>
+    </View>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// La Gym Floor: turni da 80 minuti ogni mezz'ora, dalle 6 alle 20:30, una
+// trentina al giorno. Una card per turno faceva scorrere all'infinito
+// (15/10/2026): qui sono una card sola, con gli orari in griglia divisi per
+// fascia; si tocca un orario e sotto ci sono i suoi posti e «Prenota».
+
+const GYM_FLOOR = 'Gym Floor'
+
+const FASCE = [
+  { nome: 'Mattina', fino: 12 },
+  { nome: 'Pomeriggio', fino: 17 },
+  { nome: 'Sera', fino: 24 },
+] as const
+
+function TurniGymFloor({
+  turni,
+  scheda,
+  onScheda,
+  occupato,
+  onPrenota,
+  onAcquista,
+  onPagaCarta,
+  onDisdici,
+}: {
+  turni: Lezione[]
+  scheda: SchedaLezione | null
+  onScheda: () => void
+  occupato: boolean
+  onPrenota: (l: Lezione) => Promise<({ errore: string } & Partial<DaPagare>) | null>
+  onAcquista: (l: Lezione, url?: string) => Promise<string | null>
+  onPagaCarta: (acquistoId: string) => Promise<string | null>
+  onDisdici: (l: Lezione) => Promise<string | null>
+}) {
+  const p = usePalette()
+  // Si parte dal turno gia' prenotato, se c'e', o dal primo con posti.
+  const [sceltoId, setSceltoId] = useState(
+    () => (turni.find((t) => t.prenotazione) ?? turni.find((t) => !t.iniziata && t.liberi > 0) ?? turni[0]).class_id,
+  )
+  const scelto = turni.find((t) => t.class_id === sceltoId) ?? turni[0]
+  const durata = minuti(turni[0].inizio, turni[0].fine)
+  const colorePosti = (t: Lezione) => (t.liberi <= 0 ? p.errore : t.liberi < 5 ? p.attenzione : p.ok)
+
+  return (
+    <View style={[stili.lezione, { backgroundColor: p.carta, borderColor: p.linea, borderWidth: StyleSheet.hairlineWidth, boxShadow: p.ombra }]}>
+      <Tocco onPress={onScheda} scala={0.99} etichetta="Gym Floor: video e descrizione">
+        <View style={[stili.copertina, { height: 124 }]}>
+          {scheda?.foto ? (
+            <Image source={{ uri: scheda.foto }} style={StyleSheet.absoluteFill} contentFit="cover" contentPosition={posizione(scheda.fuoco)} transition={200} />
           ) : (
-            <Pulsante testo="Disdici" variante="contorno" icona="chiudi" onPress={() => setConferma(true)} disabilitato={occupato} />
+            <LinearGradient colors={NOTTE} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
+          )}
+          <LinearGradient colors={['rgba(0,0,0,0.1)', 'rgba(0,0,0,0.3)', 'rgba(0,0,0,0.85)']} locations={[0, 0.4, 1]} style={StyleSheet.absoluteFill} />
+          <Tag testo={GYM_FLOOR} colore="#fff" fondo="rgba(0,0,0,0.25)" />
+          <View style={{ gap: 2 }}>
+            <Text style={stili.copertinaNome}>Gym Floor</Text>
+            <Text style={stili.copertinaIstruttore}>{`${turni.length} turni da ${durata} minuti · scegli l’orario`}</Text>
+          </View>
+          {scheda ? (
+            <View style={stili.info}>
+              <Icona nome="play" size={16} colore="#fff" />
+            </View>
+          ) : null}
+        </View>
+      </Tocco>
+
+      <View style={stili.corpo}>
+        {FASCE.map((f, i) => {
+          const da = i ? FASCE[i - 1].fino : 0
+          const qui = turni.filter((t) => {
+            const h = Number(ora(t.inizio).slice(0, 2))
+            return h >= da && h < f.fino
+          })
+          if (!qui.length) return null
+          return (
+            <View key={f.nome} style={{ gap: spazio.due }}>
+              <Text style={[stili.fascia, { color: p.testoSecondario }]}>{f.nome.toUpperCase()}</Text>
+              <View style={stili.orari}>
+                {qui.map((t) => {
+                  const attivo = t.class_id === scelto.class_id
+                  const mio = !!t.prenotazione
+                  const c = colorePosti(t)
+                  return (
+                    <View key={t.class_id} style={stili.orarioCella}>
+                      <Tocco
+                        vibra="scelta"
+                        stato={{ selected: attivo }}
+                        onPress={() => setSceltoId(t.class_id)}
+                        etichetta={`${ora(t.inizio)}, ${mio ? (t.prenotazione?.attesa ? 'sei in lista d’attesa' : 'prenotato') : t.liberi <= 0 ? 'completo' : `${t.liberi} posti liberi`}`}
+                        style={[
+                          stili.turno,
+                          mio
+                            ? { backgroundColor: t.prenotazione?.attesa ? p.attenzione : p.accento }
+                            : { backgroundColor: t.iniziata ? p.incavo : velo(p, t.liberi <= 0 ? 'errore' : t.liberi < 5 ? 'attenzione' : 'ok', 0.13) },
+                          attivo && { borderColor: mio ? '#fff' : p.testo, borderWidth: 2 },
+                        ]}
+                      >
+                        <Text style={[stili.turnoOra, { color: mio ? '#fff' : t.iniziata ? p.testoTerzo : p.testo }]}>{ora(t.inizio)}</Text>
+                        <Text style={[stili.turnoPosti, { color: mio ? 'rgba(255,255,255,0.9)' : t.iniziata ? p.testoTerzo : c }]} numberOfLines={1}>
+                          {mio ? (t.prenotazione?.attesa ? 'in attesa' : '✓ tuo') : t.iniziata ? 'iniziato' : t.liberi <= 0 ? 'pieno' : `${t.liberi} posti`}
+                        </Text>
+                      </Tocco>
+                    </View>
+                  )
+                })}
+              </View>
+            </View>
           )
-        ) : l.limite ? (
-          <Messaggio tono="attenzione">{l.limite.messaggio}</Messaggio>
-        ) : l.prenotabile_dal ? (
-          <View style={[stili.apertura, { backgroundColor: p.incavo }]}>
-            <Icona nome="lucchetto" size={16} colore={p.testoSecondario} />
-            <Text style={{ color: p.testoSecondario, fontFamily: F.semi, fontSize: 14 }}>Prenotabile da {apertura(l.prenotabile_dal)}</Text>
+        })}
+
+        <View style={[stili.scelto, { borderTopColor: p.linea }]}>
+          <View style={{ flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', gap: spazio.due }}>
+            <Text style={[stili.sceltoOra, { color: p.testo }]}>{`${ora(scelto.inizio)} – ${ora(scelto.fine)}`}</Text>
+            {!scelto.iniziata ? (
+              <Text style={{ color: colorePosti(scelto), fontFamily: F.extra, fontSize: 14 }}>
+                {scelto.liberi <= 0 ? 'Completo' : `${scelto.liberi}/${scelto.posti} posti liberi`}
+              </Text>
+            ) : null}
           </View>
-        ) : daPagare ? (
-          // Salva e paga: con la carta gia' salvata si paga con quella (o con
-          // un'altra); senza, sulla pagina di Adyen, e la carta resta salvata.
-          <View style={{ gap: spazio.due }}>
-            {daPagare.carta && daPagare.acquisto_id && daPagare.prodotto.prezzo != null ? (
-              <>
-                <Pulsante
-                  testo={`Paga ${euro(daPagare.prodotto.prezzo)} con la carta${daPagare.carta.finale ? ` •••• ${daPagare.carta.finale}` : ''}`}
-                  icona="carta"
-                  onPress={() => esegui(() => onPagaCarta(daPagare.acquisto_id!))}
-                  inCorso={attesa}
-                  disabilitato={occupato}
-                />
-                <Pulsante testo="Usa un’altra carta" variante="fantasma" piccolo onPress={() => esegui(() => onAcquista(daPagare.url))} />
-              </>
-            ) : (
-              <Pulsante
-                testo={`Acquista e prenota${daPagare.prodotto.prezzo != null ? ` · ${euro(daPagare.prodotto.prezzo)}` : ''}`}
-                icona="carta"
-                onPress={() => esegui(() => onAcquista(daPagare.url))}
-                inCorso={attesa}
-                disabilitato={occupato}
-              />
-            )}
-            <Text style={[stili.nota, { color: p.testoSecondario }]}>
-              {daPagare.carta ? 'La carta la custodisce ' : 'Paghi sulla pagina protetta di '}
-              <InfoAdyen />
-              {daPagare.carta
-                ? ': il club non vede mai il numero completo.'
-                : ', in un passo solo: la carta resta salvata per i prossimi acquisti e il club non ne vede mai il numero completo.'}
-            </Text>
-          </View>
-        ) : (
-          <View style={stili.azioni}>
-            {scheda ? <Pulsante testo="Dettagli" variante="contorno" onPress={onScheda} /> : null}
-            <Pulsante
-              testo={l.liberi <= 0 ? 'Lista d’attesa' : 'Prenota'}
-              icona={l.liberi <= 0 ? 'clessidra' : 'avanti'}
-              variante={l.liberi <= 0 ? 'scuro' : 'primario'}
-              onPress={async () => {
-                setErrore(null)
-                setAttesa(true)
-                const r = await onPrenota()
-                setAttesa(false)
-                if (r) {
-                  colpetto('errore')
-                  setErrore(r.errore)
-                } else colpetto('ok')
-                if (r?.prodotto) setDaPagare({ prodotto: r.prodotto, url: r.url, acquisto_id: r.acquisto_id, carta: r.carta ?? null })
-              }}
-              inCorso={attesa}
-              disabilitato={occupato}
-            />
-          </View>
-        )}
+          {!scelto.iniziata ? <Barra key={`barra-${scelto.class_id}`} valore={scelto.posti ? scelto.iscritti / scelto.posti : 0} colore={colorePosti(scelto)} altezza={6} animata /> : null}
+          <AzioniLezione
+            // Cambiando turno i pulsanti ripartono da capo (conferme, errori, pagamento).
+            key={scelto.class_id}
+            l={scelto}
+            scheda={null}
+            onScheda={onScheda}
+            occupato={occupato}
+            onPrenota={() => onPrenota(scelto)}
+            onAcquista={(url) => onAcquista(scelto, url)}
+            onPagaCarta={onPagaCarta}
+            onDisdici={() => onDisdici(scelto)}
+            testoPrenota={ora(scelto.inizio)}
+          />
+        </View>
       </View>
     </View>
   )
@@ -497,6 +658,9 @@ export function Calendario() {
   for (const l of visibili) conteggi.set(l.categoria, (conteggi.get(l.categoria) ?? 0) + 1)
   const attivitaDelGiorno = [...conteggi.keys()].sort((x, y) => x.localeCompare(y, 'it'))
   const filtrate = attivita ? visibili.filter((l) => l.categoria === attivita) : visibili
+  // I turni della Gym Floor vanno in una card sola, a griglia (vedi TurniGymFloor).
+  const turniGym = filtrate.filter((l) => l.categoria === GYM_FLOOR)
+  const altre = filtrate.filter((l) => l.categoria !== GYM_FLOOR)
   const perChi = giorno.persone.find((x) => x.member_id === giorno.member_id)
   const schedaAperta = aperta?.scheda ? giorno.schede?.[aperta.scheda] ?? null : null
   return (
@@ -639,7 +803,23 @@ export function Calendario() {
             <Text style={[stili.nota, { color: p.testoTerzo, paddingHorizontal: 2 }]}>{nascoste === 1 ? 'Una lezione è già cominciata.' : `${nascoste} lezioni sono già cominciate.`}</Text>
           ) : null}
           <View style={stili.griglia}>
-            {filtrate.map((l, i) => (
+            {turniGym.length > 1 ? (
+              <Entra key={`${giorno.member_id}-${giorno.data}-gym`} indice={0} style={stili.cella}>
+                <TurniGymFloor
+                  // Cambiando giorno o persona si riparte dal turno giusto.
+                  key={`${giorno.member_id}-${giorno.data}`}
+                  turni={turniGym}
+                  scheda={turniGym[0].scheda ? giorno.schede?.[turniGym[0].scheda] ?? null : null}
+                  onScheda={() => setAperta(turniGym[0])}
+                  occupato={occupato}
+                  onPrenota={prenota}
+                  onAcquista={acquista}
+                  onPagaCarta={pagaCarta}
+                  onDisdici={disdici}
+                />
+              </Entra>
+            ) : null}
+            {(turniGym.length > 1 ? altre : filtrate).map((l, i) => (
               <Entra
                 // Con la persona cambia anche cosa le manca: la riga riparte da «Prenota».
                 key={`${giorno.member_id}-${l.class_id}`}
@@ -711,5 +891,13 @@ const stili = StyleSheet.create({
   nota: { fontSize: 13.5, lineHeight: 20, fontFamily: F.medio },
   orario: { width: 56, height: 44, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
   orarioTesto: { color: '#fff', fontFamily: F.extra, fontSize: 14, fontVariant: ['tabular-nums'] },
+  fascia: { fontFamily: F.extra, fontSize: 11, letterSpacing: 1.2 },
+  orari: { flexDirection: 'row', flexWrap: 'wrap', marginHorizontal: -4 },
+  orarioCella: { width: '25%', padding: 4 },
+  turno: { borderRadius: 14, paddingVertical: 8, alignItems: 'center', gap: 1, borderWidth: 2, borderColor: 'transparent' },
+  turnoOra: { fontFamily: F.extra, fontSize: 15, letterSpacing: -0.3, fontVariant: ['tabular-nums'] },
+  turnoPosti: { fontFamily: F.bold, fontSize: 11 },
+  scelto: { gap: spazio.tre, borderTopWidth: StyleSheet.hairlineWidth, paddingTop: spazio.tre },
+  sceltoOra: { fontFamily: F.extra, fontSize: 20, letterSpacing: -0.5, fontVariant: ['tabular-nums'] },
   fumetto: { position: 'absolute', top: 26, left: -120, width: 250, borderRadius: 14, padding: spazio.tre - 4, zIndex: 10, elevation: 4 },
 })
