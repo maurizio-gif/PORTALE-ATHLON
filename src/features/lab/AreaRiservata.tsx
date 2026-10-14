@@ -336,7 +336,7 @@ function Novita() {
   const voci: { titolo: string; testo: string; tag: string; icona: NomeIcona; href: Href; colori: readonly [string, string, ...string[]] }[] = [
     { titolo: 'Prenotazioni', testo: 'Le lezioni di gruppo: posti liberi, prenota e disdici, per te e per la tua famiglia.', tag: 'Lezioni di gruppo', icona: 'calendario', href: '/lab/calendario', colori: MARE },
     { titolo: 'Pagamenti', testo: 'Pagamento diretto con carta e rate automatiche, con il tetto di prova di 5 €.', tag: 'Soldi veri · max 5 €', icona: 'carta', href: '/lab/pagamenti', colori: FUOCO },
-    { titolo: 'Animazioni esercizi', testo: 'Un giorno di scheda con le animazioni di tre librerie: quale ti piace di più?', tag: 'Da scegliere', icona: 'play', href: '/lab/animazioni', colori: ['#8B5CF6', '#5B21B6'] },
+    { titolo: 'Schede di allenamento', testo: 'Le tue schede, il registro dei pesi col timer del recupero, i progressi. E una scheda su misura dall’agente AI.', tag: 'Nuovo', icona: 'peso', href: '/lab/allenamento', colori: ['#8B5CF6', '#5B21B6'] },
   ]
   return (
     <View style={{ flexDirection: width >= LARGO ? 'row' : 'column', flexWrap: 'wrap', gap: spazio.tre }}>

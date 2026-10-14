@@ -48,6 +48,14 @@ const ICONE = {
   tessera: ['person.crop.square.filled.and.at.rectangle', 'card_membership'],
   chiocciola: ['at', 'alternate_email'],
   volume: ['speaker.wave.2.fill', 'volume_up'],
+  grafico: ['chart.bar.fill', 'bar_chart'],
+  stella: ['sparkles', 'auto_awesome'],
+  piu: ['plus', 'add'],
+  meno: ['minus', 'remove'],
+  peso: ['dumbbell.fill', 'fitness_center'],
+  cronometro: ['timer', 'timer'],
+  elenco: ['list.bullet', 'format_list_bulleted'],
+  bandiera: ['flag.checkered', 'sports_score'],
 } as const satisfies Record<string, readonly [SFSymbol, AndroidSymbol]>
 
 export type NomeIcona = keyof typeof ICONE

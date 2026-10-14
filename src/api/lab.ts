@@ -459,3 +459,139 @@ export async function apriVideo(id: string, vetrina: string): Promise<Esito<{ vi
   if (ok) return { ok: true, video: dati.video as VideoDaGuardare }
   return { ok: false, errore: dati.errore ?? 'Non riusciamo ad aprire il video adesso.' }
 }
+
+// ---------------------------------------------------------------------------
+// Le schede di allenamento (16/10/2026), da `portale-lab-schede` (repo
+// APP-ATHLON): le schede del socio (standard, personalizzate, AI), la seduta
+// col registro delle serie, lo storico e i progressi, e la scheda chiesta
+// all'agente AI. Il piano e' in docs/piano-schede.md.
+
+export type RigaSchedaLab = {
+  id: string
+  tipo: 'standard' | 'personalizzata' | 'ai'
+  titolo: string
+  descrizione: string | null
+  obiettivo: string | null
+  livello: string | null
+  giorni_settimana: number | null
+  giorni: number
+  ultimo: string | null
+}
+
+export type SedutaBreve = { id: string; inizio: string; fine: string | null; giorno_nome: string | null; titolo: string | null; serie: number }
+
+export type EsercizioScheda = {
+  /** La riga della scheda (scheda_esercizi.id). */
+  id: string
+  esercizio_id: string
+  nome: string
+  serie: number
+  ripetizioni: string
+  carico: string | null
+  recupero_serie: number
+  recupero_dopo: number
+  superserie: string | null
+  note: string | null
+  immagini: string[]
+  video: string | null
+  muscoli_primari: string[]
+  attrezzo: string | null
+  istruzioni: string[]
+}
+
+export type GiornoSchedaLab = { id: string; nome: string; note: string | null; esercizi: EsercizioScheda[] }
+
+export type SchedaLab = {
+  id: string
+  tipo: 'standard' | 'personalizzata' | 'ai'
+  titolo: string
+  descrizione: string | null
+  obiettivo: string | null
+  livello: string | null
+  giorni_settimana: number | null
+  rivista_il: string | null
+  giorni: GiornoSchedaLab[]
+}
+
+export type SerieFatta = { numero: number; ripetizioni: number | null; kg: number | null; secondi: number | null }
+export type Precedente = { esercizio_id: string; inizio: string; serie: SerieFatta[] }
+export type SerieSeduta = SerieFatta & { scheda_esercizio_id: string; esercizio_id: string }
+
+export type Questionario = {
+  obiettivo: string
+  livello: 'principiante' | 'intermedio' | 'esperto'
+  giorni: number
+  minuti: number
+  attrezzatura: 'sala_completa' | 'manubri_e_corpo_libero' | 'corpo_libero'
+  limitazioni: string
+  note: string
+}
+
+const schedeLab = (corpo: Record<string, unknown>) => funzione('portale-lab-schede', corpo)
+
+export async function elencoSchede(): Promise<Esito<{ schede: RigaSchedaLab[]; ultimi: SedutaBreve[]; ai: { usate: number; massimo: number } }>> {
+  const { ok, dati } = await schedeLab({ azione: 'elenco' })
+  if (ok) return { ok: true, schede: dati.schede, ultimi: dati.ultimi, ai: dati.ai }
+  return { ok: false, errore: dati.errore ?? 'Non riusciamo a leggere le tue schede adesso.' }
+}
+
+export async function leggiSchedaLab(id: string): Promise<Esito<{ scheda: SchedaLab; precedenti: Precedente[] }>> {
+  const { ok, dati } = await schedeLab({ azione: 'scheda', id })
+  if (ok) return { ok: true, scheda: dati.scheda, precedenti: dati.precedenti ?? [] }
+  return { ok: false, errore: dati.errore ?? 'Non riusciamo ad aprire la scheda adesso.' }
+}
+
+export async function iniziaSeduta(schedaId: string, giornoId: string): Promise<Esito<{ allenamento: { id: string; inizio: string }; serie: SerieSeduta[] }>> {
+  const { ok, dati } = await schedeLab({ azione: 'inizia', scheda_id: schedaId, giorno_id: giornoId })
+  if (ok) return { ok: true, allenamento: dati.allenamento, serie: (dati.serie ?? []).map((s: any) => ({ ...s, kg: s.kg == null ? null : Number(s.kg) })) }
+  return { ok: false, errore: dati.errore ?? 'Non riusciamo a iniziare l’allenamento adesso.' }
+}
+
+export async function segnaSerie(s: { allenamento_id: string; scheda_esercizio_id: string; esercizio_id: string; numero: number; ripetizioni: number | null; kg: number | null; secondi?: number | null }): Promise<Esito<object>> {
+  const { ok, dati } = await schedeLab({ azione: 'serie', ...s })
+  if (ok) return { ok: true }
+  return { ok: false, errore: dati.errore ?? 'La serie non è stata salvata.' }
+}
+
+export async function togliSerie(allenamentoId: string, schedaEsercizioId: string, numero: number): Promise<Esito<object>> {
+  const { ok, dati } = await schedeLab({ azione: 'togli_serie', allenamento_id: allenamentoId, scheda_esercizio_id: schedaEsercizioId, numero })
+  if (ok) return { ok: true }
+  return { ok: false, errore: dati.errore ?? 'La serie non è stata tolta.' }
+}
+
+export async function chiudiSeduta(allenamentoId: string, note?: string): Promise<Esito<{ vuota: boolean }>> {
+  const { ok, dati } = await schedeLab({ azione: 'fine', allenamento_id: allenamentoId, note })
+  if (ok) return { ok: true, vuota: dati.vuota === true }
+  return { ok: false, errore: dati.errore ?? 'Non riusciamo a chiudere l’allenamento adesso.' }
+}
+
+export type SedutaStorico = SedutaBreve & { note: string | null; esercizi: number; volume: number }
+export type EsercizioFatto = { esercizio_id: string; nome: string; immagini: string[]; sedute: number; kg_massimo: number | null }
+
+export async function storicoAllenamenti(): Promise<Esito<{ allenamenti: SedutaStorico[]; esercizi: EsercizioFatto[] }>> {
+  const { ok, dati } = await schedeLab({ azione: 'storico' })
+  if (ok) return { ok: true, allenamenti: dati.allenamenti, esercizi: dati.esercizi }
+  return { ok: false, errore: dati.errore ?? 'Non riusciamo a leggere i tuoi allenamenti adesso.' }
+}
+
+export type SedutaEsercizio = { inizio: string; kg_massimo: number | null; ripetizioni_massime: number | null; volume: number; serie: SerieFatta[] }
+
+export async function progressiEsercizio(esercizioId: string): Promise<Esito<{ esercizio: { id: string; nome: string; immagini: string[]; video: string | null; muscoli_primari: string[] }; sedute: SedutaEsercizio[] }>> {
+  const { ok, dati } = await schedeLab({ azione: 'progressi', esercizio_id: esercizioId })
+  if (ok) return { ok: true, esercizio: dati.esercizio, sedute: dati.sedute }
+  return { ok: false, errore: dati.errore ?? 'Non riusciamo a leggere i progressi adesso.' }
+}
+
+/** L'agente AI ci mette fino a un paio di minuti. */
+export async function chiediSchedaAi(questionario: Questionario): Promise<Esito<{ id: string }>> {
+  const { ok, dati } = await schedeLab({ azione: 'chiedi_ai', questionario })
+  if (ok) return { ok: true, id: dati.id }
+  return { ok: false, errore: dati.errore ?? 'L’agente non è riuscito a scrivere la scheda adesso. Riprova fra qualche minuto.' }
+}
+
+/** L'indirizzo pubblico di un'immagine o di un video degli esercizi (bucket «esercizi»). */
+export function urlEsercizio(percorso: string | null | undefined): string | null {
+  if (!percorso) return null
+  if (/^https?:\/\//.test(percorso)) return percorso
+  return `${SUPABASE_URL.replace(/\/+$/, '')}/storage/v1/object/public/esercizi/${percorso}`
+}

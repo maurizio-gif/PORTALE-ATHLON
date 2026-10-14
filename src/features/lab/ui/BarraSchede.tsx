@@ -11,11 +11,12 @@ import { Tocco } from './Tocco'
 
 // La barra delle schede del laboratorio: una pillola di vetro che galleggia in
 // basso; dietro la scheda attiva scivola, con una molla, un tondo scuro, e la
-// sua icona si accende d'arancio. Si vede solo sulle quattro schermate principali.
+// sua icona si accende d'arancio. Si vede solo sulle cinque schermate principali.
 
 const SCHEDE: { href: Href; percorso: string; titolo: string; icona: NomeIcona }[] = [
   { href: '/lab', percorso: '/lab', titolo: 'Home', icona: 'casa' },
   { href: '/lab/calendario', percorso: '/lab/calendario', titolo: 'Prenotazioni', icona: 'calendario' },
+  { href: '/lab/allenamento', percorso: '/lab/allenamento', titolo: 'Allenati', icona: 'peso' },
   { href: '/lab/tv', percorso: '/lab/tv', titolo: 'TV', icona: 'play' },
   { href: '/lab/pagamenti', percorso: '/lab/pagamenti', titolo: 'Pagamenti', icona: 'carta' },
 ]

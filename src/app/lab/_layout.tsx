@@ -27,6 +27,10 @@ export default function LayoutLaboratorio() {
         <Stack.Screen name="pagamenti/[riferimento]" options={{ animation: 'slide_from_right' }} />
         <Stack.Screen name="tv/[raccolta]/index" options={{ animation: 'slide_from_right' }} />
         <Stack.Screen name="tv/[raccolta]/[video]" options={{ animation: 'slide_from_bottom' }} />
+        <Stack.Screen name="allenamento/[scheda]/index" options={{ animation: 'slide_from_right' }} />
+        <Stack.Screen name="allenamento/[scheda]/[giorno]" options={{ animation: 'slide_from_bottom' }} />
+        <Stack.Screen name="allenamento/agente" options={{ animation: 'slide_from_bottom' }} />
+        <Stack.Screen name="allenamento/storico" options={{ animation: 'slide_from_right' }} />
       </Stack>
       {sessione ? <BarraSchede /> : null}
     </View>

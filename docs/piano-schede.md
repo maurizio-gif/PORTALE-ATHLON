@@ -85,3 +85,34 @@ contratti e prenotazioni PT, già nel mirror).
 - La verifica del Personal Training per le schede dei trainer.
 - Se un certificato medico scaduto blocca la scheda AI o la registrazione.
 - Quante schede AI al mese per socio, e il costo.
+
+## Stato (16/10/2026, la notte)
+
+Fatte tutte e quattro le tappe, per il laboratorio:
+
+1. **Libreria**: le tabelle e il bucket pubblico `esercizi` (APP-ATHLON,
+   migrazioni 20261016a/b); i 876 esercizi di free-exercise-db tradotti in
+   italiano (nomi da palestra: lat machine, stacco rumeno, multipower) con le
+   1.746 foto nel bucket (`scripts/importa-esercizi.mjs`). Al posto dei video,
+   finché non arrivano quelli del club, le due foto (partenza e arrivo) si
+   alternano in dissolvenza.
+2. **CRM**, Attività → Schede di allenamento: le schede standard, quelle per
+   un socio, quelle dell'agente AI da rivedere (con «Segna come rivista»);
+   l'editor coi giorni e gli esercizi (serie, ripetizioni, carico, i due
+   recuperi, la lettera della superserie); la libreria da accendere e
+   spegnere, gli esercizi del club, e il video MP4 di ogni esercizio caricato
+   dal browser (al posto delle foto, nell'app, in loop e senza audio).
+3. **Portale**, `/lab/allenamento` (la scheda «Allenati» del menu): le schede,
+   la scheda per giorni con l'ultima volta di ogni esercizio, la seduta col
+   registro (ripetizioni e kg già proposti) e il timer del recupero che parte
+   da solo (cerchio, ±15 s, Salta, vibrazione e suono, il «dopo», le
+   superserie col recupero a fine giro), lo storico e i progressi per
+   esercizio.
+4. **Agente AI**: il questionario (obiettivo, livello, giorni, minuti,
+   attrezzatura, limitazioni), il workflow n8n `athlon-scheda-ai` coi modelli
+   gratuiti di OpenRouter (prima Nemotron 3 Super, poi Gemma 4 31B, poi
+   `openrouter/free`), la scheda controllata sulla libreria accesa e salvata
+   pubblicata; tre schede AI in trenta giorni.
+
+Restano da fare: la notifica locale di fine recupero nell'app nativa (serve
+expo-notifications e la build), i video del club, e le decisioni qui sopra.
