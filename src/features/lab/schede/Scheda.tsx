@@ -12,6 +12,7 @@ import { Carta, Entra, Messaggio, Pulsante, SchedeInArrivo, Tag } from '../ui/ki
 import { Schermata } from '../ui/Schermata'
 import { F, usePalette } from '../ui/tema'
 import { Tocco } from '../ui/Tocco'
+import { CalorieScheda } from './Calorie'
 import { giornoTest, gruppo, indicazione, LIVELLI, muscoli, recupero, SPIEGA_TARATURA, testDaRifare, TIPI } from './comune'
 import { MediaEsercizio } from './MediaEsercizio'
 
@@ -20,7 +21,8 @@ import { MediaEsercizio } from './MediaEsercizio'
 // socio l'ha fatto. Toccando un esercizio si apre la sua scheda (il video o
 // le foto che si alternano, i muscoli, le istruzioni). In fondo «Inizia».
 // I carichi in percentuale (16/10/2026) diventano chili coi massimali del
-// socio; finche' mancano, un riquadro spiega come averli.
+// socio; finche' mancano, un riquadro spiega come averli. In fondo, sopra
+// «Inizia», le calorie stimate del giorno scelto (Calorie.tsx, 15/10/2026).
 
 type Dati = { scheda: SchedaLab; precedenti: Precedente[]; massimali: Massimale[]; ultimoTest: string | null; giorniTest: number }
 
@@ -240,6 +242,8 @@ export function Scheda() {
           )
         })}
       </View>
+
+      <CalorieScheda scheda={s} giorno={Math.min(giorno, s.giorni.length - 1)} />
 
       <Pulsante
         testo={`Inizia l’allenamento · ${g.nome}`}

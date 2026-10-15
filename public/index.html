@@ -51,6 +51,29 @@
         height: 100%;
         flex: 1;
       }
+      /* A tutto schermo come app installata (15/10/2026). Su iPhone, con la
+         barra di stato trasparente, «100%» resta piu' corto dello schermo
+         della misura della barra di stato, e sotto la barra delle schede
+         rimaneva una striscia di pagina vuota: in modalita' app l'altezza e'
+         quella dello schermo. E il fondo e' quello dell'app, non il bianco. */
+      @media (display-mode: standalone) {
+        html,
+        body,
+        #root {
+          height: 100vh;
+          min-height: 100vh;
+        }
+      }
+      html,
+      body {
+        background-color: #e4e5ea;
+      }
+      @media (prefers-color-scheme: dark) {
+        html,
+        body {
+          background-color: #050506;
+        }
+      }
     </style>
   </head>
 

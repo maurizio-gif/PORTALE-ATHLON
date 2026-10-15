@@ -19,6 +19,11 @@ import { Grafico } from './Grafico'
 // li ha le circonferenze e la composizione (massa grassa e magra). In cima
 // l'ultimo peso e il BMI, poi l'andamento di una metrica a scelta, gli ultimi
 // valori e lo storico. Una misurazione per giorno: riscriverla la sostituisce.
+//
+// L'altezza si scrive una volta sola, la prima: da li' in poi il foglio e' la
+// registrazione del peso, e l'altezza compare in sola lettura. Non e' una
+// scelta dell'interfaccia soltanto: la funzione che salva ignora un'altezza
+// nuova quando il socio ne ha gia' una, quindi non si cambia nemmeno da fuori.
 
 export const CHIAVE_MISURE = 'misure:elenco'
 
@@ -33,6 +38,14 @@ const CIRCONFERENZE: { chiave: Campo; nome: string }[] = [
 ]
 
 type Bozza = { id: string | null; data: string } & Record<Campo, string>
+
+/** L'altezza gia' segnata: la prima misurazione che la porta. */
+export type AltezzaNota = { cm: number; data: string }
+
+export function altezzaNota(misure: Misura[]): AltezzaNota | null {
+  const m = misure.find((x) => x.altezza_cm != null)
+  return m?.altezza_cm != null ? { cm: m.altezza_cm, data: m.data } : null
+}
 
 const testo = (n: number | null | undefined) => (n == null ? '' : String(n).replace('.', ','))
 const daTesto = (t: string) => (t.trim() ? Number(t.replace(',', '.')) : null)
@@ -77,11 +90,14 @@ function CampoNumero({ etichetta, unita, value, onChange, placeholder }: { etich
 function FoglioMisura({
   bozza,
   esiste,
+  altezza,
   onChiudi,
   onSalvata,
 }: {
   bozza: Bozza | null
   esiste: boolean
+  /** Se c'e', l'altezza non si chiede piu': si mostra e basta. */
+  altezza: AltezzaNota | null
   onChiudi: () => void
   onSalvata: () => void
 }) {
@@ -99,14 +115,19 @@ function FoglioMisura({
 
   if (!b) return <Foglio aperto={false} titolo="" onChiudi={onChiudi}>{null}</Foglio>
   const cambia = (k: keyof Bozza, v: string) => setB((x) => (x ? { ...x, [k]: v } : x))
-  const anteprima = bmi(daTesto(b.peso_kg), daTesto(b.altezza_cm))
+  const anteprima = bmi(daTesto(b.peso_kg), altezza ? altezza.cm : daTesto(b.altezza_cm))
 
   async function salva() {
     if (!b) return
     setErrore(null)
+    if (!b.data) return setErrore('Scrivi la data della misurazione.')
+    if (!altezza && !daTesto(b.altezza_cm)) return setErrore('Scrivi la tua altezza: la segni solo questa volta.')
+    if (!daTesto(b.peso_kg)) return setErrore('Scrivi il peso.')
     setInCorso(true)
     const corpo: NuovaMisura = { data: b.data }
-    for (const k of ['altezza_cm', 'peso_kg', ...CIRCONFERENZE.map((c) => c.chiave), 'massa_grassa_pct', 'massa_magra_kg'] as Campo[]) corpo[k] = daTesto(b[k])
+    // Con l'altezza gia' segnata non la si manda: resta quella della prima volta.
+    const campi = [...(altezza ? [] : ['altezza_cm']), 'peso_kg', ...CIRCONFERENZE.map((c) => c.chiave), 'massa_grassa_pct', 'massa_magra_kg'] as Campo[]
+    for (const k of campi) corpo[k] = daTesto(b[k])
     const r = await salvaMisura(corpo)
     setInCorso(false)
     if (!r.ok) {
@@ -127,13 +148,37 @@ function FoglioMisura({
   }
 
   return (
-    <Foglio aperto titolo={esiste ? 'Modifica la misurazione' : 'Nuova misurazione'} sottotitolo="Una al giorno: se la riscrivi, sostituisce quella dello stesso giorno." onChiudi={onChiudi}>
+    <Foglio
+      aperto
+      titolo={esiste ? 'Modifica la misurazione' : altezza ? 'Nuovo peso' : 'Le tue misure'}
+      sottotitolo={esiste ? 'Una al giorno: se la riscrivi, sostituisce quella dello stesso giorno.' : altezza ? 'Uno al giorno: se lo riscrivi, sostituisce quello dello stesso giorno.' : 'L’altezza la segni solo adesso, la prima volta. Poi registri il peso.'}
+      onChiudi={onChiudi}
+    >
       <View style={{ gap: spazio.tre }}>
-        <CampoData etichetta="Data" value={b.data} onChange={(v) => cambia('data', v)} min="2000-01-01" max={oggi()} annoIniziale={new Date().getFullYear()} sfondo={p.incavo} />
-        <View style={stili.griglia}>
-          <CampoNumero etichetta="Altezza" unita="cm" value={b.altezza_cm} onChange={(t) => cambia('altezza_cm', t)} placeholder="es. 175" />
-          <CampoNumero etichetta="Peso" unita="kg" value={b.peso_kg} onChange={(t) => cambia('peso_kg', t)} placeholder="es. 72,5" />
+        {/* In riga: in colonna il flex del campo lo schiaccerebbe sopra i campi sotto. */}
+        <View style={{ flexDirection: 'row' }}>
+          <CampoData etichetta="Data" value={b.data} onChange={(v) => cambia('data', v)} min="2000-01-01" max={oggi()} annoIniziale={new Date().getFullYear()} sfondo={p.incavo} />
         </View>
+        {altezza ? (
+          <>
+            <View style={stili.griglia}>
+              <CampoNumero etichetta="Peso" unita="kg" value={b.peso_kg} onChange={(t) => cambia('peso_kg', t)} placeholder="es. 72,5" />
+            </View>
+            <View style={[stili.fissa, { borderColor: p.linea }]}>
+              <Icona nome="lucchetto" size={15} colore={p.testoTerzo} />
+              <Text style={[stili.piccola, { color: p.testoSecondario, flex: 1 }]}>
+                {'Altezza '}
+                <Text style={{ fontFamily: F.extra, color: p.testo }}>{`${numero(altezza.cm)} cm`}</Text>
+                {`, segnata il ${dataCorta(altezza.data)}: non si modifica.`}
+              </Text>
+            </View>
+          </>
+        ) : (
+          <View style={stili.griglia}>
+            <CampoNumero etichetta="Altezza" unita="cm" value={b.altezza_cm} onChange={(t) => cambia('altezza_cm', t)} placeholder="es. 175" />
+            <CampoNumero etichetta="Peso" unita="kg" value={b.peso_kg} onChange={(t) => cambia('peso_kg', t)} placeholder="es. 72,5" />
+          </View>
+        )}
         {anteprima ? (
           <Text style={[stili.nota, { color: p.testoSecondario, textAlign: 'center' }]}>
             BMI <Text style={{ fontFamily: F.extra, color: coloreTono(p, fasciaBmi(anteprima).tono) }}>{numero(anteprima)}</Text> · {fasciaBmi(anteprima).nome.toLowerCase()}
@@ -247,6 +292,7 @@ export function Misure() {
 
   const n = misure.length
   const altezza = n ? altezzaAl(misure, n - 1) : null
+  const fissa = altezzaNota(misure)
   const nuova = () => setBozza({ b: bozzaDa(misure.find((m) => m.data === oggi()) ?? null, altezza), esiste: misure.some((m) => m.data === oggi()) })
   const salvata = () => {
     setBozza(null)
@@ -255,7 +301,7 @@ export function Misure() {
     setMisure(null)
     carica()
   }
-  const foglio = <FoglioMisura bozza={bozza?.b ?? null} esiste={!!bozza?.esiste} onChiudi={() => setBozza(null)} onSalvata={salvata} />
+  const foglio = <FoglioMisura bozza={bozza?.b ?? null} esiste={!!bozza?.esiste} altezza={fissa} onChiudi={() => setBozza(null)} onSalvata={salvata} />
 
   if (!n) {
     return (
@@ -379,7 +425,7 @@ export function Misure() {
         </Sezione>
       ) : null}
 
-      <Pulsante testo="Aggiungi una misurazione" icona="piu" onPress={nuova} />
+      <Pulsante testo={fissa ? 'Registra il peso' : 'Aggiungi una misurazione'} icona="piu" onPress={nuova} />
 
       <Sezione titolo="Storico" conteggio={n}>
         <Carta style={{ paddingVertical: spazio.uno, paddingHorizontal: spazio.tre }}>
@@ -440,4 +486,5 @@ const stili = StyleSheet.create({
   riquadroValore: { fontFamily: F.extra, fontSize: 22, letterSpacing: -0.5 },
   riga: { flexDirection: 'row', alignItems: 'center', gap: spazio.tre, paddingVertical: spazio.tre },
   rigaData: { fontFamily: F.extra, fontSize: 15.5 },
+  fissa: { flexDirection: 'row', alignItems: 'center', gap: spazio.due, borderWidth: StyleSheet.hairlineWidth, borderRadius: 16, paddingHorizontal: spazio.tre, paddingVertical: spazio.due + 2 },
 })

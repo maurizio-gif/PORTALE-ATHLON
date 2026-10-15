@@ -56,6 +56,14 @@ const ICONE = {
   cronometro: ['timer', 'timer'],
   elenco: ['list.bullet', 'format_list_bulleted'],
   bandiera: ['flag.checkered', 'sports_score'],
+  fiamma: ['flame.fill', 'local_fire_department'],
+  condividi: ['square.and.arrow.up', 'ios_share'],
+  aggiungiQuadrato: ['plus.square', 'add_box'],
+  menuPunti: ['ellipsis', 'more_vert'],
+  menuRighe: ['line.3.horizontal', 'menu'],
+  apriFuori: ['safari', 'open_in_browser'],
+  scarica: ['arrow.down.app', 'install_mobile'],
+  copia: ['doc.on.doc', 'content_copy'],
 } as const satisfies Record<string, readonly [SFSymbol, AndroidSymbol]>
 
 export type NomeIcona = keyof typeof ICONE

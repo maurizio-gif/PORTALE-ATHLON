@@ -19,7 +19,7 @@ import { Tocco } from './Tocco'
 // c'e' solo il menu (scelta dell'utente, 14/10/2026).
 
 /** Quanto spazio lasciare in fondo per la barra delle schede. */
-export const SPAZIO_BARRA = 96
+export const SPAZIO_BARRA = 84
 
 export function Schermata({
   titolo,

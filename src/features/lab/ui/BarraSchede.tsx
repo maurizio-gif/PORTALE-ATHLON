@@ -9,9 +9,12 @@ import { Icona, type NomeIcona } from './Icona'
 import { F, usePalette } from './tema'
 import { Tocco } from './Tocco'
 
-// La barra delle schede del laboratorio: una pillola di vetro che galleggia in
-// basso; dietro la scheda attiva scivola, con una molla, un tondo scuro, e la
-// sua icona si accende d'arancio. Si vede solo sulle cinque schermate principali.
+// La barra delle schede del laboratorio, agganciata al bordo in basso e larga
+// quanto lo schermo, come nelle app (15/10/2026: prima era una pillola che
+// galleggiava, e su iPhone lasciava sotto di se' una striscia di pagina). Sotto
+// le icone c'e' lo spazio dell'indicatore Home (safe area). Dietro l'icona
+// attiva scivola, con una molla, un velo arancio, e icona e nome si accendono.
+// Si vede solo sulle cinque schermate principali.
 
 const SCHEDE: { href: Href; percorso: string; titolo: string; icona: NomeIcona }[] = [
   { href: '/lab', percorso: '/lab', titolo: 'Home', icona: 'casa' },
@@ -51,19 +54,22 @@ export function BarraSchede() {
 
   if (attiva < 0) return null
   return (
-    <View pointerEvents="box-none" style={[stili.ancora, { paddingBottom: Math.max(ins.bottom, 12) }]}>
-      <View style={[stili.pillola, { borderColor: p.linea, boxShadow: p.scuro ? '0 12px 40px rgba(0,0,0,0.6)' : '0 12px 40px rgba(20,20,40,0.16)' }]}>
-        {Platform.OS === 'android' ? (
-          <View style={[StyleSheet.absoluteFill, { backgroundColor: p.vetro }]} />
-        ) : (
-          <BlurView intensity={70} tint={p.scuro ? 'dark' : 'light'} style={[StyleSheet.absoluteFill, { backgroundColor: p.vetro }]} />
-        )}
-        <View style={stili.fila} onLayout={(e) => setLarghezza(e.nativeEvent.layout.width)} accessibilityRole="tablist">
-          {passo ? <Animated.View style={[stili.cursore, { width: passo, backgroundColor: p.scuro ? '#F4F4F5' : p.carbone }, cursore]} /> : null}
+    <View style={[stili.ancora, { paddingBottom: Math.max(ins.bottom, 8), borderTopColor: p.linea, boxShadow: p.scuro ? '0 -8px 30px rgba(0,0,0,0.5)' : '0 -8px 30px rgba(20,20,40,0.08)' }]}>
+      {/* Quasi piena, come una barra d'app: trasparente prendeva il colore delle schede sotto.
+          Sull'app iOS il vetro vero; sul web (anche installata) un velo pieno con la sfocatura del browser. */}
+      {Platform.OS === 'ios' ? (
+        <BlurView intensity={80} tint={p.scuro ? 'dark' : 'light'} style={StyleSheet.absoluteFill} />
+      ) : null}
+      <View style={[StyleSheet.absoluteFill, { backgroundColor: p.scuro ? 'rgba(18,18,20,0.94)' : 'rgba(255,255,255,0.95)' }, Platform.OS === 'web' ? ({ backdropFilter: 'blur(20px)' } as object) : null]} />
+      <View style={stili.fila} onLayout={(e) => setLarghezza(e.nativeEvent.layout.width)} accessibilityRole="tablist">
+        {passo ? (
+          <Animated.View style={[stili.cursore, { width: passo }, cursore]}>
+            <View style={[stili.velo, { backgroundColor: p.scuro ? 'rgba(255,87,1,0.22)' : 'rgba(255,87,1,0.13)' }]} />
+          </Animated.View>
+        ) : null}
           {SCHEDE.map((s, i) => {
             const qui = i === attiva
             const colore = qui ? p.accento : p.testoSecondario
-            const coloreTesto = qui ? (p.scuro ? p.carbone : '#FFFFFF') : p.testoSecondario
             return (
               <Tocco
                 key={s.percorso}
@@ -77,24 +83,24 @@ export function BarraSchede() {
                 }}
                 style={stili.scheda}
               >
-                <Icona nome={s.icona} size={19} colore={colore} />
-                <Text style={[stili.testo, { color: coloreTesto, fontFamily: qui ? F.extra : F.semi }]} numberOfLines={1}>
+                <Icona nome={s.icona} size={23} colore={colore} />
+                <Text style={[stili.testo, { color: colore, fontFamily: qui ? F.extra : F.semi }]} numberOfLines={1}>
                   {s.titolo}
                 </Text>
               </Tocco>
             )
           })}
-        </View>
       </View>
     </View>
   )
 }
 
 const stili = StyleSheet.create({
-  ancora: { position: 'absolute', left: 0, right: 0, bottom: 0, alignItems: 'center', paddingHorizontal: 14 },
-  pillola: { width: '100%', maxWidth: 480, borderRadius: 28, borderWidth: StyleSheet.hairlineWidth, overflow: 'hidden', padding: 6 },
-  fila: { flexDirection: 'row' },
-  cursore: { position: 'absolute', top: 0, bottom: 0, left: 0, borderRadius: 22 },
-  scheda: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 2, paddingVertical: 8, borderRadius: 22 },
-  testo: { fontSize: 9.5, letterSpacing: -0.1 },
+  ancora: { position: 'absolute', left: 0, right: 0, bottom: 0, borderTopWidth: StyleSheet.hairlineWidth, overflow: 'hidden', paddingTop: 6 },
+  fila: { flexDirection: 'row', width: '100%', maxWidth: 560, alignSelf: 'center' },
+  // Il velo sta dietro l'icona, non dietro tutta la scheda: largo quanto basta.
+  cursore: { position: 'absolute', top: 0, bottom: 0, left: 0, alignItems: 'center' },
+  velo: { width: 58, height: 32, borderRadius: 16, marginTop: 2 },
+  scheda: { flex: 1, alignItems: 'center', justifyContent: 'flex-start', gap: 4, paddingTop: 6, paddingBottom: 4, minHeight: 56 },
+  testo: { fontSize: 11, letterSpacing: -0.1 },
 })
