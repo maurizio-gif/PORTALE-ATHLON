@@ -15,6 +15,7 @@ import { inMemoria, precarica, prendi } from './memoria'
 import { memoria as memoriaTv } from './tv/comune'
 import { Icona, type NomeIcona } from './ui/Icona'
 import { Avatar, Barra, Carta, Colonnine, Entra, Etichetta, Messaggio, Numero, Pulsante, Riga, SchedeInArrivo, Sezione, Tag } from './ui/kit'
+import { Installa } from './ui/Installa'
 import { Schermata } from './ui/Schermata'
 import { PulsanteEsci } from './ui/Uscita'
 import { F, FUOCO, MARE, NOTTE, usePalette } from './ui/tema'
@@ -484,6 +485,8 @@ export function AreaRiservata({ email }: { email: string }) {
       <Entra indice={0}>
         <Benvenuto titolare={titolare} email={email} famiglia={famiglia.length} />
       </Entra>
+
+      <Installa />
 
       <Entra indice={1}>
         <Sezione titolo="Il tuo club" destra={<Text style={{ color: p.testoTerzo, fontFamily: F.semi, fontSize: 12.5 }}>sola lettura</Text>}>

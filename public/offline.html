@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="it">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Athlon Club 4.0 · Sei offline</title>
+    <meta name="theme-color" content="#050506" />
+    <style>
+      :root { color-scheme: dark light; }
+      html, body { height: 100%; margin: 0; }
+      body {
+        display: flex; align-items: center; justify-content: center; padding: 24px; box-sizing: border-box;
+        background: #050506; color: #f4f4f5; text-align: center;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      }
+      @media (prefers-color-scheme: light) { body { background: #e4e5ea; color: #121316; } p { color: #62646b; } }
+      main { max-width: 340px; display: flex; flex-direction: column; align-items: center; gap: 14px; }
+      img { width: 72px; height: 72px; border-radius: 20px; }
+      h1 { font-size: 24px; margin: 6px 0 0; letter-spacing: -0.5px; }
+      p { margin: 0; line-height: 1.5; color: #a1a3aa; }
+      button {
+        margin-top: 8px; border: 0; border-radius: 999px; padding: 14px 26px; font-size: 16px; font-weight: 700;
+        color: #fff; background: linear-gradient(135deg, #ff8a2b, #e84300); cursor: pointer;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <img src="/logo192.png" alt="" />
+      <h1>Sei offline</h1>
+      <p>Per prenotare, vedere i tuoi workout e i pagamenti serve la connessione. Appena torna, riprova.</p>
+      <button onclick="location.reload()">Riprova</button>
+    </main>
+  </body>
+</html>

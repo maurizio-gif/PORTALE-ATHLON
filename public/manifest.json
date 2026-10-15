@@ -1,13 +1,67 @@
 {
-  "name": "Athlon Club",
-  "short_name": "Athlon",
+  "id": "/lab",
+  "name": "Athlon Club 4.0",
+  "short_name": "Athlon Club 4.0",
+  "description": "Le tue prenotazioni, i workout, i pagamenti e Athlon TV.",
   "lang": "it",
-  "start_url": "/",
+  "dir": "ltr",
+  "start_url": "/lab",
+  "scope": "/",
   "display": "standalone",
-  "background_color": "#FFFFFF",
-  "theme_color": "#FF5701",
+  "orientation": "portrait",
+  "background_color": "#000000",
+  "theme_color": "#000000",
+  "categories": [
+    "health",
+    "fitness",
+    "lifestyle"
+  ],
   "icons": [
-    { "src": "/logo192.png", "sizes": "192x192", "type": "image/png" },
-    { "src": "/logo512.png", "sizes": "512x512", "type": "image/png" }
+    {
+      "src": "/logo192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/logo512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/maskable192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/maskable512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Prenotazioni",
+      "url": "/lab/calendario",
+      "icons": [
+        {
+          "src": "/logo192.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "Workout",
+      "url": "/lab/allenamento",
+      "icons": [
+        {
+          "src": "/logo192.png",
+          "sizes": "192x192"
+        }
+      ]
+    }
   ]
 }

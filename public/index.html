@@ -3,13 +3,36 @@
   <head>
     <meta charset="utf-8" />
     <meta httpEquiv="X-UA-Compatible" content="IE=edge" />
-    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no, viewport-fit=cover" />
     <title>%WEB_TITLE%</title>
-    <!-- Web app installabile (PWA): il manifest e l'icona per la schermata Home di iOS. -->
+    <!-- Web app installabile (PWA, 15/10/2026): il manifest, le icone per la
+         schermata Home, la barra di stato a tutto schermo su iPhone (i margini
+         li tengono le schermate con le safe area) e il service worker. -->
     <link rel="manifest" href="/manifest.json" />
-    <link rel="apple-touch-icon" href="/logo192.png" />
-    <meta name="theme-color" content="#FF5701" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#050506" />
+    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#E4E5EA" />
+    <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="Athlon Club 4.0" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <script>
+      // La richiesta di installazione (Chrome, Edge, Android) arriva presto: si
+      // tiene da parte per il pulsante «Installa» della Home del laboratorio.
+      window.addEventListener('beforeinstallprompt', function (e) {
+        e.preventDefault()
+        window.__installa = e
+        window.dispatchEvent(new Event('athlon-installabile'))
+      })
+      // Il service worker solo sul sito vero: in sviluppo terrebbe i file vecchi.
+      if ('serviceWorker' in navigator && !/^(localhost|127\.0\.0\.1)$/.test(location.hostname)) {
+        window.addEventListener('load', function () {
+          navigator.serviceWorker.register('/sw.js', { scope: '/' }).catch(function (e) {
+            console.error('Service worker non registrato', e)
+          })
+        })
+      }
+    </script>
     <meta name="robots" content="noindex" />
     <!-- The `react-native-web` recommended style reset: https://necolas.github.io/react-native-web/docs/setup/#root-element -->
     <style id="expo-reset">

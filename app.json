@@ -40,10 +40,10 @@
     "web": {
       "output": "single",
       "favicon": "./assets/images/favicon.png",
-      "name": "Athlon Club",
-      "shortName": "Athlon",
+      "name": "Athlon Club 4.0",
+      "shortName": "Athlon Club 4.0",
       "themeColor": "#FF5701",
-      "backgroundColor": "#FFFFFF"
+      "backgroundColor": "#000000"
     },
     "plugins": [
       "expo-router",
