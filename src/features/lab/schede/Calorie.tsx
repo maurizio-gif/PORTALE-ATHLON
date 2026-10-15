@@ -13,14 +13,14 @@ import { Icona } from '../ui/Icona'
 import { Carta, LinkSezione, Messaggio, Pulsante } from '../ui/kit'
 import { F, usePalette } from '../ui/tema'
 import { Tocco } from '../ui/Tocco'
-import { COSTANTE_SESSO, etaDa, FATTORE_RIPOSO, MET_INTENSO, MET_MODERATO, SECONDI_PER_RIPETIZIONE, SECONDI_PREPARAZIONE, stimaScheda, type Stima } from './calorie'
+import { COSTANTE_SESSO, etaDa, FATTORE_RIPOSO, MET_INTENSO, MET_MODERATO, SECONDI_PER_RIPETIZIONE, SECONDI_PREPARAZIONE, stimaScheda, type Stima } from './stimaCalorie'
 
 // Le calorie stimate di una scheda, sotto gli esercizi: la seduta del giorno
 // scelto, la settimana, il metabolismo a riposo e il fabbisogno di massima.
 // Il foglio «Come le abbiamo calcolate» rifa' il conto coi numeri del socio.
 // Il sesso della formula lo sceglie il socio, qui, una volta (PerfectGym non
 // e' affidabile): finche' non sceglie, la stima usa la via di mezzo.
-// Il calcolo e' in calorie.ts.
+// Il calcolo e' in stimaCalorie.ts (non calorie.ts: su un disco che non distingue le maiuscole si confondeva con questo file).
 
 const intero = (n: number) => Math.round(n).toLocaleString('it-IT')
 const decimale = (n: number, d = 1) => n.toLocaleString('it-IT', { maximumFractionDigits: d, minimumFractionDigits: 0 })
