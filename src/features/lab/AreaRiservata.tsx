@@ -345,6 +345,7 @@ function Novita() {
     { titolo: 'Prenotazioni', testo: 'Le lezioni di gruppo e il personal training: posti e orari liberi, prenota e disdici, per te e per la tua famiglia.', tag: 'Lezioni e personal', icona: 'calendario', href: '/lab/calendario', colori: MARE },
     { titolo: 'Pagamenti', testo: 'I tuoi pagamenti e quelli della famiglia, i prossimi addebiti e il metodo, IBAN o carta.', tag: 'Conto e metodo', icona: 'carta', href: '/lab/pagamenti', colori: FUOCO },
     { titolo: 'Abbonamento', testo: 'Smart o Premium: scegli, leggi il contratto e firma dal telefono. Per te o, se sono minorenni, per i tuoi figli.', tag: 'Nuovo', icona: 'abbonamento', href: '/lab/abbonamento', colori: ['#F59E0B', '#B45309'] },
+    { titolo: 'I tuoi abbonamenti', testo: 'Quello in corso e quelli passati: date, addebiti, pagamenti e il contratto firmato, per te e per la famiglia.', tag: 'Date e pagamenti', icona: 'ricevuta', href: '/lab/abbonamenti', colori: ['#0EA5E9', '#0369A1'] },
     { titolo: 'Workout', testo: 'Le tue schede, il registro dei pesi col timer del recupero, i progressi. E una scheda su misura dall’agente AI.', tag: 'Nuovo', icona: 'peso', href: '/lab/allenamento', colori: ['#8B5CF6', '#5B21B6'] },
   ]
   return (

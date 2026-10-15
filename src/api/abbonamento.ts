@@ -61,12 +61,22 @@ export type Blocco =
 
 export type ConsensoContratto = { chiave: string; perfectgym_id: number; obbligatorio: boolean; preselezionato: boolean; testo: string }
 
+/** Quello che si paga e quando: oggi alla firma, poi ogni quota con la sua data. */
+export type CalendarioPagamenti = {
+  oggi: { label: string; importo: number; nota?: string }[]
+  totale_oggi: number
+  prossimi: { data: string; label: string; importo: number }[]
+  ricorrenza: { dal: string; importo: number; ogni: 'mese' | 'anno'; nota: string } | null
+  totale_impegno: number
+}
+
 export type ImportiContratto = {
   formula: Formula
   importo: number
   quota_attivazione: number
   quota_attivazione_non_dovuta: boolean
   totale_alla_firma: number
+  calendario: CalendarioPagamenti
   fine_impegno: string
   ultimo_giorno_disdetta: string
   rinnovo_dal: string
@@ -116,4 +126,51 @@ export async function esitoAbbonamento(numero: string): Promise<{ ok: true; esit
   const { ok, dati } = await abbonamento({ azione: 'esito', numero })
   if (ok) return { ok: true, esito: dati as unknown as EsitoContratto }
   return { ok: false, errore: dati.errore ?? 'Non riusciamo a verificare il contratto adesso.' }
+}
+
+/** Il riepilogo dei costi della scelta, calcolato dal server: si aggiorna a ogni cambio di piano, data o metodo. */
+export async function riepilogoAbbonamento(s: SceltaAbbonamento): Promise<{ ok: true; importi: ImportiContratto } | { ok: false; errore: string }> {
+  const { ok, dati } = await abbonamento({ azione: 'riepilogo', ...s })
+  if (ok) return { ok: true, importi: dati.importi as ImportiContratto }
+  return { ok: false, errore: dati.errore ?? 'Non riusciamo a calcolare i costi adesso.' }
+}
+
+export type AddebitoContratto = { tipo: string; descrizione: string | null; scadenza: string | null; importo: number; da_pagare: number; stato: 'pagato' | 'da_pagare' | 'annullato' }
+export type PagamentoContratto = { data: string; importo: number; rimborso: boolean }
+
+/** Un abbonamento della famiglia, in corso o passato, con le sue date, i suoi addebiti e i pagamenti ricevuti. */
+export type ContrattoElenco = {
+  contract_id: number
+  member_id: number
+  persona: string | null
+  piano: string
+  /** Lo stato di PerfectGym: Current, NotStarted, Freezed, Ended… */
+  stato: string | null
+  in_vigore: boolean
+  categoria: 'principale' | 'aggiuntivo' | 'junior'
+  data_firma: string | null
+  data_inizio: string | null
+  data_fine: string | null
+  si_rinnova: boolean
+  /** Quando e' stato disdetto, se lo e'. */
+  data_disdetta: string | null
+  canone: number | null
+  addebiti: AddebitoContratto[]
+  pagamenti: PagamentoContratto[]
+  totali: { addebitato: number; pagato: number; da_pagare: number }
+  /** Se l'ha firmato da qui: il numero e se c'e' il PDF. */
+  firmato: { numero: string; firmato_il: string; pdf: boolean } | null
+}
+
+export async function contrattiAbbonamento(): Promise<{ ok: true; contratti: ContrattoElenco[] } | { ok: false; errore: string }> {
+  const { ok, dati } = await abbonamento({ azione: 'contratti' })
+  if (ok) return { ok: true, contratti: dati.contratti as ContrattoElenco[] }
+  return { ok: false, errore: dati.errore ?? 'Non riusciamo a leggere i tuoi abbonamenti adesso.' }
+}
+
+/** Il PDF firmato: un indirizzo che vale cinque minuti. */
+export async function documentoAbbonamento(numero: string): Promise<{ ok: true; url: string } | { ok: false; errore: string }> {
+  const { ok, dati } = await abbonamento({ azione: 'documento', numero })
+  if (ok && typeof dati.url === 'string') return { ok: true, url: dati.url }
+  return { ok: false, errore: dati.errore ?? 'Non riusciamo ad aprire il documento adesso.' }
 }

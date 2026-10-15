@@ -6,10 +6,12 @@ import {
   anteprimaAbbonamento,
   esitoAbbonamento,
   firmaAbbonamento,
+  riepilogoAbbonamento,
   statoAbbonamento,
   type AnteprimaContratto,
   type Blocco,
   type EsitoContratto,
+  type ImportiContratto,
   type PersonaAbbonamento,
   type PianoAbbonamento,
   type SceltaAbbonamento,
@@ -21,6 +23,7 @@ import { euro } from '@/lib/eventi'
 import { spazio } from '@/theme'
 
 import { FirmaPad } from './FirmaPad'
+import { RiepilogoCosti } from './RiepilogoCosti'
 import { Foglio } from './ui/Foglio'
 import { Icona } from './ui/Icona'
 import { Carta, Etichetta, Messaggio, Pulsante, Sezione } from './ui/kit'
@@ -135,6 +138,9 @@ export function Abbonamento() {
   const [firmando, setFirmando] = useState(false)
   const [errorefirma, setErroreFirma] = useState<string | null>(null)
   const [numero, setNumero] = useState<string | null>(typeof contratto === 'string' ? contratto : null)
+  const [costi, setCosti] = useState<ImportiContratto | null>(null)
+  const [costiInCorso, setCostiInCorso] = useState(false)
+  const giroCosti = useRef(0)
 
   const carica = useCallback(async () => {
     const r = await statoAbbonamento()
@@ -167,6 +173,30 @@ export function Abbonamento() {
     if (stato?.metodi.conto && usaContoSalvato) return { ...base, metodo: 'conto', conto_salvato: true }
     return null
   }
+
+  // Il riepilogo dei costi si ricalcola a ogni cambio di piano, data o metodo.
+  const chiaveScelta = JSON.stringify([membro, pianoId, inizio, metodo, contoNuovo?.iban.slice(-4) ?? null, usaContoSalvato])
+  useEffect(() => {
+    const s = scelta()
+    if (!s || numero) {
+      setCosti(null)
+      return
+    }
+    const giro = ++giroCosti.current
+    setCostiInCorso(true)
+    const t = setTimeout(async () => {
+      const r = await riepilogoAbbonamento(s)
+      if (giro !== giroCosti.current) return
+      setCostiInCorso(false)
+      if (r.ok) setCosti(r.importi)
+      else {
+        setCosti(null)
+        setErrore(r.errore)
+      }
+    }, 250)
+    return () => clearTimeout(t)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [chiaveScelta, numero])
 
   async function apri() {
     const s = scelta()
@@ -375,7 +405,16 @@ export function Abbonamento() {
               )}
             </Sezione>
 
-            <Pulsante testo="Leggi e firma il contratto" icona="documento" onPress={apri} inCorso={apertura} disabilitato={!pronto} />
+            {costi ? (
+              <Sezione titolo="Riepilogo dei costi">
+                <RiepilogoCosti importi={costi} metodo={metodo} />
+              </Sezione>
+            ) : costiInCorso ? (
+              <Text style={[stili.nota, { color: p.testoSecondario }]}>Calcoliamo i costi…</Text>
+            ) : null}
+
+            <Pulsante testo="Leggi e firma il contratto" icona="documento" onPress={apri} inCorso={apertura} disabilitato={!pronto || !costi} />
+            <Pulsante testo="I miei abbonamenti" variante="fantasma" piccolo pieno={false} onPress={() => router.navigate('/lab/abbonamenti')} />
           </>
         ) : null}
       </View>
@@ -383,6 +422,7 @@ export function Abbonamento() {
       <Foglio aperto={!!anteprima} titolo="Il tuo contratto" sottotitolo="Leggilo fino in fondo, poi firma." onChiudi={() => !firmando && setAnteprima(null)}>
         {anteprima ? (
           <View style={{ gap: spazio.tre }}>
+            <RiepilogoCosti importi={anteprima.importi} metodo={metodo} />
             {anteprima.documento.blocchi.map((b, i) => (
               <BloccoDocumento key={i} b={b} />
             ))}
