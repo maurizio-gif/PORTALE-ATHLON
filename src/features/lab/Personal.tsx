@@ -6,6 +6,9 @@ import { ActivityIndicator, Linking, Platform, ScrollView, StyleSheet, Text, Vie
 
 import {
   acquistaPersonal,
+  attivaPacchettoPersonal,
+  compraSedutaPersonal,
+  esitoPacchettoPersonal,
   disdiciPersonal,
   esitoAcquistoPersonal,
   orariPersonal,
@@ -14,11 +17,14 @@ import {
   statoPersonal,
   type DaPagare,
   type EsitoAcquistoPersonal,
+  type EsitoPacchettoPersonal,
+  type PacchettoPersonal,
   type OrariPersonal,
   type SedutaPersonal,
   type StatoPersonal,
   type TrainerPersonal,
 } from '@/api/lab'
+import { Casella } from '@/components/Casella'
 import { InfoAdyen } from '@/components/InfoAdyen'
 import { euro, giornoEsteso, ora } from '@/lib/eventi'
 import { spazio } from '@/theme'
@@ -183,6 +189,150 @@ function FoglioTrainer({ t, onChiudi }: { t: TrainerPersonal | null; onChiudi: (
   )
 }
 
+/** Cosa si compra dalla sezione «Acquista»: la seduta singola o un abbonamento PT. */
+type DaComprare = { tipo: 'seduta'; prezzo: number } | { tipo: 'pacchetto'; pacchetto: PacchettoPersonal }
+
+/**
+ * Il foglio dell'acquisto. Con la carta salvata si paga senza uscire; con
+ * un'altra carta, o senza, si va sulla pagina di Adyen, che la salva. Per
+ * l'abbonamento PT prima si accettano i consensi del contratto.
+ */
+function FoglioCompra({
+  cosa,
+  stato,
+  onChiudi,
+  onSedutaPagata,
+}: {
+  cosa: DaComprare | null
+  stato: StatoPersonal
+  onChiudi: () => void
+  onSedutaPagata: () => void
+}) {
+  const p = usePalette()
+  const [accetto, setAccetto] = useState(false)
+  const [attesa, setAttesa] = useState<'carta' | 'altra' | null>(null)
+  const [errore, setErrore] = useState<string | null>(null)
+  useEffect(() => {
+    setAccetto(false)
+    setErrore(null)
+    setAttesa(null)
+  }, [cosa])
+
+  async function vai(url: string) {
+    if (Platform.OS === 'web') window.location.assign(url)
+    else await Linking.openURL(url)
+  }
+
+  async function paga(conCarta: boolean) {
+    if (!cosa) return
+    setErrore(null)
+    setAttesa(conCarta ? 'carta' : 'altra')
+    if (cosa.tipo === 'seduta') {
+      const r = await compraSedutaPersonal(stato.member_id, conCarta)
+      if (!r.ok) {
+        setAttesa(null)
+        colpetto('errore')
+        return setErrore(r.errore)
+      }
+      if (r.url) return vai(r.url)
+      setAttesa(null)
+      colpetto('ok')
+      return onSedutaPagata()
+    }
+    const r = await attivaPacchettoPersonal(stato.member_id, cosa.pacchetto.piano_id, conCarta)
+    if (!r.ok) {
+      setAttesa(null)
+      colpetto('errore')
+      return setErrore(r.errore)
+    }
+    if (r.url) return vai(r.url)
+    // Pagata con la carta salvata (o niente da pagare): si legge l'esito come al ritorno da Adyen.
+    if (Platform.OS === 'web') window.location.assign(`/lab/personal?pacchetto=${r.pacchetto_id}`)
+    else router.replace({ pathname: '/lab/personal', params: { pacchetto: r.pacchetto_id } })
+  }
+
+  const prezzo = cosa?.tipo === 'seduta' ? cosa.prezzo : cosa?.pacchetto.prezzo_mese ?? 0
+  const bloccato = cosa?.tipo === 'pacchetto' && !accetto
+  const verbo = cosa?.tipo === 'pacchetto' ? 'Attiva e paga' : 'Paga'
+  return (
+    <Foglio
+      aperto={!!cosa}
+      titolo={cosa?.tipo === 'pacchetto' ? 'Abbonamento PT' : 'Seduta singola'}
+      sottotitolo={cosa?.tipo === 'pacchetto' ? cosa.pacchetto.nome : '60 minuti con un trainer'}
+      onChiudi={onChiudi}
+    >
+      {cosa ? (
+        <View style={{ gap: spazio.tre }}>
+          <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 6 }}>
+            <Text style={[stili.prezzo, { color: p.testo }]}>{euro(prezzo)}</Text>
+            {cosa.tipo === 'pacchetto' ? <Text style={[stili.nota, { color: p.testoSecondario }]}>al mese</Text> : null}
+          </View>
+          {cosa.tipo === 'seduta' ? (
+            <Text style={[stili.voceTesto, { color: p.testo }]}>
+              Una seduta di personal da 60 minuti: resta sul tuo conto e la prenoti quando vuoi, con il trainer e l’orario che preferisci.
+            </Text>
+          ) : (
+            <View style={{ gap: 6 }}>
+              {[
+                `${cosa.pacchetto.sedute ?? 'Le'} sedute di personal ogni mese, da prenotare quando vuoi con i trainer del club.`,
+                'Si aggiunge al tuo abbonamento e si rinnova ogni mese, con un impegno di un mese.',
+                'La prima quota la paghi adesso; le altre si addebitano ogni mese sulla stessa carta.',
+              ].map((r) => (
+                <View key={r} style={stili.voce}>
+                  <View style={[stili.pallino, { backgroundColor: p.accento }]} />
+                  <Text style={[stili.voceTesto, { color: p.testo }]}>{r}</Text>
+                </View>
+              ))}
+            </View>
+          )}
+
+          {cosa.tipo === 'pacchetto' ? (
+            <View style={{ gap: spazio.due }}>
+              <Casella spuntata={accetto} onCambia={() => setAccetto((v) => !v)} etichetta="Accetto le condizioni del contratto">
+                <Text style={[stili.voceTesto, { color: p.testo }]}>
+                  {`Accetto ${stato.consensi_contratto.length ? stato.consensi_contratto.map((c) => `«${c.nome}»`).join(' e ') : 'le condizioni del contratto e del regolamento del club'}.`}
+                </Text>
+              </Casella>
+              {/* I documenti fuori dalla casella: toccarli non deve spuntarla. */}
+              {stato.consensi_contratto
+                .filter((c) => c.allegato)
+                .map((c) => (
+                  <Tocco key={c.id} ruolo="link" etichetta={`Leggi ${c.nome}`} onPress={() => vai(c.allegato!)} style={{ alignSelf: 'flex-start', paddingVertical: 6 }}>
+                    <Text style={{ color: p.accento, fontFamily: F.bold, fontSize: 14 }}>{`Leggi «${c.nome}» ›`}</Text>
+                  </Tocco>
+                ))}
+            </View>
+          ) : null}
+
+          {errore ? <Messaggio>{errore}</Messaggio> : null}
+          {stato.carta ? (
+            <>
+              <Pulsante
+                testo={`${verbo} ${euro(prezzo)} con la carta${stato.carta.finale ? ` •••• ${stato.carta.finale}` : ''}`}
+                icona="carta"
+                onPress={() => paga(true)}
+                inCorso={attesa === 'carta'}
+                disabilitato={bloccato || attesa != null}
+              />
+              <Pulsante testo="Usa un’altra carta" variante="fantasma" piccolo onPress={() => paga(false)} inCorso={attesa === 'altra'} disabilitato={bloccato || attesa != null} />
+            </>
+          ) : (
+            <Pulsante testo={`${verbo} ${euro(prezzo)}`} icona="carta" onPress={() => paga(false)} inCorso={attesa != null} disabilitato={bloccato} />
+          )}
+          <Text style={[stili.nota, { color: p.testoSecondario }]}>
+            {stato.carta ? 'La carta la custodisce ' : 'Paghi sulla pagina protetta di '}
+            <InfoAdyen />
+            {stato.carta
+              ? ': il club non vede mai il numero completo.'
+              : ', e la carta resta salvata per i prossimi acquisti.'}
+            {cosa.tipo === 'pacchetto' ? ' Per la prima quota l’importo esatto lo calcola PerfectGym al momento del pagamento.' : ''}
+          </Text>
+        </View>
+      ) : null}
+    </Foglio>
+  )
+}
+
 /** Le sedute gia' prenotate, con «Annulla» finche' mancano piu' delle ore della regola. */
 function SedutePrenotate({ sedute, ore, onAnnulla }: { sedute: SedutaPersonal[]; ore: number; onAnnulla: (s: SedutaPersonal) => Promise<string | null> }) {
   const p = usePalette()
@@ -262,6 +412,7 @@ export function Personal() {
   const [fatto, setFatto] = useState<string | null>(null)
   const riquadro = useRef<View>(null)
   const [chiE, setChiE] = useState<TrainerPersonal | null>(null)
+  const [daComprare, setDaComprare] = useState<DaComprare | null>(null)
 
   // Lo stato gia' letto si mostra subito, e intanto si rilegge.
   const chiaveStato = useRef('personal:stato:')
@@ -336,6 +487,64 @@ export function Personal() {
       fermo = true
     }
   }, [acquisto, leggi])
+
+  // Il ritorno dall'abbonamento PT (?pacchetto=<id>): come per la seduta, si
+  // chiede l'esito finche' il pagamento non e' arrivato.
+  const { pacchetto, seduta } = useLocalSearchParams<{ pacchetto?: string; seduta?: string }>()
+  const [esitoPacchetto, setEsitoPacchetto] = useState<EsitoPacchettoPersonal | { stato: 'avviato' } | null>(null)
+  const pacchettoAvviato = useRef(false)
+  useEffect(() => {
+    if (!pacchetto || pacchettoAvviato.current) return
+    pacchettoAvviato.current = true
+    let giri = 0
+    let fermo = false
+    const giro = async () => {
+      const r = await esitoPacchettoPersonal(pacchetto)
+      if (fermo) return
+      if (!r.ok) return setEsitoPacchetto({ stato: 'errore', errore: r.errore, member_id: 0, nome: 'Abbonamento PT' })
+      if (r.esito.stato === 'avviato' && ++giri < 30) {
+        setEsitoPacchetto(r.esito)
+        setTimeout(giro, 4000)
+        return
+      }
+      setEsitoPacchetto(r.esito.stato === 'avviato' ? { ...r.esito, stato: 'errore', errore: 'Non abbiamo ancora la conferma del pagamento: controlla fra qualche minuto in Pagamenti.' } : r.esito)
+      ricorda(`personal:stato:${r.esito.member_id || ''}`, undefined)
+      leggi(r.esito.member_id || undefined)
+    }
+    setEsitoPacchetto({ stato: 'avviato' })
+    giro()
+    return () => {
+      fermo = true
+    }
+  }, [pacchetto, leggi])
+
+  // Una seduta singola comprata (dalla pagina di pagamento, ?seduta=comprata, o
+  // con la carta salvata): arriva sul conto qualche secondo dopo, quindi si
+  // rilegge per un po' finche' non compare.
+  const [sedutaInArrivo, setSedutaInArrivo] = useState<'attesa' | 'arrivata' | 'non_ancora' | null>(seduta ? 'attesa' : null)
+  const quanteSedute = useRef<number | null>(null)
+  useEffect(() => {
+    if (sedutaInArrivo !== 'attesa') return
+    let giri = 0
+    let fermo = false
+    const giro = async () => {
+      ricorda(chiaveStato.current, undefined)
+      const r = await statoPersonal(stato?.member_id)
+      if (fermo) return
+      if (r.ok) {
+        setStato(r.stato)
+        const ora = r.stato.crediti.reduce((t, c) => t + c.quantita, 0)
+        if (quanteSedute.current == null) quanteSedute.current = seduta ? 0 : ora
+        if (ora > (quanteSedute.current ?? 0)) return setSedutaInArrivo('arrivata')
+      }
+      if (++giri < 12) setTimeout(giro, 4000)
+      else setSedutaInArrivo('non_ancora')
+    }
+    setTimeout(giro, seduta ? 0 : 2500)
+    return () => {
+      fermo = true
+    }
+  }, [sedutaInArrivo]) // eslint-disable-line react-hooks/exhaustive-deps
 
   if (errore && !stato) {
     return (
@@ -484,6 +693,42 @@ export function Personal() {
     <Schermata larga sopratitolo="Laboratorio" titolo="Prenotazioni">
       <SceltaPrenotazioni attiva="personal" />
 
+      {esitoPacchetto ? (
+        esitoPacchetto.stato === 'avviato' ? (
+          <Messaggio tono="attenzione" icona="clessidra" titolo="Aspettiamo la conferma">
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: spazio.due }}>
+              <ActivityIndicator color={p.attenzione} />
+              <Text style={[stili.nota, { color: p.testo, flex: 1 }]}>Aspettiamo da PerfectGym la conferma del pagamento dell’abbonamento PT. Non chiudere la pagina.</Text>
+            </View>
+          </Messaggio>
+        ) : esitoPacchetto.stato === 'pagato' ? (
+          <Messaggio tono="ok" titolo="Abbonamento PT attivo">
+            {`«${esitoPacchetto.nome}» è attivo. Le sedute del mese compaiono in «Le tue sedute» appena PerfectGym le carica.`}
+          </Messaggio>
+        ) : (
+          <Messaggio tono="attenzione" titolo="Il pagamento non è andato a buon fine">
+            {esitoPacchetto.errore ?? 'Non abbiamo la conferma del pagamento.'}
+          </Messaggio>
+        )
+      ) : null}
+
+      {sedutaInArrivo === 'attesa' ? (
+        <Messaggio tono="attenzione" icona="clessidra" titolo="Aspettiamo la conferma">
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: spazio.due }}>
+            <ActivityIndicator color={p.attenzione} />
+            <Text style={[stili.nota, { color: p.testo, flex: 1 }]}>La seduta arriva sul tuo conto appena PerfectGym conferma il pagamento.</Text>
+          </View>
+        </Messaggio>
+      ) : sedutaInArrivo === 'arrivata' ? (
+        <Messaggio tono="ok" titolo="Seduta acquistata">
+          La trovi in «Le tue sedute»: scegli giorno, orario e trainer qui sotto.
+        </Messaggio>
+      ) : sedutaInArrivo === 'non_ancora' ? (
+        <Messaggio tono="attenzione" titolo="La seduta non è ancora arrivata">
+          Se il pagamento è andato a buon fine compare fra poco in «Le tue sedute»; altrimenti lo trovi in Pagamenti.
+        </Messaggio>
+      ) : null}
+
       {ritorno ? (
         ritorno.stato === 'avviato' ? (
           <Messaggio tono="attenzione" icona="clessidra" titolo="Aspettiamo la conferma">
@@ -578,6 +823,45 @@ export function Personal() {
           <Messaggio tono="attenzione">Non hai sedute di personal da usare, e la seduta non si può acquistare online: chiedi al club.</Messaggio>
         )}
       </Sezione>
+
+      {stato.acquisto?.prodotto.prezzo != null || stato.pacchetti.length || stato.pacchetto_attivo ? (
+        <Sezione titolo="Acquista">
+          <Carta style={{ paddingVertical: spazio.due }}>
+            {stato.acquisto?.prodotto.prezzo != null ? (
+              <Riga
+                prima
+                icona="carta"
+                tono="neutro"
+                titolo={`Compra una seduta · ${euro(stato.acquisto.prodotto.prezzo)}`}
+                sotto="La tieni sul conto e la prenoti quando vuoi"
+                onPress={() => setDaComprare({ tipo: 'seduta', prezzo: stato.acquisto!.prodotto.prezzo! })}
+                coda={<Icona nome="avanti" size={18} colore={p.testoTerzo} />}
+              />
+            ) : null}
+            {stato.pacchetti.map((k, i) => (
+              <Riga
+                key={k.piano_id}
+                prima={i === 0 && stato.acquisto?.prodotto.prezzo == null}
+                icona="rinnovo"
+                tono="accento"
+                titolo={`Abbonamento PT · ${k.sedute ?? ''} sedute al mese`}
+                sotto={`${euro(k.prezzo_mese)} al mese, si aggiunge al tuo abbonamento`}
+                onPress={() => setDaComprare({ tipo: 'pacchetto', pacchetto: k })}
+                coda={<Icona nome="avanti" size={18} colore={p.testoTerzo} />}
+              />
+            ))}
+            {stato.pacchetto_attivo ? (
+              <Text style={[stili.nota, { color: p.testoSecondario, paddingTop: spazio.due }]}>
+                {`Hai già l’abbonamento PT «${stato.pacchetto_attivo}»: le sedute del mese le trovi qui sopra.`}
+              </Text>
+            ) : !stato.pacchetti.length ? (
+              <Text style={[stili.nota, { color: p.testoSecondario, paddingTop: spazio.due }]}>
+                L’abbonamento PT mensile si aggiunge a un abbonamento attivo.
+              </Text>
+            ) : null}
+          </Carta>
+        </Sezione>
+      ) : null}
 
       {opzione ? (
         <Sezione titolo="Scegli giorno e orario">
@@ -829,6 +1113,16 @@ export function Personal() {
       ) : null}
 
       <FoglioTrainer t={chiE} onChiudi={() => setChiE(null)} />
+      <FoglioCompra
+        cosa={daComprare}
+        stato={stato}
+        onChiudi={() => setDaComprare(null)}
+        onSedutaPagata={() => {
+          setDaComprare(null)
+          quanteSedute.current = stato.crediti.reduce((t, c) => t + c.quantita, 0)
+          setSedutaInArrivo('attesa')
+        }}
+      />
     </Schermata>
   )
 }
@@ -858,6 +1152,7 @@ const stili = StyleSheet.create({
   sceltaTrainer: { flexDirection: 'row', alignItems: 'center', gap: spazio.due, borderRadius: 20, borderWidth: 1.5, paddingRight: spazio.due + 2 },
   sceltaTocco: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: spazio.tre, padding: spazio.due + 2 },
   fotoGrande: { width: '100%', aspectRatio: 1, maxHeight: 360, borderRadius: 24 },
+  prezzo: { fontFamily: F.extra, fontSize: 30 },
   info: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
   frase: { fontFamily: F.semi, fontSize: 16, lineHeight: 23, fontStyle: 'italic', borderLeftWidth: 3, paddingLeft: spazio.tre },
   voce: { flexDirection: 'row', gap: spazio.due, alignItems: 'flex-start' },

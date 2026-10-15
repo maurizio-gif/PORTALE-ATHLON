@@ -269,7 +269,17 @@ export type StatoPersonal = {
   prenotate: SedutaPersonal[]
   trainer: TrainerPersonal[]
   disdetta_ore: number
+  /** La carta salvata su PerfectGym, per pagare senza uscire. */
+  carta: CartaSalvata | null
+  /** L'abbonamento aggiuntivo PT in vendita: solo a chi ha un abbonamento attivo e non ne ha gia' uno PT. */
+  pacchetti: PacchettoPersonal[]
+  /** Il nome dell'abbonamento PT che la persona ha gia', se ce l'ha. */
+  pacchetto_attivo: string | null
+  /** I consensi del contratto da accettare per attivarlo. */
+  consensi_contratto: { id: number; nome: string; allegato: string | null }[]
 }
+
+export type PacchettoPersonal = { piano_id: number; nome: string; sedute: number | null; prezzo_mese: number }
 
 export async function statoPersonal(memberId?: number): Promise<Esito<{ stato: StatoPersonal }>> {
   const { ok, dati } = await personal({ azione: 'stato', member_id: memberId })
@@ -327,6 +337,34 @@ export type EsitoAcquistoPersonal = { stato: 'avviato' | 'prenotato' | 'errore';
 export async function esitoAcquistoPersonal(acquistoId: string): Promise<{ ok: true; esito: EsitoAcquistoPersonal } | { ok: false; errore: string }> {
   const { ok, dati } = await personal({ azione: 'esito_acquisto', acquisto_id: acquistoId })
   if (ok) return { ok: true, esito: dati as unknown as EsitoAcquistoPersonal }
+  return { ok: false, errore: dati.errore ?? 'Non riusciamo a verificare il pagamento adesso.' }
+}
+
+/** La seduta singola senza orario: con la carta salvata si paga subito, senza si apre la pagina di pagamento. */
+export async function compraSedutaPersonal(memberId: number, conCarta: boolean): Promise<{ ok: true; url: string | null } | { ok: false; errore: string }> {
+  const { ok, dati } = await personal({ azione: 'compra_seduta', member_id: memberId, con_carta: conCarta })
+  if (ok) return { ok: true, url: typeof dati.url === 'string' ? dati.url : null }
+  return { ok: false, errore: dati.errore ?? 'Non riusciamo ad aprire il pagamento adesso.' }
+}
+
+/** L'abbonamento aggiuntivo PT: il contratto e la prima quota. */
+export async function attivaPacchettoPersonal(
+  memberId: number,
+  pianoId: number,
+  conCarta: boolean,
+): Promise<{ ok: true; pacchetto_id: string; url: string | null; stato: 'avviato' | 'pagato' } | { ok: false; errore: string }> {
+  const { ok, dati } = await personal({ azione: 'pacchetto', member_id: memberId, piano_id: pianoId, accetto: true, con_carta: conCarta })
+  if (ok && dati.pacchetto_id) {
+    return { ok: true, pacchetto_id: String(dati.pacchetto_id), url: typeof dati.url === 'string' ? dati.url : null, stato: dati.stato === 'pagato' ? 'pagato' : 'avviato' }
+  }
+  return { ok: false, errore: dati.errore ?? 'Non riusciamo ad attivare l’abbonamento adesso.' }
+}
+
+export type EsitoPacchettoPersonal = { stato: 'avviato' | 'pagato' | 'errore'; errore: string | null; member_id: number; nome: string }
+
+export async function esitoPacchettoPersonal(pacchettoId: string): Promise<{ ok: true; esito: EsitoPacchettoPersonal } | { ok: false; errore: string }> {
+  const { ok, dati } = await personal({ azione: 'esito_pacchetto', pacchetto_id: pacchettoId })
+  if (ok) return { ok: true, esito: dati as unknown as EsitoPacchettoPersonal }
   return { ok: false, errore: dati.errore ?? 'Non riusciamo a verificare il pagamento adesso.' }
 }
 
