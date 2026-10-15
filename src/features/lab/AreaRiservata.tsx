@@ -183,10 +183,9 @@ function Benvenuto({ titolare, email, famiglia }: { titolare: PersonaArea | unde
     <Tocco onPress={() => router.push('/lab/profilo')} ruolo="link" etichetta="Il mio profilo: anagrafica e contatti" scala={0.985}>
     <LinearGradient colors={NOTTE} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={stili.benvenuto}>
       <View style={stili.bagliore} />
-      <Image source={require('@/../assets/images/pittogramma.png')} style={stili.filigrana} contentFit="contain" />
       <View style={[stili.data, { justifyContent: 'space-between' }]}>
-        <View style={stili.data}>
-          <Icona nome="calendario" size={14} colore="rgba(255,255,255,0.6)" />
+        <View style={[stili.data, { gap: 10 }]}>
+          <Avatar nome={titolare?.nome ?? email} cognome={titolare?.cognome} size={38} anello="rgba(255,255,255,0.18)" />
           <Text style={stili.dataTesto}>{oggi().toUpperCase()}</Text>
         </View>
         <View style={stili.profilo}>
@@ -196,7 +195,6 @@ function Benvenuto({ titolare, email, famiglia }: { titolare: PersonaArea | unde
         </View>
       </View>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: spazio.tre }}>
-        <Avatar nome={titolare?.nome ?? email} cognome={titolare?.cognome} size={60} anello="rgba(255,255,255,0.18)" />
         <View style={{ flex: 1, gap: 6 }}>
           <Text style={stili.ciao} numberOfLines={2}>
             Ciao, {titolare?.nome || 'tester'}!
@@ -212,6 +210,8 @@ function Benvenuto({ titolare, email, famiglia }: { titolare: PersonaArea | unde
             </View>
           </View>
         </View>
+        {/* Il marchio, arancio pieno e grande come nell'app di prima (15/10/2026): era una filigrana al 6%. */}
+        <Image source={require('@/../assets/images/pittogramma.png')} style={stili.marchio} contentFit="contain" accessibilityLabel="Athlon Club" />
       </View>
       <Text style={stili.contatti} numberOfLines={2}>
         {[titolare?.email || email, titolare?.telefono].filter(Boolean).join('  ·  ')}
@@ -564,7 +564,7 @@ export function AreaRiservata({ email }: { email: string }) {
 const stili = StyleSheet.create({
   benvenuto: { borderRadius: 32, padding: spazio.quattro - 2, gap: spazio.tre + 2, overflow: 'hidden' },
   bagliore: { position: 'absolute', width: 260, height: 260, borderRadius: 130, right: -90, top: -110, backgroundColor: '#FF5701', opacity: 0.28, filter: 'blur(50px)' } as object,
-  filigrana: { position: 'absolute', right: -20, bottom: -26, width: 170, height: 140, opacity: 0.06, tintColor: '#fff' } as object,
+  marchio: { width: 104, height: 84 },
   data: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   profilo: { flexDirection: 'row', alignItems: 'center', gap: 5, borderRadius: 999, paddingLeft: 10, paddingRight: 8, paddingVertical: 6, backgroundColor: 'rgba(255,255,255,0.12)' },
   profiloTesto: { color: '#fff', fontFamily: F.extra, fontSize: 12 },
