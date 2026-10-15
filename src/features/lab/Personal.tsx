@@ -374,6 +374,9 @@ export function Personal() {
   }
   // I trainer con almeno un orario libero nei 14 giorni.
   const conOrari = [...new Set((orari?.orari ?? []).map((o) => o.trainer_id))].sort((a, b) => (nomeTrainer.get(a) ?? '').localeCompare(nomeTrainer.get(b) ?? '', 'it'))
+  // Si mostrano solo i trainer con disponibilita' reale a calendario: chi non ne ha
+  // non e' detto che non lavori piu', ma da qui non si prenota, quindi non si mostra.
+  const disponibili = conOrari.map((id) => trainerDi.get(id)).filter((t): t is TrainerPersonal => !!t)
   const sceltoQui = scelto ? perOra.get(scelto.locale) ?? null : null
   const conChi = trainer ?? (sceltoQui?.trainer.length === 1 ? sceltoQui.trainer[0] : null)
 
@@ -778,10 +781,10 @@ export function Personal() {
         </Sezione>
       ) : null}
 
-      {stato.trainer.length ? (
-        <Sezione titolo="I trainer" conteggio={stato.trainer.length}>
+      {disponibili.length ? (
+        <Sezione titolo="I trainer" conteggio={disponibili.length}>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={stili.fila} style={stili.fuori}>
-            {stato.trainer.map((t) => (
+            {disponibili.map((t) => (
               <Tocco key={t.id} onPress={() => setChiE(t)} etichetta={`Chi è ${t.nome}`} scala={0.97} style={[stili.vetrina, { backgroundColor: p.carta, borderColor: p.linea }]}>
                 {t.foto ? (
                   <Image source={{ uri: t.foto }} contentFit="cover" contentPosition="top" transition={150} style={[stili.vetrinaFoto, { backgroundColor: p.incavo }]} />
