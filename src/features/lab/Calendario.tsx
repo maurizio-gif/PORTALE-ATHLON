@@ -29,6 +29,7 @@ import { FoglioLezione } from './ui/FoglioLezione'
 import { Icona } from './ui/Icona'
 import { Avatar, Barra, Carta, Entra, Etichetta, Messaggio, Pulsante, Riga, SchedeInArrivo, Sezione, Tag } from './ui/kit'
 import { Schermata, SPAZIO_BARRA } from './ui/Schermata'
+import { SceltaPrenotazioni } from './ui/SceltaPrenotazioni'
 import { F, FUOCO, NOTTE, usePalette, velo } from './ui/tema'
 import { colpetto, Tocco } from './ui/Tocco'
 
@@ -777,6 +778,7 @@ export function Calendario() {
   if (errore && !giorno) {
     return (
       <Schermata sopratitolo="Laboratorio" titolo="Prenotazioni">
+        <SceltaPrenotazioni attiva="lezioni" />
         <Messaggio>{errore}</Messaggio>
         <Pulsante testo="Riprova" icona="aggiorna" onPress={() => leggi()} />
       </Schermata>
@@ -785,6 +787,7 @@ export function Calendario() {
   if (!giorno) {
     return (
       <Schermata sopratitolo="Laboratorio" titolo="Prenotazioni">
+        <SceltaPrenotazioni attiva="lezioni" />
         <SchedeInArrivo />
       </Schermata>
     )
@@ -807,6 +810,8 @@ export function Calendario() {
   const schedaAperta = aperta?.scheda ? giorno.schede?.[aperta.scheda] ?? null : null
   return (
     <Schermata larga sopratitolo="Laboratorio" titolo="Prenotazioni" scorrimento={scorrimento}>
+      <SceltaPrenotazioni attiva="lezioni" />
+
       {ritorno ? (
         ritorno.stato === 'avviato' ? (
           <Messaggio tono="attenzione" icona="clessidra" titolo="Aspettiamo la conferma">

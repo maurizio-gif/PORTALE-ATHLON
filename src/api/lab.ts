@@ -233,6 +233,94 @@ export async function disdiciLezione(classId: number, memberId: number): Promise
 }
 
 // ---------------------------------------------------------------------------
+// Il personal training (15/10/2026): le sedute che la persona ha, gli orari
+// liberi dei trainer e la prenotazione vera su PerfectGym (portale-lab-personal).
+// Come le lezioni: la seduta si scala alla prenotazione, e chi non ne ha la
+// compra (salva e paga) e al ritorno si prenota l'orario scelto.
+
+const personal = (corpo: Record<string, unknown>) => funzione('portale-lab-personal', corpo)
+
+/** Le sedute che la persona ha da usare, per tipo (il pacchetto del mese, un omaggio, una seduta comprata). */
+export type CreditoPersonal = { definition_id: number; nome: string; minuti: number; product_id: number; quantita: number; scadenza: string | null }
+/** La seduta singola che PerfectGym le vende (da socio o per esterni). */
+export type AcquistoPersonal = { definition_id: number; nome: string; minuti: number; prodotto: ProdottoLezione }
+export type SedutaPersonal = { booking_id: number; definition_id: number; nome: string; inizio: string; fine: string; trainer_id: number; trainer: string | null; completata: boolean }
+export type TrainerPersonal = { id: number; nome: string }
+
+export type StatoPersonal = {
+  persone: PersonaCalendario[]
+  member_id: number
+  /** Falso se PerfectGym non ha risposto: sedute e prenotazioni potrebbero mancare. */
+  letti: boolean
+  crediti: CreditoPersonal[]
+  acquisto: AcquistoPersonal | null
+  prenotate: SedutaPersonal[]
+  trainer: TrainerPersonal[]
+  disdetta_ore: number
+}
+
+export async function statoPersonal(memberId?: number): Promise<Esito<{ stato: StatoPersonal }>> {
+  const { ok, dati } = await personal({ azione: 'stato', member_id: memberId })
+  if (ok) return { ok: true, stato: dati as unknown as StatoPersonal }
+  return { ok: false, errore: dati.errore ?? 'Non riusciamo a leggere il personal training adesso.' }
+}
+
+/** Un orario libero: l'istante, l'ora di Roma come la scrive PerfectGym (da rimandare), e il trainer. */
+export type OrarioPersonal = { inizio: string; locale: string; trainer_id: number }
+export type OrariPersonal = { definition_id: number; minuti: number; giorni: string[]; trainer: TrainerPersonal[]; orari: OrarioPersonal[]; incompleti: boolean }
+
+export async function orariPersonal(memberId: number, definitionId: number): Promise<Esito<{ orari: OrariPersonal }>> {
+  const { ok, dati } = await personal({ azione: 'orari', member_id: memberId, definition_id: definitionId })
+  if (ok) return { ok: true, orari: dati as unknown as OrariPersonal }
+  return { ok: false, errore: dati.errore ?? 'Non riusciamo a leggere gli orari dei trainer adesso.' }
+}
+
+export type ScelteSeduta = { member_id: number; definition_id: number; trainer_id: number; locale: string }
+
+export async function prenotaPersonal(s: ScelteSeduta): Promise<{ ok: true; booking_id: number } | ({ ok: false; errore: string } & Partial<DaPagare>)> {
+  const { ok, dati } = await personal({ azione: 'prenota', ...s })
+  if (ok) return { ok: true, booking_id: Number(dati.booking_id ?? 0) }
+  if (dati.da_pagare && dati.prodotto) {
+    return {
+      ok: false,
+      errore: dati.errore ?? 'Non hai sedute da usare.',
+      prodotto: dati.prodotto,
+      url: typeof dati.url === 'string' ? dati.url : undefined,
+      acquisto_id: typeof dati.acquisto_id === 'string' ? dati.acquisto_id : undefined,
+      carta: dati.carta ?? null,
+    }
+  }
+  return { ok: false, errore: dati.errore ?? 'Non siamo riusciti a prenotare adesso.' }
+}
+
+/** Il link di pagamento della seduta; dopo il pagamento si torna a /lab/personal?acquisto=<id>. */
+export async function acquistaPersonal(s: Omit<ScelteSeduta, 'definition_id'>): Promise<{ ok: true; url: string; acquisto_id: string } | { ok: false; errore: string }> {
+  const { ok, dati } = await personal({ azione: 'acquista', ...s })
+  if (ok && typeof dati.url === 'string') return { ok: true, url: dati.url, acquisto_id: String(dati.acquisto_id ?? '') }
+  return { ok: false, errore: dati.errore ?? 'Non riusciamo ad aprire il pagamento adesso.' }
+}
+
+export async function pagaPersonalConCarta(acquistoId: string): Promise<{ ok: true } | { ok: false; errore: string }> {
+  const { ok, dati } = await personal({ azione: 'paga_con_carta', acquisto_id: acquistoId })
+  if (ok) return { ok: true }
+  return { ok: false, errore: dati.errore ?? 'La carta non è stata addebitata.' }
+}
+
+export type EsitoAcquistoPersonal = { stato: 'avviato' | 'prenotato' | 'errore'; errore: string | null; member_id: number; inizio: string | null; trainer: string | null }
+
+export async function esitoAcquistoPersonal(acquistoId: string): Promise<{ ok: true; esito: EsitoAcquistoPersonal } | { ok: false; errore: string }> {
+  const { ok, dati } = await personal({ azione: 'esito_acquisto', acquisto_id: acquistoId })
+  if (ok) return { ok: true, esito: dati as unknown as EsitoAcquistoPersonal }
+  return { ok: false, errore: dati.errore ?? 'Non riusciamo a verificare il pagamento adesso.' }
+}
+
+export async function disdiciPersonal(memberId: number, bookingId: number): Promise<{ ok: true } | { ok: false; errore: string }> {
+  const { ok, dati } = await personal({ azione: 'disdici', member_id: memberId, booking_id: bookingId })
+  if (ok) return { ok: true }
+  return { ok: false, errore: dati.errore ?? 'Non siamo riusciti a disdire adesso.' }
+}
+
+// ---------------------------------------------------------------------------
 // I pagamenti (tappa 4b): Adyen diretto, soldi veri, tetto di 5 euro. Il lavoro
 // con Adyen lo fa `lab-pagamenti` nel CRM; `portale-lab-pagamenti` controlla
 // solo chi chiama e che l'abbonamento sia suo.
