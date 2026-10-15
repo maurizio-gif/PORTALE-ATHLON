@@ -277,7 +277,17 @@ export type StatoPersonal = {
   pacchetto_attivo: string | null
   /** I consensi del contratto da accettare per attivarlo. */
   consensi_contratto: { id: number; nome: string; allegato: string | null }[]
+  /** Il conto (IBAN) salvato su PerfectGym, per attivare l'abbonamento PT con l'addebito SEPA. Solo se ci sono pacchetti in vendita. */
+  conto?: ContoSalvato | null
 }
+
+export type ContoSalvato = { id: number; finale: string | null }
+
+/** Come si paga l'abbonamento PT: la carta (salvata o no), o il conto (salvato, o un IBAN nuovo col suo mandato). */
+export type MetodoPacchetto =
+  | { metodo: 'carta'; con_carta: boolean }
+  | { metodo: 'conto'; conto_salvato: true }
+  | { metodo: 'conto'; iban: string; intestatario: string; via: string; cap: string; citta: string }
 
 export type PacchettoPersonal = { piano_id: number; nome: string; sedute: number | null; prezzo_mese: number }
 
@@ -347,20 +357,21 @@ export async function compraSedutaPersonal(memberId: number, conCarta: boolean):
   return { ok: false, errore: dati.errore ?? 'Non riusciamo ad aprire il pagamento adesso.' }
 }
 
-/** L'abbonamento aggiuntivo PT: il contratto e la prima quota. */
+/** L'abbonamento aggiuntivo PT: il contratto e la prima quota (con la carta), o il contratto sul conto (addebito SEPA). */
 export async function attivaPacchettoPersonal(
   memberId: number,
   pianoId: number,
-  conCarta: boolean,
-): Promise<{ ok: true; pacchetto_id: string; url: string | null; stato: 'avviato' | 'pagato' } | { ok: false; errore: string }> {
-  const { ok, dati } = await personal({ azione: 'pacchetto', member_id: memberId, piano_id: pianoId, accetto: true, con_carta: conCarta })
+  metodo: MetodoPacchetto,
+): Promise<{ ok: true; pacchetto_id: string; url: string | null; stato: 'avviato' | 'pagato' | 'addebito' } | { ok: false; errore: string }> {
+  const { ok, dati } = await personal({ azione: 'pacchetto', member_id: memberId, piano_id: pianoId, accetto: true, ...metodo })
   if (ok && dati.pacchetto_id) {
-    return { ok: true, pacchetto_id: String(dati.pacchetto_id), url: typeof dati.url === 'string' ? dati.url : null, stato: dati.stato === 'pagato' ? 'pagato' : 'avviato' }
+    const stato = dati.stato === 'pagato' || dati.stato === 'addebito' ? dati.stato : 'avviato'
+    return { ok: true, pacchetto_id: String(dati.pacchetto_id), url: typeof dati.url === 'string' ? dati.url : null, stato }
   }
   return { ok: false, errore: dati.errore ?? 'Non riusciamo ad attivare l’abbonamento adesso.' }
 }
 
-export type EsitoPacchettoPersonal = { stato: 'avviato' | 'pagato' | 'errore'; errore: string | null; member_id: number; nome: string }
+export type EsitoPacchettoPersonal = { stato: 'avviato' | 'pagato' | 'addebito' | 'errore'; errore: string | null; member_id: number; nome: string }
 
 export async function esitoPacchettoPersonal(pacchettoId: string): Promise<{ ok: true; esito: EsitoPacchettoPersonal } | { ok: false; errore: string }> {
   const { ok, dati } = await personal({ azione: 'esito_pacchetto', pacchetto_id: pacchettoId })

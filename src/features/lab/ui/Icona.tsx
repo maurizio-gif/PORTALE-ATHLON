@@ -9,6 +9,7 @@ const ICONE = {
   casa: ['house.fill', 'home'],
   calendario: ['calendar', 'calendar_month'],
   carta: ['creditcard.fill', 'credit_card'],
+  banca: ['building.columns.fill', 'account_balance'],
   pass: ['ticket.fill', 'confirmation_number'],
   esci: ['rectangle.portrait.and.arrow.right', 'logout'],
   persona: ['person.fill', 'person'],

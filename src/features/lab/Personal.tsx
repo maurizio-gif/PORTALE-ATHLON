@@ -26,6 +26,7 @@ import {
 } from '@/api/lab'
 import { Casella } from '@/components/Casella'
 import { InfoAdyen } from '@/components/InfoAdyen'
+import { ModuloIban, type DatiConto } from '@/features/metodo-pagamento/ModuloIban'
 import { euro, giornoEsteso, ora } from '@/lib/eventi'
 import { spazio } from '@/theme'
 
@@ -195,7 +196,9 @@ type DaComprare = { tipo: 'seduta'; prezzo: number } | { tipo: 'pacchetto'; pacc
 /**
  * Il foglio dell'acquisto. Con la carta salvata si paga senza uscire; con
  * un'altra carta, o senza, si va sulla pagina di Adyen, che la salva. Per
- * l'abbonamento PT prima si accettano i consensi del contratto.
+ * l'abbonamento PT prima si accettano i consensi del contratto, e si sceglie
+ * se pagarlo con la carta o sul conto corrente (addebito SEPA): col conto non
+ * si paga niente adesso, le quote le addebita il club.
  */
 function FoglioCompra({
   cosa,
@@ -210,13 +213,46 @@ function FoglioCompra({
 }) {
   const p = usePalette()
   const [accetto, setAccetto] = useState(false)
-  const [attesa, setAttesa] = useState<'carta' | 'altra' | null>(null)
+  const [attesa, setAttesa] = useState<'carta' | 'altra' | 'conto' | null>(null)
   const [errore, setErrore] = useState<string | null>(null)
+  const [metodo, setMetodo] = useState<'carta' | 'conto'>('carta')
+  /** Sul conto: il modulo dell'IBAN nuovo, invece del conto salvato. */
+  const [nuovoConto, setNuovoConto] = useState(false)
   useEffect(() => {
     setAccetto(false)
     setErrore(null)
     setAttesa(null)
+    setMetodo('carta')
+    setNuovoConto(false)
   }, [cosa])
+  const persona = stato.persone.find((x) => x.member_id === stato.member_id)
+
+  /** Dopo l'attivazione si legge l'esito come al ritorno da Adyen. */
+  function aEsito(id: string) {
+    if (Platform.OS === 'web') window.location.assign(`/lab/personal?pacchetto=${id}`)
+    else router.replace({ pathname: '/lab/personal', params: { pacchetto: id } })
+  }
+
+  /** Sul conto: quello salvato, o un IBAN nuovo dal modulo. Restituisce l'errore da mostrare. */
+  async function attivaSulConto(d: DatiConto | null): Promise<string | null> {
+    if (cosa?.tipo !== 'pacchetto') return null
+    if (!accetto) return 'Per attivare l’abbonamento servono i consensi del contratto.'
+    setErrore(null)
+    setAttesa('conto')
+    const r = await attivaPacchettoPersonal(
+      stato.member_id,
+      cosa.pacchetto.piano_id,
+      d ? { metodo: 'conto', iban: d.iban, intestatario: d.intestatario, via: d.via, cap: d.cap, citta: d.citta } : { metodo: 'conto', conto_salvato: true },
+    )
+    if (!r.ok) {
+      setAttesa(null)
+      colpetto('errore')
+      return r.errore
+    }
+    colpetto('ok')
+    aEsito(r.pacchetto_id)
+    return null
+  }
 
   async function vai(url: string) {
     if (Platform.OS === 'web') window.location.assign(url)
@@ -239,21 +275,21 @@ function FoglioCompra({
       colpetto('ok')
       return onSedutaPagata()
     }
-    const r = await attivaPacchettoPersonal(stato.member_id, cosa.pacchetto.piano_id, conCarta)
+    const r = await attivaPacchettoPersonal(stato.member_id, cosa.pacchetto.piano_id, { metodo: 'carta', con_carta: conCarta })
     if (!r.ok) {
       setAttesa(null)
       colpetto('errore')
       return setErrore(r.errore)
     }
     if (r.url) return vai(r.url)
-    // Pagata con la carta salvata (o niente da pagare): si legge l'esito come al ritorno da Adyen.
-    if (Platform.OS === 'web') window.location.assign(`/lab/personal?pacchetto=${r.pacchetto_id}`)
-    else router.replace({ pathname: '/lab/personal', params: { pacchetto: r.pacchetto_id } })
+    // Pagata con la carta salvata (o niente da pagare).
+    aEsito(r.pacchetto_id)
   }
 
   const prezzo = cosa?.tipo === 'seduta' ? cosa.prezzo : cosa?.pacchetto.prezzo_mese ?? 0
   const bloccato = cosa?.tipo === 'pacchetto' && !accetto
   const verbo = cosa?.tipo === 'pacchetto' ? 'Attiva e paga' : 'Paga'
+  const sulConto = cosa?.tipo === 'pacchetto' && metodo === 'conto'
   return (
     <Foglio
       aperto={!!cosa}
@@ -276,7 +312,9 @@ function FoglioCompra({
               {[
                 `${cosa.pacchetto.sedute ?? 'Le'} sedute di personal ogni mese, da prenotare quando vuoi con i trainer del club.`,
                 'Si aggiunge al tuo abbonamento e si rinnova ogni mese, con un impegno di un mese.',
-                'La prima quota la paghi adesso; le altre si addebitano ogni mese sulla stessa carta.',
+                sulConto
+                  ? 'Le quote, la prima compresa, si addebitano ogni mese sul conto corrente, con l’addebito diretto SEPA.'
+                  : 'La prima quota la paghi adesso; le altre si addebitano ogni mese sulla stessa carta.',
               ].map((r) => (
                 <View key={r} style={stili.voce}>
                   <View style={[stili.pallino, { backgroundColor: p.accento }]} />
@@ -304,8 +342,74 @@ function FoglioCompra({
             </View>
           ) : null}
 
+          {cosa.tipo === 'pacchetto' ? (
+            <View style={{ gap: spazio.due }}>
+              <Text style={[stili.nota, { color: p.testoSecondario, fontFamily: F.bold }]}>Come vuoi pagarlo?</Text>
+              <View style={{ flexDirection: 'row', gap: spazio.due }}>
+                {(
+                  [
+                    ['carta', 'Carta', 'carta'],
+                    ['conto', 'Conto corrente', 'banca'],
+                  ] as const
+                ).map(([chiave, nome, icona]) => {
+                  const attivo = metodo === chiave
+                  return (
+                    <Tocco
+                      key={chiave}
+                      vibra="scelta"
+                      stato={{ selected: attivo }}
+                      etichetta={`Paga con ${nome.toLowerCase()}`}
+                      spento={attesa != null}
+                      onPress={() => {
+                        setMetodo(chiave)
+                        setErrore(null)
+                      }}
+                      style={[stili.filtro, { flex: 1, justifyContent: 'center' }, attivo ? { backgroundColor: p.accento, borderColor: p.accento } : { backgroundColor: p.carta, borderColor: p.linea }]}
+                    >
+                      <Icona nome={icona} size={18} colore={attivo ? '#fff' : p.testoSecondario} />
+                      <Text style={{ color: attivo ? '#fff' : p.testo, fontFamily: attivo ? F.extra : F.semi, fontSize: 14 }}>{nome}</Text>
+                    </Tocco>
+                  )
+                })}
+              </View>
+            </View>
+          ) : null}
+
           {errore ? <Messaggio>{errore}</Messaggio> : null}
-          {stato.carta ? (
+          {sulConto ? (
+            stato.conto && !nuovoConto ? (
+              <>
+                <Pulsante
+                  testo={`Attiva con il conto${stato.conto.finale ? ` •••• ${stato.conto.finale}` : ''}`}
+                  icona="banca"
+                  onPress={async () => {
+                    const e = await attivaSulConto(null)
+                    if (e) setErrore(e)
+                  }}
+                  inCorso={attesa === 'conto'}
+                  disabilitato={bloccato || attesa != null}
+                />
+                <Pulsante testo="Usa un altro conto" variante="fantasma" piccolo onPress={() => setNuovoConto(true)} disabilitato={attesa != null} />
+                <Text style={[stili.nota, { color: p.testoSecondario }]}>
+                  Usiamo il conto già salvato sulla tua scheda, con il mandato SEPA che hai già firmato. Adesso non paghi niente.
+                </Text>
+              </>
+            ) : (
+              <View style={{ gap: spazio.tre }}>
+                <ModuloIban
+                  nomeCompleto={[persona?.nome, persona?.cognome].filter(Boolean).join(' ')}
+                  introduzione={
+                    <Text style={[stili.nota, { color: p.testoSecondario }]}>
+                      Scrivi l’IBAN su cui addebitare le quote dell’abbonamento PT. Adesso non paghi niente.
+                    </Text>
+                  }
+                  etichettaInvio="Attiva l’abbonamento"
+                  onInvia={(d) => attivaSulConto(d)}
+                  onIndietro={() => (stato.conto ? setNuovoConto(false) : setMetodo('carta'))}
+                />
+              </View>
+            )
+          ) : stato.carta ? (
             <>
               <Pulsante
                 testo={`${verbo} ${euro(prezzo)} con la carta${stato.carta.finale ? ` •••• ${stato.carta.finale}` : ''}`}
@@ -319,6 +423,7 @@ function FoglioCompra({
           ) : (
             <Pulsante testo={`${verbo} ${euro(prezzo)}`} icona="carta" onPress={() => paga(false)} inCorso={attesa != null} disabilitato={bloccato} />
           )}
+          {sulConto ? null : (
           <Text style={[stili.nota, { color: p.testoSecondario }]}>
             {stato.carta ? 'La carta la custodisce ' : 'Paghi sulla pagina protetta di '}
             <InfoAdyen />
@@ -327,6 +432,7 @@ function FoglioCompra({
               : ', e la carta resta salvata per i prossimi acquisti.'}
             {cosa.tipo === 'pacchetto' ? ' Per la prima quota l’importo esatto lo calcola PerfectGym al momento del pagamento.' : ''}
           </Text>
+          )}
         </View>
       ) : null}
     </Foglio>
@@ -706,6 +812,10 @@ export function Personal() {
         ) : esitoPacchetto.stato === 'pagato' ? (
           <Messaggio tono="ok" titolo="Abbonamento PT attivo">
             {`«${esitoPacchetto.nome}» è attivo. Le sedute del mese compaiono in «Le tue sedute» appena PerfectGym le carica.`}
+          </Messaggio>
+        ) : esitoPacchetto.stato === 'addebito' ? (
+          <Messaggio tono="ok" titolo="Abbonamento PT attivo">
+            {`«${esitoPacchetto.nome}» è attivo. Le quote si addebitano sul tuo conto corrente con l’addebito SEPA; le sedute del mese compaiono in «Le tue sedute» appena PerfectGym le carica.`}
           </Messaggio>
         ) : (
           <Messaggio tono="attenzione" titolo="Il pagamento non è andato a buon fine">
