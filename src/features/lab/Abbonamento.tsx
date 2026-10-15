@@ -7,12 +7,14 @@ import {
   anteprimaAbbonamento,
   esitoAbbonamento,
   firmaAbbonamento,
+  pagaAbbonamento,
   riepilogoAbbonamento,
   statoAbbonamento,
   type AnteprimaContratto,
   type Blocco,
   type EsitoContratto,
   type ImportiContratto,
+  type MetodoAbbonamento,
   type PersonaAbbonamento,
   type PianoAbbonamento,
   type SceltaAbbonamento,
@@ -26,7 +28,7 @@ import { spazio } from '@/theme'
 import { Indicatore, SchedaScelta } from './abbonamento/Passi'
 import { FORMULE, Listino } from './abbonamento/Listino'
 import { FirmaPad } from './FirmaPad'
-import { RiepilogoCosti } from './RiepilogoCosti'
+import { dataLunga, RiepilogoCosti } from './RiepilogoCosti'
 import { Foglio } from './ui/Foglio'
 import { Carta, Etichetta, Messaggio, Pulsante, Sezione } from './ui/kit'
 import { SchermataInArrivo } from './ui/Attesa'
@@ -36,7 +38,8 @@ import { colpetto, Tocco } from './ui/Tocco'
 
 // L'abbonamento principale comprato dal portale (16/10/2026): Smart o Premium,
 // nelle tre formule, con il contratto da leggere e firmare come su Adobe o
-// DocuSign. Chi puo' comprare, i prezzi, le date e il contratto li decide il
+// DocuSign. L'ordine: abbonamento, data, dati e firma, pagamento (il metodo si
+// sceglie dopo la firma e non e' nel contratto). Chi puo' comprare, i prezzi, le date e il contratto li decide il
 // server (portale-abbonamento): qui si sceglie, si legge e si firma.
 //
 // Un adulto firma da se'; per un minorenne (dai 13 ai 17 anni) firma il
@@ -115,26 +118,48 @@ function BloccoDocumento({ b }: { b: Blocco }) {
   }
 }
 
+/** Un dato del contratto, con la sua etichetta: «Nato/a il · 3 marzo 1990». */
+function RigaDato({ nome, valore }: { nome: string; valore: string | null | undefined }) {
+  const p = usePalette()
+  return (
+    <View style={{ flexDirection: 'row', gap: spazio.due }}>
+      <Text style={[stili.nota, { color: p.testoSecondario, width: 112 }]}>{nome}</Text>
+      <Text style={{ color: valore ? p.testo : p.errore, fontFamily: F.bold, fontSize: 14, flex: 1, lineHeight: 20 }}>{valore || 'Manca'}</Text>
+    </View>
+  )
+}
+
+/** Un contratto firmato e creato, in attesa del pagamento. */
+type Firmato = { numero: string; importi: ImportiContratto; piano: string; nome: string | null; errore: string | null }
+
 export function Abbonamento() {
   const p = usePalette()
   const { contratto } = useLocalSearchParams<{ contratto?: string }>()
-  const [passo, setPasso] = useState<1 | 2 | 3>(1)
+  // L'ordine, scelto dal club: abbonamento, data, dati e firma, e solo poi il
+  // pagamento. Il contratto non dice con cosa si paga: il metodo si sceglie dopo.
+  const [passo, setPasso] = useState<1 | 2 | 3 | 4>(1)
   const scorrimento = useRef<Animated.ScrollView>(null)
   const [stato, setStato] = useState<StatoAbbonamento | null>(null)
   const [errore, setErrore] = useState<string | null>(null)
   const [membro, setMembro] = useState<number | null>(null)
   const [pianoId, setPianoId] = useState<number | null>(null)
   const [inizio, setInizio] = useState<string | null>(null)
-  const [metodo, setMetodo] = useState<'carta' | 'conto'>('carta')
-  /** Sul conto: il salvato, o un IBAN nuovo (restano nello stato fino alla firma). */
-  const [contoNuovo, setContoNuovo] = useState<DatiConto | null>(null)
-  const [usaContoSalvato, setUsaContoSalvato] = useState(true)
   const [apertura, setApertura] = useState(false)
   const [anteprima, setAnteprima] = useState<AnteprimaContratto | null>(null)
+  const [mancanti, setMancanti] = useState<string[] | null>(null)
+  const [datiOk, setDatiOk] = useState(false)
+  const [foglio, setFoglio] = useState(false)
   const [consensi, setConsensi] = useState<Record<string, boolean>>({})
   const [firmaPng, setFirmaPng] = useState<string | null>(null)
   const [firmando, setFirmando] = useState(false)
   const [errorefirma, setErroreFirma] = useState<string | null>(null)
+  const [firmato, setFirmato] = useState<Firmato | null>(null)
+  /** Il pagamento: scelto dopo la firma. */
+  const [metodo, setMetodo] = useState<'carta' | 'conto'>('carta')
+  const [contoNuovo, setContoNuovo] = useState<DatiConto | null>(null)
+  const [usaContoSalvato, setUsaContoSalvato] = useState(true)
+  const [pagando, setPagando] = useState(false)
+  const [errorePagamento, setErrorePagamento] = useState<string | null>(null)
   const [numero, setNumero] = useState<string | null>(typeof contratto === 'string' ? contratto : null)
   const [costi, setCosti] = useState<ImportiContratto | null>(null)
   const [costiInCorso, setCostiInCorso] = useState(false)
@@ -145,6 +170,12 @@ export function Abbonamento() {
     if (!r.ok) return setErrore(r.errore)
     setStato(r.stato)
     setMembro((m) => m ?? r.stato.persone.find((x) => x.puo_comprare)?.member_id ?? r.stato.persone[0]?.member_id ?? null)
+    // Firmato e non pagato: si riprende dal pagamento, senza rifirmare.
+    const d = r.stato.da_pagare
+    if (d) {
+      setFirmato({ numero: d.numero, importi: d.importi, piano: d.piano, nome: d.nome, errore: d.errore })
+      setPasso(4)
+    }
   }, [])
   useEffect(() => {
     if (!numero) carica()
@@ -159,18 +190,17 @@ export function Abbonamento() {
 
   function scelta(): SceltaAbbonamento | null {
     if (!persona || !pianoId || !inizio) return null
-    const base = { member_id: persona.member_id, piano_id: pianoId, data_inizio: inizio }
-    if (metodo === 'carta') return { ...base, metodo: 'carta', con_carta: !!stato?.metodi.carta }
-    if (contoNuovo) return { ...base, metodo: 'conto', iban: contoNuovo.iban, intestatario: contoNuovo.intestatario, via: contoNuovo.via, cap: contoNuovo.cap, citta: contoNuovo.citta }
-    if (stato?.metodi.conto && usaContoSalvato) return { ...base, metodo: 'conto', conto_salvato: true }
-    return null
+    return { member_id: persona.member_id, piano_id: pianoId, data_inizio: inizio }
   }
 
-  // Il riepilogo dei costi si ricalcola a ogni cambio di piano, data o metodo.
-  const chiaveScelta = JSON.stringify([membro, pianoId, inizio, metodo, contoNuovo?.iban.slice(-4) ?? null, usaContoSalvato])
+  // Il riepilogo dei costi si ricalcola a ogni cambio di piano o di data.
+  const chiaveScelta = JSON.stringify([membro, pianoId, inizio])
   useEffect(() => {
     const s = scelta()
-    if (!s || numero) {
+    setAnteprima(null)
+    setMancanti(null)
+    setDatiOk(false)
+    if (!s || numero || firmato) {
       setCosti(null)
       return
     }
@@ -188,9 +218,10 @@ export function Abbonamento() {
     }, 250)
     return () => clearTimeout(t)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [chiaveScelta, numero])
+  }, [chiaveScelta, numero, firmato])
 
-  async function apri() {
+  /** I dati e il contratto, caricati entrando nel passo 3: cosi' le dichiarazioni e i dati mancanti si vedono subito. */
+  async function caricaContratto() {
     const s = scelta()
     if (!s) return
     setErrore(null)
@@ -199,8 +230,11 @@ export function Abbonamento() {
     setApertura(false)
     if (!r.ok) {
       colpetto('errore')
+      setAnteprima(null)
+      setMancanti(r.mancanti ?? null)
       return setErrore(r.mancanti?.length ? `${r.errore} Completa nel profilo: ${r.mancanti.join(', ')}.` : r.errore)
     }
+    setMancanti(null)
     setConsensi(Object.fromEntries(r.anteprima.consensi.map((c) => [c.chiave, c.preselezionato])))
     setFirmaPng(null)
     setErroreFirma(null)
@@ -211,7 +245,7 @@ export function Abbonamento() {
 
   async function firma() {
     const s = scelta()
-    if (!s || !anteprima || !firmaPng) return
+    if (!s || !anteprima || !firmaPng || !piano) return
     setErroreFirma(null)
     setFirmando(true)
     const r = await firmaAbbonamento(s, anteprima.impronta, consensi, firmaPng)
@@ -221,37 +255,61 @@ export function Abbonamento() {
       return setErroreFirma(r.errore)
     }
     colpetto('ok')
-    setAnteprima(null)
+    setFoglio(false)
     setFirmando(false)
+    setFirmato({ numero: r.esito.numero, importi: anteprima.importi, piano: `${piano.abbonamento} · ${FORMULE[piano.formula].titolo}`, nome: persona?.nome ?? null, errore: null })
+    setAnteprima(null)
+    vai(4)
+  }
+
+  function metodoScelto(): MetodoAbbonamento | null {
+    if (metodo === 'carta') return { metodo: 'carta', con_carta: !!stato?.metodi.carta }
+    if (contoNuovo) return { metodo: 'conto', iban: contoNuovo.iban, intestatario: contoNuovo.intestatario, via: contoNuovo.via, cap: contoNuovo.cap, citta: contoNuovo.citta }
+    if (stato?.metodi.conto && usaContoSalvato) return { metodo: 'conto', conto_salvato: true }
+    return null
+  }
+
+  async function paga() {
+    const m = metodoScelto()
+    if (!m || !firmato) return
+    setErrorePagamento(null)
+    setPagando(true)
+    const r = await pagaAbbonamento(firmato.numero, m)
+    if (!r.ok) {
+      setPagando(false)
+      colpetto('errore')
+      return setErrorePagamento(r.errore)
+    }
+    colpetto('ok')
     if (r.esito.url) {
       if (Platform.OS === 'web') window.location.assign(r.esito.url)
       else await Linking.openURL(r.esito.url)
+      setPagando(false)
       return
     }
+    setPagando(false)
     setNumero(r.esito.numero)
   }
 
-  if (numero) return <EsitoContrattoVista numero={numero} onFine={() => router.replace('/lab')} />
+  if (numero) return <EsitoContrattoVista numero={numero} onFine={() => router.replace('/lab')} onRiprova={() => setNumero(null)} />
   if (!stato && !errore) return <SchermataInArrivo titolo="Abbonamento" sopratitolo="Laboratorio" />
 
   const pronto = !!scelta()
-  const NOMI_PASSI = ['Abbonamento', 'Data e pagamento', 'Rivedi e firma']
+  const NOMI_PASSI = ['Abbonamento', 'Data', 'Dati e firma', 'Pagamento']
   const SOTTOTITOLI = [
     'Scegli l’abbonamento e la formula: qui sotto trovi cosa comprende e le condizioni.',
-    'Scegli quando parte e come paghi: vedi subito quanto e quando.',
-    'Ultimo passo: rivedi tutto, leggi il contratto e firma.',
+    'Scegli quando parte: vedi subito quanto e quando paghi.',
+    'Conferma i tuoi dati, leggi il contratto e firma.',
+    'Il contratto è firmato. Ultimo passo: scegli come pagare.',
   ]
   const nomePersona = persona ? `${persona.nome ?? ''} ${persona.cognome ?? ''}`.trim() : ''
   const formula = piano ? FORMULE[piano.formula] : null
-  const metodoTesto =
-    metodo === 'carta'
-      ? `Carta${stato?.metodi.carta?.finale ? ` •••• ${stato.metodi.carta.finale}` : ''}`
-      : `Conto corrente (SEPA)${contoNuovo ? ` •••• ${contoNuovo.iban.slice(-4)}` : usaContoSalvato && stato?.metodi.conto?.finale ? ` •••• ${stato.metodi.conto.finale}` : ''}`
 
-  function vai(n: 1 | 2 | 3) {
+  function vai(n: 1 | 2 | 3 | 4) {
     setErrore(null)
     setPasso(n)
     setTimeout(() => (scorrimento.current as unknown as ScrollView | null)?.scrollTo({ y: 0, animated: true }), 30)
+    if (n === 3) caricaContratto()
   }
 
   return (
@@ -334,9 +392,94 @@ export function Abbonamento() {
                 })}
               </ScrollView>
               <Text style={[stili.nota, { color: p.testoSecondario }]}>
-                Puoi farlo partire oggi o fino a due settimane dopo. Si paga adesso, ma la data decide cosa copre la prima quota.
+                Puoi farlo partire oggi o fino a due settimane dopo. Si paga alla firma, ma la data decide cosa copre la prima quota.
               </Text>
             </Sezione>
+
+            <Sezione titolo="Il tuo piano di pagamento">
+              {costi ? (
+                <RiepilogoCosti importi={costi} />
+              ) : costiInCorso ? (
+                <Text style={[stili.nota, { color: p.testoSecondario }]}>Calcoliamo i costi…</Text>
+              ) : (
+                <Text style={[stili.nota, { color: p.testoSecondario }]}>Scegli la data di partenza per vedere i costi.</Text>
+              )}
+            </Sezione>
+
+            <Pulsante testo="Continua" icona="avanti" onPress={() => vai(3)} disabilitato={!pronto || !costi} />
+            <Pulsante testo="Indietro" variante="fantasma" piccolo pieno={false} onPress={() => vai(1)} />
+          </>
+        ) : null}
+
+        {passo === 3 && stato && persona && piano ? (
+          <>
+            <Carta piatta>
+              <View style={{ gap: spazio.tre }}>
+                {(
+                  [
+                    ['Abbonamento', `${piano.abbonamento} · ${formula?.titolo ?? ''}`, 1],
+                    ...(stato.persone.length > 1 ? ([['Per', nomePersona, 1]] as const) : []),
+                    ['Parte il', inizio ? giornoBreve(inizio) : '—', 2],
+                  ] as const
+                ).map(([nome, valore, dove]) => (
+                  <View key={nome} style={{ flexDirection: 'row', alignItems: 'flex-start', gap: spazio.due }}>
+                    <Text style={[stili.nota, { color: p.testoSecondario, width: 92 }]}>{nome}</Text>
+                    <Text style={{ color: p.testo, fontFamily: F.bold, fontSize: 14, flex: 1, lineHeight: 20 }}>{valore}</Text>
+                    <Tocco ruolo="button" etichetta={`Modifica: ${nome}`} onPress={() => vai(dove)} style={{ paddingVertical: 2, paddingHorizontal: 4 }}>
+                      <Text style={{ color: p.accento, fontFamily: F.bold, fontSize: 13 }}>Modifica</Text>
+                    </Tocco>
+                  </View>
+                ))}
+              </View>
+            </Carta>
+
+            {costi ? <RiepilogoCosti importi={costi} /> : null}
+
+            <Sezione titolo={anteprima?.genitore ? 'I dati del contratto' : 'I tuoi dati'}>
+              {apertura && !anteprima ? (
+                <Text style={[stili.nota, { color: p.testoSecondario }]}>Prepariamo il contratto…</Text>
+              ) : anteprima ? (
+                <>
+                  <Carta piatta>
+                    <View style={{ gap: spazio.due }}>
+                      <RigaDato nome="Nome e cognome" valore={`${anteprima.contraente.nome} ${anteprima.contraente.cognome}`.trim()} />
+                      <RigaDato nome="Nato/a il" valore={anteprima.contraente.data_nascita ? dataLunga(anteprima.contraente.data_nascita) : null} />
+                      <RigaDato nome="Codice fiscale" valore={anteprima.contraente.codice_fiscale?.toUpperCase()} />
+                      <RigaDato nome="Residenza" valore={anteprima.contraente.residenza} />
+                      <RigaDato nome="Email" valore={anteprima.contraente.email} />
+                      <RigaDato nome="Telefono" valore={anteprima.contraente.telefono} />
+                      {anteprima.genitore ? <RigaDato nome="Firma il genitore" valore={`${anteprima.genitore.nome} ${anteprima.genitore.cognome}`.trim()} /> : null}
+                    </View>
+                  </Carta>
+                  <Casella spuntata={datiOk} onCambia={() => setDatiOk((v) => !v)} etichetta="Confermo che i dati sono corretti">
+                    <Text style={{ color: p.testo, fontFamily: F.medio, fontSize: 14, lineHeight: 20 }}>
+                      Confermo che questi dati sono corretti. Se qualcosa non va, correggilo dal tuo profilo prima di firmare.
+                    </Text>
+                  </Casella>
+                </>
+              ) : mancanti?.length ? (
+                <Text style={[stili.nota, { color: p.testoSecondario }]}>Servono questi dati per il contratto: completali dal profilo, poi torna qui.</Text>
+              ) : null}
+            </Sezione>
+
+            <Messaggio tono="attenzione" titolo="Adesso il contratto" icona="documento">
+              {persona.firmatario === 'genitore'
+                ? 'Lo leggi fino in fondo, spunti le dichiarazioni e firma il genitore, con il dito o con il mouse. Il pagamento viene dopo: carta o conto corrente, lo scegli allora.'
+                : 'Lo leggi fino in fondo, spunti le dichiarazioni e firmi con il dito o con il mouse. Il pagamento viene dopo: carta o conto corrente, lo scegli allora.'}
+            </Messaggio>
+
+            <Pulsante testo="Leggi il contratto e firma" icona="documento" onPress={() => setFoglio(true)} disabilitato={!anteprima || !datiOk} />
+            {anteprima && !datiOk ? <Text style={[stili.nota, { color: p.testoSecondario }]}>Conferma i tuoi dati per continuare.</Text> : null}
+            <Pulsante testo="Indietro" variante="fantasma" piccolo pieno={false} onPress={() => vai(2)} />
+          </>
+        ) : null}
+
+        {passo === 4 && stato && firmato ? (
+          <>
+            <Messaggio tono="ok" titolo="Contratto firmato" icona="ok">
+              {`${firmato.piano}${firmato.nome ? ` · ${firmato.nome}` : ''}. Il contratto non vincola il metodo di pagamento: scegli ora come pagare, e lo potrai cambiare.`}
+            </Messaggio>
+            {firmato.errore ? <Messaggio tono="errore">{firmato.errore}</Messaggio> : null}
 
             <Sezione titolo="Come paghi">
               <View style={{ gap: spazio.due }} accessibilityRole="radiogroup">
@@ -352,7 +495,7 @@ export function Abbonamento() {
                   }
                   onPress={() => {
                     setMetodo('carta')
-                    setErrore(null)
+                    setErrorePagamento(null)
                   }}
                 />
                 <SchedaScelta
@@ -363,7 +506,7 @@ export function Abbonamento() {
                   sotto="Le quote, la prima compresa, si addebitano sul tuo conto con il mandato SEPA. Non devi pagare altro adesso."
                   onPress={() => {
                     setMetodo('conto')
-                    setErrore(null)
+                    setErrorePagamento(null)
                   }}
                 />
               </View>
@@ -382,8 +525,8 @@ export function Abbonamento() {
                   </View>
                 ) : (
                   <ModuloIban
-                    nomeCompleto={nomePersona}
-                    introduzione={<Text style={[stili.nota, { color: p.testoSecondario }]}>Scrivi l’IBAN su cui addebitare le quote. Adesso non paghi niente: prima leggi il contratto.</Text>}
+                    nomeCompleto={firmato.nome ?? nomePersona}
+                    introduzione={<Text style={[stili.nota, { color: p.testoSecondario }]}>Scrivi l’IBAN su cui addebitare le quote.</Text>}
                     etichettaInvio="Usa questo conto"
                     onInvia={async (d) => {
                       setContoNuovo(d)
@@ -396,63 +539,26 @@ export function Abbonamento() {
             </Sezione>
 
             <Sezione titolo="Il tuo piano di pagamento">
-              {costi ? (
-                <RiepilogoCosti importi={costi} metodo={metodo} />
-              ) : costiInCorso ? (
-                <Text style={[stili.nota, { color: p.testoSecondario }]}>Calcoliamo i costi…</Text>
-              ) : (
-                <Text style={[stili.nota, { color: p.testoSecondario }]}>
-                  {metodo === 'conto' ? 'Completa il conto qui sopra per vedere i costi.' : 'Scegli la data di partenza per vedere i costi.'}
-                </Text>
-              )}
+              <RiepilogoCosti importi={firmato.importi} metodo={metodo} />
             </Sezione>
 
-            <Pulsante testo="Continua" icona="avanti" onPress={() => vai(3)} disabilitato={!pronto || !costi} />
-            <Pulsante testo="Indietro" variante="fantasma" piccolo pieno={false} onPress={() => vai(1)} />
-          </>
-        ) : null}
-
-        {passo === 3 && stato && persona && piano ? (
-          <>
-            <Carta piatta>
-              <View style={{ gap: spazio.tre }}>
-                {(
-                  [
-                    ['Abbonamento', `${piano.abbonamento} · ${formula?.titolo ?? ''}`, 1],
-                    ...(stato.persone.length > 1 ? ([['Per', nomePersona, 1]] as const) : []),
-                    ['Parte il', inizio ? giornoBreve(inizio) : '—', 2],
-                    ['Paghi con', metodoTesto, 2],
-                  ] as const
-                ).map(([nome, valore, dove]) => (
-                  <View key={nome} style={{ flexDirection: 'row', alignItems: 'flex-start', gap: spazio.due }}>
-                    <Text style={[stili.nota, { color: p.testoSecondario, width: 92 }]}>{nome}</Text>
-                    <Text style={{ color: p.testo, fontFamily: F.bold, fontSize: 14, flex: 1, lineHeight: 20 }}>{valore}</Text>
-                    <Tocco ruolo="button" etichetta={`Modifica: ${nome}`} onPress={() => vai(dove)} style={{ paddingVertical: 2, paddingHorizontal: 4 }}>
-                      <Text style={{ color: p.accento, fontFamily: F.bold, fontSize: 13 }}>Modifica</Text>
-                    </Tocco>
-                  </View>
-                ))}
-              </View>
-            </Carta>
-
-            {costi ? <RiepilogoCosti importi={costi} metodo={metodo} /> : null}
-
-            <Messaggio tono="attenzione" titolo="Adesso il contratto" icona="documento">
-              {persona.firmatario === 'genitore'
-                ? 'Lo leggi fino in fondo e firma il genitore, con il dito o con il mouse. Il contratto firmato resta nell’area riservata.'
-                : 'Lo leggi fino in fondo e firmi con il dito o con il mouse. Il contratto firmato resta nell’area riservata.'}
-            </Messaggio>
-
-            <Pulsante testo="Leggi il contratto e firma" icona="documento" onPress={apri} inCorso={apertura} disabilitato={!pronto || !costi} />
-            <Pulsante testo="Indietro" variante="fantasma" piccolo pieno={false} onPress={() => vai(2)} />
+            {errorePagamento ? <Messaggio>{errorePagamento}</Messaggio> : null}
+            <Pulsante
+              testo={metodo === 'conto' ? 'Conferma e attiva' : stato.metodi.carta ? `Paga ${euro(firmato.importi.calendario.totale_oggi)}` : 'Vai al pagamento sicuro'}
+              icona="carta"
+              onPress={paga}
+              inCorso={pagando}
+              disabilitato={!metodoScelto()}
+            />
+            <Text style={[stili.nota, { color: p.testoSecondario }]}>{`Contratto n. ${firmato.numero}. Se non completi ora, torna qui: il contratto resta firmato e riprendi dal pagamento.`}</Text>
           </>
         ) : null}
       </View>
 
-      <Foglio aperto={!!anteprima} titolo="Il tuo contratto" sottotitolo="Leggilo fino in fondo, poi firma." onChiudi={() => !firmando && setAnteprima(null)}>
+      <Foglio aperto={foglio && !!anteprima} titolo="Il tuo contratto" sottotitolo="Leggilo fino in fondo, poi spunta le dichiarazioni e firma." onChiudi={() => !firmando && setFoglio(false)}>
         {anteprima ? (
           <View style={{ gap: spazio.tre }}>
-            <RiepilogoCosti importi={anteprima.importi} metodo={metodo} />
+            <RiepilogoCosti importi={anteprima.importi} />
             {anteprima.documento.blocchi.map((b, i) => (
               <BloccoDocumento key={i} b={b} />
             ))}
@@ -475,7 +581,7 @@ export function Abbonamento() {
               Firmando confermi di aver letto il contratto. Conserviamo la firma insieme a data, ora, indirizzo IP e dispositivo, come prova della sottoscrizione.
             </Text>
             {errorefirma ? <Messaggio>{errorefirma}</Messaggio> : null}
-            <Pulsante testo="Firma e attiva" icona="impronta" onPress={firma} inCorso={firmando} disabilitato={!obbligatoriOk || !firmaPng} />
+            <Pulsante testo="Firma il contratto" icona="impronta" onPress={firma} inCorso={firmando} disabilitato={!obbligatoriOk || !firmaPng} />
             {!obbligatoriOk ? <Text style={[stili.nota, { color: p.testoSecondario }]}>Spunta tutte le dichiarazioni obbligatorie per firmare.</Text> : null}
           </View>
         ) : null}
@@ -485,7 +591,7 @@ export function Abbonamento() {
 }
 
 /** Dopo la firma: se la prima quota e il contratto sono a posto. Si aggiorna da solo per qualche secondo. */
-function EsitoContrattoVista({ numero, onFine }: { numero: string; onFine: () => void }) {
+function EsitoContrattoVista({ numero, onFine, onRiprova }: { numero: string; onFine: () => void; onRiprova: () => void }) {
   const p = usePalette()
   const [esito, setEsito] = useState<EsitoContratto | null>(null)
   const [errore, setErrore] = useState<string | null>(null)
@@ -525,7 +631,7 @@ function EsitoContrattoVista({ numero, onFine }: { numero: string; onFine: () =>
           </Messaggio>
         ) : guasto ? (
           <Messaggio tono="errore" titolo="Serve un controllo">
-            {esito?.errore ?? esito?.pagamento?.errore ?? 'Qualcosa non è andato a buon fine.'} Il contratto è firmato e conservato: scrivi al club e ti aiutiamo a completarlo.
+            {esito?.errore ?? esito?.pagamento?.errore ?? 'Qualcosa non è andato a buon fine.'} Il contratto è firmato e conservato: puoi riprovare a pagare, anche con un altro metodo.
           </Messaggio>
         ) : (
           <Messaggio tono="attenzione" titolo="Un attimo" icona="clessidra">
@@ -533,7 +639,8 @@ function EsitoContrattoVista({ numero, onFine }: { numero: string; onFine: () =>
           </Messaggio>
         )}
         <Text style={{ color: p.testoSecondario, fontFamily: F.medio, fontSize: 12 }}>{`Contratto n. ${numero}`}</Text>
-        <Pulsante testo="Torna alla home" onPress={onFine} variante={fatto ? 'primario' : 'secondario'} />
+        {guasto ? <Pulsante testo="Riprova il pagamento" onPress={onRiprova} /> : null}
+        <Pulsante testo="Torna alla home" onPress={onFine} variante={fatto ? 'primario' : guasto ? 'fantasma' : 'secondario'} />
       </View>
     </Schermata>
   )

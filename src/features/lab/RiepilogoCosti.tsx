@@ -21,7 +21,7 @@ export function dataLunga(iso: string): string {
 
 const MOSTRA = 3
 
-export function RiepilogoCosti({ importi, metodo }: { importi: ImportiContratto; metodo: 'carta' | 'conto' }) {
+export function RiepilogoCosti({ importi, metodo }: { importi: ImportiContratto; metodo?: 'carta' | 'conto' }) {
   const p = usePalette()
   const [tutte, setTutte] = useState(false)
   const c = importi.calendario
@@ -34,7 +34,11 @@ export function RiepilogoCosti({ importi, metodo }: { importi: ImportiContratto;
           <Text style={[stili.sopra, { color: p.testoSecondario }]}>Oggi paghi</Text>
           <Text style={{ color: p.testo, fontFamily: F.extra, fontSize: 34, letterSpacing: -1 }}>{euro(c.totale_oggi)}</Text>
           <Text style={[stili.nota, { color: p.testoSecondario }]}>
-            {metodo === 'conto' ? 'Si addebitano sul conto corrente, con l’addebito diretto SEPA.' : 'Si addebitano sulla carta.'}
+            {metodo === 'conto'
+              ? 'Si addebitano sul conto corrente, con l’addebito diretto SEPA.'
+              : metodo === 'carta'
+                ? 'Si addebitano sulla carta.'
+                : 'Il metodo di pagamento lo scegli dopo la firma: carta o conto corrente.'}
           </Text>
         </View>
 

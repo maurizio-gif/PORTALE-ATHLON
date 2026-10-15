@@ -42,7 +42,11 @@ export type PersonaAbbonamento = {
   inizio_max: string | null
 }
 
+/** Un contratto firmato e non ancora pagato: si riprende da qui, senza rifirmare. */
+export type DaPagare = { numero: string; member_id: number; nome: string | null; piano: string; importi: ImportiContratto; errore: string | null }
+
 export type StatoAbbonamento = {
+  da_pagare: DaPagare | null
   persone: PersonaAbbonamento[]
   piani: PianoAbbonamento[]
   quota_attivazione: number
@@ -91,21 +95,37 @@ export type ImportiContratto = {
   rinnovo_dal: string
 }
 
+/** I dati che finiscono nel contratto: la persona li conferma prima di firmare. */
+export type DatiContraente = {
+  nome: string
+  cognome: string
+  data_nascita: string | null
+  codice_fiscale: string | null
+  residenza: string | null
+  email: string
+  telefono: string | null
+}
+
 export type AnteprimaContratto = {
   documento: { numero: string; titolo: string; blocchi: Blocco[] }
   consensi: ConsensoContratto[]
   importi: ImportiContratto
   firmatario: 'se_stesso' | 'genitore'
+  contraente: DatiContraente
+  genitore: { nome: string; cognome: string } | null
   impronta: string
 }
 
-/** Come si paga: la carta (salvata o no), o il conto (salvato, o un IBAN nuovo col suo mandato). */
+/**
+ * Come si paga, DOPO la firma: la carta (salvata o no), o il conto (salvato, o
+ * un IBAN nuovo col suo mandato). Il contratto non dice con cosa si paga.
+ */
 export type MetodoAbbonamento =
   | { metodo: 'carta'; con_carta: boolean }
   | { metodo: 'conto'; conto_salvato: true }
   | { metodo: 'conto'; iban: string; intestatario: string; via: string; cap: string; citta: string }
 
-export type SceltaAbbonamento = { member_id: number; piano_id: number; data_inizio: string } & MetodoAbbonamento
+export type SceltaAbbonamento = { member_id: number; piano_id: number; data_inizio: string }
 
 export async function anteprimaAbbonamento(
   s: SceltaAbbonamento,
@@ -115,8 +135,8 @@ export async function anteprimaAbbonamento(
   return { ok: false, errore: dati.errore ?? 'Non riusciamo a preparare il contratto adesso.', mancanti: Array.isArray(dati.mancanti) ? dati.mancanti : undefined }
 }
 
-export type EsitoFirma = { numero: string; stato: StatoContratto; url: string | null }
 export type StatoContratto = 'firmato' | 'contratto_creato' | 'completato' | 'errore'
+export type EsitoFirma = { numero: string; stato: StatoContratto; totale_oggi: number }
 
 export async function firmaAbbonamento(
   s: SceltaAbbonamento,
@@ -124,9 +144,18 @@ export async function firmaAbbonamento(
   consensi: Record<string, boolean>,
   firmaPng: string,
 ): Promise<{ ok: true; esito: EsitoFirma } | { ok: false; errore: string }> {
-  const { ok, dati } = await abbonamento({ azione: 'firma', ...s, impronta, consensi, firma_png: firmaPng })
+  const { ok, dati } = await abbonamento({ azione: 'firma', ...s, dati_confermati: true, impronta, consensi, firma_png: firmaPng })
+  if (ok && dati.numero) return { ok: true, esito: { numero: String(dati.numero), stato: dati.stato as StatoContratto, totale_oggi: Number(dati.totale_oggi ?? 0) } }
+  return { ok: false, errore: dati.errore ?? 'Non siamo riusciti a registrare il contratto adesso.' }
+}
+
+export type EsitoPagamento = { numero: string; stato: StatoContratto; url: string | null }
+
+/** Dopo la firma: sceglie il metodo e incassa la prima quota. Si ripete finche' non va a buon fine. */
+export async function pagaAbbonamento(numero: string, m: MetodoAbbonamento): Promise<{ ok: true; esito: EsitoPagamento } | { ok: false; errore: string }> {
+  const { ok, dati } = await abbonamento({ azione: 'paga', numero, ...m })
   if (ok && dati.numero) return { ok: true, esito: { numero: String(dati.numero), stato: dati.stato as StatoContratto, url: typeof dati.url === 'string' ? dati.url : null } }
-  return { ok: false, errore: dati.errore ?? 'Non siamo riusciti ad attivare l’abbonamento adesso.' }
+  return { ok: false, errore: dati.errore ?? 'Non siamo riusciti a completare il pagamento adesso.' }
 }
 
 export type EsitoContratto = { stato: StatoContratto; pagamento: { ok: boolean; come?: string; in_corso?: boolean; errore?: string } | null; errore: string | null }
@@ -137,7 +166,7 @@ export async function esitoAbbonamento(numero: string): Promise<{ ok: true; esit
   return { ok: false, errore: dati.errore ?? 'Non riusciamo a verificare il contratto adesso.' }
 }
 
-/** Il riepilogo dei costi della scelta, calcolato dal server: si aggiorna a ogni cambio di piano, data o metodo. */
+/** Il riepilogo dei costi della scelta, calcolato dal server: si aggiorna a ogni cambio di piano o di data. */
 export async function riepilogoAbbonamento(s: SceltaAbbonamento): Promise<{ ok: true; importi: ImportiContratto } | { ok: false; errore: string }> {
   const { ok, dati } = await abbonamento({ azione: 'riepilogo', ...s })
   if (ok) return { ok: true, importi: dati.importi as ImportiContratto }
