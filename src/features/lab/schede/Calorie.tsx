@@ -2,7 +2,7 @@ import { router } from 'expo-router'
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { StyleSheet, Text, View } from 'react-native'
 
-import { elencoMisure, leggiAnagrafica, salvaSessoCalcolo, type Anagrafica, type Misura, type SchedaLab, type SessoCalcolo } from '@/api/lab'
+import { elencoMisure, leggiAnagrafica, salvaSessoCalcolo, storicoAllenamenti, type Anagrafica, type Misura, type SchedaLab, type SedutaStorico, type SessoCalcolo } from '@/api/lab'
 import { spazio } from '@/theme'
 
 import { altezzaAl, dataCorta } from '../dati/calcoli'
@@ -13,7 +13,23 @@ import { Icona } from '../ui/Icona'
 import { Carta, LinkSezione, Messaggio, Pulsante } from '../ui/kit'
 import { F, usePalette } from '../ui/tema'
 import { Tocco } from '../ui/Tocco'
-import { COSTANTE_SESSO, etaDa, FATTORE_RIPOSO, MET_INTENSO, MET_MODERATO, SECONDI_PER_RIPETIZIONE, SECONDI_PREPARAZIONE, stimaScheda, type Stima } from './stimaCalorie'
+import { CHIAVE_STORICO } from './Storico'
+import {
+  COSTANTE_SESSO,
+  EPOC,
+  etaDa,
+  FATTORE_RIPOSO,
+  MET_DEFATICAMENTO,
+  MET_INTENSO,
+  MET_MEDIO,
+  MET_MODERATO,
+  MET_RISCALDAMENTO,
+  SECONDI_CAMBIO_ESERCIZIO,
+  SECONDI_PER_RIPETIZIONE,
+  SECONDI_PREPARAZIONE,
+  stimaScheda,
+  type Stima,
+} from './stimaCalorie'
 
 // Le calorie stimate di una scheda, sotto gli esercizi: la seduta del giorno
 // scelto, la settimana, il metabolismo a riposo e il fabbisogno di massima.
@@ -21,11 +37,20 @@ import { COSTANTE_SESSO, etaDa, FATTORE_RIPOSO, MET_INTENSO, MET_MODERATO, SECON
 // Il sesso della formula lo sceglie il socio, qui, una volta (PerfectGym non
 // e' affidabile): finche' non sceglie, la stima usa la via di mezzo.
 // Il calcolo e' in stimaCalorie.ts (non calorie.ts: su un disco che non distingue le maiuscole si confondeva con questo file).
+// Lo storico serve alla durata: le sedute chiuse di un giorno vincono sulla stima.
 
 const intero = (n: number) => Math.round(n).toLocaleString('it-IT')
 const decimale = (n: number, d = 1) => n.toLocaleString('it-IT', { maximumFractionDigits: d, minimumFractionDigits: 0 })
 
-type Corpo = { anagrafica: Anagrafica | null; anagraficaLetta: boolean; misure: Misura[] | null; sesso: SessoCalcolo; setSesso: (s: SessoCalcolo) => void }
+type Corpo = {
+  anagrafica: Anagrafica | null
+  anagraficaLetta: boolean
+  misure: Misura[] | null
+  sesso: SessoCalcolo
+  setSesso: (s: SessoCalcolo) => void
+  sedute: SedutaStorico[] | null
+}
+type StoricoInMemoria = { ok: true; allenamenti: SedutaStorico[] }
 type MisureInMemoria = { ok: true; misure: Misura[]; sesso: SessoCalcolo }
 
 function useCorpo(): Corpo {
@@ -33,6 +58,7 @@ function useCorpo(): Corpo {
   const [anagraficaLetta, setLetta] = useState(!!anagrafica)
   const [misure, setMisure] = useState<Misura[] | null>(() => inMemoria<MisureInMemoria>(CHIAVE_MISURE)?.misure ?? null)
   const [sesso, setSesso] = useState<SessoCalcolo>(() => inMemoria<MisureInMemoria>(CHIAVE_MISURE)?.sesso ?? null)
+  const [sedute, setSedute] = useState<SedutaStorico[] | null>(() => inMemoria<StoricoInMemoria>(CHIAVE_STORICO)?.allenamenti ?? null)
   useEffect(() => {
     let vivo = true
     prendi('anagrafica', leggiAnagrafica).then((r) => {
@@ -45,11 +71,15 @@ function useCorpo(): Corpo {
       setMisure(r.misure)
       setSesso(r.sesso)
     })
+    // Senza storico la stima resta quella della scheda: non si aspetta e non si avvisa.
+    prendi(CHIAVE_STORICO, storicoAllenamenti).then((r) => {
+      if (vivo && r.ok) setSedute(r.allenamenti)
+    })
     return () => {
       vivo = false
     }
   }, [])
-  return { anagrafica, anagraficaLetta, misure, sesso, setSesso }
+  return { anagrafica, anagraficaLetta, misure, sesso, setSesso, sedute }
 }
 
 /** Uomo o donna, per la formula: due pulsanti uguali, e quello scelto pieno. */
@@ -120,17 +150,39 @@ function FoglioCalcolo({ aperto, stima, giorno, dataPeso, onChiudi }: { aperto: 
         </Paragrafo>
         {g ? (
           <Paragrafo titolo={`2. Quanto dura «${g.nome}»`}>
-            Abbiamo seguito la scheda serie per serie, superserie comprese: ogni ripetizione conta {SECONDI_PER_RIPETIZIONE} secondi, ogni serie {SECONDI_PREPARAZIONE} secondi in più
-            per prendere posizione, poi il recupero scritto. Sono {g.serie} serie, circa {g.lavoro} minuti di lavoro e {g.recupero} di recupero: {forte(`${g.minuti} minuti`)}. Il
-            riscaldamento non è contato, perché non è nella scheda.
+            {g.vera ? (
+              <>
+                La parte coi pesi l’abbiamo presa dalle tue sedute vere: {g.vera.sedute === 1 ? 'quella che hai chiuso' : `la durata di mezzo delle ${g.vera.sedute} che hai chiuso`}, dall’avvio
+                alla chiusura, cioè {forte(`${g.pesi.minuti} minuti`)}. Vale più di qualunque stima, perché dentro ci sono i tuoi ritmi e i tuoi recuperi.
+              </>
+            ) : (
+              <>
+                La parte coi pesi l’abbiamo seguita serie per serie, superserie comprese: ogni ripetizione {SECONDI_PER_RIPETIZIONE} secondi (2 per salire e 2 per scendere), ogni serie{' '}
+                {SECONDI_PREPARAZIONE} secondi per prendere posizione, poi il recupero scritto, e {intero(SECONDI_CAMBIO_ESERCIZIO / 60)} minuto per esercizio per sistemare la macchina o
+                caricare il bilanciere. Sono {g.serie} serie: circa {g.pesi.lavoro} minuti di lavoro, {g.pesi.recupero} di recupero e {g.pesi.cambi} di cambi, {forte(`${g.pesi.minuti} minuti`)}.
+                Quando chiudi qualche seduta di questo giorno, usiamo la durata vera.
+              </>
+            )}{' '}
+            {g.riscaldamento.minuti || g.defaticamento.minuti
+              ? `La nota del giorno aggiunge ${[
+                  g.riscaldamento.minuti ? `${decimale(g.riscaldamento.minuti)} minuti di riscaldamento` : '',
+                  g.defaticamento.minuti ? `${decimale(g.defaticamento.minuti)} di defaticamento` : '',
+                ]
+                  .filter(Boolean)
+                  .join(' e ')}: in tutto circa ${g.minuti} minuti.`
+              : 'La nota del giorno non dice quanto dura il riscaldamento, e non lo contiamo.'}
           </Paragrafo>
         ) : null}
         {g ? (
           <Paragrafo titolo="3. Quanto consuma la seduta">
-            Per l’allenamento con i pesi il Compendium of Physical Activities indica da {decimale(MET_MODERATO)} MET (intensità moderata) a {decimale(MET_INTENSO)} MET (impegnativo): da{' '}
-            {decimale(MET_MODERATO)} a {decimale(MET_INTENSO)} volte quello che consumi a riposo. Quindi {g.minuti} minuti × {decimale(alMinuto, 2)} kcal × {decimale(MET_MODERATO)}–
-            {decimale(MET_INTENSO)} = da {intero(g.da)} a {intero(g.a)} kcal, e la stima è il valore di mezzo: {forte(`circa ${intero(g.circa)} kcal`)}. Contano anche le calorie che
-            avresti consumato comunque in quei minuti.
+            Il Compendium of Physical Activities dà a ogni attività un MET, cioè quante volte consuma più del riposo. Coi pesi va da {decimale(MET_MODERATO)} (intensità moderata) a{' '}
+            {decimale(MET_INTENSO)} (impegnativa: recuperi brevi, serie vicine al cedimento), e la stima sta in mezzo, a {decimale(MET_MEDIO, 2)}: {g.pesi.minuti} minuti ×{' '}
+            {decimale(alMinuto, 2)} kcal × {decimale(MET_MEDIO, 2)} = {forte(`circa ${intero(g.pesi.circa)} kcal`)} (da {intero(g.pesi.da)} a {intero(g.pesi.a)}).
+            {g.riscaldamento.minuti ? ` Il riscaldamento, a ${decimale(MET_RISCALDAMENTO)} MET come la cyclette leggera, ne aggiunge ${intero(g.riscaldamento.kcal)}.` : ''}
+            {g.defaticamento.minuti ? ` Il defaticamento, a ${decimale(MET_DEFATICAMENTO)} MET come lo stretching, ${intero(g.defaticamento.kcal)}.` : ''} Dopo i pesi il corpo
+            continua a consumare di più per qualche ora: gli studi danno dal 5 al 15% di quello che la seduta ha aggiunto al riposo, e noi contiamo il {intero(EPOC * 100)}%, cioè circa{' '}
+            {intero(g.epoc.circa)} kcal. In tutto {forte(`circa ${intero(g.circa)} kcal`)}, da {intero(g.da)} a {intero(g.a)}. Contano anche le calorie che avresti consumato comunque in
+            quei minuti.
           </Paragrafo>
         ) : null}
         <Paragrafo titolo="4. La settimana e il fabbisogno">
@@ -152,7 +204,7 @@ function FoglioCalcolo({ aperto, stima, giorno, dataPeso, onChiudi }: { aperto: 
 /** Il riquadro delle calorie per una scheda, sul giorno scelto. */
 export function CalorieScheda({ scheda, giorno }: { scheda: SchedaLab; giorno: number }) {
   const p = usePalette()
-  const { anagrafica, anagraficaLetta, misure, sesso, setSesso } = useCorpo()
+  const { anagrafica, anagraficaLetta, misure, sesso, setSesso, sedute } = useCorpo()
   const [spiega, setSpiega] = useState(false)
   const [cambia, setCambia] = useState(false)
   const [salvando, setSalvando] = useState(false)
@@ -180,8 +232,11 @@ export function CalorieScheda({ scheda, giorno }: { scheda: SchedaLab; giorno: n
   const anni = etaDa(anagrafica?.data_nascita)
 
   const stima = useMemo(
-    () => (ultimoPeso?.peso_kg && cm && anni ? stimaScheda(scheda.giorni, scheda.giorni_settimana, { kg: ultimoPeso.peso_kg, cm, anni, sesso }) : null),
-    [scheda, ultimoPeso?.peso_kg, cm, anni, sesso],
+    () =>
+      ultimoPeso?.peso_kg && cm && anni
+        ? stimaScheda(scheda.giorni, scheda.giorni_settimana, { kg: ultimoPeso.peso_kg, cm, anni, sesso }, { titolo: scheda.titolo, sedute })
+        : null,
+    [scheda, ultimoPeso?.peso_kg, cm, anni, sesso, sedute],
   )
 
   // Finche' arrivano i dati non si mostra niente: il riquadro sta in fondo e non deve saltare.
@@ -228,7 +283,7 @@ export function CalorieScheda({ scheda, giorno }: { scheda: SchedaLab; giorno: n
             {`circa ${intero(g.circa)} `}
             <Text style={[stili.unita, { color: p.testoTerzo }]}>kcal</Text>
           </Text>
-          <Text style={[stili.piccola, { color: p.testoSecondario }]}>{`${scheda.giorni.length > 1 ? `${g.nome}: ` : ''}da ${intero(g.da)} a ${intero(g.a)} kcal · circa ${g.minuti} minuti, ${g.serie} serie`}</Text>
+          <Text style={[stili.piccola, { color: p.testoSecondario }]}>{`${scheda.giorni.length > 1 ? `${g.nome}: ` : ''}da ${intero(g.da)} a ${intero(g.a)} kcal · circa ${g.minuti} minuti${g.riscaldamento.minuti || g.defaticamento.minuti ? ' con riscaldamento e defaticamento' : ''}, ${g.serie} serie${g.vera ? ' · durata dalle tue sedute' : ''}`}</Text>
         </View>
       ) : null}
       <View style={[stili.cifre, { backgroundColor: p.incavo }]}>
