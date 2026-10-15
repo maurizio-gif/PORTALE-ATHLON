@@ -3,14 +3,16 @@ import { router } from 'expo-router'
 import { useCallback, useEffect, useState } from 'react'
 import { ScrollView, StyleSheet, Text, View } from 'react-native'
 
-import { elencoSchede, type RigaSchedaLab, type SedutaBreve, type StatoTest } from '@/api/lab'
+import { elencoMisure, elencoSchede, type Misura, type RigaSchedaLab, type SedutaBreve, type StatoTest } from '@/api/lab'
 import { spazio } from '@/theme'
 
+import { altezzaAl, bmi, dataCorta, fasciaBmi, numero } from '../dati/calcoli'
+import { CHIAVE_MISURE } from '../dati/Misure'
 import { inMemoria, prendi } from '../memoria'
 import { Icona, type NomeIcona } from '../ui/Icona'
 import { Carta, Entra, LinkSezione, Messaggio, Pulsante, Riga, SchedeInArrivo, Sezione, Tag } from '../ui/kit'
 import { Schermata } from '../ui/Schermata'
-import { F, FUOCO, MARE, NOTTE, usePalette } from '../ui/tema'
+import { coloreTono, F, FUOCO, MARE, NOTTE, usePalette } from '../ui/tema'
 import { Tocco } from '../ui/Tocco'
 import { giorniAlTest, giornoTest, LIVELLI, quando, testDaRifare, TIPI } from './comune'
 
@@ -40,14 +42,14 @@ function SchedaClub({ s, indice }: { s: RigaSchedaLab; indice: number }) {
         <View style={[stili.club, { backgroundColor: p.carta, borderColor: p.linea }]}>
           <LinearGradient colors={a.colori} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={stili.clubIcona}>
             <Icona nome={a.icona} size={26} colore="#fff" />
-            <Text style={stili.clubGiorni}>{`${s.giorni_settimana ?? s.giorni}/sett`}</Text>
+            {s.giorni_settimana ? <Text style={stili.clubGiorni}>{`${s.giorni_settimana}/sett`}</Text> : null}
           </LinearGradient>
           <View style={{ flex: 1, gap: 4 }}>
             <Text style={[stili.clubTitolo, { color: p.testo }]} numberOfLines={2}>
               {s.titolo}
             </Text>
             <Text style={[stili.clubSotto, { color: p.testoSecondario }]} numberOfLines={1}>
-              {[s.obiettivo, s.livello ? LIVELLI[s.livello] ?? s.livello : null, `${s.giorni} ${s.giorni === 1 ? 'giorno' : 'giorni'}`].filter(Boolean).slice(0, s.titolo.includes('giorni') ? 2 : 3).join(' · ')}
+              {[s.obiettivo, s.livello ? LIVELLI[s.livello] ?? s.livello : null, s.giorni > 1 && !s.titolo.includes('giorni') ? `${s.giorni} giorni` : null].filter(Boolean).join(' · ') || 'Una seduta'}
             </Text>
             {s.ultimo ? <Text style={[stili.clubUltimo, { color: p.accento }]}>{`In corso · ultimo allenamento ${quando(s.ultimo)}`}</Text> : null}
           </View>
@@ -55,6 +57,43 @@ function SchedaClub({ s, indice }: { s: RigaSchedaLab; indice: number }) {
         </View>
       </Tocco>
     </Entra>
+  )
+}
+
+/** I dati del corpo: l'ultimo peso e il BMI, o l'invito a segnarli. */
+function CartaDati({ misure }: { misure: Misura[] | null }) {
+  const p = usePalette()
+  const n = misure?.length ?? 0
+  const ultima = misure ? [...misure].reverse().find((m) => m.peso_kg != null) : undefined
+  const indice = ultima && misure ? misure.indexOf(ultima) : -1
+  const b = ultima && misure ? bmi(ultima.peso_kg, altezzaAl(misure, indice)) : null
+  const fascia = b != null ? fasciaBmi(b) : null
+  return (
+    <Tocco onPress={() => router.push('/lab/allenamento/misure')} etichetta="I tuoi dati: peso, BMI e misure" scala={0.985}>
+      <View style={[stili.agente, { backgroundColor: p.carta, borderColor: p.linea, boxShadow: p.ombra }]}>
+        <LinearGradient colors={['#34C38F', '#178A62']} style={stili.agenteIcona}>
+          <Icona nome="grafico" size={26} colore="#fff" />
+        </LinearGradient>
+        <View style={{ flex: 1, gap: 3 }}>
+          <Text style={[stili.agenteTitolo, { color: p.testo }]}>I tuoi dati</Text>
+          {ultima?.peso_kg != null ? (
+            <Text style={[stili.agenteTesto, { color: p.testoSecondario }]}>
+              <Text style={{ fontFamily: F.extra, color: p.testo }}>{`${numero(ultima.peso_kg)} kg`}</Text>
+              {b != null && fascia ? (
+                <>
+                  {' · BMI '}
+                  <Text style={{ fontFamily: F.extra, color: coloreTono(p, fascia.tono) }}>{numero(b)}</Text>
+                </>
+              ) : null}
+              {` · ${dataCorta(ultima.data)}${n > 1 ? ` · ${n} misurazioni` : ''}`}
+            </Text>
+          ) : (
+            <Text style={[stili.agenteTesto, { color: p.testoSecondario }]}>Altezza, peso e BMI, circonferenze, massa grassa e magra: segnali e guarda come cambiano.</Text>
+          )}
+        </View>
+        <Icona nome="avanti" size={18} colore={p.testoTerzo} />
+      </View>
+    </Tocco>
   )
 }
 
@@ -116,6 +155,7 @@ export function Schede() {
   const [dati, setDati] = useState<Dati | null>(() => inMemoria<Dati>(CHIAVE_SCHEDE) ?? null)
   const [errore, setErrore] = useState<string | null>(null)
   const [obiettivo, setObiettivo] = useState<string | null>(null)
+  const [misure, setMisure] = useState<Misura[] | null>(() => inMemoria<{ misure: Misura[] }>(CHIAVE_MISURE)?.misure ?? null)
 
   const carica = useCallback(async () => {
     setErrore(null)
@@ -126,11 +166,12 @@ export function Schede() {
 
   useEffect(() => {
     carica()
+    prendi(CHIAVE_MISURE, elencoMisure).then((r) => r.ok && setMisure(r.misure))
   }, [carica])
 
   if (!dati) {
     return (
-      <Schermata sopratitolo="Laboratorio" titolo="Allenamento">
+      <Schermata sopratitolo="Laboratorio" titolo="Workout">
         {errore ? (
           <>
             <Messaggio>{errore}</Messaggio>
@@ -149,9 +190,13 @@ export function Schede() {
   const obiettivi = [...new Set(club.map((s) => s.obiettivo).filter((o): o is string => !!o))]
   const clubVisibili = obiettivo ? club.filter((s) => s.obiettivo === obiettivo) : club
   return (
-    <Schermata sopratitolo="Laboratorio" titolo="Allenamento" sottotitolo="Le tue schede, il registro dei pesi e il timer del recupero.">
+    <Schermata sopratitolo="Laboratorio" titolo="Workout" sottotitolo="Le tue schede, il registro dei pesi e il timer del recupero.">
       <Entra indice={0}>
         <CartaTest t={dati.test} />
+      </Entra>
+
+      <Entra indice={1}>
+        <CartaDati misure={misure} />
       </Entra>
 
       <Entra indice={1}>

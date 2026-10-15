@@ -113,7 +113,7 @@ export function Scheda() {
 
   if (!dati) {
     return (
-      <Schermata sopratitolo="Allenamento" titolo="Scheda" indietro="/lab/allenamento" barra={false}>
+      <Schermata sopratitolo="Workout" titolo="Scheda" indietro="/lab/allenamento" barra={false}>
         {errore ? (
           <>
             <Messaggio>{errore}</Messaggio>

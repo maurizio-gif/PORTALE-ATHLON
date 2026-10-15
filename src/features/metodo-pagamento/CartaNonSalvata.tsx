@@ -44,8 +44,7 @@ export function CartaNonSalvata({ motivo, onRiprova }: { motivo?: string | null;
         </>
       )}
       <Testo variante="attenuato">
-        Se preferisci evitare la carta, puoi salvare il <Forte>conto corrente (IBAN)</Forte>: non chiede conferme dalla banca. Se non riesci
-        in nessun modo, scrivici a desk@athlonroma.it e ti aiutiamo noi.
+        Se preferisci evitare la carta, puoi salvare il <Forte>conto corrente (IBAN)</Forte>: non chiede conferme dalla banca.
       </Testo>
       <Bottone testo="Riprova o scegli il conto" onPress={onRiprova} />
     </>

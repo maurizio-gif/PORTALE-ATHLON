@@ -259,6 +259,19 @@ export function Pagamenti() {
 
   return (
     <Schermata larga sopratitolo="Laboratorio · soldi veri" titolo="Pagamenti" sottotitolo="Pagamento diretto con carta e rate automatiche.">
+      <Entra indice={0}>
+        <Carta style={{ paddingVertical: spazio.uno, maxWidth: 560, width: '100%', alignSelf: 'center' }}>
+          <Riga
+            prima
+            icona="carta"
+            tono="accento"
+            titolo="Metodo di pagamento degli abbonamenti"
+            sotto="Conto corrente (IBAN) o carta, per te e per la tua famiglia"
+            onPress={() => navigatore.push('/lab/metodo-pagamento')}
+          />
+        </Carta>
+      </Entra>
+
       <Messaggio tono="attenzione" icona="fulmine" titolo="Soldi veri, massimo 5 €">
         <Text style={[stili.nota, { color: p.testoSecondario }]}>
           È il conto del club su <InfoAdyen />, non una prova finta: ogni rata è 1 € e si addebita davvero. Il laboratorio non va oltre 5 €.

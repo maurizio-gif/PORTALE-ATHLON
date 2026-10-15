@@ -139,8 +139,8 @@ export default function RitornoCarta() {
   return (
     <Pagina titolo="Non siamo riusciti a completare">
       <Testo variante="attenuato">
-        {errore || 'La carta potrebbe essere salvata ma non ancora collegata ai tuoi abbonamenti.'} Scrivici a desk@athlonroma.it e ci
-        pensiamo noi.
+        {errore || 'La carta potrebbe essere salvata ma non ancora collegata ai tuoi abbonamenti.'} Riprova fra qualche minuto dai tuoi
+        abbonamenti.
       </Testo>
       <Bottone testo="Torna ai tuoi abbonamenti" variante="contorno" onPress={indietro} />
     </Pagina>

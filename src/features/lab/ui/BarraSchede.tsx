@@ -16,7 +16,7 @@ import { Tocco } from './Tocco'
 const SCHEDE: { href: Href; percorso: string; titolo: string; icona: NomeIcona }[] = [
   { href: '/lab', percorso: '/lab', titolo: 'Home', icona: 'casa' },
   { href: '/lab/calendario', percorso: '/lab/calendario', titolo: 'Prenotazioni', icona: 'calendario' },
-  { href: '/lab/allenamento', percorso: '/lab/allenamento', titolo: 'Allenati', icona: 'peso' },
+  { href: '/lab/allenamento', percorso: '/lab/allenamento', titolo: 'Workout', icona: 'peso' },
   { href: '/lab/tv', percorso: '/lab/tv', titolo: 'TV', icona: 'play' },
   { href: '/lab/pagamenti', percorso: '/lab/pagamenti', titolo: 'Pagamenti', icona: 'carta' },
 ]
@@ -77,7 +77,7 @@ export function BarraSchede() {
                 }}
                 style={stili.scheda}
               >
-                <Icona nome={s.icona} size={22} colore={colore} />
+                <Icona nome={s.icona} size={19} colore={colore} />
                 <Text style={[stili.testo, { color: coloreTesto, fontFamily: qui ? F.extra : F.semi }]} numberOfLines={1}>
                   {s.titolo}
                 </Text>
@@ -95,6 +95,6 @@ const stili = StyleSheet.create({
   pillola: { width: '100%', maxWidth: 480, borderRadius: 28, borderWidth: StyleSheet.hairlineWidth, overflow: 'hidden', padding: 6 },
   fila: { flexDirection: 'row' },
   cursore: { position: 'absolute', top: 0, bottom: 0, left: 0, borderRadius: 22 },
-  scheda: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 3, paddingVertical: 9, borderRadius: 22 },
-  testo: { fontSize: 10.5 },
+  scheda: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 2, paddingVertical: 8, borderRadius: 22 },
+  testo: { fontSize: 9.5, letterSpacing: -0.1 },
 })

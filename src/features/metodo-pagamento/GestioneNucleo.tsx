@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, type ComponentType, type ReactNode } from 'react'
 import { StyleSheet, View } from 'react-native'
 
 import { chiamaLink } from '@/api/link'
@@ -26,13 +26,18 @@ import { ElencoEsiti, MetodoAttualeBadge, chi, dateContratto, statoLeggibile } f
 
 type Schermata = 'elenco' | 'iban' | 'esito'
 
+/** Il contenitore della pagina: `Pagina` dal link dell'email, la schermata del laboratorio nell'app. */
+export type Cornice = ComponentType<{ titolo: string; children: ReactNode }>
+
 export function GestioneNucleo({
   token,
   nome,
   nomeTitolare,
   iniziali,
   evidenziato = null,
+  Cornice = Pagina,
 }: {
+  Cornice?: Cornice
   token: string
   nome: string | null
   nomeTitolare: string
@@ -101,7 +106,7 @@ export function GestioneNucleo({
   if (schermata === 'esito') {
     const tutti = risultati.length > 0 && risultati.every((r) => r.ok)
     return (
-      <Pagina titolo={tutti ? 'Fatto, grazie!' : 'Ecco com’è andata'}>
+      <Cornice titolo={tutti ? 'Fatto, grazie!' : 'Ecco com’è andata'}>
         <Testo>
           {finale ? (
             <>
@@ -113,16 +118,16 @@ export function GestioneNucleo({
         </Testo>
         <ElencoEsiti contratti={contratti} risultati={risultati} />
         {!tutti ? (
-          <Testo variante="attenuato">Dove non è andato, puoi riprovare o scriverci a desk@athlonroma.it: ci pensiamo noi.</Testo>
+          <Testo variante="attenuato">Dove non è andato, riprova fra qualche minuto.</Testo>
         ) : null}
         <Bottone testo="Torna ai tuoi abbonamenti" variante="contorno" onPress={tornaAllElenco} inCorso={attesa} />
-      </Pagina>
+      </Cornice>
     )
   }
 
   if (schermata === 'iban') {
     return (
-      <Pagina titolo="Metodo di pagamento">
+      <Cornice titolo="Metodo di pagamento">
         <ModuloIban
           nomeCompleto={nomeTitolare}
           introduzione={
@@ -142,15 +147,15 @@ export function GestioneNucleo({
           onInvia={salvaIban}
           onIndietro={() => setSchermata('elenco')}
         />
-      </Pagina>
+      </Cornice>
     )
   }
 
   return (
-    <Pagina titolo={nome ? `Ciao ${nome}` : 'I tuoi abbonamenti'}>
+    <Cornice titolo={nome ? `Ciao ${nome}` : 'I tuoi abbonamenti'}>
       {contratti.length === 0 ? (
         <Testo variante="attenuato">
-          Non troviamo abbonamenti attivi a tuo nome o dei tuoi figli. Se pensi sia un errore scrivici a desk@athlonroma.it.
+          Non troviamo abbonamenti attivi a tuo nome o dei tuoi figli.
         </Testo>
       ) : (
         <>
@@ -207,7 +212,7 @@ export function GestioneNucleo({
           </Testo>
         </>
       )}
-    </Pagina>
+    </Cornice>
   )
 }
 

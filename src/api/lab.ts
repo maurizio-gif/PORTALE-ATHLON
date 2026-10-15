@@ -656,3 +656,58 @@ export async function salvaTestMassimale(esercizioId: string, kg: number | null,
   if (ok) return { ok: true, massimale: Number(dati.massimale), tipo: dati.tipo }
   return { ok: false, errore: dati.errore ?? 'Il risultato non è stato salvato.' }
 }
+
+// ---------------------------------------------------------------------------
+// I dati del corpo (16/10/2026): altezza, peso, circonferenze, composizione.
+
+export type Misura = {
+  id: string
+  /** «AAAA-MM-GG». */
+  data: string
+  altezza_cm: number | null
+  peso_kg: number | null
+  vita_cm: number | null
+  fianchi_cm: number | null
+  petto_cm: number | null
+  braccio_cm: number | null
+  coscia_cm: number | null
+  massa_grassa_pct: number | null
+  massa_magra_kg: number | null
+  note: string | null
+  inserita_da: string
+}
+
+export type NuovaMisura = Partial<Omit<Misura, 'id' | 'inserita_da'>>
+
+const misureLab = (corpo: Record<string, unknown>) => funzione('portale-lab-misure', corpo)
+
+/** Le misurazioni del socio, dalla piu' vecchia. */
+export async function elencoMisure(): Promise<Esito<{ misure: Misura[] }>> {
+  const { ok, dati } = await misureLab({ azione: 'elenco' })
+  if (ok) return { ok: true, misure: dati.misure ?? [] }
+  return { ok: false, errore: dati.errore ?? 'Non riusciamo a leggere i tuoi dati adesso.' }
+}
+
+/** Una misurazione: quella dello stesso giorno si sostituisce. */
+export async function salvaMisura(m: NuovaMisura): Promise<Esito<{ misura: Misura }>> {
+  const { ok, dati } = await misureLab({ azione: 'salva', ...m })
+  if (ok) return { ok: true, misura: dati.misura }
+  return { ok: false, errore: dati.errore ?? 'I dati non sono stati salvati.' }
+}
+
+export async function eliminaMisura(id: string): Promise<Esito<object>> {
+  const { ok, dati } = await misureLab({ azione: 'elimina', id })
+  if (ok) return { ok: true }
+  return { ok: false, errore: dati.errore ?? 'La misurazione non è stata tolta.' }
+}
+
+// ---------------------------------------------------------------------------
+// Il metodo di pagamento vero (PerfectGym), dall'app (16/10/2026): la stessa
+// procedura del link per email, senza l'email. `portale-lab-pagamenti` apre la
+// richiesta del nucleo e da' il suo token; il resto lo fa `portale-link`.
+
+export async function tokenMetodoPagamento(): Promise<Esito<{ token: string }>> {
+  const { ok, dati } = await pagamenti({ azione: 'metodo_link' })
+  if (ok && typeof dati.token === 'string') return { ok: true, token: dati.token }
+  return { ok: false, errore: dati.errore ?? 'Non riusciamo ad aprire il metodo di pagamento adesso.' }
+}

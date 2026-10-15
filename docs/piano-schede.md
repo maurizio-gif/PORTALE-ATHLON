@@ -138,3 +138,20 @@ expo-notifications e la build), i video del club, e le decisioni qui sopra.
   «Duplica» per partire da una che c'è), con la colonna «% mass.»
   nell'editor; nella libreria si impostano incremento, peso minimo e test di
   ogni esercizio. Nell'app un elenco compatto filtrabile per obiettivo.
+
+## Le schede della vecchia app e i dati del corpo (15/10/2026)
+
+- **Le schede del club** ora sono quelle della vecchia app (dagli screenshot):
+  Tonificazione 8.1, 8.2, 8.3, Ipertrofia 8.1, 8.2, Dimagrimento 8.1, 8.2,
+  8.3, una seduta ciascuna, al posto delle dieci proposte. Esercizi abbinati
+  alla libreria, piu' tre del club (hip thrust e rematore alla macchina,
+  piegamenti sulle ginocchia); i carichi in percentuale dalle ripetizioni
+  (6 → 80%, 10 → 70%, 12 → 65%, 15 → 60%). Script:
+  APP-ATHLON `scripts/importa-schede-vecchia-app.mjs`. Mancano gli «Start Up».
+- **I tuoi dati** (Workout → I tuoi dati, `/lab/allenamento/misure`):
+  altezza, peso e BMI, circonferenze, massa grassa e magra, col grafico
+  dell'andamento. Tabella `misure_corporee`, funzione `portale-lab-misure`.
+- La sezione si chiama **Workout** (prima «Allenati»).
+- **Il metodo di pagamento** nell'app (`/lab/metodo-pagamento`, da Pagamenti
+  e dalla card dell'abbonamento in Home): la stessa procedura del link per
+  email, con la richiesta aperta da `portale-lab-pagamenti` (origine 'app').

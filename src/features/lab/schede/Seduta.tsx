@@ -278,7 +278,7 @@ export function Seduta() {
 
   if (errore && !seduta) {
     return (
-      <Schermata sopratitolo="Allenamento" titolo="Seduta" indietro={`/lab/allenamento/${schedaId}`} barra={false}>
+      <Schermata sopratitolo="Workout" titolo="Seduta" indietro={`/lab/allenamento/${schedaId}`} barra={false}>
         <Messaggio>{errore}</Messaggio>
         <Pulsante testo="Riprova" icona="aggiorna" onPress={carica} />
       </Schermata>
@@ -286,7 +286,7 @@ export function Seduta() {
   }
   if (!giorno || !seduta || !scheda) {
     return (
-      <Schermata sopratitolo="Allenamento" titolo="Seduta" indietro={`/lab/allenamento/${schedaId}`} barra={false}>
+      <Schermata sopratitolo="Workout" titolo="Seduta" indietro={`/lab/allenamento/${schedaId}`} barra={false}>
         <SchedeInArrivo quante={2} />
       </Schermata>
     )
