@@ -56,6 +56,7 @@ const ICONE = {
   cronometro: ['timer', 'timer'],
   elenco: ['list.bullet', 'format_list_bulleted'],
   bandiera: ['flag.checkered', 'sports_score'],
+  fiamma: ['flame.fill', 'local_fire_department'],
 } as const satisfies Record<string, readonly [SFSymbol, AndroidSymbol]>
 
 export type NomeIcona = keyof typeof ICONE
