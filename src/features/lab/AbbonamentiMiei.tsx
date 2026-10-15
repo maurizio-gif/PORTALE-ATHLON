@@ -66,6 +66,9 @@ function SchedaContratto({ c, conPersona }: { c: ContrattoElenco; conPersona: bo
   const [scarico, setScarico] = useState(false)
   const [errore, setErrore] = useState<string | null>(null)
   const s = statoContratto(c)
+  // Il flag `automaticRenew` di PerfectGym, letto dal server come `si_rinnova`:
+  // si accende solo per un contratto in vigore, e sparisce con la disdetta.
+  const rinnovoAutomatico = c.in_vigore && c.si_rinnova
 
   async function scarica() {
     if (!c.firmato) return
@@ -91,7 +94,12 @@ function SchedaContratto({ c, conPersona }: { c: ContrattoElenco; conPersona: bo
           </View>
           <Etichetta testo={s.testo} tono={s.tono} />
         </View>
-        {c.categoria !== 'principale' ? <Etichetta testo={c.categoria === 'junior' ? 'Corso per bambini' : 'Abbonamento aggiuntivo'} tono="neutro" /> : null}
+        {c.categoria !== 'principale' || rinnovoAutomatico ? (
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'flex-start', gap: spazio.due }}>
+            {c.categoria !== 'principale' ? <Etichetta testo={c.categoria === 'junior' ? 'Corso per bambini' : 'Abbonamento aggiuntivo'} tono="neutro" /> : null}
+            {rinnovoAutomatico ? <Etichetta testo="Rinnovo automatico attivo" tono="ok" /> : null}
+          </View>
+        ) : null}
 
         <View style={{ gap: 6 }}>
           <Riga nome="Sottoscritto il" valore={data(c.data_firma)} />
