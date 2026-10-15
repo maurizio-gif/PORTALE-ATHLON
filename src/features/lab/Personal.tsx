@@ -45,9 +45,10 @@ import { colpetto, Tocco } from './ui/Tocco'
 // disponibilita' su PerfectGym. Un orario con piu' trainer liberi si tocca e
 // poi si sceglie con chi.
 //
-// I trainer hanno la loro foto e la loro scheda («Chi è»): foto e descrizione
-// dalla scheda di PerfectGym, e dove mancano dal sito, che da' anche la frase e
-// i servizi proposti (portale-lab-personal).
+// I trainer hanno la loro foto e la loro scheda, che si apre dalla «i» accanto
+// al nome: foto e testi sono quelli del sito (www.athlonroma.it/personal-training),
+// con la frase, gli studi, le specializzazioni e i servizi proposti. Nelle
+// schede si vede solo il nome: il resto sta nella scheda (portale-lab-personal).
 
 /** Il nome di un tipo di seduta, detto come lo dice il club e senza prezzi dentro. */
 function nomeSeduta(nome: string): string {
@@ -128,12 +129,22 @@ function FotoTrainer({ t, nome, size, anello }: { t: TrainerPersonal | undefined
   )
 }
 
-/** «Chi è»: la foto grande, la frase, la descrizione e i servizi proposti. */
+/** La «i» accanto al nome: apre la scheda del trainer. */
+function InfoTrainer({ nome, onPress }: { nome: string; onPress: () => void }) {
+  const p = usePalette()
+  return (
+    <Tocco onPress={onPress} ruolo="button" etichetta={`Chi è ${nome}`} style={[stili.info, { backgroundColor: p.incavo }]}>
+      <Icona nome="info" size={18} colore={p.testoSecondario} />
+    </Tocco>
+  )
+}
+
+/** La scheda del trainer: la foto grande e tutto il testo del sito (frase, studi, specializzazioni, servizi). */
 function FoglioTrainer({ t, onChiudi }: { t: TrainerPersonal | null; onChiudi: () => void }) {
   const p = usePalette()
-  // Con la descrizione di PerfectGym (gli studi) si aggiungono dal sito solo i servizi, che li' non ci sono.
-  const gruppi = t?.descrizione_da === 'perfectgym' ? (t?.gruppi ?? []).filter((g) => /servizi/i.test(g.titolo)) : t?.gruppi ?? []
-  const righe = t?.descrizione_da === 'perfectgym' ? (t?.descrizione ?? '').split('\n').map((r) => r.trim()).filter(Boolean) : []
+  const gruppi = t?.gruppi ?? []
+  // La descrizione di PerfectGym solo se il sito non ha la scheda di questo trainer.
+  const righe = !gruppi.length ? (t?.descrizione ?? '').split('\n').map((r) => r.trim()).filter(Boolean) : []
   return (
     <Foglio aperto={!!t} titolo={t?.nome ?? ''} sottotitolo="Personal trainer di Athlon Club" onChiudi={onChiudi}>
       {t ? (
@@ -676,34 +687,27 @@ export function Personal() {
                             const attivo = conChi === t
                             const tr = trainerDi.get(t)
                             return (
-                              <Tocco
-                                key={t}
-                                vibra="scelta"
-                                stato={{ selected: attivo }}
-                                onPress={() => {
-                                  setTrainer(t)
-                                  setDaPagare(null)
-                                  setErroreAzione(null)
-                                }}
-                                etichetta={`Con ${nomeTrainer.get(t)}`}
-                                style={[stili.sceltaTrainer, { borderColor: attivo ? p.accento : p.linea, backgroundColor: attivo ? velo(p, 'accento', 0.1) : p.carta }]}
-                              >
-                                <FotoTrainer t={tr} nome={nomeTrainer.get(t) ?? ''} size={52} />
-                                <View style={{ flex: 1, gap: 2 }}>
-                                  <Text style={{ color: p.testo, fontFamily: F.extra, fontSize: 15.5 }}>{nomeTrainer.get(t) ?? 'Trainer'}</Text>
-                                  {tr?.frase ? (
-                                    <Text style={[stili.nota, { color: p.testoSecondario }]} numberOfLines={2}>{`«${tr.frase}»`}</Text>
-                                  ) : null}
-                                  {tr && (tr.descrizione || tr.gruppi.length) ? (
-                                    <Tocco onPress={() => setChiE(tr)} ruolo="link" etichetta={`Chi è ${tr.nome}`} style={{ alignSelf: 'flex-start', paddingVertical: 4 }}>
-                                      <Text style={{ color: p.accento, fontFamily: F.bold, fontSize: 13.5 }}>Chi è ›</Text>
-                                    </Tocco>
-                                  ) : null}
-                                </View>
-                                <View style={[stili.radio, { borderColor: attivo ? p.accento : p.linea, backgroundColor: attivo ? p.accento : 'transparent' }]}>
-                                  {attivo ? <Icona nome="spunta" size={13} colore="#fff" /> : null}
-                                </View>
-                              </Tocco>
+                              // La «i» sta accanto alla scelta e non dentro: un pulsante dentro un pulsante non e' valido.
+                              <View key={t} style={[stili.sceltaTrainer, { borderColor: attivo ? p.accento : p.linea, backgroundColor: attivo ? velo(p, 'accento', 0.1) : p.carta }]}>
+                                <Tocco
+                                  vibra="scelta"
+                                  stato={{ selected: attivo }}
+                                  onPress={() => {
+                                    setTrainer(t)
+                                    setDaPagare(null)
+                                    setErroreAzione(null)
+                                  }}
+                                  etichetta={`Con ${nomeTrainer.get(t)}`}
+                                  style={stili.sceltaTocco}
+                                >
+                                  <View style={[stili.radio, { borderColor: attivo ? p.accento : p.linea, backgroundColor: attivo ? p.accento : 'transparent' }]}>
+                                    {attivo ? <Icona nome="spunta" size={13} colore="#fff" /> : null}
+                                  </View>
+                                  <FotoTrainer t={tr} nome={nomeTrainer.get(t) ?? ''} size={52} />
+                                  <Text style={{ flex: 1, color: p.testo, fontFamily: F.extra, fontSize: 15.5 }}>{nomeTrainer.get(t) ?? 'Trainer'}</Text>
+                                </Tocco>
+                                {tr ? <InfoTrainer onPress={() => setChiE(tr)} nome={tr.nome} /> : null}
+                              </View>
                             )
                           })}
                         </View>
@@ -711,19 +715,10 @@ export function Personal() {
                     ) : conChi != null ? (
                       <View style={stili.conChi}>
                         <FotoTrainer t={trainerDi.get(conChi)} nome={nomeTrainer.get(conChi) ?? ''} size={52} />
-                        <View style={{ flex: 1, gap: 2 }}>
-                          <Text style={[stili.nota, { color: p.testoSecondario }]}>
-                            Con <Text style={{ color: p.testo, fontFamily: F.extra, fontSize: 15.5 }}>{nomeTrainer.get(conChi)}</Text>
-                          </Text>
-                          {trainerDi.get(conChi)?.frase ? (
-                            <Text style={[stili.nota, { color: p.testoSecondario }]} numberOfLines={2}>{`«${trainerDi.get(conChi)?.frase}»`}</Text>
-                          ) : null}
-                          {trainerDi.get(conChi) ? (
-                            <Tocco onPress={() => setChiE(trainerDi.get(conChi) ?? null)} ruolo="link" etichetta={`Chi è ${nomeTrainer.get(conChi)}`} style={{ alignSelf: 'flex-start', paddingVertical: 4 }}>
-                              <Text style={{ color: p.accento, fontFamily: F.bold, fontSize: 13.5 }}>Chi è ›</Text>
-                            </Tocco>
-                          ) : null}
-                        </View>
+                        <Text style={[stili.nota, { flex: 1, color: p.testoSecondario }]}>
+                          Con <Text style={{ color: p.testo, fontFamily: F.extra, fontSize: 15.5 }}>{nomeTrainer.get(conChi)}</Text>
+                        </Text>
+                        {trainerDi.get(conChi) ? <InfoTrainer onPress={() => setChiE(trainerDi.get(conChi) ?? null)} nome={nomeTrainer.get(conChi) ?? ''} /> : null}
                       </View>
                     ) : null}
 
@@ -831,8 +826,10 @@ const stili = StyleSheet.create({
   scelto: { gap: spazio.tre, borderTopWidth: StyleSheet.hairlineWidth, paddingTop: spazio.tre },
   sceltoOra: { fontFamily: F.extra, fontSize: 20, letterSpacing: -0.5, fontVariant: ['tabular-nums'] },
   conChi: { flexDirection: 'row', alignItems: 'center', gap: spazio.tre },
-  sceltaTrainer: { flexDirection: 'row', alignItems: 'center', gap: spazio.tre, borderRadius: 20, borderWidth: 1.5, padding: spazio.due + 2 },
+  sceltaTrainer: { flexDirection: 'row', alignItems: 'center', gap: spazio.due, borderRadius: 20, borderWidth: 1.5, paddingRight: spazio.due + 2 },
+  sceltaTocco: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: spazio.tre, padding: spazio.due + 2 },
   fotoGrande: { width: '100%', aspectRatio: 1, maxHeight: 360, borderRadius: 24 },
+  info: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
   frase: { fontFamily: F.semi, fontSize: 16, lineHeight: 23, fontStyle: 'italic', borderLeftWidth: 3, paddingLeft: spazio.tre },
   voce: { flexDirection: 'row', gap: spazio.due, alignItems: 'flex-start' },
   pallino: { width: 6, height: 6, borderRadius: 3, marginTop: 8 },
