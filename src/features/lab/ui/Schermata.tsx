@@ -1,4 +1,5 @@
 import { BlurView } from 'expo-blur'
+import { Image } from 'expo-image'
 import { router, type Href } from 'expo-router'
 import type { ReactNode, Ref } from 'react'
 import { Platform, StyleSheet, Text, useWindowDimensions, View } from 'react-native'
@@ -17,6 +18,23 @@ import { Tocco } from './Tocco'
 // titolo piccolo; sotto, lo spazio per la barra delle schede. Niente dati
 // legali in fondo, a differenza delle pagine pubbliche: nel laboratorio sotto
 // c'e' solo il menu (scelta dell'utente, 14/10/2026).
+//
+// Il marchio Athlon e' sempre in vista (15/10/2026): nella riga in alto di ogni
+// schermata e, scorrendo, nella testata sottile, cosi' e' sempre chiaro che e'
+// l'app del club.
+
+const PITTOGRAMMA = require('@/../assets/images/pittogramma.png')
+
+/** Il marchio: il pittogramma arancio e il nome. */
+export function Marchio({ piccolo = false }: { piccolo?: boolean }) {
+  const p = usePalette()
+  return (
+    <View style={stili.marchio} accessibilityLabel="Athlon Club" accessibilityRole="image">
+      <Image source={PITTOGRAMMA} style={piccolo ? stili.pittogrammaPiccolo : stili.pittogramma} contentFit="contain" />
+      {piccolo ? null : <Text style={[stili.nomeClub, { color: p.testo }]}>Athlon Club</Text>}
+    </View>
+  )
+}
 
 /** Quanto spazio lasciare in fondo per la barra delle schede. */
 export const SPAZIO_BARRA = 84
@@ -93,12 +111,13 @@ export function Schermata({
       >
         {sopra}
         <View style={[stili.colonna, { maxWidth }]}>
-          {freccia || destra ? (
-            <View style={stili.barraAlta}>
-              {freccia ?? <View />}
-              {destra}
+          <View style={stili.barraAlta}>
+            <View style={stili.sinistra}>
+              {freccia}
+              <Marchio />
             </View>
-          ) : null}
+            {destra}
+          </View>
           {nascondiTitolo ? null : (
             <Animated.View style={[stili.titoli, titoloGrande, { transformOrigin: 'left' }]}>
               {sopratitolo ? <Text style={[stili.sopratitolo, { color: p.accento }]}>{sopratitolo.toUpperCase()}</Text> : null}
@@ -121,6 +140,9 @@ export function Schermata({
           <BlurView intensity={60} tint={p.scuro ? 'dark' : 'light'} style={StyleSheet.absoluteFill} />
         )}
         <View style={[StyleSheet.absoluteFill, { top: undefined, height: StyleSheet.hairlineWidth, backgroundColor: p.linea }]} />
+        <View style={[stili.marchioTestata, { top: ins.top }]}>
+          <Marchio piccolo />
+        </View>
         <Animated.Text numberOfLines={1} style={[stili.titoloPiccolo, { color: p.testo }, titoloPiccolo]}>
           {titolo}
         </Animated.Text>
@@ -142,7 +164,13 @@ export function BottoneTondo({ icona, onPress, etichetta }: { icona: Parameters<
 const stili = StyleSheet.create({
   fondo: { flex: 1 },
   colonna: { width: '100%', alignSelf: 'center', paddingHorizontal: spazio.tre + 2 },
-  barraAlta: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: spazio.tre },
+  barraAlta: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: spazio.tre, minHeight: 44 },
+  sinistra: { flexDirection: 'row', alignItems: 'center', gap: spazio.tre },
+  marchio: { flexDirection: 'row', alignItems: 'center', gap: spazio.due },
+  pittogramma: { width: 30, height: 24 },
+  pittogrammaPiccolo: { width: 24, height: 19 },
+  nomeClub: { fontFamily: F.extra, fontSize: 16, letterSpacing: -0.3 },
+  marchioTestata: { position: 'absolute', left: spazio.tre + 2, height: 52, justifyContent: 'center' },
   tondo: { width: 44, height: 44, borderRadius: 16, alignItems: 'center', justifyContent: 'center', borderWidth: StyleSheet.hairlineWidth },
   titoli: { gap: 6, paddingHorizontal: 2 },
   sopratitolo: { fontSize: 12, fontFamily: F.extra, letterSpacing: 1.6 },

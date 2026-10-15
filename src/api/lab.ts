@@ -44,6 +44,8 @@ export type PersonaArea = {
   titolare: boolean
   email: string | null
   telefono: string | null
+  /** Un pagamento non andato (saldo negativo su PerfectGym), non quando un addebito e' ancora in corso. */
+  debito?: { importo: number; dal: string | null } | null
 }
 
 export type ContrattoArea = {
@@ -719,4 +721,43 @@ export async function tokenMetodoPagamento(): Promise<Esito<{ token: string }>> 
   const { ok, dati } = await pagamenti({ azione: 'metodo_link' })
   if (ok && typeof dati.token === 'string') return { ok: true, token: dati.token }
   return { ok: false, errore: dati.errore ?? 'Non riusciamo ad aprire il metodo di pagamento adesso.' }
+}
+
+// ---------------------------------------------------------------------------
+// I pagamenti veri del nucleo (15/10/2026), dal mirror di PerfectGym:
+// lo storico, le quote scadute da saldare e quelle future.
+
+export type VoceMovimento = { cosa: string; dettaglio: string | null; importo: number | null }
+
+export type Movimento = {
+  id: string
+  data: string | null
+  importo: number
+  esito: 'riuscito' | 'rimborso' | 'in_corso' | 'da_pagare'
+  metodo: string | null
+  titolo: string
+  voci: VoceMovimento[]
+  /** Il nome del familiare, se non e' per il titolare. */
+  per: string | null
+  scadenza: string | null
+  nota: string | null
+}
+
+export type QuotaFutura = {
+  id: string
+  scadenza: string
+  importo: number
+  totale: number
+  titolo: string
+  dettaglio: string | null
+  per: string | null
+  metodo: string | null
+  /** «AAAA-MM» della carta registrata. */
+  carta_scade: string | null
+}
+
+export async function movimentiPagamenti(): Promise<Esito<{ storico: Movimento[]; daSaldare: Movimento[]; futuri: QuotaFutura[] }>> {
+  const { ok, dati } = await pagamenti({ azione: 'movimenti' })
+  if (ok) return { ok: true, storico: dati.storico ?? [], daSaldare: dati.da_saldare ?? [], futuri: dati.futuri ?? [] }
+  return { ok: false, errore: dati.errore ?? 'Non riusciamo a leggere i tuoi pagamenti adesso.' }
 }

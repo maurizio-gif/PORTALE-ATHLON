@@ -21,6 +21,7 @@ import { inMemoria, prendi } from './memoria'
 import { euro, quando, STATO_ABBONAMENTO, STATO_PAGAMENTO } from './etichettePagamenti'
 import { Icona } from './ui/Icona'
 import { Carta, Colonnine, Entra, Etichetta, Messaggio, Numero, Pulsante, Riga, SchedeInArrivo, Sezione, Tag } from './ui/kit'
+import { RiepilogoPagamenti } from './pagamenti/Movimenti'
 import { Schermata } from './ui/Schermata'
 import { F, FUOCO, MARE, NOTTE, usePalette } from './ui/tema'
 import { colpetto } from './ui/Tocco'
@@ -258,9 +259,13 @@ export function Pagamenti() {
   const pagatoTotale = dati?.abbonamenti.reduce((t, a) => t + a.pagamenti.filter((x) => x.stato === 'autorizzato').reduce((s, x) => s + x.importo_cent, 0), 0) ?? 0
 
   return (
-    <Schermata larga sopratitolo="Laboratorio · soldi veri" titolo="Pagamenti" sottotitolo="Pagamento diretto con carta e rate automatiche.">
+    <Schermata larga sopratitolo="Laboratorio" titolo="Pagamenti" sottotitolo="I tuoi pagamenti e quelli della famiglia, i prossimi e il metodo.">
+      <View style={{ maxWidth: 760, width: '100%', alignSelf: 'center', gap: spazio.quattro }}>
+        <RiepilogoPagamenti />
+      </View>
+
       <Entra indice={0}>
-        <Carta style={{ paddingVertical: spazio.uno, maxWidth: 560, width: '100%', alignSelf: 'center' }}>
+        <Carta style={{ paddingVertical: spazio.uno, maxWidth: 760, width: '100%', alignSelf: 'center' }}>
           <Riga
             prima
             icona="carta"
@@ -272,6 +277,7 @@ export function Pagamenti() {
         </Carta>
       </Entra>
 
+      <Text style={[stili.sezioneLab, { color: p.testo }]}>Laboratorio: pagamento diretto con carta e rate</Text>
       <Messaggio tono="attenzione" icona="fulmine" titolo="Soldi veri, massimo 5 €">
         <Text style={[stili.nota, { color: p.testoSecondario }]}>
           È il conto del club su <InfoAdyen />, non una prova finta: ogni rata è 1 € e si addebita davvero. Il laboratorio non va oltre 5 €.
@@ -342,6 +348,7 @@ export function Pagamenti() {
 const stili = StyleSheet.create({
   testa: { flexDirection: 'row', alignItems: 'flex-start', gap: spazio.due },
   nota: { fontSize: 13.5, lineHeight: 19, fontFamily: F.medio },
+  sezioneLab: { fontSize: 19, fontFamily: F.extra, letterSpacing: -0.4, marginTop: spazio.tre },
   griglia: { flexDirection: 'row', flexWrap: 'wrap', gap: spazio.tre },
   cella: { flexGrow: 1, flexBasis: 360, minWidth: 0, maxWidth: 580 },
   cellaPiano: { flexGrow: 1, flexBasis: 300, minWidth: 0, maxWidth: 580 },

@@ -10,6 +10,7 @@ import {
   salvaIndirizzo,
   salvaTelefono,
   type Anagrafica,
+  type PersonaArea,
 } from '@/api/lab'
 import { emailValida } from '@/api/richieste'
 import { controllaResidenza, controllaTelefono, indirizzoInRiga } from '@/lib/anagrafica'
@@ -20,6 +21,7 @@ import { inMemoria, prendi, ricorda } from './memoria'
 import { CampoCodice, CampoTesto } from './ui/Campi'
 import { Foglio } from './ui/Foglio'
 import { Icona, type NomeIcona } from './ui/Icona'
+import { AvvisoDebito, BollinoDebito } from './ui/Irregolarita'
 import { Avatar, Carta, Entra, Messaggio, Pulsante, Riga, SchedeInArrivo, Sezione } from './ui/kit'
 import { Schermata } from './ui/Schermata'
 import { PulsanteEsci } from './ui/Uscita'
@@ -245,6 +247,7 @@ export function Profilo() {
   const areaLetta = inMemoria<Awaited<ReturnType<typeof laMiaArea>>>('area')
   const [dati, setDati] = useState<Anagrafica | null>(giaLetta?.anagrafica ?? null)
   const [famiglia, setFamiglia] = useState<number | null>(areaLetta?.ok && areaLetta.area.trovato ? areaLetta.area.persone.length - 1 : null)
+  const [persone, setPersone] = useState<PersonaArea[]>(areaLetta?.ok && areaLetta.area.trovato ? areaLetta.area.persone : [])
   const [modificabile, setModificabile] = useState(!!giaLetta)
   const [errore, setErrore] = useState<string | null>(null)
   const [modifica, setModifica] = useState<Modifica>(null)
@@ -254,7 +257,10 @@ export function Profilo() {
     setErrore(null)
     const [r, area] = await Promise.all([prendi('anagrafica', leggiAnagrafica), prendi('area', laMiaArea)])
     const trovata = area.ok && area.area.trovato ? area.area : null
-    if (trovata) setFamiglia(trovata.persone.length - 1)
+    if (trovata) {
+      setFamiglia(trovata.persone.length - 1)
+      setPersone(trovata.persone)
+    }
     if (r.ok) {
       setDati(r.anagrafica)
       setModificabile(true)
@@ -326,6 +332,29 @@ export function Profilo() {
       <Entra indice={0}>
         <Testata a={dati} famiglia={famiglia} />
       </Entra>
+
+      <AvvisoDebito persone={persone} />
+
+      {persone.length > 1 || persone.some((x) => x.debito) ? (
+        <Sezione titolo="Il tuo nucleo" conteggio={persone.length}>
+          <Carta style={{ paddingVertical: spazio.due }}>
+            {persone.map((x, i) => (
+              <Riga
+                key={x.member_id}
+                prima={i === 0}
+                testa={<Avatar nome={x.nome} cognome={x.cognome} size={40} />}
+                titolo={[x.nome, x.cognome].filter(Boolean).join(' ') || 'Socio'}
+                sotto={
+                  <View style={{ gap: 4 }}>
+                    <Text style={{ color: p.testoSecondario, fontFamily: F.medio, fontSize: 13.5 }}>{x.titolare ? 'Tu, titolare' : 'Familiare'}</Text>
+                    <BollinoDebito debito={x.debito} />
+                  </View>
+                }
+              />
+            ))}
+          </Carta>
+        </Sezione>
+      ) : null}
 
       {fatto ? <Messaggio tono="ok">{fatto}</Messaggio> : null}
 

@@ -25,6 +25,7 @@ export default function LayoutLaboratorio() {
     <View style={{ flex: 1, backgroundColor: p.fondo }}>
       <Stack screenOptions={{ headerShown: false, animation: 'fade', contentStyle: { backgroundColor: p.fondo } }}>
         <Stack.Screen name="pagamenti/[riferimento]" options={{ animation: 'slide_from_right' }} />
+        <Stack.Screen name="pagamenti/storico" options={{ animation: 'slide_from_right' }} />
         <Stack.Screen name="tv/[raccolta]/index" options={{ animation: 'slide_from_right' }} />
         <Stack.Screen name="tv/[raccolta]/[video]" options={{ animation: 'slide_from_bottom' }} />
         <Stack.Screen name="allenamento/[scheda]/index" options={{ animation: 'slide_from_right' }} />

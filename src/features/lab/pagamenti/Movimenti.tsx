@@ -1,0 +1,355 @@
+import { router } from 'expo-router'
+import { useCallback, useEffect, useState } from 'react'
+import { StyleSheet, Text, View } from 'react-native'
+
+import { movimentiPagamenti, type Movimento, type QuotaFutura } from '@/api/lab'
+import { spazio } from '@/theme'
+
+import { inMemoria, prendi } from '../memoria'
+import { Foglio } from '../ui/Foglio'
+import { Icona, type NomeIcona } from '../ui/Icona'
+import { Carta, Etichetta, LinkSezione, Messaggio, Numero, Pulsante, Riga, SchedeInArrivo, Sezione } from '../ui/kit'
+import { Schermata } from '../ui/Schermata'
+import { F, usePalette, type ToniTutti } from '../ui/tema'
+import { Tocco } from '../ui/Tocco'
+
+// I pagamenti veri del socio e della famiglia (15/10/2026), da PerfectGym:
+// le quote scadute da saldare, i prossimi pagamenti e lo storico, ognuno col
+// metodo e con a cosa corrisponde. In Pagamenti il riepilogo; lo storico
+// completo, per mese, in /lab/pagamenti/storico.
+
+export const CHIAVE_MOVIMENTI = 'pagamenti:movimenti'
+
+type Dati = { storico: Movimento[]; daSaldare: Movimento[]; futuri: QuotaFutura[] }
+
+export function soldi(n: number): string {
+  return n.toLocaleString('it-IT', { style: 'currency', currency: 'EUR' })
+}
+
+function giorno(iso: string | null, conAnno = false): string {
+  if (!iso) return ''
+  const d = new Date(iso.length === 10 ? `${iso}T12:00:00` : iso)
+  return d.toLocaleDateString('it-IT', { day: 'numeric', month: 'short', ...(conAnno ? { year: 'numeric' } : {}), timeZone: 'Europe/Rome' })
+}
+
+function mese(iso: string | null): string {
+  if (!iso) return 'Senza data'
+  const d = new Date(iso.length === 10 ? `${iso}T12:00:00` : iso)
+  const t = d.toLocaleDateString('it-IT', { month: 'long', year: 'numeric', timeZone: 'Europe/Rome' })
+  return t.charAt(0).toUpperCase() + t.slice(1)
+}
+
+const ESITI: Record<Movimento['esito'], { testo: string; tono: ToniTutti; icona: NomeIcona }> = {
+  riuscito: { testo: 'Pagato', tono: 'ok', icona: 'spunta' },
+  rimborso: { testo: 'Rimborso', tono: 'blu', icona: 'rinnovo' },
+  in_corso: { testo: 'In corso', tono: 'attenzione', icona: 'clessidra' },
+  da_pagare: { testo: 'Da saldare', tono: 'errore', icona: 'attenzione' },
+}
+
+export function useMovimenti() {
+  const [dati, setDati] = useState<Dati | null>(() => inMemoria<{ ok: true } & Dati>(CHIAVE_MOVIMENTI) ?? null)
+  const [errore, setErrore] = useState<string | null>(null)
+  const carica = useCallback(async () => {
+    setErrore(null)
+    const r = await prendi(CHIAVE_MOVIMENTI, movimentiPagamenti)
+    if (r.ok) setDati({ storico: r.storico, daSaldare: r.daSaldare, futuri: r.futuri })
+    else setErrore(r.errore)
+  }, [])
+  useEffect(() => {
+    carica()
+  }, [carica])
+  return { dati, errore, carica }
+}
+
+/** Una riga di pagamento: la data, a cosa corrisponde, per chi e come, l'importo. */
+function RigaMovimento({ m, prima, onPress }: { m: Movimento; prima: boolean; onPress: () => void }) {
+  const p = usePalette()
+  const e = ESITI[m.esito]
+  const sotto = [m.per ? `per ${m.per}` : null, m.voci[0]?.dettaglio, m.metodo].filter(Boolean).join(' · ')
+  return (
+    <Riga
+      prima={prima}
+      icona={e.icona}
+      tono={e.tono}
+      titolo={m.voci.length > 1 ? `${m.titolo} + ${m.voci.length - 1} ${m.voci.length === 2 ? 'altro' : 'altri'}` : m.titolo}
+      sotto={sotto || e.testo}
+      onPress={onPress}
+      coda={
+        <View style={{ alignItems: 'flex-end', gap: 2 }}>
+          <Text style={[stili.importo, { color: m.esito === 'rimborso' ? p.blu : p.testo }]}>{`${m.esito === 'rimborso' ? '+' : ''}${soldi(m.importo)}`}</Text>
+          <Text style={[stili.data, { color: p.testoTerzo }]}>{giorno(m.esito === 'da_pagare' ? m.scadenza : m.data)}</Text>
+        </View>
+      }
+    />
+  )
+}
+
+function RigaFutura({ q, prima, onPress }: { q: QuotaFutura; prima: boolean; onPress: () => void }) {
+  const p = usePalette()
+  const sotto = [q.per ? `per ${q.per}` : null, q.dettaglio, q.metodo].filter(Boolean).join(' · ')
+  return (
+    <Riga
+      prima={prima}
+      testa={
+        <View style={[stili.calendario, { backgroundColor: p.incavo }]}>
+          <Text style={[stili.calMese, { color: p.accento }]}>{new Date(`${q.scadenza}T12:00:00`).toLocaleDateString('it-IT', { month: 'short' }).toUpperCase()}</Text>
+          <Text style={[stili.calGiorno, { color: p.testo }]}>{Number(q.scadenza.slice(8, 10))}</Text>
+        </View>
+      }
+      titolo={q.titolo}
+      sotto={sotto}
+      onPress={onPress}
+      coda={<Text style={[stili.importo, { color: p.testo }]}>{soldi(q.importo)}</Text>}
+    />
+  )
+}
+
+type Scelto = { tipo: 'movimento'; m: Movimento } | { tipo: 'futuro'; q: QuotaFutura } | null
+
+/** Il dettaglio di un pagamento: quanto, quando, come, per chi, a cosa corrisponde. */
+function FoglioDettaglio({ scelto, onChiudi }: { scelto: Scelto; onChiudi: () => void }) {
+  const p = usePalette()
+  if (!scelto) return <Foglio aperto={false} titolo="" onChiudi={onChiudi}>{null}</Foglio>
+  const futuro = scelto.tipo === 'futuro'
+  const titolo = futuro ? scelto.q.titolo : scelto.m.titolo
+  const righe: [string, string][] = futuro
+    ? [
+        ['Scadenza', giorno(scelto.q.scadenza, true)],
+        ['Che cosa', scelto.q.dettaglio ?? 'Quota'],
+        ...(scelto.q.per ? ([['Per', scelto.q.per]] as [string, string][]) : []),
+        ['Metodo', scelto.q.metodo ?? 'Non registrato'],
+        ...(scelto.q.carta_scade ? ([['Carta valida fino a', `${scelto.q.carta_scade.slice(5, 7)}/${scelto.q.carta_scade.slice(0, 4)}`]] as [string, string][]) : []),
+        ...(scelto.q.totale !== scelto.q.importo ? ([['Già pagato', soldi(scelto.q.totale - scelto.q.importo)]] as [string, string][]) : []),
+      ]
+    : [
+        [scelto.m.esito === 'da_pagare' ? 'Scadenza' : 'Data', giorno(scelto.m.esito === 'da_pagare' ? scelto.m.scadenza : scelto.m.data, true)],
+        ['Stato', ESITI[scelto.m.esito].testo],
+        ...(scelto.m.per ? ([['Per', scelto.m.per]] as [string, string][]) : []),
+        ['Metodo', scelto.m.metodo ?? '—'],
+      ]
+  const importo = futuro ? scelto.q.importo : scelto.m.importo
+  return (
+    <Foglio aperto titolo={titolo} sottotitolo={futuro ? 'Prossimo pagamento' : ESITI[scelto.m.esito].testo} onChiudi={onChiudi}>
+      <View style={{ gap: spazio.tre }}>
+        <View style={{ alignItems: 'center', paddingVertical: spazio.due }}>
+          <Numero valore={importo.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} unita="€" size={44} colore={!futuro && scelto.m.esito === 'da_pagare' ? p.errore : p.testo} />
+        </View>
+        <Carta piatta style={{ paddingVertical: spazio.uno, backgroundColor: p.incavo }}>
+          {righe.map(([k, v], i) => (
+            <View key={k} style={[stili.dettaglio, i > 0 && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: p.linea }]}>
+              <Text style={[stili.chiave, { color: p.testoSecondario }]}>{k}</Text>
+              <Text style={[stili.valore, { color: p.testo }]}>{v}</Text>
+            </View>
+          ))}
+        </Carta>
+        {!futuro && scelto.m.voci.length ? (
+          <View style={{ gap: spazio.due }}>
+            <Text style={[stili.titoletto, { color: p.testo }]}>A cosa corrisponde</Text>
+            {scelto.m.voci.map((v, i) => (
+              <View key={i} style={{ flexDirection: 'row', gap: spazio.due, alignItems: 'baseline' }}>
+                <Text style={[stili.valore, { color: p.testo, flex: 1, textAlign: 'left' }]}>{[v.cosa, v.dettaglio].filter(Boolean).join(' · ')}</Text>
+                {v.importo != null && scelto.m.voci.length > 1 ? <Text style={[stili.chiave, { color: p.testoSecondario }]}>{soldi(v.importo)}</Text> : null}
+              </View>
+            ))}
+          </View>
+        ) : null}
+        {!futuro && scelto.m.nota ? <Messaggio tono="attenzione">{scelto.m.nota}</Messaggio> : null}
+        {(!futuro && scelto.m.esito === 'da_pagare') || (futuro && !scelto.q.metodo) ? (
+          <Pulsante
+            testo="Aggiorna il metodo di pagamento"
+            icona="carta"
+            onPress={() => {
+              onChiudi()
+              router.push('/lab/metodo-pagamento')
+            }}
+          />
+        ) : null}
+      </View>
+    </Foglio>
+  )
+}
+
+/** Le quote scadute e non pagate: in rosso, con l'invito a sistemare il metodo. */
+function DaSaldare({ elenco, onApri }: { elenco: Movimento[]; onApri: (m: Movimento) => void }) {
+  const p = usePalette()
+  const totale = elenco.reduce((t, m) => t + m.importo, 0)
+  return (
+    <Carta style={{ gap: spazio.due, borderWidth: 1.5, borderColor: p.errore }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: spazio.due }}>
+        <Icona nome="attenzione" size={20} colore={p.errore} />
+        <Text style={[stili.titoletto, { color: p.testo, flex: 1 }]}>{`Da saldare: ${soldi(totale)}`}</Text>
+      </View>
+      <Text style={[stili.nota, { color: p.testoSecondario }]}>
+        {elenco.length === 1 ? 'Questo pagamento non è andato a buon fine.' : 'Questi pagamenti non sono andati a buon fine.'} Controlla il metodo di pagamento: il club
+        riprova l’addebito con quello registrato.
+      </Text>
+      <View>
+        {elenco.map((m, i) => (
+          <RigaMovimento key={m.id} m={m} prima={i === 0} onPress={() => onApri(m)} />
+        ))}
+      </View>
+      <Pulsante testo="Aggiorna il metodo di pagamento" icona="carta" onPress={() => router.push('/lab/metodo-pagamento')} />
+    </Carta>
+  )
+}
+
+/** Il riepilogo in Pagamenti: da saldare, i prossimi tre, gli ultimi quattro. */
+export function RiepilogoPagamenti() {
+  const p = usePalette()
+  const { dati, errore, carica } = useMovimenti()
+  const [scelto, setScelto] = useState<Scelto>(null)
+
+  if (!dati) {
+    return errore ? (
+      <View style={{ gap: spazio.due }}>
+        <Messaggio>{errore}</Messaggio>
+        <Pulsante testo="Riprova" icona="aggiorna" variante="secondario" onPress={carica} />
+      </View>
+    ) : (
+      <SchedeInArrivo quante={2} />
+    )
+  }
+
+  const prossimo = dati.futuri[0]
+  return (
+    <View style={{ gap: spazio.quattro }}>
+      {dati.daSaldare.length ? <DaSaldare elenco={dati.daSaldare} onApri={(m) => setScelto({ tipo: 'movimento', m })} /> : null}
+
+      <Sezione titolo="Prossimi pagamenti" destra={dati.futuri.length > 3 ? <LinkSezione testo="Tutti" onPress={() => router.push({ pathname: '/lab/pagamenti/storico', params: { vista: 'futuri' } })} /> : undefined}>
+        {prossimo ? (
+          <Carta style={{ paddingVertical: spazio.uno }}>
+            {dati.futuri.slice(0, 3).map((q, i) => (
+              <RigaFutura key={q.id} q={q} prima={i === 0} onPress={() => setScelto({ tipo: 'futuro', q })} />
+            ))}
+          </Carta>
+        ) : (
+          <Carta style={{ flexDirection: 'row', alignItems: 'center', gap: spazio.tre }}>
+            <Icona nome="calendario" size={22} colore={p.testoTerzo} />
+            <Text style={[stili.nota, { color: p.testoSecondario, flex: 1 }]}>Nessun pagamento in programma.</Text>
+          </Carta>
+        )}
+      </Sezione>
+
+      <Sezione titolo="Pagamenti effettuati" destra={dati.storico.length ? <LinkSezione testo="Storico completo" onPress={() => router.push('/lab/pagamenti/storico')} /> : undefined}>
+        {dati.storico.length ? (
+          <Carta style={{ paddingVertical: spazio.uno }}>
+            {dati.storico.slice(0, 4).map((m, i) => (
+              <RigaMovimento key={m.id} m={m} prima={i === 0} onPress={() => setScelto({ tipo: 'movimento', m })} />
+            ))}
+          </Carta>
+        ) : (
+          <Carta style={{ flexDirection: 'row', alignItems: 'center', gap: spazio.tre }}>
+            <Icona nome="ricevuta" size={22} colore={p.testoTerzo} />
+            <Text style={[stili.nota, { color: p.testoSecondario, flex: 1 }]}>Non ci sono ancora pagamenti registrati.</Text>
+          </Carta>
+        )}
+      </Sezione>
+
+      <FoglioDettaglio scelto={scelto} onChiudi={() => setScelto(null)} />
+    </View>
+  )
+}
+
+/** Lo storico completo, per mese: gli effettuati o i futuri. */
+export function StoricoPagamenti({ vistaIniziale }: { vistaIniziale: 'effettuati' | 'futuri' }) {
+  const p = usePalette()
+  const { dati, errore, carica } = useMovimenti()
+  const [vista, setVista] = useState(vistaIniziale)
+  const [scelto, setScelto] = useState<Scelto>(null)
+
+  const intestazione = (
+    <View style={[stili.schede, { backgroundColor: p.incavo }]}>
+      {(['effettuati', 'futuri'] as const).map((v) => {
+        const attivo = v === vista
+        return (
+          <Tocco
+            key={v}
+            vibra="scelta"
+            stato={{ selected: attivo }}
+            onPress={() => setVista(v)}
+            etichetta={v === 'effettuati' ? 'Pagamenti effettuati' : 'Pagamenti futuri'}
+            style={[stili.scheda, attivo && { backgroundColor: p.carta, boxShadow: p.ombra }]}
+          >
+            <Text style={{ color: attivo ? p.testo : p.testoSecondario, fontFamily: attivo ? F.extra : F.semi, fontSize: 14 }}>{v === 'effettuati' ? 'Effettuati' : 'Futuri'}</Text>
+          </Tocco>
+        )
+      })}
+    </View>
+  )
+
+  if (!dati) {
+    return (
+      <Schermata sopratitolo="Pagamenti" titolo="I tuoi pagamenti" indietro="/lab/pagamenti" barra={false}>
+        {errore ? (
+          <>
+            <Messaggio>{errore}</Messaggio>
+            <Pulsante testo="Riprova" icona="aggiorna" onPress={carica} />
+          </>
+        ) : (
+          <SchedeInArrivo />
+        )}
+      </Schermata>
+    )
+  }
+
+  // Per mese, col totale del mese.
+  const gruppi: { mese: string; totale: number; voci: (Movimento | QuotaFutura)[] }[] = []
+  const elenco: (Movimento | QuotaFutura)[] = vista === 'effettuati' ? dati.storico : dati.futuri
+  for (const x of elenco) {
+    const chiave = mese('scadenza' in x && vista === 'futuri' ? x.scadenza : (x as Movimento).data)
+    let g = gruppi.find((y) => y.mese === chiave)
+    if (!g) gruppi.push((g = { mese: chiave, totale: 0, voci: [] }))
+    g.voci.push(x)
+    g.totale += (x as Movimento).esito === 'rimborso' ? -x.importo : x.importo
+  }
+
+  return (
+    <Schermata sopratitolo="Pagamenti" titolo="I tuoi pagamenti" sottotitolo="Tuoi e della tua famiglia, da PerfectGym." indietro="/lab/pagamenti" barra={false}>
+      {intestazione}
+      {dati.daSaldare.length && vista === 'effettuati' ? <DaSaldare elenco={dati.daSaldare} onApri={(m) => setScelto({ tipo: 'movimento', m })} /> : null}
+      {gruppi.length ? (
+        gruppi.map((g) => (
+          <View key={g.mese} style={{ gap: spazio.due }}>
+            <View style={{ flexDirection: 'row', alignItems: 'baseline', paddingHorizontal: 2 }}>
+              <Text style={[stili.mese, { color: p.testo, flex: 1 }]}>{g.mese}</Text>
+              <Etichetta testo={soldi(g.totale)} tono="neutro" />
+            </View>
+            <Carta style={{ paddingVertical: spazio.uno }}>
+              {g.voci.map((x, i) =>
+                vista === 'futuri' ? (
+                  <RigaFutura key={x.id} q={x as QuotaFutura} prima={i === 0} onPress={() => setScelto({ tipo: 'futuro', q: x as QuotaFutura })} />
+                ) : (
+                  <RigaMovimento key={x.id} m={x as Movimento} prima={i === 0} onPress={() => setScelto({ tipo: 'movimento', m: x as Movimento })} />
+                ),
+              )}
+            </Carta>
+          </View>
+        ))
+      ) : (
+        <Carta style={{ alignItems: 'center', gap: spazio.due, paddingVertical: spazio.cinque }}>
+          <Icona nome={vista === 'futuri' ? 'calendario' : 'ricevuta'} size={30} colore={p.testoTerzo} />
+          <Text style={[stili.nota, { color: p.testoSecondario, textAlign: 'center' }]}>
+            {vista === 'futuri' ? 'Nessun pagamento in programma.' : 'Non ci sono ancora pagamenti registrati.'}
+          </Text>
+        </Carta>
+      )}
+      <FoglioDettaglio scelto={scelto} onChiudi={() => setScelto(null)} />
+    </Schermata>
+  )
+}
+
+const stili = StyleSheet.create({
+  importo: { fontFamily: F.extra, fontSize: 15.5, letterSpacing: -0.3 },
+  data: { fontFamily: F.semi, fontSize: 12 },
+  nota: { fontFamily: F.medio, fontSize: 14, lineHeight: 20 },
+  titoletto: { fontFamily: F.extra, fontSize: 16, letterSpacing: -0.3 },
+  calendario: { width: 44, height: 46, borderRadius: 13, alignItems: 'center', justifyContent: 'center' },
+  calMese: { fontFamily: F.extra, fontSize: 10, letterSpacing: 0.8 },
+  calGiorno: { fontFamily: F.extra, fontSize: 18, lineHeight: 21 },
+  dettaglio: { flexDirection: 'row', alignItems: 'center', gap: spazio.tre, paddingVertical: spazio.due + 2, paddingHorizontal: spazio.tre },
+  chiave: { fontFamily: F.semi, fontSize: 13.5 },
+  valore: { flex: 1, fontFamily: F.bold, fontSize: 14.5, textAlign: 'right' },
+  schede: { flexDirection: 'row', borderRadius: 16, padding: 4, gap: 4 },
+  scheda: { flex: 1, alignItems: 'center', paddingVertical: 10, borderRadius: 12 },
+  mese: { fontFamily: F.extra, fontSize: 17, letterSpacing: -0.4 },
+})

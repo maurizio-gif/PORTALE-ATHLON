@@ -16,6 +16,7 @@ import { memoria as memoriaTv } from './tv/comune'
 import { Icona, type NomeIcona } from './ui/Icona'
 import { Avatar, Barra, Carta, Colonnine, Entra, Etichetta, Messaggio, Numero, Pulsante, Riga, SchedeInArrivo, Sezione, Tag } from './ui/kit'
 import { Installa } from './ui/Installa'
+import { AvvisoDebito, BollinoDebito } from './ui/Irregolarita'
 import { Schermata } from './ui/Schermata'
 import { PulsanteEsci } from './ui/Uscita'
 import { F, FUOCO, MARE, NOTTE, usePalette } from './ui/tema'
@@ -208,6 +209,12 @@ function Benvenuto({ titolare, email, famiglia }: { titolare: PersonaArea | unde
               <View style={[stili.puntino, { backgroundColor: MARE[0] }]} />
               <Text style={stili.pillolaTesto}>{famiglia ? `Famiglia di ${famiglia + 1}` : 'Tester'}</Text>
             </View>
+            {titolare?.debito ? (
+              <View style={[stili.pillola, { backgroundColor: 'rgba(255,69,58,0.28)' }]}>
+                <View style={[stili.puntino, { backgroundColor: '#FF453A' }]} />
+                <Text style={stili.pillolaTesto}>Pagamento in sospeso</Text>
+              </View>
+            ) : null}
           </View>
         </View>
         {/* Il marchio, arancio pieno e grande come nell'app di prima (15/10/2026): era una filigrana al 6%. */}
@@ -486,6 +493,8 @@ export function AreaRiservata({ email }: { email: string }) {
         <Benvenuto titolare={titolare} email={email} famiglia={famiglia.length} />
       </Entra>
 
+      <AvvisoDebito persone={area.persone} />
+
       <Installa />
 
       <Entra indice={1}>
@@ -534,7 +543,12 @@ export function AreaRiservata({ email }: { email: string }) {
                   prima={i === 0}
                   testa={<Avatar nome={x.nome} cognome={x.cognome} size={40} />}
                   titolo={nome(x)}
-                  sotto={dataBreve(x.data_nascita) ? `nato/a il ${dataBreve(x.data_nascita)}` : undefined}
+                  sotto={
+                    <View style={{ gap: 4 }}>
+                      {dataBreve(x.data_nascita) ? <Text style={[stili.piccolo, { color: p.testoSecondario, fontSize: 13.5 }]}>{`nato/a il ${dataBreve(x.data_nascita)}`}</Text> : null}
+                      <BollinoDebito debito={x.debito} />
+                    </View>
+                  }
                 />
               ))}
             </Carta>
