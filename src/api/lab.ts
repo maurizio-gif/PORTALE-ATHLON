@@ -245,7 +245,19 @@ export type CreditoPersonal = { definition_id: number; nome: string; minuti: num
 /** La seduta singola che PerfectGym le vende (da socio o per esterni). */
 export type AcquistoPersonal = { definition_id: number; nome: string; minuti: number; prodotto: ProdottoLezione }
 export type SedutaPersonal = { booking_id: number; definition_id: number; nome: string; inizio: string; fine: string; trainer_id: number; trainer: string | null; completata: boolean }
-export type TrainerPersonal = { id: number; nome: string }
+/**
+ * Un trainer di personal: foto e descrizione dalla sua scheda su PerfectGym,
+ * col ripiego del sito (/trainer.json), che da' anche frase e specializzazioni.
+ */
+export type TrainerPersonal = {
+  id: number
+  nome: string
+  foto: string | null
+  descrizione: string | null
+  descrizione_da: 'perfectgym' | 'sito' | null
+  frase: string | null
+  gruppi: { titolo: string; voci: string[] }[]
+}
 
 export type StatoPersonal = {
   persone: PersonaCalendario[]

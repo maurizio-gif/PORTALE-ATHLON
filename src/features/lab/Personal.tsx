@@ -1,3 +1,4 @@
+import { Image } from 'expo-image'
 import { LinearGradient } from 'expo-linear-gradient'
 import { router, useLocalSearchParams } from 'expo-router'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
@@ -16,12 +17,14 @@ import {
   type OrariPersonal,
   type SedutaPersonal,
   type StatoPersonal,
+  type TrainerPersonal,
 } from '@/api/lab'
 import { InfoAdyen } from '@/components/InfoAdyen'
 import { euro, giornoEsteso, ora } from '@/lib/eventi'
 import { spazio } from '@/theme'
 
 import { inMemoria, prendi, ricorda } from './memoria'
+import { Foglio } from './ui/Foglio'
 import { Icona } from './ui/Icona'
 import { Avatar, Carta, Etichetta, Messaggio, Pulsante, Riga, SchedeInArrivo, Sezione } from './ui/kit'
 import { SceltaPrenotazioni } from './ui/SceltaPrenotazioni'
@@ -41,6 +44,10 @@ import { colpetto, Tocco } from './ui/Tocco'
 // Gli orari sono quelli liberi dei trainer nei prossimi 14 giorni, dalla loro
 // disponibilita' su PerfectGym. Un orario con piu' trainer liberi si tocca e
 // poi si sceglie con chi.
+//
+// I trainer hanno la loro foto e la loro scheda («Chi è»): foto e descrizione
+// dalla scheda di PerfectGym, e dove mancano dal sito, che da' anche la frase e
+// i servizi proposti (portale-lab-personal).
 
 /** Il nome di un tipo di seduta, detto come lo dice il club e senza prezzi dentro. */
 function nomeSeduta(nome: string): string {
@@ -102,6 +109,67 @@ function opzioniDi(s: StatoPersonal): Opzione[] {
     })
   }
   return out
+}
+
+/** La foto del trainer (da PerfectGym, o dal sito); senza foto, o se non si carica, le iniziali. */
+function FotoTrainer({ t, nome, size, anello }: { t: TrainerPersonal | undefined; nome: string; size: number; anello?: string }) {
+  const [rotta, setRotta] = useState(false)
+  if (!t?.foto || rotta) return <Avatar nome={nome} size={size} anello={anello} />
+  return (
+    <Image
+      source={{ uri: t.foto }}
+      onError={() => setRotta(true)}
+      contentFit="cover"
+      contentPosition="top"
+      transition={150}
+      accessibilityIgnoresInvertColors
+      style={[{ width: size, height: size, borderRadius: size * 0.36, backgroundColor: '#ddd' }, anello ? { borderWidth: 2.5, borderColor: anello } : null]}
+    />
+  )
+}
+
+/** «Chi è»: la foto grande, la frase, la descrizione e i servizi proposti. */
+function FoglioTrainer({ t, onChiudi }: { t: TrainerPersonal | null; onChiudi: () => void }) {
+  const p = usePalette()
+  // Con la descrizione di PerfectGym (gli studi) si aggiungono dal sito solo i servizi, che li' non ci sono.
+  const gruppi = t?.descrizione_da === 'perfectgym' ? (t?.gruppi ?? []).filter((g) => /servizi/i.test(g.titolo)) : t?.gruppi ?? []
+  const righe = t?.descrizione_da === 'perfectgym' ? (t?.descrizione ?? '').split('\n').map((r) => r.trim()).filter(Boolean) : []
+  return (
+    <Foglio aperto={!!t} titolo={t?.nome ?? ''} sottotitolo="Personal trainer di Athlon Club" onChiudi={onChiudi}>
+      {t ? (
+        <View style={{ gap: spazio.tre }}>
+          {t.foto ? (
+            <Image source={{ uri: t.foto }} contentFit="cover" contentPosition="top" transition={200} style={[stili.fotoGrande, { backgroundColor: p.incavo }]} />
+          ) : null}
+          {t.frase ? <Text style={[stili.frase, { color: p.testo, borderLeftColor: p.accento }]}>{`«${t.frase}»`}</Text> : null}
+          {righe.length ? (
+            <View style={{ gap: 6 }}>
+              {righe.map((r, i) => (
+                <View key={i} style={stili.voce}>
+                  <View style={[stili.pallino, { backgroundColor: p.accento }]} />
+                  <Text style={[stili.voceTesto, { color: p.testo }]}>{r}</Text>
+                </View>
+              ))}
+            </View>
+          ) : null}
+          {gruppi.map((g) => (
+            <View key={g.titolo} style={{ gap: 6 }}>
+              <Text style={[stili.fascia, { color: p.testoSecondario }]}>{g.titolo.toUpperCase()}</Text>
+              {g.voci.map((v, i) => (
+                <View key={i} style={stili.voce}>
+                  <View style={[stili.pallino, { backgroundColor: p.accento }]} />
+                  <Text style={[stili.voceTesto, { color: p.testo }]}>{v}</Text>
+                </View>
+              ))}
+            </View>
+          ))}
+          {!righe.length && !gruppi.length && !t.frase ? (
+            <Text style={[stili.nota, { color: p.testoSecondario }]}>La scheda di questo trainer non è ancora pronta.</Text>
+          ) : null}
+        </View>
+      ) : null}
+    </Foglio>
+  )
 }
 
 /** Le sedute gia' prenotate, con «Annulla» finche' mancano piu' delle ore della regola. */
@@ -182,6 +250,7 @@ export function Personal() {
   const [daPagare, setDaPagare] = useState<DaPagare | null>(null)
   const [fatto, setFatto] = useState<string | null>(null)
   const riquadro = useRef<View>(null)
+  const [chiE, setChiE] = useState<TrainerPersonal | null>(null)
 
   // Lo stato gia' letto si mostra subito, e intanto si rilegge.
   const chiaveStato = useRef('personal:stato:')
@@ -276,7 +345,8 @@ export function Personal() {
   }
 
   const opzione = opzioni.find((o) => o.definition_id === definizione) ?? null
-  const nomeTrainer = new Map((orari?.trainer ?? stato.trainer).map((t) => [t.id, t.nome]))
+  const trainerDi = new Map((orari?.trainer ?? stato.trainer).map((t) => [t.id, t]))
+  const nomeTrainer = new Map([...trainerDi.values()].map((t) => [t.id, t.nome]))
   // Gli orari liberi del giorno scelto, col filtro del trainer, raccolti per ora.
   const delGiorno = (orari?.orari ?? []).filter((o) => giornoDi(o.inizio) === giorno && (filtro == null || o.trainer_id === filtro))
   const perOra = new Map<string, { locale: string; inizio: string; trainer: number[] }>()
@@ -504,7 +574,7 @@ export function Personal() {
                         etichetta={t == null ? 'Tutti i trainer' : `Solo ${nomeTrainer.get(t)}`}
                         style={[stili.filtro, { backgroundColor: attivo ? p.testo : p.carta, borderColor: attivo ? p.testo : p.linea }]}
                       >
-                        {t != null ? <Avatar nome={nomeTrainer.get(t) ?? ''} size={24} /> : null}
+                        {t != null ? <FotoTrainer t={trainerDi.get(t)} nome={nomeTrainer.get(t) ?? ''} size={26} /> : null}
                         <Text style={{ color: attivo ? p.fondo : p.testo, fontFamily: attivo ? F.extra : F.semi, fontSize: 14 }}>
                           {t == null ? 'Tutti i trainer' : nomeTrainer.get(t) ?? 'Trainer'}
                         </Text>
@@ -601,9 +671,10 @@ export function Personal() {
                     {sceltoQui.trainer.length > 1 ? (
                       <View style={{ gap: spazio.due }}>
                         <Text style={[stili.nota, { color: p.testoSecondario }]}>Con chi?</Text>
-                        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spazio.due }}>
+                        <View style={{ gap: spazio.due }}>
                           {sceltoQui.trainer.map((t) => {
                             const attivo = conChi === t
+                            const tr = trainerDi.get(t)
                             return (
                               <Tocco
                                 key={t}
@@ -615,10 +686,23 @@ export function Personal() {
                                   setErroreAzione(null)
                                 }}
                                 etichetta={`Con ${nomeTrainer.get(t)}`}
-                                style={[stili.persona, attivo ? { backgroundColor: p.accento, borderColor: p.accento } : { backgroundColor: p.carta, borderColor: p.linea }]}
+                                style={[stili.sceltaTrainer, { borderColor: attivo ? p.accento : p.linea, backgroundColor: attivo ? velo(p, 'accento', 0.1) : p.carta }]}
                               >
-                                <Avatar nome={nomeTrainer.get(t) ?? ''} size={28} anello={attivo ? 'rgba(255,255,255,0.9)' : undefined} />
-                                <Text style={{ color: attivo ? '#fff' : p.testo, fontFamily: attivo ? F.extra : F.semi, fontSize: 14 }}>{nomeTrainer.get(t) ?? 'Trainer'}</Text>
+                                <FotoTrainer t={tr} nome={nomeTrainer.get(t) ?? ''} size={52} />
+                                <View style={{ flex: 1, gap: 2 }}>
+                                  <Text style={{ color: p.testo, fontFamily: F.extra, fontSize: 15.5 }}>{nomeTrainer.get(t) ?? 'Trainer'}</Text>
+                                  {tr?.frase ? (
+                                    <Text style={[stili.nota, { color: p.testoSecondario }]} numberOfLines={2}>{`«${tr.frase}»`}</Text>
+                                  ) : null}
+                                  {tr && (tr.descrizione || tr.gruppi.length) ? (
+                                    <Tocco onPress={() => setChiE(tr)} ruolo="link" etichetta={`Chi è ${tr.nome}`} style={{ alignSelf: 'flex-start', paddingVertical: 4 }}>
+                                      <Text style={{ color: p.accento, fontFamily: F.bold, fontSize: 13.5 }}>Chi è ›</Text>
+                                    </Tocco>
+                                  ) : null}
+                                </View>
+                                <View style={[stili.radio, { borderColor: attivo ? p.accento : p.linea, backgroundColor: attivo ? p.accento : 'transparent' }]}>
+                                  {attivo ? <Icona nome="spunta" size={13} colore="#fff" /> : null}
+                                </View>
                               </Tocco>
                             )
                           })}
@@ -626,10 +710,20 @@ export function Personal() {
                       </View>
                     ) : conChi != null ? (
                       <View style={stili.conChi}>
-                        <Avatar nome={nomeTrainer.get(conChi) ?? ''} size={32} />
-                        <Text style={[stili.nota, { color: p.testoSecondario, flexShrink: 1 }]}>
-                          Con <Text style={{ color: p.testo, fontFamily: F.bold }}>{nomeTrainer.get(conChi)}</Text>
-                        </Text>
+                        <FotoTrainer t={trainerDi.get(conChi)} nome={nomeTrainer.get(conChi) ?? ''} size={52} />
+                        <View style={{ flex: 1, gap: 2 }}>
+                          <Text style={[stili.nota, { color: p.testoSecondario }]}>
+                            Con <Text style={{ color: p.testo, fontFamily: F.extra, fontSize: 15.5 }}>{nomeTrainer.get(conChi)}</Text>
+                          </Text>
+                          {trainerDi.get(conChi)?.frase ? (
+                            <Text style={[stili.nota, { color: p.testoSecondario }]} numberOfLines={2}>{`«${trainerDi.get(conChi)?.frase}»`}</Text>
+                          ) : null}
+                          {trainerDi.get(conChi) ? (
+                            <Tocco onPress={() => setChiE(trainerDi.get(conChi) ?? null)} ruolo="link" etichetta={`Chi è ${nomeTrainer.get(conChi)}`} style={{ alignSelf: 'flex-start', paddingVertical: 4 }}>
+                              <Text style={{ color: p.accento, fontFamily: F.bold, fontSize: 13.5 }}>Chi è ›</Text>
+                            </Tocco>
+                          ) : null}
+                        </View>
                       </View>
                     ) : null}
 
@@ -688,6 +782,29 @@ export function Personal() {
           )}
         </Sezione>
       ) : null}
+
+      {stato.trainer.length ? (
+        <Sezione titolo="I trainer" conteggio={stato.trainer.length}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={stili.fila} style={stili.fuori}>
+            {stato.trainer.map((t) => (
+              <Tocco key={t.id} onPress={() => setChiE(t)} etichetta={`Chi è ${t.nome}`} scala={0.97} style={[stili.vetrina, { backgroundColor: p.carta, borderColor: p.linea }]}>
+                {t.foto ? (
+                  <Image source={{ uri: t.foto }} contentFit="cover" contentPosition="top" transition={150} style={[stili.vetrinaFoto, { backgroundColor: p.incavo }]} />
+                ) : (
+                  <View style={[stili.vetrinaFoto, { alignItems: 'center', justifyContent: 'center', backgroundColor: p.incavo }]}>
+                    <Avatar nome={t.nome} size={56} />
+                  </View>
+                )}
+                <Text style={{ color: p.testo, fontFamily: F.extra, fontSize: 14 }} numberOfLines={2}>
+                  {t.nome}
+                </Text>
+              </Tocco>
+            ))}
+          </ScrollView>
+        </Sezione>
+      ) : null}
+
+      <FoglioTrainer t={chiE} onChiudi={() => setChiE(null)} />
     </Schermata>
   )
 }
@@ -713,6 +830,14 @@ const stili = StyleSheet.create({
   turnoSotto: { fontFamily: F.bold, fontSize: 11 },
   scelto: { gap: spazio.tre, borderTopWidth: StyleSheet.hairlineWidth, paddingTop: spazio.tre },
   sceltoOra: { fontFamily: F.extra, fontSize: 20, letterSpacing: -0.5, fontVariant: ['tabular-nums'] },
-  conChi: { flexDirection: 'row', alignItems: 'center', gap: spazio.due },
+  conChi: { flexDirection: 'row', alignItems: 'center', gap: spazio.tre },
+  sceltaTrainer: { flexDirection: 'row', alignItems: 'center', gap: spazio.tre, borderRadius: 20, borderWidth: 1.5, padding: spazio.due + 2 },
+  fotoGrande: { width: '100%', aspectRatio: 1, maxHeight: 360, borderRadius: 24 },
+  frase: { fontFamily: F.semi, fontSize: 16, lineHeight: 23, fontStyle: 'italic', borderLeftWidth: 3, paddingLeft: spazio.tre },
+  voce: { flexDirection: 'row', gap: spazio.due, alignItems: 'flex-start' },
+  pallino: { width: 6, height: 6, borderRadius: 3, marginTop: 8 },
+  voceTesto: { flex: 1, fontFamily: F.medio, fontSize: 14.5, lineHeight: 21 },
+  vetrina: { width: 132, borderRadius: 22, borderWidth: StyleSheet.hairlineWidth, padding: 8, gap: 8 },
+  vetrinaFoto: { width: '100%', height: 140, borderRadius: 16 },
   radio: { width: 24, height: 24, borderRadius: 12, borderWidth: 2, alignItems: 'center', justifyContent: 'center' },
 })
