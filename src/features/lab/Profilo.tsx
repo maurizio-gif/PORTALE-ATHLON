@@ -185,7 +185,7 @@ function FoglioEmail({ attuale, onChiudi, onSalvato }: { attuale: string | null;
         </>
       ) : (
         <>
-          <CampoCodice value={codice} onChange={setCodice} onInvio={conferma} errore={!!errore} />
+          <CampoCodice value={codice} onChange={setCodice} onInvio={conferma} errore={!!errore} cifre={6} />
           {errore ? <Messaggio>{errore}</Messaggio> : null}
           <Pulsante testo="Conferma e cambia email" icona="spunta" onPress={conferma} inCorso={attesa} />
           <Pulsante testo="Usa un altro indirizzo" variante="fantasma" piccolo onPress={() => setFase('nuova')} disabilitato={attesa} />

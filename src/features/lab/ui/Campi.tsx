@@ -8,7 +8,7 @@ import { F, usePalette } from './tema'
 
 // I campi del laboratorio: l'etichetta piccola in maiuscoletto, il campo
 // grigio tondo con l'icona, il bordo arancio quando ci si scrive. E il codice
-// di sei cifre in caselle.
+// in caselle (otto cifre per l'accesso, sei per il cambio d'email).
 
 export function CampoTesto({
   etichetta,
@@ -47,14 +47,15 @@ export function CampoTesto({
   )
 }
 
-const CIFRE = 6
+/** Le cifre del codice di accesso: Supabase Auth ne genera otto (verificato sulle email partite, 15/10/2026). */
+export const CIFRE = 8
 
 /** Il codice in sei caselle; sotto c'e' un campo vero, trasparente, che riceve le cifre (e l'autocompletamento). */
-export function CampoCodice({ value, onChange, onInvio, errore }: { value: string; onChange: (v: string) => void; onInvio: () => void; errore: boolean }) {
+export function CampoCodice({ value, onChange, onInvio, errore, cifre = CIFRE }: { value: string; onChange: (v: string) => void; onInvio: () => void; errore: boolean; cifre?: number }) {
   const p = usePalette()
   const campo = useRef<TextInput>(null)
   const [fuoco, setFuoco] = useState(true)
-  const caselle = Math.max(CIFRE, value.length)
+  const caselle = Math.max(cifre, value.length)
   return (
     <Pressable onPress={() => campo.current?.focus()} style={{ gap: spazio.due }} accessible={false}>
       <Text style={[stili.etichetta, { color: p.testoSecondario }]}>CODICE</Text>
@@ -81,7 +82,7 @@ export function CampoCodice({ value, onChange, onInvio, errore }: { value: strin
         <TextInput
           ref={campo}
           autoFocus
-          accessibilityLabel="Codice di sei cifre"
+          accessibilityLabel={`Codice di ${cifre} cifre`}
           value={value}
           onChangeText={(v) => onChange(v.replace(/\D/g, '').slice(0, 10))}
           onSubmitEditing={onInvio}
@@ -104,8 +105,10 @@ const stili = StyleSheet.create({
   etichetta: { fontSize: 11, fontFamily: F.extra, letterSpacing: 1.3 },
   campo: { flexDirection: 'row', alignItems: 'center', gap: spazio.due + 2, minHeight: 58, borderRadius: 18, borderWidth: 1.5, paddingHorizontal: spazio.tre },
   input: { flex: 1, fontSize: 17, minHeight: 52, fontFamily: F.semi, outlineStyle: 'none', minWidth: 0 } as object,
-  caselle: { flexDirection: 'row', gap: spazio.due, position: 'relative' },
+  caselle: { flexDirection: 'row', gap: 6, position: 'relative' },
   casella: { flex: 1, maxWidth: 58, aspectRatio: 0.82, borderRadius: 16, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center' },
-  cifra: { fontSize: 28, fontFamily: F.extra, fontVariant: ['tabular-nums'] },
-  invisibile: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, opacity: 0.011, color: 'transparent', fontSize: 1 },
+  cifra: { fontSize: 26, fontFamily: F.extra, fontVariant: ['tabular-nums'] },
+  // 16px e non meno: Safari su iPhone ingrandisce la pagina quando tocchi un campo
+  // con un corpo piu' piccolo, anche se e' invisibile (era 1px, 15/10/2026).
+  invisibile: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, opacity: 0.011, color: 'transparent', fontSize: 16 },
 })

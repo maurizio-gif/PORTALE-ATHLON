@@ -1,7 +1,7 @@
 import { Image } from 'expo-image'
 import { LinearGradient } from 'expo-linear-gradient'
 import { useState } from 'react'
-import { StyleSheet, Text, View } from 'react-native'
+import { Platform, StyleSheet, Text, View } from 'react-native'
 import Animated, { FadeInRight } from 'react-native-reanimated'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
@@ -9,15 +9,18 @@ import { chiediCodice, entra } from '@/api/lab'
 import { emailValida } from '@/api/richieste'
 import { spazio } from '@/theme'
 
-import { CampoCodice, CampoTesto } from './ui/Campi'
+import { CampoCodice, CampoTesto, CIFRE } from './ui/Campi'
 import { Icona } from './ui/Icona'
 import { Carta, Messaggio, Pulsante } from './ui/kit'
 import { Schermata } from './ui/Schermata'
 import { F, FUOCO, NOTTE, usePalette } from './ui/tema'
 import { colpetto } from './ui/Tocco'
 
-// L'accesso al laboratorio: email, poi il codice di sei cifre che arriva per
-// email. Nessuna password. Chi non e' fra i tester non riceve niente, ma la
+// L'accesso al laboratorio, cioe' alla nuova app di Athlon Club in prova:
+// email, poi il codice di otto cifre che arriva per email (lo genera Supabase
+// Auth, e sono otto: vedi CIFRE in ui/Campi). Nessuna password. Il codice
+// completo parte da solo, scritto, incollato o suggerito dalla tastiera.
+// Chi non e' fra i tester non riceve niente, ma la
 // pagina dice la stessa cosa a tutti: non deve diventare il modo di sapere chi
 // lo e'.
 
@@ -32,12 +35,13 @@ function Testata({ fase }: { fase: 'email' | 'codice' }) {
         <View key={d} style={[stili.anello, { width: d, height: d, borderRadius: d / 2, right: -d / 2.4, top: -d / 3.2, opacity: 0.32 - i * 0.09 }]} />
       ))}
       <View style={stili.testataColonna}>
-        <LinearGradient colors={FUOCO} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={stili.logo}>
-          <Image source={require('@/../assets/images/pittogramma.png')} style={{ width: 32, height: 26, tintColor: '#fff' }} contentFit="contain" />
-        </LinearGradient>
+        {/* Il marchio arancio pieno su bianco: tintColor non vale sul web, e bianco su arancio diventava arancio su arancio. */}
+        <View style={stili.logo} accessibilityLabel="Athlon Club" accessibilityRole="image">
+          <Image source={require('@/../assets/images/pittogramma.png')} style={{ width: 40, height: 32 }} contentFit="contain" />
+        </View>
         <View style={stili.chip}>
           <Icona nome="laboratorio" size={13} colore={FUOCO[0]} />
-          <Text style={stili.chipTesto}>ATHLON CLUB · AREA TESTER</Text>
+          <Text style={stili.chipTesto}>LA NUOVA APP ATHLON CLUB · IN TEST</Text>
         </View>
         <Text style={stili.titolo} accessibilityRole="header">
           {fase === 'email' ? 'Il club, prima\ndi tutti' : 'Controlla\nla posta'}
@@ -45,8 +49,8 @@ function Testata({ fase }: { fase: 'email' | 'codice' }) {
         </Text>
         <Text style={stili.sotto}>
           {fase === 'email'
-            ? 'Le funzioni nuove dell’app Athlon, in prova. Entri con la tua email, senza password.'
-            : 'Ti abbiamo mandato un codice di sei cifre: scrivilo qui sotto.'}
+            ? 'Questa è la nuova app di Athlon Club, ancora in fase di test: la provano per primi alcuni soci, prima che arrivi a tutti. Entri con la tua email, senza password.'
+            : `Ti abbiamo mandato un codice di ${CIFRE} cifre: scrivilo o incollalo qui sotto.`}
         </Text>
       </View>
     </LinearGradient>
@@ -85,17 +89,39 @@ export function Accesso() {
     setFase('codice')
   }
 
-  async function verifica() {
+  async function verifica(scritto = codice) {
+    if (attesa) return
     setErrore(null)
-    if (codice.replace(/\D/g, '').length < 6) return setErrore('Il codice ha sei cifre.')
+    if (scritto.replace(/\D/g, '').length < CIFRE) return setErrore(`Il codice ha ${CIFRE} cifre.`)
     setAttesa(true)
-    const esito = await entra(email.trim().toLowerCase(), codice)
+    const esito = await entra(email.trim().toLowerCase(), scritto)
     setAttesa(false)
     if (!esito.ok) {
       colpetto('errore')
       setErrore(esito.errore)
     }
     // Se e' andata, la sessione cambia e la pagina passa da sola all'area.
+  }
+
+  // Appena il codice e' completo si entra: chi lo incolla o lo prende dai
+  // suggerimenti della tastiera non deve anche cercare il pulsante.
+  function cambiaCodice(v: string) {
+    setCodice(v)
+    if (v.length === CIFRE && v !== codice) verifica(v)
+  }
+
+  // Sul web: «Incolla il codice» legge gli appunti (Safari chiede conferma
+  // con la sua bolla «Incolla»). Nell'app la tastiera lo propone gia' da sola.
+  const puoIncollare = Platform.OS === 'web' && typeof navigator !== 'undefined' && !!navigator.clipboard?.readText
+  async function incolla() {
+    setErrore(null)
+    try {
+      const cifre = (await navigator.clipboard.readText()).replace(/\D/g, '').slice(0, 10)
+      if (cifre.length < CIFRE) return setErrore(`Negli appunti non c’è un codice di ${CIFRE} cifre: copialo dall’email e riprova.`)
+      cambiaCodice(cifre)
+    } catch {
+      setErrore('Non riusciamo a leggere gli appunti: tieni premuto sulle caselle e scegli «Incolla».')
+    }
   }
 
   return (
@@ -129,11 +155,12 @@ export function Accesso() {
           ) : (
             <>
               <Text style={[stili.nota, { color: p.testoSecondario, fontSize: 14.5 }]}>
-                Se <Text style={{ fontFamily: F.bold, color: p.testo }}>{email.trim()}</Text> è fra i tester, ti abbiamo mandato un codice di sei cifre.
+                Se <Text style={{ fontFamily: F.bold, color: p.testo }}>{email.trim()}</Text> è fra i tester, ti abbiamo mandato un codice di {CIFRE} cifre.
               </Text>
-              <CampoCodice value={codice} onChange={setCodice} onInvio={verifica} errore={!!errore} />
+              <CampoCodice value={codice} onChange={cambiaCodice} onInvio={() => verifica()} errore={!!errore} />
+              {puoIncollare ? <Pulsante testo="Incolla il codice" icona="documento" variante="secondario" piccolo onPress={incolla} disabilitato={attesa} /> : null}
               {errore ? <Messaggio>{errore}</Messaggio> : null}
-              <Pulsante testo="Entra" icona="avanti" onPress={verifica} inCorso={attesa} />
+              <Pulsante testo="Entra" icona="avanti" onPress={() => verifica()} inCorso={attesa} />
               <Pulsante testo="Usa un’altra email o chiedi un nuovo codice" variante="fantasma" piccolo onPress={() => setFase('email')} disabilitato={attesa} />
               <Text style={[stili.nota, { color: p.testoTerzo, textAlign: 'center' }]}>Il codice vale un’ora. Non trovi l’email? Guarda nella posta indesiderata.</Text>
             </>
@@ -165,7 +192,7 @@ const stili = StyleSheet.create({
   chipTesto: { color: 'rgba(255,255,255,0.85)', fontSize: 10.5, fontFamily: F.extra, letterSpacing: 1.4 },
   testataColonna: { width: '100%', maxWidth: 640, alignSelf: 'center', paddingHorizontal: spazio.quattro, gap: spazio.due + 2 },
   anello: { position: 'absolute', borderWidth: 1.5, borderColor: '#FF8A2B' },
-  logo: { width: 58, height: 58, borderRadius: 20, alignItems: 'center', justifyContent: 'center', marginBottom: spazio.due, boxShadow: '0 12px 30px rgba(255,87,1,0.45)' },
+  logo: { width: 64, height: 64, borderRadius: 22, alignItems: 'center', justifyContent: 'center', marginBottom: spazio.due, backgroundColor: '#fff', boxShadow: '0 12px 34px rgba(255,87,1,0.55)' },
   titolo: { color: '#fff', fontSize: 42, lineHeight: 46, fontFamily: F.extra, letterSpacing: -1.6, marginTop: spazio.uno },
   sotto: { color: 'rgba(255,255,255,0.7)', fontSize: 15.5, lineHeight: 23, maxWidth: 420, fontFamily: F.medio },
   modulo: { marginTop: -64, padding: spazio.quattro - 2 },
