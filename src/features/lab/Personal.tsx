@@ -565,6 +565,8 @@ export function Personal() {
   }
 
   const opzione = opzioni.find((o) => o.definition_id === definizione) ?? null
+  // «Le tue sedute» mostra solo i prodotti personal attivi: la seduta da comprare sta in «Acquista».
+  const usabili = opzioni.filter((o) => !o.acquisto)
   const trainerDi = new Map((orari?.trainer ?? stato.trainer).map((t) => [t.id, t]))
   const nomeTrainer = new Map([...trainerDi.values()].map((t) => [t.id, t.nome]))
   // Gli orari liberi del giorno scelto, col filtro del trainer, raccolti per ora.
@@ -789,22 +791,22 @@ export function Personal() {
 
       {stato.prenotate.length ? <SedutePrenotate sedute={stato.prenotate} ore={stato.disdetta_ore} onAnnulla={annulla} /> : null}
 
-      <Sezione titolo="Le tue sedute">
-        {opzioni.length ? (
+      {usabili.length ? (
+        <Sezione titolo="Le tue sedute">
           <Carta style={{ paddingVertical: spazio.due }}>
-            {opzioni.map((o, i) => {
+            {usabili.map((o, i) => {
               const qui = o.definition_id === definizione
               return (
                 <Riga
                   key={o.definition_id}
                   prima={i === 0}
-                  icona={o.acquisto ? 'carta' : 'pass'}
-                  tono={o.acquisto ? 'neutro' : 'accento'}
+                  icona="pass"
+                  tono="accento"
                   titolo={o.titolo}
                   sotto={o.sotto}
-                  onPress={opzioni.length > 1 ? () => setDefinizione(o.definition_id) : undefined}
+                  onPress={usabili.length > 1 ? () => setDefinizione(o.definition_id) : undefined}
                   coda={
-                    opzioni.length > 1 ? (
+                    usabili.length > 1 ? (
                       <View style={[stili.radio, { borderColor: qui ? p.accento : p.linea, backgroundColor: qui ? p.accento : 'transparent' }]}>
                         {qui ? <Icona nome="spunta" size={13} colore="#fff" /> : null}
                       </View>
@@ -813,16 +815,9 @@ export function Personal() {
                 />
               )
             })}
-            {!stato.crediti.length ? (
-              <Text style={[stili.nota, { color: p.testoSecondario, paddingTop: spazio.due }]}>
-                Non hai sedute di personal da usare: scegli l’orario e il trainer, e la seduta la paghi nello stesso passo.
-              </Text>
-            ) : null}
           </Carta>
-        ) : (
-          <Messaggio tono="attenzione">Non hai sedute di personal da usare, e la seduta non si può acquistare online: chiedi al club.</Messaggio>
-        )}
-      </Sezione>
+        </Sezione>
+      ) : null}
 
       {stato.acquisto?.prodotto.prezzo != null || stato.pacchetti.length || stato.pacchetto_attivo ? (
         <Sezione titolo="Acquista">
