@@ -18,6 +18,14 @@ export type PianoAbbonamento = {
   totale_impegno: number
   attivita: string[]
   nota: string
+  /** Il listino ricco, dal catalogo del sito. */
+  badge: string | null
+  claim: string | null
+  descrizione: string | null
+  attivita_dettaglio: { nome: string; testo: string; pagina: string | null }[]
+  non_comprende: string[]
+  risparmio_vs_flex: number | null
+  condizioni: { titolo: string; testo: string }[]
 }
 
 export type PersonaAbbonamento = {
@@ -38,6 +46,7 @@ export type StatoAbbonamento = {
   persone: PersonaAbbonamento[]
   piani: PianoAbbonamento[]
   quota_attivazione: number
+  sospensione_prezzo: number
   giorni_max: number
   metodi: { carta: { id: number; finale: string | null; scadenza: string | null } | null; conto: { id: number; finale: string | null } | null }
 }

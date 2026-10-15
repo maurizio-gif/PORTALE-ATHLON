@@ -1,6 +1,7 @@
 import { router, useLocalSearchParams } from 'expo-router'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Linking, Platform, ScrollView, StyleSheet, Text, View } from 'react-native'
+import type Animated from 'react-native-reanimated'
 
 import {
   anteprimaAbbonamento,
@@ -22,10 +23,11 @@ import { ModuloIban, type DatiConto } from '@/features/metodo-pagamento/ModuloIb
 import { euro } from '@/lib/eventi'
 import { spazio } from '@/theme'
 
+import { Indicatore, SchedaScelta } from './abbonamento/Passi'
+import { FORMULE, Listino } from './abbonamento/Listino'
 import { FirmaPad } from './FirmaPad'
 import { RiepilogoCosti } from './RiepilogoCosti'
 import { Foglio } from './ui/Foglio'
-import { Icona } from './ui/Icona'
 import { Carta, Etichetta, Messaggio, Pulsante, Sezione } from './ui/kit'
 import { SchermataInArrivo } from './ui/Attesa'
 import { Schermata } from './ui/Schermata'
@@ -41,12 +43,6 @@ import { colpetto, Tocco } from './ui/Tocco'
 // genitore, dal suo account. Sotto i 13 anni non si vende un abbonamento adulti.
 // Il contratto che si firma e' quello che si e' letto: il server ricompone il
 // documento e ne confronta l'impronta con quella dell'anteprima.
-
-const FORMULE: Record<string, { titolo: string; sotto: string }> = {
-  'annuale-rate': { titolo: 'Annuale, a rate', sotto: '12 mesi, pagati ogni mese' },
-  'annuale-unico': { titolo: 'Annuale, in un’unica soluzione', sotto: '12 mesi, pagati subito' },
-  flex: { titolo: 'Mensile Flex', sotto: 'Si rinnova di mese in mese' },
-}
 
 function giornoBreve(iso: string): string {
   const [a, m, g] = iso.split('-').map(Number)
@@ -122,6 +118,8 @@ function BloccoDocumento({ b }: { b: Blocco }) {
 export function Abbonamento() {
   const p = usePalette()
   const { contratto } = useLocalSearchParams<{ contratto?: string }>()
+  const [passo, setPasso] = useState<1 | 2 | 3>(1)
+  const scorrimento = useRef<Animated.ScrollView>(null)
   const [stato, setStato] = useState<StatoAbbonamento | null>(null)
   const [errore, setErrore] = useState<string | null>(null)
   const [membro, setMembro] = useState<number | null>(null)
@@ -158,12 +156,6 @@ export function Abbonamento() {
     if (persona?.inizio_min) setInizio((i) => (i && persona.inizio_min! <= i && i <= persona.inizio_max! ? i : persona.inizio_min))
   }, [persona?.inizio_min, persona?.inizio_max, persona])
   const giorni = useMemo(() => (persona?.inizio_min && persona.inizio_max ? giorniFra(persona.inizio_min, persona.inizio_max) : []), [persona])
-
-  const gruppi = useMemo(() => {
-    const m = new Map<string, PianoAbbonamento[]>()
-    for (const x of stato?.piani ?? []) m.set(x.abbonamento, [...(m.get(x.abbonamento) ?? []), x])
-    return [...m.entries()]
-  }, [stato])
 
   function scelta(): SceltaAbbonamento | null {
     if (!persona || !pianoId || !inizio) return null
@@ -243,88 +235,85 @@ export function Abbonamento() {
   if (!stato && !errore) return <SchermataInArrivo titolo="Abbonamento" sopratitolo="Laboratorio" />
 
   const pronto = !!scelta()
+  const NOMI_PASSI = ['Abbonamento', 'Data e pagamento', 'Rivedi e firma']
+  const SOTTOTITOLI = [
+    'Scegli l’abbonamento e la formula: qui sotto trovi cosa comprende e le condizioni.',
+    'Scegli quando parte e come paghi: vedi subito quanto e quando.',
+    'Ultimo passo: rivedi tutto, leggi il contratto e firma.',
+  ]
+  const nomePersona = persona ? `${persona.nome ?? ''} ${persona.cognome ?? ''}`.trim() : ''
+  const formula = piano ? FORMULE[piano.formula] : null
+  const metodoTesto =
+    metodo === 'carta'
+      ? `Carta${stato?.metodi.carta?.finale ? ` •••• ${stato.metodi.carta.finale}` : ''}`
+      : `Conto corrente (SEPA)${contoNuovo ? ` •••• ${contoNuovo.iban.slice(-4)}` : usaContoSalvato && stato?.metodi.conto?.finale ? ` •••• ${stato.metodi.conto.finale}` : ''}`
+
+  function vai(n: 1 | 2 | 3) {
+    setErrore(null)
+    setPasso(n)
+    setTimeout(() => (scorrimento.current as unknown as ScrollView | null)?.scrollTo({ y: 0, animated: true }), 30)
+  }
+
   return (
-    <Schermata titolo="Abbonamento" sopratitolo="Laboratorio" sottotitolo="Scegli, leggi il contratto e firma: fatto in pochi minuti." indietro="/lab">
+    <Schermata titolo="Abbonamento" sopratitolo="Laboratorio" sottotitolo={SOTTOTITOLI[passo - 1]} indietro="/lab" scorrimento={scorrimento}>
       <View style={{ gap: spazio.quattro }}>
+        <Indicatore passo={passo} nomi={NOMI_PASSI} />
         {errore ? <Messaggio>{errore}</Messaggio> : null}
 
-        {stato && stato.persone.length > 1 ? (
-          <Sezione titolo="Per chi">
-            <View style={{ gap: spazio.due }}>
-              {stato.persone.map((x) => {
-                const attivo = x.member_id === membro
-                return (
-                  <Tocco
-                    key={x.member_id}
-                    vibra="scelta"
-                    stato={{ selected: attivo }}
-                    etichetta={`${x.nome ?? ''} ${x.cognome ?? ''}`}
-                    onPress={() => setMembro(x.member_id)}
-                    style={[stili.scelta, attivo ? { borderColor: p.accento, backgroundColor: p.incavo } : { borderColor: p.linea, backgroundColor: p.carta }]}
-                  >
-                    <View style={{ flex: 1 }}>
-                      <Text style={{ color: p.testo, fontFamily: F.bold, fontSize: 15 }}>{`${x.nome ?? ''} ${x.cognome ?? ''}`.trim()}</Text>
-                      <Text style={{ color: p.testoSecondario, fontFamily: F.medio, fontSize: 12 }}>
-                        {x.puo_comprare ? (x.firmatario === 'genitore' ? 'Firma il genitore' : x.titolare ? 'Firmi tu' : 'Firma lui') : x.motivo}
-                      </Text>
-                    </View>
-                    {x.puo_comprare ? null : <Etichetta testo="Non disponibile" tono="neutro" />}
-                  </Tocco>
-                )
-              })}
-            </View>
-          </Sezione>
-        ) : null}
-
-        {persona && !persona.puo_comprare ? (
-          <Messaggio tono="attenzione" titolo="Per ora non si può comprare">
-            {persona.motivo}
-          </Messaggio>
-        ) : null}
-
-        {persona?.puo_comprare && stato ? (
+        {passo === 1 && stato ? (
           <>
-            {gruppi.map(([nome, piani]) => (
-              <Sezione key={nome} titolo={nome}>
+            {stato.persone.length > 1 ? (
+              <Sezione titolo="Per chi">
                 <View style={{ gap: spazio.due }}>
-                  {piani.map((x) => {
-                    const attivo = x.piano_id === pianoId
-                    const f = FORMULE[x.formula]
+                  {stato.persone.map((x) => {
+                    const attivo = x.member_id === membro
                     return (
-                      <Tocco
-                        key={x.piano_id}
-                        vibra="scelta"
-                        stato={{ selected: attivo }}
-                        etichetta={`${nome}, ${f.titolo}`}
-                        onPress={() => setPianoId(x.piano_id)}
-                        style={[stili.scelta, attivo ? { borderColor: p.accento, backgroundColor: p.incavo } : { borderColor: p.linea, backgroundColor: p.carta }]}
-                      >
-                        <View style={{ flex: 1, gap: 2 }}>
-                          <Text style={{ color: p.testo, fontFamily: F.bold, fontSize: 15 }}>{f.titolo}</Text>
-                          <Text style={{ color: p.testoSecondario, fontFamily: F.medio, fontSize: 12 }}>{f.sotto}</Text>
-                        </View>
-                        <View style={{ alignItems: 'flex-end' }}>
-                          <Text style={{ color: p.testo, fontFamily: F.extra, fontSize: 20, letterSpacing: -0.5 }}>{euro(x.importo)}</Text>
-                          <Text style={{ color: p.testoSecondario, fontFamily: F.medio, fontSize: 12 }}>{x.periodo.includes('anno') ? 'all’anno' : 'al mese'}</Text>
-                        </View>
-                      </Tocco>
+                      <SchedaScelta
+                        key={x.member_id}
+                        attiva={attivo}
+                        etichetta={`Per ${x.nome ?? ''} ${x.cognome ?? ''}`}
+                        onPress={() => setMembro(x.member_id)}
+                        titolo={`${x.nome ?? ''} ${x.cognome ?? ''}`.trim()}
+                        sotto={x.puo_comprare ? (x.firmatario === 'genitore' ? 'Firma il genitore' : x.titolare ? 'Firmi tu' : 'Firma lui') : (x.motivo ?? undefined)}
+                        destra={x.puo_comprare ? undefined : <Etichetta testo="Non disponibile" tono="neutro" />}
+                      />
                     )
                   })}
                 </View>
               </Sezione>
-            ))}
-
-            {piano ? (
-              <Carta piatta>
-                <Text style={{ color: p.testo, fontFamily: F.bold, fontSize: 14, marginBottom: 4 }}>Comprende</Text>
-                <Text style={{ color: p.testoSecondario, fontFamily: F.medio, fontSize: 13, lineHeight: 19 }}>{piano.attivita.join(', ')}</Text>
-                {stato.quota_attivazione > 0 ? (
-                  <Text style={{ color: p.testoSecondario, fontFamily: F.medio, fontSize: 12, marginTop: 6 }}>
-                    {`Più ${euro(stato.quota_attivazione)} di quota di attivazione, se non rinnovi senza interruzione un abbonamento scaduto.`}
-                  </Text>
-                ) : null}
-              </Carta>
             ) : null}
+
+            {persona && !persona.puo_comprare ? (
+              <Messaggio tono="attenzione" titolo="Per ora non si può comprare">
+                {persona.motivo}
+              </Messaggio>
+            ) : null}
+
+            {persona?.puo_comprare ? (
+              <>
+                <Listino piani={stato.piani} pianoId={pianoId} onScegli={setPianoId} />
+                <Text style={[stili.nota, { color: p.testoSecondario }]}>
+                  {stato.quota_attivazione > 0
+                    ? `A ogni abbonamento si aggiunge la quota di attivazione di ${euro(stato.quota_attivazione)}, che non si paga se il nuovo abbonamento parte il giorno dopo la scadenza del precedente. `
+                    : ''}
+                  Tutto quello che scegli lo rivedi prima di firmare.
+                </Text>
+                <Pulsante testo="Continua" icona="avanti" onPress={() => vai(2)} disabilitato={!pianoId} />
+                <Pulsante testo="I miei abbonamenti" variante="fantasma" piccolo pieno={false} onPress={() => router.navigate('/lab/abbonamenti')} />
+              </>
+            ) : null}
+          </>
+        ) : null}
+
+        {passo === 2 && stato && persona && piano ? (
+          <>
+            <Carta piatta>
+              <Text style={{ color: p.testoSecondario, fontFamily: F.medio, fontSize: 12 }}>La tua scelta</Text>
+              <Text style={{ color: p.testo, fontFamily: F.extra, fontSize: 18, letterSpacing: -0.3 }}>{`${piano.abbonamento} · ${formula?.titolo ?? ''}`}</Text>
+              <Text style={{ color: p.testoSecondario, fontFamily: F.medio, fontSize: 13 }}>
+                {`${euro(piano.importo)} ${piano.periodo.includes('anno') ? 'all’anno' : 'al mese'}${stato.persone.length > 1 ? ` · per ${nomePersona}` : ''}`}
+              </Text>
+            </Carta>
 
             <Sezione titolo="Quando parte">
               <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: spazio.due }}>
@@ -344,77 +333,118 @@ export function Abbonamento() {
                   )
                 })}
               </ScrollView>
+              <Text style={[stili.nota, { color: p.testoSecondario }]}>
+                Puoi farlo partire oggi o fino a due settimane dopo. Si paga adesso, ma la data decide cosa copre la prima quota.
+              </Text>
             </Sezione>
 
             <Sezione titolo="Come paghi">
-              <View style={{ flexDirection: 'row', gap: spazio.due }}>
-                {(
-                  [
-                    ['carta', 'Carta', 'carta'],
-                    ['conto', 'Conto corrente', 'banca'],
-                  ] as const
-                ).map(([chiave, nome, icona]) => {
-                  const attivo = metodo === chiave
-                  return (
-                    <Tocco
-                      key={chiave}
-                      vibra="scelta"
-                      stato={{ selected: attivo }}
-                      etichetta={`Paga con ${nome.toLowerCase()}`}
-                      onPress={() => {
-                        setMetodo(chiave)
-                        setErrore(null)
-                      }}
-                      style={[stili.filtro, { flex: 1 }, attivo ? { backgroundColor: p.accento, borderColor: p.accento } : { backgroundColor: p.carta, borderColor: p.linea }]}
-                    >
-                      <Icona nome={icona} size={18} colore={attivo ? '#fff' : p.testoSecondario} />
-                      <Text style={{ color: attivo ? '#fff' : p.testo, fontFamily: attivo ? F.extra : F.semi, fontSize: 14 }}>{nome}</Text>
-                    </Tocco>
-                  )
-                })}
-              </View>
-              {metodo === 'carta' ? (
-                <Text style={[stili.nota, { color: p.testoSecondario }]}>
-                  {stato.metodi.carta
-                    ? `Addebitiamo la prima quota sulla carta salvata${stato.metodi.carta.finale ? ` •••• ${stato.metodi.carta.finale}` : ''}; le altre ogni mese sulla stessa.`
-                    : 'Paghi la prima quota sulla pagina sicura della banca, che salva la carta per le quote dopo.'}
-                </Text>
-              ) : stato.metodi.conto && usaContoSalvato && !contoNuovo ? (
-                <View style={{ gap: spazio.due }}>
-                  <Text style={[stili.nota, { color: p.testoSecondario }]}>
-                    {`Usiamo il conto salvato${stato.metodi.conto.finale ? ` •••• ${stato.metodi.conto.finale}` : ''}, con il mandato SEPA già firmato: le quote, la prima compresa, si addebitano da lì.`}
-                  </Text>
-                  <Pulsante testo="Usa un altro conto" variante="fantasma" piccolo pieno={false} onPress={() => setUsaContoSalvato(false)} />
-                </View>
-              ) : contoNuovo ? (
-                <View style={{ gap: spazio.due }}>
-                  <Text style={[stili.nota, { color: p.testoSecondario }]}>{`Conto •••• ${contoNuovo.iban.slice(-4)}, intestato a ${contoNuovo.intestatario}.`}</Text>
-                  <Pulsante testo="Cambia conto" variante="fantasma" piccolo pieno={false} onPress={() => setContoNuovo(null)} />
-                </View>
-              ) : (
-                <ModuloIban
-                  nomeCompleto={[persona.nome, persona.cognome].filter(Boolean).join(' ')}
-                  introduzione={<Text style={[stili.nota, { color: p.testoSecondario }]}>Scrivi l’IBAN su cui addebitare le quote. Adesso non paghi niente: prima leggi il contratto.</Text>}
-                  etichettaInvio="Continua"
-                  onInvia={async (d) => {
-                    setContoNuovo(d)
-                    return null
+              <View style={{ gap: spazio.due }} accessibilityRole="radiogroup">
+                <SchedaScelta
+                  attiva={metodo === 'carta'}
+                  etichetta="Paga con carta"
+                  icona="carta"
+                  titolo="Carta"
+                  sotto={
+                    stato.metodi.carta
+                      ? `Usiamo la carta salvata${stato.metodi.carta.finale ? ` •••• ${stato.metodi.carta.finale}` : ''}: la prima quota subito, le altre quando scadono, sulla stessa carta.`
+                      : 'La prima quota la paghi sulla pagina sicura della banca, che salva la carta: le quote dopo si addebitano da sole.'
+                  }
+                  onPress={() => {
+                    setMetodo('carta')
+                    setErrore(null)
                   }}
-                  onIndietro={() => (stato.metodi.conto ? setUsaContoSalvato(true) : setMetodo('carta'))}
                 />
+                <SchedaScelta
+                  attiva={metodo === 'conto'}
+                  etichetta="Paga con conto corrente"
+                  icona="banca"
+                  titolo="Conto corrente (addebito SEPA)"
+                  sotto="Le quote, la prima compresa, si addebitano sul tuo conto con il mandato SEPA. Non devi pagare altro adesso."
+                  onPress={() => {
+                    setMetodo('conto')
+                    setErrore(null)
+                  }}
+                />
+              </View>
+              {metodo === 'conto' ? (
+                stato.metodi.conto && usaContoSalvato && !contoNuovo ? (
+                  <View style={{ gap: spazio.due }}>
+                    <Text style={[stili.nota, { color: p.testoSecondario }]}>
+                      {`Usiamo il conto salvato${stato.metodi.conto.finale ? ` •••• ${stato.metodi.conto.finale}` : ''}, con il mandato SEPA già firmato.`}
+                    </Text>
+                    <Pulsante testo="Usa un altro conto" variante="fantasma" piccolo pieno={false} onPress={() => setUsaContoSalvato(false)} />
+                  </View>
+                ) : contoNuovo ? (
+                  <View style={{ gap: spazio.due }}>
+                    <Text style={[stili.nota, { color: p.testoSecondario }]}>{`Conto •••• ${contoNuovo.iban.slice(-4)}, intestato a ${contoNuovo.intestatario}.`}</Text>
+                    <Pulsante testo="Cambia conto" variante="fantasma" piccolo pieno={false} onPress={() => setContoNuovo(null)} />
+                  </View>
+                ) : (
+                  <ModuloIban
+                    nomeCompleto={nomePersona}
+                    introduzione={<Text style={[stili.nota, { color: p.testoSecondario }]}>Scrivi l’IBAN su cui addebitare le quote. Adesso non paghi niente: prima leggi il contratto.</Text>}
+                    etichettaInvio="Usa questo conto"
+                    onInvia={async (d) => {
+                      setContoNuovo(d)
+                      return null
+                    }}
+                    onIndietro={() => (stato.metodi.conto ? setUsaContoSalvato(true) : setMetodo('carta'))}
+                  />
+                )
+              ) : null}
+            </Sezione>
+
+            <Sezione titolo="Il tuo piano di pagamento">
+              {costi ? (
+                <RiepilogoCosti importi={costi} metodo={metodo} />
+              ) : costiInCorso ? (
+                <Text style={[stili.nota, { color: p.testoSecondario }]}>Calcoliamo i costi…</Text>
+              ) : (
+                <Text style={[stili.nota, { color: p.testoSecondario }]}>
+                  {metodo === 'conto' ? 'Completa il conto qui sopra per vedere i costi.' : 'Scegli la data di partenza per vedere i costi.'}
+                </Text>
               )}
             </Sezione>
 
-            {costi ? (
-              <Sezione titolo="Riepilogo dei costi">
-                <RiepilogoCosti importi={costi} metodo={metodo} />
-              </Sezione>
-            ) : costiInCorso ? (
-              <Text style={[stili.nota, { color: p.testoSecondario }]}>Calcoliamo i costi…</Text>
-            ) : null}
+            <Pulsante testo="Continua" icona="avanti" onPress={() => vai(3)} disabilitato={!pronto || !costi} />
+            <Pulsante testo="Indietro" variante="fantasma" piccolo pieno={false} onPress={() => vai(1)} />
+          </>
+        ) : null}
 
-            <Pulsante testo="Leggi e firma il contratto" icona="documento" onPress={apri} inCorso={apertura} disabilitato={!pronto || !costi} />
-            <Pulsante testo="I miei abbonamenti" variante="fantasma" piccolo pieno={false} onPress={() => router.navigate('/lab/abbonamenti')} />
+        {passo === 3 && stato && persona && piano ? (
+          <>
+            <Carta piatta>
+              <View style={{ gap: spazio.tre }}>
+                {(
+                  [
+                    ['Abbonamento', `${piano.abbonamento} · ${formula?.titolo ?? ''}`, 1],
+                    ...(stato.persone.length > 1 ? ([['Per', nomePersona, 1]] as const) : []),
+                    ['Parte il', inizio ? giornoBreve(inizio) : '—', 2],
+                    ['Paghi con', metodoTesto, 2],
+                  ] as const
+                ).map(([nome, valore, dove]) => (
+                  <View key={nome} style={{ flexDirection: 'row', alignItems: 'flex-start', gap: spazio.due }}>
+                    <Text style={[stili.nota, { color: p.testoSecondario, width: 92 }]}>{nome}</Text>
+                    <Text style={{ color: p.testo, fontFamily: F.bold, fontSize: 14, flex: 1, lineHeight: 20 }}>{valore}</Text>
+                    <Tocco ruolo="button" etichetta={`Modifica: ${nome}`} onPress={() => vai(dove)} style={{ paddingVertical: 2, paddingHorizontal: 4 }}>
+                      <Text style={{ color: p.accento, fontFamily: F.bold, fontSize: 13 }}>Modifica</Text>
+                    </Tocco>
+                  </View>
+                ))}
+              </View>
+            </Carta>
+
+            {costi ? <RiepilogoCosti importi={costi} metodo={metodo} /> : null}
+
+            <Messaggio tono="attenzione" titolo="Adesso il contratto" icona="documento">
+              {persona.firmatario === 'genitore'
+                ? 'Lo leggi fino in fondo e firma il genitore, con il dito o con il mouse. Il contratto firmato resta nell’area riservata.'
+                : 'Lo leggi fino in fondo e firmi con il dito o con il mouse. Il contratto firmato resta nell’area riservata.'}
+            </Messaggio>
+
+            <Pulsante testo="Leggi il contratto e firma" icona="documento" onPress={apri} inCorso={apertura} disabilitato={!pronto || !costi} />
+            <Pulsante testo="Indietro" variante="fantasma" piccolo pieno={false} onPress={() => vai(2)} />
           </>
         ) : null}
       </View>
