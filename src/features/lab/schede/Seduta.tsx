@@ -2,7 +2,7 @@ import { router, useLocalSearchParams } from 'expo-router'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { StyleSheet, Text, TextInput, View } from 'react-native'
 
-import { chiudiSeduta, iniziaSeduta, leggiSchedaLab, segnaSerie, togliSerie, type EsercizioScheda, type GiornoSchedaLab, type Precedente, type SchedaLab } from '@/api/lab'
+import { chiudiSeduta, iniziaSeduta, leggiSchedaLab, segnaSerie, togliSerie, type EsercizioScheda, type GiornoSchedaLab, type Massimale, type Precedente, type SchedaLab } from '@/api/lab'
 import { spazio } from '@/theme'
 
 import { dimentica, inMemoria, prendi } from '../memoria'
@@ -11,7 +11,7 @@ import { Barra, Carta, Messaggio, Numero, Pulsante, SchedeInArrivo } from '../ui
 import { Schermata } from '../ui/Schermata'
 import { F, FUOCO, usePalette } from '../ui/tema'
 import { colpetto, Tocco } from '../ui/Tocco'
-import { aTempo, descriviPasso, dopo, gruppo, recupero, type Passo } from './comune'
+import { aTempo, descriviPasso, dopo, gruppo, indicazione, recupero, SPIEGA_TARATURA, type Passo } from './comune'
 import { MediaEsercizio } from './MediaEsercizio'
 import { Nota, serieInRiga } from './Scheda'
 import { TimerRecupero } from './TimerRecupero'
@@ -125,6 +125,7 @@ export function Seduta() {
   const { scheda: schedaId, giorno: giornoId } = useLocalSearchParams<{ scheda: string; giorno: string }>()
   const [scheda, setScheda] = useState<SchedaLab | null>(() => inMemoria<{ scheda: SchedaLab }>(`schede:${schedaId}`)?.scheda ?? null)
   const [precedenti, setPrecedenti] = useState<Precedente[]>(() => inMemoria<{ precedenti: Precedente[] }>(`schede:${schedaId}`)?.precedenti ?? [])
+  const [massimali, setMassimali] = useState<Massimale[]>(() => inMemoria<{ massimali: Massimale[] }>(`schede:${schedaId}`)?.massimali ?? [])
   const [seduta, setSeduta] = useState<{ id: string; inizio: string } | null>(null)
   const [fatte, setFatte] = useState<Map<string, Fatta>>(new Map())
   const [bozze, setBozze] = useState<Map<string, Bozza>>(new Map())
@@ -144,6 +145,7 @@ export function Seduta() {
     if (!s.ok) return setErrore(s.errore)
     setScheda(s.scheda)
     setPrecedenti(s.precedenti)
+    setMassimali(s.massimali ?? [])
     const r = await iniziaSeduta(String(schedaId), String(giornoId))
     if (!r.ok) return setErrore(r.errore)
     setSeduta(r.allenamento)
@@ -173,18 +175,22 @@ export function Seduta() {
 
   const precedente = useCallback((eid: string) => precedenti.find((x) => x.esercizio_id === eid), [precedenti])
 
-  /** La bozza di una serie: quella scritta, o le ripetizioni della scheda e i chili dell'ultima volta. */
+  /**
+   * La bozza di una serie: quella scritta, o le ripetizioni della scheda e i
+   * chili: quelli della serie prima di oggi, poi quelli calcolati dalla
+   * percentuale e dal massimale, poi quelli della stessa serie l'ultima volta.
+   */
   const bozzaDi = useCallback(
     (e: EsercizioScheda, n: number): Bozza => {
       const b = bozze.get(chiaveSerie(e.id, n))
       if (b) return b
-      // I chili: quelli della serie prima di oggi, o della stessa serie l'ultima volta.
+      const ind = indicazione(e, massimali)
       const prima = fatte.get(chiaveSerie(e.id, n - 1))
       const ultima = precedente(e.esercizio_id)?.serie
-      const kg = prima?.kg ?? ultima?.find((x) => x.numero === n)?.kg ?? ultima?.[ultima.length - 1]?.kg ?? null
-      return { ripetizioni: primoNumero(e.ripetizioni), kg: kg != null ? String(kg).replace('.', ',') : '' }
+      const kg = prima?.kg ?? ind.kg ?? ultima?.find((x) => x.numero === n)?.kg ?? ultima?.[ultima.length - 1]?.kg ?? null
+      return { ripetizioni: ind.ripetizioni != null ? String(ind.ripetizioni) : primoNumero(e.ripetizioni), kg: kg != null ? String(kg).replace('.', ',') : '' }
     },
-    [bozze, fatte, precedente],
+    [bozze, fatte, precedente, massimali],
   )
 
   const totaleSerie = useMemo(() => (giorno ? giorno.esercizi.reduce((n, e) => n + e.serie, 0) : 0), [giorno])
@@ -214,7 +220,12 @@ export function Seduta() {
         fine: Date.now() + rec * 1000,
         totale: rec,
         prossimo: descriviPasso(giorno, prossimo),
-        dettaglio: ult ? `L’ultima volta: ${serieInRiga([ult])}` : pe.carico ? `Carico: ${pe.carico}` : null,
+        dettaglio: (() => {
+          const ind = indicazione(pe, massimali)
+          if (ind.kg != null) return `Carico: ${ind.carico}`
+          if (ult) return `L’ultima volta: ${serieInRiga([ult])}`
+          return ind.carico ? `Carico: ${ind.carico}` : null
+        })(),
       })
     }
     setOccupato(true)
@@ -344,7 +355,7 @@ export function Seduta() {
                       <Text style={[stili.nome, { color: p.testo }]} numberOfLines={2}>
                         {e.nome}
                       </Text>
-                      <Text style={[stili.piccola, { color: p.testoSecondario }]}>{`${e.serie} × ${e.ripetizioni}${e.carico ? ` · ${e.carico}` : ''}`}</Text>
+                      <Text style={[stili.piccola, { color: p.testoSecondario }]}>{(({ serieRip, carico }) => `${serieRip}${carico ? ` · ${carico}` : ''}`)(indicazione(e, massimali))}</Text>
                     </View>
                   ) : null}
                   {!qui && tutte ? <Icona nome="ok" size={24} colore={p.ok} /> : null}
@@ -355,8 +366,9 @@ export function Seduta() {
                   {e.superserie ? <Text style={[stili.superserie, { color: p.accento }]}>{`SUPERSERIE ${e.superserie} · ${gr.indexOf(i) + 1} di ${gr.length}: si recupera alla fine del giro`}</Text> : null}
                   <Text style={[stili.nomeGrande, { color: p.testo }]}>{e.nome}</Text>
                   <Text style={[stili.piccola, { color: p.testoSecondario }]}>
-                    {`${e.serie} × ${e.ripetizioni}${e.carico ? ` · ${e.carico}` : ''} · recupero ${recupero(e.recupero_serie)}`}
+                    {(({ serieRip, carico }) => `${serieRip}${carico ? ` · ${carico}` : ''} · recupero ${recupero(e.recupero_serie)}`)(indicazione(e, massimali))}
                   </Text>
+                  {indicazione(e, massimali).manca ? <Nota testo={SPIEGA_TARATURA} /> : null}
                   {e.note ? <Nota testo={e.note} /> : null}
                   {precedente(e.esercizio_id) ? (
                     <Text style={[stili.piccola, { color: p.testoTerzo }]}>{`L’ultima volta: ${serieInRiga(precedente(e.esercizio_id)!.serie)}`}</Text>

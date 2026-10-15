@@ -488,6 +488,8 @@ export type EsercizioScheda = {
   serie: number
   ripetizioni: string
   carico: string | null
+  /** La percentuale del massimale: con il massimale del socio diventa chili (o ripetizioni a corpo libero). */
+  percentuale: number | null
   recupero_serie: number
   recupero_dopo: number
   superserie: string | null
@@ -497,7 +499,26 @@ export type EsercizioScheda = {
   muscoli_primari: string[]
   attrezzo: string | null
   istruzioni: string[]
+  /** L'incremento della macchina (5 kg, 2,5 kg) e il peso minimo: i chili si arrotondano per difetto a quelli. */
+  incremento_kg: number | null
+  peso_minimo_kg: number | null
+  /** Se l'esercizio e' nel test dei massimali, e come: a carico o a ripetizioni. */
+  test: 'carico' | 'ripetizioni' | null
 }
+
+/** Il massimale del socio per un esercizio: i kg stimati per una ripetizione, o le ripetizioni massime. */
+export type Massimale = {
+  esercizio_id: string
+  tipo: 'carico' | 'ripetizioni'
+  massimale: number
+  kg: number | null
+  ripetizioni: number
+  /** test: dal test dei massimali; seduta: tarato alla prima seduta. */
+  fonte: 'test' | 'seduta'
+  creato_il: string
+}
+
+export type StatoTest = { ultimo: string | null; fatti: number; totale: number; giorni: number }
 
 export type GiornoSchedaLab = { id: string; nome: string; note: string | null; esercizi: EsercizioScheda[] }
 
@@ -529,15 +550,24 @@ export type Questionario = {
 
 const schedeLab = (corpo: Record<string, unknown>) => funzione('portale-lab-schede', corpo)
 
-export async function elencoSchede(): Promise<Esito<{ schede: RigaSchedaLab[]; ultimi: SedutaBreve[]; ai: { usate: number; massimo: number } }>> {
+export async function elencoSchede(): Promise<Esito<{ schede: RigaSchedaLab[]; ultimi: SedutaBreve[]; ai: { usate: number; massimo: number }; test: StatoTest }>> {
   const { ok, dati } = await schedeLab({ azione: 'elenco' })
-  if (ok) return { ok: true, schede: dati.schede, ultimi: dati.ultimi, ai: dati.ai }
+  if (ok) return { ok: true, schede: dati.schede, ultimi: dati.ultimi, ai: dati.ai, test: dati.test ?? { ultimo: null, fatti: 0, totale: 0, giorni: 42 } }
   return { ok: false, errore: dati.errore ?? 'Non riusciamo a leggere le tue schede adesso.' }
 }
 
-export async function leggiSchedaLab(id: string): Promise<Esito<{ scheda: SchedaLab; precedenti: Precedente[] }>> {
+export async function leggiSchedaLab(id: string): Promise<Esito<{ scheda: SchedaLab; precedenti: Precedente[]; massimali: Massimale[]; ultimoTest: string | null; giorniTest: number }>> {
   const { ok, dati } = await schedeLab({ azione: 'scheda', id })
-  if (ok) return { ok: true, scheda: dati.scheda, precedenti: dati.precedenti ?? [] }
+  if (ok) {
+    return {
+      ok: true,
+      scheda: dati.scheda,
+      precedenti: dati.precedenti ?? [],
+      massimali: dati.massimali ?? [],
+      ultimoTest: dati.ultimo_test ?? null,
+      giorniTest: dati.giorni_test ?? 42,
+    }
+  }
   return { ok: false, errore: dati.errore ?? 'Non riusciamo ad aprire la scheda adesso.' }
 }
 
@@ -594,4 +624,35 @@ export function urlEsercizio(percorso: string | null | undefined): string | null
   if (!percorso) return null
   if (/^https?:\/\//.test(percorso)) return percorso
   return `${SUPABASE_URL.replace(/\/+$/, '')}/storage/v1/object/public/esercizi/${percorso}`
+}
+
+// Il test dei massimali: gli esercizi del test (superiore, core, inferiore)
+// coi risultati precedenti, e il salvataggio di un risultato.
+
+export type EsercizioTest = {
+  id: string
+  nome: string
+  immagini: string[]
+  video: string | null
+  istruzioni: string[]
+  muscoli_primari: string[]
+  attrezzo: string | null
+  test: 'carico' | 'ripetizioni'
+  test_gruppo: 'superiore' | 'core' | 'inferiore'
+  test_ordine: number | null
+  incremento_kg: number | null
+  peso_minimo_kg: number | null
+  ultimo: { kg: number | null; ripetizioni: number; massimale: number; creato_il: string } | null
+}
+
+export async function testMassimali(): Promise<Esito<{ esercizi: EsercizioTest[]; ultimo: string | null; giorni: number }>> {
+  const { ok, dati } = await schedeLab({ azione: 'test' })
+  if (ok) return { ok: true, esercizi: dati.esercizi, ultimo: dati.ultimo ?? null, giorni: dati.giorni ?? 42 }
+  return { ok: false, errore: dati.errore ?? 'Non riusciamo ad aprire il test adesso.' }
+}
+
+export async function salvaTestMassimale(esercizioId: string, kg: number | null, ripetizioni: number): Promise<Esito<{ massimale: number; tipo: 'carico' | 'ripetizioni' }>> {
+  const { ok, dati } = await schedeLab({ azione: 'salva_test', esercizio_id: esercizioId, kg, ripetizioni })
+  if (ok) return { ok: true, massimale: Number(dati.massimale), tipo: dati.tipo }
+  return { ok: false, errore: dati.errore ?? 'Il risultato non è stato salvato.' }
 }

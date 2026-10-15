@@ -116,3 +116,25 @@ Fatte tutte e quattro le tappe, per il laboratorio:
 
 Restano da fare: la notifica locale di fine recupero nell'app nativa (serve
 expo-notifications e la build), i video del club, e le decisioni qui sopra.
+
+## Massimali e schede del club (16/10/2026)
+
+- **Il test dei massimali** (`/lab/allenamento/test`): chest press e
+  piegamenti (parte superiore), sit-up (core), leg extension, leg curl, squat a
+  corpo libero e squat con bilanciere (parte inferiore). A carico il socio
+  scrive peso e ripetizioni (fra 4 e 10 consigliate, al massimo 12) e il
+  massimale si stima con la media di Epley e Brzycki; a corpo libero le
+  ripetizioni massime. Si rifà ogni 6 settimane (4 per i principianti): lo
+  ricordano l'elenco e la scheda. Tabella `massimali` (migrazione 20261016c).
+- **I carichi in percentuale**: `scheda_esercizi.percentuale` (20-100). Nell'app
+  diventa chili col massimale del socio, arrotondati per difetto
+  all'incremento dell'attrezzo (`esercizi.incremento_kg`, minimo
+  `peso_minimo_kg`); a corpo libero diventa ripetizioni. Finché il massimale
+  manca l'app mostra la percentuale e spiega cosa fare; sugli esercizi fuori
+  dal test il massimale si ricava dalla prima seduta (fonte `seduta`). La
+  seduta propone già i chili calcolati.
+- **Le schede del club**: dieci proposte del responsabile tecnico, pubblicate.
+  Nel CRM sono in cima («Schede del club», «Nuova scheda del club»,
+  «Duplica» per partire da una che c'è), con la colonna «% mass.»
+  nell'editor; nella libreria si impostano incremento, peso minimo e test di
+  ogni esercizio. Nell'app un elenco compatto filtrabile per obiettivo.

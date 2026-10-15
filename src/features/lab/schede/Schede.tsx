@@ -1,27 +1,92 @@
 import { LinearGradient } from 'expo-linear-gradient'
 import { router } from 'expo-router'
 import { useCallback, useEffect, useState } from 'react'
-import { StyleSheet, Text, View } from 'react-native'
+import { ScrollView, StyleSheet, Text, View } from 'react-native'
 
-import { elencoSchede, type RigaSchedaLab, type SedutaBreve } from '@/api/lab'
+import { elencoSchede, type RigaSchedaLab, type SedutaBreve, type StatoTest } from '@/api/lab'
 import { spazio } from '@/theme'
 
 import { inMemoria, prendi } from '../memoria'
-import { Icona } from '../ui/Icona'
+import { Icona, type NomeIcona } from '../ui/Icona'
 import { Carta, Entra, LinkSezione, Messaggio, Pulsante, Riga, SchedeInArrivo, Sezione, Tag } from '../ui/kit'
 import { Schermata } from '../ui/Schermata'
-import { F, FUOCO, NOTTE, usePalette } from '../ui/tema'
+import { F, FUOCO, MARE, NOTTE, usePalette } from '../ui/tema'
 import { Tocco } from '../ui/Tocco'
-import { LIVELLI, quando, TIPI } from './comune'
+import { giorniAlTest, giornoTest, LIVELLI, quando, testDaRifare, TIPI } from './comune'
 
-// Allenamento: le schede del socio (del club, del suo trainer, dell'agente
-// AI), la richiesta di una scheda all'agente, gli ultimi allenamenti.
+// Allenamento: il test dei massimali, la richiesta di una scheda all'agente
+// AI, le schede del socio (del suo trainer, dell'agente) e quelle del club,
+// filtrabili per obiettivo, e gli ultimi allenamenti.
 
-type Dati = { schede: RigaSchedaLab[]; ultimi: SedutaBreve[]; ai: { usate: number; massimo: number } }
+type Dati = { schede: RigaSchedaLab[]; ultimi: SedutaBreve[]; ai: { usate: number; massimo: number }; test: StatoTest }
+
+/** Il colore e l'icona di una scheda del club, dall'obiettivo. */
+function aspetto(obiettivo: string | null): { colori: readonly [string, string, ...string[]]; icona: NomeIcona } {
+  const o = (obiettivo ?? '').toLowerCase()
+  if (o.includes('ipertrofia') || o.includes('forza')) return { colori: NOTTE, icona: 'peso' }
+  if (o.includes('dimagri') || o.includes('resistenza') || o.includes('cardio')) return { colori: FUOCO, icona: 'fulmine' }
+  if (o.includes('tonific')) return { colori: ['#F06292', '#C2185B'], icona: 'stella' }
+  if (o.includes('benessere') || o.includes('mobilit') || o.includes('schiena')) return { colori: ['#34C38F', '#178A62'], icona: 'scudo' }
+  return { colori: MARE, icona: 'grafico' }
+}
+
+/** La scheda del club, compatta: con dieci schede l'elenco deve scorrere veloce. */
+function SchedaClub({ s, indice }: { s: RigaSchedaLab; indice: number }) {
+  const p = usePalette()
+  const a = aspetto(s.obiettivo)
+  return (
+    <Entra indice={indice}>
+      <Tocco onPress={() => router.push({ pathname: '/lab/allenamento/[scheda]', params: { scheda: s.id } })} etichetta={`Scheda ${s.titolo}`} scala={0.985}>
+        <View style={[stili.club, { backgroundColor: p.carta, borderColor: p.linea }]}>
+          <LinearGradient colors={a.colori} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={stili.clubIcona}>
+            <Icona nome={a.icona} size={26} colore="#fff" />
+            <Text style={stili.clubGiorni}>{`${s.giorni_settimana ?? s.giorni}/sett`}</Text>
+          </LinearGradient>
+          <View style={{ flex: 1, gap: 4 }}>
+            <Text style={[stili.clubTitolo, { color: p.testo }]} numberOfLines={2}>
+              {s.titolo}
+            </Text>
+            <Text style={[stili.clubSotto, { color: p.testoSecondario }]} numberOfLines={1}>
+              {[s.obiettivo, s.livello ? LIVELLI[s.livello] ?? s.livello : null, `${s.giorni} ${s.giorni === 1 ? 'giorno' : 'giorni'}`].filter(Boolean).slice(0, s.titolo.includes('giorni') ? 2 : 3).join(' · ')}
+            </Text>
+            {s.ultimo ? <Text style={[stili.clubUltimo, { color: p.accento }]}>{`In corso · ultimo allenamento ${quando(s.ultimo)}`}</Text> : null}
+          </View>
+          <Icona nome="avanti" size={16} colore={p.testoTerzo} />
+        </View>
+      </Tocco>
+    </Entra>
+  )
+}
+
+/** Il test dei massimali: da fare, fatto, o da rifare. */
+function CartaTest({ t }: { t: StatoTest }) {
+  const rifare = testDaRifare(t.ultimo, t.giorni)
+  const fatto = !!t.ultimo && !rifare
+  const prossimo = giorniAlTest(t.ultimo, t.giorni)
+  const titolo = rifare ? 'È ora di rifare il test' : fatto ? 'Il test dei massimali' : 'Fai il test dei massimali'
+  const testo = rifare
+    ? `L’ultimo è del ${giornoTest(t.ultimo!)}. Rifallo ogni ${Math.round(t.giorni / 7)} settimane: i chili delle schede seguono i tuoi progressi.`
+    : fatto
+      ? `Fatto il ${giornoTest(t.ultimo!)}: ${t.fatti} di ${t.totale} esercizi. Il prossimo fra ${prossimo} ${prossimo === 1 ? 'giorno' : 'giorni'}.`
+      : `${t.totale || 7} esercizi, una quindicina di minuti. Dopo, nelle schede del club le percentuali diventano i tuoi chili.`
+  return (
+    <Tocco onPress={() => router.push('/lab/allenamento/test')} etichetta={titolo} scala={0.985}>
+      <LinearGradient colors={rifare ? FUOCO : MARE} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={stili.test}>
+        <View style={stili.testIcona}>
+          <Icona nome={rifare ? 'aggiorna' : fatto ? 'ok' : 'grafico'} size={26} colore="#fff" />
+        </View>
+        <View style={{ flex: 1, gap: 3 }}>
+          <Text style={stili.testTitolo}>{titolo}</Text>
+          <Text style={stili.testTesto}>{testo}</Text>
+        </View>
+        <Icona nome="avanti" size={18} colore="rgba(255,255,255,0.8)" />
+      </LinearGradient>
+    </Tocco>
+  )
+}
 export const CHIAVE_SCHEDE = 'schede:elenco'
 
 function SchedaCarta({ s, indice }: { s: RigaSchedaLab; indice: number }) {
-  const p = usePalette()
   const colori = s.tipo === 'ai' ? (['#8B5CF6', '#5B21B6'] as const) : s.tipo === 'personalizzata' ? FUOCO : NOTTE
   return (
     <Entra indice={indice}>
@@ -50,11 +115,12 @@ export function Schede() {
   const p = usePalette()
   const [dati, setDati] = useState<Dati | null>(() => inMemoria<Dati>(CHIAVE_SCHEDE) ?? null)
   const [errore, setErrore] = useState<string | null>(null)
+  const [obiettivo, setObiettivo] = useState<string | null>(null)
 
   const carica = useCallback(async () => {
     setErrore(null)
     const r = await prendi(CHIAVE_SCHEDE, elencoSchede)
-    if (r.ok) setDati({ schede: r.schede, ultimi: r.ultimi, ai: r.ai })
+    if (r.ok) setDati({ schede: r.schede, ultimi: r.ultimi, ai: r.ai, test: r.test })
     else setErrore(r.errore)
   }, [])
 
@@ -78,9 +144,17 @@ export function Schede() {
   }
 
   const restano = Math.max(0, dati.ai.massimo - dati.ai.usate)
+  const mie = dati.schede.filter((s) => s.tipo !== 'standard')
+  const club = dati.schede.filter((s) => s.tipo === 'standard')
+  const obiettivi = [...new Set(club.map((s) => s.obiettivo).filter((o): o is string => !!o))]
+  const clubVisibili = obiettivo ? club.filter((s) => s.obiettivo === obiettivo) : club
   return (
     <Schermata sopratitolo="Laboratorio" titolo="Allenamento" sottotitolo="Le tue schede, il registro dei pesi e il timer del recupero.">
       <Entra indice={0}>
+        <CartaTest t={dati.test} />
+      </Entra>
+
+      <Entra indice={1}>
         <Tocco onPress={() => router.push('/lab/allenamento/agente')} etichetta="Chiedi una scheda all’agente AI" scala={0.985} spento={!restano}>
           <View style={[stili.agente, { backgroundColor: p.carta, borderColor: p.linea, boxShadow: p.ombra }]}>
             <LinearGradient colors={['#8B5CF6', '#5B21B6']} style={stili.agenteIcona}>
@@ -99,18 +173,58 @@ export function Schede() {
         </Tocco>
       </Entra>
 
-      <Sezione titolo="Le tue schede" conteggio={dati.schede.length}>
-        {dati.schede.length ? (
+      {mie.length ? (
+        <Sezione titolo="Le tue schede" conteggio={mie.length}>
           <View style={{ gap: spazio.tre }}>
-            {dati.schede.map((s, i) => (
-              <SchedaCarta key={s.id} s={s} indice={i + 1} />
+            {mie.map((s, i) => (
+              <SchedaCarta key={s.id} s={s} indice={i + 2} />
             ))}
+          </View>
+        </Sezione>
+      ) : null}
+
+      <Sezione titolo="Schede del club" conteggio={club.length}>
+        {club.length ? (
+          <View style={{ gap: spazio.tre }}>
+            <Text style={[stili.nota, { color: p.testoSecondario }]}>
+              {dati.test.ultimo
+                ? 'Preparate dai nostri istruttori. I carichi sono già calcolati sui tuoi massimali.'
+                : 'Preparate dai nostri istruttori. I carichi sono in percentuale del massimale: fai il test e diventano i tuoi chili.'}
+            </Text>
+            {obiettivi.length > 1 ? (
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={stili.fila} style={stili.fuori}>
+                {[null, ...obiettivi].map((o) => {
+                  const attivo = o === obiettivo
+                  const n = o ? club.filter((s) => s.obiettivo === o).length : club.length
+                  return (
+                    <Tocco
+                      key={o ?? 'tutte'}
+                      vibra="scelta"
+                      stato={{ selected: attivo }}
+                      onPress={() => setObiettivo(o)}
+                      etichetta={`${o ?? 'Tutte le schede'}, ${n}`}
+                      style={[stili.filtro, { backgroundColor: attivo ? p.testo : p.carta, borderColor: attivo ? p.testo : p.linea }]}
+                    >
+                      <Text style={{ color: attivo ? p.fondo : p.testo, fontFamily: attivo ? F.extra : F.semi, fontSize: 14 }}>{o ?? 'Tutte'}</Text>
+                      <View style={[stili.conta, { backgroundColor: attivo ? p.accento : p.incavo }]}>
+                        <Text style={{ color: attivo ? '#fff' : p.testoSecondario, fontFamily: F.extra, fontSize: 11 }}>{n}</Text>
+                      </View>
+                    </Tocco>
+                  )
+                })}
+              </ScrollView>
+            ) : null}
+            <View style={{ gap: spazio.due }}>
+              {clubVisibili.map((s, i) => (
+                <SchedaClub key={s.id} s={s} indice={i + 2} />
+              ))}
+            </View>
           </View>
         ) : (
           <Carta style={{ alignItems: 'center', gap: spazio.due, paddingVertical: spazio.cinque }}>
             <Icona nome="peso" size={32} colore={p.testoTerzo} />
             <Text style={[stili.nota, { color: p.testoSecondario, textAlign: 'center' }]}>
-              Non hai ancora una scheda. Chiedila all’agente AI qui sopra: le schede del club e quelle del tuo trainer compariranno qui.
+              Le schede del club arrivano presto. Intanto puoi chiederne una all’agente AI qui sopra.
             </Text>
           </Carta>
         )}
@@ -150,4 +264,18 @@ const stili = StyleSheet.create({
   pillola: { color: '#fff', fontFamily: F.bold, fontSize: 12, backgroundColor: 'rgba(255,255,255,0.16)', borderRadius: 999, paddingHorizontal: 10, paddingVertical: 4, overflow: 'hidden' },
   ultimo: { fontFamily: F.semi, fontSize: 12.5, marginTop: 'auto' },
   nota: { fontFamily: F.medio, fontSize: 14, lineHeight: 20 },
+  test: { flexDirection: 'row', alignItems: 'center', gap: spazio.tre, padding: spazio.tre + 2, borderRadius: 26 },
+  testIcona: { width: 52, height: 52, borderRadius: 18, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.18)' },
+  testTitolo: { color: '#fff', fontFamily: F.extra, fontSize: 17, letterSpacing: -0.3 },
+  testTesto: { color: 'rgba(255,255,255,0.85)', fontFamily: F.medio, fontSize: 13.5, lineHeight: 19 },
+  club: { flexDirection: 'row', alignItems: 'center', gap: spazio.tre, padding: spazio.due + 2, paddingRight: spazio.tre, borderRadius: 22, borderWidth: StyleSheet.hairlineWidth },
+  clubIcona: { width: 64, height: 64, borderRadius: 18, alignItems: 'center', justifyContent: 'center', gap: 1 },
+  clubGiorni: { color: 'rgba(255,255,255,0.9)', fontFamily: F.extra, fontSize: 11 },
+  clubTitolo: { fontFamily: F.extra, fontSize: 16, lineHeight: 20, letterSpacing: -0.3 },
+  clubSotto: { fontFamily: F.semi, fontSize: 12.5 },
+  clubUltimo: { fontFamily: F.bold, fontSize: 12 },
+  fila: { gap: spazio.due, paddingHorizontal: spazio.tre + 2, paddingVertical: 4 },
+  fuori: { marginHorizontal: -(spazio.tre + 2), flexGrow: 0 },
+  filtro: { flexDirection: 'row', alignItems: 'center', gap: spazio.due, borderRadius: 999, paddingVertical: 9, paddingLeft: spazio.tre, paddingRight: 9, borderWidth: StyleSheet.hairlineWidth },
+  conta: { minWidth: 22, height: 22, borderRadius: 11, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 6 },
 })

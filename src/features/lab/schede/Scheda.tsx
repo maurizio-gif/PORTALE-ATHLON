@@ -2,7 +2,7 @@ import { router, useLocalSearchParams } from 'expo-router'
 import { useCallback, useEffect, useState } from 'react'
 import { ScrollView, StyleSheet, Text, View } from 'react-native'
 
-import { leggiSchedaLab, type EsercizioScheda, type Precedente, type SchedaLab } from '@/api/lab'
+import { leggiSchedaLab, type EsercizioScheda, type Massimale, type Precedente, type SchedaLab } from '@/api/lab'
 import { spazio } from '@/theme'
 
 import { inMemoria, prendi } from '../memoria'
@@ -12,15 +12,17 @@ import { Carta, Entra, Messaggio, Pulsante, SchedeInArrivo, Tag } from '../ui/ki
 import { Schermata } from '../ui/Schermata'
 import { F, usePalette } from '../ui/tema'
 import { Tocco } from '../ui/Tocco'
-import { gruppo, LIVELLI, muscoli, recupero, TIPI } from './comune'
+import { giornoTest, gruppo, indicazione, LIVELLI, muscoli, recupero, SPIEGA_TARATURA, testDaRifare, TIPI } from './comune'
 import { MediaEsercizio } from './MediaEsercizio'
 
 // Una scheda: la descrizione, i giorni come schede, e gli esercizi del giorno
 // scelto con serie, ripetizioni, carico, recupero e l'ultima volta che il
 // socio l'ha fatto. Toccando un esercizio si apre la sua scheda (il video o
 // le foto che si alternano, i muscoli, le istruzioni). In fondo «Inizia».
+// I carichi in percentuale (16/10/2026) diventano chili coi massimali del
+// socio; finche' mancano, un riquadro spiega come averli.
 
-type Dati = { scheda: SchedaLab; precedenti: Precedente[] }
+type Dati = { scheda: SchedaLab; precedenti: Precedente[]; massimali: Massimale[]; ultimoTest: string | null; giorniTest: number }
 
 /** «10 × 40 kg, 10 × 40 kg, 8 × 42,5 kg». */
 export function serieInRiga(serie: { ripetizioni: number | null; kg: number | null; secondi: number | null }[]): string {
@@ -40,8 +42,9 @@ export function Nota({ testo }: { testo: string }) {
   )
 }
 
-function FoglioEsercizio({ e, precedente, onChiudi }: { e: EsercizioScheda | null; precedente?: Precedente; onChiudi: () => void }) {
+function FoglioEsercizio({ e, precedente, massimali, onChiudi }: { e: EsercizioScheda | null; precedente?: Precedente; massimali: Massimale[]; onChiudi: () => void }) {
   const p = usePalette()
+  const ind = e ? indicazione(e, massimali) : null
   return (
     <Foglio aperto={!!e} titolo={e?.nome ?? ''} sottotitolo={e ? muscoli(e.muscoli_primari) : undefined} onChiudi={onChiudi}>
       {e ? (
@@ -49,8 +52,8 @@ function FoglioEsercizio({ e, precedente, onChiudi }: { e: EsercizioScheda | nul
           <MediaEsercizio immagini={e.immagini} video={e.video} style={stili.mediaGrande} />
           <View style={[stili.cifre, { backgroundColor: p.incavo }]}>
             {[
-              { v: `${e.serie} × ${e.ripetizioni}`, l: 'Serie × ripetizioni' },
-              { v: e.carico || '—', l: 'Carico' },
+              { v: ind!.serieRip, l: 'Serie × ripetizioni' },
+              { v: ind!.kg != null ? `${String(ind!.kg).replace('.', ',')} kg` : ind!.manca ? `${e.percentuale}%` : e.carico || '—', l: ind!.kg != null ? `Carico · ${e.percentuale}%` : ind!.manca ? 'Del massimale' : 'Carico' },
               { v: recupero(e.recupero_serie), l: 'Recupero' },
             ].map((c, i) => (
               <View key={c.l} style={[stili.cifra, i > 0 && { borderLeftWidth: StyleSheet.hairlineWidth, borderLeftColor: p.linea }]}>
@@ -61,6 +64,9 @@ function FoglioEsercizio({ e, precedente, onChiudi }: { e: EsercizioScheda | nul
               </View>
             ))}
           </View>
+          {ind?.manca ? (
+            <Nota testo={ind.daTest ? `Questo esercizio è nel test dei massimali: fai il test e qui vedrai i tuoi chili. Oppure: ${SPIEGA_TARATURA.charAt(0).toLowerCase()}${SPIEGA_TARATURA.slice(1)}` : SPIEGA_TARATURA} />
+          ) : null}
           {e.note ? <Nota testo={e.note} /> : null}
           {precedente ? (
             <Text style={[stili.nota, { color: p.testoSecondario }]}>
@@ -97,7 +103,7 @@ export function Scheda() {
   const carica = useCallback(async () => {
     setErrore(null)
     const r = await prendi(chiave, () => leggiSchedaLab(String(id)))
-    if (r.ok) setDati({ scheda: r.scheda, precedenti: r.precedenti })
+    if (r.ok) setDati({ scheda: r.scheda, precedenti: r.precedenti, massimali: r.massimali, ultimoTest: r.ultimoTest, giorniTest: r.giorniTest })
     else setErrore(r.errore)
   }, [chiave, id])
 
@@ -123,6 +129,11 @@ export function Scheda() {
   const s = dati.scheda
   const g = s.giorni[Math.min(giorno, s.giorni.length - 1)]
   const precedente = (eid: string) => dati.precedenti.find((x) => x.esercizio_id === eid)
+  const massimali = dati.massimali ?? []
+  const tutti = s.giorni.flatMap((x) => x.esercizi)
+  const inPercentuale = tutti.filter((e) => e.percentuale)
+  const mancano = inPercentuale.filter((e) => indicazione(e, massimali).manca)
+  const rifare = testDaRifare(dati.ultimoTest ?? null, dati.giorniTest ?? 42, s.livello === 'principiante')
   return (
     <Schermata sopratitolo={TIPI[s.tipo] ?? 'Scheda'} titolo={s.titolo} indietro="/lab/allenamento" barra={false}>
       <View style={{ gap: spazio.due }}>
@@ -139,6 +150,33 @@ export function Scheda() {
           </Text>
         ) : null}
       </View>
+
+      {inPercentuale.length ? (
+        <Carta style={{ gap: spazio.due }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: spazio.due }}>
+            <Icona nome={mancano.length ? 'grafico' : 'ok'} size={20} colore={mancano.length ? p.blu : p.ok} />
+            <Text style={[stili.titoletto, { color: p.testo, flex: 1 }]}>
+              {mancano.length === inPercentuale.length ? 'I carichi sono in percentuale' : mancano.length ? 'Quasi tutti i carichi sono in chili' : 'I carichi sono i tuoi chili'}
+            </Text>
+          </View>
+          <Text style={[stili.nota, { color: p.testoSecondario }]}>
+            {mancano.length === inPercentuale.length
+              ? 'La percentuale è del tuo massimale, il peso più alto che sollevi per una ripetizione. Fai il test dei massimali (una quindicina di minuti) e qui al posto delle percentuali vedrai i tuoi chili, arrotondati ai pesi della macchina. ' +
+                SPIEGA_TARATURA.replace('Alla prima seduta', 'Sugli esercizi che non sono nel test, alla prima seduta')
+              : mancano.length
+                ? `Calcolati sui tuoi massimali${dati.ultimoTest ? ` (test del ${giornoTest(dati.ultimoTest)})` : ''} e arrotondati ai pesi della macchina. Dove vedi ancora la percentuale: ${SPIEGA_TARATURA.charAt(0).toLowerCase()}${SPIEGA_TARATURA.slice(1)}`
+                : `Calcolati sui tuoi massimali${dati.ultimoTest ? ` (test del ${giornoTest(dati.ultimoTest)})` : ''} e arrotondati per difetto ai pesi della macchina.`}
+          </Text>
+          {rifare ? (
+            <Messaggio tono="attenzione" titolo="È ora di rifare il test">
+              Sono passate più di {Math.round((s.livello === 'principiante' ? Math.min(28, dati.giorniTest) : dati.giorniTest) / 7)} settimane: rifallo e i chili seguono i tuoi progressi.
+            </Messaggio>
+          ) : null}
+          {!dati.ultimoTest || rifare ? (
+            <Pulsante testo={rifare ? 'Rifai il test' : 'Fai il test dei massimali'} icona="grafico" variante="secondario" onPress={() => router.push('/lab/allenamento/test')} />
+          ) : null}
+        </Carta>
+      ) : null}
 
       {s.giorni.length > 1 ? (
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={stili.fila} style={stili.fuori}>
@@ -167,6 +205,7 @@ export function Scheda() {
         {g.esercizi.map((e, i) => {
           const gr = gruppo(g, i)
           const prec = precedente(e.esercizio_id)
+          const ind = indicazione(e, massimali)
           return (
             <Entra key={e.id} indice={i}>
               <Tocco onPress={() => setAperto(e)} etichetta={`${e.nome}: come si fa`} scala={0.985}>
@@ -180,8 +219,8 @@ export function Scheda() {
                       {e.nome}
                     </Text>
                     <Text style={[stili.dettagli, { color: p.testo }]}>
-                      <Text style={{ fontFamily: F.extra }}>{`${e.serie} × ${e.ripetizioni}`}</Text>
-                      {e.carico ? ` · ${e.carico}` : ''}
+                      <Text style={{ fontFamily: F.extra }}>{ind.serieRip}</Text>
+                      {ind.carico ? <Text style={ind.kg != null ? { fontFamily: F.extra, color: p.accento } : ind.manca ? { color: p.blu } : null}>{` · ${ind.carico}`}</Text> : ''}
                     </Text>
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
                       <Icona nome="cronometro" size={13} colore={p.testoSecondario} />
@@ -208,7 +247,7 @@ export function Scheda() {
         onPress={() => router.push({ pathname: '/lab/allenamento/[scheda]/[giorno]', params: { scheda: s.id, giorno: g.id } })}
       />
 
-      <FoglioEsercizio e={aperto} precedente={aperto ? precedente(aperto.esercizio_id) : undefined} onChiudi={() => setAperto(null)} />
+      <FoglioEsercizio e={aperto} precedente={aperto ? precedente(aperto.esercizio_id) : undefined} massimali={massimali} onChiudi={() => setAperto(null)} />
     </Schermata>
   )
 }
