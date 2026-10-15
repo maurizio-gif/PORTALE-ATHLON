@@ -306,9 +306,13 @@ export async function prenotaPersonal(s: ScelteSeduta): Promise<{ ok: true; book
 }
 
 /** Il link di pagamento della seduta; dopo il pagamento si torna a /lab/personal?acquisto=<id>. */
-export async function acquistaPersonal(s: Omit<ScelteSeduta, 'definition_id'>): Promise<{ ok: true; url: string; acquisto_id: string } | { ok: false; errore: string }> {
+export async function acquistaPersonal(
+  s: Omit<ScelteSeduta, 'definition_id'>,
+): Promise<{ ok: true; url: string; acquisto_id: string; prodotto: ProdottoLezione | null; carta: CartaSalvata | null } | { ok: false; errore: string }> {
   const { ok, dati } = await personal({ azione: 'acquista', ...s })
-  if (ok && typeof dati.url === 'string') return { ok: true, url: dati.url, acquisto_id: String(dati.acquisto_id ?? '') }
+  if (ok && typeof dati.url === 'string') {
+    return { ok: true, url: dati.url, acquisto_id: String(dati.acquisto_id ?? ''), prodotto: dati.prodotto ?? null, carta: dati.carta ?? null }
+  }
   return { ok: false, errore: dati.errore ?? 'Non riusciamo ad aprire il pagamento adesso.' }
 }
 

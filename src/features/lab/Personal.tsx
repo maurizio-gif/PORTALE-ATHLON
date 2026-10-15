@@ -413,6 +413,32 @@ export function Personal() {
     if (r.prodotto) setDaPagare({ prodotto: r.prodotto, url: r.url, acquisto_id: r.acquisto_id, carta: r.carta ?? null })
   }
 
+  /**
+   * Senza sedute da usare, il pulsante porta dritto all'acquisto: con una carta
+   * salvata si sceglie se pagare con quella, senza si va alla pagina di pagamento.
+   */
+  async function acquista() {
+    if (!stato || !scelto || conChi == null) return
+    setErroreAzione(null)
+    setAttesa(true)
+    const r = await acquistaPersonal({ member_id: stato.member_id, trainer_id: conChi, locale: scelto.locale })
+    if (!r.ok) {
+      setAttesa(false)
+      colpetto('errore')
+      return setErroreAzione(r.errore)
+    }
+    const prodotto = r.prodotto ?? stato.acquisto?.prodotto ?? null
+    if (r.carta && prodotto?.prezzo != null) {
+      setAttesa(false)
+      return setDaPagare({ prodotto, url: r.url, acquisto_id: r.acquisto_id, carta: r.carta })
+    }
+    if (Platform.OS === 'web') window.location.assign(r.url)
+    else {
+      setAttesa(false)
+      await Linking.openURL(r.url)
+    }
+  }
+
   /** Alla pagina di pagamento; si torna qui con ?acquisto=<id>. */
   async function vaiAlPagamento(pronto?: string) {
     if (!stato || !scelto || conChi == null) return
@@ -761,11 +787,11 @@ export function Personal() {
                           conChi == null
                             ? 'Scegli il trainer'
                             : opzione.acquisto
-                              ? `Prenota ${ora(scelto.inizio)}${stato.acquisto?.prodotto.prezzo != null ? ` · ${euro(stato.acquisto.prodotto.prezzo)}` : ''}`
-                              : `Prenota ${ora(scelto.inizio)} · usa una seduta`
+                              ? `Acquista${stato.acquisto?.prodotto.prezzo != null ? ` · ${euro(stato.acquisto.prodotto.prezzo)}` : ''}`
+                              : 'Prenota'
                         }
-                        icona="avanti"
-                        onPress={prenota}
+                        icona={opzione.acquisto ? 'carta' : 'avanti'}
+                        onPress={opzione.acquisto ? acquista : prenota}
                         inCorso={attesa}
                         disabilitato={conChi == null}
                       />
