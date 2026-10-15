@@ -18,6 +18,7 @@ import { dataBreve } from '@/lib/metodoPagamento'
 import { spazio } from '@/theme'
 
 import { inMemoria, prendi, ricorda } from './memoria'
+import { ProvaPagamento } from './Pagamenti'
 import { CampoCodice, CampoTesto } from './ui/Campi'
 import { Foglio } from './ui/Foglio'
 import { Icona, type NomeIcona } from './ui/Icona'
@@ -402,7 +403,12 @@ export function Profilo() {
         </Sezione>
       </Entra>
 
+      {/* La prova del pagamento con carta (soldi veri, max 5 €): spostata qui da Pagamenti il 15/10/2026. */}
       <Entra indice={3}>
+        <ProvaPagamento />
+      </Entra>
+
+      <Entra indice={4}>
         <Sezione titolo="Account">
           <PulsanteEsci email={dati.email} testo="Esci dall’account" />
         </Sezione>

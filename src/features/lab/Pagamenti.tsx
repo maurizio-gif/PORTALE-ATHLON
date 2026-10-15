@@ -26,7 +26,9 @@ import { Schermata } from './ui/Schermata'
 import { F, FUOCO, MARE, NOTTE, usePalette } from './ui/tema'
 import { colpetto } from './ui/Tocco'
 
-// I pagamenti di prova del laboratorio (tappa 4b): si sceglie un piano, si paga
+// I pagamenti di prova del laboratorio (tappa 4b), in fondo al Profilo dal
+// 15/10/2026 (ProvaPagamento); la scheda Pagamenti tiene i pagamenti veri.
+// Si sceglie un piano, si paga
 // la prima rata con il Drop-in di Adyen, la carta resta salvata e le rate dopo
 // partono da sole (il cron di lab-pagamenti) o subito, col bottone.
 //
@@ -198,7 +200,12 @@ function Abbonamento({ a, onCambiato }: { a: AbbonamentoLab; onCambiato: () => v
   )
 }
 
-export function Pagamenti() {
+/**
+ * La prova del pagamento diretto con carta e rate (soldi veri, massimo 5 €).
+ * Sta in fondo al Profilo (15/10/2026): Pagamenti mostra solo i pagamenti
+ * veri, il riepilogo e il metodo. Ha i suoi dati e il suo checkout.
+ */
+export function ProvaPagamento() {
   const p = usePalette()
   const router = useRouter()
   const giaLetti = inMemoria<{ piani: PianoLab[]; abbonamenti: AbbonamentoLab[] }>('pagamenti')
@@ -247,36 +254,10 @@ export function Pagamenti() {
     })
   }
 
-  if (errore && !dati) {
-    return (
-      <Schermata sopratitolo="Laboratorio" titolo="Pagamenti">
-        <Messaggio>{errore}</Messaggio>
-        <Pulsante testo="Riprova" icona="aggiorna" onPress={carica} />
-      </Schermata>
-    )
-  }
-
   const pagatoTotale = dati?.abbonamenti.reduce((t, a) => t + a.pagamenti.filter((x) => x.stato === 'autorizzato').reduce((s, x) => s + x.importo_cent, 0), 0) ?? 0
 
   return (
-    <Schermata larga sopratitolo="Laboratorio" titolo="Pagamenti" sottotitolo="I tuoi pagamenti e quelli della famiglia, i prossimi e il metodo.">
-      <View style={{ maxWidth: 760, width: '100%', alignSelf: 'center', gap: spazio.quattro }}>
-        <RiepilogoPagamenti />
-      </View>
-
-      <Entra indice={0}>
-        <Carta style={{ paddingVertical: spazio.uno, maxWidth: 760, width: '100%', alignSelf: 'center' }}>
-          <Riga
-            prima
-            icona="carta"
-            tono="accento"
-            titolo="Metodo di pagamento degli abbonamenti"
-            sotto="Conto corrente (IBAN) o carta, per te e per la tua famiglia"
-            onPress={() => navigatore.push('/lab/metodo-pagamento')}
-          />
-        </Carta>
-      </Entra>
-
+    <View style={{ gap: spazio.quattro }}>
       <Text style={[stili.sezioneLab, { color: p.testo }]}>Laboratorio: pagamento diretto con carta e rate</Text>
       <Messaggio tono="attenzione" icona="fulmine" titolo="Soldi veri, massimo 5 €">
         <Text style={[stili.nota, { color: p.testoSecondario }]}>
@@ -284,7 +265,12 @@ export function Pagamenti() {
         </Text>
       </Messaggio>
 
-      {!dati ? (
+      {errore && !dati ? (
+        <>
+          <Messaggio>{errore}</Messaggio>
+          <Pulsante testo="Riprova" icona="aggiorna" onPress={carica} />
+        </>
+      ) : !dati ? (
         <SchedeInArrivo quante={2} />
       ) : checkout ? (
         <View style={{ gap: spazio.tre, maxWidth: 560, width: '100%', alignSelf: 'center' }}>
@@ -341,6 +327,30 @@ export function Pagamenti() {
           </Sezione>
         </>
       )}
+    </View>
+  )
+}
+
+/** La scheda Pagamenti: i pagamenti veri, i prossimi e il metodo. La prova con carta e' nel Profilo. */
+export function Pagamenti() {
+  return (
+    <Schermata larga sopratitolo="Laboratorio" titolo="Pagamenti" sottotitolo="I tuoi pagamenti e quelli della famiglia, i prossimi e il metodo.">
+      <View style={{ maxWidth: 760, width: '100%', alignSelf: 'center', gap: spazio.quattro }}>
+        <RiepilogoPagamenti />
+      </View>
+
+      <Entra indice={0}>
+        <Carta style={{ paddingVertical: spazio.uno, maxWidth: 760, width: '100%', alignSelf: 'center' }}>
+          <Riga
+            prima
+            icona="carta"
+            tono="accento"
+            titolo="Metodo di pagamento degli abbonamenti"
+            sotto="Conto corrente (IBAN) o carta, per te e per la tua famiglia"
+            onPress={() => navigatore.push('/lab/metodo-pagamento')}
+          />
+        </Carta>
+      </Entra>
     </Schermata>
   )
 }

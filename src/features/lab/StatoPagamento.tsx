@@ -135,7 +135,7 @@ export function StatoPagamento() {
 
   if (errore && !pag) {
     return (
-      <Schermata sopratitolo="Laboratorio" titolo="Pagamento" indietro="/lab/pagamenti" barra={false}>
+      <Schermata sopratitolo="Laboratorio" titolo="Pagamento" indietro="/lab/profilo" barra={false}>
         <Messaggio>{errore}</Messaggio>
         <Pulsante testo="Riprova" icona="aggiorna" onPress={leggi} />
       </Schermata>
@@ -143,7 +143,7 @@ export function StatoPagamento() {
   }
   if (!pag) {
     return (
-      <Schermata sopratitolo="Laboratorio" titolo="Verifichiamo il pagamento…" indietro="/lab/pagamenti" barra={false}>
+      <Schermata sopratitolo="Laboratorio" titolo="Verifichiamo il pagamento…" indietro="/lab/profilo" barra={false}>
         <SchedeInArrivo quante={1} />
       </Schermata>
     )
@@ -169,7 +169,7 @@ export function StatoPagamento() {
   ]
 
   return (
-    <Schermata titolo={tit.titolo} nascondiTitolo indietro="/lab/pagamenti" barra={false}>
+    <Schermata titolo={tit.titolo} nascondiTitolo indietro="/lab/profilo" barra={false}>
       <View style={{ alignItems: 'center', gap: spazio.tre, paddingTop: spazio.tre }}>
         <Esito tono={tono} icona={icona} inCorso={inCorso} />
         <Numero valore={euro(pag.importo_cent).replace(' €', '')} unita="€" size={52} />
@@ -193,7 +193,7 @@ export function StatoPagamento() {
           />
         ))}
       </Carta>
-      <Pulsante testo="Torna ai pagamenti" variante="scuro" icona="avanti" onPress={() => router.replace('/lab/pagamenti')} />
+      <Pulsante testo="Torna al profilo" variante="scuro" icona="avanti" onPress={() => router.replace('/lab/profilo')} />
     </Schermata>
   )
 }
