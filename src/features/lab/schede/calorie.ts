@@ -3,13 +3,15 @@ import type { GiornoSchedaLab } from '@/api/lab'
 import { aTempo, dopo, type Passo } from './comune'
 
 // Le calorie di una scheda (15/10/2026): una stima di massima, dai dati del
-// socio (eta' e sesso dall'anagrafica di PerfectGym, peso e altezza da «I tuoi
-// dati») e dalla scheda stessa (serie, ripetizioni, recuperi).
+// socio (l'eta' dall'anagrafica di PerfectGym, il sesso scelto da lui, peso e
+// altezza da «I tuoi dati») e dalla scheda stessa (serie, ripetizioni, recuperi).
+// Il sesso di PerfectGym non si usa: oltre un terzo delle schede dice «Other»,
+// e anche Male/Female non sempre e' giusto.
 //
 // **Il metabolismo a riposo** e' la formula di Mifflin-St Jeor, la piu'
 // usata per gli adulti: 10 x kg + 6,25 x cm - 5 x anni, +5 per gli uomini e
-// -161 per le donne. Con «Other» (PerfectGym, piu' di un terzo delle schede)
-// o senza il dato si usa la via di mezzo, -78, e lo si dice.
+// -161 per le donne. Finche' il socio non sceglie si usa la via di mezzo,
+// -78, e lo si dice.
 //
 // **La seduta** si conta minuto per minuto, seguendo la scheda come la segue
 // la seduta vera (`dopo()` di comune.ts, superserie comprese): ogni serie
@@ -36,14 +38,6 @@ export const MET_INTENSO = 5
 export const FATTORE_RIPOSO = 1.2
 
 export type Sesso = 'm' | 'f' | null
-
-/** PerfectGym scrive «Male», «Female» o «Other»; «Other» vale come non saperlo. */
-export function sessoDa(v: string | null | undefined): Sesso {
-  const t = (v ?? '').trim().toLowerCase()
-  if (/^(m|male|maschio|uomo)$/.test(t)) return 'm'
-  if (/^(f|female|femmina|donna)$/.test(t)) return 'f'
-  return null
-}
 
 /** Gli anni compiuti a oggi, da «AAAA-MM-GG». */
 export function etaDa(dataNascita: string | null | undefined, oggi = new Date()): number | null {

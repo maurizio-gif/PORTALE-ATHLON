@@ -681,10 +681,13 @@ export type NuovaMisura = Partial<Omit<Misura, 'id' | 'inserita_da'>>
 
 const misureLab = (corpo: Record<string, unknown>) => funzione('portale-lab-misure', corpo)
 
-/** Le misurazioni del socio, dalla piu' vecchia. */
-export async function elencoMisure(): Promise<Esito<{ misure: Misura[] }>> {
+/** Il sesso per la stima delle calorie, scelto dal socio (quello di PerfectGym non e' affidabile). */
+export type SessoCalcolo = 'm' | 'f' | null
+
+/** Le misurazioni del socio, dalla piu' vecchia, e il sesso scelto per le calorie. */
+export async function elencoMisure(): Promise<Esito<{ misure: Misura[]; sesso: SessoCalcolo }>> {
   const { ok, dati } = await misureLab({ azione: 'elenco' })
-  if (ok) return { ok: true, misure: dati.misure ?? [] }
+  if (ok) return { ok: true, misure: dati.misure ?? [], sesso: dati.sesso === 'm' || dati.sesso === 'f' ? dati.sesso : null }
   return { ok: false, errore: dati.errore ?? 'Non riusciamo a leggere i tuoi dati adesso.' }
 }
 
@@ -693,6 +696,12 @@ export async function salvaMisura(m: NuovaMisura): Promise<Esito<{ misura: Misur
   const { ok, dati } = await misureLab({ azione: 'salva', ...m })
   if (ok) return { ok: true, misura: dati.misura }
   return { ok: false, errore: dati.errore ?? 'I dati non sono stati salvati.' }
+}
+
+export async function salvaSessoCalcolo(sesso: SessoCalcolo): Promise<Esito<{ sesso: SessoCalcolo }>> {
+  const { ok, dati } = await misureLab({ azione: 'sesso', sesso })
+  if (ok) return { ok: true, sesso: dati.sesso ?? null }
+  return { ok: false, errore: dati.errore ?? 'La scelta non è stata salvata.' }
 }
 
 export async function eliminaMisura(id: string): Promise<Esito<object>> {

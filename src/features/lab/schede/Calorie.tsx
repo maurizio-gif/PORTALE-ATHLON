@@ -2,32 +2,37 @@ import { router } from 'expo-router'
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { StyleSheet, Text, View } from 'react-native'
 
-import { elencoMisure, leggiAnagrafica, type Anagrafica, type Misura, type SchedaLab } from '@/api/lab'
+import { elencoMisure, leggiAnagrafica, salvaSessoCalcolo, type Anagrafica, type Misura, type SchedaLab, type SessoCalcolo } from '@/api/lab'
 import { spazio } from '@/theme'
 
 import { altezzaAl, dataCorta } from '../dati/calcoli'
 import { CHIAVE_MISURE } from '../dati/Misure'
-import { inMemoria, prendi } from '../memoria'
+import { inMemoria, prendi, ricorda } from '../memoria'
 import { Foglio } from '../ui/Foglio'
 import { Icona } from '../ui/Icona'
-import { Carta, LinkSezione, Pulsante } from '../ui/kit'
+import { Carta, LinkSezione, Messaggio, Pulsante } from '../ui/kit'
 import { F, usePalette } from '../ui/tema'
-import { COSTANTE_SESSO, etaDa, FATTORE_RIPOSO, MET_INTENSO, MET_MODERATO, SECONDI_PER_RIPETIZIONE, SECONDI_PREPARAZIONE, sessoDa, stimaScheda, type Stima } from './calorie'
+import { Tocco } from '../ui/Tocco'
+import { COSTANTE_SESSO, etaDa, FATTORE_RIPOSO, MET_INTENSO, MET_MODERATO, SECONDI_PER_RIPETIZIONE, SECONDI_PREPARAZIONE, stimaScheda, type Stima } from './calorie'
 
 // Le calorie stimate di una scheda, sotto gli esercizi: la seduta del giorno
 // scelto, la settimana, il metabolismo a riposo e il fabbisogno di massima.
 // Il foglio «Come le abbiamo calcolate» rifa' il conto coi numeri del socio.
+// Il sesso della formula lo sceglie il socio, qui, una volta (PerfectGym non
+// e' affidabile): finche' non sceglie, la stima usa la via di mezzo.
 // Il calcolo e' in calorie.ts.
 
 const intero = (n: number) => Math.round(n).toLocaleString('it-IT')
 const decimale = (n: number, d = 1) => n.toLocaleString('it-IT', { maximumFractionDigits: d, minimumFractionDigits: 0 })
 
-type Corpo = { anagrafica: Anagrafica | null; anagraficaLetta: boolean; misure: Misura[] | null }
+type Corpo = { anagrafica: Anagrafica | null; anagraficaLetta: boolean; misure: Misura[] | null; sesso: SessoCalcolo; setSesso: (s: SessoCalcolo) => void }
+type MisureInMemoria = { ok: true; misure: Misura[]; sesso: SessoCalcolo }
 
 function useCorpo(): Corpo {
   const [anagrafica, setAnagrafica] = useState<Anagrafica | null>(() => inMemoria<{ ok: true; anagrafica: Anagrafica }>('anagrafica')?.anagrafica ?? null)
   const [anagraficaLetta, setLetta] = useState(!!anagrafica)
-  const [misure, setMisure] = useState<Misura[] | null>(() => inMemoria<{ misure: Misura[] }>(CHIAVE_MISURE)?.misure ?? null)
+  const [misure, setMisure] = useState<Misura[] | null>(() => inMemoria<MisureInMemoria>(CHIAVE_MISURE)?.misure ?? null)
+  const [sesso, setSesso] = useState<SessoCalcolo>(() => inMemoria<MisureInMemoria>(CHIAVE_MISURE)?.sesso ?? null)
   useEffect(() => {
     let vivo = true
     prendi('anagrafica', leggiAnagrafica).then((r) => {
@@ -35,12 +40,45 @@ function useCorpo(): Corpo {
       if (r.ok) setAnagrafica(r.anagrafica)
       setLetta(true)
     })
-    prendi(CHIAVE_MISURE, elencoMisure).then((r) => vivo && r.ok && setMisure(r.misure))
+    prendi(CHIAVE_MISURE, elencoMisure).then((r) => {
+      if (!vivo || !r.ok) return
+      setMisure(r.misure)
+      setSesso(r.sesso)
+    })
     return () => {
       vivo = false
     }
   }, [])
-  return { anagrafica, anagraficaLetta, misure }
+  return { anagrafica, anagraficaLetta, misure, sesso, setSesso }
+}
+
+/** Uomo o donna, per la formula: due pulsanti uguali, e quello scelto pieno. */
+function SceltaSesso({ sesso, onScegli, inCorso }: { sesso: SessoCalcolo; onScegli: (s: 'm' | 'f') => void; inCorso: boolean }) {
+  const p = usePalette()
+  return (
+    <View style={{ flexDirection: 'row', gap: spazio.due }}>
+      {(
+        [
+          ['m', 'Uomo'],
+          ['f', 'Donna'],
+        ] as const
+      ).map(([v, testo]) => {
+        const scelto = sesso === v
+        return (
+          <Tocco
+            key={v}
+            vibra="scelta"
+            stato={{ selected: scelto, disabled: inCorso }}
+            onPress={() => !inCorso && onScegli(v)}
+            etichetta={`Calcola come ${testo.toLowerCase()}`}
+            style={[stili.scelta, { backgroundColor: scelto ? p.testo : p.carta, borderColor: scelto ? p.testo : p.linea }]}
+          >
+            <Text style={{ color: scelto ? p.fondo : p.testo, fontFamily: F.extra, fontSize: 15 }}>{testo}</Text>
+          </Tocco>
+        )
+      })}
+    </View>
+  )
 }
 
 function Cifra({ valore, etichetta, bordo }: { valore: string; etichetta: string; bordo: boolean }) {
@@ -77,7 +115,7 @@ function FoglioCalcolo({ aperto, stima, giorno, dataPeso, onChiudi }: { aperto: 
         <Paragrafo titolo="1. Quanto consumi a riposo">
           Con la formula di Mifflin-St Jeor, la più usata per gli adulti: 10 × {decimale(stima.kg)} kg + 6,25 × {decimale(stima.cm)} cm − 5 × {stima.anni} anni{' '}
           {costante >= 0 ? '+' : '−'} {Math.abs(costante)}
-          {stima.sesso === 'm' ? ' (uomo)' : stima.sesso === 'f' ? ' (donna)' : ' (il valore di mezzo fra le due formule, uomo e donna)'} ={' '}
+          {stima.sesso === 'm' ? ' (uomo)' : stima.sesso === 'f' ? ' (donna)' : ' (il valore di mezzo fra uomo e donna, finché non scegli quale usare)'} ={' '}
           {forte(`${intero(stima.bmr)} kcal al giorno`)}. È quello che il corpo consuma senza fare niente: {decimale(alMinuto, 2)} kcal al minuto.
         </Paragrafo>
         {g ? (
@@ -103,7 +141,7 @@ function FoglioCalcolo({ aperto, stima, giorno, dataPeso, onChiudi }: { aperto: 
         <View style={[stili.avviso, { backgroundColor: p.incavo }]}>
           <Icona nome="info" size={17} colore={p.blu} />
           <Text style={[stili.piccola, { color: p.testo, flex: 1 }]}>
-            {`Sono stime: possono sbagliare anche del 20–30%, perché dipendono da quanto carichi, da quanto rispetti i recuperi e da come è fatto il tuo corpo. Non sono un’indicazione per la dieta: per quella rivolgiti a un professionista. Età e sesso vengono dalla tua scheda del club, peso e altezza da «I tuoi dati»${dataPeso ? ` (peso del ${dataCorta(dataPeso)})` : ''}.`}
+            {`Sono stime: possono sbagliare anche del 20–30%, perché dipendono da quanto carichi, da quanto rispetti i recuperi e da come è fatto il tuo corpo. Non sono un’indicazione per la dieta: per quella rivolgiti a un professionista. L’età viene dalla tua scheda del club, il sesso l’hai scelto tu, peso e altezza da «I tuoi dati»${dataPeso ? ` (peso del ${dataCorta(dataPeso)})` : ''}.`}
           </Text>
         </View>
       </View>
@@ -114,13 +152,32 @@ function FoglioCalcolo({ aperto, stima, giorno, dataPeso, onChiudi }: { aperto: 
 /** Il riquadro delle calorie per una scheda, sul giorno scelto. */
 export function CalorieScheda({ scheda, giorno }: { scheda: SchedaLab; giorno: number }) {
   const p = usePalette()
-  const { anagrafica, anagraficaLetta, misure } = useCorpo()
+  const { anagrafica, anagraficaLetta, misure, sesso, setSesso } = useCorpo()
   const [spiega, setSpiega] = useState(false)
+  const [cambia, setCambia] = useState(false)
+  const [salvando, setSalvando] = useState(false)
+  const [erroreSesso, setErroreSesso] = useState<string | null>(null)
+
+  async function scegli(s: 'm' | 'f') {
+    const prima = sesso
+    setErroreSesso(null)
+    setSesso(s)
+    setSalvando(true)
+    const r = await salvaSessoCalcolo(s)
+    setSalvando(false)
+    if (!r.ok) {
+      setSesso(prima)
+      return setErroreSesso(r.errore)
+    }
+    setCambia(false)
+    // Anche «I tuoi dati» e le altre schede leggono questa memoria.
+    const m = inMemoria<MisureInMemoria>(CHIAVE_MISURE)
+    if (m) ricorda(CHIAVE_MISURE, { ...m, sesso: s })
+  }
 
   const ultimoPeso = misure ? [...misure].reverse().find((m) => m.peso_kg != null) ?? null : null
   const cm = misure?.length ? altezzaAl(misure, misure.length - 1) : null
   const anni = etaDa(anagrafica?.data_nascita)
-  const sesso = sessoDa(anagrafica?.sesso)
 
   const stima = useMemo(
     () => (ultimoPeso?.peso_kg && cm && anni ? stimaScheda(scheda.giorni, scheda.giorni_settimana, { kg: ultimoPeso.peso_kg, cm, anni, sesso }) : null),
@@ -179,8 +236,22 @@ export function CalorieScheda({ scheda, giorno }: { scheda: SchedaLab; giorno: n
         <Cifra valore={`${intero(stima.bmr)}`} etichetta="kcal/giorno a riposo" bordo />
         <Cifra valore={`${intero(stima.fabbisogno)}`} etichetta="kcal/giorno fabbisogno" bordo />
       </View>
+      {!sesso || cambia ? (
+        <View style={[stili.domanda, { backgroundColor: p.incavo }]}>
+          <Text style={[stili.nota, { color: p.testo }]}>
+            {sesso ? 'Quale formula usiamo per te?' : 'La formula cambia fra uomo e donna: quale usiamo per te? Finché non scegli, usiamo il valore di mezzo.'}
+          </Text>
+          <SceltaSesso sesso={sesso} onScegli={scegli} inCorso={salvando} />
+          {erroreSesso ? <Messaggio>{erroreSesso}</Messaggio> : null}
+        </View>
+      ) : null}
       <Text style={[stili.piccola, { color: p.testoTerzo }]}>
-        {`Su ${stima.anni} anni, ${decimale(stima.kg)} kg e ${decimale(stima.cm)} cm${stima.sesso ? '' : ', col valore di mezzo fra uomo e donna'}. È una stima di massima.`}
+        {`Su ${stima.anni} anni, ${decimale(stima.kg)} kg e ${decimale(stima.cm)} cm, ${stima.sesso === 'm' ? 'come uomo' : stima.sesso === 'f' ? 'come donna' : 'col valore di mezzo fra uomo e donna'}. È una stima di massima.`}
+        {sesso && !cambia ? (
+          <Text style={{ color: p.accento, fontFamily: F.bold }} onPress={() => setCambia(true)} accessibilityRole="link">
+            {' Cambia'}
+          </Text>
+        ) : null}
       </Text>
       <LinkSezione testo="Come le abbiamo calcolate" onPress={() => setSpiega(true)} />
       <FoglioCalcolo aperto={spiega} stima={stima} giorno={Math.min(giorno, stima.giorni.length - 1)} dataPeso={ultimoPeso.data} onChiudi={() => setSpiega(false)} />
@@ -198,5 +269,7 @@ const stili = StyleSheet.create({
   cifra: { flex: 1, alignItems: 'center', gap: 2, paddingHorizontal: 4 },
   cifraValore: { fontFamily: F.extra, fontSize: 17, letterSpacing: -0.3 },
   cifraEtichetta: { fontFamily: F.semi, fontSize: 11, textAlign: 'center' },
+  domanda: { gap: spazio.due + 2, borderRadius: 18, padding: spazio.tre },
+  scelta: { flex: 1, minHeight: 48, borderRadius: 999, borderWidth: StyleSheet.hairlineWidth, alignItems: 'center', justifyContent: 'center' },
   avviso: { flexDirection: 'row', gap: spazio.due, borderRadius: 16, padding: spazio.tre, alignItems: 'flex-start' },
 })

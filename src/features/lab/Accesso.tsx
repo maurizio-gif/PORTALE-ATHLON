@@ -11,6 +11,7 @@ import { spazio } from '@/theme'
 
 import { CampoCodice, CampoTesto, CIFRE } from './ui/Campi'
 import { Icona } from './ui/Icona'
+import { Installa } from './ui/Installa'
 import { Carta, Messaggio, Pulsante } from './ui/kit'
 import { Schermata } from './ui/Schermata'
 import { F, FUOCO, NOTTE, usePalette } from './ui/tema'
@@ -167,6 +168,8 @@ export function Accesso() {
           )}
         </Animated.View>
       </Carta>
+      {/* Su iPhone l'app installata ha un accesso suo: meglio installarla prima di entrare. */}
+      {fase === 'email' ? <Installa dopoAccesso /> : null}
       <View style={stili.garanzie}>
         {(
           [
