@@ -27,7 +27,7 @@ import { ElencoEsiti, MetodoAttualeBadge, chi, dateContratto, statoLeggibile } f
 type Schermata = 'elenco' | 'iban' | 'esito'
 
 /** Il contenitore della pagina: `Pagina` dal link dell'email, la schermata del laboratorio nell'app. */
-export type Cornice = ComponentType<{ titolo: string; children: ReactNode }>
+export type Cornice = ComponentType<{ titolo: string; children: ReactNode; indietro?: boolean }>
 
 export function GestioneNucleo({
   token,

@@ -11,10 +11,11 @@ import { Schermata } from '../ui/Schermata'
 // Pagamenti -> Metodo di pagamento (16/10/2026): la procedura del link per
 // email (GestioneNucleo: gli abbonamenti del nucleo, IBAN o carta, salvati su
 // PerfectGym), dentro il laboratorio. Il socio e' gia' entrato: il token lo
-// apre portale-lab-pagamenti, senza email. La carta torna a /r/<token>/fatto,
-// come dal link.
+// apre portale-lab-pagamenti, senza email. Dalla carta si torna nell'app:
+// /lab/metodo-pagamento/fatto/<token> (portale-link, richieste con origine 'app').
 
-function Cornice({ titolo, children }: { titolo: string; children: ReactNode }) {
+/** La cornice del laboratorio per le schermate del metodo di pagamento (anche il ritorno dalla carta). */
+export function CorniceLab({ titolo, children }: { titolo: string; children: ReactNode; indietro?: boolean }) {
   return (
     <Schermata sopratitolo="Pagamenti" titolo={titolo} indietro="/lab/pagamenti" barra={false}>
       {children}
@@ -44,10 +45,10 @@ export function MetodoPagamento() {
   }, [apri])
 
   if (stato.fase === 'pronto') {
-    return <GestioneNucleo Cornice={Cornice} token={stato.token} nome={stato.nome} nomeTitolare={stato.nomeTitolare} iniziali={stato.contratti} />
+    return <GestioneNucleo Cornice={CorniceLab} token={stato.token} nome={stato.nome} nomeTitolare={stato.nomeTitolare} iniziali={stato.contratti} />
   }
   return (
-    <Cornice titolo="Metodo di pagamento">
+    <CorniceLab titolo="Metodo di pagamento">
       {stato.fase === 'errore' ? (
         <>
           <Messaggio>{stato.errore}</Messaggio>
@@ -56,6 +57,6 @@ export function MetodoPagamento() {
       ) : (
         <SchedeInArrivo quante={2} />
       )}
-    </Cornice>
+    </CorniceLab>
   )
 }
