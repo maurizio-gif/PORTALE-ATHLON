@@ -166,19 +166,29 @@ export type Indicazione = {
   manca: boolean
   /** Manca e l'esercizio e' nel test: il test lo risolve. */
   daTest: boolean
+  /** I chili vengono da un massimale stimato dal test del distretto, non misurato. */
+  stimato: boolean
 }
 
 /** Cosa fare in un esercizio, coi massimali del socio. */
 export function indicazione(e: EsercizioScheda, massimali: Massimale[]): Indicazione {
-  const o = obiettivo(e, massimali.find((m) => m.esercizio_id === e.esercizio_id))
-  const base = { serieRip: `${e.serie} × ${e.ripetizioni}`, carico: e.carico || null, kg: null, ripetizioni: null, manca: false, daTest: false }
+  const m = massimali.find((x) => x.esercizio_id === e.esercizio_id)
+  const o = obiettivo(e, m)
+  const base = { serieRip: `${e.serie} × ${e.ripetizioni}`, carico: e.carico || null, kg: null, ripetizioni: null, manca: false, daTest: false, stimato: false }
   if (!o) return base
-  if (o.tipo === 'kg') return { ...base, carico: `${kg(o.kg)} kg · ${o.percentuale}%`, kg: o.kg }
+  if (o.tipo === 'kg') {
+    const stimato = m?.fonte === 'stima'
+    return { ...base, carico: `${stimato ? '≈ ' : ''}${kg(o.kg)} kg · ${o.percentuale}%`, kg: o.kg, stimato }
+  }
   if (o.tipo === 'ripetizioni') return { ...base, serieRip: `${e.serie} × ${o.ripetizioni}`, carico: `${o.percentuale}% delle tue massime`, ripetizioni: o.ripetizioni }
   return { ...base, carico: `${o.percentuale}% del massimale`, manca: true, daTest: o.daTest }
 }
 
 export const SPIEGA_TARATURA = 'Alla prima seduta scegli un peso con cui fai le ripetizioni indicate tenendone un paio di riserva: da lì calcoliamo i tuoi chili.'
+
+/** I carichi con «≈»: stimati dal test del distretto, poi corretti dalla prima seduta. */
+export const SPIEGA_STIMA =
+  'Dove vedi «≈» il carico è stimato dal test del tuo distretto (arti superiori, core o arti inferiori), con un margine di prudenza: alla prima seduta, coi chili che usi davvero, diventa il tuo.'
 
 /** Fra quanti giorni rifare il test (0 se e' gia' ora). */
 export function giorniAlTest(ultimo: string | null, giorni: number): number {

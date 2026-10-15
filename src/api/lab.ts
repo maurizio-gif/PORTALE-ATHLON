@@ -515,8 +515,13 @@ export type Massimale = {
   massimale: number
   kg: number | null
   ripetizioni: number
-  /** test: dal test dei massimali; seduta: tarato alla prima seduta. */
-  fonte: 'test' | 'seduta'
+  /**
+   * test: dal test dei massimali; seduta: tarato alla prima seduta; stima:
+   * stimato dal test del distretto (arti superiori, inferiori, core) per un
+   * esercizio che il test non misura. La stima non e' salvata: la prima
+   * seduta la sostituisce.
+   */
+  fonte: 'test' | 'seduta' | 'stima'
   creato_il: string
 }
 

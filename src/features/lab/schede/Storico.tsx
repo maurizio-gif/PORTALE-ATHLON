@@ -20,7 +20,9 @@ import { serieInRiga } from './Scheda'
 // il carico massimo, in colonne che crescono, e le serie fatte.
 
 type Dati = { allenamenti: SedutaStorico[]; esercizi: EsercizioFatto[] }
-const CHIAVE = 'schede:storico'
+/** Anche le calorie di una scheda la leggono: la durata vera delle sedute chiuse. */
+export const CHIAVE_STORICO = 'schede:storico'
+const CHIAVE = CHIAVE_STORICO
 
 function Colonna({ valore, massimo, etichetta, indice, colore }: { valore: number; massimo: number; etichetta: string; indice: number; colore: string }) {
   const p = usePalette()

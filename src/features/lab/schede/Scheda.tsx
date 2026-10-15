@@ -13,7 +13,7 @@ import { Schermata } from '../ui/Schermata'
 import { F, usePalette } from '../ui/tema'
 import { Tocco } from '../ui/Tocco'
 import { CalorieScheda } from './Calorie'
-import { giornoTest, gruppo, indicazione, LIVELLI, muscoli, recupero, SPIEGA_TARATURA, testDaRifare, TIPI } from './comune'
+import { giornoTest, gruppo, indicazione, LIVELLI, muscoli, recupero, SPIEGA_STIMA, SPIEGA_TARATURA, testDaRifare, TIPI } from './comune'
 import { MediaEsercizio } from './MediaEsercizio'
 
 // Una scheda: la descrizione, i giorni come schede, e gli esercizi del giorno
@@ -21,7 +21,8 @@ import { MediaEsercizio } from './MediaEsercizio'
 // socio l'ha fatto. Toccando un esercizio si apre la sua scheda (il video o
 // le foto che si alternano, i muscoli, le istruzioni). In fondo «Inizia».
 // I carichi in percentuale (16/10/2026) diventano chili coi massimali del
-// socio; finche' mancano, un riquadro spiega come averli. In fondo, sopra
+// socio, misurati o stimati dal test del distretto (15/10/2026, con «≈»);
+// finche' mancano, un riquadro spiega come averli. In fondo, sopra
 // «Inizia», le calorie stimate del giorno scelto (Calorie.tsx, 15/10/2026).
 
 type Dati = { scheda: SchedaLab; precedenti: Precedente[]; massimali: Massimale[]; ultimoTest: string | null; giorniTest: number }
@@ -55,7 +56,7 @@ function FoglioEsercizio({ e, precedente, massimali, onChiudi }: { e: EsercizioS
           <View style={[stili.cifre, { backgroundColor: p.incavo }]}>
             {[
               { v: ind!.serieRip, l: 'Serie × ripetizioni' },
-              { v: ind!.kg != null ? `${String(ind!.kg).replace('.', ',')} kg` : ind!.manca ? `${e.percentuale}%` : e.carico || '—', l: ind!.kg != null ? `Carico · ${e.percentuale}%` : ind!.manca ? 'Del massimale' : 'Carico' },
+              { v: ind!.kg != null ? `${ind!.stimato ? '≈ ' : ''}${String(ind!.kg).replace('.', ',')} kg` : ind!.manca ? `${e.percentuale}%` : e.carico || '—', l: ind!.kg != null ? `${ind!.stimato ? 'Stimato' : 'Carico'} · ${e.percentuale}%` : ind!.manca ? 'Del massimale' : 'Carico' },
               { v: recupero(e.recupero_serie), l: 'Recupero' },
             ].map((c, i) => (
               <View key={c.l} style={[stili.cifra, i > 0 && { borderLeftWidth: StyleSheet.hairlineWidth, borderLeftColor: p.linea }]}>
@@ -66,6 +67,7 @@ function FoglioEsercizio({ e, precedente, massimali, onChiudi }: { e: EsercizioS
               </View>
             ))}
           </View>
+          {ind?.stimato ? <Nota testo={SPIEGA_STIMA} /> : null}
           {ind?.manca ? (
             <Nota testo={ind.daTest ? `Questo esercizio è nel test dei massimali: fai il test e qui vedrai i tuoi chili. Oppure: ${SPIEGA_TARATURA.charAt(0).toLowerCase()}${SPIEGA_TARATURA.slice(1)}` : SPIEGA_TARATURA} />
           ) : null}
@@ -135,6 +137,7 @@ export function Scheda() {
   const tutti = s.giorni.flatMap((x) => x.esercizi)
   const inPercentuale = tutti.filter((e) => e.percentuale)
   const mancano = inPercentuale.filter((e) => indicazione(e, massimali).manca)
+  const stimati = inPercentuale.filter((e) => indicazione(e, massimali).stimato)
   const rifare = testDaRifare(dati.ultimoTest ?? null, dati.giorniTest ?? 42, s.livello === 'principiante')
   return (
     <Schermata sopratitolo={TIPI[s.tipo] ?? 'Scheda'} titolo={s.titolo} indietro="/lab/allenamento" barra={false}>
@@ -163,11 +166,11 @@ export function Scheda() {
           </View>
           <Text style={[stili.nota, { color: p.testoSecondario }]}>
             {mancano.length === inPercentuale.length
-              ? 'La percentuale è del tuo massimale, il peso più alto che sollevi per una ripetizione. Fai il test dei massimali (una quindicina di minuti) e qui al posto delle percentuali vedrai i tuoi chili, arrotondati ai pesi della macchina. ' +
-                SPIEGA_TARATURA.replace('Alla prima seduta', 'Sugli esercizi che non sono nel test, alla prima seduta')
+              ? 'La percentuale è del tuo massimale, il peso più alto che sollevi per una ripetizione. Fai il test dei massimali (una quindicina di minuti): basta un esercizio per gli arti superiori, uno per il core e uno per gli arti inferiori, e qui al posto di tutte le percentuali vedrai i tuoi chili, arrotondati ai pesi della macchina.'
               : mancano.length
-                ? `Calcolati sui tuoi massimali${dati.ultimoTest ? ` (test del ${giornoTest(dati.ultimoTest)})` : ''} e arrotondati ai pesi della macchina. Dove vedi ancora la percentuale: ${SPIEGA_TARATURA.charAt(0).toLowerCase()}${SPIEGA_TARATURA.slice(1)}`
+                ? `Calcolati sui tuoi massimali${dati.ultimoTest ? ` (test del ${giornoTest(dati.ultimoTest)})` : ''} e arrotondati ai pesi della macchina. Dove vedi ancora la percentuale manca il test di quel distretto (arti superiori, core o arti inferiori): fallo, oppure ${SPIEGA_TARATURA.charAt(0).toLowerCase()}${SPIEGA_TARATURA.slice(1)}`
                 : `Calcolati sui tuoi massimali${dati.ultimoTest ? ` (test del ${giornoTest(dati.ultimoTest)})` : ''} e arrotondati per difetto ai pesi della macchina.`}
+            {stimati.length ? ` ${SPIEGA_STIMA}` : ''}
           </Text>
           {rifare ? (
             <Messaggio tono="attenzione" titolo="È ora di rifare il test">
