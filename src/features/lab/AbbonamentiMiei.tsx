@@ -1,18 +1,17 @@
 import { router } from 'expo-router'
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { Linking, Platform, StyleSheet, Text, View } from 'react-native'
 
 import { contrattiAbbonamento, documentoAbbonamento, type AddebitoContratto, type ContrattoElenco } from '@/api/abbonamento'
 import { euro } from '@/lib/eventi'
 import { spazio } from '@/theme'
 
-import { SchermataInArrivo } from './ui/Attesa'
-import { Carta, Etichetta, Messaggio, Pulsante, Sezione } from './ui/kit'
-import { Schermata } from './ui/Schermata'
+import { inMemoria, prendi } from './memoria'
+import { Carta, Etichetta, Messaggio, Pulsante, SchedeInArrivo, Sezione } from './ui/kit'
 import { F, usePalette } from './ui/tema'
 import { Tocco } from './ui/Tocco'
 
-// Il dettaglio dei tuoi abbonamenti (16/10/2026): quello in vigore e quelli
+// Il dettaglio dei tuoi abbonamenti (16/10/2026, nella Home dal 17/10): quello in vigore e quelli
 // passati, con la data di sottoscrizione, l'inizio, la fine, gli addebiti
 // (pagati, da pagare, annullati) e i pagamenti ricevuti. Dal gestionale del
 // club, per te e per la tua famiglia.
@@ -177,49 +176,65 @@ function SchedaContratto({ c, conPersona }: { c: ContrattoElenco; conPersona: bo
   )
 }
 
-export function AbbonamentiMiei() {
+export const CHIAVE_CONTRATTI = 'abbonamenti:contratti'
+
+/**
+ * I contratti della persona e della famiglia: quelli in vigore, poi i passati.
+ * Sta dentro la sezione Abbonamenti della Home (17/10/2026); in cima il
+ * comando per sceglierne uno nuovo. I dati restano in memoria: tornando alla
+ * sezione si apre subito, e intanto si aggiorna.
+ */
+export function ElencoAbbonamenti() {
   const p = usePalette()
-  const [elenco, setElenco] = useState<ContrattoElenco[] | null>(null)
+  const [elenco, setElenco] = useState<ContrattoElenco[] | null>(() => inMemoria<{ ok: true; contratti: ContrattoElenco[] }>(CHIAVE_CONTRATTI)?.contratti ?? null)
   const [errore, setErrore] = useState<string | null>(null)
-  useEffect(() => {
-    contrattiAbbonamento().then((r) => (r.ok ? setElenco(r.contratti) : setErrore(r.errore)))
+  const carica = useCallback(async () => {
+    setErrore(null)
+    const r = await prendi(CHIAVE_CONTRATTI, contrattiAbbonamento)
+    if (r.ok) setElenco(r.contratti)
+    else setErrore(r.errore)
   }, [])
-  if (!elenco && !errore) return <SchermataInArrivo titolo="I tuoi abbonamenti" sopratitolo="Abbonamento" />
+  useEffect(() => {
+    carica()
+  }, [carica])
 
   const vigore = (elenco ?? []).filter((c) => c.in_vigore)
   const passati = (elenco ?? []).filter((c) => !c.in_vigore)
   const piuPersone = new Set((elenco ?? []).map((c) => c.member_id)).size > 1
   return (
-    <Schermata titolo="I tuoi abbonamenti" sopratitolo="Abbonamento" sottotitolo="Quello in corso e quelli passati, con date e pagamenti." indietro="/lab/abbonamento">
-      <View style={{ gap: spazio.quattro }}>
-        {errore ? <Messaggio>{errore}</Messaggio> : null}
-        {elenco && !elenco.length ? (
-          <Carta piatta>
-            <Text style={{ color: p.testo, fontFamily: F.semi, fontSize: 15, lineHeight: 22 }}>Non troviamo abbonamenti su questa scheda.</Text>
-            <View style={{ height: spazio.tre }} />
-            <Pulsante testo="Scegli un abbonamento" onPress={() => router.navigate('/lab/abbonamento')} />
-          </Carta>
-        ) : null}
-        {vigore.length ? (
-          <Sezione titolo="In vigore" conteggio={vigore.length}>
-            <View style={{ gap: spazio.tre }}>
-              {vigore.map((c) => (
-                <SchedaContratto key={c.contract_id} c={c} conPersona={piuPersone} />
-              ))}
-            </View>
-          </Sezione>
-        ) : null}
-        {passati.length ? (
-          <Sezione titolo="Passati" conteggio={passati.length}>
-            <View style={{ gap: spazio.tre }}>
-              {passati.map((c) => (
-                <SchedaContratto key={c.contract_id} c={c} conPersona={piuPersone} />
-              ))}
-            </View>
-          </Sezione>
-        ) : null}
-      </View>
-    </Schermata>
+    <View style={{ gap: spazio.quattro }}>
+      <Pulsante testo="Scegli un abbonamento" icona="avanti" onPress={() => router.navigate('/lab/abbonamento')} />
+      {errore && !elenco ? (
+        <>
+          <Messaggio>{errore}</Messaggio>
+          <Pulsante testo="Riprova" icona="aggiorna" variante="secondario" onPress={carica} />
+        </>
+      ) : null}
+      {!elenco && !errore ? <SchedeInArrivo quante={1} /> : null}
+      {elenco && !elenco.length ? (
+        <Carta piatta>
+          <Text style={{ color: p.testo, fontFamily: F.semi, fontSize: 15, lineHeight: 22 }}>Non troviamo abbonamenti su questa scheda.</Text>
+        </Carta>
+      ) : null}
+      {vigore.length ? (
+        <Sezione titolo="In vigore" conteggio={vigore.length}>
+          <View style={{ gap: spazio.tre }}>
+            {vigore.map((c) => (
+              <SchedaContratto key={c.contract_id} c={c} conPersona={piuPersone} />
+            ))}
+          </View>
+        </Sezione>
+      ) : null}
+      {passati.length ? (
+        <Sezione titolo="Passati" conteggio={passati.length}>
+          <View style={{ gap: spazio.tre }}>
+            {passati.map((c) => (
+              <SchedaContratto key={c.contract_id} c={c} conPersona={piuPersone} />
+            ))}
+          </View>
+        </Sezione>
+      ) : null}
+    </View>
   )
 }
 

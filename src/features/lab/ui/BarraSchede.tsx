@@ -14,7 +14,7 @@ import { Tocco } from './Tocco'
 // galleggiava, e su iPhone lasciava sotto di se' una striscia di pagina). Sotto
 // le icone c'e' lo spazio dell'indicatore Home (safe area). Dietro l'icona
 // attiva scivola, con una molla, un velo arancio, e icona e nome si accendono.
-// Si vede solo sulle cinque schermate principali.
+// Si vede solo sulle quattro schermate principali (i pagamenti stanno nella Home).
 
 const SCHEDE: { href: Href; percorso: string; titolo: string; icona: NomeIcona; anche?: string[] }[] = [
   { href: '/lab', percorso: '/lab', titolo: 'Home', icona: 'casa' },
@@ -22,7 +22,6 @@ const SCHEDE: { href: Href; percorso: string; titolo: string; icona: NomeIcona; 
   { href: '/lab/calendario', percorso: '/lab/calendario', titolo: 'Prenotazioni', icona: 'calendario', anche: ['/lab/personal'] },
   { href: '/lab/allenamento', percorso: '/lab/allenamento', titolo: 'Workout', icona: 'peso' },
   { href: '/lab/tv', percorso: '/lab/tv', titolo: 'TV', icona: 'play' },
-  { href: '/lab/pagamenti', percorso: '/lab/pagamenti', titolo: 'Pagamenti', icona: 'carta' },
 ]
 
 const MOLLA = { damping: 20, stiffness: 220, mass: 0.7 }

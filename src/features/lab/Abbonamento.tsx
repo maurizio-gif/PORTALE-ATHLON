@@ -29,6 +29,7 @@ import { CODICE_FISCALE_NON_ATTRIBUITO, ITALIA, nomePaese } from '@/lib/resident
 import { spazio } from '@/theme'
 
 import { CorreggiDati } from './abbonamento/CorreggiDati'
+import { hrefSezione } from './home/sezioni'
 import { Indicatore, SchedaScelta } from './abbonamento/Passi'
 import { FORMULE, Listino } from './abbonamento/Listino'
 import { FirmaPad } from './FirmaPad'
@@ -308,8 +309,8 @@ export function Abbonamento() {
     setNumero(r.esito.numero)
   }
 
-  if (numero) return <EsitoContrattoVista numero={numero} onFine={() => router.replace('/lab')} onRiprova={() => setNumero(null)} />
-  if (!stato && !errore) return <SchermataInArrivo titolo="Abbonamento" sopratitolo="Laboratorio" />
+  if (numero) return <EsitoContrattoVista numero={numero} onFine={() => router.replace(hrefSezione('abbonamenti'))} onRiprova={() => setNumero(null)} />
+  if (!stato && !errore) return <SchermataInArrivo titolo="Abbonamento" />
 
   const pronto = !!scelta()
   const NOMI_PASSI = ['Abbonamento', 'Data', 'Dati e firma', 'Pagamento']
@@ -330,7 +331,7 @@ export function Abbonamento() {
   }
 
   return (
-    <Schermata titolo="Abbonamento" sopratitolo="Laboratorio" sottotitolo={SOTTOTITOLI[passo - 1]} indietro="/lab" scorrimento={scorrimento}>
+    <Schermata titolo="Abbonamento" sottotitolo={SOTTOTITOLI[passo - 1]} indietro={hrefSezione('abbonamenti')} scorrimento={scorrimento}>
       <View style={{ gap: spazio.quattro }}>
         <Indicatore passo={passo} nomi={NOMI_PASSI} />
         {errore ? <Messaggio>{errore}</Messaggio> : null}
@@ -359,7 +360,7 @@ export function Abbonamento() {
             ) : null}
 
             {persona && !persona.puo_comprare ? (
-              <Messaggio tono="attenzione" titolo="Per ora non si può comprare">
+              <Messaggio tono="attenzione" titolo="Non è possibile acquistare">
                 {persona.motivo}
               </Messaggio>
             ) : null}
@@ -374,7 +375,7 @@ export function Abbonamento() {
                   Tutto quello che scegli lo rivedi prima di firmare.
                 </Text>
                 <Pulsante testo="Continua" icona="avanti" onPress={() => vai(2)} disabilitato={!pianoId} />
-                <Pulsante testo="I miei abbonamenti" variante="fantasma" piccolo pieno={false} onPress={() => router.navigate('/lab/abbonamenti')} />
+                <Pulsante testo="I miei abbonamenti" variante="fantasma" piccolo pieno={false} onPress={() => router.navigate(hrefSezione('abbonamenti'))} />
               </>
             ) : null}
           </>

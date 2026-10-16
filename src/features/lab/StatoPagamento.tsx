@@ -9,6 +9,7 @@ import { spazio } from '@/theme'
 
 import { riprendiDopoRedirect } from './adyen'
 import { euro, quando } from './etichettePagamenti'
+import { hrefSezione } from './home/sezioni'
 import { Icona, type NomeIcona } from './ui/Icona'
 import { Carta, Messaggio, Numero, Pulsante, Riga, SchedeInArrivo } from './ui/kit'
 import { Schermata } from './ui/Schermata'
@@ -135,7 +136,7 @@ export function StatoPagamento() {
 
   if (errore && !pag) {
     return (
-      <Schermata sopratitolo="Laboratorio" titolo="Pagamento" indietro="/lab/profilo" barra={false}>
+      <Schermata titolo="Pagamento" indietro={hrefSezione('pagamenti')} barra={false}>
         <Messaggio>{errore}</Messaggio>
         <Pulsante testo="Riprova" icona="aggiorna" onPress={leggi} />
       </Schermata>
@@ -143,7 +144,7 @@ export function StatoPagamento() {
   }
   if (!pag) {
     return (
-      <Schermata sopratitolo="Laboratorio" titolo="Verifichiamo il pagamento…" indietro="/lab/profilo" barra={false}>
+      <Schermata titolo="Verifichiamo il pagamento…" indietro={hrefSezione('pagamenti')} barra={false}>
         <SchedeInArrivo quante={1} />
       </Schermata>
     )
@@ -169,7 +170,7 @@ export function StatoPagamento() {
   ]
 
   return (
-    <Schermata titolo={tit.titolo} nascondiTitolo indietro="/lab/profilo" barra={false}>
+    <Schermata titolo={tit.titolo} nascondiTitolo indietro={hrefSezione('pagamenti')} barra={false}>
       <View style={{ alignItems: 'center', gap: spazio.tre, paddingTop: spazio.tre }}>
         <Esito tono={tono} icona={icona} inCorso={inCorso} />
         <Numero valore={euro(pag.importo_cent).replace(' €', '')} unita="€" size={52} />
@@ -193,7 +194,7 @@ export function StatoPagamento() {
           />
         ))}
       </Carta>
-      <Pulsante testo="Torna al profilo" variante="scuro" icona="avanti" onPress={() => router.replace('/lab/profilo')} />
+      <Pulsante testo="Torna ai pagamenti" variante="scuro" icona="avanti" onPress={() => router.replace(hrefSezione('pagamenti'))} />
     </Schermata>
   )
 }
