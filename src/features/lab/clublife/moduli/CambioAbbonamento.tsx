@@ -1,13 +1,15 @@
-import { useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Text, View } from 'react-native'
 
+import { statoAbbonamento, type PianoAbbonamento } from '@/api/abbonamento'
 import { richiediCambioAbbonamento } from '@/api/moduli'
 import { CampoData } from '@/components/CampoData'
+import { euro } from '@/lib/eventi'
 
 import { CampoTesto } from '../../ui/Campi'
 import { Messaggio, Pulsante, SchedeInArrivo } from '../../ui/kit'
 import { F, usePalette } from '../../ui/tema'
-import { useClubLife } from '../dati'
+import { FORMULE } from '../../abbonamento/Listino'
 import { Cornice, DaDoveParti, Fatto, Pillole } from './Cornice'
 import { inVista, useIdentita } from './identita'
 
@@ -16,9 +18,20 @@ import { inVista, useIdentita } from './identita'
 // `sito-cambio-abbonamento`, che legge il contratto in corso su PerfectGym e
 // avvisa il desk: il conteggio del valore residuo arriva poi via email.
 //
-// Le formule non sono scritte qui: le manda il sito (`formuleCambio`), dal
-// listino. Se il feed non le ha — il sito non e' ancora aggiornato — si scrive a
-// mano quale abbonamento interessa, invece di fermare il modulo.
+// Gli abbonamenti verso cui si puo' passare sono quelli del listino adulti
+// dell'app (`portale-abbonamento`, la stessa sezione Abbonamenti della Home),
+// letti da li': mai un elenco ricopiato. Solo le due formule annuali — in
+// un'unica soluzione e a rate —: il Mensile Flex non e' una destinazione del
+// cambio. Se il listino non risponde si scrive a mano quale abbonamento
+// interessa, invece di fermare il modulo.
+
+/** Le formule verso cui si puo' cambiare: tutte tranne il mensile senza vincoli. */
+const FORMULE_DI_CAMBIO = new Set(['annuale-unico', 'annuale-rate'])
+
+function nomeFormula(x: PianoAbbonamento): string {
+  const prezzo = `${euro(x.importo)} ${x.periodo.includes('anno') ? 'all’anno' : 'al mese'}`
+  return `${x.abbonamento} · ${FORMULE[x.formula]?.titolo ?? x.etichetta} · ${prezzo}`
+}
 
 const oggi = () => new Date().toISOString().slice(0, 10)
 const traUnAnno = () => {
@@ -30,8 +43,8 @@ const traUnAnno = () => {
 export function CambioAbbonamento({ emailAccesso }: { emailAccesso?: string | null }) {
   const p = usePalette()
   const identita = useIdentita(emailAccesso)
-  const { dati } = useClubLife()
-  const formule = dati?.formuleCambio ?? []
+  const [piani, setPiani] = useState<PianoAbbonamento[] | null>(null)
+  const [listinoNonRisponde, setListinoNonRisponde] = useState(false)
   const [decorrenza, setDecorrenza] = useState('')
   const [formula, setFormula] = useState<string | null>(null)
   const [aMano, setAMano] = useState('')
@@ -40,10 +53,31 @@ export function CambioAbbonamento({ emailAccesso }: { emailAccesso?: string | nu
   const [errore, setErrore] = useState<string | null>(null)
   const [fatto, setFatto] = useState(false)
 
+  useEffect(() => {
+    let vivo = true
+    statoAbbonamento().then((r) => {
+      if (!vivo) return
+      if (r.ok) setPiani(r.stato.piani.filter((x) => FORMULE_DI_CAMBIO.has(x.formula)))
+      else setListinoNonRisponde(true)
+    })
+    return () => {
+      vivo = false
+    }
+  }, [])
+
+  // Nell'ordine del listino (Smart, Premium), e per ciascuno prima l'unica soluzione e poi le rate.
+  const formule = useMemo(() => {
+    const ordine = (f: string) => (f === 'annuale-unico' ? 0 : 1)
+    return [...(piani ?? [])]
+      .map((x, i) => ({ x, i }))
+      .sort((a, b) => (a.x.abbonamento === b.x.abbonamento ? ordine(a.x.formula) - ordine(b.x.formula) : a.i - b.i))
+      .map(({ x }) => ({ id: String(x.piano_id), testo: nomeFormula(x) }))
+  }, [piani])
+
   async function invia() {
     if (!identita || inCorso) return
     setErrore(null)
-    const abbonamento = formule.length ? (formula ?? '') : aMano.trim()
+    const abbonamento = formule.length ? (formule.find((f) => f.id === formula)?.testo ?? '') : aMano.trim()
     if (!decorrenza) return setErrore('Indica da quando far partire il nuovo abbonamento.')
     if (!abbonamento) return setErrore('Scegli l’abbonamento che ti interessa.')
     setInCorso(true)
@@ -65,7 +99,7 @@ export function CambioAbbonamento({ emailAccesso }: { emailAccesso?: string | nu
 
   return (
     <Cornice sopratitolo="Abbonamenti" titolo="Cambio abbonamento" sottotitolo="Valido solo per i contratti degli adulti.">
-      {!identita ? (
+      {!identita || (!piani && !listinoNonRisponde) ? (
         <SchedeInArrivo quante={1} />
       ) : (
         <>
@@ -74,7 +108,7 @@ export function CambioAbbonamento({ emailAccesso }: { emailAccesso?: string | nu
             <CampoData etichetta="Da quando vuoi far decorrere il nuovo abbonamento?" value={decorrenza} onChange={setDecorrenza} min={oggi()} max={traUnAnno()} annoIniziale={new Date().getFullYear()} sfondo={p.incavo} />
           </View>
           {formule.length ? (
-            <Pillole etichetta="A quale abbonamento sei interessato?" opzioni={formule.map((f) => ({ id: f, testo: f }))} valore={formula} onScegli={setFormula} />
+            <Pillole etichetta="A quale abbonamento sei interessato?" opzioni={formule} valore={formula} onScegli={setFormula} />
           ) : (
             <CampoTesto etichetta="A quale abbonamento sei interessato?" value={aMano} onChangeText={setAMano} placeholder="Ad esempio: Premium Annuale" />
           )}

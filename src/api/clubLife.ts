@@ -94,8 +94,6 @@ export type ClubLife = {
   eventi: EventoClub[]
   aree: AreaHelpDesk[]
   schede: SchedaHelpDesk[]
-  /** Le formule del cambio abbonamento, dal listino del sito. */
-  formuleCambio: string[]
   /** Gli slug delle pagine che nell'app portano al calendario delle prenotazioni. */
   corsiPrenotabili: string[]
 }
@@ -132,14 +130,13 @@ export async function leggiClubLife(): Promise<{ ok: true; dati: ClubLife } | { 
     if (!Array.isArray(d?.news) || !Array.isArray(d?.eventi) || !Array.isArray(d?.schede)) {
       return { ok: false, errore: 'Club Life non risponde adesso. Riprova fra poco.' }
     }
-    // I due campi nuovi mancano finche' il sito non ha il deploy: senza, i moduli e i link restano quelli di prima.
+    // Il campo nuovo manca finche' il sito non ha il deploy: senza, i link restano quelli di prima.
     const dati: ClubLife = {
       generato: d.generato,
       news: d.news,
       eventi: d.eventi,
       aree: d.aree ?? [],
       schede: d.schede,
-      formuleCambio: d.formuleCambio ?? [],
       corsiPrenotabili: d.corsiPrenotabili ?? [],
     }
     salvaSulDisco(dati)
