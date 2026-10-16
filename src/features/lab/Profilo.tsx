@@ -13,8 +13,10 @@ import {
   type PersonaArea,
 } from '@/api/lab'
 import { emailValida } from '@/api/richieste'
+import { CampoPaese } from '@/components/CampoPaese'
 import { controllaResidenza, controllaTelefono, indirizzoInRiga } from '@/lib/anagrafica'
 import { dataBreve } from '@/lib/metodoPagamento'
+import { CODICE_FISCALE_NON_ATTRIBUITO, ITALIA, pulisciCapLibero } from '@/lib/residenteEstero'
 import { spazio } from '@/theme'
 
 import { inMemoria, prendi, ricorda } from './memoria'
@@ -89,11 +91,13 @@ function FoglioIndirizzo({ attuale, onChiudi, onSalvato }: { attuale: Anagrafica
   const [via, setVia] = useState(attuale?.via ?? '')
   const [cap, setCap] = useState(attuale?.cap ?? '')
   const [citta, setCitta] = useState(attuale?.citta ?? '')
+  // L'Italia e' il Paese di partenza; fuori dall'Italia il CAP e' libero.
+  const [paese, setPaese] = useState(attuale?.paese || ITALIA)
   const [attesa, setAttesa] = useState(false)
   const [errore, setErrore] = useState<string | null>(null)
   async function salva() {
     setErrore(null)
-    const c = controllaResidenza({ via, cap, citta })
+    const c = controllaResidenza({ via, cap, citta, paese })
     if (!c.ok) return setErrore(c.errore)
     setAttesa(true)
     const r = await salvaIndirizzo(c.valori)
@@ -104,9 +108,14 @@ function FoglioIndirizzo({ attuale, onChiudi, onSalvato }: { attuale: Anagrafica
   return (
     <Foglio aperto titolo="Indirizzo" sottotitolo="Dove abiti: è quello che il club usa per le ricevute e i documenti." onChiudi={onChiudi}>
       <CampoTesto etichetta="Via e numero civico" icona="luogo" value={via} onChangeText={setVia} autoComplete="street-address" textContentType="fullStreetAddress" placeholder="Via Ugo Ojetti 134" autoFocus />
+      <CampoPaese variante="lab" conItalia value={paese} onChange={setPaese} />
       <View style={{ flexDirection: 'row', gap: spazio.due }}>
         <View style={{ flex: 1 }}>
-          <CampoTesto etichetta="CAP" value={cap} onChangeText={(v) => setCap(v.replace(/\D/g, '').slice(0, 5))} autoComplete="postal-code" textContentType="postalCode" inputMode="numeric" keyboardType="number-pad" placeholder="00137" />
+          {paese === ITALIA ? (
+            <CampoTesto etichetta="CAP" value={cap} onChangeText={(v) => setCap(v.replace(/\D/g, '').slice(0, 5))} autoComplete="postal-code" textContentType="postalCode" inputMode="numeric" keyboardType="number-pad" placeholder="00137" />
+          ) : (
+            <CampoTesto etichetta="CAP" value={cap} onChangeText={(v) => setCap(pulisciCapLibero(v))} autoComplete="postal-code" textContentType="postalCode" autoCapitalize="characters" autoCorrect={false} maxLength={12} placeholder="SW1A 1AA" />
+          )}
         </View>
         <View style={{ flex: 1.6 }}>
           <CampoTesto etichetta="Città" value={citta} onChangeText={setCitta} onSubmitEditing={salva} textContentType="addressCity" placeholder="Roma" />
@@ -323,7 +332,7 @@ export function Profilo() {
     { icona: 'persona', titolo: 'Nome e cognome', valore: [dati.nome, dati.cognome].filter(Boolean).join(' ') || null },
     { icona: 'torta', titolo: 'Data di nascita', valore: dataBreve(dati.data_nascita) },
     { icona: 'luogo', titolo: 'Luogo di nascita', valore: dati.luogo_nascita },
-    { icona: 'impronta', titolo: 'Codice fiscale', valore: dati.codice_fiscale },
+    { icona: 'impronta', titolo: 'Codice fiscale', valore: dati.residente_estero ? CODICE_FISCALE_NON_ATTRIBUITO : dati.codice_fiscale },
     { icona: 'tessera', titolo: 'Numero di tessera', valore: dati.numero },
   ]
   const anagrafici = tutti.filter((x) => x.valore)

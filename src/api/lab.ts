@@ -506,8 +506,11 @@ export async function chiudiAbbonamento(abbonamentoId: string): Promise<Esito<ob
 //
 //   { azione: 'leggi' }                          -> { ok, anagrafica }
 //   { azione: 'salva', telefono } oppure
-//   { azione: 'salva', indirizzo: { via, cap, citta } }
+//   { azione: 'salva', indirizzo: { via, cap, citta, paese? } }
 //                                                -> { ok, anagrafica }
+//   `paese` e' il codice ISO, Italia compresa ('IT', se manca); fuori dall'Italia
+//   il CAP e' libero. Chi e' residente all'estero ha `residente_estero` e il
+//   codice fiscale a null (il segnaposto di PerfectGym non si vede mai).
 //   { azione: 'email', email }                   -> { ok }  (manda un codice al nuovo indirizzo)
 //   { azione: 'conferma_email', email, codice }  -> { ok, anagrafica }
 //
@@ -518,8 +521,8 @@ export async function chiudiAbbonamento(abbonamentoId: string): Promise<Esito<ob
 // scheda: cambia solo dopo il codice arrivato al nuovo indirizzo, e la
 // funzione aggiorna insieme PerfectGym e l'utente di Supabase Auth.
 
-/** L'indirizzo come lo tiene PerfectGym: via, CAP e citta' (la provincia non e' un suo campo di testo). */
-export type Indirizzo = { via: string | null; cap: string | null; citta: string | null }
+/** L'indirizzo come lo tiene PerfectGym: via, CAP, citta' e Paese (la provincia non e' un suo campo di testo). Senza `paese` e' l'Italia. */
+export type Indirizzo = { via: string | null; cap: string | null; citta: string | null; paese?: string | null }
 
 export type Anagrafica = {
   member_id: number
@@ -528,7 +531,9 @@ export type Anagrafica = {
   sesso: string | null
   data_nascita: string | null
   luogo_nascita: string | null
+  /** Null per chi e' residente all'estero. */
   codice_fiscale: string | null
+  residente_estero?: boolean
   numero: string | null
   email: string | null
   telefono: string | null
