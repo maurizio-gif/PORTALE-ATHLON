@@ -1,5 +1,4 @@
 import { Image } from 'expo-image'
-import { router } from 'expo-router'
 import { createContext, useContext, useState } from 'react'
 import { Platform, ScrollView, StyleSheet, Text, View, type StyleProp, type TextStyle } from 'react-native'
 
@@ -10,8 +9,8 @@ import { Icona } from '../ui/Icona'
 import { Bollino, Carta, Pulsante } from '../ui/kit'
 import { F, raggio, usePalette, velo } from '../ui/tema'
 import { Tocco } from '../ui/Tocco'
-import { conChiE, type ChiEntra } from './indirizzo'
-import { apriFuori, apriLink } from './link'
+import { apriLink, destinazione, hrefModulo, vai } from './link'
+import { moduloAperto, useProfilo, type ProfiloSocio } from './moduli/profilo'
 
 // Il testo di una news, di un evento o di una scheda dell'Help Desk, disegnato
 // coi mattoni dell'app. I blocchi li ricava il sito dalla sua pagina
@@ -19,12 +18,20 @@ import { apriFuori, apriLink } from './link'
 // le domande dell'Help Desk restano fisarmoniche, i riquadri restano riquadri, le
 // tabelle scorrono di lato invece di stringersi fino a non leggersi.
 
-type Contesto = { dati: ClubLife | null; chi: ChiEntra | null }
-const ContestoBlocchi = createContext<Contesto>({ dati: null, chi: null })
+const ContestoBlocchi = createContext<{ dati: ClubLife | null; profilo: ProfiloSocio | null }>({ dati: null, profilo: null })
 
 /** «ACCEDI AL PORTALE» → «Accedi al portale»: sul sito e' uno stile, qui sarebbe un grido. */
 function etichetta(s: string): string {
   return s === s.toUpperCase() ? s.charAt(0) + s.slice(1).toLowerCase() : s
+}
+
+/**
+ * L'etichetta di un comando che porta dentro l'app. «Accedi al portale» e «Apri
+ * l'area riservata» dicono di entrare in un posto in cui chi legge e' gia': qui
+ * sono «Vai alla tua area».
+ */
+function etichettaApp(testo: string): string {
+  return /^(accedi|apri|vai)\b.*\b(portale|area riservata)\b/i.test(testo.trim()) ? 'Vai alla tua area' : etichetta(testo)
 }
 
 export function TestoInline({ pezzi, stile, selezionabile = true }: { pezzi: Inline[]; stile: StyleProp<TextStyle>; selezionabile?: boolean }) {
@@ -36,10 +43,12 @@ export function TestoInline({ pezzi, stile, selezionabile = true }: { pezzi: Inl
         const forma: TextStyle = {}
         if (x.b) forma.fontFamily = F.bold
         if (x.i) forma.fontStyle = 'italic'
-        if (x.link) {
+        // Un link che nell'app non ha dove portare (scarica l'app...) resta testo, senza sottolineatura.
+        if (x.link && destinazione(x.link, dati, x.testo).tipo !== 'nascondi') {
           const url = x.link
+          const etichettaLink = x.testo
           return (
-            <Text key={i} style={[forma, { color: p.accento, textDecorationLine: 'underline' }]} onPress={() => apriLink(url, dati)} accessibilityRole="link">
+            <Text key={i} style={[forma, { color: p.accento, textDecorationLine: 'underline' }]} onPress={() => apriLink(url, dati, etichettaLink)} accessibilityRole="link">
               {x.testo}
             </Text>
           )
@@ -146,47 +155,18 @@ function Codice({ etichetta: nome, codice }: { etichetta: string; codice: string
   )
 }
 
-/**
- * I moduli del sito dentro una scheda. Quali si vedono dipende da chi guarda:
- *
- * - la chiamata col desk e' per chi non e' ancora iscritto (nessun abbonamento
- *   nel nucleo): chi lo e' ha gia' il suo club a cui scrivere;
- * - l'appuntamento col Direttore Tecnico del nuoto e' per chi ha un figlio gia'
- *   iscritto o con l'abbonamento in partenza;
- * - il metodo di pagamento, essendo gia' nell'app, apre la schermata dell'app e
- *   non fa passare dall'email;
- * - il cambio abbonamento si apre sul sito, per tutti.
- *
- * Finche' non si sa chi e' (o se l'area non si legge) i due moduli riservati non si
- * mostrano: e' meglio un modulo in meno che uno a chi non puo' usarlo.
- */
-function moduloVisibile(tipo: TipoModulo, chi: ChiEntra | null): boolean {
-  const profilo = chi?.profilo
-  if (tipo === 'appuntamento') return profilo?.iscritto === false
-  if (tipo === 'appuntamento-nuoto') return profilo?.figlioIscritto === true
-  return true
-}
-
-function Modulo({ tipo, etichetta: nome, url }: { tipo: TipoModulo; etichetta: string; url: string }) {
+function Modulo({ tipo, etichetta: nome }: { tipo: TipoModulo; etichetta: string }) {
   const p = usePalette()
-  const { chi } = useContext(ContestoBlocchi)
-  const inApp = tipo === 'metodo-pagamento'
   return (
     <Carta style={{ gap: spazio.tre }}>
       <View style={{ flexDirection: 'row', gap: spazio.tre, alignItems: 'center' }}>
-        <Bollino icona={inApp ? 'carta' : 'modifica'} />
+        <Bollino icona="modifica" />
         <View style={{ flex: 1, gap: 2 }}>
-          <Text style={[stili.moduloTitolo, { color: p.testo }]}>{inApp ? 'Aggiorna il metodo di pagamento' : nome}</Text>
-          <Text style={[stili.moduloSotto, { color: p.testoSecondario }]}>
-            {inApp ? 'Scegli carta o conto corrente per i tuoi abbonamenti e per quelli dei tuoi figli.' : 'Il modulo si apre sul sito del club.'}
-          </Text>
+          <Text style={[stili.moduloTitolo, { color: p.testo }]}>{nome}</Text>
+          <Text style={[stili.moduloSotto, { color: p.testoSecondario }]}>Lo compili qui: i tuoi dati sono già scritti.</Text>
         </View>
       </View>
-      {inApp ? (
-        <Pulsante testo="Aggiorna il metodo" icona="carta" onPress={() => router.push('/metodo-pagamento')} />
-      ) : (
-        <Pulsante testo="Apri il modulo" icona="apriFuori" onPress={() => apriFuori(conChiE(url, chi ?? {}))} />
-      )}
+      <Pulsante testo="Apri il modulo" icona="avanti" onPress={() => vai(hrefModulo(tipo))} />
     </Carta>
   )
 }
@@ -234,14 +214,24 @@ function UnBlocco({ b }: { b: Blocco }) {
       return <Dettagli titolo={b.titolo} blocchi={b.blocchi} />
     case 'tabella':
       return <Tabella intestazione={b.intestazione} righe={b.righe} />
-    case 'pulsanti':
+    case 'pulsanti': {
+      // Un comando senza dove portare nell'app (scarica l'app, reimposta la password) non si disegna.
+      const voci = b.voci.map((v) => ({ v, d: destinazione(v.url, dati, v.etichetta) })).filter((x) => x.d.tipo !== 'nascondi')
+      if (!voci.length) return null
       return (
         <View style={{ gap: spazio.due }}>
-          {b.voci.map((v, i) => (
-            <Pulsante key={i} testo={etichetta(v.etichetta)} variante={v.primario ? 'primario' : 'contorno'} icona={/^https?:\/\/(www\.)?athlonroma\.it/i.test(v.url) ? undefined : 'apriFuori'} onPress={() => apriLink(v.url, dati)} />
+          {voci.map(({ v, d }, i) => (
+            <Pulsante
+              key={i}
+              testo={d.tipo === 'app' ? etichettaApp(v.etichetta) : etichetta(v.etichetta)}
+              variante={v.primario ? 'primario' : 'contorno'}
+              icona={d.tipo === 'fuori' ? 'apriFuori' : undefined}
+              onPress={() => apriLink(v.url, dati, v.etichetta)}
+            />
           ))}
         </View>
       )
+    }
     case 'codice':
       return <Codice etichetta={b.etichetta} codice={b.codice} />
     case 'immagine':
@@ -249,7 +239,7 @@ function UnBlocco({ b }: { b: Blocco }) {
     case 'separatore':
       return <View style={{ height: StyleSheet.hairlineWidth, backgroundColor: p.linea, marginVertical: spazio.uno }} />
     case 'modulo':
-      return <Modulo tipo={b.tipo} etichetta={b.etichetta} url={b.url} />
+      return <Modulo tipo={b.tipo} etichetta={b.etichetta} />
     default:
       return null
   }
@@ -257,9 +247,9 @@ function UnBlocco({ b }: { b: Blocco }) {
 
 /** Un elenco di blocchi. `stretto`: dentro una voce, una citazione o una fisarmonica, dove lo spazio fra i blocchi e' minore. */
 export function Blocchi({ blocchi, stretto = false }: { blocchi: Blocco[]; stretto?: boolean }) {
-  const { chi } = useContext(ContestoBlocchi)
-  // Un modulo riservato a chi non e' il lettore sparisce del tutto, col suo spazio.
-  const visibili = blocchi.filter((b) => b.t !== 'modulo' || moduloVisibile(b.tipo, chi))
+  const { profilo } = useContext(ContestoBlocchi)
+  // Un modulo che non e' per chi legge sparisce del tutto, col suo spazio.
+  const visibili = blocchi.filter((b) => b.t !== 'modulo' || moduloAperto(b.tipo, profilo))
   return (
     <View style={{ gap: stretto ? spazio.due + 2 : spazio.tre }}>
       {visibili.map((b, i) => (
@@ -271,10 +261,11 @@ export function Blocchi({ blocchi, stretto = false }: { blocchi: Blocco[]; stret
   )
 }
 
-/** Il testo di un contenuto, con i dati per riconoscere i link interni e chi e' per i moduli. */
-export function Contenuto({ blocchi, dati, chi }: { blocchi: Blocco[]; dati: ClubLife | null; chi: ChiEntra | null }) {
+/** Il testo di un contenuto, con i dati per riconoscere i link che portano a una schermata dell'app. */
+export function Contenuto({ blocchi, dati }: { blocchi: Blocco[]; dati: ClubLife | null }) {
+  const { profilo } = useProfilo()
   return (
-    <ContestoBlocchi.Provider value={{ dati, chi }}>
+    <ContestoBlocchi.Provider value={{ dati, profilo }}>
       <Blocchi blocchi={blocchi} />
     </ContestoBlocchi.Provider>
   )
