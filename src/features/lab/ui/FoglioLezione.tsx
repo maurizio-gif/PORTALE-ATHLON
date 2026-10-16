@@ -25,6 +25,66 @@ import { Tocco } from './Tocco'
 //
 // Si apre scendendo dall'alto e si chiude risalendo; appena arrivata, le
 // barre delle caratteristiche si riempiono una dopo l'altra (15/10/2026).
+//
+// Una lezione con una pagina sua sul sito (il Baby Nuoto) porta in fondo anche le
+// informazioni utili e le domande frequenti (17/10/2026), dal feed del sito.
+
+/** Le informazioni operative: una riga per voce, con l'etichetta sopra. */
+function InfoUtili({ righe }: { righe: { l: string; v: string }[] }) {
+  const p = usePalette()
+  return (
+    <View style={{ gap: spazio.due }}>
+      <Text style={[stili.sezione, { color: p.testo }]} accessibilityRole="header">
+        Info utili
+      </Text>
+      <View style={[stili.info, { backgroundColor: p.incavo }]}>
+        {righe.map((r, i) => (
+          <View key={r.l} style={[stili.rigaInfo, i > 0 && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: p.linea }]}>
+            <Text style={[stili.etichettaInfo, { color: p.testoSecondario }]}>{r.l.toUpperCase()}</Text>
+            <Text style={[stili.valoreInfo, { color: p.testo }]}>{r.v}</Text>
+          </View>
+        ))}
+      </View>
+    </View>
+  )
+}
+
+/** Una domanda che si apre al tocco, con la risposta sotto. */
+function Domanda({ q, a }: { q: string; a: string }) {
+  const p = usePalette()
+  const [aperta, setAperta] = useState(false)
+  return (
+    <View style={[stili.domanda, { borderColor: p.linea }]}>
+      <Tocco onPress={() => setAperta((v) => !v)} ruolo="button" etichetta={`${q}: ${aperta ? 'chiudi' : 'apri'}`} vibra="scelta" scala={0.99}>
+        <View style={stili.testaDomanda}>
+          <Text style={[stili.testoDomanda, { color: p.testo }]}>{q}</Text>
+          <Icona nome="giu" size={18} colore={p.testoTerzo} style={{ transform: [{ rotate: aperta ? '180deg' : '0deg' }] }} />
+        </View>
+      </Tocco>
+      {aperta ? (
+        <View style={stili.rispostaDomanda}>
+          <Descrizione html={a} style={[stili.descrizione, { color: p.testoSecondario }]} grassetto={{ fontFamily: F.bold, color: p.testo }} />
+        </View>
+      ) : null}
+    </View>
+  )
+}
+
+function DomandeFrequenti({ voci }: { voci: { q: string; a: string }[] }) {
+  const p = usePalette()
+  return (
+    <View style={{ gap: spazio.due }}>
+      <Text style={[stili.sezione, { color: p.testo }]} accessibilityRole="header">
+        Domande frequenti
+      </Text>
+      <View style={{ gap: spazio.due }}>
+        {voci.map((d) => (
+          <Domanda key={d.q} q={d.q} a={d.a} />
+        ))}
+      </View>
+    </View>
+  )
+}
 
 export function FoglioLezione({
   scheda,
@@ -123,6 +183,8 @@ export function FoglioLezione({
                 })}
               </View>
             ) : null}
+            {v.scheda.info?.length ? <InfoUtili righe={v.scheda.info} /> : null}
+            {v.scheda.faq?.length ? <DomandeFrequenti voci={v.scheda.faq} /> : null}
           </ScrollView>
         ) : null}
       </Animated.View>
@@ -146,4 +208,13 @@ const stili = StyleSheet.create({
   descrizione: { fontFamily: F.medio, fontSize: 15, lineHeight: 21.5 },
   caratteristiche: { flexDirection: 'row', flexWrap: 'wrap', columnGap: spazio.tre + 2, rowGap: spazio.due + 2 },
   caratteristica: { width: '47%', flexGrow: 1, gap: 5, justifyContent: 'flex-end' },
+  sezione: { fontFamily: F.extra, fontSize: 19, letterSpacing: -0.4 },
+  info: { borderRadius: 18, paddingHorizontal: spazio.tre },
+  rigaInfo: { gap: 3, paddingVertical: spazio.due + 2 },
+  etichettaInfo: { fontFamily: F.bold, fontSize: 11.5, letterSpacing: 0.8 },
+  valoreInfo: { fontFamily: F.medio, fontSize: 15, lineHeight: 21 },
+  domanda: { borderWidth: StyleSheet.hairlineWidth, borderRadius: 16, overflow: 'hidden' },
+  testaDomanda: { flexDirection: 'row', alignItems: 'center', gap: spazio.tre, paddingHorizontal: spazio.tre, paddingVertical: spazio.tre - 2, minHeight: 52 },
+  testoDomanda: { flex: 1, fontFamily: F.bold, fontSize: 15, lineHeight: 21 },
+  rispostaDomanda: { paddingHorizontal: spazio.tre, paddingBottom: spazio.tre },
 })

@@ -131,6 +131,10 @@ export type SchedaLezione = {
   foto: string | null
   fuoco: string | null
   caratteristiche: { l: string; v: number }[]
+  /** Informazioni operative della lezione, dal sito (oggi solo il Baby Nuoto): etichetta e valore, anche su piu' righe. */
+  info?: { l: string; v: string }[]
+  /** Domande frequenti, dal sito: la risposta e' HTML semplice come la descrizione. */
+  faq?: { q: string; a: string }[]
 }
 
 export type PersonaCalendario = { member_id: number; nome: string | null; cognome: string | null; titolare: boolean }
