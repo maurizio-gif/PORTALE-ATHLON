@@ -11,6 +11,7 @@ export function Casella({
   children,
   riquadro = false,
   etichetta,
+  bloccata = false,
 }: {
   spuntata: boolean
   onCambia: () => void
@@ -19,14 +20,16 @@ export function Casella({
   riquadro?: boolean
   /** Il testo per gli screen reader, se `children` non e' solo testo. */
   etichetta?: string
+  /** Spuntata e non si cambia: un consenso obbligatorio, che chi non vuole dare non firma. */
+  bloccata?: boolean
 }) {
   const c = useColori()
   return (
     <Pressable
       accessibilityRole="checkbox"
-      accessibilityState={{ checked: spuntata }}
+      accessibilityState={{ checked: spuntata, disabled: bloccata }}
       accessibilityLabel={etichetta}
-      onPress={onCambia}
+      onPress={bloccata ? undefined : onCambia}
       style={[
         stili.riga,
         riquadro && {
