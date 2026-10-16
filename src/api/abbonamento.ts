@@ -101,6 +101,8 @@ export type DatiContraente = {
   cognome: string
   data_nascita: string | null
   codice_fiscale: string | null
+  /** Ha dichiarato di essere residente all'estero e senza codice fiscale italiano. */
+  senza_codice_fiscale?: boolean
   residenza: string | null
   email: string
   telefono: string | null
@@ -114,6 +116,7 @@ export type PersonaDati = {
   cognome: string
   data_nascita: string | null
   codice_fiscale: string | null
+  senza_codice_fiscale?: boolean
   telefono: string | null
   indirizzo: { via: string | null; cap: string | null; citta: string | null } | null
 }
@@ -154,7 +157,7 @@ export async function anteprimaAbbonamento(
 }
 
 /** Le correzioni ai dati del contratto: solo i campi che cambiano. Nome, cognome e nascita si cambiano dal club. */
-export type CambiDati = { codice_fiscale?: string; telefono?: string; indirizzo?: { via: string; cap: string; citta: string } }
+export type CambiDati = { codice_fiscale?: string; senza_codice_fiscale?: boolean; telefono?: string; indirizzo?: { via: string; cap: string; citta: string } }
 
 export async function salvaDatiAbbonamento(memberId: number, cambi: CambiDati): Promise<{ ok: true } | { ok: false; errore: string }> {
   const { ok, dati } = await abbonamento({ azione: 'salva_dati', member_id: memberId, ...cambi })

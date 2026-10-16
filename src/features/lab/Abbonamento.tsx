@@ -452,7 +452,7 @@ export function Abbonamento() {
                     <View style={{ gap: spazio.due }}>
                       <RigaDato nome="Nome e cognome" valore={`${anteprima.contraente.nome} ${anteprima.contraente.cognome}`.trim()} />
                       <RigaDato nome="Nato/a il" valore={anteprima.contraente.data_nascita ? dataLunga(anteprima.contraente.data_nascita) : null} />
-                      <RigaDato nome="Codice fiscale" valore={anteprima.contraente.codice_fiscale?.toUpperCase()} />
+                      <RigaDato nome="Codice fiscale" valore={anteprima.contraente.codice_fiscale?.toUpperCase() ?? (anteprima.contraente.senza_codice_fiscale ? 'Non attribuito (residente all’estero)' : null)} />
                       <RigaDato nome="Residenza" valore={anteprima.contraente.residenza} />
                       <RigaDato nome="Email" valore={anteprima.contraente.email} />
                       <RigaDato nome="Telefono" valore={anteprima.contraente.telefono} />
