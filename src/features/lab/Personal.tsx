@@ -798,7 +798,7 @@ export function Personal() {
   const perChi = stato.persone.find((x) => x.member_id === stato.member_id)
 
   return (
-    <Schermata larga titolo="Prenotazioni">
+    <Schermata titolo="Prenotazioni">
       <SceltaPrenotazioni attiva="personal" />
 
       {esitoPacchetto ? (

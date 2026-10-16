@@ -70,7 +70,6 @@ export function Galleria() {
 
   return (
     <Schermata
-      larga
       sopratitolo="Athlon TV"
       titolo={vetrina?.titolo ?? 'Raccolta'}
       sottotitolo={vetrina ? [quanti(vetrina.totale), vetrina.descrizione].filter(Boolean).join(' · ') : undefined}

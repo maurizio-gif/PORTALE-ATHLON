@@ -71,7 +71,7 @@ export function AthlonTv() {
   const totale = vetrine?.reduce((t, v) => t + v.totale, 0) ?? 0
 
   return (
-    <Schermata larga sopratitolo="I video del club" titolo="Athlon TV" sottotitolo={vetrine ? `${vetrine.length} raccolte · ${quanti(totale)}` : undefined}>
+    <Schermata sopratitolo="I video del club" titolo="Athlon TV" sottotitolo={vetrine ? `${vetrine.length} raccolte · ${quanti(totale)}` : undefined}>
       {errore && !vetrine ? (
         <>
           <Messaggio>{errore}</Messaggio>
