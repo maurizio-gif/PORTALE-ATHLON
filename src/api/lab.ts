@@ -107,6 +107,8 @@ export type Lezione = {
   posti: number
   iscritti: number
   liberi: number
+  /** Chi e' in lista d'attesa (gia' compreso in `iscritti`). Manca finche' la funzione non e' aggiornata. */
+  in_attesa?: number
   iniziata: boolean
   /** Se la prenotazione non e' ancora aperta: da quando (ISO). Si apre tre giorni prima. */
   prenotabile_dal: string | null

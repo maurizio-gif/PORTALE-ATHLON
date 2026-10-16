@@ -69,6 +69,12 @@ function minuti(inizio: string, fine: string): number {
   return Math.round((new Date(fine).getTime() - new Date(inizio).getTime()) / 60000)
 }
 
+/** Chi aspetta un posto in una lezione completa: «3 in lista d'attesa». Senza il dato (funzione non ancora aggiornata) non dice niente. */
+function inAttesa(l: Lezione): string | null {
+  if (l.liberi > 0 || l.in_attesa === undefined) return null
+  return l.in_attesa === 0 ? 'nessuno in lista d’attesa' : `${l.in_attesa} in lista d’attesa`
+}
+
 /** La copertina della lezione: la foto del sito, sfumata, col nome sopra. */
 function Copertina({ l, scheda, onScheda }: { l: Lezione; scheda: SchedaLezione | null; onScheda: () => void }) {
   const p = usePalette()
@@ -98,9 +104,11 @@ function Copertina({ l, scheda, onScheda }: { l: Lezione; scheda: SchedaLezione 
             <Text style={stili.vetrinoTesto}>Già cominciata</Text>
           </View>
         ) : (
-          <View style={stili.vetrino} accessibilityLabel={l.liberi <= 0 ? 'Lezione completa' : `${l.liberi} ${l.liberi === 1 ? 'posto libero' : 'posti liberi'}`}>
+          <View style={stili.vetrino} accessibilityLabel={l.liberi <= 0 ? `Lezione completa${inAttesa(l) ? `, ${inAttesa(l)}` : ''}` : `${l.liberi} ${l.liberi === 1 ? 'posto libero' : 'posti liberi'}`}>
             <View style={[stili.puntino, { backgroundColor: tono === 'ok' ? '#6DD58C' : tono === 'attenzione' ? '#F2B84B' : '#FF6B6B' }]} />
-            <Text style={stili.vetrinoTesto}>{l.liberi <= 0 ? 'Completa' : `${l.liberi} ${l.liberi === 1 ? 'posto' : 'posti'}`}</Text>
+            <Text style={stili.vetrinoTesto}>
+              {l.liberi <= 0 ? (l.in_attesa ? `Completa · ${l.in_attesa} in attesa` : 'Completa') : `${l.liberi} ${l.liberi === 1 ? 'posto' : 'posti'}`}
+            </Text>
           </View>
         )}
       </View>
@@ -255,6 +263,17 @@ function AzioniLezione({
   )
 }
 
+/** La riga sotto la barra dei posti: chi aspetta, con la clessidra. */
+function RigaAttesa({ testo }: { testo: string }) {
+  const p = usePalette()
+  return (
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+      <Icona nome="clessidra" size={14} colore={p.attenzione} />
+      <Text style={{ color: p.testoSecondario, fontFamily: F.semi, fontSize: 13.5 }}>{testo.charAt(0).toUpperCase() + testo.slice(1)}</Text>
+    </View>
+  )
+}
+
 function RigaLezione(props: PropsLezione) {
   const { l, scheda, onScheda } = props
   const p = usePalette()
@@ -281,7 +300,8 @@ function RigaLezione(props: PropsLezione) {
             </View>
           ))}
         </View>
-        {!l.iniziata ? <Barra valore={l.posti ? l.iscritti / l.posti : 0} colore={colorePosti} altezza={6} animata ritardo={250} /> : null}
+        {!l.iniziata ? <Barra valore={l.posti ? Math.min(1, l.iscritti / l.posti) : 0} colore={colorePosti} altezza={6} animata ritardo={250} /> : null}
+        {!l.iniziata && inAttesa(l) ? <RigaAttesa testo={inAttesa(l) as string} /> : null}
         <AzioniLezione {...props} />
       </View>
     </View>
@@ -404,7 +424,7 @@ function TurniInGriglia({
   const prenotati = (t: Lezione) => `${t.iscritti} ${t.iscritti === 1 ? 'prenotato' : 'prenotati'}`
   const tonoPosti = (t: Lezione): 'errore' | 'attenzione' | 'ok' => (t.liberi <= 0 ? 'errore' : t.liberi < 5 ? 'attenzione' : 'ok')
   const colorePosti = (t: Lezione) => p[tonoPosti(t)]
-  const posti = (t: Lezione) => (t.liberi <= 0 ? 'completo' : `${t.liberi} ${t.liberi === 1 ? 'posto libero' : 'posti liberi'}`)
+  const posti = (t: Lezione) => (t.liberi <= 0 ? `completo${inAttesa(t) ? `, ${inAttesa(t)}` : ''}` : `${t.liberi} ${t.liberi === 1 ? 'posto libero' : 'posti liberi'}`)
 
   return (
     <View style={[stili.lezione, { backgroundColor: p.carta, borderColor: p.linea, borderWidth: StyleSheet.hairlineWidth, boxShadow: p.ombra }]}>
@@ -519,8 +539,9 @@ function TurniInGriglia({
           </View>
           <Assistente turno={scelto} come={assistente} />
           {conPosti && !scelto.iniziata ? (
-            <Barra key={`barra-${scelto.class_id}`} valore={scelto.posti ? scelto.iscritti / scelto.posti : 0} colore={colorePosti(scelto)} altezza={6} animata />
+            <Barra key={`barra-${scelto.class_id}`} valore={scelto.posti ? Math.min(1, scelto.iscritti / scelto.posti) : 0} colore={colorePosti(scelto)} altezza={6} animata />
           ) : null}
+          {conPosti && !scelto.iniziata && inAttesa(scelto) ? <RigaAttesa testo={inAttesa(scelto) as string} /> : null}
           <AzioniLezione
             // Cambiando turno i pulsanti ripartono da capo (conferme, errori, pagamento).
             key={scelto.class_id}
@@ -713,13 +734,21 @@ export function Calendario() {
 
   // Dopo un clic si aggiorna la riga subito, con quello che dice PerfectGym,
   // senza ricaricare la giornata: il mirror puo' essere indietro.
-  function aggiorna(classId: number, prenotazione: Lezione['prenotazione'], delta: number) {
+  function aggiorna(classId: number, prenotazione: Lezione['prenotazione'], delta: number, deltaAttesa = 0) {
     setGiorno((g) => {
       if (!g) return g
       const nuovo = {
         ...g,
         lezioni: g.lezioni.map((l) =>
-          l.class_id === classId ? { ...l, prenotazione, iscritti: l.iscritti + delta, liberi: Math.max(0, l.liberi - delta) } : l
+          l.class_id === classId
+            ? {
+                ...l,
+                prenotazione,
+                iscritti: l.iscritti + delta,
+                liberi: Math.max(0, l.liberi - delta),
+                ...(l.in_attesa === undefined ? {} : { in_attesa: Math.max(0, l.in_attesa + deltaAttesa) }),
+              }
+            : l
         ),
       }
       // Anche la memoria: tornando qui la prenotazione appena fatta c'e' gia'.
@@ -734,7 +763,7 @@ export function Calendario() {
     const esito = await prenotaLezione(l.class_id, giorno.member_id)
     setOccupato(false)
     if (!esito.ok) return esito
-    aggiorna(l.class_id, { booking_id: esito.booking_id ?? 0, attesa: esito.esito === 'attesa' }, esito.esito === 'attesa' ? 0 : 1)
+    aggiorna(l.class_id, { booking_id: esito.booking_id ?? 0, attesa: esito.esito === 'attesa' }, esito.esito === 'attesa' ? 0 : 1, esito.esito === 'attesa' ? 1 : 0)
     return null
   }
 
@@ -771,7 +800,7 @@ export function Calendario() {
     const esito = await disdiciLezione(l.class_id, giorno.member_id)
     setOccupato(false)
     if (!esito.ok) return esito.errore
-    aggiorna(l.class_id, null, l.prenotazione?.attesa ? 0 : -1)
+    aggiorna(l.class_id, null, l.prenotazione?.attesa ? 0 : -1, l.prenotazione?.attesa ? -1 : 0)
     return null
   }
 
