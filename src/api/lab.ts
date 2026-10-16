@@ -80,7 +80,7 @@ export async function laMiaArea(): Promise<EsitoArea> {
   return {
     ok: false,
     nonAmmesso,
-    errore: nonAmmesso ? 'Questo indirizzo non è fra i tester del laboratorio.' : 'Non riusciamo a leggere i tuoi dati adesso. Riprova tra poco.',
+    errore: nonAmmesso ? 'Questo indirizzo non ha ancora accesso al portale. Scrivi al club se pensi sia un errore.' : 'Non riusciamo a leggere i tuoi dati adesso. Riprova tra poco.',
   }
 }
 
@@ -547,7 +547,7 @@ const anagrafica = (corpo: Record<string, unknown>) => funzione('portale-lab-ana
 
 function esitoAnagrafica(r: { ok: boolean; stato: number; dati: Record<string, any> }, predefinito: string): EsitoAnagrafica {
   if (r.ok && r.dati.anagrafica) return { ok: true, anagrafica: r.dati.anagrafica as Anagrafica }
-  if (r.stato === 404) return { ok: false, nonAttiva: true, errore: 'La modifica dei dati non è ancora attiva nel laboratorio.' }
+  if (r.stato === 404) return { ok: false, nonAttiva: true, errore: 'Al momento i dati non si possono modificare da qui.' }
   return { ok: false, nonAttiva: false, errore: r.dati.errore ?? predefinito }
 }
 
@@ -566,7 +566,7 @@ export async function salvaIndirizzo(indirizzo: Indirizzo): Promise<EsitoAnagraf
 export async function chiediCambioEmail(email: string): Promise<{ ok: true } | { ok: false; errore: string }> {
   const r = await anagrafica({ azione: 'email', email })
   if (r.ok) return { ok: true }
-  if (r.stato === 404) return { ok: false, errore: 'La modifica dei dati non è ancora attiva nel laboratorio.' }
+  if (r.stato === 404) return { ok: false, errore: 'Al momento i dati non si possono modificare da qui.' }
   return { ok: false, errore: r.dati.errore ?? 'Non siamo riusciti a mandare il codice al nuovo indirizzo.' }
 }
 

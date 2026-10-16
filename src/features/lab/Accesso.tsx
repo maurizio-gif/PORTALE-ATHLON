@@ -17,7 +17,7 @@ import { Schermata } from './ui/Schermata'
 import { F, FUOCO, NOTTE, usePalette } from './ui/tema'
 import { colpetto } from './ui/Tocco'
 
-// L'accesso al laboratorio, cioe' alla nuova app di Athlon Club in prova:
+// L'accesso all'area riservata di Athlon Club:
 // email, poi il codice di otto cifre che arriva per email (lo genera Supabase
 // Auth, e sono otto: vedi CIFRE in ui/Campi). Nessuna password. Il codice
 // completo parte da solo, scritto, incollato o suggerito dalla tastiera.
@@ -41,16 +41,16 @@ function Testata({ fase }: { fase: 'email' | 'codice' }) {
           <Image source={require('@/../assets/images/pittogramma.png')} style={{ width: 40, height: 32 }} contentFit="contain" />
         </View>
         <View style={stili.chip}>
-          <Icona nome="laboratorio" size={13} colore={FUOCO[0]} />
-          <Text style={stili.chipTesto}>LA NUOVA APP ATHLON CLUB · IN TEST</Text>
+          <Icona nome="tessera" size={13} colore={FUOCO[0]} />
+          <Text style={stili.chipTesto}>LA TUA AREA ATHLON CLUB</Text>
         </View>
         <Text style={stili.titolo} accessibilityRole="header">
-          {fase === 'email' ? 'Il club, prima\ndi tutti' : 'Controlla\nla posta'}
+          {fase === 'email' ? 'Il tuo club,\nsempre con te' : 'Controlla\nla posta'}
           <Text style={{ color: FUOCO[1] }}>.</Text>
         </Text>
         <Text style={stili.sotto}>
           {fase === 'email'
-            ? 'Questa è la nuova app di Athlon Club, ancora in fase di test: la provano per primi alcuni soci, prima che arrivi a tutti. Entri con la tua email, senza password.'
+            ? 'Prenotazioni, workout, abbonamenti e pagamenti in un posto solo. Entri con la tua email, senza password.'
             : `Ti abbiamo mandato un codice di ${CIFRE} cifre: scrivilo o incollalo qui sotto.`}
         </Text>
       </View>
@@ -126,7 +126,7 @@ export function Accesso() {
   }
 
   return (
-    <Schermata titolo="Laboratorio" nascondiTitolo barra={false} sopra={<Testata fase={fase} />}>
+    <Schermata titolo="Accesso" nascondiTitolo barra={false} sopra={<Testata fase={fase} />}>
       <Carta style={stili.modulo}>
         <Animated.View key={fase} entering={FadeInRight.duration(320)} style={{ gap: spazio.tre + 4 }}>
           <Passi fase={fase} />
@@ -149,14 +149,14 @@ export function Accesso() {
               {errore ? <Messaggio>{errore}</Messaggio> : null}
               <Pulsante testo="Mandami il codice" icona="avanti" onPress={mandaCodice} inCorso={attesa} />
               <Text style={[stili.nota, { color: p.testoSecondario }]}>
-                Usa l’email con cui sei iscritto al club: è da lì che il laboratorio trova{' '}
+                Usa l’email con cui sei iscritto al club: è da lì che troviamo{' '}
                 <Text style={{ fontFamily: F.bold, color: p.testo }}>i tuoi abbonamenti e la tua famiglia</Text>.
               </Text>
             </>
           ) : (
             <>
               <Text style={[stili.nota, { color: p.testoSecondario, fontSize: 14.5 }]}>
-                Se <Text style={{ fontFamily: F.bold, color: p.testo }}>{email.trim()}</Text> è fra i tester, ti abbiamo mandato un codice di {CIFRE} cifre.
+                Se <Text style={{ fontFamily: F.bold, color: p.testo }}>{email.trim()}</Text> è l’email con cui sei iscritto, ti abbiamo mandato un codice di {CIFRE} cifre.
               </Text>
               <CampoCodice value={codice} onChange={cambiaCodice} onInvio={() => verifica()} errore={!!errore} />
               {puoIncollare ? <Pulsante testo="Incolla il codice" icona="documento" variante="secondario" piccolo onPress={incolla} disabilitato={attesa} /> : null}
@@ -174,8 +174,8 @@ export function Accesso() {
         {(
           [
             ['lucchetto', 'Niente password'],
-            ['scudo', 'Solo per i tester'],
-            ['laboratorio', 'Funzioni in prova'],
+            ['scudo', 'Accesso sicuro'],
+            ['tessera', 'Per i soci del club'],
           ] as const
         ).map(([icona, testo]) => (
           <View key={testo} style={stili.garanzia}>

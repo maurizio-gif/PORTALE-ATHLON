@@ -8,7 +8,7 @@ import { Avviso } from '@/components/Avviso'
 export const pagamentoDisponibile = false
 
 export function DropIn(_: { sessione: SessioneAdyen; onFine: (sessionResult: string | null) => void; onErrore: (messaggio: string) => void }) {
-  return <Avviso tono="attenzione">Il pagamento con carta, per ora, si prova dal sito: app.athlonroma.it/lab.</Avviso>
+  return <Avviso tono="attenzione">Su questo dispositivo il pagamento con carta si completa dal browser: apri app.athlonroma.it.</Avviso>
 }
 
 export async function riprendiDopoRedirect(_: { clientKey: string; environment: string; sessionId: string; redirectResult: string }): Promise<string | null> {

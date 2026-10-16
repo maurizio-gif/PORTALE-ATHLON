@@ -654,7 +654,7 @@ export function Personal() {
 
   if (errore && !stato) {
     return (
-      <Schermata sopratitolo="Laboratorio" titolo="Prenotazioni">
+      <Schermata titolo="Prenotazioni">
         <SceltaPrenotazioni attiva="personal" />
         <Messaggio>{errore}</Messaggio>
         <Pulsante testo="Riprova" icona="aggiorna" onPress={() => leggi()} />
@@ -663,7 +663,7 @@ export function Personal() {
   }
   if (!stato) {
     return (
-      <Schermata sopratitolo="Laboratorio" titolo="Prenotazioni">
+      <Schermata titolo="Prenotazioni">
         <SceltaPrenotazioni attiva="personal" />
         <SchedeInArrivo />
       </Schermata>
@@ -798,7 +798,7 @@ export function Personal() {
   const perChi = stato.persone.find((x) => x.member_id === stato.member_id)
 
   return (
-    <Schermata larga sopratitolo="Laboratorio" titolo="Prenotazioni">
+    <Schermata larga titolo="Prenotazioni">
       <SceltaPrenotazioni attiva="personal" />
 
       {esitoPacchetto ? (
