@@ -252,7 +252,9 @@ export function Abbonamento() {
     }
     setMancanti(null)
     setPersoneDati(r.anteprima.persone_dati ?? [])
-    setConsensi(Object.fromEntries(r.anteprima.consensi.map((c) => [c.chiave, c.preselezionato])))
+    // Le dichiarazioni obbligatorie partono sempre spuntate (e non si tolgono):
+    // il facoltativo segue il catalogo del club.
+    setConsensi(Object.fromEntries(r.anteprima.consensi.map((c) => [c.chiave, c.obbligatorio || c.preselezionato])))
     setFirmaPng(null)
     setErroreFirma(null)
     setAnteprima(r.anteprima)
@@ -594,8 +596,13 @@ export function Abbonamento() {
             ))}
 
             <Text style={{ color: p.testo, fontFamily: F.extra, fontSize: 18, marginTop: spazio.tre }}>Dichiarazioni</Text>
+            {anteprima.consensi.some((c) => !c.obbligatorio) ? (
+              <Text style={{ color: p.testoSecondario, fontFamily: F.medio, fontSize: 13, lineHeight: 18 }}>
+                Le dichiarazioni del contratto sono già spuntate. Puoi togliere solo quella facoltativa, per le comunicazioni.
+              </Text>
+            ) : null}
             {anteprima.consensi.map((c) => (
-              <Casella key={c.chiave} spuntata={!!consensi[c.chiave]} onCambia={() => setConsensi((x) => ({ ...x, [c.chiave]: !x[c.chiave] }))} etichetta={c.testo}>
+              <Casella key={c.chiave} spuntata={!!consensi[c.chiave]} bloccata={c.obbligatorio} onCambia={() => setConsensi((x) => ({ ...x, [c.chiave]: !x[c.chiave] }))} etichetta={c.testo}>
                 <Text style={{ color: p.testo, fontFamily: F.normale, fontSize: 13, lineHeight: 19 }}>
                   {c.testo}
                   {c.obbligatorio ? '' : ' (facoltativo)'}
