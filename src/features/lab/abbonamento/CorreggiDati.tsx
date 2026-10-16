@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Text, View } from 'react-native'
 
 import { salvaDatiAbbonamento, type CambiDati, type PersonaDati } from '@/api/abbonamento'
+import { Casella } from '@/components/Casella'
 import { spazio } from '@/theme'
 
 import { CampoTesto } from '../ui/Campi'
@@ -31,6 +32,7 @@ export function CorreggiDati({
   const p = usePalette()
   const [aperto, setAperto] = useState(apertoDa)
   const [cf, setCf] = useState(persona.codice_fiscale ?? '')
+  const [estero, setEstero] = useState(!!persona.senza_codice_fiscale)
   const [telefono, setTelefono] = useState(persona.telefono ?? '')
   const [via, setVia] = useState(persona.indirizzo?.via ?? '')
   const [cap, setCap] = useState(persona.indirizzo?.cap ?? '')
@@ -41,7 +43,16 @@ export function CorreggiDati({
   async function salva() {
     const cambi: CambiDati = {}
     const cfNuovo = cf.replace(/\s/g, '').toUpperCase()
-    if (cfNuovo !== (persona.codice_fiscale ?? '').toUpperCase()) cambi.codice_fiscale = cfNuovo
+    if (estero) {
+      // Residente all'estero: nessun codice da controllare. Su PerfectGym il campo resta vuoto.
+      if (!persona.senza_codice_fiscale) cambi.senza_codice_fiscale = true
+    } else if (cfNuovo !== (persona.codice_fiscale ?? '').toUpperCase() || persona.senza_codice_fiscale) {
+      if (!cfNuovo) {
+        setErrore('Scrivi il codice fiscale, oppure spunta che sei residente all’estero.')
+        return
+      }
+      cambi.codice_fiscale = cfNuovo
+    }
     if (telefono.trim() !== (persona.telefono ?? '')) cambi.telefono = telefono.trim()
     if (via.trim() !== (persona.indirizzo?.via ?? '') || cap !== (persona.indirizzo?.cap ?? '') || citta.trim() !== (persona.indirizzo?.citta ?? '')) {
       cambi.indirizzo = { via: via.trim(), cap, citta: citta.trim() }
@@ -75,7 +86,12 @@ export function CorreggiDati({
         <Text style={{ color: p.testoSecondario, fontFamily: F.medio, fontSize: 13, lineHeight: 19 }}>
           {`${persona.nome} ${persona.cognome}${persona.data_nascita ? `, nato/a il ${persona.data_nascita.split('-').reverse().join('/')}` : ''}. Nome e data di nascita si cambiano dal club.`}
         </Text>
-        <CampoTesto etichetta="Codice fiscale" value={cf} onChangeText={(v) => setCf(v.toUpperCase())} autoCapitalize="characters" autoCorrect={false} maxLength={16} placeholder="RSSMRA80A01H501U" />
+        {estero ? null : (
+          <CampoTesto etichetta="Codice fiscale" value={cf} onChangeText={(v) => setCf(v.toUpperCase())} autoCapitalize="characters" autoCorrect={false} maxLength={16} placeholder="RSSMRA80A01H501U" />
+        )}
+        <Casella spuntata={estero} onCambia={() => setEstero((v) => !v)} etichetta="Sono residente all’estero e non ho un codice fiscale italiano">
+          <Text style={{ color: p.testo, fontFamily: F.medio, fontSize: 14, lineHeight: 20 }}>Sono residente all’estero e non ho un codice fiscale italiano</Text>
+        </Casella>
         <CampoTesto etichetta="Cellulare" icona="telefono" value={telefono} onChangeText={setTelefono} autoComplete="tel" textContentType="telephoneNumber" keyboardType="phone-pad" />
         <CampoTesto etichetta="Via e numero civico" icona="luogo" value={via} onChangeText={setVia} autoComplete="street-address" textContentType="fullStreetAddress" placeholder="Via Ugo Ojetti 134" />
         <View style={{ flexDirection: 'row', gap: spazio.due }}>
