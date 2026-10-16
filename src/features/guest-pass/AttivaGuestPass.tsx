@@ -6,6 +6,8 @@ import { chiamaLink } from '@/api/link'
 import { Avviso } from '@/components/Avviso'
 import { Bottone } from '@/components/Bottone'
 import { Campo } from '@/components/Campo'
+import { CampoPaese } from '@/components/CampoPaese'
+import { CasellaResidenteEstero } from '@/components/CasellaResidenteEstero'
 import { CampoData } from '@/components/CampoData'
 import { ChiGestisceCarta, ChiGestisceConto } from '@/components/ChiGestisce'
 import { Casella } from '@/components/Casella'
@@ -29,6 +31,7 @@ import {
 } from '@/lib/guestPass'
 
 import { problemaCodiceFiscale } from '@/lib/codiceFiscale'
+import { capLiberoValido, pulisciCapLibero } from '@/lib/residenteEstero'
 import { spazio, tinta, useColori } from '@/theme'
 
 // Il Guest Pass dal link (in prova): una pagina sola, in quattro blocchi.
@@ -105,8 +108,12 @@ export function AttivaGuestPass({ token, nome, iniziale }: { token: string; nome
   const c = useColori()
   const { carta: tornatoCarta, pagato: tornatoPagato } = useLocalSearchParams<{ carta?: string; pagato?: string }>()
   const [p, setP] = useState(iniziale)
-  const daPerfectGym = (pp: PaginaGuestPass) =>
-    Object.fromEntries(Object.keys(CAMPI).map((k) => [k, String((pp.persona as Record<string, unknown>)[k] ?? '')]))
+  // Oltre ai campi del riepilogo, `residente_estero` ('1'/'0') e `paese`: le chiavi che `guest-pass` legge e scrive.
+  const daPerfectGym = (pp: PaginaGuestPass): Record<string, string> => ({
+    ...Object.fromEntries(Object.keys(CAMPI).map((k) => [k, String((pp.persona as Record<string, unknown>)[k] ?? '')])),
+    residente_estero: pp.persona.residente_estero ? '1' : '0',
+    paese: pp.persona.paese ?? '',
+  })
   const [dati, setDati] = useState<Record<string, string>>(daPerfectGym(iniziale))
   const [confermati, setConfermati] = useState(!!iniziale.scelte.dati_confermati)
   // La password non si salva fra un passo e l'altro: va su PerfectGym solo alla conferma.
@@ -194,10 +201,30 @@ export function AttivaGuestPass({ token, nome, iniziale }: { token: string; nome
   const giorni = giorniFra(p.inizio.dal, p.inizio.al)
   const tuttiIConsensi = accetto
   const originali = daPerfectGym(p)
-  const cambiati = Object.fromEntries(Object.entries(dati).filter(([k, v]) => v.trim() !== (originali[k] ?? '').trim()))
+  // Residente all'estero: niente codice fiscale (e niente controlli su di lui), il Paese e' obbligatorio e il CAP e' libero.
+  const estero = dati.residente_estero === '1'
+  const cambiati: Record<string, string> = Object.fromEntries(Object.entries(dati).filter(([k, v]) => v.trim() !== (originali[k] ?? '').trim()))
+  if (estero) {
+    // Con la spunta il codice fiscale non parte (insieme alla spunta il server risponde 400), e il Paese parte con lei.
+    delete cambiati.codice_fiscale
+    if ('residente_estero' in cambiati || 'paese' in cambiati) cambiati.paese = dati.paese
+  } else {
+    // Senza la spunta il Paese non si manda: l'indirizzo e' italiano.
+    delete cambiati.paese
+  }
   // Il codice fiscale deve essere ben scritto e di questa persona (cognome, nome, nascita).
-  const erroreCf = problemaCodiceFiscale(dati)
-  const datiCompleti = Object.keys(CAMPI).every((k) => (dati[k] ?? '').trim()) && !erroreCf
+  const erroreCf = estero ? null : problemaCodiceFiscale(dati)
+  const senzaPaese = estero && !dati.paese
+  const erroreCap = estero && !!dati.cap.trim() && !capLiberoValido(dati.cap)
+  const datiCompleti =
+    Object.keys(CAMPI).every((k) => (estero && k === 'codice_fiscale') || (dati[k] ?? '').trim()) && !erroreCf && !senzaPaese && !erroreCap
+
+  // La casella cambia il tipo di CAP: tolta la spunta, un CAP che non ha cinque cifre non vale piu'.
+  function cambiaEstero() {
+    setDati((x) => ({ ...x, residente_estero: x.residente_estero === '1' ? '0' : '1', cap: x.residente_estero === '1' && !/^\d{5}$/.test(x.cap) ? '' : x.cap }))
+    setConfermati(false)
+    setErroreDati(null)
+  }
   const salvati = p.salvati ?? []
   const cartaSalvata = salvati.find((m) => m.tipo === 'carta') ?? null
   const salvatoScelto = sceltaMetodo?.startsWith('s') ? (salvati.find((m) => `s${m.id}` === sceltaMetodo) ?? null) : null
@@ -350,7 +377,7 @@ export function AttivaGuestPass({ token, nome, iniziale }: { token: string; nome
           <Campo etichetta="Intestatario del conto" value={conto.intestatario} onChangeText={(v) => setConto((x) => ({ ...x, intestatario: v }))} />
           <Campo etichetta="Via e numero civico" value={conto.via} onChangeText={(v) => setConto((x) => ({ ...x, via: v }))} />
           <View style={{ flexDirection: 'row', gap: spazio.due }}>
-            <Campo etichetta="CAP" value={conto.cap} onChangeText={(v) => setConto((x) => ({ ...x, cap: v }))} keyboardType="number-pad" />
+            <Campo etichetta="CAP" value={conto.cap} onChangeText={(v) => setConto((x) => ({ ...x, cap: v }))} keyboardType={estero ? 'default' : 'number-pad'} maxLength={estero ? 12 : undefined} />
             <Campo etichetta="Città" value={conto.citta} onChangeText={(v) => setConto((x) => ({ ...x, citta: v }))} />
           </View>
           <Bottone testo="Salva il conto" variante="contorno" onPress={salvaConto} inCorso={occupato === 'iban'} disabilitato={!!occupato} />
@@ -383,35 +410,58 @@ export function AttivaGuestPass({ token, nome, iniziale }: { token: string; nome
         </Testo>
         {GRUPPI.map((g) => (
           <Gruppo key={g.titolo} titolo={g.titolo} due={dueColonne}>
-            {g.campi.map((k) => {
-              const cambia = (v: string) => {
-                setDati((x) => ({ ...x, [k]: v }))
-                setConfermati(false)
-                setErroreDati(null)
-              }
-              if (k === 'nascita') {
-                return <CampoData key={k} etichetta={CAMPI[k]} value={dati[k] ?? ''} onChange={cambia} errore={!(dati[k] ?? '').trim()} sfondo={c.sfondo} />
-              }
-              return (
-                <Campo
-                  key={k}
-                  etichetta={CAMPI[k]}
-                  value={dati[k] ?? ''}
-                  onChangeText={k === 'codice_fiscale' ? (v) => cambia(v.toUpperCase()) : cambia}
-                  autoCapitalize={k === 'codice_fiscale' ? 'characters' : k === 'email' ? 'none' : 'words'}
-                  keyboardType={k === 'email' ? 'email-address' : k === 'telefono' ? 'phone-pad' : k === 'cap' ? 'number-pad' : 'default'}
-                  autoComplete={
-                    ({ nome: 'given-name', cognome: 'family-name', email: 'email', telefono: 'tel', via: 'street-address', cap: 'postal-code', citta: 'address-level2' } as const)[
-                      k as 'nome'
-                    ]
-                  }
-                  maxLength={k === 'codice_fiscale' ? 16 : k === 'cap' ? 5 : undefined}
-                  placeholder={k === 'codice_fiscale' ? 'RSSMRA80A01H501U' : k === 'telefono' ? '+39 340 123 4567' : undefined}
-                  errore={!(dati[k] ?? '').trim() || (k === 'codice_fiscale' && !!erroreCf)}
-                  style={{ backgroundColor: c.sfondo }}
-                />
-              )
-            })}
+            {[
+              // Residente all'estero: il Paese apre il gruppo dell'indirizzo.
+              ...(g.titolo === 'Residenza' && estero
+                ? [
+                    <CampoPaese
+                      key="paese"
+                      value={dati.paese ?? ''}
+                      onChange={(v) => {
+                        setDati((x) => ({ ...x, paese: v }))
+                        setConfermati(false)
+                        setErroreDati(null)
+                      }}
+                      errore={senzaPaese}
+                      style={{ backgroundColor: c.sfondo }}
+                    />,
+                  ]
+                : []),
+              ...g.campi.flatMap((k) => {
+                const cambia = (v: string) => {
+                  setDati((x) => ({ ...x, [k]: v }))
+                  setConfermati(false)
+                  setErroreDati(null)
+                }
+                // Con la spunta il codice fiscale non c'e': resta la casella, sotto il posto che occupava.
+                const casella = k === 'codice_fiscale' ? [<CasellaResidenteEstero key="estero" spuntata={estero} onCambia={cambiaEstero} />] : []
+                if (k === 'codice_fiscale' && estero) return casella
+                if (k === 'nascita') {
+                  return [<CampoData key={k} etichetta={CAMPI[k]} value={dati[k] ?? ''} onChange={cambia} errore={!(dati[k] ?? '').trim()} sfondo={c.sfondo} />]
+                }
+                const capLibero = k === 'cap' && estero
+                return [
+                  <Campo
+                    key={k}
+                    etichetta={CAMPI[k]}
+                    value={dati[k] ?? ''}
+                    onChangeText={k === 'codice_fiscale' ? (v) => cambia(v.toUpperCase()) : capLibero ? (v) => cambia(pulisciCapLibero(v)) : cambia}
+                    autoCapitalize={k === 'codice_fiscale' || capLibero ? 'characters' : k === 'email' ? 'none' : 'words'}
+                    keyboardType={k === 'email' ? 'email-address' : k === 'telefono' ? 'phone-pad' : k === 'cap' && !estero ? 'number-pad' : 'default'}
+                    autoComplete={
+                      ({ nome: 'given-name', cognome: 'family-name', email: 'email', telefono: 'tel', via: 'street-address', cap: 'postal-code', citta: 'address-level2' } as const)[
+                        k as 'nome'
+                      ]
+                    }
+                    maxLength={k === 'codice_fiscale' ? 16 : k === 'cap' ? (estero ? 12 : 5) : undefined}
+                    placeholder={k === 'codice_fiscale' ? 'RSSMRA80A01H501U' : k === 'telefono' ? '+39 340 123 4567' : capLibero ? 'SW1A 1AA' : undefined}
+                    errore={!(dati[k] ?? '').trim() || (k === 'codice_fiscale' && !!erroreCf) || (capLibero && erroreCap)}
+                    style={{ backgroundColor: c.sfondo }}
+                  />,
+                  ...casella,
+                ]
+              }),
+            ]}
           </Gruppo>
         ))}
         {erroreCf ? <Avviso>{erroreCf}</Avviso> : null}
@@ -554,7 +604,7 @@ export function AttivaGuestPass({ token, nome, iniziale }: { token: string; nome
               <View style={dueColonne ? { flexDirection: 'row', gap: spazio.tre } : { gap: spazio.tre }}>
                 <Campo etichetta="Via e numero civico" value={conto.via} onChangeText={(v) => setConto((x) => ({ ...x, via: v }))} style={{ backgroundColor: c.sfondo }} />
                 <View style={{ flexDirection: 'row', gap: spazio.due, flex: 1 }}>
-                  <Campo etichetta="CAP" value={conto.cap} onChangeText={(v) => setConto((x) => ({ ...x, cap: v }))} keyboardType="number-pad" maxLength={5} style={{ backgroundColor: c.sfondo }} />
+                  <Campo etichetta="CAP" value={conto.cap} onChangeText={(v) => setConto((x) => ({ ...x, cap: v }))} keyboardType={estero ? 'default' : 'number-pad'} maxLength={estero ? 12 : 5} style={{ backgroundColor: c.sfondo }} />
                   <Campo etichetta="Città" value={conto.citta} onChangeText={(v) => setConto((x) => ({ ...x, citta: v }))} style={{ backgroundColor: c.sfondo }} />
                 </View>
               </View>
@@ -625,7 +675,17 @@ export function AttivaGuestPass({ token, nome, iniziale }: { token: string; nome
       {!pronto ? (
         <Testo variante="piccolo">
           {errorePassword ? `${errorePassword} ` : ''}
-          {erroreCf ? 'Controlla il codice fiscale. ' : !datiCompleti ? 'Completa i tuoi dati. ' : !confermati ? 'Conferma che i tuoi dati sono corretti. ' : ''}
+          {erroreCf
+            ? 'Controlla il codice fiscale. '
+            : senzaPaese
+              ? 'Scegli il Paese in cui risiedi. '
+              : erroreCap
+                ? 'Controlla il CAP. '
+                : !datiCompleti
+                  ? 'Completa i tuoi dati. '
+                  : !confermati
+                    ? 'Conferma che i tuoi dati sono corretti. '
+                    : ''}
           {!inizio ? 'Scegli il giorno d’inizio. ' : ''}
           {!metodoPronto ? 'Completa il metodo di pagamento. ' : ''}
           {!tuttiIConsensi ? 'Accetta i Termini e Condizioni, il Regolamento e le Condizioni di pagamento.' : ''}
