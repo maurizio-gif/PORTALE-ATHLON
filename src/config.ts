@@ -13,3 +13,8 @@ export const SUPABASE_URL = senzaSlash(process.env.EXPO_PUBLIC_SUPABASE_URL || '
 // per stare nel codice dell'app, i permessi li decide il database.
 export const SUPABASE_PUBLISHABLE_KEY =
   process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY || 'sb_publishable_jj5Pt1OYpBJQ72Co_j4ImA_08n4Q3mT'
+
+/** Il sito del club: la pagina Club Life dell'app e' la sua, incorporata. */
+export const SITO_URL = senzaSlash(process.env.EXPO_PUBLIC_SITO_URL || 'https://www.athlonroma.it')
+/** Con lo slash finale, che e' la forma canonica del sito: senza prenderebbe un reindirizzamento in piu'. */
+export const CLUB_LIFE_URL = `${SITO_URL}/club-life/`
