@@ -777,7 +777,7 @@ export function Calendario() {
 
   if (errore && !giorno) {
     return (
-      <Schermata sopratitolo="Laboratorio" titolo="Prenotazioni">
+      <Schermata titolo="Prenotazioni">
         <SceltaPrenotazioni attiva="lezioni" />
         <Messaggio>{errore}</Messaggio>
         <Pulsante testo="Riprova" icona="aggiorna" onPress={() => leggi()} />
@@ -786,7 +786,7 @@ export function Calendario() {
   }
   if (!giorno) {
     return (
-      <Schermata sopratitolo="Laboratorio" titolo="Prenotazioni">
+      <Schermata titolo="Prenotazioni">
         <SceltaPrenotazioni attiva="lezioni" />
         <SchedeInArrivo />
       </Schermata>
@@ -809,7 +809,7 @@ export function Calendario() {
   const perChi = giorno.persone.find((x) => x.member_id === giorno.member_id)
   const schedaAperta = aperta?.scheda ? giorno.schede?.[aperta.scheda] ?? null : null
   return (
-    <Schermata larga sopratitolo="Laboratorio" titolo="Prenotazioni" scorrimento={scorrimento}>
+    <Schermata larga titolo="Prenotazioni" scorrimento={scorrimento}>
       <SceltaPrenotazioni attiva="lezioni" />
 
       {ritorno ? (

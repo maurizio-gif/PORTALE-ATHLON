@@ -1,4 +1,3 @@
-import { LinearGradient } from 'expo-linear-gradient'
 import { useCallback, useEffect, useState } from 'react'
 import { StyleSheet, Text, View } from 'react-native'
 
@@ -10,7 +9,6 @@ import {
   salvaIndirizzo,
   salvaTelefono,
   type Anagrafica,
-  type PersonaArea,
 } from '@/api/lab'
 import { emailValida } from '@/api/richieste'
 import { CampoPaese } from '@/components/CampoPaese'
@@ -20,18 +18,15 @@ import { CODICE_FISCALE_NON_ATTRIBUITO, ITALIA, pulisciCapLibero } from '@/lib/r
 import { spazio } from '@/theme'
 
 import { inMemoria, prendi, ricorda } from './memoria'
-import { ProvaPagamento } from './Pagamenti'
 import { CampoCodice, CampoTesto } from './ui/Campi'
 import { Foglio } from './ui/Foglio'
 import { Icona, type NomeIcona } from './ui/Icona'
-import { AvvisoDebito, BollinoDebito } from './ui/Irregolarita'
-import { Avatar, Carta, Entra, Messaggio, Pulsante, Riga, SchedeInArrivo, Sezione } from './ui/kit'
-import { Schermata } from './ui/Schermata'
+import { Carta, Entra, Messaggio, Pulsante, Riga, SchedeInArrivo, Sezione } from './ui/kit'
 import { PulsanteEsci } from './ui/Uscita'
-import { F, NOTTE, usePalette } from './ui/tema'
+import { F, usePalette } from './ui/tema'
 import { colpetto } from './ui/Tocco'
 
-// Il mio profilo: l'anagrafica del titolare com'e' sulla scheda del club, e i
+// La sezione Profilo della Home: l'anagrafica del titolare com'e' sulla scheda del club, e i
 // contatti che si possono cambiare da qui: email, telefono, indirizzo. Il
 // resto (nome, nascita, codice fiscale) non si tocca dall'app.
 //
@@ -39,15 +34,6 @@ import { colpetto } from './ui/Tocco'
 // con quello che da' la mia area (portale_la_mia_area).
 
 type Modifica = 'email' | 'telefono' | 'indirizzo' | null
-
-function eta(nascita: string | null): number | null {
-  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(nascita ?? '')
-  if (!m) return null
-  const oggi = new Date()
-  let anni = oggi.getFullYear() - Number(m[1])
-  if (oggi.getMonth() + 1 < Number(m[2]) || (oggi.getMonth() + 1 === Number(m[2]) && oggi.getDate() < Number(m[3]))) anni--
-  return anni
-}
 
 // ---------------------------------------------------------------------------
 
@@ -163,7 +149,7 @@ function FoglioEmail({ attuale, onChiudi, onSalvato }: { attuale: string | null;
     <Foglio
       aperto
       titolo={fase === 'nuova' ? 'Email' : 'Conferma la nuova email'}
-      sottotitolo={fase === 'nuova' ? 'È l’email con cui entri nel laboratorio e ricevi le comunicazioni del club.' : `Ti abbiamo mandato un codice di sei cifre a ${nuova}.`}
+      sottotitolo={fase === 'nuova' ? 'È l’email con cui entri e ricevi le comunicazioni del club.' : `Ti abbiamo mandato un codice di sei cifre a ${nuova}.`}
       onChiudi={onChiudi}
     >
       {fase === 'nuova' ? (
@@ -209,39 +195,6 @@ function FoglioEmail({ attuale, onChiudi, onSalvato }: { attuale: string | null;
 
 // ---------------------------------------------------------------------------
 
-/** La testata: l'avatar grande, il nome, e tre cifre come nei profili delle app fitness. */
-function Testata({ a, famiglia }: { a: Anagrafica; famiglia: number | null }) {
-  const anni = eta(a.data_nascita)
-  const cifre = [
-    { valore: anni != null ? String(anni) : '—', etichetta: 'Anni' },
-    { valore: a.numero ?? '—', etichetta: 'Tessera' },
-    { valore: famiglia != null ? String(famiglia) : '—', etichetta: 'Famiglia' },
-  ]
-  return (
-    <LinearGradient colors={NOTTE} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={stili.testata}>
-      <View style={stili.bagliore} />
-      <Avatar nome={a.nome} cognome={a.cognome} size={92} anello="rgba(255,255,255,0.16)" />
-      <View style={{ alignItems: 'center', gap: 6 }}>
-        <Text style={stili.nome}>{[a.nome, a.cognome].filter(Boolean).join(' ') || 'Il mio profilo'}</Text>
-        <View style={stili.chip}>
-          <Icona nome="scudo" size={13} colore="#6DD58C" />
-          <Text style={stili.chipTesto}>TITOLARE</Text>
-        </View>
-      </View>
-      <View style={stili.cifre}>
-        {cifre.map((c, i) => (
-          <View key={c.etichetta} style={[stili.cifra, i > 0 && { borderLeftWidth: StyleSheet.hairlineWidth, borderLeftColor: 'rgba(255,255,255,0.14)' }]}>
-            <Text style={stili.cifraValore} numberOfLines={1}>
-              {c.valore}
-            </Text>
-            <Text style={stili.cifraEtichetta}>{c.etichetta}</Text>
-          </View>
-        ))}
-      </View>
-    </LinearGradient>
-  )
-}
-
 function ModificaPillola() {
   const p = usePalette()
   return (
@@ -251,13 +204,15 @@ function ModificaPillola() {
   )
 }
 
-export function Profilo() {
+/**
+ * Il corpo della sezione Profilo della Home (17/10/2026): i contatti da
+ * cambiare, i dati anagrafici, l'account. Il nucleo sta in Famiglia, e l'avviso
+ * di un pagamento in sospeso nel «Da fare» della Home.
+ */
+export function ProfiloContenuto() {
   const p = usePalette()
   const giaLetta = inMemoria<{ ok: true; anagrafica: Anagrafica }>('anagrafica')
-  const areaLetta = inMemoria<Awaited<ReturnType<typeof laMiaArea>>>('area')
   const [dati, setDati] = useState<Anagrafica | null>(giaLetta?.anagrafica ?? null)
-  const [famiglia, setFamiglia] = useState<number | null>(areaLetta?.ok && areaLetta.area.trovato ? areaLetta.area.persone.length - 1 : null)
-  const [persone, setPersone] = useState<PersonaArea[]>(areaLetta?.ok && areaLetta.area.trovato ? areaLetta.area.persone : [])
   const [modificabile, setModificabile] = useState(!!giaLetta)
   const [errore, setErrore] = useState<string | null>(null)
   const [modifica, setModifica] = useState<Modifica>(null)
@@ -267,10 +222,6 @@ export function Profilo() {
     setErrore(null)
     const [r, area] = await Promise.all([prendi('anagrafica', leggiAnagrafica), prendi('area', laMiaArea)])
     const trovata = area.ok && area.area.trovato ? area.area : null
-    if (trovata) {
-      setFamiglia(trovata.persone.length - 1)
-      setPersone(trovata.persone)
-    }
     if (r.ok) {
       setDati(r.anagrafica)
       setModificabile(true)
@@ -309,19 +260,13 @@ export function Profilo() {
 
   if (errore && !dati) {
     return (
-      <Schermata sopratitolo="Laboratorio" titolo="Il mio profilo" indietro="/lab" barra={false}>
+      <View style={{ gap: spazio.tre }}>
         <Messaggio>{errore}</Messaggio>
         <Pulsante testo="Riprova" icona="aggiorna" onPress={carica} />
-      </Schermata>
+      </View>
     )
   }
-  if (!dati) {
-    return (
-      <Schermata sopratitolo="Laboratorio" titolo="Il mio profilo" indietro="/lab" barra={false}>
-        <SchedeInArrivo quante={2} />
-      </Schermata>
-    )
-  }
+  if (!dati) return <SchedeInArrivo quante={2} />
 
   const contatti: { chiave: Exclude<Modifica, null>; icona: NomeIcona; titolo: string; valore: string | null; vuoto: string }[] = [
     { chiave: 'email', icona: 'email', titolo: 'Email', valore: dati.email, vuoto: 'Nessuna email' },
@@ -338,39 +283,12 @@ export function Profilo() {
   const anagrafici = tutti.filter((x) => x.valore)
 
   return (
-    <Schermata sopratitolo="Laboratorio" titolo="Il mio profilo" indietro="/lab" barra={false} nascondiTitolo>
-      <Entra indice={0}>
-        <Testata a={dati} famiglia={famiglia} />
-      </Entra>
-
-      <AvvisoDebito persone={persone} />
-
-      {persone.length > 1 || persone.some((x) => x.debito) ? (
-        <Sezione titolo="Il tuo nucleo" conteggio={persone.length}>
-          <Carta style={{ paddingVertical: spazio.due }}>
-            {persone.map((x, i) => (
-              <Riga
-                key={x.member_id}
-                prima={i === 0}
-                testa={<Avatar nome={x.nome} cognome={x.cognome} size={40} />}
-                titolo={[x.nome, x.cognome].filter(Boolean).join(' ') || 'Socio'}
-                sotto={
-                  <View style={{ gap: 4 }}>
-                    <Text style={{ color: p.testoSecondario, fontFamily: F.medio, fontSize: 13.5 }}>{x.titolare ? 'Tu, titolare' : 'Familiare'}</Text>
-                    <BollinoDebito debito={x.debito} />
-                  </View>
-                }
-              />
-            ))}
-          </Carta>
-        </Sezione>
-      ) : null}
-
+    <View style={{ gap: spazio.quattro + 4 }}>
       {fatto ? <Messaggio tono="ok">{fatto}</Messaggio> : null}
 
-      <Entra indice={1}>
+      <Entra indice={0}>
         <Sezione titolo="Contatti" destra={modificabile ? <Text style={{ color: p.testoTerzo, fontFamily: F.semi, fontSize: 12.5 }}>tocca per cambiare</Text> : undefined}>
-          {!modificabile ? <Messaggio tono="attenzione" icona="lucchetto">La modifica dei contatti non è ancora attiva nel laboratorio: per ora li vedi in sola lettura.</Messaggio> : null}
+          {!modificabile ? <Messaggio tono="attenzione" icona="lucchetto">Al momento i contatti non si possono modificare da qui: li vedi come risultano sulla tua scheda.</Messaggio> : null}
           <Carta style={{ paddingVertical: spazio.due }}>
             {contatti.map((c, i) => (
               <Riga
@@ -391,7 +309,7 @@ export function Profilo() {
         </Sezione>
       </Entra>
 
-      <Entra indice={2}>
+      <Entra indice={1}>
         <Sezione titolo="Dati anagrafici" destra={<Icona nome="lucchetto" size={16} colore={p.testoTerzo} />}>
           <Carta style={{ paddingVertical: spazio.due }}>
             {anagrafici.map((x, i) => (
@@ -412,12 +330,7 @@ export function Profilo() {
         </Sezione>
       </Entra>
 
-      {/* La prova del pagamento con carta (soldi veri, max 5 €): spostata qui da Pagamenti il 15/10/2026. */}
-      <Entra indice={3}>
-        <ProvaPagamento />
-      </Entra>
-
-      <Entra indice={4}>
+      <Entra indice={2}>
         <Sezione titolo="Account">
           <PulsanteEsci email={dati.email} testo="Esci dall’account" />
         </Sezione>
@@ -428,21 +341,12 @@ export function Profilo() {
       {modifica === 'email' ? (
         <FoglioEmail attuale={dati.email} onChiudi={() => setModifica(null)} onSalvato={salvato('Email cambiata: da adesso entri con quella nuova.')} />
       ) : null}
-    </Schermata>
+    </View>
   )
 }
 
 const stili = StyleSheet.create({
-  testata: { borderRadius: 32, padding: spazio.quattro, alignItems: 'center', gap: spazio.tre, overflow: 'hidden' },
-  bagliore: { position: 'absolute', width: 260, height: 260, borderRadius: 130, top: -150, backgroundColor: '#FF5701', opacity: 0.35, filter: 'blur(60px)' } as object,
-  nome: { color: '#fff', fontFamily: F.extra, fontSize: 26, letterSpacing: -0.8, textAlign: 'center' },
-  chip: { flexDirection: 'row', alignItems: 'center', gap: 5, borderRadius: 8, borderWidth: 1.2, borderColor: 'rgba(255,255,255,0.25)', paddingHorizontal: 8, paddingVertical: 3 },
-  chipTesto: { color: 'rgba(255,255,255,0.85)', fontFamily: F.extra, fontSize: 10, letterSpacing: 1 },
-  cifre: { flexDirection: 'row', alignSelf: 'stretch', backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 22, paddingVertical: spazio.tre, marginTop: spazio.uno },
-  cifra: { flex: 1, alignItems: 'center', gap: 2, paddingHorizontal: 4 },
-  cifraValore: { color: '#fff', fontFamily: F.extra, fontSize: 20, letterSpacing: -0.5 },
-  cifraEtichetta: { color: 'rgba(255,255,255,0.55)', fontFamily: F.semi, fontSize: 11.5 },
-  modifica: { width: 36, height: 36, borderRadius: 13, alignItems: 'center', justifyContent: 'center' },
   attuale: { borderRadius: 18, padding: spazio.tre, gap: 2 },
+  modifica: { width: 36, height: 36, borderRadius: 13, alignItems: 'center', justifyContent: 'center' },
   nota: { fontSize: 13, lineHeight: 19, fontFamily: F.medio },
 })

@@ -5,6 +5,7 @@ import { StyleSheet, Text, View } from 'react-native'
 import { movimentiPagamenti, type Movimento, type QuotaFutura } from '@/api/lab'
 import { spazio } from '@/theme'
 
+import { hrefSezione } from '../home/sezioni'
 import { inMemoria, prendi } from '../memoria'
 import { Foglio } from '../ui/Foglio'
 import { Icona, type NomeIcona } from '../ui/Icona'
@@ -15,7 +16,7 @@ import { Tocco } from '../ui/Tocco'
 
 // I pagamenti veri del socio e della famiglia (15/10/2026), da PerfectGym:
 // le quote scadute da saldare, i prossimi pagamenti e lo storico, ognuno col
-// metodo e con a cosa corrisponde. In Pagamenti il riepilogo; lo storico
+// metodo e con a cosa corrisponde. Nella sezione Pagamenti della Home il riepilogo; lo storico
 // completo, per mese, in /lab/pagamenti/storico.
 
 export const CHIAVE_MOVIMENTI = 'pagamenti:movimenti'
@@ -193,7 +194,7 @@ function DaSaldare({ elenco, onApri }: { elenco: Movimento[]; onApri: (m: Movime
   )
 }
 
-/** Il riepilogo in Pagamenti: da saldare, i prossimi tre, gli ultimi quattro. */
+/** Il riepilogo nella sezione Pagamenti: da saldare, i prossimi tre, gli ultimi quattro. */
 export function RiepilogoPagamenti() {
   const p = usePalette()
   const { dati, errore, carica } = useMovimenti()
@@ -279,7 +280,7 @@ export function StoricoPagamenti({ vistaIniziale }: { vistaIniziale: 'effettuati
 
   if (!dati) {
     return (
-      <Schermata sopratitolo="Pagamenti" titolo="I tuoi pagamenti" indietro="/lab/pagamenti" barra={false}>
+      <Schermata sopratitolo="Pagamenti" titolo="I tuoi pagamenti" indietro={hrefSezione('pagamenti')} barra={false}>
         {errore ? (
           <>
             <Messaggio>{errore}</Messaggio>
@@ -304,7 +305,7 @@ export function StoricoPagamenti({ vistaIniziale }: { vistaIniziale: 'effettuati
   }
 
   return (
-    <Schermata sopratitolo="Pagamenti" titolo="I tuoi pagamenti" sottotitolo="Tuoi e della tua famiglia, da PerfectGym." indietro="/lab/pagamenti" barra={false}>
+    <Schermata sopratitolo="Pagamenti" titolo="I tuoi pagamenti" sottotitolo="Tuoi e della tua famiglia, da PerfectGym." indietro={hrefSezione('pagamenti')} barra={false}>
       {intestazione}
       {dati.daSaldare.length && vista === 'effettuati' ? <DaSaldare elenco={dati.daSaldare} onApri={(m) => setScelto({ tipo: 'movimento', m })} /> : null}
       {gruppi.length ? (

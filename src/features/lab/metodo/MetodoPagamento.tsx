@@ -5,6 +5,7 @@ import { chiamaLink } from '@/api/link'
 import { GestioneNucleo } from '@/features/metodo-pagamento/GestioneNucleo'
 import type { ContrattoNucleo } from '@/lib/metodoPagamento'
 
+import { hrefSezione } from '../home/sezioni'
 import { Messaggio, Pulsante, SchedeInArrivo } from '../ui/kit'
 import { Schermata } from '../ui/Schermata'
 
@@ -17,7 +18,7 @@ import { Schermata } from '../ui/Schermata'
 /** La cornice del laboratorio per le schermate del metodo di pagamento (anche il ritorno dalla carta). */
 export function CorniceLab({ titolo, children }: { titolo: string; children: ReactNode; indietro?: boolean }) {
   return (
-    <Schermata sopratitolo="Pagamenti" titolo={titolo} indietro="/lab/pagamenti" barra={false}>
+    <Schermata sopratitolo="Pagamenti" titolo={titolo} indietro={hrefSezione('pagamenti')} barra={false}>
       {children}
     </Schermata>
   )

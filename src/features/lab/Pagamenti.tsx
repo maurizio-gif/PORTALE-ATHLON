@@ -21,8 +21,6 @@ import { inMemoria, prendi } from './memoria'
 import { euro, quando, STATO_ABBONAMENTO, STATO_PAGAMENTO } from './etichettePagamenti'
 import { Icona } from './ui/Icona'
 import { Carta, Colonnine, Entra, Etichetta, Messaggio, Numero, Pulsante, Riga, SchedeInArrivo, Sezione, Tag } from './ui/kit'
-import { RiepilogoPagamenti } from './pagamenti/Movimenti'
-import { Schermata } from './ui/Schermata'
 import { F, FUOCO, MARE, NOTTE, usePalette } from './ui/tema'
 import { colpetto } from './ui/Tocco'
 
@@ -328,30 +326,6 @@ export function ProvaPagamento() {
         </>
       )}
     </View>
-  )
-}
-
-/** La scheda Pagamenti: i pagamenti veri, i prossimi e il metodo. La prova con carta e' nel Profilo. */
-export function Pagamenti() {
-  return (
-    <Schermata larga sopratitolo="Laboratorio" titolo="Pagamenti" sottotitolo="I tuoi pagamenti e quelli della famiglia, i prossimi e il metodo.">
-      <View style={{ maxWidth: 760, width: '100%', alignSelf: 'center', gap: spazio.quattro }}>
-        <RiepilogoPagamenti />
-      </View>
-
-      <Entra indice={0}>
-        <Carta style={{ paddingVertical: spazio.uno, maxWidth: 760, width: '100%', alignSelf: 'center' }}>
-          <Riga
-            prima
-            icona="carta"
-            tono="accento"
-            titolo="Metodo di pagamento degli abbonamenti"
-            sotto="Conto corrente (IBAN) o carta, per te e per la tua famiglia"
-            onPress={() => navigatore.push('/lab/metodo-pagamento')}
-          />
-        </Carta>
-      </Entra>
-    </Schermata>
   )
 }
 

@@ -1,13 +1,9 @@
 import { Redirect } from 'expo-router'
 
-import { SchermataInArrivo } from '@/features/lab/ui/Attesa'
-import { Pagamenti } from '@/features/lab/Pagamenti'
-import { useSessione } from '@/features/lab/useSessione'
+import { hrefSezione } from '@/features/lab/home/sezioni'
 
-// I pagamenti di prova del laboratorio: solo con la sessione, altrimenti all'accesso.
-export default function PaginaPagamenti() {
-  const sessione = useSessione()
-  if (sessione === undefined) return <SchermataInArrivo />
-  if (!sessione) return <Redirect href="/lab" />
-  return <Pagamenti />
+// I pagamenti stanno nella Home (17/10/2026): il vecchio indirizzo porta alla
+// sezione giusta, cosi' i link gia' in giro non si rompono.
+export default function Vai() {
+  return <Redirect href={hrefSezione('pagamenti')} />
 }

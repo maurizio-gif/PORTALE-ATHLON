@@ -173,7 +173,7 @@ export function Schede() {
 
   if (!dati) {
     return (
-      <Schermata sopratitolo="Laboratorio" titolo="Workout">
+      <Schermata titolo="Workout">
         {errore ? (
           <>
             <Messaggio>{errore}</Messaggio>
@@ -196,7 +196,7 @@ export function Schede() {
   const largo = larghezza >= LARGO
   const cella = largo ? { flexGrow: 1, flexBasis: larghezza >= 1100 ? '31%' : '45%' } as const : null
   return (
-    <Schermata larga sopratitolo="Laboratorio" titolo="Workout" sottotitolo="Le tue schede, il registro dei pesi e il timer del recupero.">
+    <Schermata larga titolo="Workout" sottotitolo="Le tue schede, il registro dei pesi e il timer del recupero.">
       <View style={largo ? stili.fila3 : { gap: spazio.quattro + 4 }}>
       <Entra indice={0} style={largo ? { flex: 1 } : undefined}>
         <CartaTest t={dati.test} riempi={largo} />
@@ -281,7 +281,7 @@ export function Schede() {
           <Carta style={{ alignItems: 'center', gap: spazio.due, paddingVertical: spazio.cinque }}>
             <Icona nome="peso" size={32} colore={p.testoTerzo} />
             <Text style={[stili.nota, { color: p.testoSecondario, textAlign: 'center' }]}>
-              Le schede del club arrivano presto. Intanto puoi chiederne una all’agente AI qui sopra.
+              Non ci sono ancora schede del club per te. Puoi chiederne una all’agente AI qui sopra.
             </Text>
           </Carta>
         )}
