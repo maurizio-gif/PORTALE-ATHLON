@@ -29,7 +29,7 @@ export async function elencoDocumenti(): Promise<EsitoDocumenti> {
   return { ok: false, errore: dati.errore ?? 'Non riusciamo a leggere i tuoi documenti adesso.' }
 }
 
-/** Il link per aprire un documento: quello di PerfectGym dura pochi minuti, e si chiede quando serve. */
+/** Il link per aprire un documento: firmato da Supabase, vale un'ora, e si chiede quando serve. */
 export async function apriDocumento(d: Documento): Promise<{ ok: true; url: string } | { ok: false; errore: string }> {
   if (d.origine === 'portale') return documentoAbbonamento(d.id)
   const { ok, dati } = await funzione('portale-lab-documenti', { azione: 'apri', id: d.id })

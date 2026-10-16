@@ -7,7 +7,8 @@ import { F, usePalette } from './ui/tema'
 
 // Aprire un PDF dal portale (i documenti, il contratto firmato).
 //
-// Il link lo da' il server nel momento in cui serve - dura pochi minuti - quindi
+// Il link lo da' il server nel momento in cui serve - e' un link firmato di
+// Supabase Storage, valido un'ora; i PDF di PerfectGym sono copiati li' - quindi
 // si apre DOPO una richiesta di rete, e li' i browser bloccano la scheda nuova
 // come popup: Safari sempre, e l'app installata sulla schermata Home di un
 // iPhone peggio ancora, perche' non ha nemmeno le schede. Quindi tre strade:
@@ -47,7 +48,7 @@ function PdfPronto({ url, onChiudi }: { url: string | null; onChiudi: () => void
   return (
     <Foglio aperto={Boolean(url)} titolo="Il documento è pronto" onChiudi={onChiudi}>
       <Text style={{ color: p.testoSecondario, fontFamily: F.medio, fontSize: 14.5, lineHeight: 21 }}>
-        Toccalo per aprirlo: da lì lo puoi salvare o condividere. Il link vale pochi minuti.
+        Toccalo per aprirlo: da lì lo puoi salvare o condividere. Il link vale un'ora.
       </Text>
       <Pulsante testo="Apri il PDF" icona="apriFuori" onPress={apri} />
     </Foglio>
