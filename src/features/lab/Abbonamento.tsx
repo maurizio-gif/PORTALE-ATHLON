@@ -15,6 +15,7 @@ import {
   type EsitoContratto,
   type ImportiContratto,
   type MetodoAbbonamento,
+  type PersonaDati,
   type PersonaAbbonamento,
   type PianoAbbonamento,
   type SceltaAbbonamento,
@@ -25,6 +26,7 @@ import { ModuloIban, type DatiConto } from '@/features/metodo-pagamento/ModuloIb
 import { euro } from '@/lib/eventi'
 import { spazio } from '@/theme'
 
+import { CorreggiDati } from './abbonamento/CorreggiDati'
 import { Indicatore, SchedaScelta } from './abbonamento/Passi'
 import { FORMULE, Listino } from './abbonamento/Listino'
 import { FirmaPad } from './FirmaPad'
@@ -147,6 +149,8 @@ export function Abbonamento() {
   const [apertura, setApertura] = useState(false)
   const [anteprima, setAnteprima] = useState<AnteprimaContratto | null>(null)
   const [mancanti, setMancanti] = useState<string[] | null>(null)
+  /** Chi ha dati nel contratto, anche quando il contratto non si puo' ancora comporre: si correggono da qui. */
+  const [personeDati, setPersoneDati] = useState<PersonaDati[]>([])
   const [datiOk, setDatiOk] = useState(false)
   const [foglio, setFoglio] = useState(false)
   const [consensi, setConsensi] = useState<Record<string, boolean>>({})
@@ -225,6 +229,7 @@ export function Abbonamento() {
     const s = scelta()
     if (!s) return
     setErrore(null)
+    setDatiOk(false)
     setApertura(true)
     const r = await anteprimaAbbonamento(s)
     setApertura(false)
@@ -232,9 +237,12 @@ export function Abbonamento() {
       colpetto('errore')
       setAnteprima(null)
       setMancanti(r.mancanti ?? null)
-      return setErrore(r.mancanti?.length ? `${r.errore} Completa nel profilo: ${r.mancanti.join(', ')}.` : r.errore)
+      setPersoneDati(r.persone_dati ?? [])
+      // Dati mancanti o sbagliati: si correggono qui sotto, non e' un errore da leggere e basta.
+      return setErrore(r.mancanti?.length ? null : r.errore)
     }
     setMancanti(null)
+    setPersoneDati(r.anteprima.persone_dati ?? [])
     setConsensi(Object.fromEntries(r.anteprima.consensi.map((c) => [c.chiave, c.preselezionato])))
     setFirmaPng(null)
     setErroreFirma(null)
@@ -451,14 +459,27 @@ export function Abbonamento() {
                       {anteprima.genitore ? <RigaDato nome="Firma il genitore" valore={`${anteprima.genitore.nome} ${anteprima.genitore.cognome}`.trim()} /> : null}
                     </View>
                   </Carta>
+                  {personeDati.map((d) => (
+                    <CorreggiDati key={`${d.member_id}-${d.codice_fiscale}-${d.telefono}-${d.indirizzo?.via}`} persona={d} titolo={d.ruolo === 'genitore' ? 'Dati del genitore che firma' : 'Correggi i tuoi dati'} onSalvato={caricaContratto} />
+                  ))}
                   <Casella spuntata={datiOk} onCambia={() => setDatiOk((v) => !v)} etichetta="Confermo che i dati sono corretti">
-                    <Text style={{ color: p.testo, fontFamily: F.medio, fontSize: 14, lineHeight: 20 }}>
-                      Confermo che questi dati sono corretti. Se qualcosa non va, correggilo dal tuo profilo prima di firmare.
-                    </Text>
+                    <Text style={{ color: p.testo, fontFamily: F.medio, fontSize: 14, lineHeight: 20 }}>Confermo che questi dati sono corretti.</Text>
                   </Casella>
                 </>
               ) : mancanti?.length ? (
-                <Text style={[stili.nota, { color: p.testoSecondario }]}>Servono questi dati per il contratto: completali dal profilo, poi torna qui.</Text>
+                <>
+                  <Text style={[stili.nota, { color: p.testoSecondario }]}>Per il contratto servono dati corretti: completali qui sotto, poi si va avanti.</Text>
+                  {personeDati.map((d) => (
+                    <CorreggiDati
+                      key={`${d.member_id}-m`}
+                      persona={d}
+                      titolo={d.ruolo === 'genitore' ? 'Dati del genitore che firma' : 'I tuoi dati'}
+                      apertoDa
+                      mancanti={mancanti}
+                      onSalvato={caricaContratto}
+                    />
+                  ))}
+                </>
               ) : null}
             </Sezione>
 
