@@ -1,6 +1,6 @@
 import { router, useLocalSearchParams } from 'expo-router'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Linking, Platform, ScrollView, StyleSheet, Text, View } from 'react-native'
+import { Linking, Platform, ScrollView, StyleSheet, Text, View, type NativeScrollEvent, type NativeSyntheticEvent } from 'react-native'
 import type Animated from 'react-native-reanimated'
 
 import {
@@ -35,6 +35,7 @@ import { FORMULE, Listino } from './abbonamento/Listino'
 import { FirmaPad } from './FirmaPad'
 import { dataLunga, RiepilogoCosti } from './RiepilogoCosti'
 import { Foglio } from './ui/Foglio'
+import { Icona } from './ui/Icona'
 import { Carta, Etichetta, Messaggio, Pulsante, Sezione } from './ui/kit'
 import { SchermataInArrivo } from './ui/Attesa'
 import { Schermata } from './ui/Schermata'
@@ -121,6 +122,48 @@ function BloccoDocumento({ b }: { b: Blocco }) {
     case 'salto':
       return <View style={{ height: 1, backgroundColor: p.linea, marginVertical: spazio.tre }} />
   }
+}
+
+/**
+ * Il contratto: il corpo si legge subito, l'Allegato A (i Termini e Condizioni, che
+ * il server accoda dopo il blocco `salto`) sta chiuso e si apre al tocco. E' una
+ * scelta di lettura: il documento che si firma e quello archiviato restano interi.
+ */
+function DocumentoContratto({ blocchi }: { blocchi: Blocco[] }) {
+  const p = usePalette()
+  const [aperto, setAperto] = useState(false)
+  const i = blocchi.findIndex((b) => b.t === 'salto')
+  const corpo = i === -1 ? blocchi : blocchi.slice(0, i)
+  const allegato = i === -1 ? [] : blocchi.slice(i + 1)
+  const titolo = allegato[0]?.t === 'titolo' ? allegato[0].testo : 'Allegato A'
+  const resto = allegato[0]?.t === 'titolo' ? allegato.slice(1) : allegato
+  return (
+    <>
+      {corpo.map((b, k) => (
+        <BloccoDocumento key={k} b={b} />
+      ))}
+      {allegato.length ? (
+        <View style={{ borderWidth: 1, borderColor: p.linea, borderRadius: 14, overflow: 'hidden', marginTop: spazio.tre }}>
+          <Tocco onPress={() => setAperto((v) => !v)} ruolo="button" etichetta={`${titolo}: ${aperto ? 'chiudi' : 'apri'}`} scala={0.99} vibra="scelta">
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: spazio.tre, padding: spazio.tre }}>
+              <View style={{ flex: 1, gap: 2 }}>
+                <Text style={{ color: p.testo, fontFamily: F.extra, fontSize: 15, lineHeight: 21 }}>{titolo}</Text>
+                <Text style={{ color: p.testoSecondario, fontFamily: F.medio, fontSize: 12.5 }}>{aperto ? 'Tocca per chiuderlo' : 'Tocca per leggerlo: fa parte del contratto'}</Text>
+              </View>
+              <Icona nome="giu" size={18} colore={p.testoTerzo} style={{ transform: [{ rotate: aperto ? '180deg' : '0deg' }] }} />
+            </View>
+          </Tocco>
+          {aperto ? (
+            <View style={{ gap: spazio.tre, paddingHorizontal: spazio.tre, paddingBottom: spazio.tre }}>
+              {resto.map((b, k) => (
+                <BloccoDocumento key={k} b={b} />
+              ))}
+            </View>
+          ) : null}
+        </View>
+      ) : null}
+    </>
+  )
 }
 
 /** Un dato del contratto, con la sua etichetta: «Nato/a il · 3 marzo 1990». */
@@ -259,6 +302,28 @@ export function Abbonamento() {
     setFirmaPng(null)
     setErroreFirma(null)
     setAnteprima(r.anteprima)
+  }
+
+  /** Dove stanno nel foglio le dichiarazioni e la firma, per il pulsante «Firma ora». */
+  const scorrimentoFoglio = useRef<ScrollView>(null)
+  const posti = useRef({ corpo: 0, firma: 0 })
+  const [firmaVicina, setFirmaVicina] = useState(false)
+
+  function apriFoglio() {
+    setFirmaVicina(false)
+    setFoglio(true)
+  }
+
+  /** Il pulsante sparisce quando le dichiarazioni sono gia' nella parte alta del foglio. */
+  function scorriFoglio(e: NativeSyntheticEvent<NativeScrollEvent>) {
+    const { contentOffset, layoutMeasurement } = e.nativeEvent
+    const firma = posti.current.corpo + posti.current.firma
+    setFirmaVicina(firma > 0 && contentOffset.y >= firma - layoutMeasurement.height * 0.5)
+  }
+
+  function vaiAllaFirma() {
+    colpetto('scelta')
+    scorrimentoFoglio.current?.scrollTo({ y: Math.max(0, posti.current.corpo + posti.current.firma - 12), animated: true })
   }
 
   const obbligatoriOk = !!anteprima && anteprima.consensi.every((c) => !c.obbligatorio || consensi[c.chiave])
@@ -433,28 +498,6 @@ export function Abbonamento() {
 
         {passo === 3 && stato && persona && piano ? (
           <>
-            <Carta piatta>
-              <View style={{ gap: spazio.tre }}>
-                {(
-                  [
-                    ['Abbonamento', `${piano.abbonamento} · ${formula?.titolo ?? ''}`, 1],
-                    ...(stato.persone.length > 1 ? ([['Per', nomePersona, 1]] as const) : []),
-                    ['Parte il', inizio ? giornoBreve(inizio) : '—', 2],
-                  ] as const
-                ).map(([nome, valore, dove]) => (
-                  <View key={nome} style={{ flexDirection: 'row', alignItems: 'flex-start', gap: spazio.due }}>
-                    <Text style={[stili.nota, { color: p.testoSecondario, width: 92 }]}>{nome}</Text>
-                    <Text style={{ color: p.testo, fontFamily: F.bold, fontSize: 14, flex: 1, lineHeight: 20 }}>{valore}</Text>
-                    <Tocco ruolo="button" etichetta={`Modifica: ${nome}`} onPress={() => vai(dove)} style={{ paddingVertical: 2, paddingHorizontal: 4 }}>
-                      <Text style={{ color: p.accento, fontFamily: F.bold, fontSize: 13 }}>Modifica</Text>
-                    </Tocco>
-                  </View>
-                ))}
-              </View>
-            </Carta>
-
-            {costi ? <RiepilogoCosti importi={costi} /> : null}
-
             <Sezione titolo={anteprima?.genitore ? 'I dati del contratto' : 'I tuoi dati'}>
               {apertura && !anteprima ? (
                 <Text style={[stili.nota, { color: p.testoSecondario }]}>Prepariamo il contratto…</Text>
@@ -497,11 +540,11 @@ export function Abbonamento() {
 
             <Messaggio tono="attenzione" titolo="Adesso il contratto" icona="documento">
               {persona.firmatario === 'genitore'
-                ? 'Lo leggi fino in fondo, spunti le dichiarazioni e firma il genitore, con il dito o con il mouse. Il pagamento viene dopo: carta o conto corrente, lo scegli allora.'
-                : 'Lo leggi fino in fondo, spunti le dichiarazioni e firmi con il dito o con il mouse. Il pagamento viene dopo: carta o conto corrente, lo scegli allora.'}
+                ? 'Lo leggi, spunti le dichiarazioni e firma il genitore, con il dito o con il mouse. Il pagamento viene dopo: carta o conto corrente, lo scegli allora.'
+                : 'Lo leggi, spunti le dichiarazioni e firmi con il dito o con il mouse. Il pagamento viene dopo: carta o conto corrente, lo scegli allora.'}
             </Messaggio>
 
-            <Pulsante testo="Leggi il contratto e firma" icona="documento" onPress={() => setFoglio(true)} disabilitato={!anteprima || !datiOk} />
+            <Pulsante testo="Leggi il contratto e firma" icona="documento" onPress={apriFoglio} disabilitato={!anteprima || !datiOk} />
             {anteprima && !datiOk ? <Text style={[stili.nota, { color: p.testoSecondario }]}>Conferma i tuoi dati per continuare.</Text> : null}
             <Pulsante testo="Indietro" variante="fantasma" piccolo pieno={false} onPress={() => vai(2)} />
           </>
@@ -588,15 +631,35 @@ export function Abbonamento() {
         ) : null}
       </View>
 
-      <Foglio aperto={foglio && !!anteprima} titolo="Il tuo contratto" sottotitolo="Leggilo fino in fondo, poi spunta le dichiarazioni e firma." onChiudi={() => !firmando && setFoglio(false)}>
+      <Foglio
+        aperto={foglio && !!anteprima}
+        titolo="Il tuo contratto"
+        sottotitolo="Leggilo, oppure vai subito alle dichiarazioni e alla firma."
+        onChiudi={() => !firmando && setFoglio(false)}
+        scorrimento={scorrimentoFoglio}
+        onScorri={scorriFoglio}
+        flottante={
+          anteprima && !firmaVicina ? (
+            <Tocco
+              onPress={vaiAllaFirma}
+              etichetta="Firma ora: vai alle dichiarazioni e alla firma"
+              scala={0.96}
+              style={[stili.firmaOra, { backgroundColor: p.accento }]}
+            >
+              <Text style={{ color: '#fff', fontFamily: F.extra, fontSize: 15 }}>Firma ora</Text>
+              <Icona nome="giu" size={18} colore="#fff" />
+            </Tocco>
+          ) : null
+        }
+      >
         {anteprima ? (
-          <View style={{ gap: spazio.tre }}>
+          <View style={{ gap: spazio.tre }} onLayout={(e) => (posti.current.corpo = e.nativeEvent.layout.y)}>
             <RiepilogoCosti importi={anteprima.importi} />
-            {anteprima.documento.blocchi.map((b, i) => (
-              <BloccoDocumento key={i} b={b} />
-            ))}
+            <DocumentoContratto blocchi={anteprima.documento.blocchi} />
 
-            <Text style={{ color: p.testo, fontFamily: F.extra, fontSize: 18, marginTop: spazio.tre }}>Dichiarazioni</Text>
+            <Text style={{ color: p.testo, fontFamily: F.extra, fontSize: 18, marginTop: spazio.tre }} onLayout={(e) => (posti.current.firma = e.nativeEvent.layout.y)}>
+              Dichiarazioni
+            </Text>
             {anteprima.consensi.some((c) => !c.obbligatorio) ? (
               <Text style={{ color: p.testoSecondario, fontFamily: F.medio, fontSize: 13, lineHeight: 18 }}>
                 Le dichiarazioni del contratto sono già spuntate. Puoi togliere solo quella facoltativa, per le comunicazioni.
@@ -689,4 +752,17 @@ const stili = StyleSheet.create({
   giorno: { paddingHorizontal: 16, minHeight: 44, borderRadius: 14, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center' },
   filtro: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, minHeight: 48, borderRadius: 14, borderWidth: 1.5, paddingHorizontal: 14 },
   nota: { fontFamily: F.medio, fontSize: 13, lineHeight: 19 },
+  firmaOra: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    minHeight: 48,
+    paddingHorizontal: 22,
+    borderRadius: 24,
+    shadowColor: '#000',
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 6,
+  },
 })
