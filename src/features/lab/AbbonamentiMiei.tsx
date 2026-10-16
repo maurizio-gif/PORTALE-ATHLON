@@ -17,9 +17,9 @@ import { Tocco } from './ui/Tocco'
 
 // Il dettaglio dei tuoi abbonamenti (16/10/2026, nella Home dal 17/10): quelli in
 // vigore (in corso, sospesi, o che devono ancora iniziare), con la data di
-// sottoscrizione, l'inizio, la fine, gli addebiti (pagati, da pagare, annullati) e i
-// pagamenti ricevuti. Dal gestionale del club, per te e per la tua famiglia. Gli
-// abbonamenti terminati non si mostrano (17/10/2026).
+// sottoscrizione, l'inizio, la fine, i totali e le sole quote ancora da pagare. Dal
+// gestionale del club, per te e per la tua famiglia. Gli abbonamenti terminati non si
+// mostrano (17/10/2026).
 
 /** «17 ott 2026», per le date del gestionale («2026-10-17»). */
 function data(iso: string | null): string {
@@ -105,8 +105,9 @@ function SchedaContratto({ c, conPersona, regolarita, onSezione }: { c: Contratt
     setScarico(false)
   }
 
-  const colorePagamento = (st: AddebitoContratto['stato']) => (st === 'pagato' ? p.ok : st === 'da_pagare' ? p.accento : p.testoSecondario)
-  const etichettaPagamento = (st: AddebitoContratto['stato']) => (st === 'pagato' ? 'Pagato' : st === 'da_pagare' ? 'Da pagare' : 'Annullato')
+  // Del dettaglio si mostra solo cio' che c'e' ancora da pagare: gli addebiti pagati o annullati e i
+  // pagamenti ricevuti non servono a chi sta guardando il contratto (17/10/2026).
+  const daPagare = c.addebiti.filter((a) => a.stato === 'da_pagare')
 
   return (
     <Carta>
@@ -151,46 +152,31 @@ function SchedaContratto({ c, conPersona, regolarita, onSezione }: { c: Contratt
           </View>
         </View>
 
-        <Tocco ruolo="button" etichetta={aperta ? 'Nascondi addebiti e pagamenti' : 'Mostra addebiti e pagamenti'} onPress={() => setAperta((v) => !v)} style={{ alignSelf: 'flex-start', paddingVertical: 4 }}>
-          <Text style={{ color: p.accento, fontFamily: F.bold, fontSize: 14 }}>{aperta ? 'Nascondi il dettaglio' : `Addebiti e pagamenti (${c.addebiti.length})  ›`}</Text>
-        </Tocco>
-
-        {aperta ? (
-          <View style={{ gap: spazio.tre }}>
-            <View style={{ gap: 8 }}>
-              <Text style={[stili.sezione, { color: p.testoSecondario }]}>Addebiti</Text>
-              {c.addebiti.length ? (
-                c.addebiti.map((a, i) => (
+        {daPagare.length ? (
+          <>
+            <Tocco ruolo="button" etichetta={aperta ? 'Nascondi le quote da pagare' : 'Mostra le quote da pagare'} onPress={() => setAperta((v) => !v)} style={{ alignSelf: 'flex-start', paddingVertical: 4 }}>
+              <Text style={{ color: p.accento, fontFamily: F.bold, fontSize: 14 }}>{aperta ? 'Nascondi il dettaglio' : `Quote da pagare (${daPagare.length})  ›`}</Text>
+            </Tocco>
+            {aperta ? (
+              <View style={{ gap: 8 }}>
+                {daPagare.map((a, i) => (
                   <View key={i} style={stili.riga}>
                     <View style={{ flex: 1 }}>
                       <Text style={[stili.valore, { color: p.testo, textAlign: 'left' }]}>{nomeAddebito(a)}</Text>
                       <Text style={[stili.nome, { color: p.testoSecondario }]}>{`Scade il ${data(a.scadenza)}`}</Text>
                     </View>
                     <View style={{ alignItems: 'flex-end' }}>
-                      <Text style={[stili.valore, { color: p.testo }]}>{euro(a.importo)}</Text>
-                      <Text style={{ color: colorePagamento(a.stato), fontFamily: F.bold, fontSize: 12 }}>{etichettaPagamento(a.stato)}</Text>
+                      <Text style={[stili.valore, { color: p.testo }]}>{euro(a.da_pagare)}</Text>
+                      <Text style={{ color: p.accento, fontFamily: F.bold, fontSize: 12 }}>Da pagare</Text>
                     </View>
                   </View>
-                ))
-              ) : (
-                <Text style={[stili.nome, { color: p.testoSecondario }]}>Nessun addebito su questo contratto.</Text>
-              )}
-            </View>
-            <View style={{ gap: 8 }}>
-              <Text style={[stili.sezione, { color: p.testoSecondario }]}>Pagamenti ricevuti</Text>
-              {c.pagamenti.length ? (
-                c.pagamenti.map((x, i) => (
-                  <View key={i} style={stili.riga}>
-                    <Text style={[stili.nome, { color: p.testo }]}>{`${x.rimborso ? 'Rimborso del' : 'Pagato il'} ${data(x.data)}`}</Text>
-                    <Text style={[stili.valore, { color: x.rimborso ? p.testoSecondario : p.ok }]}>{`${x.rimborso ? '−' : ''}${euro(x.importo)}`}</Text>
-                  </View>
-                ))
-              ) : (
-                <Text style={[stili.nome, { color: p.testoSecondario }]}>Ancora nessun pagamento.</Text>
-              )}
-            </View>
-          </View>
-        ) : null}
+                ))}
+              </View>
+            ) : null}
+          </>
+        ) : (
+          <Text style={[stili.nome, { color: p.testoSecondario }]}>Niente da pagare su questo contratto.</Text>
+        )}
 
         {c.firmato?.pdf ? (
           <>
