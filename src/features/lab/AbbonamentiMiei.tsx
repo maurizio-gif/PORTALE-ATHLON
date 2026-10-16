@@ -1,6 +1,6 @@
 import { router } from 'expo-router'
 import { useCallback, useEffect, useState } from 'react'
-import { Linking, Platform, StyleSheet, Text, View } from 'react-native'
+import { StyleSheet, Text, View } from 'react-native'
 
 import { contrattiAbbonamento, documentoAbbonamento, type AddebitoContratto, type ContrattoElenco } from '@/api/abbonamento'
 import type { Area } from '@/api/lab'
@@ -9,6 +9,7 @@ import { spazio } from '@/theme'
 
 import { regolaritaContratto, type Regolarita } from './home/regolarita'
 import type { SezioneHome } from './home/sezioni'
+import { useApriPdf } from './apriPdf'
 import { inMemoria, prendi } from './memoria'
 import { Carta, Etichetta, Messaggio, Pulsante, SchedeInArrivo, Sezione } from './ui/kit'
 import { F, usePalette } from './ui/tema'
@@ -88,7 +89,7 @@ function SchedaContratto({ c, conPersona, regolarita, onSezione }: { c: Contratt
   const p = usePalette()
   const [aperta, setAperta] = useState(false)
   const [scarico, setScarico] = useState(false)
-  const [errore, setErrore] = useState<string | null>(null)
+  const { apri: apriPdf, avviso } = useApriPdf()
   const s = statoContratto(c)
   // Il flag `automaticRenew` di PerfectGym, letto dal server come `si_rinnova`:
   // si accende solo per un contratto in vigore, e sparisce con la disdetta.
@@ -97,13 +98,10 @@ function SchedaContratto({ c, conPersona, regolarita, onSezione }: { c: Contratt
 
   async function scarica() {
     if (!c.firmato) return
-    setErrore(null)
+    const numero = c.firmato.numero
     setScarico(true)
-    const r = await documentoAbbonamento(c.firmato.numero)
+    await apriPdf(() => documentoAbbonamento(numero))
     setScarico(false)
-    if (!r.ok) return setErrore(r.errore)
-    if (Platform.OS === 'web') window.open(r.url, '_blank')
-    else await Linking.openURL(r.url)
   }
 
   const colorePagamento = (st: AddebitoContratto['stato']) => (st === 'pagato' ? p.ok : st === 'da_pagare' ? p.accento : p.testoSecondario)
@@ -196,7 +194,7 @@ function SchedaContratto({ c, conPersona, regolarita, onSezione }: { c: Contratt
         {c.firmato?.pdf ? (
           <>
             <Pulsante testo="Il contratto firmato (PDF)" icona="documento" variante="contorno" piccolo onPress={scarica} inCorso={scarico} />
-            {errore ? <Messaggio>{errore}</Messaggio> : null}
+            {avviso}
           </>
         ) : null}
       </View>

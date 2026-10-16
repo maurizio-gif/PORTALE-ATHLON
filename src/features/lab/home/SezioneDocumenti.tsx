@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useState } from 'react'
-import { Linking, Platform, Text, View } from 'react-native'
+import { Text, View } from 'react-native'
 
 import { apriDocumento, elencoDocumenti, type Documento } from '@/api/documenti'
 import { spazio } from '@/theme'
 
+import { useApriPdf } from '../apriPdf'
 import { inMemoria, prendi } from '../memoria'
 import { Carta, LinkSezione, Messaggio, Pulsante, Riga, SchedeInArrivo, Sezione } from '../ui/kit'
 import { F, usePalette } from '../ui/tema'
@@ -45,24 +46,6 @@ function giorno(iso: string): string {
   return new Date(`${iso.slice(0, 10)}T12:00:00`).toLocaleDateString('it-IT', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Europe/Rome' })
 }
 
-/**
- * Apre un PDF in una scheda nuova. Sul web la scheda si apre SUBITO, dentro il
- * gesto del tocco, e solo dopo si sa dove mandarla: aprirla dopo una richiesta
- * di rete e' quello che i browser (Safari per primo) bloccano come popup.
- */
-async function apriPdf(prendiUrl: () => Promise<{ ok: true; url: string } | { ok: false; errore: string }>): Promise<string | null> {
-  const scheda = Platform.OS === 'web' ? window.open('about:blank', '_blank') : null
-  const r = await prendiUrl()
-  if (!r.ok) {
-    scheda?.close()
-    return r.errore
-  }
-  if (Platform.OS !== 'web') await Linking.openURL(r.url)
-  else if (scheda) scheda.location.href = r.url
-  else window.location.href = r.url
-  return null
-}
-
 function RigaDocumento({ d, prima, aperto, onApri }: { d: Documento; prima: boolean; aperto: boolean; onApri: () => void }) {
   const p = usePalette()
   const sotto = [d.sottotitolo, d.persona, d.data ? giorno(d.data) : null].filter(Boolean).join(' · ')
@@ -98,14 +81,12 @@ export function SezioneDocumenti() {
   const p = usePalette()
   const { dati, errore, carica } = useDocumenti()
   const [aperto, setAperto] = useState<string | null>(null)
-  const [erroreApertura, setErroreApertura] = useState<string | null>(null)
+  const { apri: apriPdf, avviso } = useApriPdf()
 
   async function apri(d: Documento) {
-    setErroreApertura(null)
     setAperto(`${d.origine}:${d.id}`)
-    const e = await apriPdf(() => apriDocumento(d))
+    await apriPdf(() => apriDocumento(d))
     setAperto(null)
-    if (e) setErroreApertura(e)
   }
 
   if (!dati && errore) {
@@ -132,7 +113,7 @@ export function SezioneDocumenti() {
 
   return (
     <View style={{ gap: spazio.quattro }}>
-      {erroreApertura ? <Messaggio>{erroreApertura}</Messaggio> : null}
+      {avviso}
       <Gruppo titolo="Contratti e moduli" elenco={documenti.filter((d) => d.tipo === 'contratto')} aperto={aperto} onApri={apri} />
       <Gruppo titolo="Ricevute" elenco={documenti.filter((d) => d.tipo === 'ricevuta')} aperto={aperto} onApri={apri} />
       <Gruppo titolo="Altri documenti" elenco={documenti.filter((d) => d.tipo === 'altro')} aperto={aperto} onApri={apri} />
