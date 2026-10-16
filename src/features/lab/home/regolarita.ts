@@ -83,14 +83,21 @@ export type RiepilogoAbbonamenti = {
   tono: Regolarita['tono']
 }
 
-/** Gli abbonamenti dell'intero nucleo, per il riquadro della Home. */
+/**
+ * Gli abbonamenti dell'intero nucleo, per il riquadro della Home. Si contano i soli abbonamenti
+ * veri (con una quota): un Guest Pass e' una prova, e i contratti a quota zero non sono
+ * abbonamenti. E' lo stesso elenco della sezione sotto il riquadro (`contratti` di
+ * portale-abbonamento, che prende i contratti con una quota), cosi' il numero e la lista
+ * non si contraddicono (17/10/2026).
+ */
 export function riepilogoAbbonamenti(area: AreaTrovata): RiepilogoAbbonamenti {
+  const veri = area.contratti.filter((c) => (c.canone ?? 0) > 0)
   let attivi = 0
   let inPartenza = 0
   let sospesi = 0
   let partenza: string | null = null
   const trovati = new Map<ChiaveMotivo, Motivo>()
-  for (const c of area.contratti) {
+  for (const c of veri) {
     if (c.stato === 'Freezed') sospesi++
     else if (c.stato === 'NotStarted') {
       inPartenza++
@@ -99,5 +106,5 @@ export function riepilogoAbbonamenti(area: AreaTrovata): RiepilogoAbbonamenti {
     for (const m of regolaritaContratto(c, area.persone.find((x) => x.member_id === c.member_id)).motivi) if (!trovati.has(m.chiave)) trovati.set(m.chiave, m)
   }
   const motivi = ORDINE.flatMap((k) => trovati.get(k) ?? [])
-  return { totale: area.contratti.length, attivi, inPartenza, sospesi, partenza: inPartenza === 1 ? partenza : null, motivi, tono: tonoDa(motivi) }
+  return { totale: veri.length, attivi, inPartenza, sospesi, partenza: inPartenza === 1 ? partenza : null, motivi, tono: tonoDa(motivi) }
 }
