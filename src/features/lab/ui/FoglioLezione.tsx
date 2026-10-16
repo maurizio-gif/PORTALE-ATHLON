@@ -26,46 +26,8 @@ import { Tocco } from './Tocco'
 // Si apre scendendo dall'alto e si chiude risalendo; appena arrivata, le
 // barre delle caratteristiche si riempiono una dopo l'altra (15/10/2026).
 //
-// Una lezione con una pagina sua sul sito (il Baby Nuoto) ha il video della pagina, un
-// testo per fascia d'eta' al posto delle barre, e in fondo le domande frequenti
-// (17/10/2026), dal feed del sito.
-
-/** Una domanda che si apre al tocco, con la risposta sotto. */
-function Domanda({ q, a }: { q: string; a: string }) {
-  const p = usePalette()
-  const [aperta, setAperta] = useState(false)
-  return (
-    <View style={[stili.domanda, { borderColor: p.linea }]}>
-      <Tocco onPress={() => setAperta((v) => !v)} ruolo="button" etichetta={`${q}: ${aperta ? 'chiudi' : 'apri'}`} vibra="scelta" scala={0.99}>
-        <View style={stili.testaDomanda}>
-          <Text style={[stili.testoDomanda, { color: p.testo }]}>{q}</Text>
-          <Icona nome="giu" size={18} colore={p.testoTerzo} style={{ transform: [{ rotate: aperta ? '180deg' : '0deg' }] }} />
-        </View>
-      </Tocco>
-      {aperta ? (
-        <View style={stili.rispostaDomanda}>
-          <Descrizione html={a} style={[stili.descrizione, { color: p.testoSecondario }]} grassetto={{ fontFamily: F.bold, color: p.testo }} />
-        </View>
-      ) : null}
-    </View>
-  )
-}
-
-function DomandeFrequenti({ voci }: { voci: { q: string; a: string }[] }) {
-  const p = usePalette()
-  return (
-    <View style={{ gap: spazio.due }}>
-      <Text style={[stili.sezione, { color: p.testo }]} accessibilityRole="header">
-        Domande frequenti
-      </Text>
-      <View style={{ gap: spazio.due }}>
-        {voci.map((d) => (
-          <Domanda key={d.q} q={d.q} a={d.a} />
-        ))}
-      </View>
-    </View>
-  )
-}
+// Una lezione con una pagina sua sul sito (il Baby Nuoto) ha il video della pagina e un
+// testo per fascia d'eta' al posto delle barre (17/10/2026), dal feed del sito.
 
 export function FoglioLezione({
   scheda: schedaGrezza,
@@ -167,7 +129,6 @@ export function FoglioLezione({
                 })}
               </View>
             ) : null}
-            {v.scheda.faq?.length ? <DomandeFrequenti voci={v.scheda.faq} /> : null}
           </ScrollView>
         ) : null}
       </Animated.View>
@@ -191,9 +152,4 @@ const stili = StyleSheet.create({
   descrizione: { fontFamily: F.medio, fontSize: 15, lineHeight: 21.5 },
   caratteristiche: { flexDirection: 'row', flexWrap: 'wrap', columnGap: spazio.tre + 2, rowGap: spazio.due + 2 },
   caratteristica: { width: '47%', flexGrow: 1, gap: 5, justifyContent: 'flex-end' },
-  sezione: { fontFamily: F.extra, fontSize: 19, letterSpacing: -0.4 },
-  domanda: { borderWidth: StyleSheet.hairlineWidth, borderRadius: 16, overflow: 'hidden' },
-  testaDomanda: { flexDirection: 'row', alignItems: 'center', gap: spazio.tre, paddingHorizontal: spazio.tre, paddingVertical: spazio.tre - 2, minHeight: 52 },
-  testoDomanda: { flex: 1, fontFamily: F.bold, fontSize: 15, lineHeight: 21 },
-  rispostaDomanda: { paddingHorizontal: spazio.tre, paddingBottom: spazio.tre },
 })
