@@ -50,7 +50,7 @@ import { colpetto, Tocco } from './ui/Tocco'
 // (salva e paga, come le lezioni), poi si torna qui e la prenotazione si fa da
 // sola.
 //
-// Gli orari sono quelli liberi dei trainer nei prossimi 14 giorni, dalla loro
+// Gli orari sono quelli liberi dei trainer nei prossimi 30 giorni, dalla loro
 // disponibilita' su PerfectGym. Un orario con piu' trainer liberi si tocca e
 // poi si sceglie con chi.
 //
@@ -85,9 +85,10 @@ function giornoDi(iso: string): string {
   return `${parti.year}-${parti.month}-${parti.day}`
 }
 
-function etichettaGiorno(data: string): { settimana: string; numero: string } {
-  const [settimana, numero] = giornoEsteso(data).split(' ')
-  return { settimana: settimana.slice(0, 3), numero }
+/** «lun», «19», «ott»: il giorno della settimana, il numero e il mese, per le caselle del calendario. */
+function etichettaGiorno(data: string): { settimana: string; numero: string; mese: string } {
+  const [settimana, numero, mese] = giornoEsteso(data).split(' ')
+  return { settimana: settimana.slice(0, 3), numero, mese: (mese ?? '').slice(0, 3) }
 }
 
 function nomeProprio(nome: string): string {
@@ -717,7 +718,7 @@ export function Personal() {
     if (filtro != null && o.trainer_id !== filtro) continue
     quantiPerGiorno.set(giornoDi(o.inizio), (quantiPerGiorno.get(giornoDi(o.inizio)) ?? 0) + 1)
   }
-  // I trainer con almeno un orario libero nei 14 giorni.
+  // I trainer con almeno un orario libero nei 30 giorni.
   const conOrari = [...new Set((orari?.orari ?? []).map((o) => o.trainer_id))].sort((a, b) => (nomeTrainer.get(a) ?? '').localeCompare(nomeTrainer.get(b) ?? '', 'it'))
   // Si mostrano solo i trainer con disponibilita' reale a calendario: chi non ne ha
   // non e' detto che non lavori piu', ma da qui non si prenota, quindi non si mostra.
@@ -1016,7 +1017,7 @@ export function Personal() {
             <Carta style={{ alignItems: 'center', gap: spazio.due, paddingVertical: spazio.cinque }}>
               <Icona nome="calendario" size={34} colore={p.testoTerzo} />
               <Text style={[stili.nota, { color: p.testoSecondario, textAlign: 'center' }]}>
-                Nei prossimi 14 giorni i trainer non hanno orari liberi. Riprova fra qualche giorno, o chiedi al club.
+                Nei prossimi 30 giorni i trainer non hanno orari liberi. Riprova fra qualche giorno, o chiedi al club.
               </Text>
             </Carta>
           ) : (
@@ -1057,6 +1058,7 @@ export function Personal() {
                     <>
                       <Text style={[stili.settimana, { color: attivo ? 'rgba(255,255,255,0.85)' : quanti ? p.testoSecondario : p.testoTerzo }]}>{e.settimana}</Text>
                       <Text style={[stili.numero, { color: attivo ? '#fff' : quanti ? p.testo : p.testoTerzo }]}>{e.numero}</Text>
+                      <Text style={[stili.mese, { color: attivo ? 'rgba(255,255,255,0.85)' : quanti ? p.testoSecondario : p.testoTerzo }]}>{e.mese}</Text>
                       <View style={[stili.puntino, { backgroundColor: quanti ? (attivo ? '#fff' : p.ok) : 'transparent' }]} />
                     </>
                   )
@@ -1272,9 +1274,10 @@ const stili = StyleSheet.create({
   fuori: { marginHorizontal: -(spazio.tre + 2), flexGrow: 0 },
   persona: { flexDirection: 'row', alignItems: 'center', gap: spazio.due, borderRadius: 18, paddingVertical: 6, paddingLeft: 6, paddingRight: spazio.tre, borderWidth: StyleSheet.hairlineWidth },
   filtro: { flexDirection: 'row', alignItems: 'center', gap: spazio.due, borderRadius: 999, paddingVertical: 7, paddingHorizontal: spazio.tre, borderWidth: StyleSheet.hairlineWidth, minHeight: 40 },
-  giorno: { width: 64, height: 86, borderRadius: 22, alignItems: 'center', justifyContent: 'center', gap: 2 },
+  giorno: { width: 64, height: 98, borderRadius: 22, alignItems: 'center', justifyContent: 'center', gap: 2 },
   settimana: { fontSize: 11, fontFamily: F.extra, textTransform: 'uppercase', letterSpacing: 1 },
   numero: { fontSize: 24, fontFamily: F.extra, letterSpacing: -0.6 },
+  mese: { fontSize: 11, fontFamily: F.extra, textTransform: 'uppercase', letterSpacing: 1 },
   puntino: { width: 6, height: 6, borderRadius: 3, marginTop: 2 },
   giornoTitolo: { fontSize: 20, fontFamily: F.extra, letterSpacing: -0.5 },
   nota: { fontSize: 13.5, lineHeight: 20, fontFamily: F.medio },
