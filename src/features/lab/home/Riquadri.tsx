@@ -7,7 +7,7 @@ import { spazio, type Tono } from '@/theme'
 
 import { Icona, type NomeIcona } from '../ui/Icona'
 import { Bollino } from '../ui/kit'
-import { F, FUOCO, MARE, usePalette, coloreTono, type ToniTutti } from '../ui/tema'
+import { F, FUOCO, MARE, usePalette, coloreTono, velo, type ToniTutti } from '../ui/tema'
 import { Tocco } from '../ui/Tocco'
 import { SEZIONI, type SezioneHome } from './sezioni'
 
@@ -21,6 +21,8 @@ export type VoceRiquadro = {
   /** La riga piccola sotto il valore. */
   nota?: string
   allerta?: Tono
+  /** Una pillola nell'angolo, al posto del pallino: lo stato di quello che il riquadro conta («Irregolare»). */
+  tag?: { testo: string; tono: Tono }
 }
 
 const ASPETTO: Record<SezioneHome, { titolo: string; icona: NomeIcona; tono: ToniTutti; colori: readonly [string, string, ...string[]] }> = {
@@ -54,7 +56,13 @@ function Riquadro({ sezione, voce, scelto, onPress, larghezza }: { sezione: Sezi
         ) : (
           <Bollino icona={a.icona} tono={a.tono} size={36} />
         )}
-        {voce.allerta ? <View style={[stili.pallino, { backgroundColor: coloreTono(p, voce.allerta), borderColor: scelto ? a.colori[1] : p.carta }]} /> : null}
+        {voce.tag ? (
+          <View style={[stili.tag, { backgroundColor: scelto ? 'rgba(255,255,255,0.24)' : velo(p, voce.tag.tono, 0.16) }]}>
+            <Text style={[stili.tagTesto, { color: scelto ? '#fff' : coloreTono(p, voce.tag.tono) }]} numberOfLines={1}>
+              {voce.tag.testo}
+            </Text>
+          </View>
+        ) : voce.allerta ? <View style={[stili.pallino, { backgroundColor: coloreTono(p, voce.allerta), borderColor: scelto ? a.colori[1] : p.carta }]} /> : null}
       </View>
       <View style={{ gap: 1 }}>
         <Text style={[stili.titolo, { color: sotto }]} numberOfLines={1}>
@@ -137,6 +145,8 @@ const stili = StyleSheet.create({
   iconaScelta: { width: 36, height: 36, borderRadius: 12, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.2)' },
   titolo: { fontFamily: F.bold, fontSize: 13 },
   pallino: { width: 12, height: 12, borderRadius: 6, borderWidth: 2 },
+  tag: { borderRadius: 999, paddingHorizontal: 9, paddingVertical: 3 },
+  tagTesto: { fontFamily: F.extra, fontSize: 11.5 },
   valore: { fontFamily: F.extra, letterSpacing: -0.6 },
   // Due righe di spazio sempre: cosi' i riquadri affiancati hanno il testo alla stessa altezza.
   nota: { fontFamily: F.semi, fontSize: 12.5, lineHeight: 16, minHeight: 32 },

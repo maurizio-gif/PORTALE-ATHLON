@@ -18,6 +18,7 @@ import { SezioneCertificato } from './home/SezioneCertificato'
 import { SezioneFamiglia } from './home/SezioneFamiglia'
 import { SezionePagamenti } from './home/SezionePagamenti'
 import { giorni, nome, oggi, statoCertificato, urgenzaCertificato } from './home/certificato'
+import { riepilogoAbbonamenti } from './home/regolarita'
 import { SEZIONE_INIZIALE, sezioneDa, type SezioneHome } from './home/sezioni'
 import { inMemoria, precarica, prendi } from './memoria'
 import { useMovimenti } from './pagamenti/Movimenti'
@@ -30,7 +31,6 @@ import { Schermata } from './ui/Schermata'
 import { PulsanteEsci } from './ui/Uscita'
 import { F, FUOCO, MARE, NOTTE } from './ui/tema'
 import { Tocco } from './ui/Tocco'
-import { statoLeggibile } from '@/features/metodo-pagamento/Metodo'
 
 // La Home dell'app (17/10/2026): l'hub dell'account. In cima chi sei e le cose
 // da fare; poi cinque riquadri (Abbonamenti, Pagamenti, Certificato, Famiglia,
@@ -117,6 +117,27 @@ function riquadroCertificato(area: AreaTrovata): VoceRiquadro {
     nota: [chi, quando].filter(Boolean).join(' · '),
     allerta: s.tono === 'errore' ? 'errore' : s.daConsegnare || s.tono === 'attenzione' ? 'attenzione' : undefined,
   }
+}
+
+/**
+ * Gli abbonamenti, per il riquadro: tutti quelli che ci sono, non solo gli
+ * «attivi» (uno non ancora iniziato c'e' e va contato), e se uno non e' in
+ * regola il riquadro lo dice, col tipo di irregolarita'.
+ */
+function riquadroAbbonamenti(area: AreaTrovata): VoceRiquadro {
+  const r = riepilogoAbbonamenti(area)
+  if (!r.totale) return { valore: '0', nota: 'attivi' }
+  if (r.tono) {
+    const motivo = r.motivi.length <= 2 ? r.motivi.map((m) => m.breve).join(' · ') : `${r.motivi.length} cose da sistemare`
+    return { valore: String(r.totale), nota: motivo.charAt(0).toUpperCase() + motivo.slice(1), tag: { testo: 'Irregolare', tono: r.tono } }
+  }
+  if (r.attivi === r.totale) return { valore: String(r.totale), nota: r.totale === 1 ? 'attivo' : 'attivi' }
+  const parti = [
+    r.attivi ? `${r.attivi} attiv${r.attivi === 1 ? 'o' : 'i'}` : null,
+    r.inPartenza ? (r.partenza ? `parte il ${dataCorta(r.partenza).replace(' ', '\u00a0')}` : `${r.inPartenza} in partenza`) : null,
+    r.sospesi ? `${r.sospesi} sospes${r.sospesi === 1 ? 'o' : 'i'}` : null,
+  ].filter(Boolean)
+  return { valore: String(r.totale), nota: parti.join(' · ') }
 }
 
 export function AreaRiservata({ email }: { email: string }) {
@@ -213,7 +234,6 @@ export function AreaRiservata({ email }: { email: string }) {
 
   const titolare = area.persone.find((x) => x.member_id === area.titolare)
   const famiglia = area.persone.filter((x) => !x.titolare)
-  const attivi = area.contratti.filter((k) => statoLeggibile(k) === 'Attivo').length
 
   // Il dato vivo di ogni riquadro: dall'area, e per i pagamenti dai movimenti.
   const debito = area.persone.reduce((t, x) => t + (x.debito?.importo ?? 0), 0)
@@ -230,7 +250,7 @@ export function AreaRiservata({ email }: { email: string }) {
             ? { valore: 'Apri', nota: 'prossimi pagamenti' }
             : { valore: '…', nota: 'un attimo' }
   const voci: Record<SezioneHome, VoceRiquadro> = {
-    abbonamenti: { valore: String(attivi), nota: attivi === 1 ? 'attivo' : 'attivi' },
+    abbonamenti: riquadroAbbonamenti(area),
     pagamenti,
     certificato: riquadroCertificato(area),
     famiglia: { valore: String(area.persone.length), nota: area.persone.length === 1 ? 'persona' : 'persone' },
@@ -255,7 +275,7 @@ export function AreaRiservata({ email }: { email: string }) {
 
       {/* Almeno un'altezza di schermo, meno poco: cosi' i riquadri si possono portare in cima anche con una sezione corta. */}
       <Entra key={sezione} indice={0} style={[stili.sezione, { minHeight: Math.max(0, height - 220) }]}>
-        {sezione === 'abbonamenti' ? <ElencoAbbonamenti /> : null}
+        {sezione === 'abbonamenti' ? <ElencoAbbonamenti area={area} onSezione={(s) => vai(s, true)} /> : null}
         {sezione === 'pagamenti' ? <SezionePagamenti /> : null}
         {sezione === 'certificato' ? <SezioneCertificato area={area} /> : null}
         {sezione === 'famiglia' ? <SezioneFamiglia area={area} /> : null}
