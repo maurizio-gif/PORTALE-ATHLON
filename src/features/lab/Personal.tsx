@@ -27,10 +27,12 @@ import {
 import { Casella } from '@/components/Casella'
 import { InfoAdyen } from '@/components/InfoAdyen'
 import { ModuloIban, type DatiConto } from '@/features/metodo-pagamento/ModuloIban'
+import { ETA_MINIMA_PERSONAL, etaDa } from '@/lib/eta'
 import { euro, giornoEsteso, ora } from '@/lib/eventi'
 import { spazio } from '@/theme'
 
 import { inMemoria, prendi, ricorda } from './memoria'
+import { useNascite } from './nascite'
 import { Foglio } from './ui/Foglio'
 import { Icona } from './ui/Icona'
 import { Avatar, Carta, Etichetta, Messaggio, Pulsante, Riga, SchedeInArrivo, Sezione } from './ui/kit'
@@ -538,6 +540,23 @@ export function Personal() {
     leggi()
   }, [leggi])
 
+  // Il personal training e' dai 13 anni: chi e' piu' piccolo non si puo' scegliere.
+  // Chi non ha una data letta non si esclude (non si sa quanti anni ha).
+  const nascite = useNascite()
+  const { idonee, troppoPiccoli } = useMemo(() => {
+    const persone = stato?.persone ?? []
+    const piccoli = (x: { member_id: number }) => {
+      const anni = etaDa(nascite.get(String(x.member_id)))
+      return anni !== null && anni < ETA_MINIMA_PERSONAL
+    }
+    return { idonee: persone.filter((x) => !piccoli(x)), troppoPiccoli: persone.filter(piccoli) }
+  }, [stato, nascite])
+  // La funzione parte dal titolare: se la persona scelta e' troppo piccola, si passa alla prima che puo'.
+  const daCambiare = !!stato && idonee.length > 0 && !idonee.some((x) => x.member_id === stato.member_id)
+  useEffect(() => {
+    if (daCambiare) leggi(idonee[0].member_id)
+  }, [daCambiare, idonee, leggi])
+
   const opzioni = useMemo(() => (stato ? opzioniDi(stato) : []), [stato])
   // Si parte dalla prima seduta che si ha (la prima che scade), o da quella da comprare.
   useEffect(() => {
@@ -661,11 +680,20 @@ export function Personal() {
       </Schermata>
     )
   }
-  if (!stato) {
+  if (!stato || daCambiare) {
     return (
       <Schermata titolo="Prenotazioni">
         <SceltaPrenotazioni attiva="personal" />
         <SchedeInArrivo />
+      </Schermata>
+    )
+  }
+  // Nessuno del nucleo ha l'eta': non c'e' niente da prenotare.
+  if (!idonee.length && troppoPiccoli.length) {
+    return (
+      <Schermata titolo="Prenotazioni">
+        <SceltaPrenotazioni attiva="personal" />
+        <Messaggio>{`Il personal training è dai ${ETA_MINIMA_PERSONAL} anni.`}</Messaggio>
       </Schermata>
     )
   }
@@ -860,10 +888,11 @@ export function Personal() {
         )
       ) : null}
 
-      {stato.persone.length > 1 ? (
+      {idonee.length > 1 || troppoPiccoli.length ? (
         <View style={{ gap: spazio.due }}>
+          {idonee.length > 1 ? (
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={stili.fila} style={stili.fuori}>
-            {stato.persone.map((x) => {
+            {idonee.map((x) => {
               const attivo = x.member_id === stato.member_id
               return (
                 <Tocco
@@ -884,9 +913,15 @@ export function Personal() {
               )
             })}
           </ScrollView>
-          {perChi ? (
+          ) : null}
+          {perChi && idonee.length > 1 ? (
             <Text style={[stili.nota, { color: p.testoSecondario, paddingHorizontal: 2 }]}>
               Stai prenotando per <Text style={{ fontFamily: F.bold, color: p.testo }}>{[perChi.nome, perChi.cognome].filter(Boolean).join(' ')}</Text>
+            </Text>
+          ) : null}
+          {troppoPiccoli.length ? (
+            <Text style={[stili.nota, { color: p.testoSecondario, paddingHorizontal: 2 }]}>
+              {`Il personal training è dai ${ETA_MINIMA_PERSONAL} anni: ${troppoPiccoli.map((x) => x.nome || 'un familiare').join(', ')} non si può prenotare.`}
             </Text>
           ) : null}
         </View>

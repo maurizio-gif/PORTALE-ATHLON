@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 
 import type { TipoModulo } from '@/api/clubLife'
 import { laMiaArea, type Area, type EsitoArea } from '@/api/lab'
+import { etaDa } from '@/lib/eta'
 
 import { inMemoria, prendi } from '../../memoria'
 
@@ -19,16 +20,6 @@ export type ProfiloSocio = {
 
 const MAGGIORE_ETA = 18
 
-/** L'eta' in anni compiuti da una data «AAAA-MM-GG»; null se la data manca o non si legge. */
-function eta(nascita: string | null | undefined): number | null {
-  const m = String(nascita ?? '').match(/^(\d{4})-(\d{2})-(\d{2})/)
-  if (!m) return null
-  const ora = new Date()
-  let anni = ora.getFullYear() - Number(m[1])
-  if (ora.getMonth() + 1 < Number(m[2]) || (ora.getMonth() + 1 === Number(m[2]) && ora.getDate() < Number(m[3]))) anni--
-  return anni
-}
-
 /**
  * Chi e' iscritto, e chi ha un figlio iscritto. Nei contratti vivi dell'area ci sono
  * anche i Guest Pass (il `tipo` lo ricava il database dal nome del piano, e qui non
@@ -40,7 +31,7 @@ export function profiloDa(area: Area): ProfiloSocio {
   const figli = new Set(
     area.persone
       .filter((x) => {
-        const anni = eta(x.data_nascita)
+        const anni = etaDa(x.data_nascita)
         return !x.titolare && anni !== null && anni < MAGGIORE_ETA
       })
       .map((x) => x.member_id),
