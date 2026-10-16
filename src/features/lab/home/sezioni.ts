@@ -2,7 +2,7 @@ import type { Href } from 'expo-router'
 
 // Le cinque sezioni della Home (17/10/2026): la Home e' l'hub dell'account, e
 // cio' che riguarda la persona sta in una di queste. Si scelgono dai riquadri e
-// dal parametro dell'indirizzo, `/lab?sezione=pagamenti`, cosi' un link o un
+// dal parametro dell'indirizzo, `/?sezione=pagamenti`, cosi' un link o un
 // ricaricamento riportano alla stessa sezione.
 
 export const SEZIONI = ['abbonamenti', 'pagamenti', 'certificato', 'famiglia', 'profilo'] as const
@@ -19,5 +19,5 @@ export function sezioneDa(valore: string | string[] | undefined): SezioneHome | 
 
 /** L'indirizzo della Home sulla sezione data. */
 export function hrefSezione(sezione: SezioneHome): Href {
-  return { pathname: '/lab', params: { sezione } }
+  return { pathname: '/', params: { sezione } }
 }

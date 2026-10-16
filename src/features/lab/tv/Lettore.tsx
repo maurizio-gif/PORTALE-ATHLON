@@ -110,7 +110,7 @@ export function Lettore() {
   const prossimi = (qui >= 0 ? [...tutti.slice(qui + 1), ...tutti.slice(0, qui)] : tutti.filter((x) => x.id !== id)).slice(0, PROSSIMI)
 
   return (
-    <Schermata titolo={v?.titolo ?? 'Athlon TV'} nascondiTitolo indietro={`/lab/tv/${raccolta}`} barra={false}>
+    <Schermata titolo={v?.titolo ?? 'Athlon TV'} nascondiTitolo indietro={`/tv/${raccolta}`} barra={false}>
       <View style={stili.cornice}>
         {sorgente ? (
           <Video key={sorgente} uri={sorgente} />
@@ -163,7 +163,7 @@ export function Lettore() {
                 }
                 titolo={x.titolo}
                 stileTitolo={{ fontSize: 14 }}
-                onPress={() => router.replace({ pathname: '/lab/tv/[raccolta]/[video]', params: { raccolta: String(raccolta), video: x.id } })}
+                onPress={() => router.replace({ pathname: '/tv/[raccolta]/[video]', params: { raccolta: String(raccolta), video: x.id } })}
               />
             ))}
           </Carta>

@@ -17,17 +17,18 @@ import { Tocco } from './Tocco'
 // Si vede solo sulle quattro schermate principali (i pagamenti stanno nella Home).
 
 const SCHEDE: { href: Href; percorso: string; titolo: string; icona: NomeIcona; anche?: string[] }[] = [
-  { href: '/lab', percorso: '/lab', titolo: 'Home', icona: 'casa' },
+  { href: '/', percorso: '/', titolo: 'Home', icona: 'casa' },
   // Il personal training e' l'altra faccia di Prenotazioni (SceltaPrenotazioni).
-  { href: '/lab/calendario', percorso: '/lab/calendario', titolo: 'Prenotazioni', icona: 'calendario', anche: ['/lab/personal'] },
-  { href: '/lab/allenamento', percorso: '/lab/allenamento', titolo: 'Workout', icona: 'peso' },
-  { href: '/lab/tv', percorso: '/lab/tv', titolo: 'TV', icona: 'play' },
+  { href: '/calendario', percorso: '/calendario', titolo: 'Prenotazioni', icona: 'calendario', anche: ['/personal'] },
+  { href: '/allenamento', percorso: '/allenamento', titolo: 'Workout', icona: 'peso' },
+  { href: '/tv', percorso: '/tv', titolo: 'TV', icona: 'play' },
 ]
 
 const MOLLA = { damping: 20, stiffness: 220, mass: 0.7 }
 
 export function schedaAttiva(percorso: string): number {
-  const qui = percorso.replace(/\/+$/, '')
+  // La Home e' la radice: tolto lo slash finale resterebbe una stringa vuota.
+  const qui = percorso.replace(/\/+$/, '') || '/'
   return SCHEDE.findIndex((s) => s.percorso === qui || s.anche?.includes(qui))
 }
 

@@ -35,7 +35,7 @@ import { statoLeggibile } from '@/features/metodo-pagamento/Metodo'
 // La Home dell'app (17/10/2026): l'hub dell'account. In cima chi sei e le cose
 // da fare; poi cinque riquadri (Abbonamenti, Pagamenti, Certificato, Famiglia,
 // Profilo) che mostrano un dato vivo e scelgono la sezione sotto. La sezione
-// sta nell'indirizzo, `/lab?sezione=pagamenti`, cosi' un link o un
+// sta nell'indirizzo, `/?sezione=pagamenti`, cosi' un link o un
 // ricaricamento tornano al punto giusto. Tutto dal mirror di PerfectGym
 // (portale_la_mia_area) e dalle schermate delle sezioni.
 

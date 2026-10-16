@@ -117,7 +117,7 @@ export function Scheda() {
 
   if (!dati) {
     return (
-      <Schermata sopratitolo="Workout" titolo="Scheda" indietro="/lab/allenamento" barra={false}>
+      <Schermata sopratitolo="Workout" titolo="Scheda" indietro="/allenamento" barra={false}>
         {errore ? (
           <>
             <Messaggio>{errore}</Messaggio>
@@ -140,7 +140,7 @@ export function Scheda() {
   const stimati = inPercentuale.filter((e) => indicazione(e, massimali).stimato)
   const rifare = testDaRifare(dati.ultimoTest ?? null, dati.giorniTest ?? 42, s.livello === 'principiante')
   return (
-    <Schermata sopratitolo={TIPI[s.tipo] ?? 'Scheda'} titolo={s.titolo} indietro="/lab/allenamento" barra={false}>
+    <Schermata sopratitolo={TIPI[s.tipo] ?? 'Scheda'} titolo={s.titolo} indietro="/allenamento" barra={false}>
       <View style={{ gap: spazio.due }}>
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
           {s.obiettivo ? <Tag testo={s.obiettivo} colore={p.accento} /> : null}
@@ -178,7 +178,7 @@ export function Scheda() {
             </Messaggio>
           ) : null}
           {!dati.ultimoTest || rifare ? (
-            <Pulsante testo={rifare ? 'Rifai il test' : 'Fai il test dei massimali'} icona="grafico" variante="secondario" onPress={() => router.push('/lab/allenamento/test')} />
+            <Pulsante testo={rifare ? 'Rifai il test' : 'Fai il test dei massimali'} icona="grafico" variante="secondario" onPress={() => router.push('/allenamento/test')} />
           ) : null}
         </Carta>
       ) : null}
@@ -251,7 +251,7 @@ export function Scheda() {
       <Pulsante
         testo={`Inizia l’allenamento · ${g.nome}`}
         icona="play"
-        onPress={() => router.push({ pathname: '/lab/allenamento/[scheda]/[giorno]', params: { scheda: s.id, giorno: g.id } })}
+        onPress={() => router.push({ pathname: '/allenamento/[scheda]/[giorno]', params: { scheda: s.id, giorno: g.id } })}
       />
 
       <FoglioEsercizio e={aperto} precedente={aperto ? precedente(aperto.esercizio_id) : undefined} massimali={massimali} onChiudi={() => setAperto(null)} />

@@ -229,8 +229,8 @@ function FoglioCompra({
 
   /** Dopo l'attivazione si legge l'esito come al ritorno da Adyen. */
   function aEsito(id: string) {
-    if (Platform.OS === 'web') window.location.assign(`/lab/personal?pacchetto=${id}`)
-    else router.replace({ pathname: '/lab/personal', params: { pacchetto: id } })
+    if (Platform.OS === 'web') window.location.assign(`/personal?pacchetto=${id}`)
+    else router.replace({ pathname: '/personal', params: { pacchetto: id } })
   }
 
   /** Sul conto: quello salvato, o un IBAN nuovo dal modulo. Restituisce l'errore da mostrare. */
@@ -780,8 +780,8 @@ export function Personal() {
       colpetto('errore')
       return setErroreAzione(r.errore)
     }
-    if (Platform.OS === 'web') window.location.assign(`/lab/personal?acquisto=${acquistoId}`)
-    else router.replace({ pathname: '/lab/personal', params: { acquisto: acquistoId } })
+    if (Platform.OS === 'web') window.location.assign(`/personal?acquisto=${acquistoId}`)
+    else router.replace({ pathname: '/personal', params: { acquisto: acquistoId } })
   }
 
   async function annulla(s: SedutaPersonal): Promise<string | null> {

@@ -202,7 +202,7 @@ export function AnteprimaAnimazioni() {
   const minuti = Math.round(GIORNO.reduce((t, e) => t + e.serie * (45 + e.recupero), 0) / 60)
 
   return (
-    <Schermata sopratitolo="Prova · animazioni degli esercizi" titolo="Giorno A · Forza" indietro="/lab" barra={false}>
+    <Schermata sopratitolo="Prova · animazioni degli esercizi" titolo="Giorno A · Forza" indietro="/" barra={false}>
       <Sezione titolo="Quale libreria?">
         <View style={[stili.selettore, { backgroundColor: p.incavo }]}>
           {FONTI.map((f) => {

@@ -10,9 +10,9 @@ import { Tocco } from './Tocco'
 // interruttore sta in cima a tutte e due, e si passa dall'una all'altra senza
 // accumulare pagine (replace).
 
-const VOCI: { chiave: 'lezioni' | 'personal'; testo: string; icona: NomeIcona; percorso: '/lab/calendario' | '/lab/personal' }[] = [
-  { chiave: 'lezioni', testo: 'Lezioni', icona: 'calendario', percorso: '/lab/calendario' },
-  { chiave: 'personal', testo: 'Personal', icona: 'persona', percorso: '/lab/personal' },
+const VOCI: { chiave: 'lezioni' | 'personal'; testo: string; icona: NomeIcona; percorso: '/calendario' | '/personal' }[] = [
+  { chiave: 'lezioni', testo: 'Lezioni', icona: 'calendario', percorso: '/calendario' },
+  { chiave: 'personal', testo: 'Personal', icona: 'persona', percorso: '/personal' },
 ]
 
 export function SceltaPrenotazioni({ attiva }: { attiva: 'lezioni' | 'personal' }) {

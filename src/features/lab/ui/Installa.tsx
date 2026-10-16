@@ -176,7 +176,7 @@ export function Installa({ dopoAccesso = false }: { dopoAccesso?: boolean }) {
 
   async function copiaLink() {
     try {
-      await navigator.clipboard.writeText(`${location.origin}/lab`)
+      await navigator.clipboard.writeText(`${location.origin}`)
       setCopiato(true)
     } catch {
       setCopiato(false)

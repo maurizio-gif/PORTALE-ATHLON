@@ -12,7 +12,7 @@ import { ElencoEsiti } from '@/features/metodo-pagamento/Metodo'
 import { esitoRitornoCarta, type ContrattoNucleo, type EsitoContratto } from '@/lib/metodoPagamento'
 
 // Il ritorno dalla pagina della carta (`thankYouPageUrl` = `/r/<token>/fatto`,
-// o `/lab/metodo-pagamento/fatto/<token>` per le richieste aperte dall'app):
+// o `/metodo-pagamento/fatto/<token>` per le richieste aperte dall'app):
 // la carta e' gia' fra quelle del titolare, e qui si chiede di collegarla agli
 // abbonamenti scelti prima di partire. Ripreso dal CRM (`ConfermaNucleo.tsx`).
 //

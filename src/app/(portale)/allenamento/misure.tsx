@@ -1,13 +1,13 @@
 import { Redirect } from 'expo-router'
 
-import { Galleria } from '@/features/lab/tv/Galleria'
+import { Misure } from '@/features/lab/dati/Misure'
 import { SchermataInArrivo } from '@/features/lab/ui/Attesa'
 import { useSessione } from '@/features/lab/useSessione'
 
-// La galleria di uno showcase di Athlon TV. Solo con la sessione.
-export default function PaginaGalleria() {
+// I dati del corpo e il loro andamento. Solo con la sessione.
+export default function PaginaMisure() {
   const sessione = useSessione()
   if (sessione === undefined) return <SchermataInArrivo />
-  if (!sessione) return <Redirect href="/lab" />
-  return <Galleria />
+  if (!sessione) return <Redirect href="/" />
+  return <Misure />
 }

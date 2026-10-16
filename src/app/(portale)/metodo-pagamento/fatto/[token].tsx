@@ -12,6 +12,6 @@ export default function PaginaCartaFatto() {
   const sessione = useSessione()
   const params = useLocalSearchParams<{ token: string }>()
   if (sessione === undefined) return <SchermataInArrivo />
-  if (!sessione) return <Redirect href="/lab" />
-  return <RitornoCarta token={String(params.token ?? '')} params={params} Cornice={CorniceLab} onIndietro={() => router.replace('/lab/metodo-pagamento')} />
+  if (!sessione) return <Redirect href="/" />
+  return <RitornoCarta token={String(params.token ?? '')} params={params} Cornice={CorniceLab} onIndietro={() => router.replace('/metodo-pagamento')} />
 }

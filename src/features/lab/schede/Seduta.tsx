@@ -278,7 +278,7 @@ export function Seduta() {
 
   if (errore && !seduta) {
     return (
-      <Schermata sopratitolo="Workout" titolo="Seduta" indietro={`/lab/allenamento/${schedaId}`} barra={false}>
+      <Schermata sopratitolo="Workout" titolo="Seduta" indietro={`/allenamento/${schedaId}`} barra={false}>
         <Messaggio>{errore}</Messaggio>
         <Pulsante testo="Riprova" icona="aggiorna" onPress={carica} />
       </Schermata>
@@ -286,7 +286,7 @@ export function Seduta() {
   }
   if (!giorno || !seduta || !scheda) {
     return (
-      <Schermata sopratitolo="Workout" titolo="Seduta" indietro={`/lab/allenamento/${schedaId}`} barra={false}>
+      <Schermata sopratitolo="Workout" titolo="Seduta" indietro={`/allenamento/${schedaId}`} barra={false}>
         <SchedeInArrivo quante={2} />
       </Schermata>
     )
@@ -294,7 +294,7 @@ export function Seduta() {
 
   if (finita) {
     return (
-      <Schermata sopratitolo={scheda.titolo} titolo="Allenamento finito" indietro={`/lab/allenamento/${schedaId}`} barra={false}>
+      <Schermata sopratitolo={scheda.titolo} titolo="Allenamento finito" indietro={`/allenamento/${schedaId}`} barra={false}>
         <Carta style={{ alignItems: 'center', gap: spazio.tre, paddingVertical: spazio.cinque }}>
           <View style={[stili.coppa, { backgroundColor: FUOCO[1] }]}>
             <Icona nome="bandiera" size={30} colore="#fff" />
@@ -317,15 +317,15 @@ export function Seduta() {
             ) : null}
           </View>
         </Carta>
-        <Pulsante testo="Vedi i progressi" icona="grafico" onPress={() => router.replace('/lab/allenamento/storico')} />
-        <Pulsante testo="Torna alla scheda" variante="secondario" onPress={() => router.replace({ pathname: '/lab/allenamento/[scheda]', params: { scheda: scheda.id } })} />
+        <Pulsante testo="Vedi i progressi" icona="grafico" onPress={() => router.replace('/allenamento/storico')} />
+        <Pulsante testo="Torna alla scheda" variante="secondario" onPress={() => router.replace({ pathname: '/allenamento/[scheda]', params: { scheda: scheda.id } })} />
       </Schermata>
     )
   }
 
   const fatteN = giorno.esercizi.reduce((n, e) => n + Array.from({ length: e.serie }, (_, k) => fatte.has(chiaveSerie(e.id, k + 1))).filter(Boolean).length, 0)
   return (
-    <Schermata sopratitolo={scheda.titolo} titolo={giorno.nome} indietro={`/lab/allenamento/${schedaId}`} barra={false}>
+    <Schermata sopratitolo={scheda.titolo} titolo={giorno.nome} indietro={`/allenamento/${schedaId}`} barra={false}>
       <Carta style={{ gap: spazio.due }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>

@@ -22,7 +22,7 @@ import { durata, memoria, quanti } from './comune'
 const META = 6
 
 export function apriVideo(raccolta: string, v: VideoClub) {
-  router.push({ pathname: '/lab/tv/[raccolta]/[video]', params: { raccolta, video: v.id } })
+  router.push({ pathname: '/tv/[raccolta]/[video]', params: { raccolta, video: v.id } })
 }
 
 function Locandina({ raccolta, v }: { raccolta: string; v: VideoClub }) {
@@ -74,7 +74,7 @@ export function Galleria() {
       sopratitolo="Athlon TV"
       titolo={vetrina?.titolo ?? 'Raccolta'}
       sottotitolo={vetrina ? [quanti(vetrina.totale), vetrina.descrizione].filter(Boolean).join(' · ') : undefined}
-      indietro="/lab/tv"
+      indietro="/tv"
       barra={false}
     >
       {errore && !video ? (

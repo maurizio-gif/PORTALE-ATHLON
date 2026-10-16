@@ -760,8 +760,8 @@ export function Calendario() {
     const r = await pagaLezioneConCarta(acquistoId)
     setOccupato(false)
     if (!r.ok) return r.errore
-    if (Platform.OS === 'web') window.location.assign(`/lab/calendario?acquisto=${acquistoId}`)
-    else router.replace({ pathname: '/lab/calendario', params: { acquisto: acquistoId } })
+    if (Platform.OS === 'web') window.location.assign(`/calendario?acquisto=${acquistoId}`)
+    else router.replace({ pathname: '/calendario', params: { acquisto: acquistoId } })
     return null
   }
 

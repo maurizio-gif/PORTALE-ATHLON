@@ -25,7 +25,7 @@ export function PulsanteEsci({ email, testo = 'Esci', conferma = true }: { email
     setInCorso(false)
     setAperto(false)
     colpetto('ok')
-    router.replace('/lab')
+    router.replace('/')
   }
 
   return (

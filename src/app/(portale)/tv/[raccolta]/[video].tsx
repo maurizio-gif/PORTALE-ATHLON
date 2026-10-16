@@ -1,13 +1,13 @@
 import { Redirect } from 'expo-router'
 
+import { Lettore } from '@/features/lab/tv/Lettore'
 import { SchermataInArrivo } from '@/features/lab/ui/Attesa'
-import { Calendario } from '@/features/lab/Calendario'
 import { useSessione } from '@/features/lab/useSessione'
 
-// Il calendario del laboratorio: solo con la sessione, altrimenti all'accesso.
-export default function PaginaCalendario() {
+// Il lettore di un video di Athlon TV. Solo con la sessione.
+export default function PaginaLettore() {
   const sessione = useSessione()
   if (sessione === undefined) return <SchermataInArrivo />
-  if (!sessione) return <Redirect href="/lab" />
-  return <Calendario />
+  if (!sessione) return <Redirect href="/" />
+  return <Lettore />
 }

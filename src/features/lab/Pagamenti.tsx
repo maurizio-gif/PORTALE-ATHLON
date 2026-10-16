@@ -161,7 +161,7 @@ function Abbonamento({ a, onCambiato }: { a: AbbonamentoLab; onCambiato: () => v
                     <Text style={{ color: e.tono ? p[e.tono] : p.testoSecondario, fontFamily: F.bold, fontSize: 12 }}>{e.testo}</Text>
                   </View>
                 }
-                onPress={() => navigatore.push({ pathname: '/lab/pagamenti/[riferimento]', params: { riferimento: x.riferimento } })}
+                onPress={() => navigatore.push({ pathname: '/pagamenti/[riferimento]', params: { riferimento: x.riferimento } })}
               />
             )
           })}
@@ -247,7 +247,7 @@ export function ProvaPagamento() {
     if (!checkout) return
     const { riferimento, sessione } = checkout.sessione
     router.push({
-      pathname: '/lab/pagamenti/[riferimento]',
+      pathname: '/pagamenti/[riferimento]',
       params: sessionResult ? { riferimento, sessionId: sessione.id, sessionResult } : { riferimento, sessionId: sessione.id },
     })
   }

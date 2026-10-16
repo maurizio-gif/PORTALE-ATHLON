@@ -162,7 +162,7 @@ export function Test() {
 
   if (!dati) {
     return (
-      <Schermata sopratitolo="Workout" titolo="Test dei massimali" indietro="/lab/allenamento" barra={false}>
+      <Schermata sopratitolo="Workout" titolo="Test dei massimali" indietro="/allenamento" barra={false}>
         {errore ? (
           <>
             <Messaggio>{errore}</Messaggio>
@@ -177,7 +177,7 @@ export function Test() {
 
   const fatti = dati.esercizi.filter((e) => e.ultimo).length
   return (
-    <Schermata sopratitolo="Workout" titolo="Test dei massimali" indietro="/lab/allenamento" barra={false}>
+    <Schermata sopratitolo="Workout" titolo="Test dei massimali" indietro="/allenamento" barra={false}>
       <View style={{ gap: spazio.tre }}>
         {[
           'Per fare il test completa gli esercizi della parte superiore, del core e della parte inferiore del corpo.',

@@ -9,6 +9,6 @@ export default function PaginaStoricoPagamenti() {
   const sessione = useSessione()
   const { vista } = useLocalSearchParams<{ vista?: string }>()
   if (sessione === undefined) return <SchermataInArrivo />
-  if (!sessione) return <Redirect href="/lab" />
+  if (!sessione) return <Redirect href="/" />
   return <StoricoPagamenti vistaIniziale={vista === 'futuri' ? 'futuri' : 'effettuati'} />
 }

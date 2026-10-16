@@ -13,7 +13,8 @@ import { Schermata } from '../ui/Schermata'
 // email (GestioneNucleo: gli abbonamenti del nucleo, IBAN o carta, salvati su
 // PerfectGym), dentro il laboratorio. Il socio e' gia' entrato: il token lo
 // apre portale-lab-pagamenti, senza email. Dalla carta si torna nell'app:
-// /lab/metodo-pagamento/fatto/<token> (portale-link, richieste con origine 'app').
+// /metodo-pagamento/fatto/<token> (portale-link, richieste con origine 'app': lo manda
+// ancora come /lab/metodo-pagamento/fatto/<token>, e vercel.json lo reindirizza).
 
 /** La cornice del laboratorio per le schermate del metodo di pagamento (anche il ritorno dalla carta). */
 export function CorniceLab({ titolo, children }: { titolo: string; children: ReactNode; indietro?: boolean }) {

@@ -1,13 +1,13 @@
 import { Redirect } from 'expo-router'
 
-import { Storico } from '@/features/lab/schede/Storico'
 import { SchermataInArrivo } from '@/features/lab/ui/Attesa'
+import { Personal } from '@/features/lab/Personal'
 import { useSessione } from '@/features/lab/useSessione'
 
-// Lo storico degli allenamenti e i progressi. Solo con la sessione.
-export default function PaginaStorico() {
+// Il personal training del laboratorio: solo con la sessione, altrimenti all'accesso.
+export default function PaginaPersonal() {
   const sessione = useSessione()
   if (sessione === undefined) return <SchermataInArrivo />
-  if (!sessione) return <Redirect href="/lab" />
-  return <Storico />
+  if (!sessione) return <Redirect href="/" />
+  return <Personal />
 }

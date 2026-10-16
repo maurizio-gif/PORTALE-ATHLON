@@ -21,7 +21,7 @@ export function SezionePagamenti() {
             tono="accento"
             titolo="Aggiorna il metodo di pagamento"
             sotto="Conto corrente (IBAN) o carta, per te e per la tua famiglia"
-            onPress={() => router.push('/lab/metodo-pagamento')}
+            onPress={() => router.push('/metodo-pagamento')}
           />
         </Carta>
       </Entra>

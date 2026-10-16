@@ -109,7 +109,7 @@ export function StatoPagamento() {
           const r = await esitoPagamento(riferimento, sessionId, risultato)
           if (r.ok) setAdyen(r.adyen_status)
         }
-        router.replace({ pathname: '/lab/pagamenti/[riferimento]', params: { riferimento } })
+        router.replace({ pathname: '/pagamenti/[riferimento]', params: { riferimento } })
       }
       await leggi()
     })()

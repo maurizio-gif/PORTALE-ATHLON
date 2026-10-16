@@ -91,7 +91,7 @@ export function DaFare({ area, onSezione }: { area: AreaTrovata; onSezione: (s: 
                 <Pulsante testo="Vedi i pagamenti" icona="carta" onPress={() => onSezione('pagamenti')} />
               </View>
               <View style={{ flexGrow: 1, flexBasis: 160 }}>
-                <Pulsante testo="Aggiorna il metodo" variante="secondario" onPress={() => router.push('/lab/metodo-pagamento')} />
+                <Pulsante testo="Aggiorna il metodo" variante="secondario" onPress={() => router.push('/metodo-pagamento')} />
               </View>
             </View>
           ) : null}
