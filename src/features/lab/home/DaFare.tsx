@@ -7,11 +7,12 @@ import { spazio } from '@/theme'
 import { Carta, Entra, Pulsante, Riga, Sezione } from '../ui/kit'
 import { F, usePalette } from '../ui/tema'
 import { nome, richiedeAzione, statoCertificato, urgenzaCertificato } from './certificato'
+import { regolaritaContratto, type ChiaveMotivo } from './regolarita'
 import type { SezioneHome } from './sezioni'
 
 // «Da fare», in cima alla Home, solo se serve: un pagamento in sospeso, un
-// certificato scaduto, mancante, da consegnare o in scadenza, per te o per un
-// familiare. Si ricava da `portale_la_mia_area`, gia' letta: nessuna chiamata
+// metodo di pagamento mancante o una carta scaduta, un certificato scaduto,
+// mancante, da consegnare o in scadenza, per te o per un familiare. Si ricava da `portale_la_mia_area`, gia' letta: nessuna chiamata
 // in piu'. Toccando una riga si apre la sezione che ne parla.
 
 type AreaTrovata = Extract<Area, { trovato: true }>
@@ -39,6 +40,20 @@ export function vociDaFare(area: AreaTrovata): Voce[] {
       urgenza: 9,
     })
   }
+  // Il metodo di pagamento: manca, o la carta e' scaduta. Una voce per tipo, con chi riguarda.
+  const METODO: { chiave: Extract<ChiaveMotivo, 'metodo' | 'carta'>; titolo: string; sotto: string }[] = [
+    { chiave: 'metodo', titolo: 'Manca il metodo di pagamento', sotto: 'Aggiungi una carta o un conto corrente per gli addebiti.' },
+    { chiave: 'carta', titolo: 'Carta scaduta', sotto: 'Sostituiscila per gli addebiti.' },
+  ]
+  for (const t of METODO) {
+    const chi = new Set<string>()
+    for (const k of area.contratti) {
+      const persona = area.persone.find((x) => x.member_id === k.member_id)
+      if (regolaritaContratto(k, persona).motivi.some((m) => m.chiave === t.chiave)) chi.add(!persona || persona.titolare ? 'Tu' : nome(persona))
+    }
+    if (!chi.size) continue
+    voci.push({ chiave: `metodo-${t.chiave}`, icona: 'attenzione', tono: 'attenzione', titolo: t.titolo, chi: [...chi].join(', '), sotto: t.sotto, sezione: 'abbonamenti', urgenza: 6 })
+  }
   for (const persona of area.persone) {
     const s = statoCertificato(area.certificati.find((c) => c.member_id === persona.member_id), persona.data_nascita)
     if (!richiedeAzione(s)) continue
@@ -61,6 +76,7 @@ export function DaFare({ area, onSezione }: { area: AreaTrovata; onSezione: (s: 
   const voci = vociDaFare(area)
   if (!voci.length) return null
   const inSospeso = voci.some((v) => v.chiave === 'debito')
+  const senzaMetodo = voci.some((v) => v.chiave.startsWith('metodo-'))
   return (
     <Entra indice={1}>
       <Sezione titolo="Da fare" conteggio={voci.length}>
@@ -85,13 +101,15 @@ export function DaFare({ area, onSezione }: { area: AreaTrovata; onSezione: (s: 
               onPress={() => onSezione(v.sezione)}
             />
           ))}
-          {inSospeso ? (
+          {inSospeso || senzaMetodo ? (
             <View style={stili.azioni}>
+              {inSospeso ? (
+                <View style={{ flexGrow: 1, flexBasis: 160 }}>
+                  <Pulsante testo="Vedi i pagamenti" icona="carta" onPress={() => onSezione('pagamenti')} />
+                </View>
+              ) : null}
               <View style={{ flexGrow: 1, flexBasis: 160 }}>
-                <Pulsante testo="Vedi i pagamenti" icona="carta" onPress={() => onSezione('pagamenti')} />
-              </View>
-              <View style={{ flexGrow: 1, flexBasis: 160 }}>
-                <Pulsante testo="Aggiorna il metodo" variante="secondario" onPress={() => router.push('/metodo-pagamento')} />
+                <Pulsante testo="Aggiorna il metodo" variante={inSospeso ? 'secondario' : 'primario'} onPress={() => router.push('/metodo-pagamento')} />
               </View>
             </View>
           ) : null}

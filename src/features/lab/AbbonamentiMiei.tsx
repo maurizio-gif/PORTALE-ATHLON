@@ -3,9 +3,12 @@ import { useCallback, useEffect, useState } from 'react'
 import { Linking, Platform, StyleSheet, Text, View } from 'react-native'
 
 import { contrattiAbbonamento, documentoAbbonamento, type AddebitoContratto, type ContrattoElenco } from '@/api/abbonamento'
+import type { Area } from '@/api/lab'
 import { euro } from '@/lib/eventi'
 import { spazio } from '@/theme'
 
+import { regolaritaContratto, type Regolarita } from './home/regolarita'
+import type { SezioneHome } from './home/sezioni'
 import { inMemoria, prendi } from './memoria'
 import { Carta, Etichetta, Messaggio, Pulsante, SchedeInArrivo, Sezione } from './ui/kit'
 import { F, usePalette } from './ui/tema'
@@ -59,7 +62,29 @@ function Riga({ nome, valore, colore }: { nome: string; valore: string; colore?:
   )
 }
 
-function SchedaContratto({ c, conPersona }: { c: ContrattoElenco; conPersona: boolean }) {
+/** Cosa non va in un abbonamento, e da dove si sistema: i pagamenti o il metodo. */
+function DaSistemare({ regolarita, onSezione }: { regolarita: Regolarita; onSezione: (s: SezioneHome) => void }) {
+  const p = usePalette()
+  const debito = regolarita.motivi.some((m) => m.chiave === 'debito')
+  const metodo = regolarita.motivi.some((m) => m.chiave === 'metodo' || m.chiave === 'carta')
+  return (
+    <Messaggio tono={regolarita.tono ?? 'attenzione'} titolo="Da sistemare">
+      <View style={{ gap: spazio.due }}>
+        {regolarita.motivi.map((m) => (
+          <Text key={m.chiave} style={{ color: p.testoSecondario, fontFamily: F.medio, fontSize: 14, lineHeight: 20 }}>
+            {m.dettaglio}
+          </Text>
+        ))}
+        <View style={{ gap: spazio.due, paddingTop: 2 }}>
+          {debito ? <Pulsante testo="Vedi i pagamenti" icona="carta" piccolo variante={metodo ? 'contorno' : 'primario'} onPress={() => onSezione('pagamenti')} /> : null}
+          {metodo ? <Pulsante testo="Sistema il metodo" icona="carta" piccolo onPress={() => router.push('/metodo-pagamento')} /> : null}
+        </View>
+      </View>
+    </Messaggio>
+  )
+}
+
+function SchedaContratto({ c, conPersona, regolarita, onSezione }: { c: ContrattoElenco; conPersona: boolean; regolarita: Regolarita | null; onSezione: (s: SezioneHome) => void }) {
   const p = usePalette()
   const [aperta, setAperta] = useState(false)
   const [scarico, setScarico] = useState(false)
@@ -68,6 +93,7 @@ function SchedaContratto({ c, conPersona }: { c: ContrattoElenco; conPersona: bo
   // Il flag `automaticRenew` di PerfectGym, letto dal server come `si_rinnova`:
   // si accende solo per un contratto in vigore, e sparisce con la disdetta.
   const rinnovoAutomatico = c.in_vigore && c.si_rinnova
+  const irregolare = Boolean(regolarita?.motivi.length)
 
   async function scarica() {
     if (!c.firmato) return
@@ -93,12 +119,14 @@ function SchedaContratto({ c, conPersona }: { c: ContrattoElenco; conPersona: bo
           </View>
           <Etichetta testo={s.testo} tono={s.tono} />
         </View>
-        {c.categoria !== 'principale' || rinnovoAutomatico ? (
+        {irregolare || c.categoria !== 'principale' || rinnovoAutomatico ? (
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'flex-start', gap: spazio.due }}>
+            {irregolare ? <Etichetta testo="Irregolare" tono={regolarita?.tono ?? 'attenzione'} /> : null}
             {c.categoria !== 'principale' ? <Etichetta testo={c.categoria === 'junior' ? 'Corso per bambini' : 'Abbonamento aggiuntivo'} tono="neutro" /> : null}
             {rinnovoAutomatico ? <Etichetta testo="Rinnovo automatico attivo" tono="ok" /> : null}
           </View>
         ) : null}
+        {irregolare && regolarita ? <DaSistemare regolarita={regolarita} onSezione={onSezione} /> : null}
 
         <View style={{ gap: 6 }}>
           <Riga nome="Sottoscritto il" valore={data(c.data_firma)} />
@@ -184,7 +212,7 @@ export const CHIAVE_CONTRATTI = 'abbonamenti:contratti'
  * comando per sceglierne uno nuovo. I dati restano in memoria: tornando alla
  * sezione si apre subito, e intanto si aggiorna.
  */
-export function ElencoAbbonamenti() {
+export function ElencoAbbonamenti({ area, onSezione }: { area: Extract<Area, { trovato: true }>; onSezione: (s: SezioneHome) => void }) {
   const p = usePalette()
   const [elenco, setElenco] = useState<ContrattoElenco[] | null>(() => inMemoria<{ ok: true; contratti: ContrattoElenco[] }>(CHIAVE_CONTRATTI)?.contratti ?? null)
   const [errore, setErrore] = useState<string | null>(null)
@@ -201,6 +229,11 @@ export function ElencoAbbonamenti() {
   const vigore = (elenco ?? []).filter((c) => c.in_vigore)
   const passati = (elenco ?? []).filter((c) => !c.in_vigore)
   const piuPersone = new Set((elenco ?? []).map((c) => c.member_id)).size > 1
+  // La regolarita' viene dai dati della Home (l'area): il metodo e il debito sono li'.
+  const regolarita = (c: ContrattoElenco): Regolarita | null => {
+    const k = area.contratti.find((x) => x.contract_id === c.contract_id)
+    return k ? regolaritaContratto(k, area.persone.find((x) => x.member_id === k.member_id)) : null
+  }
   return (
     <View style={{ gap: spazio.quattro }}>
       <Pulsante testo="Scegli un abbonamento" icona="avanti" onPress={() => router.navigate('/abbonamento')} />
@@ -220,7 +253,7 @@ export function ElencoAbbonamenti() {
         <Sezione titolo="In vigore" conteggio={vigore.length}>
           <View style={{ gap: spazio.tre }}>
             {vigore.map((c) => (
-              <SchedaContratto key={c.contract_id} c={c} conPersona={piuPersone} />
+              <SchedaContratto key={c.contract_id} c={c} conPersona={piuPersone} regolarita={regolarita(c)} onSezione={onSezione} />
             ))}
           </View>
         </Sezione>
@@ -229,7 +262,7 @@ export function ElencoAbbonamenti() {
         <Sezione titolo="Passati" conteggio={passati.length}>
           <View style={{ gap: spazio.tre }}>
             {passati.map((c) => (
-              <SchedaContratto key={c.contract_id} c={c} conPersona={piuPersone} />
+              <SchedaContratto key={c.contract_id} c={c} conPersona={piuPersone} regolarita={regolarita(c)} onSezione={onSezione} />
             ))}
           </View>
         </Sezione>
