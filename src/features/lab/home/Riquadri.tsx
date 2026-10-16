@@ -11,7 +11,7 @@ import { F, FUOCO, MARE, usePalette, coloreTono, velo, type ToniTutti } from '..
 import { Tocco } from '../ui/Tocco'
 import { SEZIONI, type SezioneHome } from './sezioni'
 
-// Il selettore della Home: cinque riquadri, uno per sezione, che mostrano un
+// Il selettore della Home: sei riquadri, uno per sezione, che mostrano un
 // dato vivo e fanno da schede. Quello scelto si accende col colore della sua
 // sezione. Su telefono scorrono in orizzontale; da largo stanno in riga.
 
@@ -28,6 +28,7 @@ export type VoceRiquadro = {
 const ASPETTO: Record<SezioneHome, { titolo: string; icona: NomeIcona; tono: ToniTutti; colori: readonly [string, string, ...string[]] }> = {
   abbonamenti: { titolo: 'Abbonamenti', icona: 'abbonamento', tono: 'accento', colori: FUOCO },
   pagamenti: { titolo: 'Pagamenti', icona: 'carta', tono: 'attenzione', colori: ['#F59E0B', '#B45309'] },
+  documenti: { titolo: 'Documenti', icona: 'documento', tono: 'neutro', colori: ['#14B8A6', '#0E7C70'] },
   certificato: { titolo: 'Certificato', icona: 'certificato', tono: 'ok', colori: ['#34A36B', '#1B6B43'] },
   famiglia: { titolo: 'Famiglia', icona: 'famiglia', tono: 'blu', colori: MARE },
   profilo: { titolo: 'Profilo', icona: 'persona', tono: 'neutro', colori: ['#8B5CF6', '#5B21B6'] },

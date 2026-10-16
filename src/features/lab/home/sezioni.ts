@@ -1,11 +1,11 @@
 import type { Href } from 'expo-router'
 
-// Le cinque sezioni della Home (17/10/2026): la Home e' l'hub dell'account, e
+// Le sei sezioni della Home (17/10/2026, i Documenti dal 16/10): la Home e' l'hub dell'account, e
 // cio' che riguarda la persona sta in una di queste. Si scelgono dai riquadri e
 // dal parametro dell'indirizzo, `/?sezione=pagamenti`, cosi' un link o un
 // ricaricamento riportano alla stessa sezione.
 
-export const SEZIONI = ['abbonamenti', 'pagamenti', 'certificato', 'famiglia', 'profilo'] as const
+export const SEZIONI = ['abbonamenti', 'pagamenti', 'documenti', 'certificato', 'famiglia', 'profilo'] as const
 export type SezioneHome = (typeof SEZIONI)[number]
 
 /** Da dove si parte quando il parametro manca o non e' una sezione. */

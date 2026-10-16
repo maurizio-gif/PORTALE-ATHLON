@@ -8,6 +8,7 @@ import type Animated from 'react-native-reanimated'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { contrattiAbbonamento } from '@/api/abbonamento'
+import { elencoDocumenti } from '@/api/documenti'
 import { laMiaArea, leggiAnagrafica, leggiGiorno, leggiVetrine, type Area, type PersonaArea } from '@/api/lab'
 import { spazio } from '@/theme'
 
@@ -16,6 +17,7 @@ import { DaFare } from './home/DaFare'
 import { Riquadri, type VoceRiquadro } from './home/Riquadri'
 import { SezioneCertificato } from './home/SezioneCertificato'
 import { SezioneFamiglia } from './home/SezioneFamiglia'
+import { SezioneDocumenti, useDocumenti, CHIAVE_DOCUMENTI } from './home/SezioneDocumenti'
 import { SezionePagamenti } from './home/SezionePagamenti'
 import { giorni, nome, oggi, statoCertificato, urgenzaCertificato } from './home/certificato'
 import { riepilogoAbbonamenti } from './home/regolarita'
@@ -144,6 +146,7 @@ export function AreaRiservata({ email }: { email: string }) {
   const [area, setArea] = useState<Area | null>(inMemoria<{ ok: true; area: Area }>('area')?.area ?? null)
   const [errore, setErrore] = useState<{ testo: string; nonAmmesso: boolean } | null>(null)
   const movimenti = useMovimenti()
+  const documenti = useDocumenti()
   const { sezione: parametro } = useLocalSearchParams<{ sezione?: string }>()
   const sezione = sezioneDa(parametro) ?? SEZIONE_INIZIALE
   const ins = useSafeAreaInsets()
@@ -161,6 +164,7 @@ export function AreaRiservata({ email }: { email: string }) {
     if (esito.area.trovato) {
       precarica('giorno::', () => leggiGiorno())
       precarica(CHIAVE_CONTRATTI, contrattiAbbonamento)
+      precarica(CHIAVE_DOCUMENTI, elencoDocumenti)
       precarica('anagrafica', leggiAnagrafica)
       if (!memoriaTv.vetrine) leggiVetrine().then((r) => r.ok && (memoriaTv.vetrine = r.vetrine))
     }
@@ -249,9 +253,16 @@ export function AreaRiservata({ email }: { email: string }) {
           : movimenti.errore
             ? { valore: 'Apri', nota: 'prossimi pagamenti' }
             : { valore: '…', nota: 'un attimo' }
+  const nDocumenti = documenti.dati?.documenti.length
   const voci: Record<SezioneHome, VoceRiquadro> = {
     abbonamenti: riquadroAbbonamenti(area),
     pagamenti,
+    documenti:
+      nDocumenti != null
+        ? { valore: String(nDocumenti), nota: nDocumenti === 1 ? 'documento' : 'documenti' }
+        : documenti.errore
+          ? { valore: 'Apri', nota: 'contratti e ricevute' }
+          : { valore: '…', nota: 'un attimo' },
     certificato: riquadroCertificato(area),
     famiglia: { valore: String(area.persone.length), nota: area.persone.length === 1 ? 'persona' : 'persone' },
     profilo: { valore: titolare?.nome || 'Profilo', nota: titolare?.email || email },
@@ -277,6 +288,7 @@ export function AreaRiservata({ email }: { email: string }) {
       <Entra key={sezione} indice={0} style={[stili.sezione, { minHeight: Math.max(0, height - 220) }]}>
         {sezione === 'abbonamenti' ? <ElencoAbbonamenti area={area} onSezione={(s) => vai(s, true)} /> : null}
         {sezione === 'pagamenti' ? <SezionePagamenti /> : null}
+        {sezione === 'documenti' ? <SezioneDocumenti /> : null}
         {sezione === 'certificato' ? <SezioneCertificato area={area} /> : null}
         {sezione === 'famiglia' ? <SezioneFamiglia area={area} /> : null}
         {sezione === 'profilo' ? <ProfiloContenuto /> : null}
