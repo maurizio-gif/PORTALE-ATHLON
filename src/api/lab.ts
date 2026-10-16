@@ -1,4 +1,5 @@
 import { SUPABASE_URL } from '@/config'
+import { vistaCorrente } from '@/features/lab/vista'
 import { supabase } from '@/lib/supabase'
 
 // Il laboratorio (binario B): login proprio, fuori da PerfectGym, solo per i
@@ -69,18 +70,26 @@ export type Area =
 
 export type EsitoArea = { ok: true; area: Area } | { ok: false; nonAmmesso: boolean; errore: string }
 
-/** L'area riservata: la legge `portale_la_mia_area()` dal mirror di PerfectGym, solo per chi e' fra i tester. */
+/**
+ * L'area riservata: la legge `portale_la_mia_area()` dal mirror di PerfectGym, solo per chi e' fra i tester.
+ * In vista cliente (vista.ts) la Home e' quella del cliente, letta con `portale_area_di`: solo per chi e' abilitato.
+ */
 export async function laMiaArea(): Promise<EsitoArea> {
-  const { data, error } = await supabase.rpc('portale_la_mia_area')
+  const vista = vistaCorrente()
+  const { data, error } = vista ? await supabase.rpc('portale_area_di', { p_email: vista }) : await supabase.rpc('portale_la_mia_area')
   if (!error) return { ok: true, area: data as Area }
-  // 42501 e' anche «permission denied»: e' il rifiuto del tester solo col
-  // messaggio della funzione, altrimenti e' un errore come gli altri.
-  const nonAmmesso = error.code === '42501' && /tester/i.test(error.message)
-  if (!nonAmmesso) console.error('portale_la_mia_area:', error.code, error.message)
+  // 42501 e' anche «permission denied»: e' il rifiuto del tester (o della vista)
+  // solo col messaggio della funzione, altrimenti e' un errore come gli altri.
+  const nonAmmesso = error.code === '42501' && (vista ? /vista cliente/i : /tester/i).test(error.message)
+  if (!nonAmmesso) console.error(vista ? 'portale_area_di:' : 'portale_la_mia_area:', error.code, error.message)
   return {
     ok: false,
     nonAmmesso,
-    errore: nonAmmesso ? 'Questo indirizzo non ha ancora accesso al portale. Scrivi al club se pensi sia un errore.' : 'Non riusciamo a leggere i tuoi dati adesso. Riprova tra poco.',
+    errore: nonAmmesso
+      ? vista
+        ? 'Questo accesso non e’ abilitato alla vista cliente.'
+        : 'Questo indirizzo non ha ancora accesso al portale. Scrivi al club se pensi sia un errore.'
+      : 'Non riusciamo a leggere i tuoi dati adesso. Riprova tra poco.',
   }
 }
 
@@ -136,15 +145,20 @@ export type Giorno = {
   schede: Record<string, SchedaLezione>
 }
 
-/** Una funzione del laboratorio, con la sessione del tester. */
+/**
+ * Una funzione del laboratorio, con la sessione del tester. In vista cliente
+ * (vista.ts) porta anche l'indirizzo del cliente: il server lo accetta solo da
+ * chi e' abilitato, risponde con i dati di quel cliente e rifiuta ogni scrittura.
+ */
 export async function funzione(nome: string, corpo: Record<string, unknown>): Promise<{ ok: boolean; stato: number; dati: Record<string, any> }> {
   const { data } = await supabase.auth.getSession()
   const token = data.session?.access_token
   if (!token) return { ok: false, stato: 401, dati: { errore: 'Sessione scaduta: entra di nuovo.' } }
+  const vista = vistaCorrente()
   try {
     const r = await fetch(`${SUPABASE_URL}/functions/v1/${nome}`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, ...(vista ? { 'X-Athlon-Come': vista } : {}) },
       body: JSON.stringify(corpo),
     })
     const dati = ((await r.json().catch(() => null)) ?? {}) as Record<string, any>

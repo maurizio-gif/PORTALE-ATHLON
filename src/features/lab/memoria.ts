@@ -1,6 +1,7 @@
 import { esci } from '@/api/lab'
 
 import { memoria as memoriaTv } from './tv/comune'
+import { dimenticaLaVista } from './vista'
 
 // La memoria del laboratorio, per non far aspettare: ogni funzione del
 // laboratorio risponde in un secondo o poco piu' (14/10/2026), e cambiando
@@ -49,9 +50,10 @@ export function dimentica() {
   inVolo.clear()
 }
 
-/** Esce dal laboratorio e svuota la memoria (anche quella di Athlon TV). */
+/** Esce dal laboratorio e svuota la memoria (anche quella di Athlon TV). Uscendo cade anche la vista cliente: al prossimo accesso si riparte dall'app di sempre. */
 export async function esciDalLaboratorio() {
   dimentica()
+  dimenticaLaVista()
   memoriaTv.vetrine = null
   memoriaTv.video.clear()
   await esci()
