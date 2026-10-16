@@ -9,6 +9,7 @@ import {
 import { Stack } from 'expo-router'
 import { View } from 'react-native'
 
+import { BannerVista } from '@/features/lab/ui/BannerVista'
 import { BarraSchede } from '@/features/lab/ui/BarraSchede'
 import { usePalette } from '@/features/lab/ui/tema'
 import { useSessione } from '@/features/lab/useSessione'
@@ -26,6 +27,9 @@ export default function LayoutLaboratorio() {
   useFonts({ PlusJakartaSans_400Regular, PlusJakartaSans_500Medium, PlusJakartaSans_600SemiBold, PlusJakartaSans_700Bold, PlusJakartaSans_800ExtraBold })
   return (
     <View style={{ flex: 1, backgroundColor: p.fondo }}>
+      {/* In vista cliente (vista.ts) la striscia con di chi e'; sulla stessa
+          app, solo per chi e' entrato: senza accesso non c'e' niente da guardare. */}
+      {sessione ? <BannerVista /> : null}
       <Stack screenOptions={{ headerShown: false, animation: 'fade', contentStyle: { backgroundColor: p.fondo } }}>
         <Stack.Screen name="pagamenti/[riferimento]" options={{ animation: 'slide_from_right' }} />
         <Stack.Screen name="pagamenti/storico" options={{ animation: 'slide_from_right' }} />
