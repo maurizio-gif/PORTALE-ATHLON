@@ -106,7 +106,20 @@ export type DatiContraente = {
   telefono: string | null
 }
 
+/** Chi ha dati nel contratto e li puo' correggere da qui: il contraente e, se e' minorenne, il genitore che firma. */
+export type PersonaDati = {
+  member_id: number
+  ruolo: 'contraente' | 'genitore'
+  nome: string
+  cognome: string
+  data_nascita: string | null
+  codice_fiscale: string | null
+  telefono: string | null
+  indirizzo: { via: string | null; cap: string | null; citta: string | null } | null
+}
+
 export type AnteprimaContratto = {
+  persone_dati: PersonaDati[]
   documento: { numero: string; titolo: string; blocchi: Blocco[] }
   consensi: ConsensoContratto[]
   importi: ImportiContratto
@@ -129,10 +142,23 @@ export type SceltaAbbonamento = { member_id: number; piano_id: number; data_iniz
 
 export async function anteprimaAbbonamento(
   s: SceltaAbbonamento,
-): Promise<{ ok: true; anteprima: AnteprimaContratto } | { ok: false; errore: string; mancanti?: string[] }> {
+): Promise<{ ok: true; anteprima: AnteprimaContratto } | { ok: false; errore: string; mancanti?: string[]; persone_dati?: PersonaDati[] }> {
   const { ok, dati } = await abbonamento({ azione: 'anteprima', ...s })
   if (ok) return { ok: true, anteprima: dati as unknown as AnteprimaContratto }
-  return { ok: false, errore: dati.errore ?? 'Non riusciamo a preparare il contratto adesso.', mancanti: Array.isArray(dati.mancanti) ? dati.mancanti : undefined }
+  return {
+    ok: false,
+    errore: dati.errore ?? 'Non riusciamo a preparare il contratto adesso.',
+    mancanti: Array.isArray(dati.mancanti) ? dati.mancanti : undefined,
+    persone_dati: Array.isArray(dati.persone_dati) ? (dati.persone_dati as PersonaDati[]) : undefined,
+  }
+}
+
+/** Le correzioni ai dati del contratto: solo i campi che cambiano. Nome, cognome e nascita si cambiano dal club. */
+export type CambiDati = { codice_fiscale?: string; telefono?: string; indirizzo?: { via: string; cap: string; citta: string } }
+
+export async function salvaDatiAbbonamento(memberId: number, cambi: CambiDati): Promise<{ ok: true } | { ok: false; errore: string }> {
+  const { ok, dati } = await abbonamento({ azione: 'salva_dati', member_id: memberId, ...cambi })
+  return ok ? { ok: true } : { ok: false, errore: dati.errore ?? 'Non siamo riusciti a salvare i dati adesso.' }
 }
 
 export type StatoContratto = 'firmato' | 'contratto_creato' | 'completato' | 'errore'
