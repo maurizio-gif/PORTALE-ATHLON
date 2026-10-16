@@ -1,8 +1,9 @@
 import { Image } from 'expo-image'
+import { router } from 'expo-router'
 import { createContext, useContext, useState } from 'react'
 import { Platform, ScrollView, StyleSheet, Text, View, type StyleProp, type TextStyle } from 'react-native'
 
-import type { Blocco, ClubLife, Inline } from '@/api/clubLife'
+import type { Blocco, ClubLife, Inline, TipoModulo } from '@/api/clubLife'
 import { spazio } from '@/theme'
 
 import { Icona } from '../ui/Icona'
@@ -145,19 +146,47 @@ function Codice({ etichetta: nome, codice }: { etichetta: string; codice: string
   )
 }
 
-function Modulo({ etichetta: nome, url }: { etichetta: string; url: string }) {
+/**
+ * I moduli del sito dentro una scheda. Quali si vedono dipende da chi guarda:
+ *
+ * - la chiamata col desk e' per chi non e' ancora iscritto (nessun abbonamento
+ *   nel nucleo): chi lo e' ha gia' il suo club a cui scrivere;
+ * - l'appuntamento col Direttore Tecnico del nuoto e' per chi ha un figlio gia'
+ *   iscritto o con l'abbonamento in partenza;
+ * - il metodo di pagamento, essendo gia' nell'app, apre la schermata dell'app e
+ *   non fa passare dall'email;
+ * - il cambio abbonamento si apre sul sito, per tutti.
+ *
+ * Finche' non si sa chi e' (o se l'area non si legge) i due moduli riservati non si
+ * mostrano: e' meglio un modulo in meno che uno a chi non puo' usarlo.
+ */
+function moduloVisibile(tipo: TipoModulo, chi: ChiEntra | null): boolean {
+  const profilo = chi?.profilo
+  if (tipo === 'appuntamento') return profilo?.iscritto === false
+  if (tipo === 'appuntamento-nuoto') return profilo?.figlioIscritto === true
+  return true
+}
+
+function Modulo({ tipo, etichetta: nome, url }: { tipo: TipoModulo; etichetta: string; url: string }) {
   const p = usePalette()
   const { chi } = useContext(ContestoBlocchi)
+  const inApp = tipo === 'metodo-pagamento'
   return (
     <Carta style={{ gap: spazio.tre }}>
       <View style={{ flexDirection: 'row', gap: spazio.tre, alignItems: 'center' }}>
-        <Bollino icona="modifica" />
+        <Bollino icona={inApp ? 'carta' : 'modifica'} />
         <View style={{ flex: 1, gap: 2 }}>
-          <Text style={[stili.moduloTitolo, { color: p.testo }]}>{nome}</Text>
-          <Text style={[stili.moduloSotto, { color: p.testoSecondario }]}>Il modulo si apre sul sito del club.</Text>
+          <Text style={[stili.moduloTitolo, { color: p.testo }]}>{inApp ? 'Aggiorna il metodo di pagamento' : nome}</Text>
+          <Text style={[stili.moduloSotto, { color: p.testoSecondario }]}>
+            {inApp ? 'Scegli carta o conto corrente per i tuoi abbonamenti e per quelli dei tuoi figli.' : 'Il modulo si apre sul sito del club.'}
+          </Text>
         </View>
       </View>
-      <Pulsante testo="Apri il modulo" icona="apriFuori" onPress={() => apriFuori(conChiE(url, chi ?? {}))} />
+      {inApp ? (
+        <Pulsante testo="Aggiorna il metodo" icona="carta" onPress={() => router.push('/metodo-pagamento')} />
+      ) : (
+        <Pulsante testo="Apri il modulo" icona="apriFuori" onPress={() => apriFuori(conChiE(url, chi ?? {}))} />
+      )}
     </Carta>
   )
 }
@@ -220,7 +249,7 @@ function UnBlocco({ b }: { b: Blocco }) {
     case 'separatore':
       return <View style={{ height: StyleSheet.hairlineWidth, backgroundColor: p.linea, marginVertical: spazio.uno }} />
     case 'modulo':
-      return <Modulo etichetta={b.etichetta} url={b.url} />
+      return <Modulo tipo={b.tipo} etichetta={b.etichetta} url={b.url} />
     default:
       return null
   }
@@ -228,9 +257,12 @@ function UnBlocco({ b }: { b: Blocco }) {
 
 /** Un elenco di blocchi. `stretto`: dentro una voce, una citazione o una fisarmonica, dove lo spazio fra i blocchi e' minore. */
 export function Blocchi({ blocchi, stretto = false }: { blocchi: Blocco[]; stretto?: boolean }) {
+  const { chi } = useContext(ContestoBlocchi)
+  // Un modulo riservato a chi non e' il lettore sparisce del tutto, col suo spazio.
+  const visibili = blocchi.filter((b) => b.t !== 'modulo' || moduloVisibile(b.tipo, chi))
   return (
     <View style={{ gap: stretto ? spazio.due + 2 : spazio.tre }}>
-      {blocchi.map((b, i) => (
+      {visibili.map((b, i) => (
         <View key={i} style={b.t === 'titolo' && i > 0 && !stretto ? { marginTop: spazio.due } : undefined}>
           <UnBlocco b={b} />
         </View>
