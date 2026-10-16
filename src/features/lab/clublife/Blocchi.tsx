@@ -2,15 +2,14 @@ import { Image } from 'expo-image'
 import { createContext, useContext, useState } from 'react'
 import { Platform, ScrollView, StyleSheet, Text, View, type StyleProp, type TextStyle } from 'react-native'
 
-import type { Blocco, ClubLife, Inline } from '@/api/clubLife'
+import type { Blocco, ClubLife, Inline, TipoModulo } from '@/api/clubLife'
 import { spazio } from '@/theme'
 
 import { Icona } from '../ui/Icona'
 import { Bollino, Carta, Pulsante } from '../ui/kit'
 import { F, raggio, usePalette, velo } from '../ui/tema'
 import { Tocco } from '../ui/Tocco'
-import { conChiE, type ChiEntra } from './indirizzo'
-import { apriFuori, apriLink } from './link'
+import { apriLink, destinazione, hrefModulo, vai } from './link'
 
 // Il testo di una news, di un evento o di una scheda dell'Help Desk, disegnato
 // coi mattoni dell'app. I blocchi li ricava il sito dalla sua pagina
@@ -18,12 +17,20 @@ import { apriFuori, apriLink } from './link'
 // le domande dell'Help Desk restano fisarmoniche, i riquadri restano riquadri, le
 // tabelle scorrono di lato invece di stringersi fino a non leggersi.
 
-type Contesto = { dati: ClubLife | null; chi: ChiEntra | null }
-const ContestoBlocchi = createContext<Contesto>({ dati: null, chi: null })
+const ContestoBlocchi = createContext<{ dati: ClubLife | null }>({ dati: null })
 
 /** «ACCEDI AL PORTALE» → «Accedi al portale»: sul sito e' uno stile, qui sarebbe un grido. */
 function etichetta(s: string): string {
   return s === s.toUpperCase() ? s.charAt(0) + s.slice(1).toLowerCase() : s
+}
+
+/**
+ * L'etichetta di un comando che porta dentro l'app. «Accedi al portale» e «Apri
+ * l'area riservata» dicono di entrare in un posto in cui chi legge e' gia': qui
+ * sono «Vai alla tua area».
+ */
+function etichettaApp(testo: string): string {
+  return /^(accedi|apri|vai)\b.*\b(portale|area riservata)\b/i.test(testo.trim()) ? 'Vai alla tua area' : etichetta(testo)
 }
 
 export function TestoInline({ pezzi, stile, selezionabile = true }: { pezzi: Inline[]; stile: StyleProp<TextStyle>; selezionabile?: boolean }) {
@@ -35,10 +42,12 @@ export function TestoInline({ pezzi, stile, selezionabile = true }: { pezzi: Inl
         const forma: TextStyle = {}
         if (x.b) forma.fontFamily = F.bold
         if (x.i) forma.fontStyle = 'italic'
-        if (x.link) {
+        // Un link che nell'app non ha dove portare (scarica l'app...) resta testo, senza sottolineatura.
+        if (x.link && destinazione(x.link, dati, x.testo).tipo !== 'nascondi') {
           const url = x.link
+          const etichettaLink = x.testo
           return (
-            <Text key={i} style={[forma, { color: p.accento, textDecorationLine: 'underline' }]} onPress={() => apriLink(url, dati)} accessibilityRole="link">
+            <Text key={i} style={[forma, { color: p.accento, textDecorationLine: 'underline' }]} onPress={() => apriLink(url, dati, etichettaLink)} accessibilityRole="link">
               {x.testo}
             </Text>
           )
@@ -145,19 +154,18 @@ function Codice({ etichetta: nome, codice }: { etichetta: string; codice: string
   )
 }
 
-function Modulo({ etichetta: nome, url }: { etichetta: string; url: string }) {
+function Modulo({ tipo, etichetta: nome }: { tipo: TipoModulo; etichetta: string }) {
   const p = usePalette()
-  const { chi } = useContext(ContestoBlocchi)
   return (
     <Carta style={{ gap: spazio.tre }}>
       <View style={{ flexDirection: 'row', gap: spazio.tre, alignItems: 'center' }}>
         <Bollino icona="modifica" />
         <View style={{ flex: 1, gap: 2 }}>
           <Text style={[stili.moduloTitolo, { color: p.testo }]}>{nome}</Text>
-          <Text style={[stili.moduloSotto, { color: p.testoSecondario }]}>Il modulo si apre sul sito del club.</Text>
+          <Text style={[stili.moduloSotto, { color: p.testoSecondario }]}>Lo compili qui: i tuoi dati sono già scritti.</Text>
         </View>
       </View>
-      <Pulsante testo="Apri il modulo" icona="apriFuori" onPress={() => apriFuori(conChiE(url, chi ?? {}))} />
+      <Pulsante testo="Apri il modulo" icona="avanti" onPress={() => vai(hrefModulo(tipo))} />
     </Carta>
   )
 }
@@ -205,14 +213,24 @@ function UnBlocco({ b }: { b: Blocco }) {
       return <Dettagli titolo={b.titolo} blocchi={b.blocchi} />
     case 'tabella':
       return <Tabella intestazione={b.intestazione} righe={b.righe} />
-    case 'pulsanti':
+    case 'pulsanti': {
+      // Un comando senza dove portare nell'app (scarica l'app, reimposta la password) non si disegna.
+      const voci = b.voci.map((v) => ({ v, d: destinazione(v.url, dati, v.etichetta) })).filter((x) => x.d.tipo !== 'nascondi')
+      if (!voci.length) return null
       return (
         <View style={{ gap: spazio.due }}>
-          {b.voci.map((v, i) => (
-            <Pulsante key={i} testo={etichetta(v.etichetta)} variante={v.primario ? 'primario' : 'contorno'} icona={/^https?:\/\/(www\.)?athlonroma\.it/i.test(v.url) ? undefined : 'apriFuori'} onPress={() => apriLink(v.url, dati)} />
+          {voci.map(({ v, d }, i) => (
+            <Pulsante
+              key={i}
+              testo={d.tipo === 'app' ? etichettaApp(v.etichetta) : etichetta(v.etichetta)}
+              variante={v.primario ? 'primario' : 'contorno'}
+              icona={d.tipo === 'fuori' ? 'apriFuori' : undefined}
+              onPress={() => apriLink(v.url, dati, v.etichetta)}
+            />
           ))}
         </View>
       )
+    }
     case 'codice':
       return <Codice etichetta={b.etichetta} codice={b.codice} />
     case 'immagine':
@@ -220,7 +238,7 @@ function UnBlocco({ b }: { b: Blocco }) {
     case 'separatore':
       return <View style={{ height: StyleSheet.hairlineWidth, backgroundColor: p.linea, marginVertical: spazio.uno }} />
     case 'modulo':
-      return <Modulo etichetta={b.etichetta} url={b.url} />
+      return <Modulo tipo={b.tipo} etichetta={b.etichetta} />
     default:
       return null
   }
@@ -239,10 +257,10 @@ export function Blocchi({ blocchi, stretto = false }: { blocchi: Blocco[]; stret
   )
 }
 
-/** Il testo di un contenuto, con i dati per riconoscere i link interni e chi e' per i moduli. */
-export function Contenuto({ blocchi, dati, chi }: { blocchi: Blocco[]; dati: ClubLife | null; chi: ChiEntra | null }) {
+/** Il testo di un contenuto, con i dati per riconoscere i link che portano a una schermata dell'app. */
+export function Contenuto({ blocchi, dati }: { blocchi: Blocco[]; dati: ClubLife | null }) {
   return (
-    <ContestoBlocchi.Provider value={{ dati, chi }}>
+    <ContestoBlocchi.Provider value={{ dati }}>
       <Blocchi blocchi={blocchi} />
     </ContestoBlocchi.Provider>
   )

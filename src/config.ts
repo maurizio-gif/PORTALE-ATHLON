@@ -16,5 +16,3 @@ export const SUPABASE_PUBLISHABLE_KEY =
 
 /** Il sito del club: Club Life nell'app legge i suoi contenuti da `club-life.json`. */
 export const SITO_URL = senzaSlash(process.env.EXPO_PUBLIC_SITO_URL || 'https://www.athlonroma.it')
-/** La pagina Club Life del sito, per chi la vuole aprire nel browser. Con lo slash finale, la forma canonica del sito. */
-export const CLUB_LIFE_URL = `${SITO_URL}/club-life/`

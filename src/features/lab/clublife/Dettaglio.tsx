@@ -1,21 +1,21 @@
 import { Image } from 'expo-image'
 import { router, useLocalSearchParams } from 'expo-router'
-import type { ReactNode } from 'react'
+import { useState, type ReactNode } from 'react'
 import { StyleSheet, Text, View } from 'react-native'
 
-import type { ClubLife } from '@/api/clubLife'
+import type { ClubLife, Comando } from '@/api/clubLife'
+import { richiediLinkEvento } from '@/api/moduli'
 import { spazio } from '@/theme'
 
 import { Icona, type NomeIcona } from '../ui/Icona'
 import { Carta, Messaggio, Pulsante, SchedeInArrivo, Tag } from '../ui/kit'
 import { Schermata } from '../ui/Schermata'
 import { F, raggio, usePalette } from '../ui/tema'
-import { Tocco } from '../ui/Tocco'
 import { Contenuto } from './Blocchi'
 import { dataNews, giornoEvento } from './comune'
 import { useClubLife } from './dati'
-import { conChiE, useChiE } from './indirizzo'
-import { apriFuori, apriLink } from './link'
+import { inVista, useIdentita } from './moduli/identita'
+import { apriLink, destinazione } from './link'
 
 // Le tre schermate di dettaglio di Club Life: una news, un evento, una scheda
 // dell'Help Desk. Leggono la stessa copia dell'elenco (dati.ts), quindi si
@@ -49,19 +49,47 @@ function Info({ icona, children }: { icona: NomeIcona; children: ReactNode }) {
   )
 }
 
-function SulSito({ url }: { url: string }) {
-  const p = usePalette()
+/**
+ * Il comando di una news o di un evento. Se nell'app non ha dove portare
+ * («scarica l'app») non si disegna; se porta al calendario e dice «registrati» o
+ * «dal portale», dice quello che fa: chi e' nell'app e' gia' registrato, e
+ * partecipare e' prenotare.
+ */
+function Cta({ cta, dati }: { cta: Comando; dati: ClubLife | null }) {
+  const d = destinazione(cta.url, dati, cta.etichetta)
+  if (d.tipo === 'nascondi') return null
+  const alCalendario = d.tipo === 'app' && d.href === '/calendario' && /registr|portale/i.test(cta.etichetta)
+  return <Pulsante testo={alCalendario ? 'Prenota dal calendario' : cta.etichetta} icona={d.tipo === 'fuori' ? 'apriFuori' : 'avanti'} onPress={() => apriLink(cta.url, dati, cta.etichetta)} />
+}
+
+/**
+ * Gli eventi per bambini si prenotano da un link: il club lo manda per email e si
+ * apre nell'app, dove si sceglie il turno e per quali bambini. Qui lo si chiede,
+ * con l'email gia' scritta.
+ */
+function LinkEvento({ slug, email }: { slug: string; email: string }) {
+  const [stato, setStato] = useState<'pronto' | 'invio' | 'inviato'>('pronto')
+  const [errore, setErrore] = useState<string | null>(null)
+  async function chiedi() {
+    setErrore(null)
+    setStato('invio')
+    const r = await richiediLinkEvento(slug, email)
+    if (r.ok) return setStato('inviato')
+    setStato('pronto')
+    setErrore(r.errore)
+  }
+  if (stato === 'inviato') return <Messaggio tono="ok" titolo="Link inviato">{`Ti abbiamo scritto a ${email}: aprilo da lì e scegli il turno e i bambini.`}</Messaggio>
   return (
-    <Tocco onPress={() => apriFuori(url)} ruolo="link" etichetta="Apri sul sito" style={{ alignSelf: 'center' }}>
-      <Text style={[stili.sito, { color: p.testoTerzo }]}>Apri sul sito</Text>
-    </Tocco>
+    <View style={{ gap: spazio.due }}>
+      {errore ? <Messaggio>{errore}</Messaggio> : null}
+      <Pulsante testo="Ricevi il link per prenotare" icona="email" onPress={chiedi} inCorso={stato === 'invio'} disabilitato={!email || inVista()} />
+    </View>
   )
 }
 
-export function NewsDettaglio({ emailAccesso }: { emailAccesso?: string | null }) {
+export function NewsDettaglio() {
   const { id } = useLocalSearchParams<{ id: string }>()
   const { dati, errore, riprova } = useClubLife()
-  const chi = useChiE(emailAccesso)
   const n = dati?.news.find((x) => x.id === id)
   return (
     <Schermata indietro="/club-life" barra={false} sopratitolo={n?.categoria ?? 'News'} titolo={n?.titolo ?? 'News'} sottotitolo={n ? dataNews(n.data) : undefined}>
@@ -70,9 +98,8 @@ export function NewsDettaglio({ emailAccesso }: { emailAccesso?: string | null }
       ) : (
         <>
           <Foto src={n.immagine} alt={n.alt} />
-          <Contenuto blocchi={n.blocchi} dati={dati} chi={chi} />
-          {n.cta ? <Pulsante testo={n.cta.etichetta} onPress={() => apriLink(n.cta!.url, dati)} /> : null}
-          <SulSito url={n.url} />
+          <Contenuto blocchi={n.blocchi} dati={dati} />
+          {n.cta ? <Cta cta={n.cta} dati={dati} /> : null}
         </>
       )}
     </Schermata>
@@ -83,7 +110,7 @@ export function EventoDettaglio({ emailAccesso }: { emailAccesso?: string | null
   const p = usePalette()
   const { id } = useLocalSearchParams<{ id: string }>()
   const { dati, errore, riprova } = useClubLife()
-  const chi = useChiE(emailAccesso)
+  const identita = useIdentita(emailAccesso)
   const e = dati?.eventi.find((x) => x.id === id)
   return (
     <Schermata indietro="/club-life" barra={false} sopratitolo={e?.etichetta ?? 'Evento'} titolo={e?.titolo ?? 'Evento'} sottotitolo={e?.sommario}>
@@ -102,12 +129,8 @@ export function EventoDettaglio({ emailAccesso }: { emailAccesso?: string | null
               </Info>
             ))}
           </Carta>
-          {e.prenotaSulSito ? (
-            <Pulsante testo="Prenota il posto" icona="apriFuori" onPress={() => apriFuori(conChiE(`${e.url}#prenota`, chi ?? {}))} />
-          ) : e.cta ? (
-            <Pulsante testo={e.cta.etichetta} icona="apriFuori" onPress={() => apriLink(e.cta!.url, dati)} />
-          ) : null}
-          <Contenuto blocchi={e.blocchi} dati={dati} chi={chi} />
+          {e.prenotaSulSito ? <LinkEvento slug={e.id} email={identita?.email ?? ''} /> : e.cta ? <Cta cta={e.cta} dati={dati} /> : null}
+          <Contenuto blocchi={e.blocchi} dati={dati} />
           {e.programma.map((sala) => (
             <View key={sala.sala} style={{ gap: spazio.due }}>
               <Text style={[stili.sala, { color: p.testo }]}>{sala.sala}</Text>
@@ -124,19 +147,17 @@ export function EventoDettaglio({ emailAccesso }: { emailAccesso?: string | null
               </Carta>
             </View>
           ))}
-          <SulSito url={e.url} />
         </>
       )}
     </Schermata>
   )
 }
 
-export function SchedaDettaglio({ emailAccesso }: { emailAccesso?: string | null }) {
+export function SchedaDettaglio() {
   const p = usePalette()
   const { scheda } = useLocalSearchParams<{ scheda: string | string[] }>()
   const id = Array.isArray(scheda) ? scheda.join('/') : String(scheda ?? '')
   const { dati, errore, riprova } = useClubLife()
-  const chi = useChiE(emailAccesso)
   const s = dati?.schede.find((x) => x.id === id)
   const area = dati?.aree.find((a) => a.id === s?.area)
   return (
@@ -148,8 +169,7 @@ export function SchedaDettaglio({ emailAccesso }: { emailAccesso?: string | null
           <View style={stili.tag}>
             {s.attivita.length ? s.attivita.map((a) => <Tag key={a} testo={a.toUpperCase()} colore={p.testoSecondario} />) : <Tag testo="TUTTE LE ATTIVITÀ" colore={p.testoSecondario} />}
           </View>
-          <Contenuto blocchi={s.blocchi} dati={dati} chi={chi} />
-          <SulSito url={s.url} />
+          <Contenuto blocchi={s.blocchi} dati={dati} />
         </>
       )}
     </Schermata>
@@ -166,5 +186,4 @@ const stili = StyleSheet.create({
   lezione: { fontFamily: F.bold, fontSize: 15, lineHeight: 20 },
   trainer: { fontFamily: F.medio, fontSize: 13.5 },
   tag: { flexDirection: 'row', flexWrap: 'wrap', gap: spazio.due },
-  sito: { fontFamily: F.semi, fontSize: 13, textDecorationLine: 'underline', paddingVertical: spazio.due },
 })

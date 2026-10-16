@@ -6,7 +6,6 @@ import type Animated from 'react-native-reanimated'
 
 import type { AreaHelpDesk, EventoClub, NewsClub, SchedaHelpDesk } from '@/api/clubLife'
 import { LARGO } from '@/components/Pagina'
-import { CLUB_LIFE_URL } from '@/config'
 import { spazio } from '@/theme'
 
 import { CampoTesto } from '../ui/Campi'
@@ -14,11 +13,10 @@ import { Icona } from '../ui/Icona'
 import { Carta, Entra, Messaggio, Pulsante, Riga, SchedeInArrivo, Sezione } from '../ui/kit'
 import { Schermata } from '../ui/Schermata'
 import { F, raggio, usePalette } from '../ui/tema'
-import { Tocco } from '../ui/Tocco'
 import { bollinoData, cerca, dataNews, giornoEvento } from './comune'
 import { ascoltaClubLifeDaCapo } from './daCapo'
 import { useClubLife } from './dati'
-import { apriFuori, percorsoScheda } from './link'
+import { percorsoScheda } from './link'
 
 // Club Life nell'app: le news, gli eventi in arrivo e le risposte dell'Help Desk,
 // disegnati qui coi dati del sito (club-life.json) invece della pagina del sito
@@ -168,7 +166,6 @@ export function ClubLife() {
           <View style={{ gap: spazio.tre }}>
             <Messaggio>{errore}</Messaggio>
             <Pulsante testo="Riprova" icona="aggiorna" onPress={riprova} inCorso={inCorso} />
-            <Pulsante testo="Apri Club Life sul sito" icona="apriFuori" variante="contorno" onPress={() => apriFuori(CLUB_LIFE_URL)} />
           </View>
         ) : (
           <SchedeInArrivo />
@@ -192,9 +189,6 @@ export function ClubLife() {
             </Carta>
           ) : null}
           <HelpDesk aree={dati.aree} schede={dati.schede} />
-          <Tocco onPress={() => apriFuori(CLUB_LIFE_URL)} ruolo="link" etichetta="Apri Club Life sul sito" style={{ alignSelf: 'center' }}>
-            <Text style={[stili.sito, { color: p.testoTerzo }]}>Apri Club Life sul sito</Text>
-          </Tocco>
         </>
       )}
     </Schermata>
@@ -220,5 +214,4 @@ const stili = StyleSheet.create({
   intro: { fontFamily: F.medio, fontSize: 14.5, lineHeight: 21 },
   area: { fontFamily: F.extra, fontSize: 15.5, letterSpacing: -0.2 },
   areaSotto: { fontFamily: F.medio, fontSize: 13, lineHeight: 18 },
-  sito: { fontFamily: F.semi, fontSize: 13, textDecorationLine: 'underline', paddingVertical: spazio.due },
 })

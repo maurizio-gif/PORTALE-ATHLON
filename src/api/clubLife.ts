@@ -94,11 +94,15 @@ export type ClubLife = {
   eventi: EventoClub[]
   aree: AreaHelpDesk[]
   schede: SchedaHelpDesk[]
+  /** Le formule del cambio abbonamento, dal listino del sito. */
+  formuleCambio: string[]
+  /** Gli slug delle pagine che nell'app portano al calendario delle prenotazioni. */
+  corsiPrenotabili: string[]
 }
 
 export const URL_CLUB_LIFE_JSON = `${SITO_URL}/club-life.json`
 
-const CHIAVE_DISCO = 'athlon:club-life:v1'
+const CHIAVE_DISCO = 'athlon:club-life:v2'
 
 /** L'ultima copia salvata, se c'e' e si legge. */
 export function clubLifeDalDisco(): ClubLife | null {
@@ -128,7 +132,16 @@ export async function leggiClubLife(): Promise<{ ok: true; dati: ClubLife } | { 
     if (!Array.isArray(d?.news) || !Array.isArray(d?.eventi) || !Array.isArray(d?.schede)) {
       return { ok: false, errore: 'Club Life non risponde adesso. Riprova fra poco.' }
     }
-    const dati: ClubLife = { generato: d.generato, news: d.news, eventi: d.eventi, aree: d.aree ?? [], schede: d.schede }
+    // I due campi nuovi mancano finche' il sito non ha il deploy: senza, i moduli e i link restano quelli di prima.
+    const dati: ClubLife = {
+      generato: d.generato,
+      news: d.news,
+      eventi: d.eventi,
+      aree: d.aree ?? [],
+      schede: d.schede,
+      formuleCambio: d.formuleCambio ?? [],
+      corsiPrenotabili: d.corsiPrenotabili ?? [],
+    }
     salvaSulDisco(dati)
     return { ok: true, dati }
   } catch {
