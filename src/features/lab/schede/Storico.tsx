@@ -126,7 +126,7 @@ export function Storico() {
 
   if (!dati) {
     return (
-      <Schermata sopratitolo="Workout" titolo="Storico e progressi" indietro="/lab/allenamento" barra={false}>
+      <Schermata sopratitolo="Workout" titolo="Storico e progressi" indietro="/allenamento" barra={false}>
         {errore ? (
           <>
             <Messaggio>{errore}</Messaggio>
@@ -142,7 +142,7 @@ export function Storico() {
   const chiusi = dati.allenamenti.filter((a) => a.fine)
   const volume = dati.allenamenti.reduce((n, a) => n + (a.volume ?? 0), 0)
   return (
-    <Schermata sopratitolo="Workout" titolo="Storico e progressi" indietro="/lab/allenamento" barra={false}>
+    <Schermata sopratitolo="Workout" titolo="Storico e progressi" indietro="/allenamento" barra={false}>
       <Carta style={{ flexDirection: 'row', justifyContent: 'space-around', paddingVertical: spazio.quattro }}>
         <View style={{ alignItems: 'center' }}>
           <Numero valore={String(chiusi.length)} size={32} />

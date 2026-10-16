@@ -8,6 +8,6 @@ import { useSessione } from '@/features/lab/useSessione'
 export default function PaginaAllenamento() {
   const sessione = useSessione()
   if (sessione === undefined) return <SchermataInArrivo />
-  if (!sessione) return <Redirect href="/lab" />
+  if (!sessione) return <Redirect href="/" />
   return <Schede />
 }

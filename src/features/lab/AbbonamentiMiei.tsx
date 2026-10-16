@@ -203,7 +203,7 @@ export function ElencoAbbonamenti() {
   const piuPersone = new Set((elenco ?? []).map((c) => c.member_id)).size > 1
   return (
     <View style={{ gap: spazio.quattro }}>
-      <Pulsante testo="Scegli un abbonamento" icona="avanti" onPress={() => router.navigate('/lab/abbonamento')} />
+      <Pulsante testo="Scegli un abbonamento" icona="avanti" onPress={() => router.navigate('/abbonamento')} />
       {errore && !elenco ? (
         <>
           <Messaggio>{errore}</Messaggio>

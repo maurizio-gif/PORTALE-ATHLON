@@ -17,7 +17,7 @@ import { Tocco } from '../ui/Tocco'
 // I pagamenti veri del socio e della famiglia (15/10/2026), da PerfectGym:
 // le quote scadute da saldare, i prossimi pagamenti e lo storico, ognuno col
 // metodo e con a cosa corrisponde. Nella sezione Pagamenti della Home il riepilogo; lo storico
-// completo, per mese, in /lab/pagamenti/storico.
+// completo, per mese, in /pagamenti/storico.
 
 export const CHIAVE_MOVIMENTI = 'pagamenti:movimenti'
 
@@ -161,7 +161,7 @@ function FoglioDettaglio({ scelto, onChiudi }: { scelto: Scelto; onChiudi: () =>
             icona="carta"
             onPress={() => {
               onChiudi()
-              router.push('/lab/metodo-pagamento')
+              router.push('/metodo-pagamento')
             }}
           />
         ) : null}
@@ -189,7 +189,7 @@ function DaSaldare({ elenco, onApri }: { elenco: Movimento[]; onApri: (m: Movime
           <RigaMovimento key={m.id} m={m} prima={i === 0} onPress={() => onApri(m)} />
         ))}
       </View>
-      <Pulsante testo="Aggiorna il metodo di pagamento" icona="carta" onPress={() => router.push('/lab/metodo-pagamento')} />
+      <Pulsante testo="Aggiorna il metodo di pagamento" icona="carta" onPress={() => router.push('/metodo-pagamento')} />
     </Carta>
   )
 }
@@ -216,7 +216,7 @@ export function RiepilogoPagamenti() {
     <View style={{ gap: spazio.quattro }}>
       {dati.daSaldare.length ? <DaSaldare elenco={dati.daSaldare} onApri={(m) => setScelto({ tipo: 'movimento', m })} /> : null}
 
-      <Sezione titolo="Prossimi pagamenti" destra={dati.futuri.length > 3 ? <LinkSezione testo="Tutti" onPress={() => router.push({ pathname: '/lab/pagamenti/storico', params: { vista: 'futuri' } })} /> : undefined}>
+      <Sezione titolo="Prossimi pagamenti" destra={dati.futuri.length > 3 ? <LinkSezione testo="Tutti" onPress={() => router.push({ pathname: '/pagamenti/storico', params: { vista: 'futuri' } })} /> : undefined}>
         {prossimo ? (
           <Carta style={{ paddingVertical: spazio.uno }}>
             {dati.futuri.slice(0, 3).map((q, i) => (
@@ -231,7 +231,7 @@ export function RiepilogoPagamenti() {
         )}
       </Sezione>
 
-      <Sezione titolo="Pagamenti effettuati" destra={dati.storico.length ? <LinkSezione testo="Storico completo" onPress={() => router.push('/lab/pagamenti/storico')} /> : undefined}>
+      <Sezione titolo="Pagamenti effettuati" destra={dati.storico.length ? <LinkSezione testo="Storico completo" onPress={() => router.push('/pagamenti/storico')} /> : undefined}>
         {dati.storico.length ? (
           <Carta style={{ paddingVertical: spazio.uno }}>
             {dati.storico.slice(0, 4).map((m, i) => (

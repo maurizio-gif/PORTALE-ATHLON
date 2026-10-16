@@ -256,7 +256,7 @@ export function CalorieScheda({ scheda, giorno }: { scheda: SchedaLab; giorno: n
         <Text style={[stili.nota, { color: p.testoSecondario }]}>
           Segna il tuo peso e la tua altezza: con l’età della tua scheda del club ti diciamo quanto consuma questa scheda, seduta per seduta, e come l’abbiamo calcolato.
         </Text>
-        <Pulsante testo="Aggiungi i tuoi dati" icona="piu" variante="secondario" onPress={() => router.push('/lab/allenamento/misure')} />
+        <Pulsante testo="Aggiungi i tuoi dati" icona="piu" variante="secondario" onPress={() => router.push('/allenamento/misure')} />
       </Carta>
     )
   }

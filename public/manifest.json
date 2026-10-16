@@ -5,7 +5,7 @@
   "description": "Le tue prenotazioni, i workout, i pagamenti e Athlon TV.",
   "lang": "it",
   "dir": "ltr",
-  "start_url": "/lab",
+  "start_url": "/",
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait",
@@ -45,7 +45,7 @@
   "shortcuts": [
     {
       "name": "Prenotazioni",
-      "url": "/lab/calendario",
+      "url": "/calendario",
       "icons": [
         {
           "src": "/logo192.png",
@@ -55,7 +55,7 @@
     },
     {
       "name": "Workout",
-      "url": "/lab/allenamento",
+      "url": "/allenamento",
       "icons": [
         {
           "src": "/logo192.png",

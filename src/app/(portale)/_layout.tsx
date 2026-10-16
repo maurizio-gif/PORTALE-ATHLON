@@ -13,7 +13,10 @@ import { BarraSchede } from '@/features/lab/ui/BarraSchede'
 import { usePalette } from '@/features/lab/ui/tema'
 import { useSessione } from '@/features/lab/useSessione'
 
-// Il laboratorio ha la sua cornice da app: il suo carattere (Plus Jakarta
+// Il portale (le schermate dopo l'accesso) sta nel gruppo `(portale)`, che non compare
+// nell'indirizzo: la Home e' `/`, le altre `/calendario`, `/allenamento`, `/tv`...
+// I vecchi indirizzi `/lab/...` li reindirizza vercel.json.
+// Ha la sua cornice da app: il suo carattere (Plus Jakarta
 // Sans), le schermate che passano l'una nell'altra in dissolvenza, come le
 // schede di un'app, e sotto la barra delle schede, solo per chi e' entrato.
 // Finche' il carattere non c'e' si usa quello di sistema: niente schermo vuoto.

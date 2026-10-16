@@ -325,7 +325,7 @@ export async function prenotaPersonal(s: ScelteSeduta): Promise<{ ok: true; book
   return { ok: false, errore: dati.errore ?? 'Non siamo riusciti a prenotare adesso.' }
 }
 
-/** Il link di pagamento della seduta; dopo il pagamento si torna a /lab/personal?acquisto=<id>. */
+/** Il link di pagamento della seduta; dopo il pagamento si torna a /personal?acquisto=<id> (il backend manda ancora /lab/personal, che vercel.json reindirizza). */
 export async function acquistaPersonal(
   s: Omit<ScelteSeduta, 'definition_id'>,
 ): Promise<{ ok: true; url: string; acquisto_id: string; prodotto: ProdottoLezione | null; carta: CartaSalvata | null } | { ok: false; errore: string }> {

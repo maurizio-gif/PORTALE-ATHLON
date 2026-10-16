@@ -25,7 +25,7 @@ function Copertina({ v, larghezza }: { v: Vetrina; larghezza: number | `${number
   const p = usePalette()
   return (
     <Tocco
-      onPress={() => router.push({ pathname: '/lab/tv/[raccolta]', params: { raccolta: v.id } })}
+      onPress={() => router.push({ pathname: '/tv/[raccolta]', params: { raccolta: v.id } })}
       ruolo="link"
       etichetta={`${v.titolo}, ${quanti(v.totale)}`}
       scala={0.97}

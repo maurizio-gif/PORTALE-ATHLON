@@ -94,12 +94,12 @@ export function Agente() {
     }
     colpetto('ok')
     dimentica()
-    router.replace({ pathname: '/lab/allenamento/[scheda]', params: { scheda: r.id } })
+    router.replace({ pathname: '/allenamento/[scheda]', params: { scheda: r.id } })
   }
 
   if (inCorso) {
     return (
-      <Schermata sopratitolo="Agente AI" titolo="La tua scheda" indietro="/lab/allenamento" barra={false}>
+      <Schermata sopratitolo="Agente AI" titolo="La tua scheda" indietro="/allenamento" barra={false}>
         <LinearGradient colors={['#8B5CF6', '#5B21B6']} style={stili.attesa}>
           <Icona nome="stella" size={44} colore="#fff" />
           <ActivityIndicator color="#fff" />
@@ -111,7 +111,7 @@ export function Agente() {
   }
 
   return (
-    <Schermata sopratitolo="Agente AI" titolo="Una scheda su misura" indietro="/lab/allenamento" barra={false} sottotitolo="Rispondi a qualche domanda: l’agente sceglie gli esercizi dalla libreria del club e ti scrive la scheda, coi recuperi.">
+    <Schermata sopratitolo="Agente AI" titolo="Una scheda su misura" indietro="/allenamento" barra={false} sottotitolo="Rispondi a qualche domanda: l’agente sceglie gli esercizi dalla libreria del club e ti scrive la scheda, coi recuperi.">
       <Sezione titolo="Il tuo obiettivo">
         <Scelte valori={OBIETTIVI.map((o) => ({ valore: o, testo: o }))} scelto={obiettivo} onScegli={setObiettivo} />
       </Sezione>

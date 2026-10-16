@@ -277,7 +277,7 @@ export function Misure() {
 
   if (!misure) {
     return (
-      <Schermata sopratitolo="Workout" titolo="I tuoi dati" indietro="/lab/allenamento" barra={false}>
+      <Schermata sopratitolo="Workout" titolo="I tuoi dati" indietro="/allenamento" barra={false}>
         {errore ? (
           <>
             <Messaggio>{errore}</Messaggio>
@@ -305,7 +305,7 @@ export function Misure() {
 
   if (!n) {
     return (
-      <Schermata sopratitolo="Workout" titolo="I tuoi dati" indietro="/lab/allenamento" barra={false}>
+      <Schermata sopratitolo="Workout" titolo="I tuoi dati" indietro="/allenamento" barra={false}>
         <Carta style={{ alignItems: 'center', gap: spazio.tre, paddingVertical: spazio.cinque }}>
           <View style={[stili.bollo, { backgroundColor: velo(p, 'accento') }]}>
             <Icona nome="grafico" size={30} colore={p.accento} />
@@ -340,7 +340,7 @@ export function Misure() {
     .filter((x): x is NonNullable<typeof x> => !!x)
 
   return (
-    <Schermata sopratitolo="Workout" titolo="I tuoi dati" indietro="/lab/allenamento" barra={false}>
+    <Schermata sopratitolo="Workout" titolo="I tuoi dati" indietro="/allenamento" barra={false}>
       <Entra indice={0}>
         <Carta style={{ gap: spazio.tre }}>
           <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: spazio.tre }}>

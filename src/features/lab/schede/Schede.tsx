@@ -39,7 +39,7 @@ function SchedaClub({ s, indice }: { s: RigaSchedaLab; indice: number }) {
   const a = aspetto(s.obiettivo)
   return (
     <Entra indice={indice}>
-      <Tocco onPress={() => router.push({ pathname: '/lab/allenamento/[scheda]', params: { scheda: s.id } })} etichetta={`Scheda ${s.titolo}`} scala={0.985}>
+      <Tocco onPress={() => router.push({ pathname: '/allenamento/[scheda]', params: { scheda: s.id } })} etichetta={`Scheda ${s.titolo}`} scala={0.985}>
         <View style={[stili.club, { backgroundColor: p.carta, borderColor: p.linea }]}>
           <LinearGradient colors={a.colori} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={stili.clubIcona}>
             <Icona nome={a.icona} size={26} colore="#fff" />
@@ -70,7 +70,7 @@ function CartaDati({ misure, riempi = false }: { misure: Misura[] | null; riempi
   const b = ultima && misure ? bmi(ultima.peso_kg, altezzaAl(misure, indice)) : null
   const fascia = b != null ? fasciaBmi(b) : null
   return (
-    <Tocco onPress={() => router.push('/lab/allenamento/misure')} etichetta="I tuoi dati: peso, BMI e misure" scala={0.985} style={riempi ? { flex: 1 } : undefined}>
+    <Tocco onPress={() => router.push('/allenamento/misure')} etichetta="I tuoi dati: peso, BMI e misure" scala={0.985} style={riempi ? { flex: 1 } : undefined}>
       <View style={[stili.agente, { backgroundColor: p.carta, borderColor: p.linea, boxShadow: p.ombra }, riempi && { flex: 1 }]}>
         <LinearGradient colors={['#34C38F', '#178A62']} style={stili.agenteIcona}>
           <Icona nome="grafico" size={26} colore="#fff" />
@@ -110,7 +110,7 @@ function CartaTest({ t, riempi = false }: { t: StatoTest; riempi?: boolean }) {
       ? `Fatto il ${giornoTest(t.ultimo!)}: ${t.fatti} di ${t.totale} esercizi. Il prossimo fra ${prossimo} ${prossimo === 1 ? 'giorno' : 'giorni'}.`
       : `${t.totale || 7} esercizi, una quindicina di minuti. Dopo, nelle schede del club le percentuali diventano i tuoi chili.`
   return (
-    <Tocco onPress={() => router.push('/lab/allenamento/test')} etichetta={titolo} scala={0.985} style={riempi ? { flex: 1 } : undefined}>
+    <Tocco onPress={() => router.push('/allenamento/test')} etichetta={titolo} scala={0.985} style={riempi ? { flex: 1 } : undefined}>
       <LinearGradient colors={rifare ? FUOCO : MARE} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[stili.test, riempi && { flex: 1 }]}>
         <View style={stili.testIcona}>
           <Icona nome={rifare ? 'aggiorna' : fatto ? 'ok' : 'grafico'} size={26} colore="#fff" />
@@ -130,7 +130,7 @@ function SchedaCarta({ s, indice }: { s: RigaSchedaLab; indice: number }) {
   const colori = s.tipo === 'ai' ? (['#8B5CF6', '#5B21B6'] as const) : s.tipo === 'personalizzata' ? FUOCO : NOTTE
   return (
     <Entra indice={indice}>
-      <Tocco onPress={() => router.push({ pathname: '/lab/allenamento/[scheda]', params: { scheda: s.id } })} etichetta={`Scheda ${s.titolo}`} scala={0.985}>
+      <Tocco onPress={() => router.push({ pathname: '/allenamento/[scheda]', params: { scheda: s.id } })} etichetta={`Scheda ${s.titolo}`} scala={0.985}>
         <LinearGradient colors={colori} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={stili.scheda}>
           <View style={stili.filigrana} pointerEvents="none">
             <Icona nome={s.tipo === 'ai' ? 'stella' : 'peso'} size={120} colore="rgba(255,255,255,0.08)" />
@@ -207,7 +207,7 @@ export function Schede() {
       </Entra>
 
       <Entra indice={1} style={largo ? { flex: 1 } : undefined}>
-        <Tocco onPress={() => router.push('/lab/allenamento/agente')} etichetta="Chiedi una scheda all’agente AI" scala={0.985} spento={!restano} style={largo ? { flex: 1 } : undefined}>
+        <Tocco onPress={() => router.push('/allenamento/agente')} etichetta="Chiedi una scheda all’agente AI" scala={0.985} spento={!restano} style={largo ? { flex: 1 } : undefined}>
           <View style={[stili.agente, { backgroundColor: p.carta, borderColor: p.linea, boxShadow: p.ombra }, largo && { flex: 1 }]}>
             <LinearGradient colors={['#8B5CF6', '#5B21B6']} style={stili.agenteIcona}>
               <Icona nome="stella" size={26} colore="#fff" />
@@ -287,7 +287,7 @@ export function Schede() {
         )}
       </Sezione>
 
-      <Sezione titolo="Ultimi allenamenti" destra={<LinkSezione testo="Storico e progressi" onPress={() => router.push('/lab/allenamento/storico')} />}>
+      <Sezione titolo="Ultimi allenamenti" destra={<LinkSezione testo="Storico e progressi" onPress={() => router.push('/allenamento/storico')} />}>
         <Carta style={{ paddingVertical: spazio.due }}>
           {dati.ultimi.length ? (
             dati.ultimi.map((a, i) => (

@@ -5,6 +5,33 @@
   ],
   "buildCommand": "npm run build:web",
   "outputDirectory": "dist",
+  "redirects": [
+    {
+      "source": "/lab",
+      "destination": "/",
+      "permanent": false
+    },
+    {
+      "source": "/lab/abbonamenti",
+      "destination": "/?sezione=abbonamenti",
+      "permanent": false
+    },
+    {
+      "source": "/lab/pagamenti",
+      "destination": "/?sezione=pagamenti",
+      "permanent": false
+    },
+    {
+      "source": "/lab/profilo",
+      "destination": "/?sezione=profilo",
+      "permanent": false
+    },
+    {
+      "source": "/lab/:path*",
+      "destination": "/:path*",
+      "permanent": false
+    }
+  ],
   "rewrites": [
     {
       "source": "/r/:percorso*",
