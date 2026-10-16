@@ -103,6 +103,8 @@ export type DatiContraente = {
   codice_fiscale: string | null
   /** Ha dichiarato di essere residente all'estero e senza codice fiscale italiano. */
   senza_codice_fiscale?: boolean
+  /** Il Paese di residenza (codice ISO) di chi e' residente all'estero. */
+  paese?: string | null
   residenza: string | null
   email: string
   telefono: string | null
@@ -117,8 +119,11 @@ export type PersonaDati = {
   data_nascita: string | null
   codice_fiscale: string | null
   senza_codice_fiscale?: boolean
+  /** Il Paese (codice ISO) dichiarato da chi e' residente all'estero. */
+  paese?: string | null
   telefono: string | null
-  indirizzo: { via: string | null; cap: string | null; citta: string | null } | null
+  /** `paese`: quello dell'indirizzo; senza, e' l'Italia. */
+  indirizzo: { via: string | null; cap: string | null; citta: string | null; paese?: string | null } | null
 }
 
 export type AnteprimaContratto = {
@@ -156,8 +161,18 @@ export async function anteprimaAbbonamento(
   }
 }
 
-/** Le correzioni ai dati del contratto: solo i campi che cambiano. Nome, cognome e nascita si cambiano dal club. */
-export type CambiDati = { codice_fiscale?: string; senza_codice_fiscale?: boolean; telefono?: string; indirizzo?: { via: string; cap: string; citta: string } }
+/**
+ * Le correzioni ai dati del contratto: solo i campi che cambiano. Nome, cognome e nascita si cambiano dal club.
+ * Residente all'estero: `senza_codice_fiscale` + `paese` (obbligatorio), senza `codice_fiscale`.
+ * `indirizzo.paese` e' il Paese dell'indirizzo, Italia compresa ('IT': il CAP ha cinque cifre).
+ */
+export type CambiDati = {
+  codice_fiscale?: string
+  senza_codice_fiscale?: boolean
+  paese?: string
+  telefono?: string
+  indirizzo?: { via: string; cap: string; citta: string; paese?: string }
+}
 
 export async function salvaDatiAbbonamento(memberId: number, cambi: CambiDati): Promise<{ ok: true } | { ok: false; errore: string }> {
   const { ok, dati } = await abbonamento({ azione: 'salva_dati', member_id: memberId, ...cambi })

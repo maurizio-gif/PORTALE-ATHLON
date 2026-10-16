@@ -2,7 +2,9 @@ import { useState } from 'react'
 import { Text, View } from 'react-native'
 
 import { salvaDatiAbbonamento, type CambiDati, type PersonaDati } from '@/api/abbonamento'
-import { Casella } from '@/components/Casella'
+import { CampoPaese } from '@/components/CampoPaese'
+import { CasellaResidenteEstero } from '@/components/CasellaResidenteEstero'
+import { capLiberoValido, ITALIA, pulisciCapLibero } from '@/lib/residenteEstero'
 import { spazio } from '@/theme'
 
 import { CampoTesto } from '../ui/Campi'
@@ -14,6 +16,9 @@ import { colpetto } from '../ui/Tocco'
 // codice fiscale, cellulare e indirizzo. Nome, cognome e data di nascita sono
 // l'identita' e si cambiano dal club, quindi qui si leggono soltanto.
 // Si mandano solo i campi che sono cambiati.
+// Residente all'estero: niente codice fiscale, il Paese e' obbligatorio e il CAP
+// e' libero (i CAP esteri non hanno cinque cifre). Chi toglie la spunta scrive il
+// codice fiscale e l'indirizzo torna italiano.
 
 export function CorreggiDati({
   persona,
@@ -33,6 +38,7 @@ export function CorreggiDati({
   const [aperto, setAperto] = useState(apertoDa)
   const [cf, setCf] = useState(persona.codice_fiscale ?? '')
   const [estero, setEstero] = useState(!!persona.senza_codice_fiscale)
+  const [paese, setPaese] = useState(persona.senza_codice_fiscale && persona.paese && persona.paese !== ITALIA ? persona.paese : '')
   const [telefono, setTelefono] = useState(persona.telefono ?? '')
   const [via, setVia] = useState(persona.indirizzo?.via ?? '')
   const [cap, setCap] = useState(persona.indirizzo?.cap ?? '')
@@ -40,12 +46,29 @@ export function CorreggiDati({
   const [errore, setErrore] = useState<string | null>(null)
   const [attesa, setAttesa] = useState(false)
 
+  // Il Paese dell'indirizzo com'e' adesso: quello dichiarato, o l'Italia.
+  const paeseIndirizzoPrima = persona.indirizzo?.paese ?? (persona.senza_codice_fiscale ? persona.paese : null) ?? ITALIA
+
+  // La casella cambia il tipo di CAP: tolta la spunta, un CAP che non ha cinque cifre non vale piu'.
+  function cambiaEstero() {
+    if (estero) setCap((c) => (/^\d{5}$/.test(c) ? c : ''))
+    setErrore(null)
+    setEstero(!estero)
+  }
+
   async function salva() {
     const cambi: CambiDati = {}
     const cfNuovo = cf.replace(/\s/g, '').toUpperCase()
     if (estero) {
       // Residente all'estero: nessun codice da controllare. Su PerfectGym il campo resta vuoto.
-      if (!persona.senza_codice_fiscale) cambi.senza_codice_fiscale = true
+      if (!paese) {
+        setErrore('Scegli il Paese in cui risiedi.')
+        return
+      }
+      if (!persona.senza_codice_fiscale || paese !== persona.paese) {
+        cambi.senza_codice_fiscale = true
+        cambi.paese = paese
+      }
     } else if (cfNuovo !== (persona.codice_fiscale ?? '').toUpperCase() || persona.senza_codice_fiscale) {
       if (!cfNuovo) {
         setErrore('Scrivi il codice fiscale, oppure spunta che sei residente all’estero.')
@@ -54,8 +77,18 @@ export function CorreggiDati({
       cambi.codice_fiscale = cfNuovo
     }
     if (telefono.trim() !== (persona.telefono ?? '')) cambi.telefono = telefono.trim()
-    if (via.trim() !== (persona.indirizzo?.via ?? '') || cap !== (persona.indirizzo?.cap ?? '') || citta.trim() !== (persona.indirizzo?.citta ?? '')) {
-      cambi.indirizzo = { via: via.trim(), cap, citta: citta.trim() }
+    // Il Paese dell'indirizzo: quello della residenza all'estero, altrimenti l'Italia.
+    const paeseIndirizzo = estero ? paese : ITALIA
+    if (via.trim() !== (persona.indirizzo?.via ?? '') || cap !== (persona.indirizzo?.cap ?? '') || citta.trim() !== (persona.indirizzo?.citta ?? '') || paeseIndirizzo !== paeseIndirizzoPrima) {
+      if (!via.trim() || !citta.trim()) {
+        setErrore('Scrivi via e numero civico, CAP e città.')
+        return
+      }
+      if (estero ? !capLiberoValido(cap) : !/^\d{5}$/.test(cap)) {
+        setErrore(estero ? 'Il CAP non è valido: da 2 a 12 caratteri fra lettere, cifre, spazio e trattino.' : 'Il CAP ha cinque cifre.')
+        return
+      }
+      cambi.indirizzo = { via: via.trim(), cap: cap.trim(), citta: citta.trim(), paese: paeseIndirizzo }
     }
     if (!Object.keys(cambi).length) {
       setErrore('Non hai cambiato niente.')
@@ -89,14 +122,17 @@ export function CorreggiDati({
         {estero ? null : (
           <CampoTesto etichetta="Codice fiscale" value={cf} onChangeText={(v) => setCf(v.toUpperCase())} autoCapitalize="characters" autoCorrect={false} maxLength={16} placeholder="RSSMRA80A01H501U" />
         )}
-        <Casella spuntata={estero} onCambia={() => setEstero((v) => !v)} etichetta="Sono residente all’estero e non ho un codice fiscale italiano">
-          <Text style={{ color: p.testo, fontFamily: F.medio, fontSize: 14, lineHeight: 20 }}>Sono residente all’estero e non ho un codice fiscale italiano</Text>
-        </Casella>
+        <CasellaResidenteEstero spuntata={estero} onCambia={cambiaEstero} lab />
+        {estero ? <CampoPaese variante="lab" value={paese} onChange={(v) => { setPaese(v); setErrore(null) }} errore={!!errore && !paese} /> : null}
         <CampoTesto etichetta="Cellulare" icona="telefono" value={telefono} onChangeText={setTelefono} autoComplete="tel" textContentType="telephoneNumber" keyboardType="phone-pad" />
         <CampoTesto etichetta="Via e numero civico" icona="luogo" value={via} onChangeText={setVia} autoComplete="street-address" textContentType="fullStreetAddress" placeholder="Via Ugo Ojetti 134" />
         <View style={{ flexDirection: 'row', gap: spazio.due }}>
           <View style={{ flex: 1 }}>
-            <CampoTesto etichetta="CAP" value={cap} onChangeText={(v) => setCap(v.replace(/\D/g, '').slice(0, 5))} autoComplete="postal-code" textContentType="postalCode" inputMode="numeric" keyboardType="number-pad" placeholder="00137" />
+            {estero ? (
+              <CampoTesto etichetta="CAP" value={cap} onChangeText={(v) => setCap(pulisciCapLibero(v))} autoComplete="postal-code" textContentType="postalCode" autoCapitalize="characters" autoCorrect={false} maxLength={12} placeholder="SW1A 1AA" />
+            ) : (
+              <CampoTesto etichetta="CAP" value={cap} onChangeText={(v) => setCap(v.replace(/\D/g, '').slice(0, 5))} autoComplete="postal-code" textContentType="postalCode" inputMode="numeric" keyboardType="number-pad" placeholder="00137" />
+            )}
           </View>
           <View style={{ flex: 1.6 }}>
             <CampoTesto etichetta="Città" value={citta} onChangeText={setCitta} onSubmitEditing={salva} textContentType="addressCity" placeholder="Roma" />

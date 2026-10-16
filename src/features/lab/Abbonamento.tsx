@@ -13,6 +13,7 @@ import {
   type AnteprimaContratto,
   type Blocco,
   type EsitoContratto,
+  type DatiContraente,
   type ImportiContratto,
   type MetodoAbbonamento,
   type PersonaDati,
@@ -24,6 +25,7 @@ import {
 import { Casella } from '@/components/Casella'
 import { ModuloIban, type DatiConto } from '@/features/metodo-pagamento/ModuloIban'
 import { euro } from '@/lib/eventi'
+import { CODICE_FISCALE_NON_ATTRIBUITO, ITALIA, nomePaese } from '@/lib/residenteEstero'
 import { spazio } from '@/theme'
 
 import { CorreggiDati } from './abbonamento/CorreggiDati'
@@ -129,6 +131,13 @@ function RigaDato({ nome, valore }: { nome: string; valore: string | null | unde
       <Text style={{ color: valore ? p.testo : p.errore, fontFamily: F.bold, fontSize: 14, flex: 1, lineHeight: 20 }}>{valore || 'Manca'}</Text>
     </View>
   )
+}
+
+/** «Via Ugo Ojetti 134, 00137 Roma»; per chi risiede all'estero, con il Paese in fondo (se la riga non lo dice gia'). */
+function residenzaConPaese(c: DatiContraente): string | null {
+  const paese = c.senza_codice_fiscale && c.paese && c.paese !== ITALIA ? nomePaese(c.paese) : null
+  if (!c.residenza || !paese) return c.residenza
+  return c.residenza.toLowerCase().includes(paese.toLowerCase()) ? c.residenza : `${c.residenza}, ${paese}`
 }
 
 /** Un contratto firmato e creato, in attesa del pagamento. */
@@ -452,15 +461,15 @@ export function Abbonamento() {
                     <View style={{ gap: spazio.due }}>
                       <RigaDato nome="Nome e cognome" valore={`${anteprima.contraente.nome} ${anteprima.contraente.cognome}`.trim()} />
                       <RigaDato nome="Nato/a il" valore={anteprima.contraente.data_nascita ? dataLunga(anteprima.contraente.data_nascita) : null} />
-                      <RigaDato nome="Codice fiscale" valore={anteprima.contraente.codice_fiscale?.toUpperCase() ?? (anteprima.contraente.senza_codice_fiscale ? 'Non attribuito (residente all’estero)' : null)} />
-                      <RigaDato nome="Residenza" valore={anteprima.contraente.residenza} />
+                      <RigaDato nome="Codice fiscale" valore={anteprima.contraente.codice_fiscale?.toUpperCase() ?? (anteprima.contraente.senza_codice_fiscale ? CODICE_FISCALE_NON_ATTRIBUITO : null)} />
+                      <RigaDato nome="Residenza" valore={residenzaConPaese(anteprima.contraente)} />
                       <RigaDato nome="Email" valore={anteprima.contraente.email} />
                       <RigaDato nome="Telefono" valore={anteprima.contraente.telefono} />
                       {anteprima.genitore ? <RigaDato nome="Firma il genitore" valore={`${anteprima.genitore.nome} ${anteprima.genitore.cognome}`.trim()} /> : null}
                     </View>
                   </Carta>
                   {personeDati.map((d) => (
-                    <CorreggiDati key={`${d.member_id}-${d.codice_fiscale}-${d.telefono}-${d.indirizzo?.via}`} persona={d} titolo={d.ruolo === 'genitore' ? 'Dati del genitore che firma' : 'Correggi i tuoi dati'} onSalvato={caricaContratto} />
+                    <CorreggiDati key={`${d.member_id}-${d.codice_fiscale}-${d.paese}-${d.telefono}-${d.indirizzo?.via}-${d.indirizzo?.cap}-${d.indirizzo?.paese}`} persona={d} titolo={d.ruolo === 'genitore' ? 'Dati del genitore che firma' : 'Correggi i tuoi dati'} onSalvato={caricaContratto} />
                   ))}
                   <Casella spuntata={datiOk} onCambia={() => setDatiOk((v) => !v)} etichetta="Confermo che i dati sono corretti">
                     <Text style={{ color: p.testo, fontFamily: F.medio, fontSize: 14, lineHeight: 20 }}>Confermo che questi dati sono corretti.</Text>

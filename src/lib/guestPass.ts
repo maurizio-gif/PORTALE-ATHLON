@@ -8,11 +8,16 @@ export type PersonaGuestPass = {
   email: string | null
   telefono: string | null
   nascita: string | null
+  /** Null per chi e' residente all'estero: il segnaposto di PerfectGym non si vede mai. */
   codice_fiscale: string | null
+  /** Ha dichiarato di essere residente all'estero e senza codice fiscale italiano. */
+  residente_estero?: boolean
+  /** Il Paese (codice ISO, mai IT) di chi e' residente all'estero. */
+  paese?: string | null
   via: string | null
   cap: string | null
   citta: string | null
-  /** I campi che su PerfectGym mancano: si chiedono nel primo passo. */
+  /** I campi che su PerfectGym mancano: si chiedono nel primo passo. Per chi e' residente all'estero niente `codice_fiscale`, e `paese` se non l'ha scelto. */
   manca: string[]
 }
 
