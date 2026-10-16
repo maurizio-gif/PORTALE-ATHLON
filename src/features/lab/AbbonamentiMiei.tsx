@@ -15,10 +15,11 @@ import { Carta, Etichetta, Messaggio, Pulsante, SchedeInArrivo, Sezione } from '
 import { F, usePalette } from './ui/tema'
 import { Tocco } from './ui/Tocco'
 
-// Il dettaglio dei tuoi abbonamenti (16/10/2026, nella Home dal 17/10): quello in vigore e quelli
-// passati, con la data di sottoscrizione, l'inizio, la fine, gli addebiti
-// (pagati, da pagare, annullati) e i pagamenti ricevuti. Dal gestionale del
-// club, per te e per la tua famiglia.
+// Il dettaglio dei tuoi abbonamenti (16/10/2026, nella Home dal 17/10): quelli in
+// vigore (in corso, sospesi, o che devono ancora iniziare), con la data di
+// sottoscrizione, l'inizio, la fine, gli addebiti (pagati, da pagare, annullati) e i
+// pagamenti ricevuti. Dal gestionale del club, per te e per la tua famiglia. Gli
+// abbonamenti terminati non si mostrano (17/10/2026).
 
 /** «17 ott 2026», per le date del gestionale («2026-10-17»). */
 function data(iso: string | null): string {
@@ -205,7 +206,8 @@ function SchedaContratto({ c, conPersona, regolarita, onSezione }: { c: Contratt
 export const CHIAVE_CONTRATTI = 'abbonamenti:contratti'
 
 /**
- * I contratti della persona e della famiglia: quelli in vigore, poi i passati.
+ * I contratti in vigore della persona e della famiglia: gli abbonamenti terminati
+ * non si mostrano.
  * Sta dentro la sezione Abbonamenti della Home (17/10/2026); in cima il
  * comando per sceglierne uno nuovo. I dati restano in memoria: tornando alla
  * sezione si apre subito, e intanto si aggiorna.
@@ -225,8 +227,7 @@ export function ElencoAbbonamenti({ area, onSezione }: { area: Extract<Area, { t
   }, [carica])
 
   const vigore = (elenco ?? []).filter((c) => c.in_vigore)
-  const passati = (elenco ?? []).filter((c) => !c.in_vigore)
-  const piuPersone = new Set((elenco ?? []).map((c) => c.member_id)).size > 1
+  const piuPersone = new Set(vigore.map((c) => c.member_id)).size > 1
   // La regolarita' viene dai dati della Home (l'area): il metodo e il debito sono li'.
   const regolarita = (c: ContrattoElenco): Regolarita | null => {
     const k = area.contratti.find((x) => x.contract_id === c.contract_id)
@@ -242,24 +243,15 @@ export function ElencoAbbonamenti({ area, onSezione }: { area: Extract<Area, { t
         </>
       ) : null}
       {!elenco && !errore ? <SchedeInArrivo quante={1} /> : null}
-      {elenco && !elenco.length ? (
+      {elenco && !vigore.length ? (
         <Carta piatta>
-          <Text style={{ color: p.testo, fontFamily: F.semi, fontSize: 15, lineHeight: 22 }}>Non troviamo abbonamenti su questa scheda.</Text>
+          <Text style={{ color: p.testo, fontFamily: F.semi, fontSize: 15, lineHeight: 22 }}>Non troviamo abbonamenti in corso su questa scheda.</Text>
         </Carta>
       ) : null}
       {vigore.length ? (
         <Sezione titolo="In vigore" conteggio={vigore.length}>
           <View style={{ gap: spazio.tre }}>
             {vigore.map((c) => (
-              <SchedaContratto key={c.contract_id} c={c} conPersona={piuPersone} regolarita={regolarita(c)} onSezione={onSezione} />
-            ))}
-          </View>
-        </Sezione>
-      ) : null}
-      {passati.length ? (
-        <Sezione titolo="Passati" conteggio={passati.length}>
-          <View style={{ gap: spazio.tre }}>
-            {passati.map((c) => (
               <SchedaContratto key={c.contract_id} c={c} conPersona={piuPersone} regolarita={regolarita(c)} onSezione={onSezione} />
             ))}
           </View>
