@@ -13,6 +13,18 @@ import { spazio, useColori } from '@/theme'
 // come la apre il planning del sito. I contenuti sono quelli del sito
 // (lezioni.json), quindi si aggiornano con lui.
 
+/**
+ * La scheda per questa lezione: se ha un testo per fascia d'eta' (`varianti`) si usa
+ * quello della fascia scritta nel nome della lezione («Baby Nuoto 3-15 Mesi»); senza
+ * fascia nel nome, o senza testo per quella fascia, resta la descrizione generale.
+ */
+export function schedaPer(scheda: SchedaLezione | null, nomeLezione: string): SchedaLezione | null {
+  if (!scheda?.varianti?.length) return scheda
+  const m = /(\d+)\s*-\s*(\d+)\s*Mesi/i.exec(nomeLezione)
+  const v = m ? scheda.varianti.find((x) => x.da === Number(m[1]) && x.a === Number(m[2])) : undefined
+  return v ? { ...scheda, descrizione: v.descrizione } : scheda
+}
+
 /** Il punto focale del sito («50% 74%»), come lo vuole expo-image. */
 export function posizione(fuoco: string | null): ImageContentPosition {
   return (fuoco ?? 'center') as ImageContentPosition

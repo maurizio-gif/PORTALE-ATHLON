@@ -131,8 +131,8 @@ export type SchedaLezione = {
   foto: string | null
   fuoco: string | null
   caratteristiche: { l: string; v: number }[]
-  /** Informazioni operative della lezione, dal sito (oggi solo il Baby Nuoto): etichetta e valore, anche su piu' righe. */
-  info?: { l: string; v: string }[]
+  /** Un testo per fascia d'eta' (oggi il Baby Nuoto): si sceglie con i mesi scritti nel nome della lezione, «3-15 Mesi». */
+  varianti?: { da: number; a: number; descrizione: string }[]
   /** Domande frequenti, dal sito: la risposta e' HTML semplice come la descrizione. */
   faq?: { q: string; a: string }[]
 }
