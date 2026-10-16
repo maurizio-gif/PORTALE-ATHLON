@@ -68,7 +68,7 @@ function Benvenuto({ titolare, email, famiglia, onProfilo }: { titolare: Persona
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 10 }}>
             <View style={stili.pillola}>
               <View style={[stili.puntino, { backgroundColor: FUOCO[0] }]} />
-              <Text style={stili.pillolaTesto}>{titolare?.numero ? `Tessera ${titolare.numero}` : 'Socio'}</Text>
+              <Text style={stili.pillolaTesto}>{titolare?.numero ? `Numero Utente ${titolare.numero}` : 'Socio'}</Text>
             </View>
             {famiglia || titolare?.numero ? (
               <View style={stili.pillola}>

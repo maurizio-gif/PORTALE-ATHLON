@@ -278,7 +278,7 @@ export function ProfiloContenuto() {
     { icona: 'torta', titolo: 'Data di nascita', valore: dataBreve(dati.data_nascita) },
     { icona: 'luogo', titolo: 'Luogo di nascita', valore: dati.luogo_nascita },
     { icona: 'impronta', titolo: 'Codice fiscale', valore: dati.residente_estero ? CODICE_FISCALE_NON_ATTRIBUITO : dati.codice_fiscale },
-    { icona: 'tessera', titolo: 'Numero di tessera', valore: dati.numero },
+    { icona: 'tessera', titolo: 'Numero Utente', valore: dati.numero },
   ]
   const anagrafici = tutti.filter((x) => x.valore)
 
