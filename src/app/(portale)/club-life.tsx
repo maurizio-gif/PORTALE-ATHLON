@@ -10,5 +10,5 @@ export default function PaginaClubLife() {
   const sessione = useSessione()
   if (sessione === undefined) return <SchermataInArrivo />
   if (!sessione) return <Redirect href="/" />
-  return <ClubLife />
+  return <ClubLife emailAccesso={sessione.user.email} />
 }

@@ -3,13 +3,13 @@ import { useEffect, useState } from 'react'
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
-import { CLUB_LIFE_URL } from '@/config'
 import { spazio } from '@/theme'
 
 import { ALTEZZA_BARRA, margineBarra } from '../ui/BarraSchede'
 import { Pulsante } from '../ui/kit'
 import { F, usePalette } from '../ui/tema'
 import { ascoltaClubLifeDaCapo } from './daCapo'
+import { useIndirizzoClubLife } from './indirizzo'
 
 // Club Life: la pagina del sito (athlonroma.it/club-life), incorporata a tutto
 // schermo fra la barra di stato e la barra delle schede. Non e' una copia: le
@@ -37,10 +37,11 @@ const FONDO = '#0B0B0C'
 /** Dopo quanto, senza che la pagina sia arrivata, si smette di far girare la rotellina e si dice come uscirne. */
 const ATTESA_MS = 15_000
 
-export function ClubLife() {
+export function ClubLife({ emailAccesso }: { emailAccesso?: string | null }) {
   const ins = useSafeAreaInsets()
   const p = usePalette()
   const inVista = useIsFocused()
+  const indirizzo = useIndirizzoClubLife(emailAccesso)
   const [arrivata, setArrivata] = useState(false)
   const [lenta, setLenta] = useState(false)
   // Cambiare la chiave rimonta l'iframe: e' il modo di ricaricarlo da fuori.
@@ -58,10 +59,10 @@ export function ClubLife() {
   return (
     <View style={[stili.fondo, { paddingTop: ins.top, paddingBottom: ALTEZZA_BARRA + margineBarra(ins.bottom) }]}>
       <View style={stili.cornice}>
-        {inVista ? (
+        {inVista && indirizzo ? (
           <iframe
             key={giro}
-            src={CLUB_LIFE_URL}
+            src={indirizzo}
             title="Club Life"
             // La pagina copia i codici promozionali e apre i video a tutto schermo.
             allow="clipboard-write; fullscreen"
@@ -78,7 +79,7 @@ export function ClubLife() {
                 <Text style={[stili.testo, { color: p.testo }]}>Club Life sta tardando ad arrivare. Controlla la connessione, oppure aprilo nel browser.</Text>
                 <View style={stili.pulsanti}>
                   <Pulsante testo="Riprova" icona="aggiorna" onPress={() => setGiro((g) => g + 1)} pieno={false} />
-                  <Pulsante testo="Apri nel browser" icona="apriFuori" variante="contorno" onPress={() => window.open(CLUB_LIFE_URL, '_blank')} pieno={false} />
+                  <Pulsante testo="Apri nel browser" icona="apriFuori" variante="contorno" onPress={() => indirizzo && window.open(indirizzo, '_blank')} pieno={false} />
                 </View>
               </View>
             ) : (
