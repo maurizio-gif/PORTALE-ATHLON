@@ -14,7 +14,7 @@ export const SUPABASE_URL = senzaSlash(process.env.EXPO_PUBLIC_SUPABASE_URL || '
 export const SUPABASE_PUBLISHABLE_KEY =
   process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY || 'sb_publishable_jj5Pt1OYpBJQ72Co_j4ImA_08n4Q3mT'
 
-/** Il sito del club: la pagina Club Life dell'app e' la sua, incorporata. */
+/** Il sito del club: Club Life nell'app legge i suoi contenuti da `club-life.json`. */
 export const SITO_URL = senzaSlash(process.env.EXPO_PUBLIC_SITO_URL || 'https://www.athlonroma.it')
-/** Con lo slash finale, che e' la forma canonica del sito: senza prenderebbe un reindirizzamento in piu'. */
+/** La pagina Club Life del sito, per chi la vuole aprire nel browser. Con lo slash finale, la forma canonica del sito. */
 export const CLUB_LIFE_URL = `${SITO_URL}/club-life/`

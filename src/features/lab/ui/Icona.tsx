@@ -65,6 +65,10 @@ const ICONE = {
   apriFuori: ['safari', 'open_in_browser'],
   scarica: ['arrow.down.app', 'install_mobile'],
   copia: ['doc.on.doc', 'content_copy'],
+  cerca: ['magnifyingglass', 'search'],
+  giornale: ['newspaper.fill', 'newspaper'],
+  aiuto: ['questionmark.circle.fill', 'help'],
+  giu: ['chevron.down', 'expand_more'],
 } as const satisfies Record<string, readonly [SFSymbol, AndroidSymbol]>
 
 export type NomeIcona = keyof typeof ICONE

@@ -23,7 +23,7 @@ const SCHEDE: { href: Href; percorso: string; titolo: string; icona: NomeIcona; 
   { href: '/calendario', percorso: '/calendario', titolo: 'Prenotazioni', icona: 'calendario', anche: ['/personal'] },
   { href: '/allenamento', percorso: '/allenamento', titolo: 'Workout', icona: 'peso' },
   { href: '/tv', percorso: '/tv', titolo: 'TV', icona: 'play' },
-  // La pagina Club Life del sito, incorporata (clublife/ClubLife).
+  // News, eventi e Help Desk, coi dati del sito (clublife/ClubLife).
   { href: '/club-life', percorso: '/club-life', titolo: 'Club Life', icona: 'persone' },
 ]
 

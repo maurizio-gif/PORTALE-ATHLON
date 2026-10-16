@@ -1,20 +1,18 @@
-import { Platform } from 'react-native'
+// Come in ogni barra di schede, toccare di nuovo «Club Life» quando ci si e'
+// gia' riporta l'elenco all'inizio: la barra manda il segnale, la schermata lo
+// ascolta e torna in cima.
 
-// Club Life e' una pagina del sito dentro l'app: da li' si puo' navigare (una
-// news, una scheda dell'Help Desk) e nell'app installata non c'e' un tasto
-// indietro. Come in ogni barra di schede, toccare di nuovo la voce gia' attiva
-// riporta all'inizio: la barra manda questo segnale, la pagina lo ascolta.
-
-const NOME = 'athlon:club-life-da-capo'
+const ascolti = new Set<() => void>()
 
 /** La barra: «torna all'inizio di Club Life». */
 export function clubLifeDaCapo() {
-  if (Platform.OS === 'web' && typeof window !== 'undefined') window.dispatchEvent(new Event(NOME))
+  ascolti.forEach((f) => f())
 }
 
-/** La pagina: chiede di essere avvisata. Restituisce come smettere. */
+/** La schermata: chiede di essere avvisata. Restituisce come smettere. */
 export function ascoltaClubLifeDaCapo(f: () => void): () => void {
-  if (Platform.OS !== 'web' || typeof window === 'undefined') return () => {}
-  window.addEventListener(NOME, f)
-  return () => window.removeEventListener(NOME, f)
+  ascolti.add(f)
+  return () => {
+    ascolti.delete(f)
+  }
 }
