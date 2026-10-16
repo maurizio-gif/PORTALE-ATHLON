@@ -196,7 +196,7 @@ export function Schede() {
   const largo = larghezza >= LARGO
   const cella = largo ? { flexGrow: 1, flexBasis: larghezza >= 1100 ? '31%' : '45%' } as const : null
   return (
-    <Schermata larga titolo="Workout" sottotitolo="Le tue schede, il registro dei pesi e il timer del recupero.">
+    <Schermata titolo="Workout" sottotitolo="Le tue schede, il registro dei pesi e il timer del recupero.">
       <View style={largo ? stili.fila3 : { gap: spazio.quattro + 4 }}>
       <Entra indice={0} style={largo ? { flex: 1 } : undefined}>
         <CartaTest t={dati.test} riempi={largo} />

@@ -809,7 +809,7 @@ export function Calendario() {
   const perChi = giorno.persone.find((x) => x.member_id === giorno.member_id)
   const schedaAperta = aperta?.scheda ? giorno.schede?.[aperta.scheda] ?? null : null
   return (
-    <Schermata larga titolo="Prenotazioni" scorrimento={scorrimento}>
+    <Schermata titolo="Prenotazioni" scorrimento={scorrimento}>
       <SceltaPrenotazioni attiva="lezioni" />
 
       {ritorno ? (

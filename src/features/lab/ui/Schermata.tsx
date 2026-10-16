@@ -39,13 +39,21 @@ export function Marchio({ piccolo = false }: { piccolo?: boolean }) {
 /** Quanto spazio lasciare in fondo per la barra delle schede. */
 export const SPAZIO_BARRA = 84
 
+/**
+ * La larghezza della colonna da schermo largo, UNA per tutta l'app: la Home, le
+ * sue sezioni, il dettaglio di un abbonamento o di una scheda stanno nella stessa
+ * colonna. Prima c'era una colonna larga (1180) per le schermate a piu' colonne e
+ * una stretta (760) per le altre, e passando dall'una all'altra il contenuto
+ * saltava di larghezza (16/10/2026).
+ */
+export const LARGHEZZA_APP = 1180
+
 export function Schermata({
   titolo,
   sopratitolo,
   sottotitolo,
   indietro,
   destra,
-  larga = false,
   barra = true,
   sopra,
   nascondiTitolo = false,
@@ -64,8 +72,6 @@ export function Schermata({
   indietro?: Href
   /** Un'azione in alto a destra (un avatar, un bottone tondo). */
   destra?: ReactNode
-  /** Su schermo largo usa tutta la larghezza (schede su piu' colonne). */
-  larga?: boolean
   /** C'e' la barra delle schede sotto: si lascia il suo spazio. */
   barra?: boolean
   /** Qualcosa sopra il titolo, a tutta larghezza (la testata dell'accesso). */
@@ -75,7 +81,7 @@ export function Schermata({
   const p = usePalette()
   const ins = useSafeAreaInsets()
   const { width } = useWindowDimensions()
-  const maxWidth = width < LARGO ? 640 : larga ? 1180 : 760
+  const maxWidth = width < LARGO ? 640 : LARGHEZZA_APP
   const y = useSharedValue(0)
   const onScroll = useAnimatedScrollHandler((e) => {
     y.value = e.contentOffset.y

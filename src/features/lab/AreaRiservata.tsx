@@ -269,7 +269,7 @@ export function AreaRiservata({ email }: { email: string }) {
   }
 
   return (
-    <Schermata larga titolo={titolare?.nome ? `Ciao, ${titolare.nome}` : 'La mia area'} nascondiTitolo scorrimento={scorrimento}>
+    <Schermata titolo={titolare?.nome ? `Ciao, ${titolare.nome}` : 'La mia area'} nascondiTitolo scorrimento={scorrimento}>
       <Entra indice={0}>
         <Benvenuto titolare={titolare} email={email} famiglia={famiglia.length} onProfilo={() => vai('profilo', true)} />
       </Entra>
@@ -298,8 +298,10 @@ export function AreaRiservata({ email }: { email: string }) {
 }
 
 const stili = StyleSheet.create({
-  // Sotto i riquadri la sezione sta in una colonna sola, anche da schermo largo.
-  sezione: { width: '100%', maxWidth: 760, alignSelf: 'center' },
+  // Sotto i riquadri la sezione ha la stessa larghezza dei riquadri e di ogni altra
+  // schermata (la colonna la limita `Schermata`): una colonna piu' stretta qui
+  // faceva saltare la larghezza passando dai riquadri alla sezione.
+  sezione: { width: '100%', alignSelf: 'center' },
   benvenuto: { borderRadius: 32, padding: spazio.quattro - 2, gap: spazio.tre + 2, overflow: 'hidden' },
   bagliore: { position: 'absolute', width: 260, height: 260, borderRadius: 130, right: -90, top: -110, backgroundColor: '#FF5701', opacity: 0.28, filter: 'blur(50px)' } as object,
   marchio: { width: 104, height: 84 },

@@ -271,7 +271,7 @@ export function ProvaPagamento() {
       ) : !dati ? (
         <SchedeInArrivo quante={2} />
       ) : checkout ? (
-        <View style={{ gap: spazio.tre, maxWidth: 560, width: '100%', alignSelf: 'center' }}>
+        <View style={{ gap: spazio.tre, width: '100%' }}>
           <Carta style={{ gap: spazio.tre }}>
             <View style={stili.testa}>
               <View style={{ flex: 1, gap: 4 }}>
