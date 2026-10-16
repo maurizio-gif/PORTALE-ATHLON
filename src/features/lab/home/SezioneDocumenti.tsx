@@ -85,7 +85,11 @@ export function SezioneDocumenti() {
 
   async function apri(d: Documento) {
     setAperto(`${d.origine}:${d.id}`)
-    await apriPdf(() => apriDocumento(d))
+    await apriPdf(async () => {
+      const r = await apriDocumento(d)
+      // Il nome del file, per chi lo salva o lo invia: il titolo del documento.
+      return r.ok ? { ...r, nome: `${d.titolo.replace(/[^\p{L}\p{N} _-]/gu, '').trim() || 'documento'}.pdf` } : r
+    })
     setAperto(null)
   }
 

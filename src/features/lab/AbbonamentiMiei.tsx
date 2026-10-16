@@ -101,7 +101,10 @@ function SchedaContratto({ c, conPersona, regolarita, onSezione }: { c: Contratt
     if (!c.firmato) return
     const numero = c.firmato.numero
     setScarico(true)
-    await apriPdf(() => documentoAbbonamento(numero))
+    await apriPdf(async () => {
+      const r = await documentoAbbonamento(numero)
+      return r.ok ? { ...r, nome: `contratto-${numero}.pdf` } : r
+    })
     setScarico(false)
   }
 

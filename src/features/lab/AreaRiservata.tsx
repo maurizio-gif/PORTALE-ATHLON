@@ -10,6 +10,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { contrattiAbbonamento } from '@/api/abbonamento'
 import { elencoDocumenti } from '@/api/documenti'
 import { laMiaArea, leggiAnagrafica, leggiGiorno, leggiVetrine, type Area, type PersonaArea } from '@/api/lab'
+import type { Tessera } from '@/api/tesseramenti'
 import { spazio } from '@/theme'
 
 import { CHIAVE_CONTRATTI, ElencoAbbonamenti } from './AbbonamentiMiei'
@@ -19,9 +20,10 @@ import { SezioneCertificato } from './home/SezioneCertificato'
 import { SezioneFamiglia } from './home/SezioneFamiglia'
 import { SezioneDocumenti, useDocumenti, CHIAVE_DOCUMENTI } from './home/SezioneDocumenti'
 import { SezionePagamenti } from './home/SezionePagamenti'
+import { SezioneTesseramento, useTesseramenti } from './home/SezioneTesseramento'
 import { giorni, nome, oggi, statoCertificato, urgenzaCertificato } from './home/certificato'
 import { riepilogoAbbonamenti } from './home/regolarita'
-import { SEZIONE_INIZIALE, sezioneDa, type SezioneHome } from './home/sezioni'
+import { SEZIONI, SEZIONE_INIZIALE, sezioneDa, type SezioneHome } from './home/sezioni'
 import { inMemoria, precarica, prendi } from './memoria'
 import { useMovimenti } from './pagamenti/Movimenti'
 import { ProfiloContenuto } from './Profilo'
@@ -142,13 +144,28 @@ function riquadroAbbonamenti(area: AreaTrovata): VoceRiquadro {
   return { valore: String(r.totale), nota: parti.join(' · ') }
 }
 
+/** Il dato del riquadro Tesseramento: «Attiva» e la scadenza, o quante tessere attive ci sono nel nucleo. */
+function riquadroTesseramento(tessere: Tessera[]): VoceRiquadro {
+  if (tessere.length === 1) {
+    const al = tessere[0].al
+    return { valore: 'Attiva', nota: al ? `fino al ${dataCorta(al).replace(' ', '\u00a0')}` : 'tessera ASI' }
+  }
+  return { valore: String(tessere.length), nota: 'tessere attive' }
+}
+
 export function AreaRiservata({ email }: { email: string }) {
   const [area, setArea] = useState<Area | null>(inMemoria<{ ok: true; area: Area }>('area')?.area ?? null)
   const [errore, setErrore] = useState<{ testo: string; nonAmmesso: boolean } | null>(null)
   const movimenti = useMovimenti()
   const documenti = useDocumenti()
+  const tesseramenti = useTesseramenti()
   const { sezione: parametro } = useLocalSearchParams<{ sezione?: string }>()
-  const sezione = sezioneDa(parametro) ?? SEZIONE_INIZIALE
+  // Il Tesseramento c'e' solo se nel nucleo c'e' una tessera attiva: finche' non si sa, o se non
+  // c'e', il riquadro non compare e un indirizzo che lo chiede porta alla sezione iniziale.
+  const conTessera = (tesseramenti?.length ?? 0) > 0
+  const sezioniVisibili: readonly SezioneHome[] = conTessera ? SEZIONI : SEZIONI.filter((x) => x !== 'tesseramento')
+  const richiesta = sezioneDa(parametro)
+  const sezione = richiesta && sezioniVisibili.includes(richiesta) ? richiesta : SEZIONE_INIZIALE
   const ins = useSafeAreaInsets()
   const { height } = useWindowDimensions()
   const scorrimento = useRef<Animated.ScrollView>(null)
@@ -266,6 +283,7 @@ export function AreaRiservata({ email }: { email: string }) {
     certificato: riquadroCertificato(area),
     famiglia: { valore: String(area.persone.length), nota: area.persone.length === 1 ? 'persona' : 'persone' },
     profilo: { valore: titolare?.nome || 'Profilo', nota: titolare?.email || email },
+    tesseramento: riquadroTesseramento(tesseramenti ?? []),
   }
 
   return (
@@ -280,7 +298,7 @@ export function AreaRiservata({ email }: { email: string }) {
 
       <View ref={riquadri}>
         <Entra indice={2}>
-          <Riquadri voci={voci} scelta={sezione} onScegli={(s) => vai(s)} />
+          <Riquadri voci={voci} scelta={sezione} onScegli={(s) => vai(s)} sezioni={sezioniVisibili} />
         </Entra>
       </View>
 
@@ -292,6 +310,7 @@ export function AreaRiservata({ email }: { email: string }) {
         {sezione === 'certificato' ? <SezioneCertificato area={area} /> : null}
         {sezione === 'famiglia' ? <SezioneFamiglia area={area} /> : null}
         {sezione === 'profilo' ? <ProfiloContenuto /> : null}
+        {sezione === 'tesseramento' && tesseramenti ? <SezioneTesseramento tessere={tesseramenti} /> : null}
       </Entra>
     </Schermata>
   )

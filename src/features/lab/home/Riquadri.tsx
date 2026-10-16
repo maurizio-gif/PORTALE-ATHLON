@@ -11,7 +11,7 @@ import { F, FUOCO, MARE, usePalette, coloreTono, velo, type ToniTutti } from '..
 import { Tocco } from '../ui/Tocco'
 import { SEZIONI, type SezioneHome } from './sezioni'
 
-// Il selettore della Home: sei riquadri, uno per sezione, che mostrano un
+// Il selettore della Home: un riquadro per sezione (il Tesseramento solo se c'e'), che mostrano un
 // dato vivo e fanno da schede. Quello scelto si accende col colore della sua
 // sezione. Su telefono scorrono in orizzontale; da largo stanno in riga.
 
@@ -32,6 +32,7 @@ const ASPETTO: Record<SezioneHome, { titolo: string; icona: NomeIcona; tono: Ton
   certificato: { titolo: 'Certificato', icona: 'certificato', tono: 'ok', colori: ['#34A36B', '#1B6B43'] },
   famiglia: { titolo: 'Famiglia', icona: 'famiglia', tono: 'blu', colori: MARE },
   profilo: { titolo: 'Profilo', icona: 'persona', tono: 'neutro', colori: ['#8B5CF6', '#5B21B6'] },
+  tesseramento: { titolo: 'Tesseramento', icona: 'tessera', tono: 'blu', colori: ['#0EA5E9', '#075985'] },
 }
 
 const LARGHEZZA = 160
@@ -99,7 +100,8 @@ function Riquadro({ sezione, voce, scelto, onPress, larghezza }: { sezione: Sezi
   )
 }
 
-export function Riquadri({ voci, scelta, onScegli }: { voci: Record<SezioneHome, VoceRiquadro>; scelta: SezioneHome; onScegli: (s: SezioneHome) => void }) {
+/** `sezioni`: quali riquadri mostrare, nell'ordine (di norma tutte; il Tesseramento manca a chi non ha una tessera attiva). */
+export function Riquadri({ voci, scelta, onScegli, sezioni = SEZIONI }: { voci: Record<SezioneHome, VoceRiquadro>; scelta: SezioneHome; onScegli: (s: SezioneHome) => void; sezioni?: readonly SezioneHome[] }) {
   const { width } = useWindowDimensions()
   const largo = width >= LARGO
   const scorrimento = useRef<ScrollView>(null)
@@ -107,11 +109,11 @@ export function Riquadri({ voci, scelta, onScegli }: { voci: Record<SezioneHome,
   // Una sezione scelta da un link o da «Da fare» puo' stare fuori dallo schermo: si porta in vista.
   useEffect(() => {
     if (largo) return
-    const x = Math.max(0, SEZIONI.indexOf(scelta) * (LARGHEZZA + SPAZIO_FRA) - spazio.tre)
+    const x = Math.max(0, sezioni.indexOf(scelta) * (LARGHEZZA + SPAZIO_FRA) - spazio.tre)
     scorrimento.current?.scrollTo({ x, animated: true })
-  }, [scelta, largo])
+  }, [scelta, largo, sezioni])
 
-  const riquadri = SEZIONI.map((s) => <Riquadro key={s} sezione={s} voce={voci[s]} scelto={s === scelta} onPress={() => onScegli(s)} larghezza={largo ? undefined : LARGHEZZA} />)
+  const riquadri = sezioni.map((s) => <Riquadro key={s} sezione={s} voce={voci[s]} scelto={s === scelta} onPress={() => onScegli(s)} larghezza={largo ? undefined : LARGHEZZA} />)
 
   if (largo) {
     return (
