@@ -5,6 +5,7 @@ import { Platform, StyleSheet, Text, View } from 'react-native'
 import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
+import { clubLifeDaCapo } from '../clublife/daCapo'
 import { Icona, type NomeIcona } from './Icona'
 import { F, usePalette } from './tema'
 import { Tocco } from './Tocco'
@@ -14,7 +15,7 @@ import { Tocco } from './Tocco'
 // galleggiava, e su iPhone lasciava sotto di se' una striscia di pagina). Sotto
 // le icone c'e' lo spazio dell'indicatore Home (safe area). Dietro l'icona
 // attiva scivola, con una molla, un velo arancio, e icona e nome si accendono.
-// Si vede solo sulle quattro schermate principali (i pagamenti stanno nella Home).
+// Si vede solo sulle cinque schermate principali (i pagamenti stanno nella Home).
 
 const SCHEDE: { href: Href; percorso: string; titolo: string; icona: NomeIcona; anche?: string[] }[] = [
   { href: '/', percorso: '/', titolo: 'Home', icona: 'casa' },
@@ -22,9 +23,21 @@ const SCHEDE: { href: Href; percorso: string; titolo: string; icona: NomeIcona; 
   { href: '/calendario', percorso: '/calendario', titolo: 'Prenotazioni', icona: 'calendario', anche: ['/personal'] },
   { href: '/allenamento', percorso: '/allenamento', titolo: 'Workout', icona: 'peso' },
   { href: '/tv', percorso: '/tv', titolo: 'TV', icona: 'play' },
+  // La pagina Club Life del sito, incorporata (clublife/ClubLife).
+  { href: '/club-life', percorso: '/club-life', titolo: 'Club Life', icona: 'persone' },
 ]
 
 const MOLLA = { damping: 20, stiffness: 220, mass: 0.7 }
+
+/**
+ * Quanto e' alta la barra sopra la safe area: 6 di respiro, la scheda (56) e la
+ * linea. Chi deve finire esattamente sopra di lei (la pagina incorporata, che
+ * non scorre dentro una `Schermata`) somma questo e il margine in basso.
+ */
+export const ALTEZZA_BARRA = 63
+
+/** Sotto le icone: lo spazio dell'indicatore Home, e almeno 8. */
+export const margineBarra = (bottom: number) => Math.max(bottom, 8)
 
 export function schedaAttiva(percorso: string): number {
   // La Home e' la radice: tolto lo slash finale resterebbe una stringa vuota.
@@ -56,7 +69,7 @@ export function BarraSchede() {
 
   if (attiva < 0) return null
   return (
-    <View style={[stili.ancora, { paddingBottom: Math.max(ins.bottom, 8), borderTopColor: p.linea, boxShadow: p.scuro ? '0 -8px 30px rgba(0,0,0,0.5)' : '0 -8px 30px rgba(20,20,40,0.08)' }]}>
+    <View style={[stili.ancora, { paddingBottom: margineBarra(ins.bottom), borderTopColor: p.linea, boxShadow: p.scuro ? '0 -8px 30px rgba(0,0,0,0.5)' : '0 -8px 30px rgba(20,20,40,0.08)' }]}>
       {/* Quasi piena, come una barra d'app: trasparente prendeva il colore delle schede sotto.
           Sull'app iOS il vetro vero; sul web (anche installata) un velo pieno con la sfocatura del browser. */}
       {Platform.OS === 'ios' ? (
@@ -82,6 +95,7 @@ export function BarraSchede() {
                 scala={0.92}
                 onPress={() => {
                   if (!qui) router.navigate(s.href)
+                  else if (s.percorso === '/club-life') clubLifeDaCapo()
                 }}
                 style={stili.scheda}
               >
