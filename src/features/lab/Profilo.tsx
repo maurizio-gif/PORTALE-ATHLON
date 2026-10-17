@@ -34,7 +34,7 @@ import { colpetto } from './ui/Tocco'
 // Se `portale-lab-anagrafica` non c'e' ancora, si vede tutto in sola lettura
 // con quello che da' la mia area (portale_la_mia_area).
 //
-// **La foto del profilo** (18/10/2026) sta in cima, se il club ne ha una su PerfectGym: e' la sua foto, e qui
+// **La foto del profilo** (17/10/2026) sta in cima, se il club ne ha una su PerfectGym: e' la sua foto, e qui
 // e' l'unico posto dell'app dove si mostra (richiesta del club) - non nella Home, non in Famiglia, non nel
 // Calendario. Senza foto la sezione e' quella di prima: niente segnaposto, perche' per chi non ce l'ha un
 // avatar con le iniziali sarebbe una novita' che nessuno ha chiesto.
