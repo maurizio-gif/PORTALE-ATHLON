@@ -74,7 +74,7 @@ Sono tutte già nel backend; il portale ne eredita i link.
 
 | # | Funzione | Dove vive oggi | Chi la usa e come | Autenticazione | Integrazioni | Destinazione proposta |
 |---|---|---|---|---|---|---|
-| N1 | Promemoria del certificato medico | `app/api/certificati/promemoria` | cron Vercel alle 08:00 | `CRON_SECRET` | vista `promemoria_certificati_oggi` | BACKEND; in futuro anche il caricamento del certificato dal PORTALE |
+| N1 | Promemoria del certificato medico | `app/api/certificati/promemoria` | cron Vercel alle 08:00 | `CRON_SECRET` | vista `promemoria_certificati_oggi` | BACKEND; il caricamento del certificato dal PORTALE c'è dal 17/10/2026 (`CLAUDE.md`) |
 | N2 | Promemoria di rinnovo annuale o aumento | `app/api/rinnovi/promemoria` | cron Vercel alle 08:00, attivo dal 30/11/2026 | `CRON_SECRET` | RPC `rinnovi_*_da_avvisare` | BACKEND |
 | N3 | Avvisi automatici di mancata disdetta (Strikes, 1° e 2° avviso) | `app/api/mancate-disdette/avvisi` | cron Vercel ogni 10 minuti | `CRON_SECRET` | `mancate_disdette_*` | BACKEND; lo storico degli avvisi si può mostrare nel PORTALE |
 | N4 | Coda email, invio e tracciamento | Edge `email-invio`, `email-eventi`, RPC `accoda_email` | tutti | servizio | SendGrid EU | BACKEND; il portale aggiunge le **notifiche push dell'app** come nuovo canale |

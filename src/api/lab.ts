@@ -62,7 +62,26 @@ export type ContrattoArea = {
   metodo: unknown
 }
 
-export type CertificatoArea = { member_id: number; scadenza: string | null; tipo: string | null; stato: string | null }
+/**
+ * L'ultimo certificato caricato dalla persona (17/10/2026), solo se serve alla schermata: `in_verifica` finche'
+ * la segreteria non l'ha visto, `rifiutato` (da meno di 60 giorni) col motivo. Uno approvato non c'e': la prova
+ * e' la scadenza nuova.
+ */
+export type CaricamentoArea = {
+  stato: 'in_verifica' | 'rifiutato'
+  caricato_il: string
+  verificato_il: string | null
+  motivo_rifiuto: string | null
+}
+
+export type CertificatoArea = {
+  member_id: number
+  scadenza: string | null
+  tipo: string | null
+  stato: string | null
+  /** Manca finche' la funzione del database non e' aggiornata. */
+  caricamento?: CaricamentoArea | null
+}
 
 export type Area =
   | { trovato: false; email: string }

@@ -2,16 +2,21 @@ import { useRef, useState } from 'react'
 import { Pressable, StyleSheet, Text, View } from 'react-native'
 
 import type { CertificatoArea, PersonaArea } from '@/api/lab'
+import { istruzioniInRighe } from '@/lib/certificatoIstruzioni'
 import { dataBreve } from '@/lib/metodoPagamento'
 import { spazio } from '@/theme'
 
 import { Icona } from '../ui/Icona'
-import { Etichetta, Riga } from '../ui/kit'
+import { Etichetta, Pulsante, Riga } from '../ui/kit'
 import { F, usePalette } from '../ui/tema'
+import { vistaCorrente } from '../vista'
 
 // Il certificato medico, come lo leggono la Home (riquadro, «Da fare») e la
-// sezione Certificato: lo stato di ogni persona e la «i» di quale serve.
-// Tutto dai dati di portale_la_mia_area; niente si scrive.
+// sezione Certificato: lo stato di ogni persona, la «i» di quale serve e, dove manca o
+// e' scaduto, il comando per caricarlo (17/10/2026). Lo stato viene tutto da
+// portale_la_mia_area: la scadenza di PerfectGym e, accanto, l'ultimo certificato
+// caricato dalla persona (`caricamento`): «in verifica» finche' la segreteria non l'ha
+// visto, «rifiutato» col motivo se non l'ha accettato.
 
 export function nome(p: Pick<PersonaArea, 'nome' | 'cognome'>): string {
   return [p.nome, p.cognome].filter(Boolean).join(' ') || 'Senza nome'
@@ -49,6 +54,13 @@ function seiAnni(nascita: string | null | undefined): string | null {
   return new Date(Date.UTC(Number(m[1]) + 6, Number(m[2]) - 1, Number(m[3]))).toISOString().slice(0, 10)
 }
 
+/** Il giorno di un istante ISO, a Roma: «17/10/2026». */
+function giornoRoma(iso: string | null | undefined): string | null {
+  const t = iso ? new Date(iso) : null
+  if (!t || Number.isNaN(t.getTime())) return null
+  return new Intl.DateTimeFormat('it-IT', { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'Europe/Rome' }).format(t)
+}
+
 export type StatoCertificato = {
   testo: string
   tono: 'ok' | 'attenzione' | 'errore' | 'neutro'
@@ -58,8 +70,12 @@ export type StatoCertificato = {
   dettaglio: string
   /** La riga corta del riquadro scuro, quando non ci sono giorni da contare. */
   breve: string
-  /** Manca, e' scaduto o va consegnato: si spiega quale certificato serve. */
+  /** Manca, e' scaduto o va consegnato: si spiega quale certificato serve e si puo' caricare. */
   daConsegnare: boolean
+  /** Ha caricato un certificato che la segreteria non ha ancora visto: non c'e' altro da fare. */
+  inVerifica: boolean
+  /** L'ultimo certificato caricato e' stato rifiutato: il motivo scritto dalla segreteria, se c'e'. */
+  rifiutato: { motivo: string | null } | null
 }
 
 /**
@@ -69,21 +85,62 @@ export type StatoCertificato = {
  * 6 anni non serve; nell'ultimo mese prima dei 6 va consegnato, come nel CRM
  * (certificati_stato: «non_dovuto», «compie_6_anni»).
  */
-export function statoCertificato(ce: CertificatoArea | undefined, nascita?: string | null): StatoCertificato {
+function statoDelleDate(ce: CertificatoArea | undefined, nascita?: string | null): StatoCertificato {
   const g = giorniA(ce?.scadenza ?? null)
   const data = dataBreve(ce?.scadenza)
   const sei = seiAnni(nascita)
   const aiSei = giorniA(sei)
   if (sei && aiSei != null && aiSei > 30) {
-    return { testo: 'Non serve', tono: 'neutro', giorni: null, dettaglio: `Non serve fino ai 6 anni, il ${dataBreve(sei)}`, breve: 'fino ai 6 anni', daConsegnare: false }
+    return { testo: 'Non serve', tono: 'neutro', giorni: null, dettaglio: `Non serve fino ai 6 anni, il ${dataBreve(sei)}`, breve: 'fino ai 6 anni', daConsegnare: false, inVerifica: false, rifiutato: null }
   }
   if (sei && aiSei != null && aiSei > 0 && (g == null || g < aiSei)) {
-    return { testo: 'Da consegnare', tono: 'attenzione', giorni: null, dettaglio: `Da consegnare entro il ${dataBreve(sei)}, quando compie 6 anni`, breve: `entro il ${dataBreve(sei)}`, daConsegnare: true }
+    return { testo: 'Da consegnare', tono: 'attenzione', giorni: null, dettaglio: `Da consegnare entro il ${dataBreve(sei)}, quando compie 6 anni`, breve: `entro il ${dataBreve(sei)}`, daConsegnare: true, inVerifica: false, rifiutato: null }
   }
-  if (g == null || !data) return { testo: 'Mancante', tono: 'neutro', giorni: null, dettaglio: 'Non è mai stato consegnato', breve: 'mai consegnato', daConsegnare: true }
-  if (g < 0) return { testo: 'Scaduto', tono: 'errore', giorni: g, dettaglio: `Scaduto il ${data} · ${giorni(-g)} fa`, breve: '', daConsegnare: true }
-  if (g === 0) return { testo: 'Scade oggi', tono: 'attenzione', giorni: 0, dettaglio: `Valido fino a oggi, ${data}`, breve: '', daConsegnare: false }
-  return { testo: g <= 30 ? 'In scadenza' : 'Valido', tono: g <= 30 ? 'attenzione' : 'ok', giorni: g, dettaglio: `Valido fino al ${data} · ancora ${giorni(g)}`, breve: '', daConsegnare: false }
+  if (g == null || !data) return { testo: 'Mancante', tono: 'neutro', giorni: null, dettaglio: 'Non è mai stato consegnato', breve: 'mai consegnato', daConsegnare: true, inVerifica: false, rifiutato: null }
+  if (g < 0) return { testo: 'Scaduto', tono: 'errore', giorni: g, dettaglio: `Scaduto il ${data} · ${giorni(-g)} fa`, breve: '', daConsegnare: true, inVerifica: false, rifiutato: null }
+  if (g === 0) return { testo: 'Scade oggi', tono: 'attenzione', giorni: 0, dettaglio: `Valido fino a oggi, ${data}`, breve: '', daConsegnare: false, inVerifica: false, rifiutato: null }
+  return { testo: g <= 30 ? 'In scadenza' : 'Valido', tono: g <= 30 ? 'attenzione' : 'ok', giorni: g, dettaglio: `Valido fino al ${data} · ancora ${giorni(g)}`, breve: '', daConsegnare: false, inVerifica: false, rifiutato: null }
+}
+
+/**
+ * Lo stato che si mostra: quello delle date di PerfectGym, con sopra l'ultimo certificato
+ * caricato. Uno in verifica **prende il posto** di «scaduto», «mancante» o «in scadenza»: la
+ * persona ha fatto la sua parte e non c'e' altro da chiederle. Uno rifiutato prende il posto
+ * allo stesso modo, e dice perche'. Con un certificato valido (o sotto i 6 anni) nessuno dei
+ * due conta: lo stato resta quello di PerfectGym.
+ */
+export function statoCertificato(ce: CertificatoArea | undefined, nascita?: string | null): StatoCertificato {
+  const base = statoDelleDate(ce, nascita)
+  const c = ce?.caricamento
+  // Solo se il certificato serve: con uno valido (o sotto i 6 anni) lo stato resta quello di PerfectGym.
+  const serve = base.daConsegnare || base.tono === 'attenzione'
+  if (serve && c?.stato === 'in_verifica') {
+    const il = giornoRoma(c.caricato_il)
+    return {
+      testo: 'In verifica',
+      tono: 'neutro',
+      giorni: null,
+      dettaglio: il ? `Caricato il ${il} · lo stiamo controllando` : 'Lo stiamo controllando',
+      breve: 'in verifica',
+      daConsegnare: false,
+      inVerifica: true,
+      rifiutato: null,
+    }
+  }
+  if (serve && c?.stato === 'rifiutato') {
+    const il = giornoRoma(c.caricato_il)
+    const motivo = c.motivo_rifiuto?.trim() || null
+    return {
+      ...base,
+      testo: 'Rifiutato',
+      tono: 'errore',
+      giorni: null,
+      dettaglio: `Il certificato caricato${il ? ` il ${il}` : ''} non è stato accettato${motivo ? `: ${motivo}` : ''}`,
+      breve: 'rifiutato',
+      rifiutato: { motivo },
+    }
+  }
+  return base
 }
 
 /** Quanto e' urgente un certificato: piu' alto e', prima si mostra (scaduto, mai consegnato, da consegnare, in scadenza). */
@@ -102,14 +159,8 @@ export function richiedeAzione(s: StatoCertificato): boolean {
 /** Il colore del pallino di un certificato, sul riquadro scuro. */
 export const PALLINO = { ok: '#6DD58C', attenzione: '#F2B84B', errore: '#FF6B6B', neutro: '#8E9098' } as const
 
-// Quale certificato serve, dal wiki del club (Generali → Certificato medico).
-// Senza «invialo al desk»: nel portale non si rimanda al desk (13/10/2026).
-const QUALE_CERTIFICATO = [
-  'Il certificato di idoneità all’attività sportiva non agonistica, obbligatorio dai 6 anni. Si consegna solo in formato digitale.',
-  'Lo rilasciano il medico di base o il pediatra (per i propri assistiti), o un medico dello sport.',
-  'Vale un anno dalla data di rilascio. Serve un ECG a riposo almeno una volta nella vita; ogni anno dopo i 60 anni, con fattori di rischio cardiovascolare.',
-  'Il certificato agonistico serve solo per pallanuoto Under 14 e Under 16, nuoto agonistico e nuoto propaganda: lo rilascia solo il medico dello sport, con il modulo della società.',
-]
+// Quale certificato serve: il testo del club, scritto una volta sola in lib/certificatoIstruzioni.
+const QUALE_CERTIFICATO = istruzioniInRighe()
 
 /** La «i» con il fumetto di quale certificato serve: sul web al passaggio del mouse, sul telefono al tocco. */
 function InfoCertificato({ aperta, onCambia }: { aperta: boolean; onCambia: (aperta: boolean) => void }) {
@@ -150,11 +201,26 @@ function InfoCertificato({ aperta, onCambia }: { aperta: boolean; onCambia: (ape
   )
 }
 
-/** Una riga dell'elenco dei certificati; se manca o e' scaduto, con la «i». */
-export function RigaCertificato({ persona, ce, prima }: { persona: PersonaArea | undefined; ce: CertificatoArea | undefined; prima: boolean }) {
+/**
+ * Una riga dell'elenco dei certificati; se manca o e' scaduto, con la «i» e il comando per
+ * caricarlo. In vista cliente (lo staff che guarda come un cliente, in sola lettura) il
+ * comando non c'e': il server rifiuterebbe comunque.
+ */
+export function RigaCertificato({
+  persona,
+  ce,
+  prima,
+  onCarica,
+}: {
+  persona: PersonaArea | undefined
+  ce: CertificatoArea | undefined
+  prima: boolean
+  onCarica?: () => void
+}) {
   const p = usePalette()
   const [aperta, setAperta] = useState(false)
   const s = statoCertificato(ce, persona?.data_nascita)
+  const puoCaricare = Boolean(onCarica) && !vistaCorrente() && (s.daConsegnare || (s.tono === 'attenzione' && s.giorni !== null))
   return (
     // Col fumetto aperto la riga sta sopra le altre, che altrimenti lo coprirebbero.
     <View style={{ zIndex: aperta ? 10 : 0, elevation: aperta ? 10 : 0 }}>
@@ -168,6 +234,16 @@ export function RigaCertificato({ persona, ce, prima }: { persona: PersonaArea |
           <View style={{ gap: 6, alignItems: 'flex-start' }}>
             <Text style={[stili.piccolo, { color: p.testoSecondario, fontSize: 13.5, lineHeight: 19 }]}>{s.dettaglio}</Text>
             <Etichetta testo={s.testo} tono={s.tono} />
+            {puoCaricare ? (
+              <Pulsante
+                testo={s.rifiutato ? 'Carica un certificato nuovo' : s.daConsegnare ? 'Carica il certificato' : 'Carica quello nuovo'}
+                icona="condividi"
+                variante={s.daConsegnare ? 'primario' : 'contorno'}
+                piccolo
+                pieno={false}
+                onPress={onCarica!}
+              />
+            ) : null}
           </View>
         }
         coda={s.daConsegnare ? <InfoCertificato aperta={aperta} onCambia={setAperta} /> : undefined}
