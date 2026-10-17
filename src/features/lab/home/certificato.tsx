@@ -106,7 +106,7 @@ function statoDelleDate(ce: CertificatoArea | undefined, nascita?: string | null
  * Lo stato che si mostra: quello delle date di PerfectGym, con sopra l'ultimo certificato
  * caricato. Uno in verifica **prende il posto** di «scaduto», «mancante» o «in scadenza»: la
  * persona ha fatto la sua parte e non c'e' altro da chiederle. Uno rifiutato prende il posto
- * allo stesso modo, e dice perche'. Con un certificato valido (o sotto i 6 anni) nessuno dei
+ * allo stesso modo, dice perche' e **rimette la situazione di prima** (scaduto, mancante, in scadenza). Con un certificato valido (o sotto i 6 anni) nessuno dei
  * due conta: lo stato resta quello di PerfectGym.
  */
 export function statoCertificato(ce: CertificatoArea | undefined, nascita?: string | null): StatoCertificato {
@@ -130,13 +130,17 @@ export function statoCertificato(ce: CertificatoArea | undefined, nascita?: stri
   if (serve && c?.stato === 'rifiutato') {
     const il = giornoRoma(c.caricato_il)
     const motivo = c.motivo_rifiuto?.trim() || null
+    // **Torna «da fare» com'era prima**: il rifiuto non cancella la situazione di partenza (scaduto da N
+    // giorni, mai consegnato, in scadenza) e non la nasconde dietro una parola sola. Si dice la
+    // situazione, poi il rifiuto col motivo scritto dalla segreteria, e si puo' caricare di nuovo —
+    // anche per chi era solo «in scadenza», che senza `daConsegnare` non avrebbe piu' il comando.
     return {
       ...base,
       testo: 'Rifiutato',
       tono: 'errore',
-      giorni: null,
-      dettaglio: `Il certificato caricato${il ? ` il ${il}` : ''} non è stato accettato${motivo ? `: ${motivo}` : ''}`,
-      breve: 'rifiutato',
+      dettaglio: `${base.dettaglio}. Il certificato caricato${il ? ` il ${il}` : ''} non è stato accettato${motivo ? `: ${motivo}` : ''}`,
+      breve: base.breve ? `rifiutato · ${base.breve}` : 'rifiutato',
+      daConsegnare: true,
       rifiutato: { motivo },
     }
   }
