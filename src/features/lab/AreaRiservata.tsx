@@ -20,6 +20,7 @@ import { SezioneCertificato } from './home/SezioneCertificato'
 import { SezioneFamiglia } from './home/SezioneFamiglia'
 import { SezioneDocumenti, useDocumenti, CHIAVE_DOCUMENTI } from './home/SezioneDocumenti'
 import { SezionePagamenti } from './home/SezionePagamenti'
+import { SezioneProdotti, useProdotti } from './home/SezioneProdotti'
 import { SezioneTesseramento, useTesseramenti } from './home/SezioneTesseramento'
 import { giorni, nome, oggi, statoCertificato, urgenzaCertificato } from './home/certificato'
 import { riepilogoAbbonamenti } from './home/regolarita'
@@ -158,6 +159,7 @@ export function AreaRiservata({ email }: { email: string }) {
   const [errore, setErrore] = useState<{ testo: string; nonAmmesso: boolean } | null>(null)
   const movimenti = useMovimenti()
   const documenti = useDocumenti()
+  const prodotti = useProdotti()
   const tesseramenti = useTesseramenti()
   const { sezione: parametro } = useLocalSearchParams<{ sezione?: string }>()
   // Il Tesseramento c'e' solo se nel nucleo c'e' una tessera attiva: finche' non si sa, o se non
@@ -271,9 +273,16 @@ export function AreaRiservata({ email }: { email: string }) {
             ? { valore: 'Apri', nota: 'prossimi pagamenti' }
             : { valore: '…', nota: 'un attimo' }
   const nDocumenti = documenti.dati?.documenti.length
+  const validi = prodotti.dati?.filter((x) => x.stato === 'valido').length
   const voci: Record<SezioneHome, VoceRiquadro> = {
     abbonamenti: riquadroAbbonamenti(area),
     pagamenti,
+    prodotti:
+      validi != null && prodotti.dati
+        ? { valore: String(validi), nota: `${validi === 1 ? 'valido' : 'validi'} · ${prodotti.dati.length - validi} ${prodotti.dati.length - validi === 1 ? 'consumato' : 'consumati'}` }
+        : prodotti.errore
+          ? { valore: 'Apri', nota: 'lezioni, accessi, recuperi' }
+          : { valore: '…', nota: 'un attimo' },
     documenti:
       nDocumenti != null
         ? { valore: String(nDocumenti), nota: nDocumenti === 1 ? 'documento' : 'documenti' }
@@ -306,6 +315,7 @@ export function AreaRiservata({ email }: { email: string }) {
       <Entra key={sezione} indice={0} style={[stili.sezione, { minHeight: Math.max(0, height - 220) }]}>
         {sezione === 'abbonamenti' ? <ElencoAbbonamenti area={area} onSezione={(s) => vai(s, true)} /> : null}
         {sezione === 'pagamenti' ? <SezionePagamenti /> : null}
+        {sezione === 'prodotti' ? <SezioneProdotti /> : null}
         {sezione === 'documenti' ? <SezioneDocumenti /> : null}
         {sezione === 'certificato' ? <SezioneCertificato area={area} /> : null}
         {sezione === 'famiglia' ? <SezioneFamiglia area={area} /> : null}
