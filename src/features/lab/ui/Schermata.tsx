@@ -9,6 +9,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { LARGO } from '@/components/Pagina'
 import { spazio } from '@/theme'
 
+import { ingombroBarra } from './BarraSchede'
 import { Icona } from './Icona'
 import { F, usePalette } from './tema'
 import { Tocco } from './Tocco'
@@ -35,9 +36,6 @@ export function Marchio({ piccolo = false }: { piccolo?: boolean }) {
     </View>
   )
 }
-
-/** Quanto spazio lasciare in fondo per la barra delle schede. */
-export const SPAZIO_BARRA = 84
 
 /**
  * La larghezza della colonna da schermo largo, UNA per tutta l'app: la Home, le
@@ -113,7 +111,7 @@ export function Schermata({
         onScroll={onScroll}
         scrollEventThrottle={16}
         keyboardShouldPersistTaps="handled"
-        contentContainerStyle={{ paddingBottom: (barra ? SPAZIO_BARRA : spazio.cinque) + ins.bottom, paddingTop: sopra ? 0 : ins.top + spazio.tre }}
+        contentContainerStyle={{ paddingBottom: barra ? ingombroBarra(ins.bottom) + spazio.tre : spazio.cinque + ins.bottom, paddingTop: sopra ? 0 : ins.top + spazio.tre }}
       >
         {sopra}
         <View style={[stili.colonna, { maxWidth }]}>

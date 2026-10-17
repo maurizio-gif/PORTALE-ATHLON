@@ -4,6 +4,7 @@ import { router, useLocalSearchParams } from 'expo-router'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { ActivityIndicator, Linking, Platform, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native'
 import type Animated from 'react-native-reanimated'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import {
   acquistaLezione,
@@ -25,10 +26,11 @@ import { spazio } from '@/theme'
 
 import { inMemoria, prendi, ricorda } from './memoria'
 import { posizione } from './SchedaLezione'
+import { ingombroBarra } from './ui/BarraSchede'
 import { FoglioLezione } from './ui/FoglioLezione'
 import { Icona } from './ui/Icona'
 import { Avatar, Barra, Carta, Entra, Etichetta, Messaggio, Pulsante, Riga, SchedeInArrivo, Sezione, Tag } from './ui/kit'
-import { Schermata, SPAZIO_BARRA } from './ui/Schermata'
+import { Schermata } from './ui/Schermata'
 import { SceltaPrenotazioni } from './ui/SceltaPrenotazioni'
 import { F, FUOCO, NOTTE, usePalette, velo } from './ui/tema'
 import { colpetto, Tocco } from './ui/Tocco'
@@ -656,6 +658,7 @@ export function Calendario() {
   const [aperta, setAperta] = useState<Lezione | null>(null)
   const scorrimento = useRef<Animated.ScrollView>(null)
   const { height: altezza } = useWindowDimensions()
+  const ins = useSafeAreaInsets()
 
   /**
    * L'ancora al «Prenota» del turno scelto nelle griglie. Sul web lo scorrimento
@@ -674,11 +677,11 @@ export function Calendario() {
       if (!sv || !contenuto) return
       v.measureLayout(
         contenuto,
-        (_x, y, _l, h) => sv.scrollTo({ y: Math.max(0, y + h - (altezza - SPAZIO_BARRA - spazio.tre)), animated: true }),
+        (_x, y, _l, h) => sv.scrollTo({ y: Math.max(0, y + h - (altezza - ingombroBarra(ins.bottom) - spazio.tre)), animated: true }),
         () => undefined,
       )
     },
-    [altezza],
+    [altezza, ins.bottom],
   )
 
   // Il giorno gia' letto si mostra subito (memoria del laboratorio) e intanto
