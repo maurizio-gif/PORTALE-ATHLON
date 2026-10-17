@@ -9,7 +9,7 @@ import { chiediCodice, entra } from '@/api/lab'
 import { emailValida } from '@/api/richieste'
 import { spazio } from '@/theme'
 
-import { CampoCodice, CampoTesto, CIFRE } from './ui/Campi'
+import { CampoCodice, CampoTesto, CIFRE, estraiCodice } from './ui/Campi'
 import { Icona } from './ui/Icona'
 import { Installa } from './ui/Installa'
 import { Carta, Messaggio, Pulsante } from './ui/kit'
@@ -77,6 +77,7 @@ export function Accesso() {
   const [fase, setFase] = useState<'email' | 'codice'>('email')
   const [attesa, setAttesa] = useState(false)
   const [errore, setErrore] = useState<string | null>(null)
+  const [riportaFuoco, setRiportaFuoco] = useState(0)
 
   async function mandaCodice() {
     setErrore(null)
@@ -113,15 +114,21 @@ export function Accesso() {
 
   // Sul web: «Incolla il codice» legge gli appunti (Safari chiede conferma
   // con la sua bolla «Incolla»). Nell'app la tastiera lo propone gia' da sola.
+  //
+  // Su iPhone, nell'app installata, la lettura puo' essere negata comunque: la
+  // bolla non compare, o si chiude prima del tocco. Allora non resta solo un
+  // avviso: il campo prende il fuoco, cosi' tenere premuto sulle caselle
+  // («Incolla») e' un gesto in meno, e quello funziona sempre.
   const puoIncollare = Platform.OS === 'web' && typeof navigator !== 'undefined' && !!navigator.clipboard?.readText
   async function incolla() {
     setErrore(null)
     try {
-      const cifre = (await navigator.clipboard.readText()).replace(/\D/g, '').slice(0, 10)
+      const cifre = estraiCodice(await navigator.clipboard.readText(), CIFRE)
       if (cifre.length < CIFRE) return setErrore(`Negli appunti non c’è un codice di ${CIFRE} cifre: copialo dall’email e riprova.`)
       cambiaCodice(cifre)
     } catch {
-      setErrore('Non riusciamo a leggere gli appunti: tieni premuto sulle caselle e scegli «Incolla».')
+      setRiportaFuoco((n) => n + 1)
+      setErrore('Da qui non riusciamo a leggere gli appunti: tieni premuto sulle caselle e scegli «Incolla».')
     }
   }
 
@@ -158,7 +165,7 @@ export function Accesso() {
               <Text style={[stili.nota, { color: p.testoSecondario, fontSize: 14.5 }]}>
                 Se <Text style={{ fontFamily: F.bold, color: p.testo }}>{email.trim()}</Text> è l’email con cui sei iscritto, ti abbiamo mandato un codice di {CIFRE} cifre.
               </Text>
-              <CampoCodice value={codice} onChange={cambiaCodice} onInvio={() => verifica()} errore={!!errore} />
+              <CampoCodice value={codice} onChange={cambiaCodice} onInvio={() => verifica()} errore={!!errore} riportaFuoco={riportaFuoco} />
               {puoIncollare ? <Pulsante testo="Incolla il codice" icona="documento" variante="secondario" piccolo onPress={incolla} disabilitato={attesa} /> : null}
               {errore ? <Messaggio>{errore}</Messaggio> : null}
               <Pulsante testo="Entra" icona="avanti" onPress={() => verifica()} inCorso={attesa} />

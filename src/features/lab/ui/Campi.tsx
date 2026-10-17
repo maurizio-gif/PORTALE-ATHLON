@@ -1,4 +1,4 @@
-import { useId, useRef, useState } from 'react'
+import { useEffect, useId, useRef, useState } from 'react'
 import { Pressable, StyleSheet, Text, TextInput, View, type TextInputProps } from 'react-native'
 
 import { spazio } from '@/theme'
@@ -50,11 +50,48 @@ export function CampoTesto({
 /** Le cifre del codice di accesso: Supabase Auth ne genera otto (verificato sulle email partite, 15/10/2026). */
 export const CIFRE = 8
 
-/** Il codice in sei caselle; sotto c'e' un campo vero, trasparente, che riceve le cifre (e l'autocompletamento). */
-export function CampoCodice({ value, onChange, onInvio, errore, cifre = CIFRE }: { value: string; onChange: (v: string) => void; onInvio: () => void; errore: boolean; cifre?: number }) {
+/**
+ * Il codice dentro quello che arriva dal campo o dagli appunti.
+ *
+ * Digitando arriva una cifra alla volta, ma chi incolla porta quello che ha
+ * copiato, e dall'email si copia spesso la riga intera («Il tuo codice è
+ * 12345678, vale 1 ora»). Quindi: se le cifre sono quelle del codice, quelle
+ * (anche scritte «1234 5678»); se sono di piu', un gruppo di `cifre` cifre
+ * staccato dal resto, e solo se non c'e' si tengono le prime. Prima si
+ * toglievano tutte le non-cifre e il «1 ora» finiva dentro il codice.
+ */
+export function estraiCodice(testo: string, cifre: number = CIFRE): string {
+  const solo = testo.replace(/\D/g, '')
+  if (solo.length <= cifre) return solo
+  const gruppo = testo.match(new RegExp(`(?:^|\\D)(\\d{${cifre}})(?!\\d)`))
+  return gruppo ? gruppo[1] : solo.slice(0, 10)
+}
+
+/**
+ * Il codice in sei caselle; sotto c'e' un campo vero, trasparente, che riceve le cifre (e l'autocompletamento).
+ * `riportaFuoco` e' un contatore: quando cambia il campo prende il fuoco, per chi ha provato il tasto «Incolla» e deve passare a incollare con le mani.
+ */
+export function CampoCodice({
+  value,
+  onChange,
+  onInvio,
+  errore,
+  cifre = CIFRE,
+  riportaFuoco = 0,
+}: {
+  value: string
+  onChange: (v: string) => void
+  onInvio: () => void
+  errore: boolean
+  cifre?: number
+  riportaFuoco?: number
+}) {
   const p = usePalette()
   const campo = useRef<TextInput>(null)
   const [fuoco, setFuoco] = useState(true)
+  useEffect(() => {
+    if (riportaFuoco) campo.current?.focus()
+  }, [riportaFuoco])
   const caselle = Math.max(cifre, value.length)
   return (
     <Pressable onPress={() => campo.current?.focus()} style={{ gap: spazio.due }} accessible={false}>
@@ -84,7 +121,7 @@ export function CampoCodice({ value, onChange, onInvio, errore, cifre = CIFRE }:
           autoFocus
           accessibilityLabel={`Codice di ${cifre} cifre`}
           value={value}
-          onChangeText={(v) => onChange(v.replace(/\D/g, '').slice(0, 10))}
+          onChangeText={(v) => onChange(estraiCodice(v, cifre))}
           onSubmitEditing={onInvio}
           onFocus={() => setFuoco(true)}
           onBlur={() => setFuoco(false)}
@@ -92,7 +129,6 @@ export function CampoCodice({ value, onChange, onInvio, errore, cifre = CIFRE }:
           keyboardType="number-pad"
           autoComplete="one-time-code"
           textContentType="oneTimeCode"
-          maxLength={10}
           caretHidden
           style={stili.invisibile}
         />
