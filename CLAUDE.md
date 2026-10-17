@@ -94,9 +94,13 @@ minuti veri della lezione, `fine − inizio`); cambia come si sceglie il MET.
 - **Non si stima**: la Gym Floor (ha la stima della sua scheda), l'Aqua Gestanti, i corsi e gli eventi dei bambini.
 - **Solo al titolare e solo se maggiorenne**: peso, altezza ed età sono i suoi, e dal calendario si sceglie anche un altro del
   nucleo (`titolare` arriva da `persone`).
-- **I MET sono valori di lavoro, non letti sul Compendium**: la prova è stata scritta senza poterlo consultare. Stanno tutti
-  in `TIPI` e `MET_NUOTO_PER_LIVELLO`; vanno verificati prima di mostrarli a un socio, e quelli del nuoto col Direttore
-  Tecnico. Il punto debole noto: Power Yoga e Yogassè cadono nello stesso tipo di Hatha e probabilmente sono sotto.
+- **Servono tutti e quattro i dati**: peso, altezza, età e sesso. Senza il sesso non si stima (nelle schede vale il valore di
+  mezzo, qui no): nella scheda della lezione si dice cosa manca, nella riga niente.
+- **Le fonti dei MET** sono il Compendium of Physical Activities (Ainsworth 2011; aggiornamento 2024, pacompendium.com), e le
+  forbici sono tarate sui suoi valori (elencati in `stimaCorso.ts`). Non verificati alla fonte: boxing (da pagine che
+  riportano il Compendium), e senza voce nel Compendium la danza di gruppo, la bicicletta in acqua e i MET per livello del
+  corso di nuoto, che sono stime nostre da far validare col Direttore Tecnico. Il Compendium non era raggiungibile
+  dall'ambiente in cui è stato scritto: i valori vengono dalle pagine che lo riportano.
 - **Scuola Nuoto Adulti, i Master Class (`… (M)`, `Workshop Hatha Yoga`) e l'Aqua Gestanti non hanno scheda sul sito**: niente
   finestra della lezione, quindi la stima sta solo nella riga. Un alias nel sito e in `chiaveScheda` darebbe loro anche foto e
   finestra; non è stato fatto.

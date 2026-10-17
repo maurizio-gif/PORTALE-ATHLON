@@ -30,11 +30,11 @@ import { riconosci, stimaLezione, type StimaLezione } from './stimaCorso'
 // sesso lo sceglie il socio in una scheda, e finche' non sceglie vale il valore
 // di mezzo.
 
-type Corpo = { kg: number; cm: number; anni: number; sesso: Sesso }
+type Corpo = { kg: number; cm: number; anni: number; sesso: NonNullable<Sesso> }
 type StatoCorpo =
   | { stato: 'no' }
   | { stato: 'attesa' }
-  | { stato: 'mancano-dati'; motivo: 'misure' | 'eta' }
+  | { stato: 'mancano-dati'; motivo: 'misure' | 'eta' | 'sesso' }
   | { stato: 'ok'; corpo: Corpo }
 
 const ContestoCorpo = createContext<StatoCorpo>({ stato: 'no' })
@@ -51,6 +51,8 @@ export function CorpoPerLezioni({ children }: { children: ReactNode }) {
     if (!anni) return { stato: 'mancano-dati', motivo: 'eta' }
     // La formula e' per gli adulti.
     if (anni < 18) return { stato: 'no' }
+    // Come per le schede servono tutti e quattro i dati; ma qui, col sesso mancante, non si usa il valore di mezzo: non si stima.
+    if (!sesso) return { stato: 'mancano-dati', motivo: 'sesso' }
     return { stato: 'ok', corpo: { kg: ultimoPeso.peso_kg, cm, anni, sesso } }
   }, [anagrafica, anagraficaLetta, misure, sesso])
   return <ContestoCorpo.Provider value={valore}>{children}</ContestoCorpo.Provider>
@@ -104,7 +106,7 @@ function Spiegazione({ nome, s, corpo, fondo }: { nome: string; s: StimaLezione;
       </Text>
       <Text style={[stili.piccola, { color: p.testoTerzo }]}>
         {`Sono stime: possono sbagliare anche del 20–30%, perché dipendono da come fai la lezione e da come è fatto il tuo corpo. Non sono un’indicazione per la dieta. Su ${corpo.anni} anni, ${decimale(corpo.kg)} kg e ${decimale(corpo.cm)} cm, ${
-          corpo.sesso === 'm' ? 'come uomo' : corpo.sesso === 'f' ? 'come donna' : 'col valore di mezzo fra uomo e donna (puoi scegliere in una scheda di allenamento)'
+          corpo.sesso === 'f' ? 'come donna' : 'come uomo'
         }.`}
       </Text>
     </View>
@@ -151,8 +153,10 @@ export function CalorieLezione({
         </View>
         <Text style={[stili.nota, { color: p.testoSecondario }]}>
           {ctx.motivo === 'misure'
-            ? 'Segna il tuo peso e la tua altezza in «I tuoi dati», nella sezione Allenamento: con l’età della tua scheda del club ti diciamo quante calorie consuma questa lezione.'
-            : 'Nella tua scheda del club manca la data di nascita, e senza l’età la stima non si può fare. Chiedi al desk di aggiungerla.'}
+            ? 'Segna il tuo peso e la tua altezza in «I tuoi dati», nella sezione Allenamento: con l’età della tua scheda del club e il sesso ti diciamo quante calorie consuma questa lezione.'
+            : ctx.motivo === 'sesso'
+              ? 'Per stimare le calorie serve sapere se calcolare come uomo o come donna: lo scegli una volta, nel riquadro «Calorie stimate» di una scheda di allenamento.'
+              : 'Nella tua scheda del club manca la data di nascita, e senza l’età la stima non si può fare. Chiedi al desk di aggiungerla.'}
         </Text>
       </View>
     )

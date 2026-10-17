@@ -32,11 +32,24 @@ import { kcal, metabolismoBasale, type Sesso } from './stimaCalorie'
 // della sua scheda), l'Aqua Gestanti (non si spinge una gravidanza verso un
 // numero), i corsi e gli eventi dei bambini.
 //
-// **I MET di questa tabella sono valori di lavoro**, ordini di grandezza scelti
-// per tipo, NON letti sul Compendium of Physical Activities: la prova e' stata
-// scritta senza poterlo consultare. Prima di mostrarli a un socio vanno
-// verificati sul Compendium e, per il nuoto, con il Direttore Tecnico. Per questo
-// stanno tutti qui, in una tabella sola, e non sparsi nel codice.
+// **Le fonti dei MET** sono il Compendium of Physical Activities (Ainsworth et
+// al., Med Sci Sports Exerc 2011;43:1575-81, e l'aggiornamento 2024 su
+// pacompendium.com). Le forbici sono tarate cosi':
+//   - yoga e mobilita': Hatha 2,5 (02150; 2,3 nel 2024) e Power yoga 4,0 (02160);
+//   - pilates: general 3,0 (02105; 2,8 nel 2024);
+//   - acqua fitness: water aerobics 5,3 nel 2011 (5,5 nel 2024);
+//   - forza: calisthenics moderata 3,8 e vigorosa 8,0 (7,5 nel 2024), circuit
+//     training vigoroso con kettlebell 8,0 (02040), pesi 3,5-6,0 (02054, 02052);
+//   - combat: punching bag 5,5 (5,8 nel 2024) e sparring 7,8;
+//   - nuoto: crawl lento, sforzo leggero o moderato 5,8 (18240) e veloce 9,8 (18230).
+// **Nessuno e' stato verificato sulla tabella originale** (pacompendium.com non
+// era raggiungibile da dove e' stato scritto): vengono da pagine che la
+// riportano, dal Compendium stesso nel caso di yoga, pilates e nuoto, da ABS per
+// l'acqua e da calcolatori per il boxing, quindi i meno sicuri. Non trovati: la danza di gruppo
+// e la bicicletta in acqua (il Compendium non ha una voce per l'acquabike): quei
+// due tipi, e i MET per livello del corso di nuoto (una media di tutta la
+// lezione, pause comprese), sono stime nostre da far validare col Direttore
+// Tecnico. Stanno tutti in `TIPI` e `MET_NUOTO_PER_LIVELLO`.
 //
 // Sono stime: la forbice e' il +/- 20% del MET (35% per il nuoto libero), e
 // anche cosi' possono sbagliare del 20-30%.
@@ -57,10 +70,10 @@ export type Tipo = {
 const MARGINE = 0.2
 
 export const TIPI: Record<IdTipo, Tipo> = {
-  mobilita: { id: 'mobilita', etichetta: 'Yoga e mobilità', met: [2, 4], margine: MARGINE },
-  controllo: { id: 'controllo', etichetta: 'Pilates e controllo del movimento', met: [2.5, 5], margine: MARGINE },
+  mobilita: { id: 'mobilita', etichetta: 'Yoga e mobilità', met: [2, 5], margine: MARGINE },
+  controllo: { id: 'controllo', etichetta: 'Pilates e controllo del movimento', met: [2, 4.5], margine: MARGINE },
   forza: { id: 'forza', etichetta: 'Tonificazione e forza', met: [3.5, 8], margine: MARGINE },
-  combattimento: { id: 'combattimento', etichetta: 'Combat e difesa personale', met: [4.5, 9], margine: MARGINE },
+  combattimento: { id: 'combattimento', etichetta: 'Combat e difesa personale', met: [4.5, 7.8], margine: MARGINE },
   danza: { id: 'danza', etichetta: 'Danza e coreografia', met: [3.5, 7], margine: MARGINE },
   acqua: { id: 'acqua', etichetta: 'Acqua fitness', met: [3, 7], margine: MARGINE },
   acquabike: { id: 'acquabike', etichetta: 'Bicicletta in acqua', met: [4, 8], margine: MARGINE },
