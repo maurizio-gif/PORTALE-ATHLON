@@ -17,3 +17,18 @@ chiamata diretta al gestionale. Esempio: la sezione Prodotti usa l'azione `prodo
   dopo qualche secondo, non si aspetta che il mirror sia già allineato.
 - **Quello che PerfectGym non dice** (da quale dispositivo si è prenotato, per esempio) lo registra la
   nostra funzione nel suo log; la schermata non lo deduce.
+
+## La foto del profilo si mostra nel Profilo, e solo lì
+
+L'anagrafica che `portale-lab-anagrafica` restituisce porta `foto`: il link firmato (un'ora) della foto che il
+club ha su PerfectGym, copiata nel bucket privato `foto-soci`, o `null`. È la **foto del titolare**, presa dal
+token della sessione, e si mostra **solo nella sezione Profilo** (richiesta del club, 17/10/2026): non nella
+Home, non in Famiglia, non nel Calendario. Il perché e il resto della pipeline stanno nel `CLAUDE.md` di
+APP-ATHLON.
+
+- **Sta dentro l'anagrafica, e non in una chiamata a parte**, perché `salva` e `conferma_email` rispondono con
+  la stessa anagrafica e la schermata la sostituisce a quella che ha: se la foto vivesse altrove, cambiare il
+  telefono la farebbe sparire.
+- **Senza foto, o con il link scaduto o la rete andata, la sezione è quella di prima**: niente segnaposto e
+  niente riquadro vuoto (`FotoProfilo` non rende nemmeno l'involucro). Un link nuovo, a ogni apertura del
+  Profilo, è un'altra possibilità.

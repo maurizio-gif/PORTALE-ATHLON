@@ -1,3 +1,4 @@
+import { Image } from 'expo-image'
 import { useCallback, useEffect, useState } from 'react'
 import { StyleSheet, Text, View } from 'react-native'
 
@@ -32,6 +33,11 @@ import { colpetto } from './ui/Tocco'
 //
 // Se `portale-lab-anagrafica` non c'e' ancora, si vede tutto in sola lettura
 // con quello che da' la mia area (portale_la_mia_area).
+//
+// **La foto del profilo** (17/10/2026) sta in cima, se il club ne ha una su PerfectGym: e' la sua foto, e qui
+// e' l'unico posto dell'app dove si mostra (richiesta del club) - non nella Home, non in Famiglia, non nel
+// Calendario. Senza foto la sezione e' quella di prima: niente segnaposto, perche' per chi non ce l'ha un
+// avatar con le iniziali sarebbe una novita' che nessuno ha chiesto.
 
 type Modifica = 'email' | 'telefono' | 'indirizzo' | null
 
@@ -195,6 +201,43 @@ function FoglioEmail({ attuale, onChiudi, onSalvato }: { attuale: string | null;
 
 // ---------------------------------------------------------------------------
 
+/** Quanto e' grande la foto in cima al Profilo, e quanto tonda: lo stesso rapporto degli avatar con le iniziali. */
+const LATO_FOTO = 112
+
+/**
+ * La foto del profilo, al centro in cima alla sezione. Il link e' firmato e dura un'ora: se non si carica - scaduto,
+ * o la rete e' andata - non si mostra niente, e la sezione resta com'era invece di tenere un riquadro vuoto. Un
+ * link nuovo (la schermata si aggiorna a ogni apertura) e' un'altra possibilita'.
+ */
+function FotoProfilo({ url, indice }: { url: string; indice: number }) {
+  const p = usePalette()
+  const [rotta, setRotta] = useState(false)
+  useEffect(() => setRotta(false), [url])
+  // Niente nemmeno l'involucro che entra dal basso: una vista vuota terrebbe lo spazio fra una sezione e l'altra.
+  if (rotta) return null
+  const forma = { width: LATO_FOTO, height: LATO_FOTO, borderRadius: LATO_FOTO * 0.36 }
+  return (
+    <Entra indice={indice}>
+      <View style={stili.foto}>
+        {/* L'ombra sta su una vista a parte: lo stile di un'immagine non ha `boxShadow`. */}
+        <View style={[forma, { boxShadow: p.ombra }]}>
+          <Image
+            source={{ uri: url }}
+            onError={() => setRotta(true)}
+            contentFit="cover"
+            // Le facce stanno sopra il centro: ritagliando una foto non quadrata si perde prima il fondo.
+            contentPosition={{ left: '50%', top: '30%' }}
+            transition={150}
+            accessibilityLabel="La tua foto del profilo"
+            accessibilityIgnoresInvertColors
+            style={[forma, { backgroundColor: p.incavo }]}
+          />
+        </View>
+      </View>
+    </Entra>
+  )
+}
+
 function ModificaPillola() {
   const p = usePalette()
   return (
@@ -281,12 +324,16 @@ export function ProfiloContenuto() {
     { icona: 'tessera', titolo: 'Numero Utente', valore: dati.numero },
   ]
   const anagrafici = tutti.filter((x) => x.valore)
+  // Con la foto in cima le sezioni entrano una dopo l'altra, partendo dal suo posto.
+  const da = dati.foto ? 1 : 0
 
   return (
     <View style={{ gap: spazio.quattro + 4 }}>
       {fatto ? <Messaggio tono="ok">{fatto}</Messaggio> : null}
 
-      <Entra indice={0}>
+      {dati.foto ? <FotoProfilo url={dati.foto} indice={0} /> : null}
+
+      <Entra indice={da}>
         <Sezione titolo="Contatti" destra={modificabile ? <Text style={{ color: p.testoTerzo, fontFamily: F.semi, fontSize: 12.5 }}>tocca per cambiare</Text> : undefined}>
           {!modificabile ? <Messaggio tono="attenzione" icona="lucchetto">Al momento i contatti non si possono modificare da qui: li vedi come risultano sulla tua scheda.</Messaggio> : null}
           <Carta style={{ paddingVertical: spazio.due }}>
@@ -309,7 +356,7 @@ export function ProfiloContenuto() {
         </Sezione>
       </Entra>
 
-      <Entra indice={1}>
+      <Entra indice={da + 1}>
         <Sezione titolo="Dati anagrafici" destra={<Icona nome="lucchetto" size={16} colore={p.testoTerzo} />}>
           <Carta style={{ paddingVertical: spazio.due }}>
             {anagrafici.map((x, i) => (
@@ -330,7 +377,7 @@ export function ProfiloContenuto() {
         </Sezione>
       </Entra>
 
-      <Entra indice={2}>
+      <Entra indice={da + 2}>
         <Sezione titolo="Account">
           <PulsanteEsci email={dati.email} testo="Esci dall’account" />
         </Sezione>
@@ -346,6 +393,7 @@ export function ProfiloContenuto() {
 }
 
 const stili = StyleSheet.create({
+  foto: { alignItems: 'center' },
   attuale: { borderRadius: 18, padding: spazio.tre, gap: 2 },
   modifica: { width: 36, height: 36, borderRadius: 13, alignItems: 'center', justifyContent: 'center' },
   nota: { fontSize: 13, lineHeight: 19, fontFamily: F.medio },
