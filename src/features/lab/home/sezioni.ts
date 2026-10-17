@@ -1,12 +1,12 @@
 import type { Href } from 'expo-router'
 
-// Le sezioni della Home (17/10/2026, i Documenti dal 16/10): la Home e' l'hub dell'account, e
+// Le sezioni della Home (17/10/2026, i Documenti dal 16/10, i Prodotti dal 18/10): la Home e' l'hub dell'account, e
 // cio' che riguarda la persona sta in una di queste. Il Tesseramento e' l'ultima, a destra del
 // Profilo, e compare solo se nel nucleo c'e' una tessera attiva (vedi AreaRiservata). Si scelgono dai riquadri e
 // dal parametro dell'indirizzo, `/?sezione=pagamenti`, cosi' un link o un
 // ricaricamento riportano alla stessa sezione.
 
-export const SEZIONI = ['abbonamenti', 'pagamenti', 'documenti', 'certificato', 'famiglia', 'profilo', 'tesseramento'] as const
+export const SEZIONI = ['abbonamenti', 'pagamenti', 'prodotti', 'documenti', 'certificato', 'famiglia', 'profilo', 'tesseramento'] as const
 export type SezioneHome = (typeof SEZIONI)[number]
 
 /** Da dove si parte quando il parametro manca o non e' una sezione. */
