@@ -1,7 +1,7 @@
 import { Image } from 'expo-image'
 import { LinearGradient } from 'expo-linear-gradient'
 import { useState } from 'react'
-import { Platform, StyleSheet, Text, View } from 'react-native'
+import { StyleSheet, Text, View } from 'react-native'
 import Animated, { FadeInRight } from 'react-native-reanimated'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
@@ -9,7 +9,7 @@ import { chiediCodice, entra } from '@/api/lab'
 import { emailValida } from '@/api/richieste'
 import { spazio } from '@/theme'
 
-import { CampoCodice, CampoTesto, CIFRE, estraiCodice } from './ui/Campi'
+import { CampoCodice, CampoTesto, CIFRE, IncollaCodice } from './ui/Campi'
 import { Icona } from './ui/Icona'
 import { Installa } from './ui/Installa'
 import { Carta, Messaggio, Pulsante } from './ui/kit'
@@ -77,7 +77,6 @@ export function Accesso() {
   const [fase, setFase] = useState<'email' | 'codice'>('email')
   const [attesa, setAttesa] = useState(false)
   const [errore, setErrore] = useState<string | null>(null)
-  const [riportaFuoco, setRiportaFuoco] = useState(0)
 
   async function mandaCodice() {
     setErrore(null)
@@ -112,24 +111,11 @@ export function Accesso() {
     if (v.length === CIFRE && v !== codice) verifica(v)
   }
 
-  // Sul web: «Incolla il codice» legge gli appunti (Safari chiede conferma
-  // con la sua bolla «Incolla»). Nell'app la tastiera lo propone gia' da sola.
-  //
-  // Su iPhone, nell'app installata, la lettura puo' essere negata comunque: la
-  // bolla non compare, o si chiude prima del tocco. Allora non resta solo un
-  // avviso: il campo prende il fuoco, cosi' tenere premuto sulle caselle
-  // («Incolla») e' un gesto in meno, e quello funziona sempre.
-  const puoIncollare = Platform.OS === 'web' && typeof navigator !== 'undefined' && !!navigator.clipboard?.readText
-  async function incolla() {
-    setErrore(null)
-    try {
-      const cifre = estraiCodice(await navigator.clipboard.readText(), CIFRE)
-      if (cifre.length < CIFRE) return setErrore(`Negli appunti non c’è un codice di ${CIFRE} cifre: copialo dall’email e riprova.`)
-      cambiaCodice(cifre)
-    } catch {
-      setRiportaFuoco((n) => n + 1)
-      setErrore('Da qui non riusciamo a leggere gli appunti: tieni premuto sulle caselle e scegli «Incolla».')
-    }
+  // Il codice che arriva da «Incolla il codice» (ui/Campi): si scrive nelle caselle e
+  // si entra subito, anche se e' uguale a quello di un tentativo sbagliato.
+  function usaCodice(c: string) {
+    setCodice(c)
+    verifica(c)
   }
 
   return (
@@ -165,8 +151,8 @@ export function Accesso() {
               <Text style={[stili.nota, { color: p.testoSecondario, fontSize: 14.5 }]}>
                 Se <Text style={{ fontFamily: F.bold, color: p.testo }}>{email.trim()}</Text> è l’email con cui sei iscritto, ti abbiamo mandato un codice di {CIFRE} cifre.
               </Text>
-              <CampoCodice value={codice} onChange={cambiaCodice} onInvio={() => verifica()} errore={!!errore} riportaFuoco={riportaFuoco} />
-              {puoIncollare ? <Pulsante testo="Incolla il codice" icona="documento" variante="secondario" piccolo onPress={incolla} disabilitato={attesa} /> : null}
+              <CampoCodice value={codice} onChange={cambiaCodice} onInvio={() => verifica()} errore={!!errore} />
+              <IncollaCodice onCodice={usaCodice} disabilitato={attesa} />
               {errore ? <Messaggio>{errore}</Messaggio> : null}
               <Pulsante testo="Entra" icona="avanti" onPress={() => verifica()} inCorso={attesa} />
               <Pulsante testo="Usa un’altra email o chiedi un nuovo codice" variante="fantasma" piccolo onPress={() => setFase('email')} disabilitato={attesa} />

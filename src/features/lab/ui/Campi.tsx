@@ -1,9 +1,10 @@
 import { useEffect, useId, useRef, useState } from 'react'
-import { Pressable, StyleSheet, Text, TextInput, View, type TextInputProps } from 'react-native'
+import { Platform, Pressable, StyleSheet, Text, TextInput, View, type TextInputProps } from 'react-native'
 
 import { spazio } from '@/theme'
 
 import { Icona, type NomeIcona } from './Icona'
+import { Messaggio, Pulsante } from './kit'
 import { F, usePalette } from './tema'
 
 // I campi del laboratorio: l'etichetta piccola in maiuscoletto, il campo
@@ -68,8 +69,8 @@ export function estraiCodice(testo: string, cifre: number = CIFRE): string {
 }
 
 /**
- * Il codice in sei caselle; sotto c'e' un campo vero, trasparente, che riceve le cifre (e l'autocompletamento).
- * `riportaFuoco` e' un contatore: quando cambia il campo prende il fuoco, per chi ha provato il tasto «Incolla» e deve passare a incollare con le mani.
+ * Il codice in caselle; sotto c'e' un campo vero, trasparente, che riceve le cifre (e l'autocompletamento).
+ * Incollare passa da `IncollaCodice`: il campo trasparente non e' un posto affidabile per l'«Incolla» di iOS.
  */
 export function CampoCodice({
   value,
@@ -77,21 +78,16 @@ export function CampoCodice({
   onInvio,
   errore,
   cifre = CIFRE,
-  riportaFuoco = 0,
 }: {
   value: string
   onChange: (v: string) => void
   onInvio: () => void
   errore: boolean
   cifre?: number
-  riportaFuoco?: number
 }) {
   const p = usePalette()
   const campo = useRef<TextInput>(null)
   const [fuoco, setFuoco] = useState(true)
-  useEffect(() => {
-    if (riportaFuoco) campo.current?.focus()
-  }, [riportaFuoco])
   const caselle = Math.max(cifre, value.length)
   return (
     <Pressable onPress={() => campo.current?.focus()} style={{ gap: spazio.due }} accessible={false}>
@@ -137,8 +133,84 @@ export function CampoCodice({
   )
 }
 
+/**
+ * «Incolla il codice», solo sul web (nell'app la tastiera propone il codice da sola).
+ *
+ * Il tasto legge gli appunti, ma su iPhone la lettura la nega la bolla «Incolla»
+ * che non compare o si chiude prima del tocco, e dentro certi contenitori (la
+ * pagina aperta da un'altra app, l'app installata) viene rifiutata del tutto.
+ * Tenere premuto sulle caselle non e' un ripiego affidabile: il campo sotto e'
+ * trasparente, e li' il menu «Incolla» di iOS non e' comparso (17/10/2026).
+ * Quindi, se la lettura non riesce, compare un campo normale e visibile: su un
+ * campo cosi' il menu «Incolla» del telefono c'e' sempre. Quello che ci si
+ * incolla passa dallo stesso estrattore delle caselle, quindi anche una riga
+ * intera dell'email («Il tuo codice e' 12345678») va bene.
+ */
+export function IncollaCodice({ cifre = CIFRE, onCodice, disabilitato = false }: { cifre?: number; onCodice: (codice: string) => void; disabilitato?: boolean }) {
+  const p = usePalette()
+  const [aMano, setAMano] = useState(false)
+  const [testo, setTesto] = useState('')
+  const [avviso, setAvviso] = useState<string | null>(null)
+  const riquadro = useRef<View>(null)
+  // Il campo compare sotto le caselle, con la tastiera gia' aperta: va portato in vista, o chi guarda non lo trova.
+  useEffect(() => {
+    if (aMano) (riquadro.current as unknown as HTMLElement | null)?.scrollIntoView?.({ behavior: 'smooth', block: 'center' })
+  }, [aMano])
+
+  if (Platform.OS !== 'web') return null
+
+  async function incolla() {
+    setAvviso(null)
+    // Senza l'API degli appunti non c'e' niente da provare: subito il campo.
+    if (typeof navigator === 'undefined' || !navigator.clipboard?.readText) return setAMano(true)
+    try {
+      const codice = estraiCodice(await navigator.clipboard.readText(), cifre)
+      if (codice.length !== cifre) return setAvviso(`Negli appunti non c’è un codice di ${cifre} cifre: copialo dall’email e riprova.`)
+      onCodice(codice)
+    } catch {
+      setAMano(true)
+    }
+  }
+
+  function cambiaTesto(v: string) {
+    const codice = estraiCodice(v, cifre)
+    if (codice.length === cifre) {
+      // Si svuota: incollando di nuovo lo stesso codice (uno sbagliato) il testo cambierebbe lo stesso.
+      setTesto('')
+      setAvviso(null)
+      return onCodice(codice)
+    }
+    setTesto(v)
+    setAvviso(v.replace(/\D/g, '').length >= cifre ? `Qui non c’è un codice di ${cifre} cifre: copialo dall’email e riprova.` : null)
+  }
+
+  return (
+    <View style={{ gap: spazio.due + 2 }}>
+      <Pulsante testo="Incolla il codice" icona="documento" variante="secondario" piccolo onPress={incolla} disabilitato={disabilitato} />
+      {aMano ? (
+        <View ref={riquadro} style={{ gap: spazio.due }}>
+          <CampoTesto
+            etichetta="Incolla qui il codice"
+            icona="copia"
+            value={testo}
+            onChangeText={cambiaTesto}
+            placeholder="Incolla qui"
+            autoCapitalize="none"
+            autoCorrect={false}
+            spellCheck={false}
+            errore={!!avviso}
+          />
+          <Text style={[stili.nota, { color: p.testoSecondario }]}>Il telefono non ci lascia leggere gli appunti da soli: tieni premuto sul campo e scegli «Incolla».</Text>
+        </View>
+      ) : null}
+      {avviso ? <Messaggio>{avviso}</Messaggio> : null}
+    </View>
+  )
+}
+
 const stili = StyleSheet.create({
   etichetta: { fontSize: 11, fontFamily: F.extra, letterSpacing: 1.3 },
+  nota: { fontSize: 13.5, lineHeight: 20, fontFamily: F.medio },
   campo: { flexDirection: 'row', alignItems: 'center', gap: spazio.due + 2, minHeight: 58, borderRadius: 18, borderWidth: 1.5, paddingHorizontal: spazio.tre },
   input: { flex: 1, fontSize: 17, minHeight: 52, fontFamily: F.semi, outlineStyle: 'none', minWidth: 0 } as object,
   caselle: { flexDirection: 'row', gap: 6, position: 'relative' },
@@ -146,5 +218,6 @@ const stili = StyleSheet.create({
   cifra: { fontSize: 26, fontFamily: F.extra, fontVariant: ['tabular-nums'] },
   // 16px e non meno: Safari su iPhone ingrandisce la pagina quando tocchi un campo
   // con un corpo piu' piccolo, anche se e' invisibile (era 1px, 15/10/2026).
-  invisibile: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, opacity: 0.011, color: 'transparent', fontSize: 16 },
+  // Senza contorno: sul telefono il fuoco sul campo trasparente disegnava un rettangolo azzurro attorno alle caselle.
+  invisibile: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, opacity: 0.011, color: 'transparent', fontSize: 16, outlineStyle: 'none' } as object,
 })
