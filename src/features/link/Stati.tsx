@@ -27,7 +27,7 @@ export function LinkScaduto() {
     <Pagina titolo="Questo link non è più valido">
       <Testo variante="attenuato">
         I link che ti mandiamo per email valgono qualche giorno, e quelli degli eventi si chiudono quando l’evento è passato. Chiedine uno
-        nuovo: basta la tua email.
+        nuovo: basta la tua email. Se ti serviva per caricare il certificato medico, scrivici a desk@athlonroma.it e te ne mandiamo uno nuovo.
       </Testo>
       <Bottone testo="Link per il metodo di pagamento" onPress={() => router.replace('/richiesta/metodo-pagamento')} />
       <Bottone testo="Vai agli eventi" variante="contorno" onPress={() => Linking.openURL(paginaEventoSito())} />

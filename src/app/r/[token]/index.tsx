@@ -2,8 +2,10 @@ import { useLocalSearchParams } from 'expo-router'
 import { useCallback, useEffect, useState } from 'react'
 
 import { eTokenAppuntamento, leggiAppuntamento, type Appuntamento, type Calendario, type GiornoPrenotabile } from '@/api/appuntamenti'
+import type { PaginaCertificato } from '@/api/certificati'
 import { chiamaLink } from '@/api/link'
 import { GestioneAppuntamento } from '@/features/appuntamento/GestioneAppuntamento'
+import { CaricaCertificatoDaLink } from '@/features/certificato/CaricaDaLink'
 import { PrenotaEvento } from '@/features/evento/PrenotaEvento'
 import { AttivaGuestPass } from '@/features/guest-pass/AttivaGuestPass'
 import { AppuntamentoNonTrovato, GuestPassScaduto, Guasto, InCaricamento, LinkScaduto } from '@/features/link/Stati'
@@ -16,7 +18,8 @@ import type { ContrattoNucleo } from '@/lib/metodoPagamento'
 // solo prefisso, cosi' i deep link dell'app si registrano una volta (app.json).
 //
 //   <uuid>.<firma>  ->  appuntamento col desk o col Direttore Tecnico (rotte del CRM)
-//   altrimenti      ->  `portale-link` dice di che si tratta: metodo di pagamento, evento, Guest Pass
+//   altrimenti      ->  `portale-link` dice di che si tratta: metodo di pagamento, evento, Guest Pass,
+//                       certificato medico da caricare
 
 type Stato =
   | { fase: 'carica' }
@@ -27,6 +30,7 @@ type Stato =
   | { fase: 'metodo_pagamento'; nome: string | null; nomeTitolare: string; evidenziato: number | null; contratti: ContrattoNucleo[] }
   | { fase: 'evento'; nome: string | null; pagina: PaginaEvento }
   | { fase: 'guest_pass'; nome: string | null; pagina: PaginaGuestPass }
+  | { fase: 'certificato'; pagina: PaginaCertificato }
   | { fase: 'appuntamento'; calendario: Calendario; appuntamento: Appuntamento; giorni: GiornoPrenotabile[] }
 
 export default function ArrivoDaLink() {
@@ -61,6 +65,10 @@ export default function ArrivoDaLink() {
       const { ok: _ok, tipo: _tipo, nome, ...pagina } = dati
       return setStato({ fase: 'guest_pass', nome: nome ?? null, pagina: pagina as unknown as PaginaGuestPass })
     }
+    if (dati.tipo === 'certificato') {
+      const { ok: _ok, tipo: _tipo, ...pagina } = dati
+      return setStato({ fase: 'certificato', pagina: pagina as unknown as PaginaCertificato })
+    }
     setStato({ fase: 'guasto' })
   }, [token])
 
@@ -87,6 +95,8 @@ export default function ArrivoDaLink() {
       return <PrenotaEvento token={token} nome={stato.nome} iniziale={stato.pagina} />
     case 'guest_pass':
       return <AttivaGuestPass token={token} nome={stato.nome} iniziale={stato.pagina} />
+    case 'certificato':
+      return <CaricaCertificatoDaLink token={token} iniziale={stato.pagina} />
     case 'appuntamento':
       return <GestioneAppuntamento token={token} calendario={stato.calendario} iniziale={stato.appuntamento} giorni={stato.giorni} />
   }
