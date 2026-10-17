@@ -47,3 +47,8 @@ example
 
 # I worktree delle sessioni di Claude Code
 .claude/worktrees/
+
+# La libreria MoveKit originale (5 GB di video e poster, sotto licenza MoveKit): resta sul
+# disco di chi l'ha comprata. `public/` finisce nel build web e nel deploy, e la licenza (§3) non permette
+# di esporre i file; nell'app arrivano ricompressi da un bucket privato (vedi docs/piano-schede.md).
+/public/esercizi-new/

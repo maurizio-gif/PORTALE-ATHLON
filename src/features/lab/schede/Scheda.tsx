@@ -53,6 +53,7 @@ function FoglioEsercizio({ e, precedente, massimali, onChiudi }: { e: EsercizioS
       {e ? (
         <View style={{ gap: spazio.tre }}>
           <MediaEsercizio immagini={e.immagini} video={e.video} style={stili.mediaGrande} />
+          {e.descrizione ? <Text style={[stili.nota, { color: p.testoSecondario }]}>{e.descrizione}</Text> : null}
           <View style={[stili.cifre, { backgroundColor: p.incavo }]}>
             {[
               { v: ind!.serieRip, l: 'Serie × ripetizioni' },
@@ -84,6 +85,17 @@ function FoglioEsercizio({ e, precedente, massimali, onChiudi }: { e: EsercizioS
               {e.istruzioni.filter(Boolean).map((t, i) => (
                 <View key={i} style={{ flexDirection: 'row', gap: spazio.due }}>
                   <Text style={[stili.passo, { color: p.accento }]}>{i + 1}</Text>
+                  <Text style={[stili.nota, { color: p.testo, flex: 1 }]}>{t}</Text>
+                </View>
+              ))}
+            </View>
+          ) : null}
+          {e.errori_comuni?.filter(Boolean).length ? (
+            <View style={{ gap: spazio.due }}>
+              <Text style={[stili.titoletto, { color: p.testo }]}>Da evitare</Text>
+              {e.errori_comuni.filter(Boolean).map((t, i) => (
+                <View key={i} style={{ flexDirection: 'row', gap: spazio.due }}>
+                  <Text style={[stili.passo, { color: p.testoSecondario }]}>×</Text>
                   <Text style={[stili.nota, { color: p.testo, flex: 1 }]}>{t}</Text>
                 </View>
               ))}
@@ -266,7 +278,7 @@ const stili = StyleSheet.create({
   giorno: { borderRadius: 18, paddingVertical: 10, paddingHorizontal: spazio.tre + 2, borderWidth: StyleSheet.hairlineWidth, gap: 1 },
   esercizio: { flexDirection: 'row', gap: spazio.tre, alignItems: 'center', padding: spazio.tre },
   media: { width: 92, height: 92, borderRadius: 18 },
-  mediaGrande: { width: '100%', aspectRatio: 4 / 3, borderRadius: 22 },
+  mediaGrande: { width: '100%', aspectRatio: 16 / 9, borderRadius: 22 },
   superserie: { fontFamily: F.extra, fontSize: 10.5, letterSpacing: 1 },
   nome: { fontFamily: F.extra, fontSize: 16, lineHeight: 20, letterSpacing: -0.3 },
   dettagli: { fontFamily: F.semi, fontSize: 14 },

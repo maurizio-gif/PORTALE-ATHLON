@@ -36,6 +36,9 @@ contratti e prenotazioni PT, già nel mirror).
 
 ## La libreria degli esercizi
 
+> **Dal 17/10/2026 la libreria è MoveKit** (sezione «La libreria MoveKit», in fondo). Il resto di questa
+> sezione racconta la prima libreria, free-exercise-db, che MoveKit sostituisce.
+
 - Base: [free-exercise-db](https://github.com/yuhonas/free-exercise-db),
   pubblico dominio (Unlicense): 876 esercizi con immagini, muscoli, attrezzo,
   livello, istruzioni. Si importa una volta, si traduce in italiano, le
@@ -155,3 +158,66 @@ expo-notifications e la build), i video del club, e le decisioni qui sopra.
 - **Il metodo di pagamento** nell'app (`/lab/metodo-pagamento`, da Pagamenti
   e dalla card dell'abbonamento in Home): la stessa procedura del link per
   email, con la richiesta aperta da `portale-lab-pagamenti` (origine 'app').
+
+## La libreria MoveKit (17/10/2026)
+
+Il club ha comprato la libreria **MoveKit** (movekit.com): 582 esercizi, ognuno con un video 3D di pochi
+secondi e un poster, per sostituire free-exercise-db. I file originali (2,8 GB di video, 2,4 GB di poster PNG)
+stanno in `public/esercizi-new`, **fuori da git** (`.gitignore`).
+
+**La licenza (v1.0, 4/8/2026) in quello che conta qui:**
+
+- Mostrare i contenuti agli utenti dell'app è permesso; **esporre pubblicamente gli indirizzi dei file no** (§3).
+  Per questo i file stanno nel bucket **privato** `esercizi-movekit` (come `foto-soci`) e le funzioni li danno come
+  link firmati di quattro ore (`_shared/esercizi-media.ts` nelle funzioni, `lib/schede-server.ts` nel CRM). Il
+  bucket pubblico `esercizi` resta per i video che il club carica da sé.
+- Modificare i video è permesso (§2: «modifying and editing clips»): per questo si ricomprimono. Non si tolgono
+  watermark né metadati di provenienza (§5): i file controllati non ne hanno (nessun testo nei PNG, nessun tag nei
+  video, nessun watermark nei fotogrammi) e la ricompressione mantiene i metadati del contenitore.
+- Vietato (§5): rivendere o ridistribuire i file, darli ai modelli di AI o generare animazioni da loro. L'agente AI
+  vede solo nomi e muscoli degli esercizi, mai i file.
+- Non detto dalla licenza (da chiedere a hello@movekit.com se serve): se un link firmato per un socio loggato conta
+  come «esposto», se si possono convertire i poster, se si possono tradurre i testi, se un repo privato va bene.
+- La licenza è valida per un'entità (il club e le sue controllate); un prodotto con un altro marchio, o una vendita
+  ad altri club, ne vuole una sua. Gli aggiornamenti della libreria sono inclusi per 12 mesi.
+
+**Cosa c'è nell'app.** Per ogni esercizio: nome, una frase che lo descrive, le istruzioni passo per passo, gli
+errori da evitare («Da evitare»), il video in loop (muto, senza comandi) col poster sotto. Si traducono questi
+campi; la descrizione lunga, i benefit e gli use case di MoveKit sono scritti per chi costruisce cataloghi e non si
+importano (restano in `public/esercizi-new`). Tabella `esercizi`: `descrizione`, `errori_comuni` e gli originali in
+inglese (`*_originali`), fonte `movekit`.
+
+**I file.** Video 960 px H.264 senza audio (CRF 26, 40–760 kB, in media 250 kB invece di 4 MB), poster JPEG 960 px
+(45 kB invece di 3 MB): 170 MB in tutto invece di 5 GB. La ricetta è `scripts/comprimi-esercizi-movekit.sh` in
+APP-ATHLON e riproduce byte per byte i file caricati. Non si ritaglia niente: le figure orizzontali occupano l'85%
+del fotogramma, e per questo i frame grandi dell'app sono 16:9.
+
+**I muscoli e gli attrezzi.** MoveKit ha 16 muscoli (core, schiena e tibiale sono nuovi: non distingue dorsali e
+schiena centrale) e 21 attrezzi; gli attrezzi si riportano alle chiavi che l'agente AI già conosce
+(`corpo_libero`, `manubri`, `kettlebell`, `elastici`, `fitball`, `foam_roller`…) e il resto è `altro`, così non
+finisce nelle schede «a corpo libero». Il nuoto è `altro`: vuole una piscina. Nuova categoria `mobilita`, che
+l'agente AI vede come le altre.
+
+**Il passaggio dalla vecchia libreria** (`20261018x_libreria_movekit_passaggio.sql`, una transazione che si ferma
+da sola se qualcosa non torna): salva i vecchi esercizi e tutti i collegamenti in `backup_*_20261018`; riporta
+al loro equivalente le righe delle schede (131), le serie registrate (3) e i massimali (13), con il carico curato
+(incremento, peso minimo, coefficienti di stima, test dei massimali); accende i 582 esercizi e toglie quelli di
+free-exercise-db. Gli abbinamenti sono 67, **9 approssimati** (stesso movimento ma presa, lato o attrezzo diversi:
+Shoulder_Circles, Single-Leg_Leg_Extension, Split_Squat_with_Dumbbells, Recumbent_Bike, Standing_Hip_Flexors,
+Standing_Dumbbell_Calf_Raise, Cable_Rear_Delt_Fly, Standing_One-Arm_Cable_Curl, Underhand_Cable_Pulldowns): il club
+li cambia dal CRM. **Due esercizi non hanno una controparte** e restano del club, senza video, da caricare dal
+CRM: la posizione del bambino e «Rotazione e flessione della colonna».
+
+**Stato (17/10/2026).** Fatto tutto in produzione: import dei 582 esercizi tradotti, 1164 file nel bucket privato,
+`portale-lab-schede` che firma i link (versione 5) e **il passaggio applicato** (migrazione `libreria_movekit_passaggio`):
+876 vecchi esercizi tolti, 582 di MoveKit accesi, 131 righe di scheda, 3 serie e 13 massimali ricollegati (nessun
+riferimento orfano; il backup è in `backup_esercizi_20261018` e `backup_collegamenti_esercizi_20261018`). Controllate
+tutte e 12 le schede pubblicate: 254 link firmati (poster e video) si aprono, e le uniche 4 righe senza video sono i due
+esercizi del club. L'agente AI non ha bisogno di modifiche: il suo workflow n8n usa solo il catalogo che gli passa la
+funzione.
+
+Da fare: **le due PR** (CRM e app). Senza quella del CRM le miniature di MoveKit nel pannello non si vedono (lo vede solo
+lo staff); l'app già in produzione legge i link firmati, ma mostra i muscoli nuovi in minuscolo e senza descrizione né
+«Da evitare» finché non esce la sua. Poi: cancellare le foto di free-exercise-db dal bucket `esercizi` (cartella `fedb/`,
+94 MB: non le usa più nessuno e si ricaricano da GitHub con `scripts/importa-esercizi.mjs`) e togliere
+`public/anteprima-esercizi` (le prove delle animazioni, 95 MB).

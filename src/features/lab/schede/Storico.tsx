@@ -206,7 +206,7 @@ export function Storico() {
 }
 
 const stili = StyleSheet.create({
-  media: { width: '100%', aspectRatio: 16 / 10, borderRadius: 20 },
+  media: { width: '100%', aspectRatio: 16 / 9, borderRadius: 20 },
   piccola: { fontFamily: F.semi, fontSize: 12.5 },
   nota: { fontFamily: F.medio, fontSize: 13.5, lineHeight: 20 },
   grafico: { flexDirection: 'row', alignItems: 'flex-end', gap: 6, borderRadius: 18, padding: spazio.tre, height: 190 },

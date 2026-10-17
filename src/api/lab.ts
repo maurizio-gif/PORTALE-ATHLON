@@ -685,6 +685,10 @@ export type EsercizioScheda = {
   muscoli_primari: string[]
   attrezzo: string | null
   istruzioni: string[]
+  /** Una frase che dice cos'e' l'esercizio (libreria MoveKit); mancano per gli esercizi del club. */
+  descrizione?: string | null
+  /** Gli errori da evitare (libreria MoveKit). */
+  errori_comuni?: string[]
   /** L'incremento della macchina (5 kg, 2,5 kg) e il peso minimo: i chili si arrotondano per difetto a quelli. */
   incremento_kg: number | null
   peso_minimo_kg: number | null
@@ -810,10 +814,17 @@ export async function chiediSchedaAi(questionario: Questionario): Promise<Esito<
   return { ok: false, errore: dati.errore ?? 'L’agente non è riuscito a scrivere la scheda adesso. Riprova fra qualche minuto.' }
 }
 
-/** L'indirizzo pubblico di un'immagine o di un video degli esercizi (bucket «esercizi»). */
+/**
+ * L'indirizzo di un'immagine o di un video degli esercizi. I file della libreria MoveKit stanno in un
+ * bucket privato (la licenza non permette indirizzi pubblici): la funzione li da' gia' come link firmati
+ * (indirizzi interi), che qui restano com'e'. Un percorso «movekit/…» arrivato senza firma vuol dire che
+ * la firma non e' riuscita: non c'e' un indirizzo pubblico da costruire, e si mostra il segnaposto.
+ * Un percorso senza prefisso e' nel bucket pubblico «esercizi» (i video che il club carica dal CRM).
+ */
 export function urlEsercizio(percorso: string | null | undefined): string | null {
   if (!percorso) return null
   if (/^https?:\/\//.test(percorso)) return percorso
+  if (percorso.startsWith('movekit/')) return null
   return `${SUPABASE_URL.replace(/\/+$/, '')}/storage/v1/object/public/esercizi/${percorso}`
 }
 

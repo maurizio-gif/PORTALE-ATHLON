@@ -248,7 +248,7 @@ const stili = StyleSheet.create({
   miniatura: { width: 76, height: 76, borderRadius: 16 },
   nome: { fontFamily: F.extra, fontSize: 16, lineHeight: 20 },
   etichettaTest: { fontFamily: F.bold, fontSize: 13 },
-  media: { width: '100%', aspectRatio: 4 / 3, borderRadius: 20 },
+  media: { width: '100%', aspectRatio: 16 / 9, borderRadius: 20 },
   istruzioni: { borderRadius: 18, padding: spazio.tre, gap: spazio.due },
   passo: { fontFamily: F.extra, fontSize: 15, width: 18 },
   nota: { fontFamily: F.medio, fontSize: 14.5, lineHeight: 21 },

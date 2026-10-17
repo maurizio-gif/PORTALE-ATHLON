@@ -5,23 +5,27 @@ import type { EsercizioScheda, GiornoSchedaLab, Massimale } from '@/api/lab'
 // una serie, col suo recupero.
 
 export const MUSCOLI: Record<string, string> = {
-  addominali: 'Addominali',
-  abduttori: 'Abduttori',
-  adduttori: 'Adduttori',
-  bicipiti: 'Bicipiti',
-  polpacci: 'Polpacci',
   pettorali: 'Pettorali',
-  avambracci: 'Avambracci',
-  glutei: 'Glutei',
-  femorali: 'Femorali',
-  dorsali: 'Dorsali',
-  lombari: 'Lombari',
-  schiena_centrale: 'Schiena',
-  collo: 'Collo',
-  quadricipiti: 'Quadricipiti',
+  schiena: 'Schiena',
   spalle: 'Spalle',
   trapezi: 'Trapezi',
+  bicipiti: 'Bicipiti',
   tricipiti: 'Tricipiti',
+  avambracci: 'Avambracci',
+  core: 'Core',
+  lombari: 'Lombari',
+  glutei: 'Glutei',
+  quadricipiti: 'Quadricipiti',
+  femorali: 'Femorali',
+  adduttori: 'Adduttori',
+  polpacci: 'Polpacci',
+  tibiale: 'Tibiale anteriore',
+  collo: 'Collo',
+  // Le chiavi di free-exercise-db, per gli esercizi del club scritti prima.
+  addominali: 'Addominali',
+  abduttori: 'Abduttori',
+  dorsali: 'Dorsali',
+  schiena_centrale: 'Schiena',
 }
 
 export const LIVELLI: Record<string, string> = { principiante: 'Principiante', intermedio: 'Intermedio', esperto: 'Esperto' }

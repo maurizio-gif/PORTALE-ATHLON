@@ -1,7 +1,7 @@
 import { useEventListener } from 'expo'
 import { Image } from 'expo-image'
 import { useVideoPlayer, VideoView } from 'expo-video'
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native'
 import Animated, { Easing, useAnimatedStyle, useSharedValue, withDelay, withRepeat, withSequence, withTiming } from 'react-native-reanimated'
 
@@ -10,12 +10,16 @@ import { urlEsercizio } from '@/api/lab'
 import { Icona } from '../ui/Icona'
 import { usePalette } from '../ui/tema'
 
-// L'esercizio che si muove: il video breve del club (MP4 di pochi secondi,
-// muto, in loop) quando c'e'; altrimenti le due foto di free-exercise-db (la
-// posizione di partenza e quella d'arrivo) che si alternano in dissolvenza,
-// come un'animazione a due fotogrammi. I video li carica il club dal CRM.
+// L'esercizio che si muove: il video breve (MP4 di pochi secondi, muto, in
+// loop) quando c'e'. Quelli della libreria MoveKit hanno tutti il video e un
+// poster (`immagini[0]`), che sta sotto: si vede mentre il video si carica e
+// nelle miniature ferme. Se il video non c'e' (un esercizio del club che non
+// l'ha ancora) restano le due foto in dissolvenza, come un'animazione a due
+// fotogrammi; senza niente, il segnaposto. Il club carica i suoi video dal CRM.
 
 function Video({ uri }: { uri: string }) {
+  // Il video appare quando e' pronto: prima si vede il poster, non un riquadro nero.
+  const [pronto, setPronto] = useState(false)
   const player = useVideoPlayer(uri, (p) => {
     p.loop = true
     p.muted = true
@@ -24,11 +28,27 @@ function Video({ uri }: { uri: string }) {
   // Sul web il play() della preparazione arriva prima del <video>: si riparte.
   useEffect(() => {
     player.play()
+    if (player.status === 'readyToPlay') setPronto(true)
+    // Se l'evento di «pronto» non arriva (sul web puo' precedere l'ascolto) il video si mostra lo stesso.
+    const t = setTimeout(() => setPronto(true), 1500)
+    return () => clearTimeout(t)
   }, [player])
   useEventListener(player, 'statusChange', ({ status }) => {
-    if (status === 'readyToPlay' && !player.playing) player.play()
+    if (status === 'readyToPlay') {
+      setPronto(true)
+      if (!player.playing) player.play()
+    }
   })
-  return <VideoView player={player} style={StyleSheet.absoluteFill} contentFit="cover" nativeControls={false} allowsPictureInPicture={false} playsInline />
+  return (
+    <VideoView
+      player={player}
+      style={[StyleSheet.absoluteFill, { opacity: pronto ? 1 : 0 }]}
+      contentFit="cover"
+      nativeControls={false}
+      allowsPictureInPicture={false}
+      playsInline
+    />
+  )
 }
 
 function DueFotogrammi({ prima, seconda, ferma }: { prima: string; seconda: string | null; ferma: boolean }) {
@@ -78,7 +98,10 @@ export function MediaEsercizio({
   return (
     <View style={[stili.cornice, { backgroundColor: p.incavo }, style]}>
       {urlVideo ? (
-        <Video uri={urlVideo} />
+        <>
+          {prima ? <Image source={{ uri: prima }} style={StyleSheet.absoluteFill} contentFit="cover" /> : null}
+          <Video uri={urlVideo} />
+        </>
       ) : prima ? (
         <DueFotogrammi prima={prima} seconda={urlEsercizio(immagini[1])} ferma={ferma} />
       ) : (

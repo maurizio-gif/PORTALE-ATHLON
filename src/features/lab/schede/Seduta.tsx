@@ -418,7 +418,7 @@ const stili = StyleSheet.create({
   esercizio: { gap: spazio.tre, padding: spazio.tre },
   testa: { flexDirection: 'row', alignItems: 'center', gap: spazio.tre },
   media: { width: 64, height: 64, borderRadius: 16 },
-  mediaGrande: { flex: 1, aspectRatio: 4 / 3, borderRadius: 20 },
+  mediaGrande: { flex: 1, aspectRatio: 16 / 9, borderRadius: 20 },
   nome: { fontFamily: F.extra, fontSize: 15.5, lineHeight: 19 },
   nomeGrande: { fontFamily: F.extra, fontSize: 21, lineHeight: 25, letterSpacing: -0.5 },
   superserie: { fontFamily: F.extra, fontSize: 10.5, letterSpacing: 0.8 },
