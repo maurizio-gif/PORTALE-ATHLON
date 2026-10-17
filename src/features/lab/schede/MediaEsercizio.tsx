@@ -39,10 +39,13 @@ function Video({ uri }: { uri: string }) {
       if (!player.playing) player.play()
     }
   })
+  // Larghezza e altezza esplicite: sul web e' un <video> e un elemento video con `absoluteFill` (left/right/top/bottom: 0)
+  // non si allarga, resta alla sua misura naturale (960x532) ancorato in alto a sinistra: nel riquadro stretto del foglio
+  // esce e si vede ingrandito e decentrato, in quello largo della seduta resta piu' piccolo.
   return (
     <VideoView
       player={player}
-      style={[StyleSheet.absoluteFill, { opacity: pronto ? 1 : 0 }]}
+      style={[StyleSheet.absoluteFill, { width: '100%', height: '100%', opacity: pronto ? 1 : 0 }]}
       contentFit="cover"
       nativeControls={false}
       allowsPictureInPicture={false}
