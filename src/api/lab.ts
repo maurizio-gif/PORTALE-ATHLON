@@ -532,6 +532,12 @@ export async function chiudiAbbonamento(abbonamentoId: string): Promise<Esito<ob
 //   { azione: 'email', email }                   -> { ok }  (manda un codice al nuovo indirizzo)
 //   { azione: 'conferma_email', email, codice }  -> { ok, anagrafica }
 //
+// L'anagrafica porta anche `foto`: il link firmato (un'ora) della foto del profilo che il club ha su
+// PerfectGym, copiata nel bucket privato `foto-soci`, o null se non ne ha una. Si mostra solo nel Profilo.
+// Il link e' dentro l'anagrafica - e non in una chiamata a parte - perche' `salva` e `conferma_email`
+// rispondono con la stessa anagrafica e la schermata la sostituisce a quella che ha: altrimenti la foto
+// sparirebbe dopo aver cambiato il telefono.
+//
 // La funzione non risponde mai 404 per una scheda che non trova: qui il 404
 // vuol dire che non e' pubblicata, e il profilo resta in sola lettura.
 //
@@ -556,6 +562,8 @@ export type Anagrafica = {
   email: string | null
   telefono: string | null
   indirizzo: Indirizzo | null
+  /** Il link firmato (un'ora) della foto del profilo, se il club ne ha una; null o assente altrimenti. */
+  foto?: string | null
 }
 
 /** `nonAttiva`: la funzione non c'e' ancora (404): si mostra la sola lettura. */
