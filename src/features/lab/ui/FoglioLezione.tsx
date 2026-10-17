@@ -1,5 +1,5 @@
 import { LinearGradient } from 'expo-linear-gradient'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { Modal, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native'
 import Animated, { Easing, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
@@ -34,6 +34,7 @@ export function FoglioLezione({
   titolo,
   categoria,
   dettagli,
+  extra,
   onChiudi,
 }: {
   scheda: SchedaLezione | null
@@ -41,6 +42,8 @@ export function FoglioLezione({
   categoria?: string
   /** Le tre cifre in alto: ora, durata, istruttore (nome e cognome su due righe, con «\n»). */
   dettagli?: { valore: string; etichetta: string }[]
+  /** Un blocco in piu' sotto le caratteristiche (le calorie stimate): ha le sue regole su cosa mostrare. */
+  extra?: ReactNode
   onChiudi: () => void
 }) {
   const p = usePalette()
@@ -51,14 +54,14 @@ export function FoglioLezione({
   const scheda = useMemo(() => schedaPer(schedaGrezza, titolo), [schedaGrezza, titolo])
   // Mentre risale la scheda non c'e' piu' (il calendario l'ha gia' tolta):
   // si mostra l'ultima, finche' l'animazione non e' finita.
-  const [ultima, setUltima] = useState({ scheda, titolo, categoria, dettagli })
+  const [ultima, setUltima] = useState({ scheda, titolo, categoria, dettagli, extra })
   const [montata, setMontata] = useState(!!scheda)
   const [arrivata, setArrivata] = useState(false)
   const discesa = useSharedValue(0)
 
   useEffect(() => {
     if (scheda) {
-      setUltima({ scheda, titolo, categoria, dettagli })
+      setUltima({ scheda, titolo, categoria, dettagli, extra })
       setMontata(true)
       setArrivata(false)
       discesa.value = 0
@@ -129,6 +132,7 @@ export function FoglioLezione({
                 })}
               </View>
             ) : null}
+            {v.extra}
           </ScrollView>
         ) : null}
       </Animated.View>

@@ -42,7 +42,7 @@ import {
 const intero = (n: number) => Math.round(n).toLocaleString('it-IT')
 const decimale = (n: number, d = 1) => n.toLocaleString('it-IT', { maximumFractionDigits: d, minimumFractionDigits: 0 })
 
-type Corpo = {
+export type Corpo = {
   anagrafica: Anagrafica | null
   anagraficaLetta: boolean
   misure: Misura[] | null
@@ -53,7 +53,12 @@ type Corpo = {
 type StoricoInMemoria = { ok: true; allenamenti: SedutaStorico[] }
 type MisureInMemoria = { ok: true; misure: Misura[]; sesso: SessoCalcolo }
 
-function useCorpo(): Corpo {
+/**
+ * I dati del socio per le stime: anagrafica, misure, sesso scelto e, se serve,
+ * lo storico delle sedute (`conSedute`: la stima di una lezione non lo vuole, e
+ * non lo si va a chiedere).
+ */
+export function useCorpo(conSedute = true): Corpo {
   const [anagrafica, setAnagrafica] = useState<Anagrafica | null>(() => inMemoria<{ ok: true; anagrafica: Anagrafica }>('anagrafica')?.anagrafica ?? null)
   const [anagraficaLetta, setLetta] = useState(!!anagrafica)
   const [misure, setMisure] = useState<Misura[] | null>(() => inMemoria<MisureInMemoria>(CHIAVE_MISURE)?.misure ?? null)
@@ -72,13 +77,15 @@ function useCorpo(): Corpo {
       setSesso(r.sesso)
     })
     // Senza storico la stima resta quella della scheda: non si aspetta e non si avvisa.
-    prendi(CHIAVE_STORICO, storicoAllenamenti).then((r) => {
-      if (vivo && r.ok) setSedute(r.allenamenti)
-    })
+    if (conSedute) {
+      prendi(CHIAVE_STORICO, storicoAllenamenti).then((r) => {
+        if (vivo && r.ok) setSedute(r.allenamenti)
+      })
+    }
     return () => {
       vivo = false
     }
-  }, [])
+  }, [conSedute])
   return { anagrafica, anagraficaLetta, misure, sesso, setSesso, sedute }
 }
 

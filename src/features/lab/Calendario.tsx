@@ -25,6 +25,7 @@ import { euro, giornoEsteso, ora } from '@/lib/eventi'
 import { spazio } from '@/theme'
 
 import { inMemoria, prendi, ricorda } from './memoria'
+import { CalorieLezione, CorpoPerLezioni } from './schede/CalorieLezione'
 import { posizione } from './SchedaLezione'
 import { ingombroBarra } from './ui/BarraSchede'
 import { FoglioLezione } from './ui/FoglioLezione'
@@ -276,8 +277,8 @@ function RigaAttesa({ testo }: { testo: string }) {
   )
 }
 
-function RigaLezione(props: PropsLezione) {
-  const { l, scheda, onScheda } = props
+function RigaLezione(props: PropsLezione & { titolare: boolean }) {
+  const { l, scheda, onScheda, titolare } = props
   const p = usePalette()
   const b = l.prenotazione
 
@@ -304,6 +305,7 @@ function RigaLezione(props: PropsLezione) {
         </View>
         {!l.iniziata ? <Barra valore={l.posti ? Math.min(1, l.iscritti / l.posti) : 0} colore={colorePosti} altezza={6} animata ritardo={250} /> : null}
         {!l.iniziata && inAttesa(l) ? <RigaAttesa testo={inAttesa(l) as string} /> : null}
+        <CalorieLezione l={l} scheda={scheda} titolare={titolare} variante="riga" />
         <AzioniLezione {...props} />
       </View>
     </View>
@@ -384,6 +386,7 @@ function TurniInGriglia({
   assistente,
   turni,
   scheda,
+  titolare,
   onScheda,
   occupato,
   onPrenota,
@@ -392,6 +395,8 @@ function TurniInGriglia({
   onDisdici,
   onMostra,
 }: {
+  /** Le calorie si stimano solo per il titolare: peso, altezza ed eta' sono i suoi. */
+  titolare: boolean
   /** Porta in vista il riquadro del turno scelto, col suo «Prenota». */
   onMostra: (riquadro: View | null) => void
   /** Il nome dell'attivita', che e' anche la sua categoria: «Gym Floor», «Nuoto Libero». */
@@ -540,6 +545,8 @@ function TurniInGriglia({
             )}
           </View>
           <Assistente turno={scelto} come={assistente} />
+          {/* Il Nuoto Libero ha un consumo indicativo; la Gym Floor niente (ha la stima della sua scheda): lo decide stimaCorso. */}
+          <CalorieLezione l={scelto} scheda={scheda} titolare={titolare} variante="riga" />
           {conPosti && !scelto.iniziata ? (
             <Barra key={`barra-${scelto.class_id}`} valore={scelto.posti ? Math.min(1, scelto.iscritti / scelto.posti) : 0} colore={colorePosti(scelto)} altezza={6} animata />
           ) : null}
@@ -647,6 +654,15 @@ function LezioniPrenotate({ lezioni, occupato, onAnnulla }: { lezioni: Lezione[]
 }
 
 export function Calendario() {
+  // I dati del socio per le calorie delle lezioni si leggono una volta, qui sopra, e non a ogni riga.
+  return (
+    <CorpoPerLezioni>
+      <CalendarioGiorno />
+    </CorpoPerLezioni>
+  )
+}
+
+function CalendarioGiorno() {
   const p = usePalette()
   const [giorno, setGiorno] = useState<Giorno | null>(inMemoria<{ ok: true; giorno: Giorno }>('giorno::')?.giorno ?? null)
   const [errore, setErrore] = useState<string | null>(null)
@@ -839,6 +855,7 @@ export function Calendario() {
   const aTurni = A_TURNI.map((a) => ({ ...a, turni: filtrate.filter((l) => l.categoria === a.categoria) })).filter((a) => a.turni.length > 1)
   const altre = filtrate.filter((l) => !aTurni.some((a) => a.categoria === l.categoria))
   const perChi = giorno.persone.find((x) => x.member_id === giorno.member_id)
+  const titolare = !!perChi?.titolare
   const schedaAperta = aperta?.scheda ? giorno.schede?.[aperta.scheda] ?? null : null
   return (
     <Schermata titolo="Prenotazioni" scorrimento={scorrimento}>
@@ -996,6 +1013,7 @@ export function Calendario() {
                       assistente={a.assistente}
                       turni={a.turni}
                       scheda={a.turni[0].scheda ? giorno.schede?.[a.turni[0].scheda] ?? null : null}
+                      titolare={titolare}
                       onScheda={() => setAperta(a.turni[0])}
                       occupato={occupato}
                       onPrenota={prenota}
@@ -1021,6 +1039,7 @@ export function Calendario() {
                         <RigaLezione
                           l={l}
                           scheda={l.scheda ? giorno.schede?.[l.scheda] ?? null : null}
+                          titolare={titolare}
                           onScheda={() => setAperta(l)}
                           occupato={occupato}
                           onPrenota={() => prenota(l)}
@@ -1046,6 +1065,7 @@ export function Calendario() {
                     <RigaLezione
                       l={l}
                       scheda={l.scheda ? giorno.schede?.[l.scheda] ?? null : null}
+                      titolare={titolare}
                       onScheda={() => setAperta(l)}
                       occupato={occupato}
                       onPrenota={() => prenota(l)}
@@ -1075,6 +1095,7 @@ export function Calendario() {
               ]
             : undefined
         }
+        extra={aperta ? <CalorieLezione l={aperta} scheda={schedaAperta} titolare={titolare} variante="foglio" /> : undefined}
         onChiudi={() => setAperta(null)}
       />
     </Schermata>
