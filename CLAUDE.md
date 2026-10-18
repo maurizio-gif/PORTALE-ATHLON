@@ -157,18 +157,20 @@ raggiungere, nessuna frase che dica a una persona quanto deve mangiare.
 - **La foto si sceglie con `expo-document-picker`** (`src/lib/fotoPiatto.ts`), che sul telefono dal browser offre anche la
   fotocamera; sul web si porta a 1280 px in JPEG prima dell'invio.
 
-## I piani di allenamento: si parte da quattro strade, si modifica e si conferma, e restano suoi
+## I piani di allenamento: si parte da quattro origini, si modifica e si conferma, e restano suoi
 
 Nell'app si chiamano **piani di allenamento** (richiesta del club, 19/10/2026): nei testi mai «schede» per questi. Resta «scheda» dove
 vuol dire altro (la scheda del socio al club, la scheda di una lezione, l'Help Desk), e nel codice (`/allenamento/[scheda]`,
 `SchedaLab`, `salva_mia`…). Cartella `src/features/lab/schede/`; funzione, tabelle e limiti sono nel `CLAUDE.md` di APP-ATHLON.
 
 - **La schermata Train (`Schede.tsx`) ha le origini sopra e «I tuoi piani» in fondo.** Dopo il test e le calorie: «Crea il tuo piano di
-  allenamento» con le tre origini, poi **«I tuoi piani»** (quelli che il socio ha scelto: suoi, del suo trainer, e gli «AI» di prima), poi gli
+  allenamento» con le quattro origini, poi **«I tuoi piani»** (quelli che il socio ha scelto: suoi, del suo trainer, e gli «AI» di prima), poi gli
   ultimi allenamenti. Le origini: **«Crealo con l'aiuto dell'AI»** (`Agente.tsx`), **«Importa il tuo piano»** (`Importa.tsx`: «Da foto o
   file», e «Scrivilo tu» per chi parte da zero) e **i piani consigliati dal club**, in un **carosello che scorre in orizzontale** (`PianoClub`,
   non una lista verticale: con dieci piani non allunga la pagina), filtrabile per obiettivo. Su telefono la carta è larga il 74% dello
-  schermo, così si intravede la successiva e si capisce che scorre; su schermo largo compare la barra di scorrimento.
+  schermo, così si intravede la successiva e si capisce che scorre; su schermo largo compare la barra di scorrimento. **La quarta origine è il personal trainer** (`CartaPersonal`, dopo i piani del club):
+  «Vuoi essere seguito da un personal trainer?» porta **direttamente alla prenotazione** (`/personal`, l'altra faccia di Prenotazioni:
+  scegli trainer, giorno e ora). Non produce un piano da modificare: lo costruisce il trainer, e compare poi fra i piani «Dal tuo trainer».
 - **Qualunque sia l'origine, si modifica e si conferma, e solo allora è fra i suoi piani.** Un piano del club si apre (`Scheda.tsx`) con
   **«Aggiungi ai tuoi piani»** (la copia com'è, `comeDaSalvare` in `copia.ts`) e **«Modifica e aggiungi»** (l'editor con `?copia=<id>`); quello
   di un trainer (o un «AI» di prima) solo **«Modifica una copia»**, perché è già suo. L'originale non si tocca. Un piano del club si può ancora

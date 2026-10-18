@@ -28,7 +28,8 @@ import { etichettaPiano, giorniAlTest, giornoTest, LIVELLI, quando, testDaRifare
 //   - Train: il test dei massimali, il contatore delle calorie,
 //     le origini di un piano (l'agente AI, l'importazione del proprio, i piani
 //     consigliati dal club, in un carosello orizzontale filtrabile per
-//     obiettivo), i tuoi piani in fondo, e gli ultimi allenamenti;
+//     obiettivo) e, quarta, farsi seguire da un personal trainer (porta alla
+//     prenotazione, /personal); i tuoi piani in fondo, e gli ultimi allenamenti;
 //   - Food: la porta del diario dei pasti (fit/Food.tsx).
 // L'area scelta sta nell'indirizzo (`?area=food`), cosi' tornando indietro dal
 // diario si ritrova Food. L'indirizzo resta /allenamento: e' quello dei link gia' dati.
@@ -147,6 +148,31 @@ function CartaImporta({ riempi = false }: { riempi?: boolean }) {
   )
 }
 
+/**
+ * La quarta origine (19/10/2026): farsi seguire da un personal trainer. Non porta a un piano da modificare ma alla
+ * prenotazione di una seduta (`/personal`, l'altra faccia di Prenotazioni): e' il trainer a costruire il piano,
+ * che poi compare fra i piani «Dal tuo trainer».
+ */
+function CartaPersonal() {
+  const p = usePalette()
+  return (
+    <Tocco onPress={() => router.push('/personal')} etichetta="Prenota una seduta con un personal trainer" scala={0.985}>
+      <View style={[stili.agente, { backgroundColor: p.carta, borderColor: p.linea, boxShadow: p.ombra }]}>
+        <LinearGradient colors={NOTTE} style={stili.agenteIcona}>
+          <Icona nome="persona" size={26} colore="#fff" />
+        </LinearGradient>
+        <View style={{ flex: 1, gap: 3 }}>
+          <Text style={[stili.agenteTitolo, { color: p.testo }]}>Vuoi essere seguito da un personal trainer?</Text>
+          <Text style={[stili.agenteTesto, { color: p.testoSecondario }]}>
+            Scegli il trainer, il giorno e l’ora e prenota la tua seduta: il piano te lo costruisce lui e lo trovi poi fra i tuoi piani.
+          </Text>
+        </View>
+        <Icona nome="avanti" size={18} colore={p.testoTerzo} />
+      </View>
+    </Tocco>
+  )
+}
+
 /** L'origine «AI»: l'agente scrive un piano sulle risposte del socio, che lo modifica e lo conferma. */
 function CartaAi({ restano, massimo, riempi = false }: { restano: number; massimo: number; riempi?: boolean }) {
   const p = usePalette()
@@ -262,7 +288,8 @@ export function Schede() {
 
 /**
  * L'area Train. Sopra, le **origini** di un piano (19/10/2026): farlo scrivere all'agente AI, importare il proprio da
- * una foto o da un file (o scriverlo), o sceglierne uno fra i piani consigliati dal club, che scorrono in orizzontale.
+ * una foto o da un file (o scriverlo), sceglierne uno fra i piani consigliati dal club, che scorrono in orizzontale, o
+ * **farsi seguire da un personal trainer** (la quarta: va alla prenotazione, non a un piano da modificare).
  * Sotto, **i tuoi piani**: quelli che il socio ha scelto. Qualunque sia l'origine, il piano si modifica e si conferma
  * prima di entrare fra i suoi. Poi gli ultimi allenamenti.
  */
@@ -290,7 +317,7 @@ function Train({ dati, largo }: { dati: Dati; largo: boolean }) {
 
       <Sezione titolo="Crea il tuo piano di allenamento">
         <Text style={[stili.nota, { color: p.testoSecondario }]}>
-          Scegli da dove partire. Qualunque strada prendi, il piano lo puoi modificare, e quando lo confermi lo trovi fra i tuoi piani.
+          Scegli da dove partire. Che sia l’AI, un tuo piano o uno del club, lo puoi modificare e, quando lo confermi, lo trovi fra i tuoi piani.
         </Text>
         <View style={largo ? stili.fila3 : { gap: spazio.tre }}>
           <Entra indice={1} style={largo ? { flex: 1 } : undefined}>
@@ -357,6 +384,10 @@ function Train({ dati, largo }: { dati: Dati; largo: boolean }) {
             </Carta>
           )}
         </View>
+
+        <Entra indice={3}>
+          <CartaPersonal />
+        </Entra>
       </Sezione>
 
       <Sezione titolo="I tuoi piani" conteggio={mie.length || undefined}>
