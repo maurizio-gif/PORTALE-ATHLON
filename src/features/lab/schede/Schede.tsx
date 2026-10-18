@@ -98,6 +98,25 @@ function CartaDati({ misure, riempi = false }: { misure: Misura[] | null; riempi
   )
 }
 
+/** Il contatore delle calorie: le schede chiuse e le lezioni con la presenza. */
+function CartaCalorie({ riempi = false }: { riempi?: boolean }) {
+  const p = usePalette()
+  return (
+    <Tocco onPress={() => router.push('/allenamento/calorie')} etichetta="Le tue calorie: il contatore di schede e lezioni" scala={0.985} style={riempi ? { flex: 1 } : undefined}>
+      <View style={[stili.agente, { backgroundColor: p.carta, borderColor: p.linea, boxShadow: p.ombra }, riempi && { flex: 1 }]}>
+        <LinearGradient colors={FUOCO} style={stili.agenteIcona}>
+          <Icona nome="fiamma" size={26} colore="#fff" />
+        </LinearGradient>
+        <View style={{ flex: 1, gap: 3 }}>
+          <Text style={[stili.agenteTitolo, { color: p.testo }]}>Le tue calorie</Text>
+          <Text style={[stili.agenteTesto, { color: p.testoSecondario }]}>Le schede che chiudi e le lezioni a cui vieni, giorno per giorno: la settimana, i trend e il confronto.</Text>
+        </View>
+        <Icona nome="avanti" size={18} colore={p.testoTerzo} />
+      </View>
+    </Tocco>
+  )
+}
+
 /** Il test dei massimali: da fare, fatto, o da rifare. */
 function CartaTest({ t, riempi = false }: { t: StatoTest; riempi?: boolean }) {
   const rifare = testDaRifare(t.ultimo, t.giorni)
@@ -204,6 +223,10 @@ export function Schede() {
 
       <Entra indice={1} style={largo ? { flex: 1 } : undefined}>
         <CartaDati misure={misure} riempi={largo} />
+      </Entra>
+
+      <Entra indice={1} style={largo ? { flex: 1 } : undefined}>
+        <CartaCalorie riempi={largo} />
       </Entra>
 
       <Entra indice={1} style={largo ? { flex: 1 } : undefined}>

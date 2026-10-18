@@ -199,6 +199,16 @@ export async function leggiGiorno(data?: string, memberId?: number): Promise<{ o
   return { ok: false, errore: dati.errore ?? 'Non riusciamo a leggere il calendario adesso.' }
 }
 
+/** Una lezione a cui il titolare e' stato presente (segnata dalla reception), per il contatore delle calorie. */
+export type PresenzaLezione = { inizio: string; fine: string; nome: string; categoria: string | null; scheda: string | null }
+
+/** Le presenze alle lezioni delle ultime settimane, con le schede delle lezioni (le barre di intensita'). */
+export async function presenzeLezioni(): Promise<Esito<{ presenze: PresenzaLezione[]; schede: Record<string, SchedaLezione> }>> {
+  const { ok, dati } = await calendario({ azione: 'presenze' })
+  if (ok) return { ok: true, presenze: (dati.presenze ?? []) as PresenzaLezione[], schede: (dati.schede ?? {}) as Record<string, SchedaLezione> }
+  return { ok: false, errore: dati.errore ?? 'Non riusciamo a leggere le tue lezioni adesso.' }
+}
+
 /** Il prodotto PerfectGym che apre la prenotazione di una lezione, per chi non ce l'ha compreso. */
 export type ProdottoLezione = { product_id: number; nome: string; prezzo: number | null }
 
