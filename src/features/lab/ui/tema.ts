@@ -56,6 +56,8 @@ export function usePalette(): Palette {
   }
 }
 
+/** Il verde dell'alimentazione (19/10/2026): la vetrina, il bilancio, le scelte. */
+export const ORTO = ['#43E0A0', '#18A957', '#0A6B37'] as const
 /** L'arancio del club, da chiaro a bruciato. */
 export const FUOCO = ['#FF8A2B', '#FF5701', '#E84300'] as const
 /** Il blu, per il secondo riquadro forte. */

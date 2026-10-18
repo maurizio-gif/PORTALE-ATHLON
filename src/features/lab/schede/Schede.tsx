@@ -13,7 +13,7 @@ import { inMemoria, prendi } from '../memoria'
 import { Icona, type NomeIcona } from '../ui/Icona'
 import { Carta, Entra, LinkSezione, Messaggio, Pulsante, Riga, SchedeInArrivo, Sezione, Tag } from '../ui/kit'
 import { Schermata } from '../ui/Schermata'
-import { coloreTono, F, FUOCO, MARE, NOTTE, usePalette } from '../ui/tema'
+import { coloreTono, F, FUOCO, MARE, NOTTE, ORTO, usePalette } from '../ui/tema'
 import { Tocco } from '../ui/Tocco'
 import { giorniAlTest, giornoTest, LIVELLI, quando, testDaRifare, TIPI } from './comune'
 
@@ -110,6 +110,25 @@ function CartaCalorie({ riempi = false }: { riempi?: boolean }) {
         <View style={{ flex: 1, gap: 3 }}>
           <Text style={[stili.agenteTitolo, { color: p.testo }]}>Le tue calorie</Text>
           <Text style={[stili.agenteTesto, { color: p.testoSecondario }]}>Le schede che chiudi e le lezioni a cui vieni, giorno per giorno: la settimana, i trend e il confronto.</Text>
+        </View>
+        <Icona nome="avanti" size={18} colore={p.testoTerzo} />
+      </View>
+    </Tocco>
+  )
+}
+
+/** L'alimentazione (19/10/2026): il diario, la foto del piatto e i consigli, dietro il consenso. */
+function CartaAlimentazione({ riempi = false }: { riempi?: boolean }) {
+  const p = usePalette()
+  return (
+    <Tocco onPress={() => router.push('/allenamento/alimentazione')} etichetta="Alimentazione: il diario dei pasti e la foto del piatto" scala={0.985} style={riempi ? { flex: 1 } : undefined}>
+      <View style={[stili.agente, { backgroundColor: p.carta, borderColor: p.linea, boxShadow: p.ombra }, riempi && { flex: 1 }]}>
+        <LinearGradient colors={ORTO} style={stili.agenteIcona}>
+          <Icona nome="piatto" size={26} colore="#fff" />
+        </LinearGradient>
+        <View style={{ flex: 1, gap: 3 }}>
+          <Text style={[stili.agenteTitolo, { color: p.testo }]}>Alimentazione</Text>
+          <Text style={[stili.agenteTesto, { color: p.testoSecondario }]}>Il diario dei pasti, la foto del piatto che diventa calorie e i consigli per il tuo allenamento.</Text>
         </View>
         <Icona nome="avanti" size={18} colore={p.testoTerzo} />
       </View>
@@ -227,6 +246,10 @@ export function Schede() {
 
       <Entra indice={1} style={largo ? { flex: 1 } : undefined}>
         <CartaCalorie riempi={largo} />
+      </Entra>
+
+      <Entra indice={1} style={largo ? { flex: 1 } : undefined}>
+        <CartaAlimentazione riempi={largo} />
       </Entra>
 
       <Entra indice={1} style={largo ? { flex: 1 } : undefined}>
