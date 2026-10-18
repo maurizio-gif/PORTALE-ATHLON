@@ -33,6 +33,20 @@
         })
       }
     </script>
+    <script>
+      // L'avvio animato (src/features/lab/avvio/mostra.ts) parte da un fondo scuro: se sta per
+      // partire, anche la pagina prima che il codice giri lo e' gia', e non c'e' un lampo
+      // di grigio chiaro. Le stesse regole di mostra.ts (una volta per scheda, non nelle
+      // pagine pubbliche, non nei ritorni da altri siti, non in vista cliente): se qui si sbaglia,
+      // l'effetto e' solo un fondo scuro per un istante, mai un avvio che non parte.
+      try {
+        var avvioPubblica = /^\/(r|richiesta)(\/|$)/.test(location.pathname)
+        var avvioRitorno = /[?&](code|state|error|come)=/.test(location.search)
+        if (!avvioPubblica && !avvioRitorno && !sessionStorage.getItem('athlon_avvio_mostrato') && !sessionStorage.getItem('athlon_vista_come')) {
+          document.documentElement.setAttribute('data-avvio', '1')
+        }
+      } catch (e) {}
+    </script>
     <meta name="robots" content="noindex" />
     <!-- The `react-native-web` recommended style reset: https://necolas.github.io/react-native-web/docs/setup/#root-element -->
     <style id="expo-reset">
@@ -73,6 +87,10 @@
         body {
           background-color: #050506;
         }
+      }
+      html[data-avvio],
+      html[data-avvio] body {
+        background-color: #0e0f11 !important;
       }
     </style>
   </head>
