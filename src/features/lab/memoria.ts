@@ -1,5 +1,6 @@
 import { esci } from '@/api/lab'
 
+import { svuotaCarrello } from './shop/carrello'
 import { memoria as memoriaTv } from './tv/comune'
 import { dimenticaLaVista } from './vista'
 
@@ -53,6 +54,8 @@ export function dimentica() {
 /** Esce dal laboratorio e svuota la memoria (anche quella di Athlon TV). Uscendo cade anche la vista cliente: al prossimo accesso si riparte dall'app di sempre. */
 export async function esciDalLaboratorio() {
   dimentica()
+  // Il carrello dello shop e' di chi c'era: sul web sta nella scheda del browser, e un dispositivo condiviso non lo deve passare al prossimo.
+  svuotaCarrello()
   dimenticaLaVista()
   memoriaTv.vetrine = null
   memoriaTv.video.clear()
