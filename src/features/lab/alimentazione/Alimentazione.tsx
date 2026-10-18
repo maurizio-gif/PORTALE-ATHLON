@@ -276,7 +276,7 @@ function Diario({ profilo, onProfilo, onRevocato }: { profilo: Profilo; onProfil
   const mancaCorpo =
     corpo.stato === 'mancano-dati'
       ? corpo.motivo === 'misure'
-        ? 'Per il consumo stimato servono peso e altezza: li aggiungi in «I tuoi dati».'
+        ? 'Per il consumo stimato servono peso e altezza: li aggiungi in «Il tuo corpo».'
         : corpo.motivo === 'sesso'
           ? 'Per il consumo stimato serve sapere se calcolare come uomo o come donna: lo scegli in una scheda di allenamento.'
           : 'Per il consumo stimato manca la data di nascita nella tua scheda del club.'
