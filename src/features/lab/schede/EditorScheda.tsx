@@ -412,7 +412,7 @@ export function EditorScheda() {
       {errore ? <Messaggio>{errore}</Messaggio> : null}
       <Pulsante testo={id ? 'Salva le modifiche' : 'Salva la scheda'} icona="spunta" inCorso={salvando} onPress={salva} />
       <Text style={[stili.avvertenza, { color: p.testoTerzo }]}>
-        È una scheda tua: i trainer non la vedono nel pannello del club, e non sostituisce il parere di un istruttore. Con dolori o infortuni parlane prima con un istruttore in sala.
+        È una scheda tua, ma i trainer del club la possono vedere dal pannello, per verificarla e aiutarti a seguirla. Non sostituisce il parere di un istruttore: con dolori o infortuni parlane prima con un istruttore in sala.
       </Text>
 
       <SceltaEsercizio

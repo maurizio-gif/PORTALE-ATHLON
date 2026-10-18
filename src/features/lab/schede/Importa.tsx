@@ -139,7 +139,7 @@ export function Importa() {
 
       <Text style={[stili.avvertenza, { color: p.testoTerzo }]}>
         La foto o il PDF vengono letti da un servizio di intelligenza artificiale, solo per riconoscere gli esercizi, e non vengono conservati: restano soltanto gli esercizi che confermi tu.
-        Meglio non includere dati che non servono, come nomi e telefoni. Una lettura automatica può sbagliare: prima di salvare la controlli sempre.
+        Meglio non includere dati che non servono, come nomi e telefoni. Una lettura automatica può sbagliare: prima di salvare la controlli sempre. La scheda che salvi la possono vedere i trainer del club.
       </Text>
     </Schermata>
   )

@@ -165,8 +165,9 @@ raggiungere, nessuna frase che dica a una persona quanto deve mangiare.
 lo mette qui e lo usa come le altre schede. Funzione, tabelle e limiti sono nel `CLAUDE.md` di APP-ATHLON.
 
 - **Una scheda `tipo = 'socio'`** (nome `La tua`, etichetta e sfumatura sue), con «Modifica la scheda» ed «Elimina la scheda» in
-  `Scheda.tsx`. Togliere una scheda la ritira e chiede conferma; le sedute fatte restano. **Il CRM non la vede**, e l'app lo dice
-  in fondo all'editor («i trainer non la vedono nel pannello del club»).
+  `Scheda.tsx`. Togliere una scheda la ritira e chiede conferma; le sedute fatte restano. **I trainer del club la vedono dal CRM,
+  in sola lettura** (richiesta del club: chi porta un piano suo va verificato), e l'app lo dice al socio: nella scheda, in fondo
+  all'editor e sotto l'avvertenza dell'importazione. Se cambia, cambiano tutti e tre i testi.
 - **L'editor è lo stesso per tre strade** (`EditorScheda.tsx`): scheda nuova, scheda esistente (`?id=`), bozza dell'importazione
   (`?da=bozza`). Salva con `salvaSchedaMia`, e l'`origine` (`importata` se viene da una bozza, `creata` altrimenti) la manda solo
   alla prima volta: in modifica non si cambia. Le validazioni (giorni vuoti, titolo) sono qui e **anche nella funzione**.

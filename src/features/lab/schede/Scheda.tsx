@@ -176,7 +176,7 @@ export function Scheda() {
         {s.descrizione ? <Text style={[stili.nota, { color: p.testoSecondario }]}>{s.descrizione}</Text> : null}
         {s.tipo === 'socio' ? (
           <Text style={[stili.piccola, { color: p.testoTerzo }]}>
-            È una scheda tua: la vedi solo tu. Non sostituisce il parere di un istruttore: con dolori o infortuni chiedi in sala.
+            È una scheda tua, ma i trainer del club la possono vedere dal pannello, per verificarla e aiutarti a seguirla. Non sostituisce il parere di un istruttore: con dolori o infortuni chiedi in sala.
           </Text>
         ) : null}
         {s.tipo === 'ai' ? (
