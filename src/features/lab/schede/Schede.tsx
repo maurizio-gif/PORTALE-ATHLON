@@ -27,7 +27,8 @@ import { etichettaPiano, giorniAlTest, giornoTest, LIVELLI, quando, testDaRifare
 // Athlon Health System (19/10/2026, era Workout, poi Fit): sotto il titolo la
 // ruota Train, Food, Relax (fit/Ruota.tsx) e il tuo corpo (fit/Corpo.tsx); poi l'introduzione (cosa si fa e cosa
 // vogliono dire i numeri) e il Balance; sotto, le aree da scegliere (due, tre dove i dispositivi sono aperti).
-//   - Train: il test dei massimali, il contatore delle calorie,
+//   - Train: il test dei massimali, il contatore delle calorie, il Percorso Athlon (la settimana a tappe:
+//     non e' un piano di allenamento, vedi `percorso/`),
 //     le origini di un piano (l'agente AI, l'importazione del proprio, i piani
 //     consigliati dal club, in un carosello orizzontale filtrabile per
 //     obiettivo) e, quarta, farsi seguire da un personal trainer (porta alla
@@ -80,6 +81,35 @@ function PianoClub({ s, larghezza }: { s: RigaSchedaLab; larghezza: number }) {
 }
 
 /** Il contatore delle calorie: gli allenamenti chiusi e le lezioni con la presenza. */
+/**
+ * Il Percorso Athlon (20/10/2026): il tutor tecnico della settimana. **Non e' un piano di allenamento**, e la
+ * carta lo dice in una riga: il piano sono gli esercizi di un allenamento in sala, il percorso e' la settimana
+ * intera (sala, cardio, lezioni, acqua) e usa i piani come tappe di sala. Sta sopra le origini di un piano
+ * perche' e' un'altra cosa: non produce un piano da modificare, compone la settimana.
+ */
+function CartaPercorso() {
+  const p = usePalette()
+  return (
+    <Tocco onPress={() => router.push('/allenamento/percorso')} etichetta="Percorso Athlon: il tutor tecnico della tua settimana" scala={0.985}>
+      <LinearGradient colors={NOTTE} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={stili.percorso}>
+        <View style={stili.percorsoRiga}>
+          <LinearGradient colors={FUOCO} style={stili.agenteIcona}>
+            <Icona nome="calendario" size={26} colore="#fff" />
+          </LinearGradient>
+          <View style={{ flex: 1, gap: 3 }}>
+            <Text style={stili.percorsoTitolo}>Percorso Athlon</Text>
+            <Text style={stili.percorsoTesto}>Il tutor tecnico della tua settimana: sala, lezioni e acqua, insieme.</Text>
+          </View>
+          <Icona nome="avanti" size={18} colore="rgba(255,255,255,0.6)" />
+        </View>
+        <Text style={[stili.percorsoNota, { color: p.scuro ? 'rgba(255,255,255,0.7)' : 'rgba(255,255,255,0.72)' }]}>
+          Non è un piano di allenamento: il piano sono gli esercizi in sala, il percorso è la settimana intera e usa i tuoi piani come tappe.
+        </Text>
+      </LinearGradient>
+    </Tocco>
+  )
+}
+
 function CartaCalorie({ riempi = false }: { riempi?: boolean }) {
   const p = usePalette()
   return (
@@ -326,6 +356,10 @@ function Train({ dati, largo }: { dati: Dati; largo: boolean }) {
         </Entra>
       </View>
 
+      <Entra indice={2}>
+        <CartaPercorso />
+      </Entra>
+
       <Sezione titolo="Crea il tuo piano di allenamento">
         <Text style={[stili.nota, { color: p.testoSecondario }]}>
           Scegli da dove partire. Che sia l’AI, un tuo piano o uno del club, lo puoi modificare e, quando lo confermi, lo trovi fra i tuoi piani.
@@ -482,6 +516,11 @@ const stili = StyleSheet.create({
   agenteIcona: { width: 52, height: 52, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
   agenteTitolo: { fontFamily: F.extra, fontSize: 16.5, letterSpacing: -0.3 },
   agenteTesto: { fontFamily: F.medio, fontSize: 13.5, lineHeight: 19 },
+  percorso: { borderRadius: 26, padding: spazio.tre + 2, gap: spazio.tre },
+  percorsoRiga: { flexDirection: 'row', alignItems: 'center', gap: spazio.tre },
+  percorsoTitolo: { color: '#fff', fontFamily: F.extra, fontSize: 17.5, letterSpacing: -0.3 },
+  percorsoTesto: { color: 'rgba(255,255,255,0.88)', fontFamily: F.medio, fontSize: 13.5, lineHeight: 19 },
+  percorsoNota: { fontFamily: F.medio, fontSize: 12.5, lineHeight: 18 },
   scheda: { borderRadius: 28, padding: spazio.tre + 4, gap: spazio.due, overflow: 'hidden', minHeight: 170 },
   filigrana: { position: 'absolute', right: -14, bottom: -18, transform: [{ rotate: '-12deg' }] },
   titolo: { color: '#fff', fontFamily: F.extra, fontSize: 24, lineHeight: 28, letterSpacing: -0.7, maxWidth: '88%' },

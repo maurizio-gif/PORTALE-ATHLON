@@ -1,18 +1,14 @@
 import { Image } from 'expo-image'
 import { LinearGradient } from 'expo-linear-gradient'
-import { router, useLocalSearchParams } from 'expo-router'
+import { useLocalSearchParams } from 'expo-router'
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { ActivityIndicator, Linking, Platform, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native'
+import { ActivityIndicator, Platform, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native'
 import type Animated from 'react-native-reanimated'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import {
-  acquistaLezione,
-  disdiciLezione,
   esitoAcquistoLezione,
   leggiGiorno,
-  pagaLezioneConCarta,
-  prenotaLezione,
   type DaPagare,
   type EsitoAcquisto,
   type Giorno,
@@ -35,6 +31,7 @@ import { Schermata } from './ui/Schermata'
 import { SceltaPrenotazioni } from './ui/SceltaPrenotazioni'
 import { F, FUOCO, NOTTE, usePalette, velo } from './ui/tema'
 import { colpetto, Tocco } from './ui/Tocco'
+import { usePrenotazioneLezione } from './usePrenotazioneLezione'
 
 // Il calendario del laboratorio: le lezioni di gruppo di oggi e dei tre giorni
 // dopo, e la prenotazione vera su PerfectGym, per se' o per un figlio.
@@ -137,7 +134,8 @@ function Copertina({ l, scheda, onScheda }: { l: Lezione; scheda: SchedaLezione 
   )
 }
 
-type PropsLezione = {
+/** Cio' che serve ai pulsanti di una lezione: li usa anche il Percorso Athlon (`percorso/Percorso.tsx`). */
+export type PropsLezione = {
   l: Lezione
   scheda: SchedaLezione | null
   onScheda: () => void
@@ -154,7 +152,7 @@ type PropsLezione = {
  * lezione non e' compresa, e i motivi per cui non si prenota. Li usano la card
  * della lezione e la griglia dei turni della Gym Floor.
  */
-function AzioniLezione({
+export function AzioniLezione({
   l,
   scheda,
   onScheda,
@@ -667,7 +665,6 @@ function CalendarioGiorno() {
   const [giorno, setGiorno] = useState<Giorno | null>(inMemoria<{ ok: true; giorno: Giorno }>('giorno::')?.giorno ?? null)
   const [errore, setErrore] = useState<string | null>(null)
   const [carica, setCarica] = useState(true)
-  const [occupato, setOccupato] = useState(false)
   // La categoria scelta (Corsi Fitness, Group Reformer, …) resta passando da
   // un giorno all'altro: chi cerca il Reformer lo cerca in tutta la settimana.
   const [attivita, setAttivita] = useState<string | null>(null)
@@ -776,52 +773,20 @@ function CalendarioGiorno() {
     })
   }
 
-  async function prenota(l: Lezione): Promise<({ errore: string } & Partial<DaPagare>) | null> {
-    if (!giorno) return null
-    setOccupato(true)
-    const esito = await prenotaLezione(l.class_id, giorno.member_id)
-    setOccupato(false)
-    if (!esito.ok) return esito
-    aggiorna(l.class_id, { booking_id: esito.booking_id ?? 0, attesa: esito.esito === 'attesa' }, esito.esito === 'attesa' ? 0 : 1, esito.esito === 'attesa' ? 1 : 0)
-    return null
-  }
-
-  /** Alla pagina di pagamento di PerfectGym; si torna qui con ?acquisto=<id>. */
-  async function acquista(l: Lezione, pronto?: string): Promise<string | null> {
-    if (!giorno) return null
-    let url = pronto
-    if (!url) {
-      setOccupato(true)
-      const r = await acquistaLezione(l.class_id, giorno.member_id)
-      setOccupato(false)
-      if (!r.ok) return r.errore
-      url = r.url
-    }
-    if (Platform.OS === 'web') window.location.assign(url)
-    else await Linking.openURL(url)
-    return null
-  }
-
-  /** Con la carta salvata: l'addebito, poi l'esito come al ritorno dal pagamento. */
-  async function pagaCarta(acquistoId: string): Promise<string | null> {
-    setOccupato(true)
-    const r = await pagaLezioneConCarta(acquistoId)
-    setOccupato(false)
-    if (!r.ok) return r.errore
-    if (Platform.OS === 'web') window.location.assign(`/calendario?acquisto=${acquistoId}`)
-    else router.replace({ pathname: '/calendario', params: { acquisto: acquistoId } })
-    return null
-  }
-
-  async function disdici(l: Lezione): Promise<string | null> {
-    if (!giorno) return null
-    setOccupato(true)
-    const esito = await disdiciLezione(l.class_id, giorno.member_id)
-    setOccupato(false)
-    if (!esito.ok) return esito.errore
-    aggiorna(l.class_id, null, l.prenotazione?.attesa ? 0 : -1, l.prenotazione?.attesa ? -1 : 0)
-    return null
-  }
+  // Prenotare, disdire e pagare stanno in `usePrenotazioneLezione`: li fa anche il Percorso Athlon dalle sue tappe.
+  const {
+    occupato,
+    prenota: prenotaClasse,
+    acquista: acquistaClasse,
+    pagaCarta,
+    disdici: disdiciClasse,
+  } = usePrenotazioneLezione(giorno?.member_id, {
+    prenotata: (id, b) => aggiorna(id, b, b.attesa ? 0 : 1, b.attesa ? 1 : 0),
+    disdetta: (id, inAttesa) => aggiorna(id, null, inAttesa ? 0 : -1, inAttesa ? -1 : 0),
+  })
+  const prenota = (l: Lezione) => prenotaClasse(l.class_id)
+  const acquista = (l: Lezione, pronto?: string) => acquistaClasse(l.class_id, pronto)
+  const disdici = (l: Lezione) => disdiciClasse(l.class_id, !!l.prenotazione?.attesa)
 
   if (errore && !giorno) {
     return (

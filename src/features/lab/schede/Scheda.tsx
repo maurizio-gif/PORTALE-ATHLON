@@ -113,11 +113,15 @@ function FoglioEsercizio({ e, precedente, massimali, onChiudi }: { e: EsercizioS
 
 export function Scheda() {
   const p = usePalette()
-  const { scheda: id } = useLocalSearchParams<{ scheda: string }>()
+  // `?giorno=<posizione>`: il Percorso Athlon apre il piano sul giorno della tappa (la posizione, da 1, non l'id: gli id cambiano a ogni modifica).
+  const { scheda: id, giorno: giornoDelPercorso } = useLocalSearchParams<{ scheda: string; giorno?: string }>()
   const chiave = `schede:${id}`
   const [dati, setDati] = useState<Dati | null>(() => inMemoria<Dati>(chiave) ?? null)
   const [errore, setErrore] = useState<string | null>(null)
-  const [giorno, setGiorno] = useState(0)
+  const [giorno, setGiorno] = useState(() => {
+    const n = Number(giornoDelPercorso)
+    return Number.isInteger(n) && n >= 1 ? n - 1 : 0
+  })
   const [aperto, setAperto] = useState<EsercizioScheda | null>(null)
   const [confermo, setConfermo] = useState(false)
   const [eliminando, setEliminando] = useState(false)

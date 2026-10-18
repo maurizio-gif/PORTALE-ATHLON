@@ -7,6 +7,7 @@ import { chiediSchedaAi, type Questionario } from '@/api/lab'
 import { spazio } from '@/theme'
 
 import { mettiBozza, scartaBozza } from './bozza'
+import { Scelte } from '../ui/Campi'
 import { Icona } from '../ui/Icona'
 import { Carta, Messaggio, Pulsante, Sezione } from '../ui/kit'
 import { Schermata } from '../ui/Schermata'
@@ -38,29 +39,6 @@ const ATTESA = [
   'Divide il lavoro fra i giorni…',
   'Ancora qualche secondo…',
 ]
-
-function Scelte<T extends string | number>({ valori, scelto, onScegli }: { valori: { valore: T; testo: string }[]; scelto: T | null; onScegli: (v: T) => void }) {
-  const p = usePalette()
-  return (
-    <View style={stili.scelte}>
-      {valori.map((v) => {
-        const attivo = v.valore === scelto
-        return (
-          <Tocco
-            key={String(v.valore)}
-            vibra="scelta"
-            stato={{ selected: attivo }}
-            onPress={() => onScegli(v.valore)}
-            etichetta={v.testo}
-            style={[stili.scelta, { backgroundColor: attivo ? p.accento : p.carta, borderColor: attivo ? p.accento : p.linea }]}
-          >
-            <Text style={{ color: attivo ? '#fff' : p.testo, fontFamily: attivo ? F.extra : F.semi, fontSize: 14.5 }}>{v.testo}</Text>
-          </Tocco>
-        )
-      })}
-    </View>
-  )
-}
 
 export function Agente() {
   const p = usePalette()
@@ -184,8 +162,6 @@ export function Agente() {
 }
 
 const stili = StyleSheet.create({
-  scelte: { flexDirection: 'row', flexWrap: 'wrap', gap: spazio.due },
-  scelta: { borderRadius: 999, paddingVertical: 10, paddingHorizontal: spazio.tre + 2, borderWidth: StyleSheet.hairlineWidth },
   livello: { borderRadius: 20, padding: spazio.tre + 2, borderWidth: StyleSheet.hairlineWidth, gap: 2 },
   testo: { minHeight: 70, borderRadius: 14, padding: spazio.tre, fontFamily: F.medio, fontSize: 14.5, textAlignVertical: 'top' },
   avvertenza: { fontFamily: F.medio, fontSize: 12.5, lineHeight: 18, textAlign: 'center' },
