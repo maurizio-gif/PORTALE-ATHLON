@@ -891,6 +891,8 @@ export async function chiediPianoNuoto(questionario: QuestionarioNuoto): Promise
   const { ok, dati } = await schedeLab({ azione: 'chiedi_nuoto', questionario })
   if (ok) return { ok: true, bozza: { ...dati.bozza, origine: 'ai' } }
   // Le frasi della funzione sono scritte per il socio: il piano di nuoto non ancora attivo, la regola del Nuoto Libero, la quota.
+  // Una funzione pubblicata prima del piano di nuoto non conosce l'azione: per il socio e' la stessa cosa del workflow spento.
+  if (dati.errore === 'Azione sconosciuta.') return { ok: false, errore: 'Il piano di nuoto non è ancora attivo: puoi scriverlo tu.' }
   return { ok: false, errore: dati.errore ?? 'L’agente non è riuscito a scrivere il piano di nuoto adesso. Riprova fra qualche minuto.' }
 }
 
