@@ -38,12 +38,17 @@ export function bmi(pesoKg: number | null | undefined, altezzaCm: number | null 
   return Math.round((pesoKg / (m * m)) * 10) / 10
 }
 
-/** Le fasce dell'OMS per gli adulti. */
+/**
+ * Le fasce dell'OMS per gli adulti (le soglie), con parole morbide **di proposito**: il club non vuole
+ * che un socio legga «Sovrappeso» o «Obesità» sul telefono. Niente giudizio, solo dove cade il numero
+ * rispetto all'equilibrio. Stanno in una casella da una riga: non allungarle oltre 72 pt (11,5 pt
+ * SemiBold), o sui telefoni stretti si troncano.
+ */
 export function fasciaBmi(v: number): { nome: string; tono: ToniTutti } {
-  if (v < 18.5) return { nome: 'Sottopeso', tono: 'blu' }
-  if (v < 25) return { nome: 'Normopeso', tono: 'ok' }
-  if (v < 30) return { nome: 'Sovrappeso', tono: 'attenzione' }
-  return { nome: 'Obesità', tono: 'errore' }
+  if (v < 18.5) return { nome: 'Leggero', tono: 'blu' }
+  if (v < 25) return { nome: 'Equilibrio', tono: 'ok' }
+  if (v < 30) return { nome: 'Un po’ sopra', tono: 'attenzione' }
+  return { nome: 'Da bilanciare', tono: 'errore' }
 }
 
 /** L'altezza piu' recente fino a quella misurazione (si scrive di rado). */
