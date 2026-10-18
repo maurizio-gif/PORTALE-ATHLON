@@ -31,7 +31,7 @@ import { riconosci, stimaLezione, type StimaLezione } from './stimaCorso'
 // di mezzo.
 
 type Corpo = { kg: number; cm: number; anni: number; sesso: NonNullable<Sesso> }
-type StatoCorpo =
+export type StatoCorpo =
   | { stato: 'no' }
   | { stato: 'attesa' }
   | { stato: 'mancano-dati'; motivo: 'misure' | 'eta' | 'sesso' }
@@ -39,10 +39,13 @@ type StatoCorpo =
 
 const ContestoCorpo = createContext<StatoCorpo>({ stato: 'no' })
 
-/** Sta sopra il calendario: legge i dati del socio una volta sola e li da' a ogni lezione. */
-export function CorpoPerLezioni({ children }: { children: ReactNode }) {
+/**
+ * I dati del socio per una stima delle calorie, o cosa manca: peso, altezza, eta'
+ * e sesso, tutti e quattro, e la maggiore eta'. La usano le lezioni e il contatore.
+ */
+export function useStatoCorpo(): StatoCorpo {
   const { anagrafica, anagraficaLetta, misure, sesso } = useCorpo(false)
-  const valore = useMemo<StatoCorpo>(() => {
+  return useMemo<StatoCorpo>(() => {
     if (!misure || !anagraficaLetta) return { stato: 'attesa' }
     const ultimoPeso = [...misure].reverse().find((m) => m.peso_kg != null) ?? null
     const cm = misure.length ? altezzaAl(misure, misure.length - 1) : null
@@ -55,7 +58,11 @@ export function CorpoPerLezioni({ children }: { children: ReactNode }) {
     if (!sesso) return { stato: 'mancano-dati', motivo: 'sesso' }
     return { stato: 'ok', corpo: { kg: ultimoPeso.peso_kg, cm, anni, sesso } }
   }, [anagrafica, anagraficaLetta, misure, sesso])
-  return <ContestoCorpo.Provider value={valore}>{children}</ContestoCorpo.Provider>
+}
+
+/** Sta sopra il calendario: legge i dati del socio una volta sola e li da' a ogni lezione. */
+export function CorpoPerLezioni({ children }: { children: ReactNode }) {
+  return <ContestoCorpo.Provider value={useStatoCorpo()}>{children}</ContestoCorpo.Provider>
 }
 
 const intero = (n: number) => Math.round(n).toLocaleString('it-IT')
