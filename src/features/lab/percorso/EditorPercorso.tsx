@@ -2,7 +2,7 @@ import { router, useLocalSearchParams } from 'expo-router'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { StyleSheet, Text, TextInput, useWindowDimensions, View } from 'react-native'
 
-import { leggiCatalogo, salvaPercorso, type Catalogo, type GiornoSettimana, type PercorsoBozza, type Tappa } from '@/api/percorso'
+import { leggiCatalogo, salvaPercorso, type Affollamento, type Catalogo, type GiornoSettimana, type PercorsoBozza, type SlotRicorrente, type Tappa } from '@/api/percorso'
 import { LARGO } from '@/components/Pagina'
 import { spazio } from '@/theme'
 
@@ -13,7 +13,8 @@ import { F, usePalette } from '../ui/tema'
 import { colpetto, Tocco } from '../ui/Tocco'
 import { Icona } from '../ui/Icona'
 import { leggiBozzaPercorso, scartaBozzaPercorso } from './bozzaPercorso'
-import { CHIAVE_CATALOGO_PERCORSO, ETICHETTA_TIPO, fasciaOraria, GIORNI, NOME_GIORNO, rinumera, tappeDelGiorno, titoloTappa } from './comune'
+import { alternativePerTappa, slotDiTappa, spessoCompleta, tappaDaSlot, type Suggerimento } from './affollamento'
+import { CHIAVE_CATALOGO_PERCORSO, ETICHETTA_TIPO, fasciaOraria, GIORNI, GIORNO_BREVE, NOME_GIORNO, rinumera, tappeDelGiorno, titoloTappa } from './comune'
 import { controllaTappe, ricalcolaAncorate } from './controllo'
 import { PannelloEffetti } from './Effetti'
 import { calcolaEffetti } from './effetti'
@@ -102,6 +103,17 @@ export function EditorPercorso() {
 
   const giorniAttivi = GIORNI.filter((g) => tappe.some((t) => t.giorno === g))
 
+  // Le lezioni che nelle ultime settimane hanno spesso chiuso al completo, con le alternative: servono il catalogo
+  // (che porta lo storico) e, per non proporre quello che il socio evita, le sue preferenze.
+  const evitate = bozza.preferenze.evitate ?? []
+  const avvisi = new Map<Tappa, { affollamento: Affollamento; alternative: Suggerimento[] }>()
+  if (catalogo) {
+    for (const t of tappe) {
+      const slot = t.tipo === 'lezione' ? slotDiTappa(t, catalogo.slot) : null
+      if (slot?.affollamento && spessoCompleta(slot.affollamento)) avvisi.set(t, { affollamento: slot.affollamento, alternative: alternativePerTappa(t, catalogo.slot, tappe.filter((x) => x !== t), evitate) })
+    }
+  }
+
   function metti(nuove: Tappa[]) {
     setErrore(null)
     setBozza((b) => (b ? { ...b, tappe: nuove } : b))
@@ -116,6 +128,16 @@ export function EditorPercorso() {
     metti(rinumera(ricalcolaAncorate([...altre, senzaPerche])))
     colpetto('scelta')
     setFoglio(null)
+  }
+
+  /** Mette una lezione del catalogo al posto di una tappa spesso al completo: la tappa resta dov'e' e le ancore (il cardio) la seguono, se il giorno non cambia. */
+  function sostituisci(vecchia: Tappa, slot: SlotRicorrente) {
+    const stessoGiorno = slot.giorno === vecchia.giorno
+    const nuova = tappaDaSlot(slot, stessoGiorno ? vecchia.ordine : 9999)
+    // Lo stesso tipo di lezione in un altro orario tiene la frase del tutor; un altro tipo no: quella frase parlava d'altro.
+    const conPerche: Tappa = { ...nuova, perche: sonoLaStessa(vecchia, nuova) ? vecchia.perche : null }
+    metti(rinumera(ricalcolaAncorate([...tappe.filter((t) => t !== vecchia), conPerche])))
+    colpetto('scelta')
   }
 
   function togli(t: Tappa) {
@@ -190,7 +212,7 @@ export function EditorPercorso() {
                   </View>
                 </Entra>
                 {delGiorno.map((t) => (
-                  <RigaTappa key={`${t.giorno}-${t.ordine}`} t={t} onCambia={() => setFoglio({ giorno: g, tappa: t })} onTogli={() => togli(t)} />
+                  <RigaTappa key={`${t.giorno}-${t.ordine}`} t={t} avviso={avvisi.get(t)} onSostituisci={(slot) => sostituisci(t, slot)} onCambia={() => setFoglio({ giorno: g, tappa: t })} onTogli={() => togli(t)} />
                 ))}
               </View>
             )
@@ -266,7 +288,20 @@ function sonoLaStessa(a: Tappa, b: Tappa): boolean {
   return a.cardio?.esercizio_id === b.cardio?.esercizio_id
 }
 
-function RigaTappa({ t, onCambia, onTogli }: { t: Tappa; onCambia: () => void; onTogli: () => void }) {
+function RigaTappa({
+  t,
+  avviso,
+  onSostituisci,
+  onCambia,
+  onTogli,
+}: {
+  t: Tappa
+  /** Se la lezione ha spesso chiuso al completo: com'e' andata, e cosa si puo' mettere al suo posto. */
+  avviso?: { affollamento: Affollamento; alternative: Suggerimento[] }
+  onSostituisci: (slot: SlotRicorrente) => void
+  onCambia: () => void
+  onTogli: () => void
+}) {
   const p = usePalette()
   return (
     <Carta piatta style={{ gap: spazio.due, padding: spazio.tre }}>
@@ -279,6 +314,33 @@ function RigaTappa({ t, onCambia, onTogli }: { t: Tappa; onCambia: () => void; o
       </View>
       {t.perche ? <Text style={[stili.perche, { color: p.testoSecondario }]}>{t.perche}</Text> : null}
       {t.tipo === 'sala' && t.sala?.disponibile === false ? <Messaggio tono="attenzione">Il piano di questa tappa non c’è più: cambiala.</Messaggio> : null}
+      {avviso ? (
+        <View style={[stili.avviso, { backgroundColor: p.incavo }]}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+            <Icona nome="clessidra" size={15} colore={p.attenzione} />
+            <Text style={[stili.avvisoTitolo, { color: p.testo }]}>Spesso al completo</Text>
+          </View>
+          <Text style={[stili.nota, { color: p.testoSecondario }]}>
+            {`Nelle ultime quattro settimane questo orario ha chiuso con tutti i posti presi ${avviso.affollamento.piene} volte su ${avviso.affollamento.osservate}. I posti si prenotano da tre giorni prima: conviene farlo appena si aprono${avviso.alternative.length ? ', oppure scegliere un orario con più posto:' : '.'}`}
+          </Text>
+          {avviso.alternative.map(({ slot, tipo }) => (
+            <Tocco
+              key={slot.id}
+              onPress={() => onSostituisci(slot)}
+              etichetta={`Metti ${slot.nome} di ${NOME_GIORNO[slot.giorno]} alle ${slot.ora} al posto di ${titoloTappa(t)}`}
+              style={[stili.suggerimento, { backgroundColor: p.carta, borderColor: p.linea }]}
+            >
+              <View style={{ flex: 1, gap: 1 }}>
+                <Text style={{ color: p.testo, fontFamily: F.bold, fontSize: 14 }}>{`${GIORNO_BREVE[slot.giorno]} ${slot.ora} · ${slot.nome}${tipo === 'simile' ? ' (simile)' : ''}`}</Text>
+                <Text style={{ color: p.testoSecondario, fontFamily: F.medio, fontSize: 12.5 }}>
+                  {slot.affollamento ? `Al completo ${slot.affollamento.piene} ${slot.affollamento.piene === 1 ? 'volta' : 'volte'} su ${slot.affollamento.osservate}` : 'Di questo orario non abbiamo lo storico'}
+                </Text>
+              </View>
+              <Text style={{ color: p.accento, fontFamily: F.bold, fontSize: 13.5 }}>Metti questa</Text>
+            </Tocco>
+          ))}
+        </View>
+      ) : null}
       <View style={stili.azioni}>
         <Tocco onPress={onCambia} etichetta={`Cambia ${titoloTappa(t)}`} style={[stili.azione, { backgroundColor: p.incavo }]}>
           <Icona nome="modifica" size={15} colore={p.testo} />
@@ -305,6 +367,9 @@ const stili = StyleSheet.create({
   titolo: { fontFamily: F.extra, fontSize: 16, letterSpacing: -0.3 },
   perche: { fontFamily: F.medio, fontSize: 13, lineHeight: 18, fontStyle: 'italic' },
   azioni: { flexDirection: 'row', gap: spazio.due },
+  avviso: { borderRadius: 14, padding: spazio.tre, gap: spazio.due },
+  avvisoTitolo: { fontFamily: F.bold, fontSize: 14 },
+  suggerimento: { flexDirection: 'row', alignItems: 'center', gap: spazio.tre, borderRadius: 12, borderWidth: StyleSheet.hairlineWidth, paddingVertical: 9, paddingHorizontal: spazio.tre },
   azione: { flexDirection: 'row', alignItems: 'center', gap: 6, borderRadius: 12, paddingVertical: 8, paddingHorizontal: 12 },
   azioneTesto: { fontFamily: F.bold, fontSize: 13.5 },
 })

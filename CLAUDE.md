@@ -320,10 +320,27 @@ server sono nel `CLAUDE.md` di APP-ATHLON (`portale-lab-percorso`, migrazione `2
   lettura, `useSettimana`) lo trasforma, per una settimana precisa, nella lezione di quel martedì con i posti, la prenotazione del socio (letta
   da PerfectGym e non dal mirror: dopo un clic il mirror è indietro), quando si apre e se il limite delle prenotazioni la blocca. Si vedono questa
   settimana e la prossima: la prenotazione si apre tre giorni prima.
-- **Tre cose possono succedere a una lezione, e `TappaCarta` le dice tutte e tre**: c'è e si prenota; **questa settimana non c'è** (il
-  palinsesto cambia a inizio mese) e si propongono le tre più vicine dello stesso tipo; c'è ma il limite della categoria è pieno **per colpa di
+- **Quattro cose possono succedere a una lezione, e `TappaCarta` le dice tutte**: c'è e si prenota; **è al completo** (vedi sotto); **questa settimana non c'è** (il
+  palinsesto cambia a inizio mese) e si propongono le tre più vicine, prima quelle con posti; c'è ma il limite della categoria è pieno **per colpa di
   un'altra lezione dello stesso percorso** («prenotabile dopo la lezione di martedì»: con una sola prenotazione attiva di Reformer alla volta è il
   caso normale, e non è un rifiuto, è l'ordine in cui si prenota).
+- **Una lezione al completo ha le alternative** (20/10/2026). La tappa dice «Questa settimana è al completo», tiene il pulsante «Lista d'attesa» e sotto mostra **fino
+  a tre lezioni con posti liberi** (`alternative` di `settimana`): prima lo stesso tipo di lezione in un altro orario, poi le **simili**, segnate «lezione simile»,
+  ognuna con i suoi posti, il «Dettagli» e i pulsanti del Calendario. Se il socio ne prende una la tappa lo dice («Hai prenotato un'alternativa») e non gli offre più
+  la lista d'attesa. Il perimetro, le regole e perché lo decide il server stanno nel `CLAUDE.md` di APP-ATHLON: **l'app non sceglie le alternative**. Se il limite
+  della categoria blocca anche la lista d'attesa (conta come una prenotazione), il motivo è quello e viene prima; e una lezione che non si è ancora aperta non è
+  «al completo»: i posti si sanno solo dopo l'apertura.
+- **«Prenota la settimana» non mette in lista d'attesa da sola** (`dividi.ts`, che è pura e si prova senza schermata). Le lezioni con posti si prenotano; **quelle al
+  completo hanno la loro sezione, «Al completo»**, dove per ognuna il socio sceglie: la lista d'attesa (**resta scelta se non tocca niente**, come prima), una
+  delle alternative che si prenotano già adesso (non una non compresa, né una che aspetta l'apertura o il limite) o «Lascia stare». Una stessa alternativa non si
+  sceglie per due lezioni. La conferma è sempre una sola, e alla fine dice «Al posto di Group Reformer di lun 19 ott, che è al completo». Una lezione piena che il
+  socio ha già sostituito sta fra le «Già prenotate».
+- **Nell'editor, «Spesso al completo»** (`affollamento.ts`): una lezione il cui slot ha chiuso al completo da metà delle volte in su (almeno tre osservate) porta un
+  avviso — «nelle ultime quattro settimane questo orario ha chiuso con tutti i posti presi 4 volte su 4; i posti si prenotano da tre giorni prima» — e fino a
+  due alternative con meno attesa, che si mettono con un tocco («Metti questa»). **Dice com'è andata, non come andrà**. Le alternative stanno nel catalogo che
+  l'editor già legge: stesso tipo prima, poi le simili, mai una che si sovrappone o che è già nel percorso. **Il cardio agganciato alla lezione la segue** (si rifà
+  l'orario come farà l'editor) e quindi un'alternativa di un altro giorno non si propone se la lezione ha il cardio, che resterebbe da solo. Cambiando solo l'orario la
+  frase del tutor resta; cambiando tipo di lezione no. Nell'elenco delle lezioni del foglio «Aggiungi una tappa» lo slot dice «spesso al completo».
 - **I pulsanti sono quelli del Calendario**: `AzioniLezione` (esportato da `Calendario.tsx`) e `usePrenotazioneLezione`, che è la catena
   prenota / lista d'attesa / disdici / acquista / paga con la carta **spostata** dal Calendario in un posto solo, senza cambiare comportamento. Il
   ritorno dal pagamento di PerfectGym è sempre `/calendario?acquisto=`: dal Percorso, comprare una lezione non compresa passa per il Calendario, e la

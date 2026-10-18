@@ -25,6 +25,9 @@ La carta in Train dice una riga per ciascuno, e la schermata del Percorso le rip
 - **Lo staff legge il percorso** dal CRM, in sola lettura; il questionario non si conserva e non si vede.
 - **Quali lezioni spettano a un piano** è una tabella curata (`piani_categorie`), partita dalle prenotazioni reali degli ultimi
   60 giorni e rivista dal club. È una stima, e la prenotazione vera resta il controllo.
+- **Una lezione al completo propone un'alternativa** (richiesta del club, 20/10/2026): nella settimana vera, con posti liberi — lo stesso tipo in un altro orario, poi le
+  simili —, e in «Prenota la settimana» come scelta (lista d'attesa, un'alternativa o lasciar stare). Nell'editor e per il tutor, **«spesso al completo»** da come sono andate le
+  ultime quattro settimane (i posti di una lezione futura non si sanno prima dei tre giorni).
 - **Sala: si mostrano i due turni** (con l'assistente di sala e di allenamento libero) e sceglie il socio, come nel calendario.
 - **Effetti**: la prima versione è senza i testi «cosa aspettarsi» per obiettivo: arrivano quando il Direttore Tecnico li ha validati.
 

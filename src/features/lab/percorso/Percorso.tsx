@@ -22,7 +22,8 @@ import { GIORNI, intervallo, NOME_GIORNO, tappeDelGiorno } from './comune'
 import { PannelloEffetti } from './Effetti'
 import { calcolaEffetti } from './effetti'
 import { PianoOPercorso } from './PianoOPercorso'
-import { PrenotaSettimana, dividiLaSettimana } from './PrenotaSettimana'
+import { dividiLaSettimana } from './dividi'
+import { PrenotaSettimana } from './PrenotaSettimana'
 import { TappaCarta } from './TappaCarta'
 import { invalidaPercorso, usePercorso } from './usePercorso'
 import { dimenticaGiornoCalendario, useSettimana } from './useSettimana'
@@ -166,10 +167,16 @@ function ConPercorso({ percorso, schede, vista, dopoLaModifica }: { percorso: Pe
     },
   })
 
-  const effetti = useMemo(() => calcolaEffetti(percorso.tappe, { ...schede, ...(settimana?.schede ?? {}) }, { obiettivo: percorso.obiettivo, corpo: corpo.stato === 'ok' ? corpo.corpo : null }), [percorso, schede, settimana?.schede, corpo])
+  // Le schede del sito della settimana vera (quelle delle alternative comprese) e quelle del percorso salvato.
+  const schedeDellaSettimana = useMemo(() => ({ ...schede, ...(settimana?.schede ?? {}) }), [schede, settimana?.schede])
+  const effetti = useMemo(() => calcolaEffetti(percorso.tappe, schedeDellaSettimana, { obiettivo: percorso.obiettivo, corpo: corpo.stato === 'ok' ? corpo.corpo : null }), [percorso, schedeDellaSettimana, corpo])
 
   const tappe: TappaSettimana[] = settimana?.tappe ?? []
-  const prenotabili = useMemo(() => dividiLaSettimana(tappe).adesso.length, [tappe])
+  // Quelle da decidere nel riepilogo: con posti, e quelle al completo (lista d'attesa o un'alternativa).
+  const prenotabili = useMemo(() => {
+    const g = dividiLaSettimana(tappe)
+    return g.adesso.length + g.complete.length
+  }, [tappe])
   const giorniConTappe = GIORNI.filter((g) => tappe.some((t) => t.giorno === g))
   const riposo = GIORNI.filter((g) => !giorniConTappe.includes(g))
   const giornoDi = (g: GiornoSettimana) => settimana?.giorni[g - 1]
@@ -271,7 +278,7 @@ function ConPercorso({ percorso, schede, vista, dopoLaModifica }: { percorso: Pe
                         key={`${t.giorno}-${t.ordine}`}
                         t={t}
                         delGiorno={delGiorno}
-                        scheda={t.lezione?.scheda ? (settimana.schede[t.lezione.scheda] ?? schede[t.lezione.scheda] ?? null) : null}
+                        schede={schedeDellaSettimana}
                         vista={vista}
                         azioni={azioni}
                         onScheda={setAperta}

@@ -11,6 +11,7 @@ import { Etichetta, Messaggio, Pulsante } from '../ui/kit'
 import { F, usePalette } from '../ui/tema'
 import { Tocco } from '../ui/Tocco'
 import { GIORNI, GIORNO_BREVE, minutiDaOra, NOME_GIORNO, oraDaMinuti } from './comune'
+import { spessoCompleta } from './affollamento'
 import { ORARI_SALA, problemiDellaTappa, ricalcolaAncorate, TETTI } from './controllo'
 
 // Aggiungere o cambiare una tappa del percorso, a mano (20/10/2026). Tre tappe possibili: una **lezione** (si
@@ -345,6 +346,7 @@ function Lezioni({
                   <Text style={{ color: p.testoSecondario, fontFamily: F.medio, fontSize: 12.5 }}>
                     {`${s.categoria} · ${s.minuti} min`}
                     {gia ? ' · è già nel percorso' : guai.length ? ` · si sovrappone a un’altra tappa` : ''}
+                    {spessoCompleta(s.affollamento) ? ' · spesso al completo' : ''}
                   </Text>
                 </Tocco>
               )

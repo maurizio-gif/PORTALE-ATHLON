@@ -15,7 +15,7 @@ import { ricordaSettimana } from './usePercorso'
 type Letta = { ok: true; settimana: Settimana }
 
 /** Dopo un clic la riga si aggiorna subito con quello che ha detto PerfectGym, senza rileggere la settimana. */
-function ritocca(d: DatiLezione, classId: number, prenotazione: DatiLezione['prenotazione'], delta: number, deltaAttesa: number): DatiLezione {
+function ritocca<T extends DatiLezione>(d: T, classId: number, prenotazione: DatiLezione['prenotazione'], delta: number, deltaAttesa: number): T {
   if (d.class_id !== classId) return d
   return { ...d, prenotazione, liberi: Math.max(0, d.liberi - delta), in_attesa: Math.max(0, d.in_attesa + deltaAttesa) }
 }

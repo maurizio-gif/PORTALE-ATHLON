@@ -152,6 +152,20 @@ export type DatiLezione = {
   dopo: { class_id: number; nome: string; inizio: string; messaggio: string } | null
 }
 
+/**
+ * Una lezione che il socio puo' prendere al posto di una tappa che e' al completo o che questa settimana non c'e'.
+ * **Lo stesso tipo di lezione** (un altro giorno o un'altra ora) viene prima; poi le **simili**, cioe' un altro
+ * tipo dello stesso genere, che il socio vede come una cosa diversa e la sceglie lui.
+ */
+export type Alternativa = DatiLezione & {
+  categoria: string
+  /** La chiave della scheda in `lezioni.json` (sta in `settimana.schede`), per il pulsante «Dettagli». */
+  scheda: string | null
+  tipo: 'stessa' | 'simile'
+  /** Compresa nell'abbonamento del socio; null se non si sa. */
+  compresa: boolean | null
+}
+
 export type FasciaSala = 'con_assistenza' | 'libero' | null
 
 export type SlotSala = DatiLezione & { fascia: FasciaSala }
@@ -161,7 +175,8 @@ export type TappaSettimana = Tappa & {
   data: string
   stato?: 'c_e' | 'non_c_e'
   lezione_vera?: DatiLezione
-  alternative?: DatiLezione[]
+  /** Con la lezione al completo (e non del socio) o assente questa settimana: cosa si puo' prendere al suo posto, con posti liberi. */
+  alternative?: Alternativa[]
   sala_slot?: SlotSala[]
 }
 
@@ -189,6 +204,9 @@ export async function leggiSettimana(lunedi: string): Promise<Esito<{ settimana:
 /** Le quattro barre che il club scrive per ogni lezione del sito, 0-100; null dove la lezione non le ha (non si inventano). */
 export type Barre = { muscolare: number | null; cardio: number | null; coordinazione: number | null; flessibilita: number | null }
 
+/** Quante lezioni di questo slot, nelle ultime settimane, hanno chiuso con tutti i posti presi: com'e' andata, non come andra'. */
+export type Affollamento = { osservate: number; piene: number }
+
 export type SlotRicorrente = {
   /** `<tipo>-<giorno>-<HHMM>`, per esempio «31-2-1830»: stabile da una settimana all'altra. */
   id: string
@@ -203,6 +221,8 @@ export type SlotRicorrente = {
   barre: Barre
   compresa: boolean | null
   ricorrenze: number
+  /** Null se si sono viste meno di tre lezioni, o se la funzione e' quella di prima. */
+  affollamento?: Affollamento | null
 }
 
 export type GiornoPiano = { posizione: number; giorno_id: string; nome: string | null; esercizi: number; primari: Record<string, number>; secondari: Record<string, number> }

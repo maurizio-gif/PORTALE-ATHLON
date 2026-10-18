@@ -2,7 +2,7 @@ import { router } from 'expo-router'
 import { StyleSheet, Text, View } from 'react-native'
 
 import type { Lezione, SchedaLezione } from '@/api/lab'
-import type { DatiLezione, FasciaSala, SlotSala, TappaSettimana } from '@/api/percorso'
+import type { Alternativa, DatiLezione, FasciaSala, SlotSala, TappaSettimana } from '@/api/percorso'
 import { ora } from '@/lib/eventi'
 import { spazio } from '@/theme'
 
@@ -17,10 +17,11 @@ import { ETICHETTA_TIPO, fasciaOraria, titoloTappa } from './comune'
 // acquista se non e' compresa, i motivi per cui non si puo'). **Il Percorso non prenota da solo**: ogni
 // prenotazione e' un tocco del socio, dalla tappa o da «Prenota la settimana».
 //
-// Le tre cose che puo' succedere a una lezione sono dette tutte e tre (vedi `risolviSettimana` nella funzione):
-// c'e' e si prenota; questa settimana non c'e' (il palinsesto e' cambiato) e si propongono le piu' vicine; c'e'
-// ma il limite della categoria e' pieno per colpa di un'altra lezione dello stesso percorso («prenotabile dopo
-// la lezione di martedi'»: non e' un rifiuto, e' un ordine).
+// Le cose che possono succedere a una lezione sono dette tutte (vedi `risolviSettimana` nella funzione):
+// c'e' e si prenota; **c'e' ma e' al completo** (lista d'attesa, e le alternative con posti liberi: lo stesso
+// tipo di lezione in un altro orario, poi le simili); questa settimana non c'e' (il palinsesto e' cambiato) e
+// si propongono le piu' vicine; c'e' ma il limite della categoria e' pieno per colpa di un'altra lezione dello
+// stesso percorso («prenotabile dopo la lezione di martedi'»: non e' un rifiuto, e' un ordine).
 //
 // La **sala** non e' una lezione sola: la Gym Floor e' un turno ogni mezz'ora, e si mostrano i due piu' vicini
 // all'ora della tappa, uno con l'assistente di sala e uno di allenamento libero. Sceglie il socio. L'orario di
@@ -104,7 +105,7 @@ function Prenotazione({
 export function TappaCarta({
   t,
   delGiorno,
-  scheda,
+  schede,
   vista,
   azioni,
   onScheda,
@@ -112,8 +113,8 @@ export function TappaCarta({
   t: TappaSettimana
   /** Le tappe dello stesso giorno, per dire «prima della lezione delle 18:30». */
   delGiorno: TappaSettimana[]
-  /** La scheda del sito della lezione della tappa (barre, descrizione): per il pulsante «Dettagli». */
-  scheda: SchedaLezione | null
+  /** Le schede del sito (barre, descrizione, video) per chiave: della lezione della tappa e delle sue alternative, per il pulsante «Dettagli». */
+  schede: Record<string, SchedaLezione>
   /** La vista cliente dello staff: si guarda e basta, non si prenota. */
   vista: boolean
   azioni: AzioniPrenotazione
@@ -141,40 +142,94 @@ export function TappaCarta({
       ) : null}
       {t.perche ? <Text style={[stili.perche, { color: p.testoSecondario }]}>{t.perche}</Text> : null}
 
-      {t.tipo === 'lezione' ? <TappaLezione t={t} scheda={scheda} vista={vista} azioni={azioni} onScheda={onScheda} /> : null}
+      {t.tipo === 'lezione' ? <TappaLezione t={t} schede={schede} vista={vista} azioni={azioni} onScheda={onScheda} /> : null}
       {t.tipo === 'sala' ? <TappaSala t={t} vista={vista} azioni={azioni} onScheda={onScheda} /> : null}
     </Carta>
   )
 }
 
-function TappaLezione({ t, scheda, vista, azioni, onScheda }: { t: TappaSettimana; scheda: SchedaLezione | null; vista: boolean; azioni: AzioniPrenotazione; onScheda: (l: { nome: string; categoria: string; scheda: SchedaLezione }) => void }) {
+/** Le alternative a una lezione al completo o assente: ognuna con i suoi posti e i suoi pulsanti. Le stesse lezioni prima, poi le simili. */
+function ElencoAlternative({
+  elenco,
+  categoriaTappa,
+  schede,
+  vista,
+  azioni,
+  onScheda,
+}: {
+  elenco: Alternativa[]
+  categoriaTappa: string
+  schede: Record<string, SchedaLezione>
+  vista: boolean
+  azioni: AzioniPrenotazione
+  onScheda: (l: { nome: string; categoria: string; scheda: SchedaLezione }) => void
+}) {
+  const p = usePalette()
+  return (
+    <View style={{ gap: spazio.due }}>
+      {elenco.map((a) => (
+        <View key={a.class_id} style={[stili.slot, { backgroundColor: p.incavo }]}>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
+            <View style={{ flex: 1, gap: 1 }}>
+              <Text style={[stili.slotOra, { color: p.testo }]}>{giornoOra(a.inizio)}</Text>
+              <Text style={[stili.nota, { color: p.testoSecondario }]}>{a.tipo === 'simile' ? `${a.nome} · lezione simile` : a.nome}</Text>
+            </View>
+            <Text style={[stili.nota, { color: p.testoSecondario }]}>{postiDi(a)}</Text>
+          </View>
+          {a.compresa === false || (a.compresa === null && a.categoria !== categoriaTappa) ? (
+            <Etichetta testo={a.compresa === false ? 'Da acquistare' : 'Verifica alla prenotazione'} tono="attenzione" />
+          ) : null}
+          <Prenotazione d={a} categoria={a.categoria} scheda={a.scheda} schedaSito={a.scheda ? (schede[a.scheda] ?? null) : null} vista={vista} azioni={azioni} onScheda={onScheda} />
+        </View>
+      ))}
+    </View>
+  )
+}
+
+function TappaLezione({ t, schede, vista, azioni, onScheda }: { t: TappaSettimana; schede: Record<string, SchedaLezione>; vista: boolean; azioni: AzioniPrenotazione; onScheda: (l: { nome: string; categoria: string; scheda: SchedaLezione }) => void }) {
   const p = usePalette()
   const categoria = t.lezione?.categoria ?? ''
   const chiave = t.lezione?.scheda ?? null
+  const scheda = chiave ? (schede[chiave] ?? null) : null
+  const alternative = t.alternative ?? []
   if (t.stato === 'non_c_e') {
     return (
       <View style={{ gap: spazio.due }}>
         <Messaggio tono="attenzione" titolo="Questa settimana non c’è">
-          Il palinsesto è cambiato: la lezione di questo giorno e di quest’ora non è in programma.{t.alternative?.length ? ' Le più vicine dello stesso tipo:' : ' Non ce ne sono altre dello stesso tipo questa settimana.'}
+          Il palinsesto è cambiato: la lezione di questo giorno e di quest’ora non è in programma.{alternative.length ? ' Le più vicine, prima quelle con posti liberi:' : ' Non ce ne sono altre dello stesso tipo questa settimana.'}
         </Messaggio>
-        {(t.alternative ?? []).map((a) => (
-          <View key={a.class_id} style={[stili.slot, { backgroundColor: p.incavo }]}>
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 8 }}>
-              <Text style={[stili.slotOra, { color: p.testo }]}>{giornoOra(a.inizio)}</Text>
-              <Text style={[stili.nota, { color: p.testoSecondario }]}>{postiDi(a)}</Text>
-            </View>
-            <Prenotazione d={a} categoria={categoria} scheda={chiave} schedaSito={scheda} vista={vista} azioni={azioni} onScheda={onScheda} />
-          </View>
-        ))}
+        <ElencoAlternative elenco={alternative} categoriaTappa={categoria} schede={schede} vista={vista} azioni={azioni} onScheda={onScheda} />
       </View>
     )
   }
   const v = t.lezione_vera
   if (!v) return null
+  // Al completo: senza posti, il socio non c'e' dentro, e non e' gia' cominciata. La lista d'attesa resta (e' il pulsante
+  // di `Prenotazione`), e si offrono delle alternative con posti liberi.
+  // Se il limite della categoria blocca anche la lista d'attesa (conta come una prenotazione), il motivo e' quello, e viene prima.
+  const completa = v.liberi <= 0 && !v.prenotazione && !v.iniziata && !v.dopo && !v.limite && !v.prenotabile_dal
+  // Se il socio ha gia' preso un'alternativa, la lezione al completo non gli serve piu': lo si dice, e la lista d'attesa non si offre.
+  const presa = completa ? alternative.find((a) => a.prenotazione && !a.prenotazione.attesa) : undefined
   return (
     <View style={{ gap: spazio.due }}>
       <Text style={[stili.nota, { color: p.testoSecondario }]}>{[v.istruttore, v.iniziata ? 'Già iniziata' : postiDi(v)].filter(Boolean).join(' · ')}</Text>
-      <Prenotazione d={v} categoria={categoria} scheda={chiave} schedaSito={scheda} vista={vista} azioni={azioni} onScheda={onScheda} />
+      {presa ? (
+        <Messaggio tono="ok" titolo="Hai prenotato un’alternativa">
+          {`${presa.tipo === 'simile' ? `${presa.nome}, ` : ''}${giornoOra(presa.inizio)}: al posto di questa lezione, che è al completo.`}
+        </Messaggio>
+      ) : null}
+      {completa && !vista && !presa ? (
+        <Messaggio tono="attenzione" titolo="Questa settimana è al completo">
+          {`Non c’è più posto${v.in_attesa > 0 ? ` e ${v.in_attesa} ${v.in_attesa === 1 ? 'persona aspetta' : 'persone aspettano'} già in lista d’attesa` : ''}. Puoi metterti in lista d’attesa, oppure ${alternative.length ? 'scegliere un’alternativa con posti liberi qui sotto.' : 'guardare cosa si apre più avanti: per questa settimana non ci sono alternative con posti liberi.'}`}
+        </Messaggio>
+      ) : null}
+      {presa ? null : <Prenotazione d={v} categoria={categoria} scheda={chiave} schedaSito={scheda} vista={vista} azioni={azioni} onScheda={onScheda} />}
+      {completa && alternative.length ? (
+        <View style={{ gap: spazio.due }}>
+          <Text style={[stili.sottoTitolo, { color: p.testo }]}>{presa ? 'Alternative' : alternative.some((a) => a.tipo === 'stessa') ? 'Con posti liberi' : 'Con posti liberi, lezioni simili'}</Text>
+          <ElencoAlternative elenco={alternative} categoriaTappa={categoria} schede={schede} vista={vista} azioni={azioni} onScheda={onScheda} />
+        </View>
+      ) : null}
     </View>
   )
 }
