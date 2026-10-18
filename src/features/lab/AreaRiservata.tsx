@@ -15,6 +15,7 @@ import { spazio } from '@/theme'
 
 import { CHIAVE_CONTRATTI, ElencoAbbonamenti } from './AbbonamentiMiei'
 import { DaFare } from './home/DaFare'
+import { MessaggioBenvenuto } from './home/MessaggioBenvenuto'
 import { Riquadri, type VoceRiquadro } from './home/Riquadri'
 import { SezioneCertificato } from './home/SezioneCertificato'
 import { SezioneFamiglia } from './home/SezioneFamiglia'
@@ -300,6 +301,9 @@ export function AreaRiservata({ email }: { email: string }) {
       <Entra indice={0}>
         <Benvenuto titolare={titolare} email={email} famiglia={famiglia.length} onProfilo={() => vai('profilo', true)} />
       </Entra>
+
+      {/* Il messaggio di benvenuto: scritto a ogni ritorno nell'app, spinge verso il prossimo passo (home/MessaggioBenvenuto). */}
+      <MessaggioBenvenuto email={email} onSezione={(s) => vai(s, true)} />
 
       <DaFare area={area} onSezione={(s) => vai(s, true)} />
 
