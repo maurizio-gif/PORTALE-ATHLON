@@ -16,6 +16,7 @@ import { colpetto, Tocco } from '../ui/Tocco'
 import { vistaCorrente } from '../vista'
 import { allineaAllaVetrina, impostaQuantita, togliDalCarrello, useCarrello } from './carrello'
 import { Quantita } from './Quantita'
+import { SegnapostoFoto } from './SegnapostoFoto'
 import { useVetrina } from './useVetrina'
 
 // Il carrello e il pagamento (18/10/2026), come «Acquista e prenota» delle lezioni singole: «Vai al pagamento» apre
@@ -108,7 +109,7 @@ export function Carrello() {
       <Carta style={{ paddingVertical: spazio.due }}>
         {voci.map(({ r, a }, i) => (
           <View key={r.product_id} style={[stili.riga, i > 0 && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: p.linea }]}>
-            <View style={[stili.miniatura, { backgroundColor: p.incavo }]}>{a ? <Image source={{ uri: a.foto[0] }} style={StyleSheet.absoluteFill} contentFit="cover" /> : null}</View>
+            <View style={[stili.miniatura, { backgroundColor: p.incavo }]}>{a ? a.foto[0] ? <Image source={{ uri: a.foto[0] }} style={StyleSheet.absoluteFill} contentFit="cover" /> : <SegnapostoFoto size={24} /> : null}</View>
             <View style={{ flex: 1, gap: 6 }}>
               <Text style={[stili.nome, { color: p.testo }]} numberOfLines={2}>
                 {a?.nome ?? 'Articolo non più disponibile'}
