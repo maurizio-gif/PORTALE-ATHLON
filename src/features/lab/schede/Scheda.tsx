@@ -2,10 +2,10 @@ import { router, useLocalSearchParams } from 'expo-router'
 import { useCallback, useEffect, useState } from 'react'
 import { ScrollView, StyleSheet, Text, View } from 'react-native'
 
-import { leggiSchedaLab, type EsercizioScheda, type Massimale, type Precedente, type SchedaLab } from '@/api/lab'
+import { eliminaSchedaMia, leggiSchedaLab, type EsercizioScheda, type Massimale, type Precedente, type SchedaLab } from '@/api/lab'
 import { spazio } from '@/theme'
 
-import { inMemoria, prendi } from '../memoria'
+import { dimentica, inMemoria, prendi } from '../memoria'
 import { Foglio } from '../ui/Foglio'
 import { Icona } from '../ui/Icona'
 import { Carta, Entra, Messaggio, Pulsante, SchedeInArrivo, Tag } from '../ui/kit'
@@ -115,6 +115,9 @@ export function Scheda() {
   const [errore, setErrore] = useState<string | null>(null)
   const [giorno, setGiorno] = useState(0)
   const [aperto, setAperto] = useState<EsercizioScheda | null>(null)
+  const [confermo, setConfermo] = useState(false)
+  const [eliminando, setEliminando] = useState(false)
+  const [erroreElimina, setErroreElimina] = useState<string | null>(null)
 
   const carica = useCallback(async () => {
     setErrore(null)
@@ -143,6 +146,17 @@ export function Scheda() {
   }
 
   const s = dati.scheda
+
+  async function elimina() {
+    setErroreElimina(null)
+    setEliminando(true)
+    const r = await eliminaSchedaMia(s.id)
+    setEliminando(false)
+    if (!r.ok) return setErroreElimina(r.errore)
+    dimentica()
+    router.replace('/allenamento')
+  }
+
   const g = s.giorni[Math.min(giorno, s.giorni.length - 1)]
   const precedente = (eid: string) => dati.precedenti.find((x) => x.esercizio_id === eid)
   const massimali = dati.massimali ?? []
@@ -160,6 +174,11 @@ export function Scheda() {
           {s.giorni_settimana ? <Tag testo={`${s.giorni_settimana} giorni a settimana`} colore={p.testoSecondario} /> : null}
         </View>
         {s.descrizione ? <Text style={[stili.nota, { color: p.testoSecondario }]}>{s.descrizione}</Text> : null}
+        {s.tipo === 'socio' ? (
+          <Text style={[stili.piccola, { color: p.testoTerzo }]}>
+            È una scheda tua: la vedi solo tu. Non sostituisce il parere di un istruttore: con dolori o infortuni chiedi in sala.
+          </Text>
+        ) : null}
         {s.tipo === 'ai' ? (
           <Text style={[stili.piccola, { color: p.testoTerzo }]}>
             Scritta dall’agente AI sulle tue risposte{s.rivista_il ? ' e rivista da un trainer del club' : ': un trainer del club la rivede nei prossimi giorni'}. Per dolori o
@@ -266,6 +285,26 @@ export function Scheda() {
         onPress={() => router.push({ pathname: '/allenamento/[scheda]/[giorno]', params: { scheda: s.id, giorno: g.id } })}
       />
 
+      {s.tipo === 'socio' ? (
+        <View style={stili.azioniTue}>
+          <View style={{ flex: 1, minWidth: 160 }}>
+            <Pulsante testo="Modifica la scheda" icona="modifica" variante="secondario" piccolo onPress={() => router.push({ pathname: '/allenamento/nuova', params: { id: s.id } })} />
+          </View>
+          <View style={{ flex: 1, minWidth: 160 }}>
+            <Pulsante testo="Elimina la scheda" icona="cestino" variante="pericolo" piccolo onPress={() => setConfermo(true)} />
+          </View>
+        </View>
+      ) : null}
+
+      <Foglio aperto={confermo} titolo="Eliminare la scheda?" onChiudi={() => !eliminando && setConfermo(false)}>
+        <Text style={[stili.nota, { color: p.testoSecondario }]}>
+          {`«${s.titolo}» sparisce dal tuo elenco. Gli allenamenti che hai già registrato restano nello storico.`}
+        </Text>
+        {erroreElimina ? <Messaggio>{erroreElimina}</Messaggio> : null}
+        <Pulsante testo="Elimina la scheda" icona="cestino" variante="pericolo" inCorso={eliminando} onPress={elimina} />
+        <Pulsante testo="Annulla" variante="secondario" disabilitato={eliminando} onPress={() => setConfermo(false)} />
+      </Foglio>
+
       <FoglioEsercizio e={aperto} precedente={aperto ? precedente(aperto.esercizio_id) : undefined} massimali={massimali} onChiudi={() => setAperto(null)} />
     </Schermata>
   )
@@ -290,4 +329,5 @@ const stili = StyleSheet.create({
   cifra: { flex: 1, alignItems: 'center', gap: 2, paddingHorizontal: 4 },
   cifraValore: { fontFamily: F.extra, fontSize: 16, letterSpacing: -0.3 },
   cifraEtichetta: { fontFamily: F.semi, fontSize: 11 },
+  azioniTue: { flexDirection: 'row', flexWrap: 'wrap', gap: spazio.due },
 })

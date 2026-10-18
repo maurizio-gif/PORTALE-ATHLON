@@ -18,7 +18,7 @@ import { inMemoria, prendi } from '../memoria'
 import { Icona, type NomeIcona } from '../ui/Icona'
 import { Carta, Entra, LinkSezione, Messaggio, Pulsante, Riga, SchedeInArrivo, Sezione, Tag } from '../ui/kit'
 import { Schermata } from '../ui/Schermata'
-import { F, FUOCO, MARE, NOTTE, usePalette } from '../ui/tema'
+import { F, FUOCO, MARE, NOTTE, ORTO, usePalette } from '../ui/tema'
 import { Tocco } from '../ui/Tocco'
 import { giorniAlTest, giornoTest, LIVELLI, quando, testDaRifare, TIPI } from './comune'
 
@@ -120,8 +120,36 @@ function CartaTest({ t, riempi = false }: { t: StatoTest; riempi?: boolean }) {
 }
 export const CHIAVE_SCHEDE = 'schede:elenco'
 
+/** Hai gia' una scheda tua? Scrivila o importala da una foto o da un PDF (19/10/2026). */
+function CartaLeTue() {
+  const p = usePalette()
+  return (
+    <Carta style={{ gap: spazio.tre }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: spazio.tre }}>
+        <LinearGradient colors={ORTO} style={stili.agenteIcona}>
+          <Icona nome="modifica" size={26} colore="#fff" />
+        </LinearGradient>
+        <View style={{ flex: 1, gap: 3 }}>
+          <Text style={[stili.agenteTitolo, { color: p.testo }]}>Hai già una scheda tua?</Text>
+          <Text style={[stili.agenteTesto, { color: p.testoSecondario }]}>
+            Scrivila qui, o importala da una foto o da un PDF: la tieni insieme alle altre e la usi allo stesso modo, col timer del recupero e lo storico.
+          </Text>
+        </View>
+      </View>
+      <View style={stili.azioniTue}>
+        <View style={{ flex: 1, minWidth: 160 }}>
+          <Pulsante testo="Importa da foto o file" icona="fotocamera" piccolo onPress={() => router.push('/allenamento/importa')} />
+        </View>
+        <View style={{ flex: 1, minWidth: 160 }}>
+          <Pulsante testo="Scrivila tu" icona="modifica" variante="secondario" piccolo onPress={() => router.push('/allenamento/nuova')} />
+        </View>
+      </View>
+    </Carta>
+  )
+}
+
 function SchedaCarta({ s, indice }: { s: RigaSchedaLab; indice: number }) {
-  const colori = s.tipo === 'ai' ? (['#8B5CF6', '#5B21B6'] as const) : s.tipo === 'personalizzata' ? FUOCO : NOTTE
+  const colori = s.tipo === 'ai' ? (['#8B5CF6', '#5B21B6'] as const) : s.tipo === 'personalizzata' ? FUOCO : s.tipo === 'socio' ? ORTO : NOTTE
   return (
     <Entra indice={indice}>
       <Tocco onPress={() => router.push({ pathname: '/allenamento/[scheda]', params: { scheda: s.id } })} etichetta={`Scheda ${s.titolo}`} scala={0.985}>
@@ -129,7 +157,7 @@ function SchedaCarta({ s, indice }: { s: RigaSchedaLab; indice: number }) {
           <View style={stili.filigrana} pointerEvents="none">
             <Icona nome={s.tipo === 'ai' ? 'stella' : 'peso'} size={120} colore="rgba(255,255,255,0.08)" />
           </View>
-          <Tag testo={TIPI[s.tipo] ?? s.tipo} colore="#fff" fondo="rgba(0,0,0,0.18)" />
+          <Tag testo={s.tipo === 'socio' ? (s.origine === 'importata' ? 'Importata da te' : 'Scritta da te') : (TIPI[s.tipo] ?? s.tipo)} colore="#fff" fondo="rgba(0,0,0,0.18)" />
           <Text style={stili.titolo} numberOfLines={2}>
             {s.titolo}
           </Text>
@@ -252,8 +280,9 @@ function Train({ dati, largo }: { dati: Dati; largo: boolean }) {
       </Entra>
       </View>
 
-      {mie.length ? (
-        <Sezione titolo="Le tue schede" conteggio={mie.length}>
+      <Sezione titolo="Le tue schede" conteggio={mie.length || undefined}>
+        <CartaLeTue />
+        {mie.length ? (
           <View style={largo ? stili.griglia : { gap: spazio.tre }}>
             {mie.map((s, i) => (
               <View key={s.id} style={largo ? { flexGrow: 1, flexBasis: '45%' } : undefined}>
@@ -261,8 +290,8 @@ function Train({ dati, largo }: { dati: Dati; largo: boolean }) {
               </View>
             ))}
           </View>
-        </Sezione>
-      ) : null}
+        ) : null}
+      </Sezione>
 
       <Sezione titolo="Schede del club" conteggio={club.length}>
         {club.length ? (
@@ -395,6 +424,7 @@ const stili = StyleSheet.create({
   fuori: { marginHorizontal: -(spazio.tre + 2), flexGrow: 0 },
   filtro: { flexDirection: 'row', alignItems: 'center', gap: spazio.due, borderRadius: 999, paddingVertical: 9, paddingLeft: spazio.tre, paddingRight: 9, borderWidth: StyleSheet.hairlineWidth },
   fila3: { flexDirection: 'row', gap: spazio.tre, alignItems: 'stretch' },
+  azioniTue: { flexDirection: 'row', flexWrap: 'wrap', gap: spazio.due },
   griglia: { flexDirection: 'row', flexWrap: 'wrap', gap: spazio.tre },
   conta: { minWidth: 22, height: 22, borderRadius: 11, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 6 },
 })

@@ -30,7 +30,7 @@ export const MUSCOLI: Record<string, string> = {
 
 export const LIVELLI: Record<string, string> = { principiante: 'Principiante', intermedio: 'Intermedio', esperto: 'Esperto' }
 
-export const TIPI: Record<string, string> = { standard: 'Del club', personalizzata: 'Del tuo trainer', ai: 'Agente AI' }
+export const TIPI: Record<string, string> = { standard: 'Del club', personalizzata: 'Del tuo trainer', ai: 'Agente AI', socio: 'La tua' }
 
 export function muscoli(lista: string[]): string {
   return lista.map((m) => MUSCOLI[m] ?? m).join(', ')

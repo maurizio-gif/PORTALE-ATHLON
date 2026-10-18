@@ -38,6 +38,8 @@ export default function LayoutLaboratorio() {
         <Stack.Screen name="allenamento/[scheda]/index" options={{ animation: 'slide_from_right' }} />
         <Stack.Screen name="allenamento/[scheda]/[giorno]" options={{ animation: 'slide_from_bottom' }} />
         <Stack.Screen name="allenamento/agente" options={{ animation: 'slide_from_bottom' }} />
+        <Stack.Screen name="allenamento/importa" options={{ animation: 'slide_from_bottom' }} />
+        <Stack.Screen name="allenamento/nuova" options={{ animation: 'slide_from_right' }} />
         <Stack.Screen name="allenamento/storico" options={{ animation: 'slide_from_right' }} />
         <Stack.Screen name="allenamento/test" options={{ animation: 'slide_from_right' }} />
         <Stack.Screen name="allenamento/misure" options={{ animation: 'slide_from_right' }} />

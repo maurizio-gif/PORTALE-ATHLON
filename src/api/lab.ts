@@ -683,13 +683,15 @@ export async function apriVideo(id: string, vetrina: string): Promise<Esito<{ vi
 
 export type RigaSchedaLab = {
   id: string
-  tipo: 'standard' | 'personalizzata' | 'ai'
+  tipo: 'standard' | 'personalizzata' | 'ai' | 'socio'
   titolo: string
   descrizione: string | null
   obiettivo: string | null
   livello: string | null
   giorni_settimana: number | null
   giorni: number
+  /** Per le schede del socio: scritta a mano o letta da un file. */
+  origine?: 'creata' | 'importata' | null
   ultimo: string | null
 }
 
@@ -748,7 +750,7 @@ export type GiornoSchedaLab = { id: string; nome: string; note: string | null; e
 
 export type SchedaLab = {
   id: string
-  tipo: 'standard' | 'personalizzata' | 'ai'
+  tipo: 'standard' | 'personalizzata' | 'ai' | 'socio'
   titolo: string
   descrizione: string | null
   obiettivo: string | null
@@ -841,6 +843,77 @@ export async function chiediSchedaAi(questionario: Questionario): Promise<Esito<
   const { ok, dati } = await schedeLab({ azione: 'chiedi_ai', questionario })
   if (ok) return { ok: true, id: dati.id }
   return { ok: false, errore: dati.errore ?? 'L’agente non è riuscito a scrivere la scheda adesso. Riprova fra qualche minuto.' }
+}
+
+// Le schede del socio (19/10/2026): se la scrive lui, o la importa da una foto o da un PDF. Sono sue e basta:
+// il CRM non le elenca. Gli esercizi che non stanno in libreria diventano suoi (`nome_libero`).
+
+/** Un esercizio della libreria accesa, o uno suo (`mio`), per sceglierlo in una scheda. Senza video e poster. */
+export type EsercizioLibreria = { id: string; nome: string; muscoli_primari: string[]; attrezzo: string | null; categoria: string | null; mio: boolean }
+
+/** Un esercizio come lo si salva: della libreria (`esercizio_id`) o con un nome suo (`nome_libero`). */
+export type EsercizioDaSalvare = {
+  esercizio_id?: string | null
+  nome_libero?: string
+  serie: number
+  ripetizioni: string
+  carico: string
+  recupero_serie: number
+  recupero_dopo: number
+  superserie: string
+  note: string
+}
+
+export type SchedaDaSalvare = {
+  /** Se c'e', si modifica quella scheda (deve essere sua). */
+  id?: string
+  titolo: string
+  descrizione?: string
+  origine?: 'creata' | 'importata'
+  giorni: { nome: string; note: string; esercizi: EsercizioDaSalvare[] }[]
+}
+
+/** Un esercizio letto da un file: `nome_scritto` e' com'era scritto, `nome` quello della libreria se e' stato abbinato. */
+export type EsercizioBozza = {
+  esercizio_id: string | null
+  nome: string
+  nome_scritto: string
+  serie: number
+  ripetizioni: string
+  carico: string
+  recupero_serie: number
+  recupero_dopo: number
+  superserie: string
+  note: string
+}
+
+/** La scheda letta da un file: non e' salvata, il socio la rivede e poi la tiene. */
+export type BozzaScheda = { titolo: string; descrizione: string; giorni: { nome: string; note: string; esercizi: EsercizioBozza[] }[] }
+
+export async function eserciziLibreria(): Promise<Esito<{ esercizi: EsercizioLibreria[] }>> {
+  const { ok, dati } = await schedeLab({ azione: 'esercizi' })
+  if (ok) return { ok: true, esercizi: dati.esercizi ?? [] }
+  return { ok: false, errore: dati.errore ?? 'Non riusciamo ad aprire gli esercizi adesso.' }
+}
+
+export async function salvaSchedaMia(scheda: SchedaDaSalvare): Promise<Esito<{ id: string }>> {
+  const { ok, dati } = await schedeLab({ azione: 'salva_mia', ...scheda })
+  if (ok) return { ok: true, id: dati.id }
+  return { ok: false, errore: dati.errore ?? 'La scheda non è stata salvata. Riprova fra qualche minuto.' }
+}
+
+/** Toglie una scheda del socio dall'elenco (si ritira: lo storico degli allenamenti ne tiene il titolo). */
+export async function eliminaSchedaMia(id: string): Promise<Esito<{ eliminata: true }>> {
+  const { ok, dati } = await schedeLab({ azione: 'elimina_mia', id })
+  if (ok) return { ok: true, eliminata: true }
+  return { ok: false, errore: dati.errore ?? 'Non siamo riusciti a togliere la scheda. Riprova fra qualche minuto.' }
+}
+
+/** Legge una scheda da una foto o da un PDF («data:…;base64,…»). Ci mette una decina di secondi, a volte un minuto. */
+export async function importaScheda(file: string): Promise<Esito<{ bozza: BozzaScheda; daControllare: number }>> {
+  const { ok, dati } = await schedeLab({ azione: 'importa', file })
+  if (ok) return { ok: true, bozza: dati.bozza, daControllare: Number(dati.da_controllare ?? 0) }
+  return { ok: false, errore: dati.errore ?? 'Non siamo riusciti a leggere la scheda adesso. Riprova fra qualche minuto, o scrivila a mano.' }
 }
 
 /**

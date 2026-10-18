@@ -157,6 +157,36 @@ raggiungere, nessuna frase che dica a una persona quanto deve mangiare.
 - **La foto si sceglie con `expo-document-picker`** (`src/lib/fotoPiatto.ts`), che sul telefono dal browser offre anche la
   fotocamera; sul web si porta a 1280 px in JPEG prima dell'invio.
 
+## Le schede del socio: se le scrive o le importa da una foto, e restano sue
+
+`/allenamento/nuova` (editor), `/allenamento/importa` (cartella `src/features/lab/schede/`: `EditorScheda.tsx`,
+`SceltaEsercizio.tsx`, `Importa.tsx`, `bozza.ts`; il file in `src/lib/fileScheda.ts`) e, in «Le tue schede» di `Schede.tsx`, i comandi
+**«Importa da foto o file»** e **«Scrivila tu»** (richiesta del club, 19/10/2026): chi ha già un piano del suo trainer o di un'altra palestra
+lo mette qui e lo usa come le altre schede. Funzione, tabelle e limiti sono nel `CLAUDE.md` di APP-ATHLON.
+
+- **Una scheda `tipo = 'socio'`** (nome `La tua`, etichetta e sfumatura sue), con «Modifica la scheda» ed «Elimina la scheda» in
+  `Scheda.tsx`. Togliere una scheda la ritira e chiede conferma; le sedute fatte restano. **Il CRM non la vede**, e l'app lo dice
+  in fondo all'editor («i trainer non la vedono nel pannello del club»).
+- **L'editor è lo stesso per tre strade** (`EditorScheda.tsx`): scheda nuova, scheda esistente (`?id=`), bozza dell'importazione
+  (`?da=bozza`). Salva con `salvaSchedaMia`, e l'`origine` (`importata` se viene da una bozza, `creata` altrimenti) la manda solo
+  alla prima volta: in modifica non si cambia. Le validazioni (giorni vuoti, titolo) sono qui e **anche nella funzione**.
+- **Gli esercizi si scelgono dalla libreria del club** (`SceltaEsercizio.tsx`, senza video né poster: sono seicento, e la
+  lista si ricorda sotto `schede:libreria`) **oppure si scrive il nome**: diventa un esercizio suo, senza video, che si segue e si
+  registra come gli altri. In un esercizio da importazione che non è in libreria resta «Hai scritto: …» e il segno «Da controllare»,
+  così si vede cosa va guardato prima di salvare.
+- **L'importazione non salva mai da sola.** `Importa.tsx` manda il file a `importaScheda` e **la risposta è una bozza** che passa
+  all'editor da `bozza.ts` (solo in memoria, mai sul disco: si butta quando la scheda è salvata o l'importazione ricomincia). Chi
+  esce durante la lettura non si ritrova nell'editor (`qui`). Ci vogliono una decina di secondi, a volte un minuto: la schermata
+  d'attesa lo dice.
+- **Il file** (`fileScheda.ts`): foto JPG, PNG o WebP e PDF, fino a 4 MB. **Sul web una foto si porta a 1800 px in JPEG** (una
+  tabella ne vuole più di un piatto, `fotoPiatto.ts` ne usa 1280): 300–600 kB e meno attesa. Un PDF non si tocca. «Scatta una
+  foto» apre la fotocamera posteriore del telefono dal browser (`capture`); sul computer è la scelta di una foto. **Nell'app
+  nativa non c'è la fotocamera diretta**: serve `expo-image-picker` e quindi una nuova build; per ora è il selettore delle foto.
+- **L'avvertenza è parte del comando**: la foto o il PDF vengono letti da un servizio di intelligenza artificiale, non si
+  conservano, meglio non includere dati che non servono, e una lettura automatica può sbagliare. Se il testo cambia, va riletto
+  con quello dell'informativa privacy del club.
+- **Nella vista cliente dello staff i comandi falliscono** (le azioni nuove non stanno fra le letture): come per ogni altra scrittura.
+
 ## Athlon Health System: la ruota, il Balance, Train e Food
 
 La scheda che era **Workout** (poi «Fit») si chiama **Athlon Health System** (richiesta del club, 19/10/2026):
