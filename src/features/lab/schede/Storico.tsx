@@ -195,7 +195,7 @@ export function Storico() {
               />
             ))
           ) : (
-            <Riga prima icona="cronometro" tono="neutro" titolo="Nessun allenamento ancora" sotto="Apri una scheda e premi «Inizia l’allenamento»: le serie che segni finiscono qui." />
+            <Riga prima icona="cronometro" tono="neutro" titolo="Nessun allenamento ancora" sotto="Apri un piano e premi «Inizia l’allenamento»: le serie che segni finiscono qui." />
           )}
         </Carta>
       </Sezione>

@@ -162,7 +162,7 @@ export function CalorieLezione({
           {ctx.motivo === 'misure'
             ? 'Segna il tuo peso e la tua altezza in «Il tuo corpo», in cima all’Athlon Health System: con l’età della tua scheda del club e il sesso ti diciamo quante calorie consuma questa lezione.'
             : ctx.motivo === 'sesso'
-              ? 'Per stimare le calorie serve sapere se calcolare come uomo o come donna: lo scegli una volta, nel riquadro «Calorie stimate» di una scheda di allenamento.'
+              ? 'Per stimare le calorie serve sapere se calcolare come uomo o come donna: lo scegli una volta, nel riquadro «Calorie stimate» di un piano di allenamento.'
               : 'Nella tua scheda del club manca la data di nascita, e senza l’età la stima non si può fare. Chiedi al desk di aggiungerla.'}
         </Text>
       </View>

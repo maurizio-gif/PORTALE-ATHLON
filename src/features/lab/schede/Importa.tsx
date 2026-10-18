@@ -14,20 +14,20 @@ import { F, MARE, usePalette } from '../ui/tema'
 import { colpetto } from '../ui/Tocco'
 import { mettiBozza, scartaBozza } from './bozza'
 
-// L'importazione di una scheda (19/10/2026): per chi ha gia' un piano del suo trainer o di un'altra
+// L'importazione di un piano (19/10/2026): per chi ha gia' un piano del suo trainer o di un'altra
 // palestra. Si scatta una foto o si sceglie un file (foto o PDF), la funzione lo manda a un modello che lo
-// legge, e torna una **bozza**: l'editor (`EditorScheda.tsx`) la fa rivedere, e niente e' salvato finche' il
-// socio non preme «Salva». Il file non si conserva da nessuna parte: resta qui, in memoria, il tempo della
+// legge, e torna una **bozza**: l'editor (`EditorScheda.tsx`) la fa rivedere e modificare, e niente e' salvato
+// finche' il socio non conferma. Il file non si conserva da nessuna parte: resta qui, in memoria, il tempo della
 // lettura. Ci vogliono una decina di secondi, a volte un minuto.
 
 const PASSI = [
-  { icona: 'fotocamera', testo: 'Scatta una foto alla scheda o scegli il file (foto o PDF).' },
-  { icona: 'stella', testo: 'La leggiamo e riconosciamo giorni, esercizi, serie e carichi.' },
-  { icona: 'spunta', testo: 'La controlli, correggi quello che non torna e la salvi.' },
+  { icona: 'fotocamera', testo: 'Scatta una foto al piano o scegli il file (foto o PDF).' },
+  { icona: 'stella', testo: 'Lo leggiamo e riconosciamo giorni, esercizi, serie e carichi.' },
+  { icona: 'spunta', testo: 'Lo controlli, correggi quello che non torna e lo confermi: va fra i tuoi piani.' },
 ] as const
 
 const ATTESA = [
-  'Guardo la scheda…',
+  'Guardo il piano…',
   'Riconosco i giorni e gli esercizi…',
   'Li abbino alla libreria del club…',
   'Ricontrollo serie, ripetizioni e recuperi…',
@@ -84,10 +84,10 @@ export function Importa() {
 
   if (file) {
     return (
-      <Schermata sopratitolo="La tua scheda" titolo="Leggo la scheda" indietro="/allenamento" barra={false}>
+      <Schermata sopratitolo="Il tuo piano" titolo="Leggo il piano" indietro="/allenamento" barra={false}>
         <LinearGradient colors={MARE} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={stili.attesa}>
           {file.anteprima ? (
-            <Image source={{ uri: file.anteprima }} style={stili.anteprima} resizeMode="contain" accessibilityLabel="La scheda che stiamo leggendo" />
+            <Image source={{ uri: file.anteprima }} style={stili.anteprima} resizeMode="contain" accessibilityLabel="Il piano che stiamo leggendo" />
           ) : (
             <View style={stili.pdf}>
               <Icona nome="ricevuta" size={40} colore="#fff" />
@@ -104,11 +104,11 @@ export function Importa() {
 
   return (
     <Schermata
-      sopratitolo="La tua scheda"
-      titolo="Importa la tua scheda"
+      sopratitolo="Il tuo piano"
+      titolo="Importa il tuo piano"
       indietro="/allenamento"
       barra={false}
-      sottotitolo="Hai già un piano del tuo trainer o di un’altra palestra? Fotografalo o carica il file: lo ritrovi qui e lo usi come le altre schede."
+      sottotitolo="Hai già un piano del tuo trainer o di un’altra palestra? Fotografalo o carica il file: lo ritrovi fra i tuoi piani e lo usi come gli altri."
     >
       <Carta style={{ gap: spazio.tre }}>
         {PASSI.map((x, i) => (
@@ -135,11 +135,11 @@ export function Importa() {
 
       {errore ? <Messaggio>{errore}</Messaggio> : null}
 
-      <Pulsante testo="Preferisci scriverla a mano?" variante="fantasma" onPress={() => router.replace('/allenamento/nuova')} />
+      <Pulsante testo="Preferisci scriverlo a mano?" variante="fantasma" onPress={() => router.replace('/allenamento/nuova')} />
 
       <Text style={[stili.avvertenza, { color: p.testoTerzo }]}>
-        La foto o il PDF vengono letti da un servizio di intelligenza artificiale, solo per riconoscere gli esercizi, e non vengono conservati: restano soltanto gli esercizi che confermi tu.
-        Meglio non includere dati che non servono, come nomi e telefoni. Una lettura automatica può sbagliare: prima di salvare la controlli sempre. La scheda che salvi la possono vedere i trainer del club.
+        La foto o il PDF vengono letti da un servizio di intelligenza artificiale, solo per riconoscere gli esercizi, e non vengono conservati: resta soltanto quello che confermi tu.
+        Meglio non includere dati che non servono, come nomi e telefoni. Una lettura automatica può sbagliare: prima di confermare lo controlli sempre. Il piano che confermi lo possono vedere i trainer del club.
       </Text>
     </Schermata>
   )

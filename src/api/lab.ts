@@ -690,8 +690,8 @@ export type RigaSchedaLab = {
   livello: string | null
   giorni_settimana: number | null
   giorni: number
-  /** Per le schede del socio: scritta a mano o letta da un file. */
-  origine?: 'creata' | 'importata' | null
+  /** Per i piani del socio: scritto a mano, letto da un file, scritto dall'agente AI o copiato dal club. */
+  origine?: 'creata' | 'importata' | 'ai' | 'club' | null
   ultimo: string | null
 }
 
@@ -757,6 +757,8 @@ export type SchedaLab = {
   livello: string | null
   giorni_settimana: number | null
   rivista_il: string | null
+  /** Per i piani del socio: da dove viene. */
+  origine?: 'creata' | 'importata' | 'ai' | 'club' | null
   giorni: GiornoSchedaLab[]
 }
 
@@ -779,7 +781,7 @@ const schedeLab = (corpo: Record<string, unknown>) => funzione('portale-lab-sche
 export async function elencoSchede(): Promise<Esito<{ schede: RigaSchedaLab[]; ultimi: SedutaBreve[]; ai: { usate: number; massimo: number }; test: StatoTest }>> {
   const { ok, dati } = await schedeLab({ azione: 'elenco' })
   if (ok) return { ok: true, schede: dati.schede, ultimi: dati.ultimi, ai: dati.ai, test: dati.test ?? { ultimo: null, fatti: 0, totale: 0, giorni: 42 } }
-  return { ok: false, errore: dati.errore ?? 'Non riusciamo a leggere le tue schede adesso.' }
+  return { ok: false, errore: dati.errore ?? 'Non riusciamo a leggere i tuoi piani adesso.' }
 }
 
 export async function leggiSchedaLab(id: string): Promise<Esito<{ scheda: SchedaLab; precedenti: Precedente[]; massimali: Massimale[]; ultimoTest: string | null; giorniTest: number }>> {
@@ -794,7 +796,7 @@ export async function leggiSchedaLab(id: string): Promise<Esito<{ scheda: Scheda
       giorniTest: dati.giorni_test ?? 42,
     }
   }
-  return { ok: false, errore: dati.errore ?? 'Non riusciamo ad aprire la scheda adesso.' }
+  return { ok: false, errore: dati.errore ?? 'Non riusciamo ad aprire il piano adesso.' }
 }
 
 export async function iniziaSeduta(schedaId: string, giornoId: string): Promise<Esito<{ allenamento: { id: string; inizio: string }; serie: SerieSeduta[] }>> {
@@ -838,15 +840,19 @@ export async function progressiEsercizio(esercizioId: string): Promise<Esito<{ e
   return { ok: false, errore: dati.errore ?? 'Non riusciamo a leggere i progressi adesso.' }
 }
 
-/** L'agente AI ci mette fino a un paio di minuti. */
-export async function chiediSchedaAi(questionario: Questionario): Promise<Esito<{ id: string }>> {
+/**
+ * L'agente AI ci mette fino a un paio di minuti. **Non salva niente**: risponde con una bozza (19/10/2026) che il
+ * socio rivede, modifica e conferma; solo allora e' un piano suo (`salvaSchedaMia`, origine «ai»).
+ */
+export async function chiediSchedaAi(questionario: Questionario): Promise<Esito<{ bozza: BozzaScheda }>> {
   const { ok, dati } = await schedeLab({ azione: 'chiedi_ai', questionario })
-  if (ok) return { ok: true, id: dati.id }
-  return { ok: false, errore: dati.errore ?? 'L’agente non è riuscito a scrivere la scheda adesso. Riprova fra qualche minuto.' }
+  if (ok) return { ok: true, bozza: { ...dati.bozza, origine: 'ai' } }
+  return { ok: false, errore: dati.errore ?? 'L’agente non è riuscito a scrivere il piano adesso. Riprova fra qualche minuto.' }
 }
 
-// Le schede del socio (19/10/2026): se la scrive lui, o la importa da una foto o da un PDF. Sono sue e basta:
-// il CRM non le elenca. Gli esercizi che non stanno in libreria diventano suoi (`nome_libero`).
+// I piani del socio (19/10/2026): quelli che ha scelto lui. Vengono da quattro strade (`origine`): li scrive a mano,
+// li importa da una foto o da un PDF, li fa scrivere all'agente AI, o li copia da un piano del club. In tutti i casi li
+// rivede, li modifica se vuole e li conferma (`salvaSchedaMia`). Il personale del club li legge dal CRM.
 
 /** Un esercizio della libreria accesa, o uno suo (`mio`), per sceglierlo in una scheda. Senza video e poster. */
 export type EsercizioLibreria = { id: string; nome: string; muscoli_primari: string[]; attrezzo: string | null; categoria: string | null; mio: boolean }
@@ -862,14 +868,18 @@ export type EsercizioDaSalvare = {
   recupero_dopo: number
   superserie: string
   note: string
+  /** Il carico in % del massimale (20-100), di un piano del club o dell'agente: nell'app diventa i chili del socio. */
+  percentuale?: number | null
 }
 
 export type SchedaDaSalvare = {
-  /** Se c'e', si modifica quella scheda (deve essere sua). */
+  /** Se c'e', si modifica quel piano (deve essere suo). */
   id?: string
   titolo: string
   descrizione?: string
-  origine?: 'creata' | 'importata'
+  obiettivo?: string
+  livello?: string
+  origine?: 'creata' | 'importata' | 'ai' | 'club'
   giorni: { nome: string; note: string; esercizi: EsercizioDaSalvare[] }[]
 }
 
@@ -885,10 +895,19 @@ export type EsercizioBozza = {
   recupero_dopo: number
   superserie: string
   note: string
+  percentuale?: number | null
 }
 
-/** La scheda letta da un file: non e' salvata, il socio la rivede e poi la tiene. */
-export type BozzaScheda = { titolo: string; descrizione: string; giorni: { nome: string; note: string; esercizi: EsercizioBozza[] }[] }
+/** Un piano letto da un file o scritto dall'agente: non e' salvato, il socio lo rivede, lo modifica e lo conferma. */
+export type BozzaScheda = {
+  titolo: string
+  descrizione: string
+  obiettivo?: string
+  livello?: string
+  /** Da dove viene: lo mette chi la riceve (`importaScheda`, `chiediSchedaAi`). */
+  origine?: 'importata' | 'ai'
+  giorni: { nome: string; note: string; esercizi: EsercizioBozza[] }[]
+}
 
 export async function eserciziLibreria(): Promise<Esito<{ esercizi: EsercizioLibreria[] }>> {
   const { ok, dati } = await schedeLab({ azione: 'esercizi' })
@@ -899,21 +918,21 @@ export async function eserciziLibreria(): Promise<Esito<{ esercizi: EsercizioLib
 export async function salvaSchedaMia(scheda: SchedaDaSalvare): Promise<Esito<{ id: string }>> {
   const { ok, dati } = await schedeLab({ azione: 'salva_mia', ...scheda })
   if (ok) return { ok: true, id: dati.id }
-  return { ok: false, errore: dati.errore ?? 'La scheda non è stata salvata. Riprova fra qualche minuto.' }
+  return { ok: false, errore: dati.errore ?? 'Il piano non è stato salvato. Riprova fra qualche minuto.' }
 }
 
-/** Toglie una scheda del socio dall'elenco (si ritira: lo storico degli allenamenti ne tiene il titolo). */
+/** Toglie un piano del socio dall'elenco (si ritira: lo storico degli allenamenti ne tiene il titolo). */
 export async function eliminaSchedaMia(id: string): Promise<Esito<{ eliminata: true }>> {
   const { ok, dati } = await schedeLab({ azione: 'elimina_mia', id })
   if (ok) return { ok: true, eliminata: true }
-  return { ok: false, errore: dati.errore ?? 'Non siamo riusciti a togliere la scheda. Riprova fra qualche minuto.' }
+  return { ok: false, errore: dati.errore ?? 'Non siamo riusciti a togliere il piano. Riprova fra qualche minuto.' }
 }
 
-/** Legge una scheda da una foto o da un PDF («data:…;base64,…»). Ci mette una decina di secondi, a volte un minuto. */
+/** Legge un piano da una foto o da un PDF («data:…;base64,…»). Ci mette una decina di secondi, a volte un minuto. */
 export async function importaScheda(file: string): Promise<Esito<{ bozza: BozzaScheda; daControllare: number }>> {
   const { ok, dati } = await schedeLab({ azione: 'importa', file })
-  if (ok) return { ok: true, bozza: dati.bozza, daControllare: Number(dati.da_controllare ?? 0) }
-  return { ok: false, errore: dati.errore ?? 'Non siamo riusciti a leggere la scheda adesso. Riprova fra qualche minuto, o scrivila a mano.' }
+  if (ok) return { ok: true, bozza: { ...dati.bozza, origine: 'importata' }, daControllare: Number(dati.da_controllare ?? 0) }
+  return { ok: false, errore: dati.errore ?? 'Non siamo riusciti a leggere il piano adesso. Riprova fra qualche minuto, o scrivilo a mano.' }
 }
 
 /**

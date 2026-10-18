@@ -30,7 +30,16 @@ export const MUSCOLI: Record<string, string> = {
 
 export const LIVELLI: Record<string, string> = { principiante: 'Principiante', intermedio: 'Intermedio', esperto: 'Esperto' }
 
-export const TIPI: Record<string, string> = { standard: 'Del club', personalizzata: 'Del tuo trainer', ai: 'Agente AI', socio: 'La tua' }
+export const TIPI: Record<string, string> = { standard: 'Consigliato dal club', personalizzata: 'Dal tuo trainer', ai: 'Creato con l’AI', socio: 'Tuo' }
+
+/** Da dove viene un piano del socio (`origine`), com'e' scritto sulla carta. */
+const ORIGINI: Record<string, string> = { creata: 'Scritto da te', importata: 'Importato da te', ai: 'Creato con l’AI', club: 'Dal club, tuo' }
+
+/** L'etichetta di un piano: il suo tipo e, per quelli del socio, da dove viene. */
+export function etichettaPiano(s: { tipo: string; origine?: string | null }): string {
+  if (s.tipo === 'socio') return ORIGINI[s.origine ?? 'creata'] ?? TIPI.socio
+  return TIPI[s.tipo] ?? s.tipo
+}
 
 export function muscoli(lista: string[]): string {
   return lista.map((m) => MUSCOLI[m] ?? m).join(', ')

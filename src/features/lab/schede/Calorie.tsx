@@ -193,7 +193,7 @@ function FoglioCalcolo({ aperto, stima, giorno, dataPeso, onChiudi }: { aperto: 
           </Paragrafo>
         ) : null}
         <Paragrafo titolo="4. La settimana e il fabbisogno">
-          {stima.sedute} {stima.sedute === 1 ? 'seduta' : 'sedute'} a settimana, con la media dei giorni della scheda: {forte(`circa ${intero(stima.settimana.circa)} kcal`)}. Il fabbisogno
+          {stima.sedute} {stima.sedute === 1 ? 'seduta' : 'sedute'} a settimana, con la media dei giorni del piano: {forte(`circa ${intero(stima.settimana.circa)} kcal`)}. Il fabbisogno
           di massima è il consumo a riposo × {decimale(FATTORE_RIPOSO)} per una giornata normale fuori dalla sala, più quello che l’allenamento aggiunge, spalmato sui sette giorni:{' '}
           {forte(`circa ${intero(stima.fabbisogno)} kcal al giorno`)}. Se di giorno ti muovi molto (lavoro in piedi, bici, camminate) è di più.
         </Paragrafo>
@@ -261,7 +261,7 @@ export function CalorieScheda({ scheda, giorno }: { scheda: SchedaLab; giorno: n
       <Carta style={{ gap: spazio.due }}>
         {testa}
         <Text style={[stili.nota, { color: p.testoSecondario }]}>
-          Segna il tuo peso e la tua altezza: con l’età della tua scheda del club ti diciamo quanto consuma questa scheda, seduta per seduta, e come l’abbiamo calcolato.
+          Segna il tuo peso e la tua altezza: con l’età della tua scheda del club ti diciamo quanto consuma questo piano, seduta per seduta, e come l’abbiamo calcolato.
         </Text>
         <Pulsante testo="Aggiungi i tuoi dati" icona="piu" variante="secondario" onPress={() => router.push('/allenamento/misure')} />
       </Carta>

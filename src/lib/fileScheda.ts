@@ -147,7 +147,7 @@ export async function preparaFileScheda(a: FileGrezzo): Promise<EsitoFileScheda>
         ok: false,
         errore:
           tipoFinale === 'application/pdf'
-            ? `Il PDF pesa troppo (${pesoLeggibile(blob.size)}): il limite è 4 MB. Prova con una foto della scheda.`
+            ? `Il PDF pesa troppo (${pesoLeggibile(blob.size)}): il limite è 4 MB. Prova con una foto del piano.`
             : `La foto pesa troppo (${pesoLeggibile(blob.size)}): il limite è 4 MB.`,
       }
     }

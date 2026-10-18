@@ -219,7 +219,7 @@ function Testata({ c }: { c: Contatore }) {
         <Fiamma />
         <View style={{ flex: 1 }}>
           <Text style={stili.testataTitolo}>Il tuo contatore</Text>
-          <Text style={stili.testataSotto}>Schede chiuse e lezioni con la presenza</Text>
+          <Text style={stili.testataSotto}>Allenamenti chiusi e lezioni con la presenza</Text>
         </View>
         {c.recordOra ? (
           <View style={stili.record}>
@@ -293,7 +293,7 @@ function Settimana({ c }: { c: Contatore }) {
         </View>
         <View style={stili.legenda}>
           <View style={[stili.puntino, { backgroundColor: p.accento }]} />
-          <Text style={[stili.piccola, { color: p.testoSecondario }]}>Schede</Text>
+          <Text style={[stili.piccola, { color: p.testoSecondario }]}>Allenamenti</Text>
           <View style={[stili.puntino, { backgroundColor: p.blu, marginLeft: spazio.due }]} />
           <Text style={[stili.piccola, { color: p.testoSecondario }]}>Lezioni</Text>
         </View>
@@ -541,7 +541,7 @@ export function ContatoreCalorie() {
               : corpo.motivo === 'misure'
                 ? 'Per contare le calorie servono il tuo peso e la tua altezza, insieme all’età della tua scheda del club e al sesso.'
                 : corpo.motivo === 'sesso'
-                  ? 'Per contare le calorie serve sapere se calcolare come uomo o come donna: lo scegli una volta, nel riquadro «Calorie stimate» di una scheda di allenamento.'
+                  ? 'Per contare le calorie serve sapere se calcolare come uomo o come donna: lo scegli una volta, nel riquadro «Calorie stimate» di un piano di allenamento.'
                   : 'Nella tua scheda del club manca la data di nascita, e senza l’età il conto non si può fare. Chiedi al desk di aggiungerla.'}
           </Text>
           {corpo.stato === 'mancano-dati' && corpo.motivo === 'misure' ? (
@@ -566,12 +566,12 @@ export function ContatoreCalorie() {
       <Entra indice={0}>
         <Testata c={contatore} />
       </Entra>
-      {senzaLezioni ? <Messaggio tono="attenzione">Adesso non riusciamo a leggere le tue lezioni: qui contiamo solo le schede. Riprova fra poco.</Messaggio> : null}
+      {senzaLezioni ? <Messaggio tono="attenzione">Adesso non riusciamo a leggere le tue lezioni: qui contiamo solo gli allenamenti. Riprova fra poco.</Messaggio> : null}
       {vuoto ? (
         <Carta style={{ gap: spazio.due }}>
           <Text style={[stili.titoletto, { color: p.testo }]}>Ancora niente da contare</Text>
           <Text style={[stili.nota, { color: p.testoSecondario }]}>
-            Chiudi una seduta di una tua scheda, o vieni a una lezione: quando la reception segna la tua presenza, le calorie compaiono qui.
+            Chiudi una seduta di un tuo piano, o vieni a una lezione: quando la reception segna la tua presenza, le calorie compaiono qui.
           </Text>
         </Carta>
       ) : (
@@ -606,7 +606,7 @@ export function ContatoreCalorie() {
         </>
       )}
       <Text style={[stili.piccola, { color: p.testoTerzo, paddingHorizontal: 2 }]}>
-        {`Sono stime, come quelle delle schede e delle lezioni: possono sbagliare anche del 20–30%, e contano anche le calorie che avresti consumato comunque in quei minuti. Contiamo le sedute chiuse nell’app e le lezioni con la presenza segnata dalla reception dal ${dataBreve(contatore.settimane[0].lunedi)}; la sala pesi conta solo con una scheda. Non sono un’indicazione per la dieta.`}
+        {`Sono stime, come quelle dei piani e delle lezioni: possono sbagliare anche del 20–30%, e contano anche le calorie che avresti consumato comunque in quei minuti. Contiamo le sedute chiuse nell’app e le lezioni con la presenza segnata dalla reception dal ${dataBreve(contatore.settimane[0].lunedi)}; la sala pesi conta solo con un piano. Non sono un’indicazione per la dieta.`}
       </Text>
     </Schermata>
   )

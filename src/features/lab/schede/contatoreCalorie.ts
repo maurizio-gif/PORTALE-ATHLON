@@ -95,7 +95,7 @@ export function vociCalorie(sedute: SedutaStorico[], presenze: PresenzaLezione[]
       giorno: giornoRoma(s.inizio),
       fonte: 'scheda',
       nome: [s.titolo, s.giorno_nome].filter(Boolean).join(' · ') || 'Allenamento',
-      tipo: 'Schede di allenamento',
+      tipo: 'Piani di allenamento',
       minuti: Math.round(minuti),
       kcal: Math.round(kcal(bmr, MET_MEDIO, minuti) + dopoSeduta(bmr, MET_MEDIO, minuti)),
     })
