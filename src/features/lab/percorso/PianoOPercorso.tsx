@@ -14,14 +14,14 @@ export function PianoOPercorso() {
         <Icona nome="peso" size={18} colore={p.blu} />
         <Text style={[stili.nota, { color: p.testo, flex: 1 }]}>
           <Text style={{ fontFamily: F.extra }}>Il piano di allenamento </Text>
-          sono gli esercizi di un allenamento in sala: serie, ripetizioni, carichi.
+          sono gli esercizi di un allenamento in sala, o le sedute da fare in vasca: serie, ripetizioni, carichi, distanze.
         </Text>
       </View>
       <View style={stili.differenzaRiga}>
         <Icona nome="calendario" size={18} colore={p.accento} />
         <Text style={[stili.nota, { color: p.testo, flex: 1 }]}>
           <Text style={{ fontFamily: F.extra }}>Il percorso </Text>
-          è la tua settimana intera: sala, cardio, lezioni e acqua, insieme. Usa i tuoi piani come tappe di sala.
+          è la tua settimana intera: sala, cardio, lezioni e acqua, insieme. Usa i tuoi piani come tappe di sala e di vasca.
         </Text>
       </View>
     </View>

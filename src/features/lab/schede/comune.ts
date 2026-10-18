@@ -208,3 +208,6 @@ export function giorniAlTest(ultimo: string | null, giorni: number): number {
   if (!ultimo) return 0
   return Math.max(0, Math.ceil((new Date(ultimo).getTime() + giorni * 86_400_000 - Date.now()) / 86_400_000))
 }
+
+/** La chiave di memoria dell'elenco dei piani: chi crea un piano fuori da `Schede` (il Percorso, col piano di nuoto) la butta, o l'elenco non lo mostra. */
+export const CHIAVE_ELENCO_PIANI = 'schede:elenco'

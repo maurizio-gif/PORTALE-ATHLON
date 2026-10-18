@@ -28,6 +28,10 @@ La carta in Train dice una riga per ciascuno, e la schermata del Percorso le rip
 - **Una lezione al completo propone un'alternativa** (richiesta del club, 20/10/2026): nella settimana vera, con posti liberi — lo stesso tipo in un altro orario, poi le
   simili —, e in «Prenota la settimana» come scelta (lista d'attesa, un'alternativa o lasciar stare). Nell'editor e per il tutor, **«spesso al completo»** da come sono andate le
   ultime quattro settimane (i posti di una lezione futura non si sanno prima dei tre giorni).
+- **Il nuoto entra con un piano suo** (richiesta del club, 20/10/2026). Nel questionario del piano (agente) e in quello del Percorso il socio può dire che vuole nuotare; per il
+  **Nuoto Libero** l'agente scrive un **piano di nuoto** — un piano come gli altri, con gli esercizi di vasca: «4 × 100 m, recupero 20″, medio». Nel Percorso si conferma insieme
+  alla settimana e **ogni turno di Nuoto Libero apre la sua seduta** («cosa fai in vasca oggi»); il piano è poi del socio, e lo staff lo legge dal CRM. **Si legge, non si registra**
+  (niente «Inizia», niente storico per ora). Il Nuoto Libero chiede stile libero e dorso: chi non li sa legge che si parte dalla Scuola Nuoto Adulti, senza giudizi sul livello.
 - **Sala: si mostrano i due turni** (con l'assistente di sala e di allenamento libero) e sceglie il socio, come nel calendario.
 - **Effetti**: la prima versione è senza i testi «cosa aspettarsi» per obiettivo: arrivano quando il Direttore Tecnico li ha validati.
 
@@ -62,10 +66,15 @@ muscoli lavorano); dove manca un dato lo si dice; **nessun chilo, nessuna promes
 2. **Rivedere `piani_categorie`**: i piani Short e Open hanno limiti d'orario? Il Reformer ai piani Club?
 3. **I testi «cosa aspettarsi»** per ogni obiettivo, validati dal Direttore Tecnico.
 4. **L'informativa privacy**: il questionario (limitazioni comprese) va a un servizio esterno e non si conserva.
-5. **Pubblicare il workflow del tutor e mettere la chiave** (vedi `CLAUDE.md` di APP-ATHLON): finché non c'è, il Percorso risponde «non è ancora attivo».
+5. **Il nuoto: far validare al Direttore Tecnico** i ritmi per livello (200, 150 e 110 secondi ai 100 m a stile libero), i metri massimi per quanto si nuota di fila, le regole
+   della farfalla e dello sprint e quella di stile libero e dorso. Sono nostri.
+6. **Pubblicare i workflow e mettere le chiavi** (tutor e piano di nuoto: vedi `CLAUDE.md` di APP-ATHLON): finché non ci sono, il Percorso risponde «non è ancora attivo» e il piano
+   di nuoto non si scrive. La riga che segue vale per il tutor.
 
 ## Fuori da questa versione
 
+- **Nessuna registrazione delle sedute in vasca**: niente storico, progressi o calorie per il nuoto. Se il club le vuole si decide come (a mano? dall'orologio?), e come non contare due
+  volte la stessa ora con i dispositivi.
 - **Nessun promemoria**: l'app non ha notifiche. Se il club li vuole, si decide come.
 - **Il pagamento di una lezione non compresa** passa per il Calendario e ritorna lì (`/calendario?acquisto=`): il Percorso si rilegge da sé al ritorno.
 - **Un'altra persona del nucleo**: il Percorso è del titolare maggiorenne, come le calorie.

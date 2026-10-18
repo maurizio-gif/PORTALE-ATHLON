@@ -89,6 +89,8 @@ export function controllaTappe(tappe: Tappa[]): string[] {
       if (t.tipo === 'sala' && (t.minuti < TETTI.minutiSala[0] || t.minuti > TETTI.minutiSala[1])) problemi.push(`${nome(t)}: da ${TETTI.minutiSala[0]} a ${TETTI.minutiSala[1]} minuti.`)
       if (t.tipo === 'cardio' && (t.minuti < TETTI.minutiCardio[0] || t.minuti > TETTI.minutiCardio[1])) problemi.push(`${nome(t)}: da ${TETTI.minutiCardio[0]} a ${TETTI.minutiCardio[1]} minuti.`)
     }
+    // Un turno di Nuoto Libero che apriva un piano di nuoto che non c'e' piu': la funzione rifiuterebbe il percorso. «Cambia» lo scollega.
+    for (const t of delGiorno) if (t.tipo === 'lezione' && t.piano?.disponibile === false) problemi.push(`${nome(t)}: il piano di nuoto che apriva non c’è più. Cambia la tappa (la tieni uguale) o toglila.`)
     // Le sovrapposizioni: una volta per coppia, e dicendo chi vince (la lezione ha l'ora fissa).
     const ordinate = [...delGiorno].sort((a, b) => PRIORITA[a.tipo] - PRIORITA[b.tipo])
     for (let i = 0; i < ordinate.length; i++)

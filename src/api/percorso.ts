@@ -1,10 +1,14 @@
-import { funzione, type SchedaLezione } from './lab'
+import { funzione, type BozzaScheda, type Continuo, type SchedaLezione, type Stile } from './lab'
 
 // Il Percorso Athlon (20/10/2026): la funzione portale-lab-percorso di APP-ATHLON. Il «tutor tecnico» compone
 // la settimana a tappe di un socio (sala, cardio, lezioni di gruppo); `genera` risponde con una **bozza** e
 // non salva niente, `salva` la conferma, `settimana` la trasforma nelle lezioni vere di una settimana con i
 // posti e le prenotazioni. **Non e' un piano di allenamento**: quello e' una scheda (esercizi, serie,
 // carichi) e qui compare come tappa di sala.
+//
+// **Il nuoto** (20/10/2026): chi dice di voler nuotare ha, oltre ai turni di Nuoto Libero della settimana, un **piano di
+// nuoto** (un piano come gli altri, con gli esercizi di vasca) che si conferma insieme al percorso: ogni tappa di Nuoto
+// Libero apre un suo giorno, «cosa fai in vasca oggi». Si legge in vasca, non si registra.
 //
 // Le funzioni non sollevano mai: tornano `{ ok: false, errore }`. Il questionario non si conserva (le
 // limitazioni sono dati sulla salute): vive in memoria nell'app e arriva a `genera`, e basta.
@@ -43,12 +47,23 @@ export type Questionario = {
   giorni_liberi: number[]
   cardio: boolean
   includi_non_comprese: boolean
+  /** Quante volte a settimana in vasca (0-3): turni di Nuoto Libero **in piu'** delle lezioni, ognuno col suo giorno del piano di nuoto. */
+  nuoto_volte: number
+  /** Gli stili che sa nuotare e quanti metri nuota di fila: servono solo con `nuoto_volte` > 0. Il Nuoto Libero chiede stile libero e dorso. */
+  nuoto_stili: Stile[]
+  nuoto_continuo: Continuo | null
   limitazioni: string
   note: string
 }
 
-/** Cio' che del questionario si conserva col percorso: niente di sanitario. */
-export type Preferenze = Pick<Questionario, 'giorni' | 'sala_volte' | 'lezioni_volte' | 'minuti_sala' | 'gruppi' | 'preferite' | 'evitate' | 'fasce' | 'giorni_liberi' | 'cardio' | 'includi_non_comprese'>
+/**
+ * Cio' che del questionario si conserva col percorso: niente di sanitario. `nuoto_minuti` lo sceglie la funzione dal turno
+ * del Nuoto Libero (di solito un'ora): non e' una risposta del socio e non sta nel questionario.
+ */
+export type Preferenze = Pick<
+  Questionario,
+  'giorni' | 'sala_volte' | 'lezioni_volte' | 'minuti_sala' | 'gruppi' | 'preferite' | 'evitate' | 'fasce' | 'giorni_liberi' | 'cardio' | 'includi_non_comprese' | 'nuoto_volte' | 'nuoto_stili' | 'nuoto_continuo'
+> & { nuoto_minuti?: 30 | 45 | 60 }
 
 export type Tappa = {
   giorno: GiornoSettimana
@@ -76,8 +91,26 @@ export type Tappa = {
     muscoli_primari?: Record<string, number>
     muscoli_secondari?: Record<string, number>
   }
+  /**
+   * Solo per una lezione di Nuoto Libero: il giorno del piano di nuoto che si fa in quella vasca. Una **posizione** (la prima
+   * seduta, la seconda…), come la sala, non un id. Nella bozza `scheda_id` e' null e `giorno_posizione` indica la seduta di
+   * `PercorsoBozza.piano_nuoto` (il piano non esiste ancora); dopo la conferma e' il piano vero.
+   */
+  piano?: {
+    scheda_id: string | null
+    giorno_posizione: number
+    scheda_titolo: string
+    giorno_nome: string | null
+    /** Solo in lettura: l'id di adesso del giorno, se il piano si apre ancora, e quanti metri e'. */
+    giorno_id?: string | null
+    disponibile?: boolean
+    metri?: number
+  }
   cardio?: { esercizio_id: string; nome: string }
 }
+
+/** Il piano di nuoto scritto insieme al percorso: la stessa forma di una bozza di piano, con `ambiente: 'vasca'`. */
+export type PianoNuotoBozza = BozzaScheda & { ambiente: 'vasca' }
 
 export type PercorsoBozza = {
   titolo: string
@@ -86,6 +119,8 @@ export type PercorsoBozza = {
   livello: Livello
   preferenze: Preferenze
   tappe: Tappa[]
+  /** Il piano di nuoto che le tappe di Nuoto Libero aprono: si conferma con il percorso. Assente se non e' stato chiesto o non e' riuscito. */
+  piano_nuoto?: PianoNuotoBozza
   /** Quale modello l'ha scritta: torna alla funzione al salvataggio, che lo ricontrolla. */
   modello?: string | null
 }

@@ -7,6 +7,8 @@ import { ora } from '@/lib/eventi'
 import { spazio } from '@/theme'
 
 import { AzioniLezione } from '../Calendario'
+import { COSA_FAI_IN_VASCA, inMetri } from '../schede/nuoto'
+import { Icona } from '../ui/Icona'
 import { Bollino, Carta, Etichetta, Messaggio, Pulsante } from '../ui/kit'
 import { coloreTono, F, usePalette, type ToniTutti } from '../ui/tema'
 import type { usePrenotazioneLezione } from '../usePrenotazioneLezione'
@@ -26,6 +28,9 @@ import { ETICHETTA_TIPO, fasciaOraria, titoloTappa } from './comune'
 // La **sala** non e' una lezione sola: la Gym Floor e' un turno ogni mezz'ora, e si mostrano i due piu' vicini
 // all'ora della tappa, uno con l'assistente di sala e uno di allenamento libero. Sceglie il socio. L'orario di
 // ogni turno e' quello vero: non si scrive mai a mano.
+//
+// Un turno di **Nuoto Libero** puo' aprire il suo giorno del **piano di nuoto** (`t.piano`, 20/10/2026): «cosa fai in
+// vasca oggi», con la seduta e i suoi metri. Il piano si legge e non si registra: c'e' «Apri il piano» e basta, niente «Inizia».
 
 export type AzioniPrenotazione = ReturnType<typeof usePrenotazioneLezione>
 
@@ -142,6 +147,7 @@ export function TappaCarta({
       ) : null}
       {t.perche ? <Text style={[stili.perche, { color: p.testoSecondario }]}>{t.perche}</Text> : null}
 
+      {t.tipo === 'lezione' && t.piano ? <TappaVasca piano={t.piano} /> : null}
       {t.tipo === 'lezione' ? <TappaLezione t={t} schede={schede} vista={vista} azioni={azioni} onScheda={onScheda} /> : null}
       {t.tipo === 'sala' ? <TappaSala t={t} vista={vista} azioni={azioni} onScheda={onScheda} /> : null}
     </Carta>
@@ -234,6 +240,31 @@ function TappaLezione({ t, schede, vista, azioni, onScheda }: { t: TappaSettiman
   )
 }
 
+/** Cosa si fa in vasca in questo turno: la seduta del piano di nuoto, coi metri, e il modo di aprirla. */
+function TappaVasca({ piano }: { piano: NonNullable<TappaSettimana['piano']> }) {
+  const p = usePalette()
+  if (piano.disponibile === false || !piano.scheda_id) {
+    return <Messaggio tono="attenzione">Il piano di nuoto di questa tappa non c’è più: puoi chiederne uno nuovo dai piani di allenamento.</Messaggio>
+  }
+  return (
+    <View style={[stili.vasca, { backgroundColor: p.incavo }]}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+        <Icona nome="goccia" size={16} colore={p.blu} />
+        <Text style={[stili.sottoTitolo, { color: p.testo, flex: 1 }]}>{COSA_FAI_IN_VASCA}</Text>
+      </View>
+      <Text style={[stili.nota, { color: p.testoSecondario }]}>{`${piano.giorno_nome ?? 'Una seduta'}${piano.metri ? ` · ${inMetri(piano.metri)}` : ''} · ${piano.scheda_titolo}`}</Text>
+      <View style={stili.azioni}>
+        <Pulsante
+          testo="Apri il piano"
+          variante="contorno"
+          piccolo
+          onPress={() => router.push({ pathname: '/allenamento/[scheda]', params: { scheda: piano.scheda_id!, giorno: String(piano.giorno_posizione) } })}
+        />
+      </View>
+    </View>
+  )
+}
+
 function TappaSala({ t, vista, azioni, onScheda }: { t: TappaSettimana; vista: boolean; azioni: AzioniPrenotazione; onScheda: (l: { nome: string; categoria: string; scheda: SchedaLezione }) => void }) {
   const p = usePalette()
   const s = t.sala
@@ -292,6 +323,7 @@ const stili = StyleSheet.create({
   piccola: { fontFamily: F.medio, fontSize: 12, lineHeight: 17 },
   sottoTitolo: { fontFamily: F.bold, fontSize: 15 },
   slot: { borderRadius: 16, padding: spazio.tre, gap: spazio.due },
+  vasca: { borderRadius: 16, padding: spazio.tre, gap: spazio.due },
   slotOra: { fontFamily: F.bold, fontSize: 14.5 },
   azioni: { flexDirection: 'row', gap: spazio.due },
 })

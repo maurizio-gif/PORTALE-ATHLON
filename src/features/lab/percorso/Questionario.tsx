@@ -16,9 +16,11 @@ import {
   type Obiettivo,
   type Questionario as DatiQuestionario,
 } from '@/api/percorso'
+import { saNuotareAbbastanza, type Continuo, type Stile } from '@/api/lab'
 import { spazio } from '@/theme'
 
 import { prendi } from '../memoria'
+import { CampiNuoto } from '../schede/CampiNuoto'
 import { Scelte, SceltePiu } from '../ui/Campi'
 import { Icona } from '../ui/Icona'
 import { Carta, Messaggio, Pulsante, Sezione } from '../ui/kit'
@@ -40,6 +42,11 @@ import { usePercorso } from './usePercorso'
 //
 // Il tutor non salva niente: risponde con una **bozza** che l'editor fa rivedere. La richiesta ci mette fino
 // a un paio di minuti: chi esce dalla schermata nel frattempo non si ritrova nell'editor (`qui`).
+//
+// **Il nuoto** (20/10/2026): fra le cose da scegliere c'e' «quante volte in vasca». Chi ne sceglie almeno una ha, nella
+// settimana, dei turni di Nuoto Libero **e un piano di nuoto** scritto insieme al percorso (si conferma con lui): per
+// scriverlo servono gli stili che sa nuotare e quanto nuota di fila. Il Nuoto Libero chiede stile libero e dorso: chi non
+// li sa non puo' mandare la richiesta e il messaggio gli dice dove si comincia (la Scuola Nuoto Adulti).
 
 const LIVELLI_TESTO: { valore: Livello; testo: string; nota: string }[] = [
   { valore: 'principiante', testo: 'Principiante', nota: 'Ho iniziato da poco o riprendo dopo una pausa' },
@@ -61,6 +68,10 @@ const ATTESA = [
 /** Fino a quante lezioni a settimana si chiede: due al giorno al massimo, e mai piu' di otto (il percorso ha un tetto di tappe). */
 const quanteLezioni = (giorni: number) => Math.min(8, giorni * 2)
 
+/** Fino a quante volte in vasca: tre (e mai piu' dei giorni). Sono turni di Nuoto Libero in piu' delle lezioni di gruppo. */
+const NUOTO_MAX = 3
+const quanteInVasca = (giorni: number) => Math.min(NUOTO_MAX, giorni)
+
 export function Questionario() {
   const p = usePalette()
   const { stato, errore: erroreStato, vista } = usePercorso()
@@ -71,6 +82,9 @@ export function Questionario() {
   const [giorni, setGiorni] = useState(4)
   const [sala, setSala] = useState(2)
   const [lezioni, setLezioni] = useState(2)
+  const [nuoto, setNuoto] = useState(0)
+  const [stiliNuoto, setStiliNuoto] = useState<Stile[]>([])
+  const [continuo, setContinuo] = useState<Continuo | null>(null)
   const [minutiSala, setMinutiSala] = useState(60)
   const [gruppi, setGruppi] = useState<Gruppo[]>([])
   const [preferite, setPreferite] = useState<string[]>([])
@@ -107,6 +121,10 @@ export function Questionario() {
     setGiorni(Math.min(6, Math.max(1, pr.giorni)))
     setSala(pr.sala_volte)
     setLezioni(pr.lezioni_volte)
+    // I percorsi di prima del nuoto non hanno questi campi: restano a «niente vasca».
+    setNuoto(Math.min(NUOTO_MAX, pr.nuoto_volte ?? 0))
+    setStiliNuoto(pr.nuoto_stili ?? [])
+    setContinuo(pr.nuoto_continuo ?? null)
     if ([30, 45, 60, 75, 90].includes(pr.minuti_sala)) setMinutiSala(pr.minuti_sala)
     setGruppi(pr.gruppi)
     setPreferite(pr.preferite)
@@ -140,15 +158,20 @@ export function Questionario() {
     setGiorni(n)
     setSala((s) => Math.min(s, n))
     setLezioni((l) => Math.min(l, quanteLezioni(n)))
+    setNuoto((v) => Math.min(v, quanteInVasca(n)))
   }
 
   const pianiPerLaSala = (stato?.piani.suoi ?? 0) + (stato?.piani.del_club ?? 0)
   const maggiorenne = stato?.maggiorenne !== false
   const quotaFinita = !!stato && stato.quota.usate >= stato.quota.massimo
   const giorniLiberiOk = giorniLiberi.length === 0 || giorniLiberi.length >= giorni
-  const pronto = !!obiettivo && !!livello && sala + lezioni >= 1 && giorniLiberiOk && (sala === 0 || pianiPerLaSala > 0)
+  // Con la vasca servono gli stili e i metri di fila, e il Nuoto Libero chiede stile libero e dorso (la stessa regola della funzione).
+  const nuotoOk = nuoto === 0 || (saNuotareAbbastanza(stiliNuoto) && !!continuo)
+  const pronto = !!obiettivo && !!livello && sala + lezioni + nuoto >= 1 && giorniLiberiOk && (sala === 0 || pianiPerLaSala > 0) && nuotoOk
 
   const nonComprese_noto = stato?.idoneita.categorie != null
+  // Il Nuoto Libero non e' nell'abbonamento e le lezioni non comprese sono escluse: la funzione non troverebbe turni. Lo si dice prima.
+  const nuotoNonCompreso = nuoto > 0 && stato?.idoneita.categorie != null && !stato.idoneita.categorie.includes('Nuoto Libero') && !nonComprese
 
   async function invia() {
     if (!pronto || !obiettivo || !livello) return
@@ -168,6 +191,10 @@ export function Questionario() {
       giorni_liberi: giorniLiberi,
       cardio,
       includi_non_comprese: nonComprese,
+      nuoto_volte: nuoto,
+      // Gli stili e i metri di fila servono solo a chi nuota: gli altri non mandano niente.
+      nuoto_stili: nuoto > 0 ? stiliNuoto : [],
+      nuoto_continuo: nuoto > 0 ? continuo : null,
       limitazioni: limitazioni.trim(),
       note: note.trim(),
     }
@@ -234,7 +261,7 @@ export function Questionario() {
       <Carta style={{ gap: spazio.due }}>
         <Text style={[stili.nota, { color: p.testo, fontFamily: F.bold }]}>Non è un piano di allenamento</Text>
         <Text style={[stili.nota, { color: p.testoSecondario }]}>
-          Il piano sono gli esercizi di un allenamento in sala. Il percorso è l’intera settimana: usa i tuoi piani come tappe di sala e li affianca a lezioni, acqua e cardio.
+          Il piano sono gli esercizi di un allenamento in sala, o le sedute da fare in vasca. Il percorso è l’intera settimana: usa i tuoi piani come tappe di sala e di vasca e li affianca a lezioni, acqua e cardio.
           {pianiPerLaSala === 0 ? ' Per la sala ti serve almeno un piano: puoi crearlo dalla pagina Train.' : ''}
         </Text>
       </Carta>
@@ -338,6 +365,26 @@ export function Questionario() {
         </>
       ) : null}
 
+      <Sezione titolo="Quante volte in vasca">
+        <Scelte valori={Array.from({ length: quanteInVasca(giorni) + 1 }, (_, n) => ({ valore: n, testo: String(n) }))} scelto={nuoto} onScegli={setNuoto} />
+        <Text style={[stili.nota, { color: p.testoSecondario }]}>
+          {nuoto > 0
+            ? 'Turni di Nuoto Libero, in più delle lezioni di gruppo. Il tutor scrive anche un piano di nuoto: ogni turno apre il suo giorno, cosa fai in vasca oggi.'
+            : 'Se ti va di nuotare, scegli quante volte: il tutor mette i turni nella settimana e ti scrive un piano di nuoto.'}
+        </Text>
+      </Sezione>
+
+      {nuoto > 0 ? (
+        <>
+          <CampiNuoto stili={stiliNuoto} onStili={setStiliNuoto} continuo={continuo} onContinuo={setContinuo} />
+          {nuotoNonCompreso ? (
+            <Messaggio tono="attenzione">
+              Il Nuoto Libero non risulta nel tuo abbonamento. Per metterlo nel percorso scegli «Includi anche le altre» più sotto: i turni compaiono segnati «da acquistare».
+            </Messaggio>
+          ) : null}
+        </>
+      ) : null}
+
       <Sezione titolo="Quando preferisci venire" destra={<Text style={[stili.facoltativo, { color: p.testoTerzo }]}>FACOLTATIVO</Text>}>
         <SceltePiu valori={FASCE.map((f) => ({ valore: f, testo: NOME_FASCIA[f].titolo }))} scelti={fasce} onCambia={setFasce} />
         <Text style={[stili.nota, { color: p.testoSecondario }]}>
@@ -408,6 +455,11 @@ export function Questionario() {
         <Messaggio tono="attenzione">{`Hai già chiesto ${stato!.quota.massimo} percorsi al tutor negli ultimi trenta giorni: puoi ancora modificare a mano quello che hai.`}</Messaggio>
       ) : null}
       {!pronto && (!obiettivo || !livello) ? <Text style={[stili.nota, { color: p.testoSecondario, textAlign: 'center' }]}>Scegli obiettivo e livello per continuare.</Text> : null}
+      {!pronto && !!obiettivo && !!livello && nuoto > 0 && !nuotoOk ? (
+        <Text style={[stili.nota, { color: p.testoSecondario, textAlign: 'center' }]}>
+          {!stiliNuoto.length || !continuo ? 'Per il nuoto scegli gli stili che sai e quanto nuoti di fila.' : 'Per mandare la richiesta serve il Nuoto Libero: stile libero e dorso.'}
+        </Text>
+      ) : null}
       <Pulsante testo="Componi il mio percorso" icona="stella" onPress={invia} disabilitato={!pronto || quotaFinita} />
       <Text style={[stili.avvertenza, { color: p.testoTerzo }]}>
         Il percorso lo compone un’intelligenza artificiale e lo confermi tu: il questionario non viene conservato, resta solo il percorso che confermi, e i trainer del club lo possono

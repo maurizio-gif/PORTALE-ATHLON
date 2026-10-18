@@ -14,6 +14,7 @@ import { colpetto, Tocco } from '../ui/Tocco'
 import { leggiBozza, scartaBozza } from './bozza'
 import { recupero } from './comune'
 import { origineDellaCopia } from './copia'
+import { eDiVasca, inMetri, metriDelGiorno, metriDi } from './nuoto'
 import { SceltaEsercizio, type Scelta } from './SceltaEsercizio'
 
 // Il piano del socio (19/10/2026), da quattro strade che finiscono qui: scritto a mano (`/nuova`), letto da un file
@@ -22,9 +23,17 @@ import { SceltaEsercizio, type Scelta } from './SceltaEsercizio'
 // suoi, e per ognuno serie, ripetizioni, carico (o % del massimale), recupero, superserie e note. **Niente si salva
 // finche' non si conferma**: la funzione (`salva_mia`) ricontrolla tutto e crea gli esercizi che il socio ha scritto
 // con un nome suo, e il piano entra fra i suoi. Con `?id=` si modifica un piano gia' suo.
+//
+// **Un piano di nuoto** (20/10/2026, `ambiente: 'vasca'`) e' lo stesso editor con altre parole e altri campi: le sedute
+// invece dei giorni, le ripetizioni invece delle serie, la **distanza** in metri (multipli di 25: la vasca e' da 25) e
+// l'**intensita'** a parole invece di chili e percentuale. Gli esercizi si scelgono fra quelli di vasca e non si scrive
+// un nome proprio: un esercizio suo sarebbe di sala e il piano smetterebbe di essere «di vasca», cioe' di leggersi senza «Inizia».
 
 const GIORNI_MAX = 7
 const ESERCIZI_GIORNO_MAX = 25
+/** L'intensita' di un blocco di vasca, a parole: niente ritmi in numeri, che non conosciamo. */
+const INTENSITA_VASCA = ['facile', 'medio', 'sostenuto', 'forte']
+const METRI_MAX = 1000
 
 type EsercizioForm = {
   chiave: string
@@ -50,23 +59,24 @@ type Form = { titolo: string; descrizione: string; obiettivo: string; livello: s
 let contatore = 0
 const nuovaChiave = () => `k${++contatore}`
 
-const esercizioVuoto = (s: Scelta): EsercizioForm => ({
+const esercizioVuoto = (s: Scelta, vasca = false): EsercizioForm => ({
   chiave: nuovaChiave(),
   esercizio_id: 'esercizio_id' in s ? s.esercizio_id : null,
   nome: 'esercizio_id' in s ? s.nome : s.nome_libero,
   scritto: '',
   daControllare: false,
-  serie: 3,
-  ripetizioni: '10',
-  carico: '',
-  recupero_serie: 90,
-  recupero_dopo: 120,
+  // In vasca: quattro ripetizioni da 100 m, medie, con poco recupero. Si cambia subito.
+  serie: vasca ? 4 : 3,
+  ripetizioni: vasca ? '100 m' : '10',
+  carico: vasca ? 'medio' : '',
+  recupero_serie: vasca ? 20 : 90,
+  recupero_dopo: vasca ? 30 : 120,
   superserie: '',
   note: '',
   percentuale: null,
 })
 
-const giornoVuoto = (i: number): GiornoForm => ({ chiave: nuovaChiave(), nome: `Giorno ${String.fromCharCode(65 + i)}`, note: '', esercizi: [] })
+const giornoVuoto = (i: number, vasca = false): GiornoForm => ({ chiave: nuovaChiave(), nome: `${vasca ? 'Seduta' : 'Giorno'} ${String.fromCharCode(65 + i)}`, note: '', esercizi: [] })
 
 function daBozza(b: BozzaScheda): Form {
   return {
@@ -82,15 +92,16 @@ function daBozza(b: BozzaScheda): Form {
         chiave: nuovaChiave(),
         esercizio_id: e.esercizio_id,
         nome: e.nome,
-        scritto: e.nome_scritto,
+        // Un piano di nuoto scritto dall'agente non porta `nome_scritto` e la superserie e' vuota: mai `undefined` nei campi che si puliscono col trim.
+        scritto: e.nome_scritto ?? '',
         daControllare: !e.esercizio_id,
         serie: e.serie,
         ripetizioni: e.ripetizioni,
         carico: e.carico,
         recupero_serie: e.recupero_serie,
         recupero_dopo: e.recupero_dopo,
-        superserie: e.superserie,
-        note: e.note,
+        superserie: e.superserie ?? '',
+        note: e.note ?? '',
         percentuale: e.percentuale ?? null,
       })),
     })),
@@ -204,12 +215,34 @@ function Icone({ icona, onPress, etichetta, spento = false }: { icona: NomeIcona
   )
 }
 
+/** L'intensita' di un blocco di vasca: una parola fra quattro, accese a una a una. */
+function Intensita({ valore, onCambia }: { valore: string; onCambia: (v: string) => void }) {
+  const p = usePalette()
+  return (
+    <View style={{ gap: 4 }}>
+      <Text style={[stili.etichetta, { color: p.testoSecondario }]}>Intensità</Text>
+      <View style={stili.tag}>
+        {INTENSITA_VASCA.map((v) => {
+          const attivo = v === valore
+          return (
+            <Tocco key={v} vibra="scelta" stato={{ selected: attivo }} onPress={() => onCambia(v)} etichetta={`Intensità ${v}`} style={[stili.pillola, { backgroundColor: attivo ? p.accento : p.carta }]}>
+              <Text style={{ color: attivo ? '#fff' : p.testo, fontFamily: attivo ? F.extra : F.semi, fontSize: 14 }}>{v.charAt(0).toUpperCase() + v.slice(1)}</Text>
+            </Tocco>
+          )
+        })}
+      </View>
+    </View>
+  )
+}
+
 export function EditorScheda() {
   const p = usePalette()
   const { id, da, copia } = useLocalSearchParams<{ id?: string; da?: string; copia?: string }>()
   // La bozza (letta da un file o scritta dall'agente) si prende una volta: dopo il salvataggio si butta.
   const [bozza] = useState(() => (!id && !copia && da === 'bozza' ? leggiBozza() : null))
   const modo: 'nuovo' | 'modifica' | 'copia' | 'file' | 'ai' = id ? 'modifica' : copia ? 'copia' : bozza ? (bozza.origine === 'ai' ? 'ai' : 'file') : 'nuovo'
+  // Un piano di nuoto: lo dice la bozza dell'agente o il piano che si apre (si ricava dagli esercizi, il browser non lo decide).
+  const [vasca, setVasca] = useState(() => eDiVasca(bozza))
   const [form, setForm] = useState<Form | null>(() => (id || copia ? null : bozza ? daBozza(bozza) : { titolo: '', descrizione: '', obiettivo: '', livello: '', giorni: [giornoVuoto(0)] }))
   /** Da dove viene la copia (un piano del club o del trainer, o uno suo), per dirlo al salvataggio. */
   const [origineCopia, setOrigineCopia] = useState<'club' | 'creata'>('club')
@@ -234,6 +267,7 @@ export function EditorScheda() {
         setOrigineCopia(origineDellaCopia(r.scheda))
         setDaPiano(r.scheda.titolo)
       }
+      setVasca(eDiVasca(r.scheda))
       setForm(daScheda(r.scheda))
     })
     return () => {
@@ -267,7 +301,7 @@ export function EditorScheda() {
       }))
       return
     }
-    const nuovo = esercizioVuoto(s)
+    const nuovo = esercizioVuoto(s, vasca)
     sulGiorno(giorno, (y) => ({ ...y, esercizi: [...y.esercizi, nuovo] }))
     setAperto(nuovo.chiave)
   }
@@ -280,6 +314,16 @@ export function EditorScheda() {
     if (vuoto) return setErrore(`«${vuoto.nome.trim() || 'Un giorno'}» non ha esercizi: aggiungine uno o togli il giorno.`)
     const storta = form.giorni.flatMap((g) => g.esercizi).find((e) => e.percentuale != null && (e.percentuale < 20 || e.percentuale > 100))
     if (storta) return setErrore(`«${storta.nome}»: la percentuale del massimale va da 20 a 100. Lasciala vuota se vuoi scrivere i chili.`)
+    // In vasca la distanza e' «<metri> m», a multipli di 25: e' da li' che l'app fa i conti dei metri.
+    const lunga = vasca
+      ? form.giorni
+          .flatMap((g) => g.esercizi)
+          .find((e) => {
+            const m = metriDi(e.ripetizioni)
+            return !m || m % 25 !== 0 || m > METRI_MAX
+          })
+      : null
+    if (lunga) return setErrore(`«${lunga.nome}»: scrivi la distanza di una ripetizione in metri, a multipli di 25 e fino a ${METRI_MAX} (per esempio 100).`)
     const scheda: SchedaDaSalvare = {
       ...(id ? { id: String(id) } : {}),
       titolo: form.titolo.trim(),
@@ -316,13 +360,21 @@ export function EditorScheda() {
     router.replace({ pathname: '/allenamento/[scheda]', params: { scheda: r.id } })
   }
 
-  const titolo = { modifica: 'Modifica il piano', copia: 'Modifica e aggiungi', file: 'Controlla il piano', ai: 'Il piano dell’agente', nuovo: 'Scrivi il tuo piano' }[modo]
+  const titolo = {
+    modifica: vasca ? 'Modifica il piano di nuoto' : 'Modifica il piano',
+    copia: 'Modifica e aggiungi',
+    file: 'Controlla il piano',
+    ai: vasca ? 'Il piano di nuoto dell’agente' : 'Il piano dell’agente',
+    nuovo: 'Scrivi il tuo piano',
+  }[modo]
   const indietro = id ? (`/allenamento/${id}` as const) : copia ? (`/allenamento/${copia}` as const) : ('/allenamento' as const)
   const sottotitolo = {
-    modifica: 'Cambia giorni, esercizi e numeri: le sedute che hai già fatto restano nello storico.',
+    modifica: vasca ? 'Cambia sedute, distanze e recuperi: un piano di nuoto si legge a bordo vasca e non si registra.' : 'Cambia giorni, esercizi e numeri: le sedute che hai già fatto restano nello storico.',
     copia: daPiano ? `Parti da «${daPiano}»: cambia quello che vuoi e conferma. Lo trovi poi fra i tuoi piani; l’originale resta com’è.` : 'Cambia quello che vuoi e conferma: lo trovi poi fra i tuoi piani.',
     file: 'L’abbiamo letto dal tuo file. Controlla gli esercizi, le serie e i carichi: il piano si salva solo quando lo decidi tu.',
-    ai: 'Ecco il piano che l’agente ha scritto per te. Cambia quello che vuoi e confermalo: lo trovi poi fra i tuoi piani.',
+    ai: vasca
+      ? 'Ecco il piano di nuoto che l’agente ha scritto per te. Cambia sedute, distanze e recuperi e confermalo: lo trovi poi fra i tuoi piani, e si legge a bordo vasca.'
+      : 'Ecco il piano che l’agente ha scritto per te. Cambia quello che vuoi e confermalo: lo trovi poi fra i tuoi piani.',
     nuovo: 'Giorni ed esercizi, con serie, ripetizioni, carico e recupero. Lo usi come gli altri: inizi l’allenamento e segni le serie.',
   }[modo]
 
@@ -355,30 +407,32 @@ export function EditorScheda() {
       ) : null}
       {modo === 'ai' ? (
         <Messaggio tono="attenzione" titolo="Scritto da un’intelligenza artificiale">
-          Può sbagliare: guarda esercizi, carichi e recuperi, e correggi quello che non ti torna. Con dolori o infortuni parlane prima con un istruttore in sala.
+          {vasca
+            ? 'Può sbagliare: guarda distanze e recuperi, e correggi quello che non ti torna. Con dolori o infortuni parlane prima con il tecnico a bordo vasca.'
+            : 'Può sbagliare: guarda esercizi, carichi e recuperi, e correggi quello che non ti torna. Con dolori o infortuni parlane prima con un istruttore in sala.'}
         </Messaggio>
       ) : null}
 
       <Carta style={{ gap: spazio.tre }}>
         <Campo etichetta="Nome del piano" value={form.titolo} onChange={(t) => aggiorna((x) => ({ ...x, titolo: t }))} placeholder="Per esempio: Forza 3 giorni" max={120} />
-        <Campo etichetta="Note (facoltativo)" value={form.descrizione} onChange={(t) => aggiorna((x) => ({ ...x, descrizione: t }))} placeholder="Obiettivo, riscaldamento, indicazioni generali" max={2000} multiline />
+        <Campo etichetta={vasca ? 'Descrizione (facoltativo)' : 'Note (facoltativo)'} value={form.descrizione} onChange={(t) => aggiorna((x) => ({ ...x, descrizione: t }))} placeholder="Obiettivo, riscaldamento, indicazioni generali" max={2000} multiline />
       </Carta>
 
       {form.giorni.map((g, gi) => (
         <Sezione
           key={g.chiave}
-          titolo={g.nome.trim() || `Giorno ${String.fromCharCode(65 + gi)}`}
+          titolo={`${g.nome.trim() || `${vasca ? 'Seduta' : 'Giorno'} ${String.fromCharCode(65 + gi)}`}${vasca && metriDelGiorno(g) > 0 ? ` · ${inMetri(metriDelGiorno(g))}` : ''}`}
           conteggio={g.esercizi.length}
           destra={
             form.giorni.length > 1 ? (
               <Tocco onPress={() => aggiorna((x) => ({ ...x, giorni: x.giorni.filter((y) => y.chiave !== g.chiave) }))} etichetta={`Togli ${g.nome}`}>
-                <Text style={{ color: p.errore, fontFamily: F.bold, fontSize: 13.5 }}>Togli il giorno</Text>
+                <Text style={{ color: p.errore, fontFamily: F.bold, fontSize: 13.5 }}>{vasca ? 'Togli la seduta' : 'Togli il giorno'}</Text>
               </Tocco>
             ) : undefined
           }
         >
           <Carta style={{ gap: spazio.tre }}>
-            <Campo etichetta="Nome del giorno" value={g.nome} onChange={(t) => sulGiorno(g.chiave, (y) => ({ ...y, nome: t }))} placeholder={`Giorno ${String.fromCharCode(65 + gi)}`} />
+            <Campo etichetta={vasca ? 'Nome della seduta' : 'Nome del giorno'} value={g.nome} onChange={(t) => sulGiorno(g.chiave, (y) => ({ ...y, nome: t }))} placeholder={`${vasca ? 'Seduta' : 'Giorno'} ${String.fromCharCode(65 + gi)}`} />
             {g.esercizi.map((e, ei) => {
               const espanso = aperto === e.chiave
               return (
@@ -405,6 +459,33 @@ export function EditorScheda() {
 
                   {espanso ? (
                     <View style={[stili.dettagli, { borderTopColor: p.linea }]}>
+                      {vasca ? (
+                        <>
+                          <View style={stili.fila}>
+                            <Stepper fondo={p.carta} etichetta="Ripetizioni" valore={e.serie} min={1} max={20} passo={1} onCambia={(n) => sulEsercizio(g.chiave, e.chiave, (z) => ({ ...z, serie: n }))} />
+                            <Campo
+                              flessibile
+                              numerico
+                              fondo={p.carta}
+                              etichetta="Metri per ripetizione"
+                              value={metriDi(e.ripetizioni) != null ? String(metriDi(e.ripetizioni)) : e.ripetizioni.replace(/\D/g, '')}
+                              onChange={(t) => {
+                                const cifre = t.replace(/\D/g, '')
+                                sulEsercizio(g.chiave, e.chiave, (z) => ({ ...z, ripetizioni: cifre ? `${cifre} m` : '' }))
+                              }}
+                              placeholder="es. 100"
+                              max={4}
+                            />
+                          </View>
+                          <Text style={[stili.sotto, { color: p.testoSecondario }]}>La vasca è da 25 metri: scrivi la distanza di una ripetizione, a multipli di 25.</Text>
+                          <Intensita valore={e.carico} onCambia={(v) => sulEsercizio(g.chiave, e.chiave, (z) => ({ ...z, carico: v }))} />
+                          <View style={stili.fila}>
+                            <Stepper fondo={p.carta} etichetta="Recupero" valore={e.recupero_serie} min={0} max={120} passo={5} formato={recupero} onCambia={(n) => sulEsercizio(g.chiave, e.chiave, (z) => ({ ...z, recupero_serie: n }))} />
+                            <Stepper fondo={p.carta} etichetta="Pausa dopo" valore={e.recupero_dopo} min={0} max={300} passo={15} formato={recupero} onCambia={(n) => sulEsercizio(g.chiave, e.chiave, (z) => ({ ...z, recupero_dopo: n }))} />
+                          </View>
+                        </>
+                      ) : (
+                        <>
                       <View style={stili.fila}>
                         <Stepper fondo={p.carta} etichetta="Serie" valore={e.serie} min={1} max={20} passo={1} onCambia={(n) => sulEsercizio(g.chiave, e.chiave, (z) => ({ ...z, serie: n }))} />
                         <Stepper fondo={p.carta} etichetta="Recupero fra le serie" valore={e.recupero_serie} min={0} max={900} passo={15} formato={recupero} onCambia={(n) => sulEsercizio(g.chiave, e.chiave, (z) => ({ ...z, recupero_serie: n }))} />
@@ -433,7 +514,9 @@ export function EditorScheda() {
                       <View style={stili.fila}>
                         <Stepper fondo={p.carta} etichetta="Recupero dopo l’ultima serie" valore={e.recupero_dopo} min={0} max={900} passo={15} formato={recupero} onCambia={(n) => sulEsercizio(g.chiave, e.chiave, (z) => ({ ...z, recupero_dopo: n }))} />
                       </View>
-                      <Campo fondo={p.carta} etichetta="Note sull’esercizio" value={e.note} onChange={(t) => sulEsercizio(g.chiave, e.chiave, (z) => ({ ...z, note: t }))} placeholder="Tempo, presa, cedimento…" max={300} multiline />
+                        </>
+                      )}
+                      <Campo fondo={p.carta} etichetta="Note sull’esercizio" value={e.note} onChange={(t) => sulEsercizio(g.chiave, e.chiave, (z) => ({ ...z, note: t }))} placeholder={vasca ? 'Respirazione, bracciata, tecnica…' : 'Tempo, presa, cedimento…'} max={300} multiline />
                       <View style={stili.comandi}>
                         <Icone icona="su" etichetta={`Sposta su ${e.nome}`} spento={ei === 0} onPress={() => sposta(g.chiave, e.chiave, -1)} />
                         <Icone icona="giu" etichetta={`Sposta giù ${e.nome}`} spento={ei === g.esercizi.length - 1} onPress={() => sposta(g.chiave, e.chiave, 1)} />
@@ -453,19 +536,19 @@ export function EditorScheda() {
                 </View>
               )
             })}
-            {g.esercizi.length < ESERCIZI_GIORNO_MAX ? <Pulsante testo="Aggiungi un esercizio" icona="piu" variante="secondario" onPress={() => setScelta({ giorno: g.chiave })} /> : null}
+            {g.esercizi.length < ESERCIZI_GIORNO_MAX ? <Pulsante testo={vasca ? 'Aggiungi un blocco di nuoto' : 'Aggiungi un esercizio'} icona="piu" variante="secondario" onPress={() => setScelta({ giorno: g.chiave })} /> : null}
           </Carta>
         </Sezione>
       ))}
 
       {form.giorni.length < GIORNI_MAX ? (
-        <Pulsante testo="Aggiungi un giorno" icona="piu" variante="contorno" onPress={() => aggiorna((x) => ({ ...x, giorni: [...x.giorni, giornoVuoto(x.giorni.length)] }))} />
+        <Pulsante testo={vasca ? 'Aggiungi una seduta' : 'Aggiungi un giorno'} icona="piu" variante="contorno" onPress={() => aggiorna((x) => ({ ...x, giorni: [...x.giorni, giornoVuoto(x.giorni.length, vasca)] }))} />
       ) : null}
 
       {errore ? <Messaggio>{errore}</Messaggio> : null}
       <Pulsante testo={modo === 'modifica' ? 'Salva le modifiche' : modo === 'nuovo' ? 'Salva il piano' : 'Conferma e aggiungi ai tuoi piani'} icona="spunta" inCorso={salvando} onPress={salva} />
       <Text style={[stili.avvertenza, { color: p.testoTerzo }]}>
-        È un piano tuo, ma i trainer del club lo possono vedere dal pannello, per verificarlo e aiutarti a seguirlo. Non sostituisce il parere di un istruttore: con dolori o infortuni parlane prima con un istruttore in sala.
+        È un piano tuo, ma i trainer del club lo possono vedere dal pannello, per verificarlo e aiutarti a seguirlo. Non sostituisce il parere di un istruttore: con dolori o infortuni parlane prima con {vasca ? 'il tecnico a bordo vasca' : 'un istruttore in sala'}.
       </Text>
 
       <SceltaEsercizio
@@ -473,6 +556,7 @@ export function EditorScheda() {
         titolo={scelta?.esercizio ? 'Cambia esercizio' : sceltaCorrente ? `Aggiungi a ${sceltaCorrente.nome.trim() || 'questo giorno'}` : 'Scegli un esercizio'}
         onChiudi={() => setScelta(null)}
         onScegli={scegliEsercizio}
+        ambiente={vasca ? 'vasca' : 'sala'}
       />
     </Schermata>
   )
@@ -489,6 +573,7 @@ const stili = StyleSheet.create({
   esercizio: { borderRadius: 18, padding: spazio.tre, gap: spazio.tre },
   testa: { flexDirection: 'row', alignItems: 'flex-start', gap: spazio.due },
   tag: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
+  pillola: { borderRadius: 999, paddingVertical: 8, paddingHorizontal: spazio.tre },
   comandi: { flexDirection: 'row', gap: 6 },
   nome: { fontFamily: F.extra, fontSize: 15.5, lineHeight: 19, letterSpacing: -0.2 },
   sotto: { fontFamily: F.semi, fontSize: 12.5, lineHeight: 17 },

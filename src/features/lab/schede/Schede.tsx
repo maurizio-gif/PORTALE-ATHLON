@@ -22,7 +22,8 @@ import { Carta, Entra, LinkSezione, Messaggio, Pulsante, Riga, SchedeInArrivo, S
 import { Schermata } from '../ui/Schermata'
 import { F, FUOCO, MARE, NOTTE, ORTO, usePalette } from '../ui/tema'
 import { Tocco } from '../ui/Tocco'
-import { etichettaPiano, giorniAlTest, giornoTest, LIVELLI, quando, testDaRifare } from './comune'
+import { CHIAVE_ELENCO_PIANI, etichettaPiano, giorniAlTest, giornoTest, LIVELLI, quando, testDaRifare } from './comune'
+import { eDiVasca, ETICHETTA_VASCA } from './nuoto'
 
 // Athlon Health System (19/10/2026, era Workout, poi Fit): sotto il titolo la
 // ruota Train, Food, Relax (fit/Ruota.tsx) e il tuo corpo (fit/Corpo.tsx); poi l'introduzione (cosa si fa e cosa
@@ -154,7 +155,7 @@ function CartaTest({ t, riempi = false }: { t: StatoTest; riempi?: boolean }) {
     </Tocco>
   )
 }
-export const CHIAVE_SCHEDE = 'schede:elenco'
+export const CHIAVE_SCHEDE = CHIAVE_ELENCO_PIANI
 
 /** Le due origini «tue»: importare un piano che si ha gia' (foto o PDF) o scriverlo a mano (19/10/2026). */
 function CartaImporta({ riempi = false }: { riempi?: boolean }) {
@@ -222,7 +223,7 @@ function CartaAi({ restano, massimo, riempi = false }: { restano: number; massim
           <Text style={[stili.agenteTitolo, { color: p.testo }]}>Crealo con l’aiuto dell’AI</Text>
           <Text style={[stili.agenteTesto, { color: p.testoSecondario }]}>
             {restano
-              ? `Rispondi a sei domande: l’agente scrive il piano in un paio di minuti e tu lo modifichi prima di confermarlo. Ne puoi chiedere ancora ${restano} questo mese.`
+              ? `Rispondi a qualche domanda: l’agente scrive il piano in un paio di minuti, per la sala o per il nuoto libero, e tu lo modifichi prima di confermarlo. Ne puoi chiedere ancora ${restano} questo mese.`
               : `Hai già chiesto ${massimo} piani negli ultimi trenta giorni: non è possibile chiederne altri per ora.`}
           </Text>
         </View>
@@ -233,24 +234,26 @@ function CartaAi({ restano, massimo, riempi = false }: { restano: number; massim
 }
 
 function SchedaCarta({ s, indice }: { s: RigaSchedaLab; indice: number }) {
+  // Un piano di nuoto (20/10/2026) si legge in vasca: la goccia al posto del peso, «sedute» al posto di «giorni», e niente «non ancora iniziato».
+  const vasca = eDiVasca(s)
   const colori = s.tipo === 'ai' ? (['#8B5CF6', '#5B21B6'] as const) : s.tipo === 'personalizzata' ? FUOCO : s.tipo === 'socio' ? ORTO : NOTTE
   return (
     <Entra indice={indice}>
       <Tocco onPress={() => router.push({ pathname: '/allenamento/[scheda]', params: { scheda: s.id } })} etichetta={`Piano ${s.titolo}`} scala={0.985}>
         <LinearGradient colors={colori} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={stili.scheda}>
           <View style={stili.filigrana} pointerEvents="none">
-            <Icona nome={s.tipo === 'ai' ? 'stella' : 'peso'} size={120} colore="rgba(255,255,255,0.08)" />
+            <Icona nome={vasca ? 'goccia' : s.tipo === 'ai' ? 'stella' : 'peso'} size={120} colore="rgba(255,255,255,0.08)" />
           </View>
-          <Tag testo={etichettaPiano(s)} colore="#fff" fondo="rgba(0,0,0,0.18)" />
+          <Tag testo={vasca ? ETICHETTA_VASCA : etichettaPiano(s)} colore="#fff" fondo="rgba(0,0,0,0.18)" />
           <Text style={stili.titolo} numberOfLines={2}>
             {s.titolo}
           </Text>
           <View style={stili.pillole}>
             {s.obiettivo ? <Text style={stili.pillola}>{s.obiettivo}</Text> : null}
             {s.livello ? <Text style={stili.pillola}>{LIVELLI[s.livello] ?? s.livello}</Text> : null}
-            <Text style={stili.pillola}>{`${s.giorni} ${s.giorni === 1 ? 'giorno' : 'giorni'}`}</Text>
+            <Text style={stili.pillola}>{`${s.giorni} ${vasca ? (s.giorni === 1 ? 'seduta' : 'sedute') : s.giorni === 1 ? 'giorno' : 'giorni'}`}</Text>
           </View>
-          <Text style={[stili.ultimo, { color: 'rgba(255,255,255,0.75)' }]}>{s.ultimo ? `Ultimo allenamento ${quando(s.ultimo)}` : 'Non ancora iniziato'}</Text>
+          <Text style={[stili.ultimo, { color: 'rgba(255,255,255,0.75)' }]}>{vasca ? 'Si legge a bordo vasca' : s.ultimo ? `Ultimo allenamento ${quando(s.ultimo)}` : 'Non ancora iniziato'}</Text>
         </LinearGradient>
       </Tocco>
     </Entra>

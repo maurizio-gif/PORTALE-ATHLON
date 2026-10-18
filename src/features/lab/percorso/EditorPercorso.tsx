@@ -12,6 +12,9 @@ import { Schermata } from '../ui/Schermata'
 import { F, usePalette } from '../ui/tema'
 import { colpetto, Tocco } from '../ui/Tocco'
 import { Icona } from '../ui/Icona'
+import { CHIAVE_ELENCO_PIANI } from '../schede/comune'
+import { inMetri } from '../schede/nuoto'
+import { ricorda } from '../memoria'
 import { leggiBozzaPercorso, scartaBozzaPercorso } from './bozzaPercorso'
 import { alternativePerTappa, slotDiTappa, spessoCompleta, tappaDaSlot, type Suggerimento } from './affollamento'
 import { CHIAVE_CATALOGO_PERCORSO, ETICHETTA_TIPO, fasciaOraria, GIORNI, GIORNO_BREVE, NOME_GIORNO, rinumera, tappeDelGiorno, titoloTappa } from './comune'
@@ -19,6 +22,8 @@ import { controllaTappe, ricalcolaAncorate } from './controllo'
 import { PannelloEffetti } from './Effetti'
 import { calcolaEffetti } from './effetti'
 import { FoglioTappa } from './FoglioTappa'
+import { eNuotoLibero, ereditaPiano, riagganciaNuoto } from './nuoto'
+import { PianoNuotoCarta } from './PianoNuotoCarta'
 import { PianoOPercorso } from './PianoOPercorso'
 import { invalidaPercorso, usePercorso } from './usePercorso'
 import { useUltime } from './useUltime'
@@ -35,6 +40,12 @@ import { useUltime } from './useUltime'
 // si accende finche' ce ne sono. Gli effetti (`Effetti.tsx`) si ricalcolano a ogni cambio.
 //
 // La bozza sta in memoria (`bozzaPercorso.ts`): se la pagina si ricarica non c'e' piu', e lo si dice.
+//
+// **Il piano di nuoto** (20/10/2026): se il socio ha chiesto di nuotare, la bozza porta anche un piano di nuoto
+// (`piano_nuoto`), che si conferma con il percorso e che le tappe di Nuoto Libero aprono, una seduta ciascuna. Qui si
+// vede (`PianoNuotoCarta`), si puo' togliere, e **spostando o aggiungendo turni le sedute si riagganciano** come le
+// riagganciera' la funzione (`nuoto.ts`). Un piano di nuoto senza un turno che lo apra non si conferma: o si aggiunge
+// il turno, o si toglie il piano. Il piano non si modifica da qui: dopo la conferma e' un piano del socio.
 
 const intestazione = { sopratitolo: 'Percorso Athlon', indietro: '/allenamento/percorso' as const }
 
@@ -82,13 +93,20 @@ export function EditorPercorso() {
   }, [haBozza, nonComprese])
 
   const tappe = bozza?.tappe ?? []
-  const problemi = useMemo(() => controllaTappe(tappe), [tappe])
+  const pianoNuoto = bozza?.piano_nuoto ?? null
+  // Il piano di nuoto si apre da un turno di Nuoto Libero: senza, la funzione non lo salverebbe (422). Lo si dice prima.
+  const problemi = useMemo(() => {
+    const p = controllaTappe(tappe)
+    if (pianoNuoto && !tappe.some(eNuotoLibero)) p.push('Il piano di nuoto si apre da un turno di Nuoto Libero e il percorso non ne ha: aggiungine uno, oppure togli il piano di nuoto.')
+    return p
+  }, [tappe, pianoNuoto])
   const effetti = useMemo(
     () => (bozza ? calcolaEffetti(tappe, schede, { obiettivo: bozza.obiettivo, corpo: corpo.stato === 'ok' ? corpo.corpo : null }) : null),
     [bozza, tappe, schede, corpo],
   )
   const originale = useRef(iniziale?.bozza.tappe ?? []).current
-  const modificata = JSON.stringify(tappe.map(chiaveTappa)) !== JSON.stringify(originale.map(chiaveTappa)) || (bozza?.titolo ?? '') !== (iniziale?.bozza.titolo ?? '')
+  const modificata =
+    JSON.stringify(tappe.map(chiaveTappa)) !== JSON.stringify(originale.map(chiaveTappa)) || (bozza?.titolo ?? '') !== (iniziale?.bozza.titolo ?? '') || !!bozza?.piano_nuoto !== !!iniziale?.bozza.piano_nuoto
 
   if (!bozza || !effetti) {
     return (
@@ -116,7 +134,19 @@ export function EditorPercorso() {
 
   function metti(nuove: Tappa[]) {
     setErrore(null)
-    setBozza((b) => (b ? { ...b, tappe: nuove } : b))
+    // Le tappe di Nuoto Libero senza una seduta (nuove, o cambiate in un'altra lezione) la prendono in ordine, come alla nascita.
+    setBozza((b) => (b ? { ...b, tappe: b.piano_nuoto ? riagganciaNuoto(nuove, b.piano_nuoto) : nuove } : b))
+  }
+
+  /** Toglie il piano di nuoto: il percorso resta, i turni di Nuoto Libero restano senza seduta. */
+  function togliPianoNuoto() {
+    setErrore(null)
+    setBozza((b) => {
+      if (!b) return b
+      const { piano_nuoto: _tolto, ...resto } = b
+      return { ...resto, tappe: b.tappe.map((t) => (t.piano ? { ...t, piano: undefined } : t)) }
+    })
+    colpetto('scelta')
   }
 
   /** Aggiunge una tappa, o ne sostituisce una. Le altre non cambiano: si rinumerano e le ancore seguono. */
@@ -124,7 +154,8 @@ export function EditorPercorso() {
     const vecchia = foglio?.tappa ?? null
     const altre = tappe.filter((t) => t !== vecchia)
     // Una tappa cambiata non e' piu' quella di cui parlava il tutor: la sua frase non vale piu'.
-    const senzaPerche: Tappa = { ...nuova, perche: vecchia && vecchia.tipo === nuova.tipo && sonoLaStessa(vecchia, nuova) ? vecchia.perche : null }
+    // Un turno di Nuoto Libero cambiato di giorno o di ora apre ancora la sua seduta.
+    const senzaPerche: Tappa = { ...ereditaPiano(vecchia, nuova), perche: vecchia && vecchia.tipo === nuova.tipo && sonoLaStessa(vecchia, nuova) ? vecchia.perche : null }
     metti(rinumera(ricalcolaAncorate([...altre, senzaPerche])))
     colpetto('scelta')
     setFoglio(null)
@@ -135,7 +166,7 @@ export function EditorPercorso() {
     const stessoGiorno = slot.giorno === vecchia.giorno
     const nuova = tappaDaSlot(slot, stessoGiorno ? vecchia.ordine : 9999)
     // Lo stesso tipo di lezione in un altro orario tiene la frase del tutor; un altro tipo no: quella frase parlava d'altro.
-    const conPerche: Tappa = { ...nuova, perche: sonoLaStessa(vecchia, nuova) ? vecchia.perche : null }
+    const conPerche: Tappa = { ...ereditaPiano(vecchia, nuova), perche: sonoLaStessa(vecchia, nuova) ? vecchia.perche : null }
     metti(rinumera(ricalcolaAncorate([...tappe.filter((t) => t !== vecchia), conPerche])))
     colpetto('scelta')
   }
@@ -146,8 +177,9 @@ export function EditorPercorso() {
   }
 
   function ripristina() {
-    metti(originale)
-    setBozza((b) => (b && iniziale ? { ...b, titolo: iniziale.bozza.titolo } : b))
+    // Il piano di nuoto torna com'era (anche se l'avevi tolto): si rimette prima, e le tappe tornano con le loro sedute.
+    setErrore(null)
+    setBozza((b) => (b && iniziale ? { ...b, titolo: iniziale.bozza.titolo, tappe: originale, piano_nuoto: iniziale.bozza.piano_nuoto } : b))
   }
 
   async function salva() {
@@ -164,6 +196,8 @@ export function EditorPercorso() {
     }
     colpetto('ok')
     invalidaPercorso()
+    // Il piano di nuoto, se c'era, e' appena diventato un piano del socio: l'elenco dei piani lo deve mostrare.
+    if (bozza.piano_nuoto) ricorda(CHIAVE_ELENCO_PIANI, undefined)
     scartaBozzaPercorso()
     router.replace('/allenamento/percorso')
   }
@@ -221,6 +255,8 @@ export function EditorPercorso() {
         {giorniAttivi.length === 0 ? <Text style={[stili.nota, { color: p.testoSecondario }]}>Il percorso non ha tappe: aggiungine una a un giorno.</Text> : null}
       </Sezione>
 
+      {pianoNuoto ? <PianoNuotoCarta piano={pianoNuoto} tappe={tappe} onTogli={togliPianoNuoto} disabilitato={salvando} /> : null}
+
       <PannelloEffetti effetti={effetti} ultime={ultime} corpo={corpo} titolo="Cosa fa questa settimana" />
 
       <Sezione titolo="Conferma">
@@ -255,7 +291,7 @@ export function EditorPercorso() {
             <Pulsante testo={modo === 'tutor' ? 'Scarta questo percorso' : 'Esci senza salvare'} variante="fantasma" onPress={() => (modificata || modo === 'tutor' ? setScartando(true) : router.replace('/allenamento/percorso'))} disabilitato={salvando} />
           )}
           <Text style={[stili.piccola, { color: p.testoTerzo, textAlign: 'center' }]}>
-            Confermando, il percorso diventa tuo. I trainer del club lo possono vedere dal pannello, in sola lettura. Non è un piano di allenamento: quelli restano come sono.
+            Confermando, il percorso diventa tuo. I trainer del club lo possono vedere dal pannello, in sola lettura. Non è un piano di allenamento: quelli restano come sono{pianoNuoto ? ', e il piano di nuoto entra fra i tuoi piani' : ''}.
           </Text>
         </View>
       </Sezione>
@@ -279,7 +315,7 @@ export function EditorPercorso() {
 }
 
 /** Cio' che identifica una tappa, per sapere se il socio ha cambiato qualcosa. */
-const chiaveTappa = (t: Tappa) => [t.giorno, t.tipo, t.ora, t.minuti, t.lezione?.class_type_id, t.sala?.scheda_id, t.sala?.giorno_posizione, t.cardio?.esercizio_id, t.ancora, t.posizione].join('|')
+const chiaveTappa = (t: Tappa) => [t.giorno, t.tipo, t.ora, t.minuti, t.lezione?.class_type_id, t.sala?.scheda_id, t.sala?.giorno_posizione, t.piano?.giorno_posizione, t.cardio?.esercizio_id, t.ancora, t.posizione].join('|')
 
 /** Cambiando solo il giorno o l'ora di una tappa, la frase del tutor (il perche') ha ancora senso: cambiando cosa si fa, no. */
 function sonoLaStessa(a: Tappa, b: Tappa): boolean {
@@ -314,6 +350,13 @@ function RigaTappa({
       </View>
       {t.perche ? <Text style={[stili.perche, { color: p.testoSecondario }]}>{t.perche}</Text> : null}
       {t.tipo === 'sala' && t.sala?.disponibile === false ? <Messaggio tono="attenzione">Il piano di questa tappa non c’è più: cambiala.</Messaggio> : null}
+      {t.piano && t.piano.disponibile !== false ? (
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+          <Icona nome="goccia" size={15} colore={p.blu} />
+          <Text style={[stili.nota, { color: p.testoSecondario, flex: 1 }]}>{`In vasca: ${t.piano.giorno_nome ?? 'una seduta del piano di nuoto'}${t.piano.metri ? ` · ${inMetri(t.piano.metri)}` : ''}`}</Text>
+        </View>
+      ) : null}
+      {t.piano?.disponibile === false ? <Messaggio tono="attenzione">Il piano di nuoto di questa tappa non c’è più: cambiala, e resta senza piano.</Messaggio> : null}
       {avviso ? (
         <View style={[stili.avviso, { backgroundColor: p.incavo }]}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
