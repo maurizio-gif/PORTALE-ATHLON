@@ -207,7 +207,7 @@ export function Schede() {
   const largo = larghezza >= LARGO
 
   return (
-    <Schermata titolo="Fit" sottotitolo="Il tuo allenamento e la tua alimentazione.">
+    <Schermata titolo="Fit" sottotitolo="Allenamento, alimentazione e recupero.">
       <View style={largo ? stili.fila3 : { gap: spazio.quattro + 4 }}>
         <Entra indice={0} style={largo ? { flex: 1 } : undefined}>
           <IntroFit />

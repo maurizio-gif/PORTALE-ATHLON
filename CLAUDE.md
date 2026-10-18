@@ -163,7 +163,8 @@ La scheda che era **Workout** si chiama **Fit** (richiesta del club, 19/10/2026)
 dell'adulto in un posto solo. L'indirizzo resta `/allenamento` (è quello dei link già dati); l'area scelta sta in
 `?area=food`, così tornando dal diario si ritrova Food. Nomi in inglese di proposito, il resto in italiano.
 
-- **In cima l'introduzione** (`fit/Intro.tsx`): cosa c'è nelle tre parti e, in un pannello che si apre, come leggere i
+- **In cima l'introduzione** (`fit/Intro.tsx`): il benessere come equilibrio di allenamento giusto (Train), buona
+  alimentazione (Food) e recupero (Relax: sonno e giorni di riposo, senza una sezione sua), cosa fa il Balance e, in un pannello che si apre, come leggere i
   numeri (`ComeLeggere` in `fit/Balance.tsx`, lo stesso testo in fondo alla schermata di Balance).
 - **Balance** (`fit/Balance.tsx`, conto in `fit/bilancio.ts`, schermata `/allenamento/balance`): le calorie consumate
   (le stime del contatore: riposo × 1,2 più l'attività contata) accanto a quelle del diario. **Un giorno senza niente nel

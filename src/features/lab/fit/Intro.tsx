@@ -9,15 +9,19 @@ import { F, usePalette } from '../ui/tema'
 import { Tocco } from '../ui/Tocco'
 import { ComeLeggere } from './Balance'
 
-// L'introduzione in cima a Fit (richiesta del club, 19/10/2026): cosa si puo'
-// fare nelle tre parti e il senso dei numeri, prima di vederli. I numeri si
+// L'introduzione in cima a Fit (richiesta del club, 19/10/2026): il benessere
+// come equilibrio, cosa si puo' fare in Fit e il senso dei numeri, prima di vederli. I numeri si
 // spiegano in un pannello che si apre, per non spingere sotto la piega il
 // Balance a ogni visita; il testo e' lo stesso in fondo alla schermata di Balance.
 
+// Il benessere come equilibrio di tre cose (richiesta del club): allenarsi il
+// giusto, mangiare bene, recuperare. Il relax non ha una sezione sua: si dice qui
+// che fa parte del programma, perche' chi apre Fit non pensi che servano sette
+// allenamenti a settimana.
 const PARTI: { nome: string; icona: NomeIcona; colore: string; testo: string }[] = [
-  { nome: 'Balance', icona: 'grafico', colore: '#8B5CF6', testo: 'le calorie che consumi accanto a quelle che mangi, giorno per giorno e in media.' },
-  { nome: 'Train', icona: 'peso', colore: '#FF5701', testo: 'le tue schede, il registro dei pesi, il test dei massimali, le tue misure e le calorie che consumi allenandoti.' },
-  { nome: 'Food', icona: 'piatto', colore: '#18A957', testo: 'il diario dei pasti, la foto del piatto che diventa calorie e i consigli. Si apre dopo aver accettato la sua informativa: i dati li vedi solo tu.' },
+  { nome: 'Train', icona: 'peso', colore: '#FF5701', testo: 'allenarsi il giusto, non troppo. Qui le tue schede, il registro dei pesi, il test dei massimali, le misure e le calorie che consumi.' },
+  { nome: 'Food', icona: 'piatto', colore: '#18A957', testo: 'mangiare bene. Il diario dei pasti, la foto del piatto e i consigli; si apre dopo aver accettato la sua informativa, e i dati li vedi solo tu.' },
+  { nome: 'Relax', icona: 'foglia', colore: '#14B8A6', testo: 'recuperare. Il sonno e i giorni di riposo fanno parte dell’allenamento: è lì che il corpo si rimette in forze.' },
 ]
 
 export function IntroFit() {
@@ -25,7 +29,10 @@ export function IntroFit() {
   const [aperto, setAperto] = useState(false)
   return (
     <Carta style={{ gap: spazio.tre }}>
-      <Text style={[stili.titolo, { color: p.testo }]}>Allenamento e alimentazione, in un posto solo.</Text>
+      <View style={{ gap: 4 }}>
+        <Text style={[stili.titolo, { color: p.testo }]}>Il benessere è un equilibrio.</Text>
+        <Text style={[stili.testo, { color: p.testoSecondario }]}>Viene da tre cose insieme, e nessuna basta da sola:</Text>
+      </View>
       <View style={{ gap: spazio.due }}>
         {PARTI.map((x) => (
           <View key={x.nome} style={stili.riga}>
@@ -39,6 +46,10 @@ export function IntroFit() {
           </View>
         ))}
       </View>
+      <Text style={[stili.testo, { color: p.testoSecondario }]}>
+        <Text style={{ fontFamily: F.extra, color: p.testo }}>Balance </Text>
+        mette accanto le calorie che consumi e quelle che mangi: è il punto in cui allenamento e alimentazione si incontrano.
+      </Text>
       <Tocco onPress={() => setAperto((a) => !a)} etichetta={aperto ? 'Chiudi la spiegazione dei numeri' : 'Come leggere i numeri'} style={[stili.apri, { borderTopColor: p.linea }]}>
         <Text style={[stili.apriTesto, { color: p.accento }]}>Come leggere i numeri</Text>
         <View style={{ transform: [{ rotate: aperto ? '-90deg' : '90deg' }] }}>
