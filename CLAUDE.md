@@ -295,6 +295,34 @@ logo è la parte che gli piace, quindi non si tocca. Un effetto nuovo si chiede 
   vede). Sul telefono si passa dalla schermata nativa arancione (`expo-splash-screen`) al fondo scuro dell'avvio senza dissolvenza: da guardare, e se
   stona si fa partire l'avvio dallo stesso arancio.
 
+## I consigli di Athlon: le lezioni che fanno per te, con le alternative; sala e nuoto se li vuoi
+
+Richiesta del club (20/10/2026): il Percorso (sezione sotto) era troppo complesso e la prenotazione dentro la settimana troppo stretta. Nella schermata Train la carta che c'era
+(`CartaConsigli` in `schede/Schede.tsx`) porta adesso ai **consigli** (`/allenamento/consigli`, cartella `src/features/lab/consigli/`): il socio dice cosa cerca e riceve **i tipi di lezione che
+fanno per lui, con le alternative**, e se vuole anche come affiancarli alla sala pesi (Gym Floor) e al Nuoto Libero. Non è una settimana e non è un piano di allenamento: niente tappe,
+niente editor, niente conferma, niente «Prenota la settimana». Funzione, controlli, quota e workflow: `CLAUDE.md` di APP-ATHLON (`portale-lab-percorso`, azioni `consigli_stato` e `consigli`).
+
+- **Una schermata sola con tre momenti** (`Consigli.tsx`): le domande, l'attesa e i consigli. Obbligatori solo obiettivo e livello; poi quante volte a settimana (1-6, di partenza 3), «Vuoi anche la sala pesi?»,
+  «E il nuoto?» (no · Nuoto Libero · Voglio imparare), e — facoltativi — che lezioni piacciono (i cinque gruppi del Percorso), quando si preferisce venire, in quali giorni si può, quali lezioni evitare (a parole,
+  separate da una virgola), se includere le non comprese e le limitazioni. **Sala e nuoto li sceglie il socio**: senza averli chiesti non compaiono. L'attesa è di pochi secondi, a volte mezzo minuto.
+- **I consigli sono carte per tipo di lezione** (`CartaConsiglio`): il nome, categoria, durata e quante volte a settimana conviene, «Spesso al completo» e «Da acquistare» dove servono, il perché (una riga, senza
+  numeri: li scrive il codice), **le prossime lezioni** (le prime due, le altre con «Mostra altre») e **le alternative** in una riga che si apre («Se questa non va: 2 alternative»), ognuna con le sue lezioni.
+  Poi i blocchi «E in sala» (`BloccoSala`: per giorno i turni con l'assistente di sala e quelli in allenamento libero, con le parole del sito: **l'assistente di sala supervisiona le attività in sala, non ti segue
+  né ti controlla mentre lavori**) e «E in vasca» (`BloccoNuoto`), gli avvisi della funzione in fondo e «Come metterli insieme». Un tipo senza lezioni nei prossimi giorni lo dice e rimanda alle alternative.
+- **Si prenota con i pulsanti del Calendario** (`RigaLezione` in `Lezioni.tsx`: `AzioniLezione` e `usePrenotazioneLezione`, gli stessi del Percorso): prenota, lista d'attesa, disdici, acquista se non è compresa, «Prenotabile da…»
+  se non si è ancora aperta, il motivo del limite della categoria. **Nessuna regola in più**: se il Calendario dice «hai già una prenotazione di Group Reformer», lo dice anche qui. Dopo un clic la riga si aggiorna
+  subito con quello che ha detto PerfectGym (`conPrenotazione`, in ogni posto dove compare quella lezione) e la memoria del giorno del calendario si butta (`dimenticaGiornoCalendario`).
+- **La memoria è solo in memoria** (`consigli:ultimi`, `consigli:scelte`, `consigli:stato`, mai sul disco): l'ultima risposta e le scelte, **senza le limitazioni**, così dopo un pagamento o un «Dettagli» si
+  ritrovano i consigli («Cambia le risposte» → «Torna ai consigli di prima»). Non è niente di sanitario. Le dieci richieste al giorno le conta il server (`stato.quota`).
+- **Nella vista cliente dello staff non si apre**: la schermata dice che i consigli li chiede solo il socio e la funzione risponde 403. Solo maggiorenni. Una funzione che non conosce ancora l'azione («Azione sconosciuta.») per
+  il socio è «non ancora attivi».
+- **Il Percorso resta raggiungibile**: in fondo alla schermata («Preferisci una settimana già a tappe? Apri il Percorso Athlon», `AltraStrada`) e dall'indirizzo `/allenamento/percorso`. Se il club lo toglie, si toglie quel link.
+- **Parole**: «consigli», «lezioni», «sala», «vasca»; mai «percorso» né «piano» per questa cosa, e niente promesse di risultati. I posti cambiano in fretta: l'ultima parola è del Calendario, e la schermata lo dice.
+
+Per verificare: `npx tsc --noEmit` pulito; `consigli/comune.ts` è puro (`conPrenotazione`, `evitateDa`, `questionarioDa`) e si prova con `npx tsx`. **La schermata si guarda renderizzata** (360, 390, 430 e 1280 px, anche con «riduci
+movimento»): le domande, l'attesa, i consigli con una lezione prenotata, da acquistare, spesso al completo e senza date, le alternative aperte, la sala con i due tipi di turno, il nuoto, la quota finita (il pulsante
+si spegne e lo dice) e la vista cliente. Si prova con il bundle esportato e le risposte della funzione intercettate; **con una sessione vera non è provata**, né su un telefono.
+
 ## Il Percorso Athlon: la settimana a tappe, composta dal tutor dentro il palinsesto vero
 
 Nella schermata Train (`/allenamento`), sotto il test e le calorie, c'è la carta **Percorso Athlon** («Il tutor tecnico della tua settimana:
@@ -303,6 +331,7 @@ piano di allenamento (che lezioni gli piacciono, quante volte in sala, in quali 
 piani di allenamento che il socio ha già), il cardio, le lezioni di gruppo e l'acqua. Ogni lezione si prenota dalla sua tappa, e il percorso
 spiega **cosa fa la settimana**, non solo quante calorie costa. Cartella `src/features/lab/percorso/`; funzione, tabelle, quota e regole del
 server sono nel `CLAUDE.md` di APP-ATHLON (`portale-lab-percorso`, migrazione `20261019e_percorso.sql`).
+**Dal 20/10/2026 la carta in Train porta ai consigli** (sezione sopra), più semplici; il Percorso resta com'è e si apre da un link in fondo alla loro schermata.
 
 - **Non è un piano di allenamento**, e la schermata lo dice prima di tutto (`PianoOPercorso`): il piano (nel codice, la «scheda») sono gli
   esercizi di un allenamento in sala, serie, ripetizioni e carichi; il percorso è la settimana intera e usa i piani come tappe di sala. **Nei testi
