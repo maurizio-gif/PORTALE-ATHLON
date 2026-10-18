@@ -412,8 +412,8 @@ l'obiettivo; il confronto con le ultime quattro settimane e, per ultime, le calo
 ### Cosa manca, e cosa serve per accenderlo
 
 - **È acceso, per i tester del portale** (20/10/2026): il workflow n8n del tutor (`athlon-percorso-ai`) è pubblicato, la chiave è nel Vault (`percorso_n8n_chiave`) e la funzione
-  `portale-lab-percorso` è in produzione; chi non è fra i tester non apre la funzione. **Con i modelli gratuiti `genera` può fallire** (limite di richieste, tempo scaduto): l'app lo dice
-  e si riprova. Non è stato provato con una sessione vera, quindi il primo percorso generato da un tester è la prima prova di tutta la schermata. Dettagli e cosa è stato verificato: `CLAUDE.md` di APP-ATHLON.
+  `portale-lab-percorso` è in produzione; chi non è fra i tester non apre la funzione. **Con i modelli gratuiti `genera` oggi fallisce**: nelle prove di accensione nessun modello ha dato un percorso (tempo scaduto, limite di richieste), e la funzione risponde 502 («Il tutor non è riuscito a
+  comporre il percorso adesso. Riprova fra qualche minuto»), che l'app mostra; non conta nella quota. Finché non c'è un modello che regge, il Percorso è visibile ai tester ma non si genera. Non è stato provato con una sessione vera, quindi il primo percorso generato da un tester è la prima prova di tutta la schermata. Dettagli e cosa è stato verificato: `CLAUDE.md` di APP-ATHLON.
 - **Non ci sono promemoria**: l'app non ha notifiche. Se il club li vuole, si decide come (email?).
 - **Da fare col club**: le barre del Nuoto Libero e della Scuola Nuoto Adulti e la flessibilità delle lezioni in acqua; la revisione della tabella
   `piani_categorie` (anche se i piani Short e Open hanno limiti d'orario); i testi «cosa aspettarsi» per obiettivo, validati dal Direttore Tecnico;
