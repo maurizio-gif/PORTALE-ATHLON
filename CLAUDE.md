@@ -412,8 +412,8 @@ l'obiettivo; il confronto con le ultime quattro settimane e, per ultime, le calo
 ### Cosa manca, e cosa serve per accenderlo
 
 - **È acceso, per i tester del portale** (20/10/2026): il workflow n8n del tutor (`athlon-percorso-ai`) è pubblicato, la chiave è nel Vault (`percorso_n8n_chiave`) e la funzione
-  `portale-lab-percorso` è in produzione; chi non è fra i tester non apre la funzione. **Con i modelli gratuiti `genera` oggi fallisce**: nelle prove di accensione nessun modello ha dato un percorso (tempo scaduto, limite di richieste), e la funzione risponde 502 («Il tutor non è riuscito a
-  comporre il percorso adesso. Riprova fra qualche minuto»), che l'app mostra; non conta nella quota. Finché non c'è un modello che regge, il Percorso è visibile ai tester ma non si genera. Non è stato provato con una sessione vera, quindi il primo percorso generato da un tester è la prima prova di tutta la schermata. Dettagli e cosa è stato verificato: `CLAUDE.md` di APP-ATHLON.
+  `portale-lab-percorso` è in produzione; chi non è fra i tester non apre la funzione. **Il tutor usa modelli a pagamento con la riservatezza dei dati** (prima i gratuiti, con cui `genera` non dava un percorso a nessun tentativo): risponde in una decina di secondi, e in prova ha composto la settimana chiesta nove volte su dieci circa. Se un modello non regge la funzione risponde 502 («Il tutor non è riuscito a
+  comporre il percorso adesso. Riprova fra qualche minuto»), che l'app mostra; non conta nella quota. Quando la settimana non ha tutte le tappe chieste la funzione lo dice negli avvisi e il socio corregge nell'editor. Non è stato provato con una sessione vera, quindi il primo percorso generato da un tester è la prima prova di tutta la schermata. Dettagli e cosa è stato verificato: `CLAUDE.md` di APP-ATHLON.
 - **Non ci sono promemoria**: l'app non ha notifiche. Se il club li vuole, si decide come (email?).
 - **Da fare col club**: le barre del Nuoto Libero e della Scuola Nuoto Adulti e la flessibilità delle lezioni in acqua; la revisione della tabella
   `piani_categorie` (anche se i piani Short e Open hanno limiti d'orario); i testi «cosa aspettarsi» per obiettivo, validati dal Direttore Tecnico;
@@ -457,7 +457,7 @@ e scritto dall'agente. Funzione, regole del codice, quota e come si accende: sez
   Per gli effetti il Nuoto Libero resta com'era (senza barre: «dato non disponibile»). Se il club vuole i metri in vasca fra gli effetti, si decide come.
 - **Lo staff lo vede dal CRM, in sola lettura**, come ogni piano dei soci, e l'app lo dice nel piano e sotto l'avvertenza dell'agente («con il tecnico a bordo vasca»).
 - **Acceso per i tester del portale (20/10/2026), ma non provato su un telefono né con una sessione vera.** Il workflow `athlon-piano-nuoto` è pubblicato e la chiave è nel Vault: `chiedi_nuoto` risponde
-  e il Percorso torna con il piano. Con i modelli gratuiti la richiesta può fallire (limite di richieste, tempo scaduto): la funzione risponde 502 con «L'agente non è riuscito a scrivere il piano adesso. Riprova fra qualche minuto» e l'app mostra
+  e il Percorso torna con il piano. Se il modello (a pagamento, con la riservatezza dei dati) non regge, la funzione risponde 502 con «L'agente non è riuscito a scrivere il piano adesso. Riprova fra qualche minuto» e l'app mostra
   quel testo; «Il piano di nuoto non è ancora attivo: puoi scriverlo tu» resta per la chiave mancante (503) e per una funzione che non conosce l'azione (`lab.ts`). Ritmi, metri massimi e regole (farfalla, sprint) sono nostri e vanno validati dal Direttore Tecnico.
 
 Per verificare: `npx tsc --noEmit` pulito. `schede/nuoto.ts` e `percorso/nuoto.ts` sono puri e si provano con `npx tsx` (metri, parti della nota, aggancio, eredità). **Le schermate si
