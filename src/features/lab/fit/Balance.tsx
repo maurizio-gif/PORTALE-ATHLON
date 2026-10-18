@@ -283,7 +283,7 @@ export function SchermataBalance() {
     if (dati.corpo.stato !== 'ok' || !dati.attivita) return null
     return giorniBilancio(oggi, 28, dati.corpo.corpo, dati.attivita, dati.conDiario ? dati.diario : null)
   }, [dati, oggi])
-  const testata = { sopratitolo: 'Fit', titolo: 'Balance', indietro: '/allenamento' as const, barra: false }
+  const testata = { sopratitolo: 'Athlon Health System', titolo: 'Balance', indietro: '/allenamento' as const, barra: false }
 
   return (
     <Schermata {...testata}>

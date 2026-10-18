@@ -10,6 +10,7 @@ import { spazio } from '@/theme'
 import { CartaBalance } from '../fit/Balance'
 import { AreaFood } from '../fit/Food'
 import { IntroFit } from '../fit/Intro'
+import { RuotaBenessere } from '../fit/Ruota'
 import { useFit } from '../fit/useFit'
 import { altezzaAl, bmi, dataCorta, fasciaBmi, numero } from '../dati/calcoli'
 import { CHIAVE_MISURE } from '../dati/Misure'
@@ -21,7 +22,8 @@ import { coloreTono, F, FUOCO, MARE, NOTTE, usePalette } from '../ui/tema'
 import { Tocco } from '../ui/Tocco'
 import { giorniAlTest, giornoTest, LIVELLI, quando, testDaRifare, TIPI } from './comune'
 
-// Fit (19/10/2026, era Workout): in cima l'introduzione (cosa si fa e cosa
+// Athlon Health System (19/10/2026, era Workout, poi Fit): sotto il titolo la
+// ruota Train, Food, Relax (fit/Ruota.tsx); poi l'introduzione (cosa si fa e cosa
 // vogliono dire i numeri) e il Balance; sotto, due aree da scegliere.
 //   - Train: il test dei massimali, i dati del corpo, il contatore delle calorie,
 //     la richiesta di una scheda all'agente AI, le schede del socio (del suo
@@ -207,7 +209,10 @@ export function Schede() {
   const largo = larghezza >= LARGO
 
   return (
-    <Schermata titolo="Fit" sottotitolo="Allenamento, alimentazione e recupero.">
+    <Schermata titolo="Athlon Health System" sottotitolo="Allenamento, alimentazione e recupero.">
+      <Entra indice={0}>
+        <RuotaBenessere />
+      </Entra>
       <View style={largo ? stili.fila3 : { gap: spazio.quattro + 4 }}>
         <Entra indice={0} style={largo ? { flex: 1 } : undefined}>
           <IntroFit />
