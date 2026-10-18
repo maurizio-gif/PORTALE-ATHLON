@@ -22,21 +22,3 @@ export const rimbalzo = (x: number) => {
 
 /** Un picco attorno a `centro`, largo `larghezza` ms: da 0 a 1 e di nuovo a 0 (un battito, un lampo). */
 export const impulso = (t: number, centro: number, larghezza: number) => Math.exp(-Math.pow((t - centro) / larghezza, 2))
-
-/** Un generatore di numeri a caso sempre uguale a ogni partenza: scintille e polvere stanno dove devono, senza sorprese. */
-export function casuale(seme: number): () => number {
-  let s = seme >>> 0
-  return () => {
-    s = (Math.imul(s, 1664525) + 1013904223) >>> 0
-    return s / 4294967296
-  }
-}
-
-/** Un colore fra due (esadecimali #RRGGBB), a `x` da 0 a 1. */
-export function mescola(da: string, a: string, x: number): string {
-  const c = (h: string) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16))
-  const [r1, g1, b1] = c(da)
-  const [r2, g2, b2] = c(a)
-  const m = (u: number, v: number) => Math.round(u + (v - u) * x)
-  return `rgb(${m(r1, r2)}, ${m(g1, g2)}, ${m(b1, b2)})`
-}
