@@ -316,7 +316,7 @@ niente editor, niente conferma, niente «Prenota la settimana». Funzione, contr
   ritrovano i consigli («Cambia le risposte» → «Torna ai consigli di prima»). Non è niente di sanitario. Le dieci richieste al giorno le conta il server (`stato.quota`).
 - **Nella vista cliente dello staff non si apre**: la schermata dice che i consigli li chiede solo il socio e la funzione risponde 403. Solo maggiorenni. Una funzione che non conosce ancora l'azione («Azione sconosciuta.») per
   il socio è «non ancora attivi».
-- **Il Percorso resta raggiungibile**: in fondo alla schermata («Preferisci una settimana già a tappe? Apri il Percorso Athlon», `AltraStrada`) e dall'indirizzo `/allenamento/percorso`. Se il club lo toglie, si toglie quel link.
+- **Il Percorso è in standby** (richiesta del club, 20/10/2026): non si vede e non si raggiunge. Il link in fondo ai consigli («Preferisci una settimana già a tappe?», `AltraStrada`) non compare, e le tre schermate (`/allenamento/percorso`, `percorso-nuovo`, `percorso-modifica`) rimandano ai consigli, così un vecchio link non apre una funzione che non si offre più. Non è stato tolto niente: la cartella `percorso/`, `src/api/percorso.ts`, la funzione e le tabelle restano. **Si riaccende con `PERCORSO_IN_STANDBY = false` in `percorso/standby.ts`**, ma prima si decide dove deve ricomparire (il link in fondo ai consigli o di nuovo la carta in Train) e lo si ricontrolla con i tester: dall'accensione non è mai stato provato con una sessione vera.
 - **Parole**: «consigli», «lezioni», «sala», «vasca»; mai «percorso» né «piano» per questa cosa, e niente promesse di risultati. I posti cambiano in fretta: l'ultima parola è del Calendario, e la schermata lo dice.
 
 Per verificare: `npx tsc --noEmit` pulito; `consigli/comune.ts` è puro (`conPrenotazione`, `evitateDa`, `questionarioDa`) e si prova con `npx tsx`. **La schermata si guarda renderizzata** (360, 390, 430 e 1280 px, anche con «riduci
@@ -331,7 +331,7 @@ piano di allenamento (che lezioni gli piacciono, quante volte in sala, in quali 
 piani di allenamento che il socio ha già), il cardio, le lezioni di gruppo e l'acqua. Ogni lezione si prenota dalla sua tappa, e il percorso
 spiega **cosa fa la settimana**, non solo quante calorie costa. Cartella `src/features/lab/percorso/`; funzione, tabelle, quota e regole del
 server sono nel `CLAUDE.md` di APP-ATHLON (`portale-lab-percorso`, migrazione `20261019e_percorso.sql`).
-**Dal 20/10/2026 la carta in Train porta ai consigli** (sezione sopra), più semplici; il Percorso resta com'è e si apre da un link in fondo alla loro schermata.
+**Dal 20/10/2026 la carta in Train porta ai consigli** (sezione sopra), più semplici; il Percorso è **in standby** (vedi il punto «Il Percorso è in standby» nella sezione dei consigli): nell'app non si raggiunge, e il resto è com'era.
 
 - **Non è un piano di allenamento**, e la schermata lo dice prima di tutto (`PianoOPercorso`): il piano (nel codice, la «scheda») sono gli
   esercizi di un allenamento in sala, serie, ripetizioni e carichi; il percorso è la settimana intera e usa i piani come tappe di sala. **Nei testi
