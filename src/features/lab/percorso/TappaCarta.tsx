@@ -37,10 +37,10 @@ export type AzioniPrenotazione = ReturnType<typeof usePrenotazioneLezione>
 const TONO_TIPO: Record<TappaSettimana['tipo'], ToniTutti> = { lezione: 'accento', sala: 'blu', cardio: 'ok' }
 const ICONA_TIPO = { lezione: 'calendario', sala: 'peso', cardio: 'cronometro' } as const
 
-const FASCIA_SALA: Record<NonNullable<FasciaSala>, string> = { con_assistenza: 'Con assistente di sala', libero: 'Allenamento libero' }
+export const FASCIA_SALA: Record<NonNullable<FasciaSala>, string> = { con_assistenza: 'Con assistente di sala', libero: 'Allenamento libero' }
 
 /** Una lezione nella forma che si aspettano i pulsanti del Calendario. */
-function comeLezione(d: DatiLezione, categoria: string, scheda: string | null): Lezione {
+export function comeLezione(d: DatiLezione, categoria: string, scheda: string | null): Lezione {
   return {
     class_id: d.class_id,
     inizio: d.inizio,
@@ -60,10 +60,10 @@ function comeLezione(d: DatiLezione, categoria: string, scheda: string | null): 
   }
 }
 
-const giornoOra = (iso: string) =>
+export const giornoOra = (iso: string) =>
   `${new Date(iso).toLocaleDateString('it-IT', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'Europe/Rome' })} · ${ora(iso)}`
 
-function postiDi(d: DatiLezione): string {
+export function postiDi(d: DatiLezione): string {
   if (d.liberi > 0) return `${d.liberi} ${d.liberi === 1 ? 'posto libero' : 'posti liberi'}`
   return d.in_attesa > 0 ? `Completa · ${d.in_attesa} in attesa` : 'Completa · lista d’attesa'
 }
