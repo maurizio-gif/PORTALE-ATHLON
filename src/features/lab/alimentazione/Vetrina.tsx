@@ -74,7 +74,7 @@ function Piatto() {
 const COSE: { icona: NomeIcona; colori: readonly [string, string]; titolo: string; testo: string }[] = [
   { icona: 'piatto', colori: ['#43E0A0', '#0A6B37'], titolo: 'Il diario in un tocco', testo: 'Cerchi l’alimento, scegli la porzione: calorie e nutrienti si contano da soli.' },
   { icona: 'fotocamera', colori: ['#FF8A2B', '#E84300'], titolo: 'Fotografa il piatto', testo: 'L’intelligenza artificiale riconosce cosa c’è e stima i grammi. Tu controlli e confermi.' },
-  { icona: 'fiamma', colori: ['#5C8DFF', '#1F4FD8'], titolo: 'Accanto al tuo allenamento', testo: 'Quello che mangi vicino a quello che consumi con le schede e le lezioni.' },
+  { icona: 'fiamma', colori: ['#5C8DFF', '#1F4FD8'], titolo: 'Accanto al tuo allenamento', testo: 'Quello che mangi vicino a quello che consumi con gli allenamenti e le lezioni.' },
   { icona: 'stella', colori: ['#A78BFA', '#6D28D9'], titolo: 'Consigli per te', testo: 'Secondo il tuo obiettivo e come ti alleni, dalle linee guida ufficiali.' },
 ]
 

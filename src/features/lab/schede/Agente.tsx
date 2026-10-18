@@ -6,17 +6,19 @@ import { ActivityIndicator, StyleSheet, Text, TextInput, View } from 'react-nati
 import { chiediSchedaAi, type Questionario } from '@/api/lab'
 import { spazio } from '@/theme'
 
-import { dimentica } from '../memoria'
+import { mettiBozza, scartaBozza } from './bozza'
 import { Icona } from '../ui/Icona'
 import { Carta, Messaggio, Pulsante, Sezione } from '../ui/kit'
 import { Schermata } from '../ui/Schermata'
 import { F, usePalette } from '../ui/tema'
 import { colpetto, Tocco } from '../ui/Tocco'
 
-// La scheda chiesta all'agente AI: sei domande (obiettivo, livello, giorni,
-// minuti, attrezzatura, limitazioni) e l'agente la scrive usando solo gli
-// esercizi accesi della libreria del club, coi recuperi. Il socio la vede
-// subito; un trainer la rivede poi nel CRM. Ci mette fino a un paio di minuti.
+// Il piano scritto dall'agente AI: sei domande (obiettivo, livello, giorni,
+// minuti, attrezzatura, limitazioni) e l'agente lo scrive usando solo gli
+// esercizi accesi della libreria del club, coi recuperi. **Non e' ancora un
+// piano del socio** (19/10/2026): torna una bozza, che l'editor fa rivedere e
+// modificare, e solo alla conferma entra fra i suoi (origine «ai»). Ci mette
+// fino a un paio di minuti.
 
 const OBIETTIVI = ['Tonificazione', 'Ipertrofia', 'Dimagrimento', 'Forza', 'Resistenza', 'Mobilità', 'Benessere generale']
 const LIVELLI: { valore: Questionario['livello']; testo: string; nota: string }[] = [
@@ -93,13 +95,14 @@ export function Agente() {
       return setErrore(r.errore)
     }
     colpetto('ok')
-    dimentica()
-    router.replace({ pathname: '/allenamento/[scheda]', params: { scheda: r.id } })
+    scartaBozza()
+    mettiBozza(r.bozza)
+    router.replace({ pathname: '/allenamento/nuova', params: { da: 'bozza' } })
   }
 
   if (inCorso) {
     return (
-      <Schermata sopratitolo="Agente AI" titolo="La tua scheda" indietro="/allenamento" barra={false}>
+      <Schermata sopratitolo="Agente AI" titolo="Il tuo piano" indietro="/allenamento" barra={false}>
         <LinearGradient colors={['#8B5CF6', '#5B21B6']} style={stili.attesa}>
           <Icona nome="stella" size={44} colore="#fff" />
           <ActivityIndicator color="#fff" />
@@ -111,7 +114,7 @@ export function Agente() {
   }
 
   return (
-    <Schermata sopratitolo="Agente AI" titolo="Una scheda su misura" indietro="/allenamento" barra={false} sottotitolo="Rispondi a qualche domanda: l’agente sceglie gli esercizi dalla libreria del club e ti scrive la scheda, coi recuperi.">
+    <Schermata sopratitolo="Agente AI" titolo="Un piano su misura" indietro="/allenamento" barra={false} sottotitolo="Rispondi a qualche domanda: l’agente sceglie gli esercizi dalla libreria del club e ti scrive il piano, coi recuperi. Poi lo guardi, lo modifichi e lo confermi.">
       <Sezione titolo="Il tuo obiettivo">
         <Scelte valori={OBIETTIVI.map((o) => ({ valore: o, testo: o }))} scelto={obiettivo} onScegli={setObiettivo} />
       </Sezione>
@@ -171,10 +174,10 @@ export function Agente() {
       </Sezione>
 
       {errore ? <Messaggio>{errore}</Messaggio> : null}
-      <Pulsante testo="Scrivi la mia scheda" icona="stella" onPress={invia} disabilitato={!pronto} />
+      <Pulsante testo="Scrivi il mio piano" icona="stella" onPress={invia} disabilitato={!pronto} />
       <Text style={[stili.avvertenza, { color: p.testoTerzo }]}>
-        La scheda la scrive un’intelligenza artificiale e la rivede poi un trainer del club. Non sostituisce il parere di un medico: con dolori, infortuni o
-        patologie parlane prima con un istruttore in sala.
+        Il piano lo scrive un’intelligenza artificiale e lo confermi tu: i trainer del club lo possono vedere dal pannello. Non sostituisce il parere di un
+        medico: con dolori, infortuni o patologie parlane prima con un istruttore in sala.
       </Text>
     </Schermata>
   )

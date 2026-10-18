@@ -69,6 +69,7 @@ const ICONE = {
   giornale: ['newspaper.fill', 'newspaper'],
   aiuto: ['questionmark.circle.fill', 'help'],
   giu: ['chevron.down', 'expand_more'],
+  su: ['chevron.up', 'expand_less'],
   // L'alimentazione (19/10/2026).
   piatto: ['fork.knife', 'restaurant'],
   fotocamera: ['camera.fill', 'photo_camera'],

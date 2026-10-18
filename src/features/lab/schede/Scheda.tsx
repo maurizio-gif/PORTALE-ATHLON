@@ -2,10 +2,10 @@ import { router, useLocalSearchParams } from 'expo-router'
 import { useCallback, useEffect, useState } from 'react'
 import { ScrollView, StyleSheet, Text, View } from 'react-native'
 
-import { leggiSchedaLab, type EsercizioScheda, type Massimale, type Precedente, type SchedaLab } from '@/api/lab'
+import { eliminaSchedaMia, leggiSchedaLab, salvaSchedaMia, type EsercizioScheda, type Massimale, type Precedente, type SchedaLab } from '@/api/lab'
 import { spazio } from '@/theme'
 
-import { inMemoria, prendi } from '../memoria'
+import { dimentica, inMemoria, prendi } from '../memoria'
 import { Foglio } from '../ui/Foglio'
 import { Icona } from '../ui/Icona'
 import { Carta, Entra, Messaggio, Pulsante, SchedeInArrivo, Tag } from '../ui/kit'
@@ -13,13 +13,17 @@ import { Schermata } from '../ui/Schermata'
 import { F, usePalette } from '../ui/tema'
 import { Tocco } from '../ui/Tocco'
 import { CalorieScheda } from './Calorie'
-import { giornoTest, gruppo, indicazione, LIVELLI, muscoli, recupero, SPIEGA_STIMA, SPIEGA_TARATURA, testDaRifare, TIPI } from './comune'
+import { comeDaSalvare } from './copia'
+import { etichettaPiano, giornoTest, gruppo, indicazione, LIVELLI, muscoli, recupero, SPIEGA_STIMA, SPIEGA_TARATURA, testDaRifare } from './comune'
 import { MediaEsercizio } from './MediaEsercizio'
 
-// Una scheda: la descrizione, i giorni come schede, e gli esercizi del giorno
+// Un piano: la descrizione, i giorni come schede, e gli esercizi del giorno
 // scelto con serie, ripetizioni, carico, recupero e l'ultima volta che il
 // socio l'ha fatto. Toccando un esercizio si apre la sua scheda (il video o
 // le foto che si alternano, i muscoli, le istruzioni). In fondo «Inizia».
+// Un piano che non e' del socio (consigliato dal club, del suo trainer, scritto
+// dall'agente prima del 19/10/2026) si **aggiunge ai suoi piani**, com'e' o dopo
+// averlo modificato (`copia.ts`, editor con `?copia=`): ne tiene una copia.
 // I carichi in percentuale (16/10/2026) diventano chili coi massimali del
 // socio, misurati o stimati dal test del distretto (15/10/2026, con «≈»);
 // finche' mancano, un riquadro spiega come averli. In fondo, sopra
@@ -115,6 +119,11 @@ export function Scheda() {
   const [errore, setErrore] = useState<string | null>(null)
   const [giorno, setGiorno] = useState(0)
   const [aperto, setAperto] = useState<EsercizioScheda | null>(null)
+  const [confermo, setConfermo] = useState(false)
+  const [eliminando, setEliminando] = useState(false)
+  const [erroreElimina, setErroreElimina] = useState<string | null>(null)
+  const [aggiungendo, setAggiungendo] = useState(false)
+  const [erroreAggiungi, setErroreAggiungi] = useState<string | null>(null)
 
   const carica = useCallback(async () => {
     setErrore(null)
@@ -129,7 +138,7 @@ export function Scheda() {
 
   if (!dati) {
     return (
-      <Schermata sopratitolo="Train" titolo="Scheda" indietro="/allenamento" barra={false}>
+      <Schermata sopratitolo="Train" titolo="Piano" indietro="/allenamento" barra={false}>
         {errore ? (
           <>
             <Messaggio>{errore}</Messaggio>
@@ -143,6 +152,28 @@ export function Scheda() {
   }
 
   const s = dati.scheda
+
+  async function elimina() {
+    setErroreElimina(null)
+    setEliminando(true)
+    const r = await eliminaSchedaMia(s.id)
+    setEliminando(false)
+    if (!r.ok) return setErroreElimina(r.errore)
+    dimentica()
+    router.replace('/allenamento')
+  }
+
+  /** «Aggiungi ai tuoi piani»: la copia com'e', senza passare dall'editor. */
+  async function aggiungi() {
+    setErroreAggiungi(null)
+    setAggiungendo(true)
+    const r = await salvaSchedaMia(comeDaSalvare(s))
+    setAggiungendo(false)
+    if (!r.ok) return setErroreAggiungi(r.errore)
+    dimentica()
+    router.replace({ pathname: '/allenamento/[scheda]', params: { scheda: r.id } })
+  }
+
   const g = s.giorni[Math.min(giorno, s.giorni.length - 1)]
   const precedente = (eid: string) => dati.precedenti.find((x) => x.esercizio_id === eid)
   const massimali = dati.massimali ?? []
@@ -152,21 +183,57 @@ export function Scheda() {
   const stimati = inPercentuale.filter((e) => indicazione(e, massimali).stimato)
   const rifare = testDaRifare(dati.ultimoTest ?? null, dati.giorniTest ?? 42, s.livello === 'principiante')
   return (
-    <Schermata sopratitolo={TIPI[s.tipo] ?? 'Scheda'} titolo={s.titolo} indietro="/allenamento" barra={false}>
+    <Schermata sopratitolo={etichettaPiano(s)} titolo={s.titolo} indietro="/allenamento" barra={false}>
       <View style={{ gap: spazio.due }}>
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
           {s.obiettivo ? <Tag testo={s.obiettivo} colore={p.accento} /> : null}
           {s.livello ? <Tag testo={LIVELLI[s.livello] ?? s.livello} colore={p.blu} /> : null}
-          {s.giorni_settimana ? <Tag testo={`${s.giorni_settimana} giorni a settimana`} colore={p.testoSecondario} /> : null}
+          {s.giorni_settimana ? <Tag testo={`${s.giorni_settimana} ${s.giorni_settimana === 1 ? 'giorno' : 'giorni'} a settimana`} colore={p.testoSecondario} /> : null}
         </View>
         {s.descrizione ? <Text style={[stili.nota, { color: p.testoSecondario }]}>{s.descrizione}</Text> : null}
+        {s.tipo === 'socio' ? (
+          <Text style={[stili.piccola, { color: p.testoTerzo }]}>
+            È un piano tuo, ma i trainer del club lo possono vedere dal pannello, per verificarlo e aiutarti a seguirlo. Non sostituisce il parere di un istruttore: con dolori o infortuni chiedi in sala.
+          </Text>
+        ) : null}
         {s.tipo === 'ai' ? (
           <Text style={[stili.piccola, { color: p.testoTerzo }]}>
-            Scritta dall’agente AI sulle tue risposte{s.rivista_il ? ' e rivista da un trainer del club' : ': un trainer del club la rivede nei prossimi giorni'}. Per dolori o
+            Scritto dall’agente AI sulle tue risposte{s.rivista_il ? ' e rivisto da un trainer del club' : ': un trainer del club lo rivede nei prossimi giorni'}. Per dolori o
             infortuni chiedi a un istruttore in sala.
           </Text>
         ) : null}
       </View>
+
+      {s.tipo !== 'socio' ? (
+        <Carta style={{ gap: spazio.tre }}>
+          <View style={{ gap: 3 }}>
+            <Text style={[stili.titoletto, { color: p.testo }]}>{s.tipo === 'standard' ? 'Fallo tuo' : 'Fanne una copia tua'}</Text>
+            <Text style={[stili.nota, { color: p.testoSecondario }]}>
+              {s.tipo === 'standard'
+                ? 'Aggiungilo ai tuoi piani così com’è, oppure cambia quello che vuoi prima di confermare. L’originale resta quello del club.'
+                : 'Puoi copiarlo fra i tuoi piani e cambiare quello che vuoi: l’originale resta com’è.'}
+            </Text>
+          </View>
+          {erroreAggiungi ? <Messaggio>{erroreAggiungi}</Messaggio> : null}
+          <View style={stili.azioniTue}>
+            {s.tipo === 'standard' ? (
+              <View style={{ flex: 1, minWidth: 160 }}>
+                <Pulsante testo="Aggiungi ai tuoi piani" icona="piu" piccolo inCorso={aggiungendo} onPress={aggiungi} />
+              </View>
+            ) : null}
+            <View style={{ flex: 1, minWidth: 160 }}>
+              <Pulsante
+                testo={s.tipo === 'standard' ? 'Modifica e aggiungi' : 'Modifica una copia'}
+                icona="modifica"
+                variante="secondario"
+                piccolo
+                disabilitato={aggiungendo}
+                onPress={() => router.push({ pathname: '/allenamento/nuova', params: { copia: s.id } })}
+              />
+            </View>
+          </View>
+        </Carta>
+      ) : null}
 
       {inPercentuale.length ? (
         <Carta style={{ gap: spazio.due }}>
@@ -209,7 +276,7 @@ export function Scheda() {
                 style={[stili.giorno, { backgroundColor: attivo ? p.accento : p.carta, borderColor: attivo ? p.accento : p.linea }]}
               >
                 <Text style={{ color: attivo ? '#fff' : p.testo, fontFamily: attivo ? F.extra : F.semi, fontSize: 14 }}>{x.nome}</Text>
-                <Text style={{ color: attivo ? 'rgba(255,255,255,0.85)' : p.testoTerzo, fontFamily: F.semi, fontSize: 11.5 }}>{`${x.esercizi.length} esercizi`}</Text>
+                <Text style={{ color: attivo ? 'rgba(255,255,255,0.85)' : p.testoTerzo, fontFamily: F.semi, fontSize: 11.5 }}>{`${x.esercizi.length} ${x.esercizi.length === 1 ? 'esercizio' : 'esercizi'}`}</Text>
               </Tocco>
             )
           })}
@@ -266,6 +333,26 @@ export function Scheda() {
         onPress={() => router.push({ pathname: '/allenamento/[scheda]/[giorno]', params: { scheda: s.id, giorno: g.id } })}
       />
 
+      {s.tipo === 'socio' ? (
+        <View style={stili.azioniTue}>
+          <View style={{ flex: 1, minWidth: 160 }}>
+            <Pulsante testo="Modifica il piano" icona="modifica" variante="secondario" piccolo onPress={() => router.push({ pathname: '/allenamento/nuova', params: { id: s.id } })} />
+          </View>
+          <View style={{ flex: 1, minWidth: 160 }}>
+            <Pulsante testo="Elimina il piano" icona="cestino" variante="pericolo" piccolo onPress={() => setConfermo(true)} />
+          </View>
+        </View>
+      ) : null}
+
+      <Foglio aperto={confermo} titolo="Eliminare il piano?" onChiudi={() => !eliminando && setConfermo(false)}>
+        <Text style={[stili.nota, { color: p.testoSecondario }]}>
+          {`«${s.titolo}» sparisce dal tuo elenco. Gli allenamenti che hai già registrato restano nello storico.`}
+        </Text>
+        {erroreElimina ? <Messaggio>{erroreElimina}</Messaggio> : null}
+        <Pulsante testo="Elimina il piano" icona="cestino" variante="pericolo" inCorso={eliminando} onPress={elimina} />
+        <Pulsante testo="Annulla" variante="secondario" disabilitato={eliminando} onPress={() => setConfermo(false)} />
+      </Foglio>
+
       <FoglioEsercizio e={aperto} precedente={aperto ? precedente(aperto.esercizio_id) : undefined} massimali={massimali} onChiudi={() => setAperto(null)} />
     </Schermata>
   )
@@ -290,4 +377,5 @@ const stili = StyleSheet.create({
   cifra: { flex: 1, alignItems: 'center', gap: 2, paddingHorizontal: 4 },
   cifraValore: { fontFamily: F.extra, fontSize: 16, letterSpacing: -0.3 },
   cifraEtichetta: { fontFamily: F.semi, fontSize: 11 },
+  azioniTue: { flexDirection: 'row', flexWrap: 'wrap', gap: spazio.due },
 })

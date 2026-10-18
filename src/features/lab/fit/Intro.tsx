@@ -19,7 +19,7 @@ import { ComeLeggere } from './Balance'
 // che fa parte del programma, perche' chi apre Fit non pensi che servano sette
 // allenamenti a settimana.
 const PARTI: { nome: string; icona: NomeIcona; colore: string; testo: string }[] = [
-  { nome: 'Train', icona: 'peso', colore: '#FF5701', testo: 'allenarsi il giusto, non troppo. Qui le tue schede, il registro dei pesi, il test dei massimali e le calorie che consumi.' },
+  { nome: 'Train', icona: 'peso', colore: '#FF5701', testo: 'allenarsi il giusto, non troppo. Qui i tuoi piani di allenamento, il registro dei pesi, il test dei massimali e le calorie che consumi.' },
   { nome: 'Food', icona: 'piatto', colore: '#18A957', testo: 'mangiare bene. Il diario dei pasti, la foto del piatto e i consigli; si apre dopo aver accettato la sua informativa, e i dati li vedi solo tu.' },
   { nome: 'Relax', icona: 'foglia', colore: '#14B8A6', testo: 'recuperare. Il sonno e i giorni di riposo fanno parte dell’allenamento: è lì che il corpo si rimette in forze.' },
 ]

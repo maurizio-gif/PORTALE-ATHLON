@@ -115,7 +115,7 @@ function senzaCorpo(d: DatiFit): string | null {
   if (d.corpo.stato === 'no') return 'Il Balance usa una formula pensata per gli adulti.'
   if (d.corpo.stato !== 'mancano-dati') return null
   if (d.corpo.motivo === 'misure') return 'Per stimare quanto consumi servono peso e altezza: li segni in «Il tuo corpo», in cima all’Athlon Health System.'
-  if (d.corpo.motivo === 'sesso') return 'Per stimare quanto consumi serve sapere se calcolare come uomo o come donna: lo scegli una volta, in una scheda di allenamento.'
+  if (d.corpo.motivo === 'sesso') return 'Per stimare quanto consumi serve sapere se calcolare come uomo o come donna: lo scegli una volta, in un piano di allenamento.'
   return 'Nella tua scheda del club manca la data di nascita, e senza l’età il consumo non si stima. Chiedi al desk di aggiungerla.'
 }
 

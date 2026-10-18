@@ -182,7 +182,7 @@ export function Test() {
         {[
           'Per fare il test completa gli esercizi della parte superiore, del core e della parte inferiore del corpo.',
           'Sugli esercizi a carico usa un peso con cui fai fra 4 e 10 ripetizioni pulite: da peso e ripetizioni calcoliamo il tuo massimale.',
-          `Dopo il test, nelle schede le percentuali diventano i tuoi chili. Rifallo ogni ${Math.round(dati.giorni / 7)} settimane.`,
+          `Dopo il test, nei piani le percentuali diventano i tuoi chili. Rifallo ogni ${Math.round(dati.giorni / 7)} settimane.`,
         ].map((t, i) => (
           <View key={i} style={{ flexDirection: 'row', gap: spazio.due }}>
             <Icona nome="info" size={20} colore={p.blu} />

@@ -318,7 +318,7 @@ export function Seduta() {
           </View>
         </Carta>
         <Pulsante testo="Vedi i progressi" icona="grafico" onPress={() => router.replace('/allenamento/storico')} />
-        <Pulsante testo="Torna alla scheda" variante="secondario" onPress={() => router.replace({ pathname: '/allenamento/[scheda]', params: { scheda: scheda.id } })} />
+        <Pulsante testo="Torna al piano" variante="secondario" onPress={() => router.replace({ pathname: '/allenamento/[scheda]', params: { scheda: scheda.id } })} />
       </Schermata>
     )
   }

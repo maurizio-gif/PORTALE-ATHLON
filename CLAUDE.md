@@ -157,6 +157,53 @@ raggiungere, nessuna frase che dica a una persona quanto deve mangiare.
 - **La foto si sceglie con `expo-document-picker`** (`src/lib/fotoPiatto.ts`), che sul telefono dal browser offre anche la
   fotocamera; sul web si porta a 1280 px in JPEG prima dell'invio.
 
+## I piani di allenamento: si parte da quattro origini, si modifica e si conferma, e restano suoi
+
+Nell'app si chiamano **piani di allenamento** (richiesta del club, 19/10/2026): nei testi mai «schede» per questi. Resta «scheda» dove
+vuol dire altro (la scheda del socio al club, la scheda di una lezione, l'Help Desk), e nel codice (`/allenamento/[scheda]`,
+`SchedaLab`, `salva_mia`…). Cartella `src/features/lab/schede/`; funzione, tabelle e limiti sono nel `CLAUDE.md` di APP-ATHLON.
+
+- **La schermata Train (`Schede.tsx`) ha le origini sopra e «I tuoi piani» in fondo.** Dopo il test e le calorie: «Crea il tuo piano di
+  allenamento» con le quattro origini, poi **«I tuoi piani»** (quelli che il socio ha scelto: suoi, del suo trainer, e gli «AI» di prima), poi gli
+  ultimi allenamenti. Le origini: **«Crealo con l'aiuto dell'AI»** (`Agente.tsx`), **«Importa il tuo piano»** (`Importa.tsx`: «Da foto o
+  file», e «Scrivilo tu» per chi parte da zero) e **i piani consigliati dal club**, in un **carosello che scorre in orizzontale** (`PianoClub`,
+  non una lista verticale: con dieci piani non allunga la pagina), filtrabile per obiettivo. Su telefono la carta è larga il 74% dello
+  schermo, così si intravede la successiva e si capisce che scorre; su schermo largo compare la barra di scorrimento. **La quarta origine è il personal trainer** (`CartaPersonal`, dopo i piani del club):
+  «Vuoi essere seguito da un personal trainer?» porta **direttamente alla prenotazione** (`/personal`, l'altra faccia di Prenotazioni:
+  scegli trainer, giorno e ora). Non produce un piano da modificare: lo costruisce il trainer, e compare poi fra i piani «Dal tuo trainer».
+- **Qualunque sia l'origine, si modifica e si conferma, e solo allora è fra i suoi piani.** Un piano del club si apre (`Scheda.tsx`) con
+  **«Aggiungi ai tuoi piani»** (la copia com'è, `comeDaSalvare` in `copia.ts`) e **«Modifica e aggiungi»** (l'editor con `?copia=<id>`); quello
+  di un trainer (o un «AI» di prima) solo **«Modifica una copia»**, perché è già suo. L'originale non si tocca. Un piano del club si può ancora
+  **iniziare direttamente** senza copiarlo: non si è tolto quello che c'era. L'agente AI e l'importazione rispondono con una **bozza**
+  (`bozza.ts`, in memoria, mai sul disco, con la sua `origine`) che passa all'editor (`?da=bozza`), dove si guarda, si cambia e si conferma.
+- **L'editor è uno solo per cinque modi** (`EditorScheda.tsx`, `modo`): nuovo, modifica di un piano suo (`?id=`), copia (`?copia=`), bozza
+  letta da un file e bozza dell'agente. Cambiano titolo, sottotitolo, avvisi e il tasto («Salva il piano» / «Salva le modifiche» / «Conferma
+  e aggiungi ai tuoi piani»). L'`origine` si manda solo alla nascita (`creata`, `importata`, `ai`, `club`): in modifica non si cambia. Le
+  validazioni (titolo, giorni vuoti, percentuale 20-100) sono qui e **anche nella funzione**.
+- **Le percentuali del massimale restano nella copia.** Un piano del club scrive i carichi in % del massimale (e l'agente pure): l'editor
+  le porta con sé (campo «% del massimale» per esercizio, vuoto = vale il carico a parole) e nell'app diventano i chili del socio dopo
+  il test. Anche `obiettivo` e `livello` si copiano. Se un esercizio del club è stato spento dopo, la conferma risponde che non è più in
+  libreria: il socio lo cambia con «Cambia esercizio».
+- **Gli esercizi si scelgono dalla libreria del club** (`SceltaEsercizio.tsx`, senza video né poster: sono seicento, e la lista si ricorda
+  sotto `schede:libreria`) **oppure si scrive il nome**: diventa un esercizio suo, senza video. In un esercizio letto da un file che non è in
+  libreria resta «Hai scritto: …» e il segno «Da controllare».
+- **Da dove viene si dice sulla carta** (`etichettaPiano` in `comune.ts`): «Scritto da te», «Importato da te», «Creato con l'AI», «Dal club,
+  tuo», «Dal tuo trainer». Il piano consigliato dal club si legge «Consigliato dal club».
+- **I trainer del club vedono i piani dei soci dal CRM, in sola lettura** (richiesta del club: chi porta un piano suo va verificato), e l'app
+  lo dice al socio in tre punti: nel piano, in fondo all'editor e sotto l'avvertenza dell'importazione (più l'avviso dell'agente). Se cambia,
+  cambiano tutti. Togliere un piano lo ritira e chiede conferma; le sedute fatte restano.
+- **L'importazione non salva mai da sola.** `Importa.tsx` manda il file a `importaScheda`: ci vogliono una decina di secondi, a volte un
+  minuto (la schermata d'attesa lo dice), e chi esce nel frattempo non si ritrova nell'editor (`qui`). **Il file** (`fileScheda.ts`): foto
+  JPG, PNG o WebP e PDF, fino a 4 MB; sul web una foto si porta a 1800 px in JPEG (300–600 kB, meno attesa). «Scatta una foto» apre la
+  fotocamera posteriore del telefono dal browser (`capture`); **nell'app nativa non c'è la fotocamera diretta** (serve `expo-image-picker`
+  e una nuova build).
+- **L'agente AI** (`Agente.tsx`) fa le sue sei domande e **non salva più un piano da solo**: torna una bozza (`origine: 'ai'`), con
+  l'avviso «Scritto da un'intelligenza artificiale». La quota (tre in trenta giorni) la dice `elenco`.
+- **L'avvertenza è parte del comando**: la foto o il PDF vengono letti da un servizio di intelligenza artificiale, non si conservano,
+  meglio non includere dati che non servono, e una lettura automatica può sbagliare. Se il testo cambia, va riletto con quello
+  dell'informativa privacy del club.
+- **Nella vista cliente dello staff i comandi falliscono** (le azioni nuove non stanno fra le letture): come per ogni altra scrittura.
+
 ## Athlon Health System: la ruota, il Balance, Train e Food
 
 La scheda che era **Workout** (poi «Fit») si chiama **Athlon Health System** (richiesta del club, 19/10/2026):
