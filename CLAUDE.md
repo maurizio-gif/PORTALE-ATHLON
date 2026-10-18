@@ -169,7 +169,10 @@ l'allenamento, l'alimentazione e il recupero dell'adulto in un posto solo. Nel c
 - **Poi «Il tuo corpo»** (`fit/Corpo.tsx`, dettaglio in `/allenamento/misure`): peso con la variazione degli ultimi 90
   giorni, BMI con la fascia, massa grassa (o la vita). Sta in alto e non in Train perché non è del solo allenamento: è il
   punto di partenza (stima le calorie) e la verifica dell'equilibrio. Le misure di composizione corporea che arriveranno
-  (una bilancia BIA, per esempio) si aggiungono qui.
+  (una bilancia BIA, per esempio) si aggiungono qui. **La fascia del BMI non usa i nomi dell'OMS** (`fasciaBmi` in
+  `lab/dati/calcoli.ts`): su richiesta del club niente «Sottopeso», «Sovrappeso» o «Obesità» davanti al socio, ma
+  *Leggero · Equilibrio · Un po’ sopra · Da bilanciare* (le soglie sono quelle di sempre: 18,5 · 25 · 30). Le parole stanno
+  in una casella da una riga e sotto i 72 pt (11,5 pt SemiBold) non si troncano su un telefono da 375 pt.
 - **Poi l'introduzione** (`fit/Intro.tsx`): il benessere come equilibrio di allenamento giusto (Train), buona
   alimentazione (Food) e recupero (Relax: sonno e giorni di riposo, senza una sezione sua), cosa fa il Balance e, in un pannello che si apre, come leggere i
   numeri (`ComeLeggere` in `fit/Balance.tsx`, lo stesso testo in fondo alla schermata di Balance).
