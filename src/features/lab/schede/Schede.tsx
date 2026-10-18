@@ -30,7 +30,7 @@ import { eDiVasca, ETICHETTA_VASCA } from './nuoto'
 // vogliono dire i numeri) e il Balance; sotto, le aree da scegliere (due, tre dove i dispositivi sono aperti).
 //   - Train: il test dei massimali, il contatore delle calorie, i Consigli Athlon (i tipi di lezione che
 //     fanno per te, con le alternative, e se vuoi sala e nuoto: non e' una settimana ne' un piano, vedi
-//     `consigli/`; il Percorso a tappe, `percorso/`, si apre da li'),
+//     `consigli/`; il Percorso a tappe, `percorso/`, e' in standby: `percorso/standby.ts`),
 //     le origini di un piano (l'agente AI, l'importazione del proprio, i piani
 //     consigliati dal club, in un carosello orizzontale filtrabile per
 //     obiettivo) e, quarta, farsi seguire da un personal trainer (porta alla
@@ -87,7 +87,7 @@ function PianoClub({ s, larghezza }: { s: RigaSchedaLab; larghezza: number }) {
  * I consigli di Athlon (20/10/2026): il Percorso era una settimana composta e controllata, troppo complessa e con una prenotazione
  * troppo stretta. Adesso la carta porta ai **consigli**: i tipi di lezione che fanno per te, con le alternative, e — se li vuoi —
  * la sala pesi e il nuoto. Non producono un piano da modificare e non sono una settimana: si prenota dal Calendario, una
- * lezione alla volta. Il Percorso a tappe resta raggiungibile da dentro la schermata dei consigli.
+ * lezione alla volta. Il Percorso a tappe e' in standby (`percorso/standby.ts`): non si vede, e non e' stato tolto niente.
  */
 function CartaConsigli() {
   const p = usePalette()

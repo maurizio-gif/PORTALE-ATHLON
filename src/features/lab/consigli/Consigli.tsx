@@ -23,6 +23,7 @@ import { spazio } from '@/theme'
 
 import { inMemoria, prendi, ricorda } from '../memoria'
 import { FASCIA_SALA } from '../percorso/TappaCarta'
+import { PERCORSO_IN_STANDBY } from '../percorso/standby'
 import { GIORNI, GIORNO_BREVE, NOME_FASCIA, NOME_GRUPPO } from '../percorso/comune'
 import { giornoRoma } from '../schede/contatoreCalorie'
 import { Scelte, SceltePiu } from '../ui/Campi'
@@ -398,9 +399,10 @@ const Facoltativo = () => {
   return <Text style={[stili.facoltativo, { color: p.testoTerzo }]}>FACOLTATIVO</Text>
 }
 
-/** Per chi preferisce la settimana a tappe del tutor (il Percorso Athlon): resta com'era. */
+/** Per chi preferisce la settimana a tappe del tutor (il Percorso Athlon): in standby non si offre (`percorso/standby.ts`). */
 function AltraStrada() {
   const p = usePalette()
+  if (PERCORSO_IN_STANDBY) return null
   return (
     <Tocco onPress={() => router.push('/allenamento/percorso')} etichetta="Apri il Percorso Athlon, la settimana a tappe" style={stili.altraStrada}>
       <Text style={[stili.nota, { color: p.testoSecondario, textAlign: 'center' }]}>
