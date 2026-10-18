@@ -69,6 +69,12 @@ const ICONE = {
   giornale: ['newspaper.fill', 'newspaper'],
   aiuto: ['questionmark.circle.fill', 'help'],
   giu: ['chevron.down', 'expand_more'],
+  // L'alimentazione (19/10/2026).
+  piatto: ['fork.knife', 'restaurant'],
+  fotocamera: ['camera.fill', 'photo_camera'],
+  foglia: ['leaf.fill', 'eco'],
+  goccia: ['drop.fill', 'water_drop'],
+  cestino: ['trash', 'delete'],
 } as const satisfies Record<string, readonly [SFSymbol, AndroidSymbol]>
 
 export type NomeIcona = keyof typeof ICONE

@@ -37,8 +37,8 @@ import { CHIAVE_STORICO } from './Storico'
 // **Servono gli stessi dati delle lezioni**: peso, altezza, eta' e sesso
 // (useStatoCorpo). Senza, si dice cosa manca.
 
-const CHIAVE_PRESENZE = 'calorie:presenze'
-type Presenze = { ok: true; presenze: PresenzaLezione[]; schede: Record<string, SchedaLezione> }
+export const CHIAVE_PRESENZE = 'calorie:presenze'
+export type Presenze = { ok: true; presenze: PresenzaLezione[]; schede: Record<string, SchedaLezione> }
 
 const intero = (n: number) => Math.round(n).toLocaleString('it-IT')
 const COLORI_TIPI = ['#FF5701', '#2F6BFF', '#34C38F', '#8B5CF6', '#F2B84B', '#F06292', '#14B8A6', '#94A3B8']
@@ -56,7 +56,7 @@ const rallenta = (t: number) => 1 - Math.pow(1 - t, 3)
  * Da 0 a 1 in `durata` millisecondi dopo `ritardo`, rallentando alla fine, da
  * quando `attivo` diventa vero. Subito 1 con «riduci movimento».
  */
-function useProgresso(durata = 1400, ritardo = 0, attivo = true): number {
+export function useProgresso(durata = 1400, ritardo = 0, attivo = true): number {
   const fermo = useReducedMotion()
   const [t, setT] = useState(fermo ? 1 : 0)
   useEffect(() => {
@@ -81,7 +81,7 @@ function useProgresso(durata = 1400, ritardo = 0, attivo = true): number {
  * gia' finita. Si misura la posizione ogni 150 ms finche' non c'e' (measureInWindow
  * funziona uguale sul web e sul telefono); poi si smette.
  */
-function useVisibile(): [RefObject<View | null>, boolean] {
+export function useVisibile(): [RefObject<View | null>, boolean] {
   const ref = useRef<View>(null)
   const [visibile, setVisibile] = useState(false)
   const { height } = useWindowDimensions()
