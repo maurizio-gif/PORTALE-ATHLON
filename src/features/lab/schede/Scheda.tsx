@@ -16,6 +16,7 @@ import { CalorieScheda } from './Calorie'
 import { comeDaSalvare } from './copia'
 import { etichettaPiano, giornoTest, gruppo, indicazione, LIVELLI, muscoli, recupero, SPIEGA_STIMA, SPIEGA_TARATURA, testDaRifare } from './comune'
 import { MediaEsercizio } from './MediaEsercizio'
+import { COSA_FAI_IN_VASCA, eDiVasca, ETICHETTA_VASCA, inMetri, metriDelGiorno, parteDa, SPIEGA_SOLO_LETTURA } from './nuoto'
 
 // Un piano: la descrizione, i giorni come schede, e gli esercizi del giorno
 // scelto con serie, ripetizioni, carico, recupero e l'ultima volta che il
@@ -28,6 +29,11 @@ import { MediaEsercizio } from './MediaEsercizio'
 // socio, misurati o stimati dal test del distretto (15/10/2026, con «≈»);
 // finche' mancano, un riquadro spiega come averli. In fondo, sopra
 // «Inizia», le calorie stimate del giorno scelto (Calorie.tsx, 15/10/2026).
+//
+// **Un piano di nuoto** (20/10/2026, `ambiente: 'vasca'`) si legge e non si registra: niente «Inizia» (il server rifiuta
+// `inizia`), niente calorie (in vasca non c'e' un MET per esercizio che non sia inventato), e al posto di «N esercizi» i
+// **metri** della seduta, che sono una somma. Ogni blocco porta la sua parte — riscaldamento, tecnica, serie principale,
+// defaticamento — dalla nota. Il Percorso Athlon lo apre sul giorno di una tappa di Nuoto Libero (`?giorno=`).
 
 type Dati = { scheda: SchedaLab; precedenti: Precedente[]; massimali: Massimale[]; ultimoTest: string | null; giorniTest: number }
 
@@ -49,7 +55,7 @@ export function Nota({ testo }: { testo: string }) {
   )
 }
 
-function FoglioEsercizio({ e, precedente, massimali, onChiudi }: { e: EsercizioScheda | null; precedente?: Precedente; massimali: Massimale[]; onChiudi: () => void }) {
+function FoglioEsercizio({ e, precedente, massimali, onChiudi, vasca = false }: { e: EsercizioScheda | null; precedente?: Precedente; massimali: Massimale[]; onChiudi: () => void; vasca?: boolean }) {
   const p = usePalette()
   const ind = e ? indicazione(e, massimali) : null
   return (
@@ -59,11 +65,18 @@ function FoglioEsercizio({ e, precedente, massimali, onChiudi }: { e: EsercizioS
           <MediaEsercizio immagini={e.immagini} video={e.video} style={stili.mediaGrande} />
           {e.descrizione ? <Text style={[stili.nota, { color: p.testoSecondario }]}>{e.descrizione}</Text> : null}
           <View style={[stili.cifre, { backgroundColor: p.incavo }]}>
-            {[
-              { v: ind!.serieRip, l: 'Serie × ripetizioni' },
-              { v: ind!.kg != null ? `${ind!.stimato ? '≈ ' : ''}${String(ind!.kg).replace('.', ',')} kg` : ind!.manca ? `${e.percentuale}%` : e.carico || '—', l: ind!.kg != null ? `${ind!.stimato ? 'Stimato' : 'Carico'} · ${e.percentuale}%` : ind!.manca ? 'Del massimale' : 'Carico' },
-              { v: recupero(e.recupero_serie), l: 'Recupero' },
-            ].map((c, i) => (
+            {(vasca
+              ? [
+                  { v: `${e.serie} × ${e.ripetizioni}`, l: 'Ripetizioni × distanza' },
+                  { v: e.carico ? e.carico.charAt(0).toUpperCase() + e.carico.slice(1) : '—', l: 'Intensità' },
+                  { v: recupero(e.recupero_serie), l: 'Recupero' },
+                ]
+              : [
+                  { v: ind!.serieRip, l: 'Serie × ripetizioni' },
+                  { v: ind!.kg != null ? `${ind!.stimato ? '≈ ' : ''}${String(ind!.kg).replace('.', ',')} kg` : ind!.manca ? `${e.percentuale}%` : e.carico || '—', l: ind!.kg != null ? `${ind!.stimato ? 'Stimato' : 'Carico'} · ${e.percentuale}%` : ind!.manca ? 'Del massimale' : 'Carico' },
+                  { v: recupero(e.recupero_serie), l: 'Recupero' },
+                ]
+            ).map((c, i) => (
               <View key={c.l} style={[stili.cifra, i > 0 && { borderLeftWidth: StyleSheet.hairlineWidth, borderLeftColor: p.linea }]}>
                 <Text style={[stili.cifraValore, { color: p.testo }]} numberOfLines={1}>
                   {c.v}
@@ -77,7 +90,7 @@ function FoglioEsercizio({ e, precedente, massimali, onChiudi }: { e: EsercizioS
             <Nota testo={ind.daTest ? `Questo esercizio è nel test dei massimali: fai il test e qui vedrai i tuoi chili. Oppure: ${SPIEGA_TARATURA.charAt(0).toLowerCase()}${SPIEGA_TARATURA.slice(1)}` : SPIEGA_TARATURA} />
           ) : null}
           {e.note ? <Nota testo={e.note} /> : null}
-          {precedente ? (
+          {precedente && !vasca ? (
             <Text style={[stili.nota, { color: p.testoSecondario }]}>
               <Text style={{ fontFamily: F.bold, color: p.testo }}>L’ultima volta: </Text>
               {serieInRiga(precedente.serie)}
@@ -113,11 +126,15 @@ function FoglioEsercizio({ e, precedente, massimali, onChiudi }: { e: EsercizioS
 
 export function Scheda() {
   const p = usePalette()
-  const { scheda: id } = useLocalSearchParams<{ scheda: string }>()
+  // `?giorno=<posizione>`: il Percorso Athlon apre il piano sul giorno della tappa (la posizione, da 1, non l'id: gli id cambiano a ogni modifica).
+  const { scheda: id, giorno: giornoDelPercorso } = useLocalSearchParams<{ scheda: string; giorno?: string }>()
   const chiave = `schede:${id}`
   const [dati, setDati] = useState<Dati | null>(() => inMemoria<Dati>(chiave) ?? null)
   const [errore, setErrore] = useState<string | null>(null)
-  const [giorno, setGiorno] = useState(0)
+  const [giorno, setGiorno] = useState(() => {
+    const n = Number(giornoDelPercorso)
+    return Number.isInteger(n) && n >= 1 ? n - 1 : 0
+  })
   const [aperto, setAperto] = useState<EsercizioScheda | null>(null)
   const [confermo, setConfermo] = useState(false)
   const [eliminando, setEliminando] = useState(false)
@@ -152,6 +169,7 @@ export function Scheda() {
   }
 
   const s = dati.scheda
+  const vasca = eDiVasca(s)
 
   async function elimina() {
     setErroreElimina(null)
@@ -183,17 +201,17 @@ export function Scheda() {
   const stimati = inPercentuale.filter((e) => indicazione(e, massimali).stimato)
   const rifare = testDaRifare(dati.ultimoTest ?? null, dati.giorniTest ?? 42, s.livello === 'principiante')
   return (
-    <Schermata sopratitolo={etichettaPiano(s)} titolo={s.titolo} indietro="/allenamento" barra={false}>
+    <Schermata sopratitolo={vasca ? `${ETICHETTA_VASCA} · ${etichettaPiano(s)}` : etichettaPiano(s)} titolo={s.titolo} indietro="/allenamento" barra={false}>
       <View style={{ gap: spazio.due }}>
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
           {s.obiettivo ? <Tag testo={s.obiettivo} colore={p.accento} /> : null}
           {s.livello ? <Tag testo={LIVELLI[s.livello] ?? s.livello} colore={p.blu} /> : null}
-          {s.giorni_settimana ? <Tag testo={`${s.giorni_settimana} ${s.giorni_settimana === 1 ? 'giorno' : 'giorni'} a settimana`} colore={p.testoSecondario} /> : null}
+          {s.giorni_settimana ? <Tag testo={`${s.giorni_settimana} ${vasca ? (s.giorni_settimana === 1 ? 'seduta' : 'sedute') : s.giorni_settimana === 1 ? 'giorno' : 'giorni'} a settimana`} colore={p.testoSecondario} /> : null}
         </View>
         {s.descrizione ? <Text style={[stili.nota, { color: p.testoSecondario }]}>{s.descrizione}</Text> : null}
         {s.tipo === 'socio' ? (
           <Text style={[stili.piccola, { color: p.testoTerzo }]}>
-            È un piano tuo, ma i trainer del club lo possono vedere dal pannello, per verificarlo e aiutarti a seguirlo. Non sostituisce il parere di un istruttore: con dolori o infortuni chiedi in sala.
+            È un piano tuo, ma i trainer del club lo possono vedere dal pannello, per verificarlo e aiutarti a seguirlo. Non sostituisce il parere di un istruttore: con dolori o infortuni chiedi {vasca ? 'al tecnico a bordo vasca' : 'in sala'}.
           </Text>
         ) : null}
         {s.tipo === 'ai' ? (
@@ -276,7 +294,9 @@ export function Scheda() {
                 style={[stili.giorno, { backgroundColor: attivo ? p.accento : p.carta, borderColor: attivo ? p.accento : p.linea }]}
               >
                 <Text style={{ color: attivo ? '#fff' : p.testo, fontFamily: attivo ? F.extra : F.semi, fontSize: 14 }}>{x.nome}</Text>
-                <Text style={{ color: attivo ? 'rgba(255,255,255,0.85)' : p.testoTerzo, fontFamily: F.semi, fontSize: 11.5 }}>{`${x.esercizi.length} ${x.esercizi.length === 1 ? 'esercizio' : 'esercizi'}`}</Text>
+                <Text style={{ color: attivo ? 'rgba(255,255,255,0.85)' : p.testoTerzo, fontFamily: F.semi, fontSize: 11.5 }}>
+                  {vasca && metriDelGiorno(x) > 0 ? inMetri(metriDelGiorno(x)) : `${x.esercizi.length} ${x.esercizi.length === 1 ? (vasca ? 'blocco' : 'esercizio') : vasca ? 'blocchi' : 'esercizi'}`}
+                </Text>
               </Tocco>
             )
           })}
@@ -285,11 +305,19 @@ export function Scheda() {
 
       {g.note ? <Nota testo={g.note} /> : null}
 
+      {vasca ? (
+        <View style={{ gap: 2 }}>
+          {giornoDelPercorso ? <Text style={[stili.titoletto, { color: p.accento }]}>{COSA_FAI_IN_VASCA}</Text> : null}
+          <Text style={[stili.nota, { color: p.testoSecondario }]}>{`${g.nome}${metriDelGiorno(g) > 0 ? ` · ${inMetri(metriDelGiorno(g))}` : ''} · ${g.esercizi.length} ${g.esercizi.length === 1 ? 'blocco' : 'blocchi'}`}</Text>
+        </View>
+      ) : null}
+
       <View style={{ gap: spazio.tre }}>
         {g.esercizi.map((e, i) => {
           const gr = gruppo(g, i)
-          const prec = precedente(e.esercizio_id)
+          const prec = vasca ? undefined : precedente(e.esercizio_id)
           const ind = indicazione(e, massimali)
+          const parte = vasca ? parteDa(e.note) : null
           return (
             <Entra key={e.id} indice={i}>
               <Tocco onPress={() => setAperto(e)} etichetta={`${e.nome}: come si fa`} scala={0.985}>
@@ -299,6 +327,7 @@ export function Scheda() {
                     {e.superserie ? (
                       <Text style={[stili.superserie, { color: p.accento }]}>{`SUPERSERIE ${e.superserie}${gr.length > 1 ? ` · ${gr.indexOf(i) + 1} di ${gr.length}` : ''}`}</Text>
                     ) : null}
+                    {parte?.parte ? <Text style={[stili.parte, { color: p.accento }]}>{parte.parte.toUpperCase()}</Text> : null}
                     <Text style={[stili.nome, { color: p.testo }]} numberOfLines={2}>
                       {e.nome}
                     </Text>
@@ -317,6 +346,11 @@ export function Scheda() {
                         {`Ultima volta: ${serieInRiga(prec.serie)}`}
                       </Text>
                     ) : null}
+                    {parte?.resto ? (
+                      <Text style={[stili.piccola, { color: p.testoSecondario }]} numberOfLines={2}>
+                        {parte.resto}
+                      </Text>
+                    ) : null}
                   </View>
                 </Carta>
               </Tocco>
@@ -325,13 +359,19 @@ export function Scheda() {
         })}
       </View>
 
-      <CalorieScheda scheda={s} giorno={Math.min(giorno, s.giorni.length - 1)} />
+      {vasca ? (
+        <Nota testo={SPIEGA_SOLO_LETTURA} />
+      ) : (
+        <>
+          <CalorieScheda scheda={s} giorno={Math.min(giorno, s.giorni.length - 1)} />
 
-      <Pulsante
-        testo={`Inizia l’allenamento · ${g.nome}`}
-        icona="play"
-        onPress={() => router.push({ pathname: '/allenamento/[scheda]/[giorno]', params: { scheda: s.id, giorno: g.id } })}
-      />
+          <Pulsante
+            testo={`Inizia l’allenamento · ${g.nome}`}
+            icona="play"
+            onPress={() => router.push({ pathname: '/allenamento/[scheda]/[giorno]', params: { scheda: s.id, giorno: g.id } })}
+          />
+        </>
+      )}
 
       {s.tipo === 'socio' ? (
         <View style={stili.azioniTue}>
@@ -353,7 +393,7 @@ export function Scheda() {
         <Pulsante testo="Annulla" variante="secondario" disabilitato={eliminando} onPress={() => setConfermo(false)} />
       </Foglio>
 
-      <FoglioEsercizio e={aperto} precedente={aperto ? precedente(aperto.esercizio_id) : undefined} massimali={massimali} onChiudi={() => setAperto(null)} />
+      <FoglioEsercizio e={aperto} precedente={aperto ? precedente(aperto.esercizio_id) : undefined} massimali={massimali} onChiudi={() => setAperto(null)} vasca={vasca} />
     </Schermata>
   )
 }
@@ -367,6 +407,7 @@ const stili = StyleSheet.create({
   media: { width: 92, height: 92, borderRadius: 18 },
   mediaGrande: { width: '100%', aspectRatio: 16 / 9, borderRadius: 22 },
   superserie: { fontFamily: F.extra, fontSize: 10.5, letterSpacing: 1 },
+  parte: { fontFamily: F.extra, fontSize: 11, letterSpacing: 1 },
   nome: { fontFamily: F.extra, fontSize: 16, lineHeight: 20, letterSpacing: -0.3 },
   dettagli: { fontFamily: F.semi, fontSize: 14 },
   piccola: { fontFamily: F.semi, fontSize: 12.5 },

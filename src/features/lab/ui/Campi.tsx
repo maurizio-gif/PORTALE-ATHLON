@@ -6,6 +6,7 @@ import { spazio } from '@/theme'
 import { Icona, type NomeIcona } from './Icona'
 import { Messaggio, Pulsante } from './kit'
 import { F, usePalette } from './tema'
+import { Tocco } from './Tocco'
 
 // I campi del laboratorio: l'etichetta piccola in maiuscoletto, il campo
 // grigio tondo con l'icona, il bordo arancio quando ci si scrive. E il codice
@@ -44,6 +45,57 @@ export function CampoTesto({
           style={[stili.input, { color: p.testo }, style]}
         />
       </View>
+    </View>
+  )
+}
+
+/**
+ * Le pillole fra cui si sceglie una cosa sola: l'obiettivo, i giorni, i minuti. Le usano l'agente delle schede
+ * (`Agente.tsx`) e il questionario del Percorso Athlon.
+ */
+export function Scelte<T extends string | number>({ valori, scelto, onScegli }: { valori: { valore: T; testo: string }[]; scelto: T | null; onScegli: (v: T) => void }) {
+  const p = usePalette()
+  return (
+    <View style={stili.scelte}>
+      {valori.map((v) => {
+        const attivo = v.valore === scelto
+        return (
+          <Tocco
+            key={String(v.valore)}
+            vibra="scelta"
+            stato={{ selected: attivo }}
+            onPress={() => onScegli(v.valore)}
+            etichetta={v.testo}
+            style={[stili.scelta, { backgroundColor: attivo ? p.accento : p.carta, borderColor: attivo ? p.accento : p.linea }]}
+          >
+            <Text style={{ color: attivo ? '#fff' : p.testo, fontFamily: attivo ? F.extra : F.semi, fontSize: 14.5 }}>{v.testo}</Text>
+          </Tocco>
+        )
+      })}
+    </View>
+  )
+}
+
+/** Come `Scelte`, ma se ne possono scegliere piu' d'una: ogni tocco accende o spegne la pillola. */
+export function SceltePiu<T extends string | number>({ valori, scelti, onCambia }: { valori: { valore: T; testo: string }[]; scelti: T[]; onCambia: (v: T[]) => void }) {
+  const p = usePalette()
+  return (
+    <View style={stili.scelte}>
+      {valori.map((v) => {
+        const attivo = scelti.includes(v.valore)
+        return (
+          <Tocco
+            key={String(v.valore)}
+            vibra="scelta"
+            stato={{ selected: attivo }}
+            onPress={() => onCambia(attivo ? scelti.filter((x) => x !== v.valore) : [...scelti, v.valore])}
+            etichetta={v.testo}
+            style={[stili.scelta, { backgroundColor: attivo ? p.accento : p.carta, borderColor: attivo ? p.accento : p.linea }]}
+          >
+            <Text style={{ color: attivo ? '#fff' : p.testo, fontFamily: attivo ? F.extra : F.semi, fontSize: 14.5 }}>{v.testo}</Text>
+          </Tocco>
+        )
+      })}
     </View>
   )
 }
@@ -209,6 +261,8 @@ export function IncollaCodice({ cifre = CIFRE, onCodice, disabilitato = false }:
 }
 
 const stili = StyleSheet.create({
+  scelte: { flexDirection: 'row', flexWrap: 'wrap', gap: spazio.due },
+  scelta: { borderRadius: 999, paddingVertical: 10, paddingHorizontal: spazio.tre + 2, borderWidth: StyleSheet.hairlineWidth },
   etichetta: { fontSize: 11, fontFamily: F.extra, letterSpacing: 1.3 },
   nota: { fontSize: 13.5, lineHeight: 20, fontFamily: F.medio },
   campo: { flexDirection: 'row', alignItems: 'center', gap: spazio.due + 2, minHeight: 58, borderRadius: 18, borderWidth: 1.5, paddingHorizontal: spazio.tre },

@@ -692,6 +692,8 @@ export type RigaSchedaLab = {
   giorni: number
   /** Per i piani del socio: scritto a mano, letto da un file, scritto dall'agente AI o copiato dal club. */
   origine?: 'creata' | 'importata' | 'ai' | 'club' | null
+  /** `vasca` per un piano di nuoto (20/10/2026): si legge in vasca e non si registra. Assente (o `sala`) per gli altri. */
+  ambiente?: 'sala' | 'vasca'
   ultimo: string | null
 }
 
@@ -759,6 +761,8 @@ export type SchedaLab = {
   rivista_il: string | null
   /** Per i piani del socio: da dove viene. */
   origine?: 'creata' | 'importata' | 'ai' | 'club' | null
+  /** `vasca` se e' un piano di nuoto: si legge in vasca e non si registra (il server rifiuta `inizia`). */
+  ambiente?: 'sala' | 'vasca'
   giorni: GiornoSchedaLab[]
 }
 
@@ -850,12 +854,54 @@ export async function chiediSchedaAi(questionario: Questionario): Promise<Esito<
   return { ok: false, errore: dati.errore ?? 'L’agente non è riuscito a scrivere il piano adesso. Riprova fra qualche minuto.' }
 }
 
+// Il piano di nuoto (20/10/2026): per chi si allena in vasca, al Nuoto Libero. Un piano come gli altri, con gli esercizi di nuoto:
+// «4 x 100 m, recupero 20 secondi». Il Nuoto Libero chiede stile libero e dorso: senza, la funzione dice dove si comincia.
+
+export const STILI = ['stile_libero', 'dorso', 'rana', 'farfalla'] as const
+export type Stile = (typeof STILI)[number]
+/** Quanti metri di fila senza fermarsi: serve a non scrivere una ripetuta che la persona non regge. */
+export const CONTINUO = ['sotto_100', '100_400', '400_1000', 'oltre_1000'] as const
+export type Continuo = (typeof CONTINUO)[number]
+
+export type QuestionarioNuoto = {
+  obiettivo: string
+  livello: 'principiante' | 'intermedio' | 'esperto'
+  /** Sedute a settimana, da 1 a 4. */
+  volte: number
+  /** Quanto dura una seduta in vasca: 30, 45 o 60 (il turno del Nuoto Libero e' di un'ora). */
+  minuti: 30 | 45 | 60
+  stili: Stile[]
+  continuo: Continuo
+  limitazioni: string
+  note: string
+}
+
+/** Chi sa stile libero e dorso puo' fare il Nuoto Libero; chi no comincia dalla Scuola Nuoto Adulti. Stessa regola della funzione. */
+export const saNuotareAbbastanza = (stili: readonly Stile[]): boolean => stili.includes('stile_libero') && stili.includes('dorso')
+
+/** Cosa si dice a chi non ha stile libero e dorso: dove si comincia, non un «no». Le stesse parole della funzione. */
+export const MESSAGGIO_SCUOLA_NUOTO =
+  'Il Nuoto Libero chiede di saper nuotare stile libero e dorso. Se non ci sei ancora si parte dalla Scuola Nuoto Adulti: sono gli istruttori a dirti quando passare al nuoto libero.'
+
+/**
+ * Il piano di nuoto scritto dall'agente: ci mette fino a un paio di minuti e **non salva niente** (come `chiediSchedaAi`):
+ * risponde con una bozza che il socio rivede, modifica e conferma; solo allora e' un piano suo (`salvaSchedaMia`, origine «ai»).
+ */
+export async function chiediPianoNuoto(questionario: QuestionarioNuoto): Promise<Esito<{ bozza: BozzaScheda }>> {
+  const { ok, dati } = await schedeLab({ azione: 'chiedi_nuoto', questionario })
+  if (ok) return { ok: true, bozza: { ...dati.bozza, origine: 'ai' } }
+  // Le frasi della funzione sono scritte per il socio: il piano di nuoto non ancora attivo, la regola del Nuoto Libero, la quota.
+  // Una funzione pubblicata prima del piano di nuoto non conosce l'azione: per il socio e' la stessa cosa del workflow spento.
+  if (dati.errore === 'Azione sconosciuta.') return { ok: false, errore: 'Il piano di nuoto non è ancora attivo: puoi scriverlo tu.' }
+  return { ok: false, errore: dati.errore ?? 'L’agente non è riuscito a scrivere il piano di nuoto adesso. Riprova fra qualche minuto.' }
+}
+
 // I piani del socio (19/10/2026): quelli che ha scelto lui. Vengono da quattro strade (`origine`): li scrive a mano,
 // li importa da una foto o da un PDF, li fa scrivere all'agente AI, o li copia da un piano del club. In tutti i casi li
 // rivede, li modifica se vuole e li conferma (`salvaSchedaMia`). Il personale del club li legge dal CRM.
 
 /** Un esercizio della libreria accesa, o uno suo (`mio`), per sceglierlo in una scheda. Senza video e poster. */
-export type EsercizioLibreria = { id: string; nome: string; muscoli_primari: string[]; attrezzo: string | null; categoria: string | null; mio: boolean }
+export type EsercizioLibreria = { id: string; nome: string; muscoli_primari: string[]; attrezzo: string | null; categoria: string | null; mio: boolean; ambiente?: 'sala' | 'vasca' }
 
 /** Un esercizio come lo si salva: della libreria (`esercizio_id`) o con un nome suo (`nome_libero`). */
 export type EsercizioDaSalvare = {
@@ -906,6 +952,8 @@ export type BozzaScheda = {
   livello?: string
   /** Da dove viene: lo mette chi la riceve (`importaScheda`, `chiediSchedaAi`). */
   origine?: 'importata' | 'ai'
+  /** `vasca` per un piano di nuoto scritto dall'agente (`chiediPianoNuoto`): le righe sono blocchi di vasca, «4 x 100 m». */
+  ambiente?: 'vasca'
   giorni: { nome: string; note: string; esercizi: EsercizioBozza[] }[]
 }
 
