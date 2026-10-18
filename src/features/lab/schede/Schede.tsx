@@ -7,9 +7,11 @@ import { elencoMisure, elencoSchede, type Misura, type RigaSchedaLab, type Sedut
 import { LARGO } from '@/components/Pagina'
 import { spazio } from '@/theme'
 
+import { relaxAperto, useDispositivi } from '../dispositivi/useDispositivi'
 import { CartaBalance } from '../fit/Balance'
 import { CartaCorpo } from '../fit/Corpo'
 import { AreaFood } from '../fit/Food'
+import { AreaRelax } from '../fit/Relax'
 import { IntroFit } from '../fit/Intro'
 import { RuotaBenessere } from '../fit/Ruota'
 import { useFit } from '../fit/useFit'
@@ -24,15 +26,19 @@ import { etichettaPiano, giorniAlTest, giornoTest, LIVELLI, quando, testDaRifare
 
 // Athlon Health System (19/10/2026, era Workout, poi Fit): sotto il titolo la
 // ruota Train, Food, Relax (fit/Ruota.tsx) e il tuo corpo (fit/Corpo.tsx); poi l'introduzione (cosa si fa e cosa
-// vogliono dire i numeri) e il Balance; sotto, due aree da scegliere.
+// vogliono dire i numeri) e il Balance; sotto, le aree da scegliere (due, tre dove i dispositivi sono aperti).
 //   - Train: il test dei massimali, il contatore delle calorie,
 //     le origini di un piano (l'agente AI, l'importazione del proprio, i piani
 //     consigliati dal club, in un carosello orizzontale filtrabile per
 //     obiettivo) e, quarta, farsi seguire da un personal trainer (porta alla
 //     prenotazione, /personal); i tuoi piani in fondo, e gli ultimi allenamenti;
-//   - Food: la porta del diario dei pasti (fit/Food.tsx).
-// L'area scelta sta nell'indirizzo (`?area=food`), cosi' tornando indietro dal
-// diario si ritrova Food. L'indirizzo resta /allenamento: e' quello dei link gia' dati.
+//   - Food: la porta del diario dei pasti (fit/Food.tsx);
+//   - Relax: il recupero, con i dati dell'anello Oura o dell'orologio Polar del socio
+//     (fit/Relax.tsx). **L'area c'e' solo dove i dispositivi sono aperti**: finche' il club non
+//     ha registrato le sue applicazioni presso Oura e Polar (nessun fornitore disponibile) e il
+//     socio non ha dato il consenso, la scheda non compare e Fit e' quello di prima.
+// L'area scelta sta nell'indirizzo (`?area=food`, `?area=relax`), cosi' tornando indietro dal
+// diario o dai dispositivi si ritrova la sua area. L'indirizzo resta /allenamento: e' quello dei link gia' dati.
 
 type Dati = { schede: RigaSchedaLab[]; ultimi: SedutaBreve[]; ai: { usate: number; massimo: number }; test: StatoTest }
 
@@ -240,8 +246,11 @@ export function Schede() {
   }, [carica])
 
   const fit = useFit()
+  const disp = useDispositivi()
+  const conRelax = relaxAperto(disp.stato)
   const { area: parametro } = useLocalSearchParams<{ area?: string }>()
-  const area: Area = parametro === 'food' ? 'food' : 'train'
+  // Relax solo dove e' aperto; mentre non si sa ancora (stato non arrivato) l'indirizzo vale.
+  const area: Area = parametro === 'food' ? 'food' : parametro === 'relax' && (conRelax || (!disp.stato && !disp.vista)) ? 'relax' : 'train'
   const scegli = (a: Area) => router.setParams({ area: a })
   // Su schermo largo (15/10/2026), come Prenotazioni: le card in fila e le
   // schede su piu' colonne.
@@ -257,7 +266,7 @@ export function Schede() {
       </Entra>
       <View style={largo ? stili.fila3 : { gap: spazio.quattro + 4 }}>
         <Entra indice={0} style={largo ? { flex: 1 } : undefined}>
-          <IntroFit />
+          <IntroFit relax={conRelax} />
         </Entra>
         <Entra indice={1} style={largo ? { flex: 1 } : undefined}>
           <CartaBalance dati={fit} onAttivaFood={area === 'food' ? undefined : () => scegli('food')} />
@@ -265,11 +274,13 @@ export function Schede() {
       </View>
 
       <Entra indice={2}>
-        <Interruttore area={area} onScegli={scegli} />
+        <Interruttore area={area} onScegli={scegli} relax={conRelax} />
       </Entra>
 
       {area === 'food' ? (
         <AreaFood dati={fit} />
+      ) : area === 'relax' ? (
+        <AreaRelax disp={disp} />
       ) : !dati ? (
         errore ? (
           <>
@@ -431,14 +442,15 @@ function Train({ dati, largo }: { dati: Dati; largo: boolean }) {
   )
 }
 
-type Area = 'train' | 'food'
+type Area = 'train' | 'food' | 'relax'
 
-/** Le due aree di Fit, come due schede di una pillola. */
-function Interruttore({ area, onScegli }: { area: Area; onScegli: (a: Area) => void }) {
+/** Le aree di Fit, come le schede di una pillola: Train e Food, e Relax dove i dispositivi sono aperti. */
+function Interruttore({ area, onScegli, relax }: { area: Area; onScegli: (a: Area) => void; relax: boolean }) {
   const p = usePalette()
   const voci: { id: Area; nome: string; icona: NomeIcona }[] = [
     { id: 'train', nome: 'Train', icona: 'peso' },
     { id: 'food', nome: 'Food', icona: 'piatto' },
+    ...(relax ? [{ id: 'relax' as const, nome: 'Relax', icona: 'foglia' as const }] : []),
   ]
   return (
     <View style={[stili.interruttore, { backgroundColor: p.incavo }]} accessibilityRole="tablist">

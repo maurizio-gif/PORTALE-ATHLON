@@ -24,7 +24,7 @@ const PARTI: { nome: string; icona: NomeIcona; colore: string; testo: string }[]
   { nome: 'Relax', icona: 'foglia', colore: '#14B8A6', testo: 'recuperare. Il sonno e i giorni di riposo fanno parte dell’allenamento: è lì che il corpo si rimette in forze.' },
 ]
 
-export function IntroFit() {
+export function IntroFit({ relax = false }: { relax?: boolean }) {
   const p = usePalette()
   const [aperto, setAperto] = useState(false)
   return (
@@ -42,6 +42,7 @@ export function IntroFit() {
             <Text style={[stili.testo, { color: p.testoSecondario, flex: 1 }]}>
               <Text style={{ fontFamily: F.extra, color: p.testo }}>{`${x.nome}: `}</Text>
               {x.testo}
+              {x.nome === 'Relax' && relax ? ' Se hai un anello Oura o un orologio Polar puoi collegarlo e vedere qui il tuo sonno e come ti riprendi.' : ''}
             </Text>
           </View>
         ))}

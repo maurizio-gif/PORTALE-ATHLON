@@ -234,3 +234,31 @@ l'allenamento, l'alimentazione e il recupero dell'adulto in un posto solo. Nel c
   (`/allenamento/alimentazione?foto=1` apre la foto sul pasto dell'ora).
 - **I dati li legge `useFit`** con le chiavi di memoria del diario e del contatore (`alimentazione/chiavi.ts`), e li rilegge
   a ogni ritorno su Fit: un pasto scritto nel diario cambia il Balance appena si torna indietro.
+
+## I dispositivi: Oura e Polar si collegano da Relax, e i dati restano del socio
+
+L'area **Relax** di Athlon Health System (`fit/Relax.tsx`) mostra il recupero con quello che dicono l'anello Oura e gli orologi Polar del socio, e
+la schermata `/allenamento/dispositivi` (`dispositivi/Dispositivi.tsx`) li collega e li scollega (19/10/2026). Funzione, tabelle, sicurezza e
+lista di cosa controllare con i fornitori: `CLAUDE.md` di APP-ATHLON.
+
+- **Relax compare solo dove i dispositivi sono aperti** (`relaxAperto` in `useDispositivi.ts`): almeno un fornitore disponibile (il club ha
+  registrato le sue applicazioni) o un consenso già dato. Altrimenti la terza scheda non c'è, `?area=relax` torna a Train e Fit è quello di
+  prima. Nella vista cliente dello staff non si apre e **non si chiama la funzione**.
+- **Consenso prima di tutto** (`Vetrina.tsx`, testo in `informativa.ts`): senza, niente si collega. **Cambiando il testo si cambia
+  `VERSIONE_INFORMATIVA` qui e nella funzione**: la sezione si richiude e il socio riaccetta. La revoca (in fondo a `Dispositivi.tsx`) scollega
+  tutto e cancella i dati. Solo maggiorenni. L'informativa va fatta rileggere al consulente privacy prima di aprire a tutti.
+- **Il ritorno dal fornitore arriva su `/allenamento/dispositivi?code=…&state=…`** (è il redirect URI registrato presso Oura e Polar): la
+  schermata manda codice e state a `completa` con la sessione del socio e **toglie subito i parametri con `router.setParams`, non con
+  `replace`** (un replace rifà la schermata da capo e l'avviso «Oura collegato» andrebbe perso: si è visto nel browser). Se il socio annulla
+  il fornitore rimanda `error`: nessuna chiamata, solo un avviso. La pagina aspetta la sessione (`useSessione`) prima di leggere l'indirizzo.
+- **Sul web si lascia l'app per il sito del fornitore e si torna** (`window.location.assign`, come per i pagamenti). Nell'app nativa si apre il
+  browser (`Linking.openURL`) e il ritorno si completa nel browser, **dove la sessione potrebbe non esserci**: da provare su una build nativa
+  prima di offrirlo lì.
+- **Descrive, non consiglia.** Niente frasi su cosa fare in base ai numeri, niente obiettivi (gli anelli e le colonne del sonno sono in scala
+  0-10 ore, non c'è un «8 ore» da riempire), parole morbide per il recupero (`recupero()` in `comune.ts`: ottimo, buono, discreto, «da
+  ricaricare»; mai un allarme) con il numero del fornitore sempre accanto («88 su 100», «4 su 6»), e la nota «valori indicativi del tuo
+  dispositivo, non un parere medico». I dati del dispositivo **non entrano nel contatore delle calorie né nel Balance**: un allenamento fatto
+  in app e uno registrato dall'orologio rischiano di contare due volte la stessa ora; se il club lo vuole, si decide come evitarlo prima.
+- **I dati li legge `useDispositivi`** (memoria `dispositivi:stato` e `dispositivi:dati`, rilettura a ogni ritorno su Fit). Dopo una
+  scrittura la schermata si aggiorna dalla risposta (`imposta`), dopo un consenso o una revoca rilegge tutto (`rileggi`, con una lettura
+  esplicita: non ci si affida al rinfresco del focus, che qui non ripartiva).
