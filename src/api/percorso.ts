@@ -306,3 +306,135 @@ export async function eliminaPercorso(): Promise<Esito<object>> {
   if (ok) return { ok: true }
   return errore(dati, stato, 'Non siamo riusciti a togliere il percorso. Riprova.')
 }
+
+// ---------------------------------------------------------------------------
+// I consigli di Athlon (20/10/2026)
+//
+// Al posto di una settimana composta e controllata, il socio riceve dei **consigli**: quali tipi di lezione gli
+// convengono, quali alternative ha per ognuno e — solo se li chiede — come integrarli con la sala pesi (Gym Floor)
+// e con il Nuoto Libero. L'AI dice cosa e perche'; la funzione trova le prossime lezioni vere, coi posti e le
+// prenotazioni. **Non si salva niente e non c'e' nessuna regola «dentro il percorso»**: ogni lezione si prenota come dal
+// Calendario. Il questionario non si conserva (le limitazioni sono dati sulla salute): arriva al modello e basta.
+
+export type NuotoScelta = 'libero' | 'imparare' | null
+
+export type QuestionarioConsigli = {
+  obiettivo: Obiettivo
+  livello: Livello
+  /** Quante volte a settimana puo' venire (1-6): dice quanti consigli dare. */
+  volte_settimana: number
+  gruppi: Gruppo[]
+  /** I nomi delle lezioni che non vuole: la funzione li confronta senza maiuscole e accenti. */
+  evitate: string[]
+  fasce: Fascia[]
+  /** Giorni in cui puo' venire (1-7); vuoto = tutti. */
+  giorni_liberi: number[]
+  sala: boolean
+  /** `libero`: sa stile libero e dorso e vuole i turni; `imparare`: si parte dalla Scuola Nuoto Adulti. */
+  nuoto: NuotoScelta
+  includi_non_comprese: boolean
+  limitazioni: string
+}
+
+export type TipoConsigliato = {
+  /** `class_type_id` di PerfectGym. */
+  id: number
+  nome: string
+  categoria: string
+  gruppo: Gruppo | null
+  scheda: string | null
+  barre: Barre
+  minuti: number
+  compresa: boolean | null
+  /** Almeno uno dei suoi orari, nelle ultime settimane, ha chiuso spesso con tutti i posti presi. */
+  spessoCompleta: boolean
+}
+
+/** Una lezione vera nella forma dei pulsanti del Calendario: `dopo` e' sempre null (qui non ci sono limiti «dentro il percorso»). */
+export type LezioneConsiglio = DatiLezione & { categoria: string; scheda: string | null; compresa: boolean | null }
+export type TurnoSala = LezioneConsiglio & { fascia: FasciaSala }
+
+export type ConsiglioRisolto = {
+  tipo: TipoConsigliato
+  perche: string | null
+  /** Quante volte a settimana conviene. */
+  volte: number
+  /** Le prossime lezioni di questo tipo (vuoto se nei prossimi giorni non ce ne sono). */
+  prossime: LezioneConsiglio[]
+  alternative: { tipo: TipoConsigliato; prossime: LezioneConsiglio[] }[]
+}
+
+export type SalaConsigliata = {
+  perche: string | null
+  volte: number
+  fascia: FasciaSala
+  /** Per ogni giorno consigliato, i turni piu' vicini all'ora preferita: uno con l'assistente di sala e uno di allenamento libero. */
+  giorni: { data: string; turni: TurnoSala[] }[]
+}
+
+export type NuotoConsigliato = { perche: string | null; volte: number; giorni: { data: string; turni: LezioneConsiglio[] }[] }
+
+export type StatoConsigli = {
+  member_id: number
+  maggiorenne: boolean
+  /** Le richieste fatte oggi e il massimo: si contano in un giorno, a differenza del Percorso. */
+  quota: Quota
+  /** Falso se il servizio dei consigli non e' acceso. */
+  attivo: boolean
+  idoneita: Idoneita
+}
+
+export type RispostaConsigli = {
+  member_id: number
+  sintesi: string | null
+  integrazione: string | null
+  consigli: ConsiglioRisolto[]
+  sala: SalaConsigliata | null
+  nuoto: NuotoConsigliato | null
+  schede: SchedeLezioni
+  avvisi: string[]
+  /** Falso se PerfectGym non ha risposto: i consigli si vedono, ma non si sa cosa e' gia' prenotato. */
+  prenotazioni_lette: boolean
+  quota: Quota
+}
+
+/** Per aprire la schermata: se i consigli sono accesi, se il socio puo' usarli, quante richieste gli restano oggi. */
+export async function statoConsigli(): Promise<Esito<StatoConsigli>> {
+  const { ok, dati, stato } = await chiama({ azione: 'consigli_stato' })
+  if (ok)
+    return {
+      ok: true,
+      member_id: Number(dati.member_id),
+      maggiorenne: !!dati.maggiorenne,
+      quota: dati.quota ?? { usate: 0, massimo: 10 },
+      attivo: dati.attivo !== false,
+      idoneita: dati.idoneita ?? { categorie: null, incerta: true },
+    }
+  // Una funzione che non conosce ancora l'azione risponde «Azione sconosciuta.»: per il socio e' «non ancora attivo».
+  if (dati.errore === 'Azione sconosciuta.') return { ok: false, errore: 'I consigli non sono ancora attivi: riprova più avanti.', stato: 503 }
+  return errore(dati, stato, 'Non riusciamo ad aprire i consigli adesso.')
+}
+
+/** Il questionario va all'AI e non si conserva. Ci vogliono pochi secondi, a volte mezzo minuto. */
+export async function chiediConsigli(q: QuestionarioConsigli): Promise<Esito<{ risposta: RispostaConsigli }>> {
+  const { ok, dati, stato } = await chiama({ azione: 'consigli', questionario: q })
+  if (ok && Array.isArray(dati.consigli)) {
+    return {
+      ok: true,
+      risposta: {
+        member_id: Number(dati.member_id),
+        sintesi: dati.sintesi ?? null,
+        integrazione: dati.integrazione ?? null,
+        consigli: dati.consigli,
+        sala: dati.sala ?? null,
+        nuoto: dati.nuoto ?? null,
+        schede: dati.schede ?? {},
+        avvisi: dati.avvisi ?? [],
+        prenotazioni_lette: dati.prenotazioni_lette !== false,
+        quota: dati.quota ?? { usate: 0, massimo: 10 },
+      },
+    }
+  }
+  if (dati.errore === 'Azione sconosciuta.') return { ok: false, errore: 'I consigli non sono ancora attivi: riprova più avanti.', stato: 503 }
+  return errore(dati, stato, 'L’assistente non è riuscito a dare i consigli adesso. Riprova fra qualche minuto.')
+}

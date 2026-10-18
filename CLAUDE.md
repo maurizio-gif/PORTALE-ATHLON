@@ -295,6 +295,34 @@ logo è la parte che gli piace, quindi non si tocca. Un effetto nuovo si chiede 
   vede). Sul telefono si passa dalla schermata nativa arancione (`expo-splash-screen`) al fondo scuro dell'avvio senza dissolvenza: da guardare, e se
   stona si fa partire l'avvio dallo stesso arancio.
 
+## I consigli di Athlon: le lezioni che fanno per te, con le alternative; sala e nuoto se li vuoi
+
+Richiesta del club (20/10/2026): il Percorso (sezione sotto) era troppo complesso e la prenotazione dentro la settimana troppo stretta. Nella schermata Train la carta che c'era
+(`CartaConsigli` in `schede/Schede.tsx`) porta adesso ai **consigli** (`/allenamento/consigli`, cartella `src/features/lab/consigli/`): il socio dice cosa cerca e riceve **i tipi di lezione che
+fanno per lui, con le alternative**, e se vuole anche come affiancarli alla sala pesi (Gym Floor) e al Nuoto Libero. Non è una settimana e non è un piano di allenamento: niente tappe,
+niente editor, niente conferma, niente «Prenota la settimana». Funzione, controlli, quota e workflow: `CLAUDE.md` di APP-ATHLON (`portale-lab-percorso`, azioni `consigli_stato` e `consigli`).
+
+- **Una schermata sola con tre momenti** (`Consigli.tsx`): le domande, l'attesa e i consigli. Obbligatori solo obiettivo e livello; poi quante volte a settimana (1-6, di partenza 3), «Vuoi anche la sala pesi?»,
+  «E il nuoto?» (no · Nuoto Libero · Voglio imparare), e — facoltativi — che lezioni piacciono (i cinque gruppi del Percorso), quando si preferisce venire, in quali giorni si può, quali lezioni evitare (a parole,
+  separate da una virgola), se includere le non comprese e le limitazioni. **Sala e nuoto li sceglie il socio**: senza averli chiesti non compaiono. L'attesa è di pochi secondi, a volte mezzo minuto.
+- **I consigli sono carte per tipo di lezione** (`CartaConsiglio`): il nome, categoria, durata e quante volte a settimana conviene, «Spesso al completo» e «Da acquistare» dove servono, il perché (una riga, senza
+  numeri: li scrive il codice), **le prossime lezioni** (le prime due, le altre con «Mostra altre») e **le alternative** in una riga che si apre («Se questa non va: 2 alternative»), ognuna con le sue lezioni.
+  Poi i blocchi «E in sala» (`BloccoSala`: per giorno i turni con l'assistente di sala e quelli in allenamento libero, con le parole del sito: **l'assistente di sala supervisiona le attività in sala, non ti segue
+  né ti controlla mentre lavori**) e «E in vasca» (`BloccoNuoto`), gli avvisi della funzione in fondo e «Come metterli insieme». Un tipo senza lezioni nei prossimi giorni lo dice e rimanda alle alternative.
+- **Si prenota con i pulsanti del Calendario** (`RigaLezione` in `Lezioni.tsx`: `AzioniLezione` e `usePrenotazioneLezione`, gli stessi del Percorso): prenota, lista d'attesa, disdici, acquista se non è compresa, «Prenotabile da…»
+  se non si è ancora aperta, il motivo del limite della categoria. **Nessuna regola in più**: se il Calendario dice «hai già una prenotazione di Group Reformer», lo dice anche qui. Dopo un clic la riga si aggiorna
+  subito con quello che ha detto PerfectGym (`conPrenotazione`, in ogni posto dove compare quella lezione) e la memoria del giorno del calendario si butta (`dimenticaGiornoCalendario`).
+- **La memoria è solo in memoria** (`consigli:ultimi`, `consigli:scelte`, `consigli:stato`, mai sul disco): l'ultima risposta e le scelte, **senza le limitazioni**, così dopo un pagamento o un «Dettagli» si
+  ritrovano i consigli («Cambia le risposte» → «Torna ai consigli di prima»). Non è niente di sanitario. Le dieci richieste al giorno le conta il server (`stato.quota`).
+- **Nella vista cliente dello staff non si apre**: la schermata dice che i consigli li chiede solo il socio e la funzione risponde 403. Solo maggiorenni. Una funzione che non conosce ancora l'azione («Azione sconosciuta.») per
+  il socio è «non ancora attivi».
+- **Il Percorso è in standby** (richiesta del club, 20/10/2026): non si vede e non si raggiunge. Il link in fondo ai consigli («Preferisci una settimana già a tappe?», `AltraStrada`) non compare, e le tre schermate (`/allenamento/percorso`, `percorso-nuovo`, `percorso-modifica`) rimandano ai consigli, così un vecchio link non apre una funzione che non si offre più. Non è stato tolto niente: la cartella `percorso/`, `src/api/percorso.ts`, la funzione e le tabelle restano. **Si riaccende con `PERCORSO_IN_STANDBY = false` in `percorso/standby.ts`**, ma prima si decide dove deve ricomparire (il link in fondo ai consigli o di nuovo la carta in Train) e lo si ricontrolla con i tester: dall'accensione non è mai stato provato con una sessione vera.
+- **Parole**: «consigli», «lezioni», «sala», «vasca»; mai «percorso» né «piano» per questa cosa, e niente promesse di risultati. I posti cambiano in fretta: l'ultima parola è del Calendario, e la schermata lo dice.
+
+Per verificare: `npx tsc --noEmit` pulito; `consigli/comune.ts` è puro (`conPrenotazione`, `evitateDa`, `questionarioDa`) e si prova con `npx tsx`. **La schermata si guarda renderizzata** (360, 390, 430 e 1280 px, anche con «riduci
+movimento»): le domande, l'attesa, i consigli con una lezione prenotata, da acquistare, spesso al completo e senza date, le alternative aperte, la sala con i due tipi di turno, il nuoto, la quota finita (il pulsante
+si spegne e lo dice) e la vista cliente. Si prova con il bundle esportato e le risposte della funzione intercettate; **con una sessione vera non è provata**, né su un telefono.
+
 ## Il Percorso Athlon: la settimana a tappe, composta dal tutor dentro il palinsesto vero
 
 Nella schermata Train (`/allenamento`), sotto il test e le calorie, c'è la carta **Percorso Athlon** («Il tutor tecnico della tua settimana:
@@ -303,6 +331,7 @@ piano di allenamento (che lezioni gli piacciono, quante volte in sala, in quali 
 piani di allenamento che il socio ha già), il cardio, le lezioni di gruppo e l'acqua. Ogni lezione si prenota dalla sua tappa, e il percorso
 spiega **cosa fa la settimana**, non solo quante calorie costa. Cartella `src/features/lab/percorso/`; funzione, tabelle, quota e regole del
 server sono nel `CLAUDE.md` di APP-ATHLON (`portale-lab-percorso`, migrazione `20261019e_percorso.sql`).
+**Dal 20/10/2026 la carta in Train porta ai consigli** (sezione sopra), più semplici; il Percorso è **in standby** (vedi il punto «Il Percorso è in standby» nella sezione dei consigli): nell'app non si raggiunge, e il resto è com'era.
 
 - **Non è un piano di allenamento**, e la schermata lo dice prima di tutto (`PianoOPercorso`): il piano (nel codice, la «scheda») sono gli
   esercizi di un allenamento in sala, serie, ripetizioni e carichi; il percorso è la settimana intera e usa i piani come tappe di sala. **Nei testi
@@ -493,3 +522,79 @@ Per verificare: `npx tsc --noEmit` pulito. **Si guarda renderizzato** (390 e 128
 riserva (solo «PER TE»), la X, nessuna carta se la funzione dà errore o `messaggio: null`, nessuno scorrimento orizzontale a 390. Con le risposte della funzione simulate (Playwright con `page.route` su
 Supabase e `page.clock`): all'apertura una richiesta `apertura`; cinque minuti fuori dall'app non ne chiedono un'altra; oltre mezz'ora fuori ne arriva una `ritorno`; il pulsante porta a
 `/richiesta/guest-pass` e segna `toccato`; in vista cliente nessuna richiesta. **Non provato**: un telefono vero (iOS e Android, dove `AppState` ha anche lo stato `inactive`), e il messaggio con la funzione vera.
+
+## Lo shop: Articoli e Merchandising, si compra dall'app e si ritira in segreteria
+
+Richiesta del club (18/10/2026). Cartella `src/features/lab/shop/`, API `src/api/shop.ts`, rotte `src/app/(portale)/shop/`. Un negozio
+nell'app dei soci per le due categorie di PerfectGym **Articoli** e **Merchandising**: foto, prezzi, carrello, pagamento online con Adyen
+attraverso PerfectGym (come le lezioni singole), **ritiro in segreteria**, nessuna spedizione. Funzione `portale-lab-shop`, tabelle, bucket
+delle foto, i tre segnali di «pagato», il giro del cron e la sezione Shop del CRM: sezione «Lo shop» del `CLAUDE.md` di APP-ATHLON.
+
+- **L'app non parla con PerfectGym e non manda mai un prezzo.** Alla funzione arrivano solo `product_id` e quantità (`src/api/shop.ts`); nome,
+  foto e prezzo li rilegge la funzione, che prima di aprire il pagamento **ricontrolla da PerfectGym** prezzo e vendibilità di ogni riga. Il totale
+  che si vede nel carrello è una somma per comodità (in centesimi, `Math.round(prezzo * 100) * quantità`); **dopo «Vai al pagamento» vale quello
+  della funzione**. Se un prezzo è cambiato, un articolo è finito o non è più in vendita l'ordine non parte (409 con `codice`): l'app rilegge la
+  vetrina (`carica(true)`), toglie dal carrello ciò che non c'è più (`allineaAllaVetrina`) e lo dice.
+- **Il catalogo lo cura la segreteria dal CRM** (foto, descrizione, ordine, visibile, esaurito). **Un articolo può stare in vetrina senza foto**
+  (19/10/2026, richiesta del club: i tester vedono subito tutto, le foto arrivano dopo): al posto dell'immagine c'è un segnaposto, un sacchetto su
+  fondo neutro (`SegnapostoFoto`, senza testo), nella vetrina, nella scheda articolo, nelle miniature del carrello e degli ordini. Un prodotto
+  nuovo del listino non compare finché qualcuno non lo accende. **Cosa
+  vede il socio dipende dal suo abbonamento** (alcuni prodotti spettano a chi ha un contratto vivo, altri a chi non l'ha), e lo decide la
+  funzione: l'app mostra quello che torna.
+- **Le schermate.** `/shop` (`Vetrina.tsx`: schede in griglia, filtro per categoria, «Esaurito» sulla foto spenta; la lettura sta in
+  memoria sotto `shop:vetrina`, `useVetrina`), `/shop/[id]` (`Articolo.tsx`: foto, descrizione, quantità, «Aggiungi al carrello»), `/shop/carrello`
+  (`Carrello.tsx`), `/shop/ordine/[id]` (`EsitoOrdine.tsx`, il ritorno dal pagamento) e `/shop/ordini` (`Ordini.tsx`, «I miei ordini»). **Si entra
+  dalla Home, nella sezione Prodotti**: la carta «Shop del club» (`IngressoShop` in `SezioneProdotti.tsx`) sta sopra i prodotti già acquistati. Non
+  c'è una voce nuova nella barra: lo shop è un posto in cui si va a comprare, non una sezione quotidiana.
+- **Il carrello** (`carrello.ts`, un solo store per app, `useCarrello` con `useSyncExternalStore`) tiene **solo identificativi e quantità**. Sul web sta
+  nella scheda del browser (`sessionStorage`, chiave `athlon_shop_carrello`) perché il pagamento porta fuori dall'app, sulla pagina di Adyen, e al
+  ritorno la pagina si ricarica da capo: un carrello solo in memoria sarebbe vuoto proprio quando serve. **Non nel `localStorage`**: un dispositivo
+  condiviso non deve ritrovare il carrello di chi c'era prima. **All'uscita dal laboratorio si svuota** (`esciDalLaboratorio` in `memoria.ts`), e si
+  svuota quando un ordine risulta pagato, non prima: tornando indietro senza pagare il carrello c'è ancora. Tetti: **cinque pezzi per articolo e
+  dodici righe** (li dice la funzione nella vetrina, `quantita_max`; l'app non ne ricopia i numeri se non come ripiego).
+- **Il pagamento ha due strade, come le lezioni.** Chi ha una **carta salvata** vede «Paga 25,00 € con la carta •••• 1234» e paga senza uscire; l'altra
+  voce, «Usa un'altra carta», e la sola strada per chi la carta non ce l'ha, porta sulla pagina protetta di Adyen (`window.location.assign` sul
+  web, `Linking.openURL` sul telefono), dove la carta si salva. «Vai al pagamento» **non addebita niente**: apre l'ordine. Con l'ordine aperto
+  il carrello non si cambia più (niente quantità né cestino: l'ordine è quello), si può solo «Tornare al carrello», che lo riapre con un
+  ordine nuovo.
+- **Il ritorno dal pagamento** (`/shop/ordine/<id>`) chiede com'è andata ogni 4 secondi, per due minuti (30 giri), perché PerfectGym registra il
+  pagamento qualche secondo dopo: «Verifichiamo il pagamento…», poi «Pagamento ricevuto» (da ritirare in segreteria) o «Pagamento non riuscito» o,
+  dopo i due minuti, «Non vediamo ancora il pagamento». **Quest'ultimo non è un errore**: chi ha pagato e chiude la pagina lo ritrova in «I miei
+  ordini», che compare appena PerfectGym lo registra; chi è tornato indietro senza pagare non ha addebiti. Il testo lo dice, e dice di non chiudere la
+  pagina mentre aspetta.
+- **Il ritiro** si legge ovunque come «Da ritirare in segreteria, negli orari di apertura del club», e passa a «Ritirato il …» quando la segreteria
+  lo segna consegnato dal CRM. Non c'è nessuna notifica (l'app non ne ha) e **nessuna email di conferma**: la ricevuta è la schermata e «I miei
+  ordini».
+- **Solo i tester del portale**: chi non è in `portale_lab_tester` riceve 403 da `portale-lab-shop` e la schermata mostra il messaggio. **Nella vista
+  cliente dello staff lo shop si guarda e basta** (`catalogo` e `ordini` sono letture; `ordina`, `paga_con_carta` ed `esito` rispondono 403): il
+  pulsante «Vai al pagamento» è spento e un avviso lo dice, e il bottone del carrello nella testata dell'articolo non compare.
+- **Le foto sono indirizzi interi e pubblici** (bucket `shop-prodotti`, merce e non persone): l'app le mostra con `expo-image`, `contentFit="cover"` in
+  riquadri quadrati. A differenza di MoveKit e dei certificati non c'è niente da firmare.
+
+**Cosa è provato.** `npx tsc --noEmit` pulito. In un browser vero (Chromium, 19 gruppi di prove contro la funzione simulata, nessun errore di
+pagina né di console): vetrina con filtro per categoria e «Esaurito»; articolo con quantità, tetto di cinque pezzi, articolo esaurito, indirizzi
+strani (`/shop/abc`, un prodotto che non c'è); carrello con totale in centesimi che sopravvive al ricaricamento; **prezzo cambiato** (l'ordine non
+parte, messaggio, prezzo nuovo a schermo) e articolo finito che esce da solo; «Vai al pagamento» che manda **solo id e quantità** e mostra la carta
+salvata; ritorno dal pagamento («Verifichiamo…» poi «Pagamento ricevuto») col carrello svuotato; «I miei ordini»; la carta «Shop del club» in Home;
+vetrina vuota e in errore con «Riprova». Le schermate sono state **guardate** su telefono (390 px) e su desktop (1280 px, quattro colonne, nessun
+overflow), in tema chiaro e scuro. **Cosa non lo è:**
+
+- **Nessun pagamento vero**: la funzione era simulata. Il primo pagamento di produzione dello shop è anche il primo della strada PerfectGym → Adyen
+  online (vedi APP-ATHLON).
+- **La vista cliente dello staff** (pulsante spento, avviso, niente bottone del carrello) è scritta ma **non è stata provata nel browser**, né il
+  pagamento con carta salvata fino in fondo né un ordine «non riuscito» (`EsitoOrdine` con `errore`): sono coperti dalla funzione, non dalla schermata.
+- **Larghezze 360 e 430 px, «riduci movimento», nessuna prova su un telefono** e **nessuna prova dell'apertura di Adyen dall'app nativa**
+  (`Linking.openURL`): sul web si lascia l'app e si torna, come per i pagamenti del Calendario; il ritorno su nativo non è stato provato, e il carrello lì
+  sta solo in memoria.
+- **Nessuna foto vera**: le prove usano immagini finte. Come si vede una foto 4:3 o molto alta in un riquadro quadrato va guardato con le prime foto del club.
+  Il segnaposto invece è provato nel browser (vetrina, scheda, carrello, ordine pagato, tema scuro, senza overflow su 390 px).
+
+**Da sapere.** Nessuna giacenza (esaurito è un interruttore a mano), nessun avviso alla segreteria per un ordine nuovo (si guarda «Da consegnare»
+nel CRM), nessuna spedizione e **nessuna fattura o ricevuta fiscale generata qui**: quello che emette PerfectGym per il pagamento è quello che il
+socio ha.
+
+Per verificare: `npx tsc --noEmit` pulito. **Le schermate si guardano renderizzate** (360, 390, 430 e 1280 px): vetrina senza articoli (messaggio, non
+una griglia vuota), articolo esaurito (foto smorzata, pulsante spento), carrello con l'ordine aperto (stepper e cestino spariti, «Torna al carrello»),
+ritorno dal pagamento che passa da «Verifichiamo…» a «Pagamento ricevuto», la Home con la carta «Shop del club», e la vista cliente.
+Nel carrello: cinque pezzi di un articolo e nessuno di più; con un prezzo cambiato lato funzione l'ordine non parte e il carrello si allinea; a logout il
+carrello è vuoto.
