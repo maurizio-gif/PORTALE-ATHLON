@@ -9,6 +9,7 @@ import { spazio } from '@/theme'
 import { Carta, Messaggio, Pulsante, SchedeInArrivo, Tag } from '../ui/kit'
 import { Schermata } from '../ui/Schermata'
 import { F, usePalette } from '../ui/tema'
+import { SegnapostoFoto } from './SegnapostoFoto'
 import { colpetto } from '../ui/Tocco'
 import { vistaCorrente } from '../vista'
 import { BottoneCarrello } from './BottoneCarrello'
@@ -73,25 +74,31 @@ export function Articolo({ id }: { id: number }) {
   return (
     <Schermata titolo={a.nome} sopratitolo={a.categoria} indietro="/shop" barra={false} destra={inVista ? undefined : <BottoneCarrello />}>
       <View onLayout={(e) => setLarghezza(e.nativeEvent.layout.width)} style={{ gap: spazio.due }}>
-        <ScrollView
-          horizontal
-          pagingEnabled
-          showsHorizontalScrollIndicator={false}
-          onScroll={scorri}
-          scrollEventThrottle={16}
-          style={[stili.galleria, { backgroundColor: p.incavo }]}
-        >
-          {a.foto.map((u, i) => (
-            <Image
-              key={u}
-              source={{ uri: u }}
-              style={{ width: larghezza || 320, aspectRatio: 1 }}
-              contentFit="cover"
-              transition={200}
-              accessibilityLabel={`${a.nome}, foto ${i + 1} di ${a.foto.length}`}
-            />
-          ))}
-        </ScrollView>
+        {a.foto.length ? (
+          <ScrollView
+            horizontal
+            pagingEnabled
+            showsHorizontalScrollIndicator={false}
+            onScroll={scorri}
+            scrollEventThrottle={16}
+            style={[stili.galleria, { backgroundColor: p.incavo }]}
+          >
+            {a.foto.map((u, i) => (
+              <Image
+                key={u}
+                source={{ uri: u }}
+                style={{ width: larghezza || 320, aspectRatio: 1 }}
+                contentFit="cover"
+                transition={200}
+                accessibilityLabel={`${a.nome}, foto ${i + 1} di ${a.foto.length}`}
+              />
+            ))}
+          </ScrollView>
+        ) : (
+          <View style={[stili.galleria, { backgroundColor: p.incavo, width: '100%', aspectRatio: 1 }]}>
+            <SegnapostoFoto size={56} />
+          </View>
+        )}
         {a.foto.length > 1 ? (
           <View style={stili.puntini} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
             {a.foto.map((u, i) => (

@@ -6,6 +6,7 @@ import { euro } from '@/lib/eventi'
 import { spazio } from '@/theme'
 
 import { F, usePalette } from '../ui/tema'
+import { SegnapostoFoto } from './SegnapostoFoto'
 
 // Le righe di un ordine (foto, nome, quanti, quanto) e il totale: le usano la pagina dell'esito e i miei ordini.
 export function RigheOrdine({ ordine }: { ordine: Ordine }) {
@@ -14,7 +15,7 @@ export function RigheOrdine({ ordine }: { ordine: Ordine }) {
     <View>
       {ordine.righe.map((r, i) => (
         <View key={r.product_id} style={[stili.riga, i > 0 && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: p.linea }]}>
-          <View style={[stili.miniatura, { backgroundColor: p.incavo }]}>{r.foto ? <Image source={{ uri: r.foto }} style={StyleSheet.absoluteFill} contentFit="cover" /> : null}</View>
+          <View style={[stili.miniatura, { backgroundColor: p.incavo }]}>{r.foto ? <Image source={{ uri: r.foto }} style={StyleSheet.absoluteFill} contentFit="cover" /> : <SegnapostoFoto size={20} />}</View>
           <Text style={[stili.nome, { color: p.testo }]} numberOfLines={2}>
             {r.quantita > 1 ? `${r.quantita} × ` : ''}
             {r.nome}

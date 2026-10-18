@@ -14,6 +14,7 @@ import { F, usePalette } from '../ui/tema'
 import { Tocco } from '../ui/Tocco'
 import { vistaCorrente } from '../vista'
 import { BottoneCarrello } from './BottoneCarrello'
+import { SegnapostoFoto } from './SegnapostoFoto'
 import { useVetrina } from './useVetrina'
 
 // Lo shop (18/10/2026): gli articoli e il merchandising del club con foto e prezzi. Il catalogo e' quello di
@@ -28,7 +29,11 @@ function Scheda({ a, colonne }: { a: ArticoloShop; colonne: number }) {
     <View style={{ width: `${100 / colonne}%`, padding: GAP / 2 }}>
       <Carta onPress={() => router.push({ pathname: '/shop/[id]', params: { id: String(a.product_id) } })} style={stili.scheda}>
         <View style={[stili.foto, { backgroundColor: p.incavo }]}>
-          <Image source={{ uri: a.foto[0] }} style={[StyleSheet.absoluteFill, a.esaurito && { opacity: 0.45 }]} contentFit="cover" transition={200} accessibilityLabel={a.nome} />
+          {a.foto[0] ? (
+            <Image source={{ uri: a.foto[0] }} style={[StyleSheet.absoluteFill, a.esaurito && { opacity: 0.45 }]} contentFit="cover" transition={200} accessibilityLabel={a.nome} />
+          ) : (
+            <SegnapostoFoto size={40} />
+          )}
           {a.esaurito ? (
             <View style={stili.esaurito}>
               <Tag testo="Esaurito" colore={p.testo} fondo={p.carta} />

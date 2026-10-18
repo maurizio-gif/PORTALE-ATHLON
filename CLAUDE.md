@@ -507,8 +507,10 @@ delle foto, i tre segnali di «pagato», il giro del cron e la sezione Shop del 
   che si vede nel carrello è una somma per comodità (in centesimi, `Math.round(prezzo * 100) * quantità`); **dopo «Vai al pagamento» vale quello
   della funzione**. Se un prezzo è cambiato, un articolo è finito o non è più in vendita l'ordine non parte (409 con `codice`): l'app rilegge la
   vetrina (`carica(true)`), toglie dal carrello ciò che non c'è più (`allineaAllaVetrina`) e lo dice.
-- **Il catalogo lo cura la segreteria dal CRM** (foto, descrizione, ordine, visibile, esaurito): in vetrina non entra un articolo senza foto, e un
-  prodotto nuovo del listino non compare finché non è curato. L'app non ha segnaposto per «foto mancante» perché non può succedere. **Cosa
+- **Il catalogo lo cura la segreteria dal CRM** (foto, descrizione, ordine, visibile, esaurito). **Un articolo può stare in vetrina senza foto**
+  (19/10/2026, richiesta del club: i tester vedono subito tutto, le foto arrivano dopo): al posto dell'immagine c'è un segnaposto, un sacchetto su
+  fondo neutro (`SegnapostoFoto`, senza testo), nella vetrina, nella scheda articolo, nelle miniature del carrello e degli ordini. Un prodotto
+  nuovo del listino non compare finché qualcuno non lo accende. **Cosa
   vede il socio dipende dal suo abbonamento** (alcuni prodotti spettano a chi ha un contratto vivo, altri a chi non l'ha), e lo decide la
   funzione: l'app mostra quello che torna.
 - **Le schermate.** `/shop` (`Vetrina.tsx`: schede in griglia, filtro per categoria, «Esaurito» sulla foto spenta; la lettura sta in
@@ -557,6 +559,7 @@ overflow), in tema chiaro e scuro. **Cosa non lo è:**
   (`Linking.openURL`): sul web si lascia l'app e si torna, come per i pagamenti del Calendario; il ritorno su nativo non è stato provato, e il carrello lì
   sta solo in memoria.
 - **Nessuna foto vera**: le prove usano immagini finte. Come si vede una foto 4:3 o molto alta in un riquadro quadrato va guardato con le prime foto del club.
+  Il segnaposto invece è provato nel browser (vetrina, scheda, carrello, ordine pagato, tema scuro, senza overflow su 390 px).
 
 **Da sapere.** Nessuna giacenza (esaurito è un interruttore a mano), nessun avviso alla segreteria per un ordine nuovo (si guarda «Da consegnare»
 nel CRM), nessuna spedizione e **nessuna fattura o ricevuta fiscale generata qui**: quello che emette PerfectGym per il pagamento è quello che il
