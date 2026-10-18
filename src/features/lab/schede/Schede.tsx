@@ -8,24 +8,24 @@ import { LARGO } from '@/components/Pagina'
 import { spazio } from '@/theme'
 
 import { CartaBalance } from '../fit/Balance'
+import { CartaCorpo } from '../fit/Corpo'
 import { AreaFood } from '../fit/Food'
 import { IntroFit } from '../fit/Intro'
 import { RuotaBenessere } from '../fit/Ruota'
 import { useFit } from '../fit/useFit'
-import { altezzaAl, bmi, dataCorta, fasciaBmi, numero } from '../dati/calcoli'
 import { CHIAVE_MISURE } from '../dati/Misure'
 import { inMemoria, prendi } from '../memoria'
 import { Icona, type NomeIcona } from '../ui/Icona'
 import { Carta, Entra, LinkSezione, Messaggio, Pulsante, Riga, SchedeInArrivo, Sezione, Tag } from '../ui/kit'
 import { Schermata } from '../ui/Schermata'
-import { coloreTono, F, FUOCO, MARE, NOTTE, usePalette } from '../ui/tema'
+import { F, FUOCO, MARE, NOTTE, usePalette } from '../ui/tema'
 import { Tocco } from '../ui/Tocco'
 import { giorniAlTest, giornoTest, LIVELLI, quando, testDaRifare, TIPI } from './comune'
 
 // Athlon Health System (19/10/2026, era Workout, poi Fit): sotto il titolo la
-// ruota Train, Food, Relax (fit/Ruota.tsx); poi l'introduzione (cosa si fa e cosa
+// ruota Train, Food, Relax (fit/Ruota.tsx) e il tuo corpo (fit/Corpo.tsx); poi l'introduzione (cosa si fa e cosa
 // vogliono dire i numeri) e il Balance; sotto, due aree da scegliere.
-//   - Train: il test dei massimali, i dati del corpo, il contatore delle calorie,
+//   - Train: il test dei massimali, il contatore delle calorie,
 //     la richiesta di una scheda all'agente AI, le schede del socio (del suo
 //     trainer, dell'agente) e quelle del club, filtrabili per obiettivo, e gli
 //     ultimi allenamenti;
@@ -70,43 +70,6 @@ function SchedaClub({ s, indice }: { s: RigaSchedaLab; indice: number }) {
         </View>
       </Tocco>
     </Entra>
-  )
-}
-
-/** I dati del corpo: l'ultimo peso e il BMI, o l'invito a segnarli. */
-function CartaDati({ misure, riempi = false }: { misure: Misura[] | null; riempi?: boolean }) {
-  const p = usePalette()
-  const n = misure?.length ?? 0
-  const ultima = misure ? [...misure].reverse().find((m) => m.peso_kg != null) : undefined
-  const indice = ultima && misure ? misure.indexOf(ultima) : -1
-  const b = ultima && misure ? bmi(ultima.peso_kg, altezzaAl(misure, indice)) : null
-  const fascia = b != null ? fasciaBmi(b) : null
-  return (
-    <Tocco onPress={() => router.push('/allenamento/misure')} etichetta="I tuoi dati: peso, BMI e misure" scala={0.985} style={riempi ? { flex: 1 } : undefined}>
-      <View style={[stili.agente, { backgroundColor: p.carta, borderColor: p.linea, boxShadow: p.ombra }, riempi && { flex: 1 }]}>
-        <LinearGradient colors={['#34C38F', '#178A62']} style={stili.agenteIcona}>
-          <Icona nome="grafico" size={26} colore="#fff" />
-        </LinearGradient>
-        <View style={{ flex: 1, gap: 3 }}>
-          <Text style={[stili.agenteTitolo, { color: p.testo }]}>I tuoi dati</Text>
-          {ultima?.peso_kg != null ? (
-            <Text style={[stili.agenteTesto, { color: p.testoSecondario }]}>
-              <Text style={{ fontFamily: F.extra, color: p.testo }}>{`${numero(ultima.peso_kg)} kg`}</Text>
-              {b != null && fascia ? (
-                <>
-                  {' · BMI '}
-                  <Text style={{ fontFamily: F.extra, color: coloreTono(p, fascia.tono) }}>{numero(b)}</Text>
-                </>
-              ) : null}
-              {` · ${dataCorta(ultima.data)}${n > 1 ? ` · ${n} misurazioni` : ''}`}
-            </Text>
-          ) : (
-            <Text style={[stili.agenteTesto, { color: p.testoSecondario }]}>Altezza, peso e BMI, circonferenze, massa grassa e magra: segnali e guarda come cambiano.</Text>
-          )}
-        </View>
-        <Icona nome="avanti" size={18} colore={p.testoTerzo} />
-      </View>
-    </Tocco>
   )
 }
 
@@ -213,6 +176,9 @@ export function Schede() {
       <Entra indice={0}>
         <RuotaBenessere />
       </Entra>
+      <Entra indice={0}>
+        <CartaCorpo misure={misure} />
+      </Entra>
       <View style={largo ? stili.fila3 : { gap: spazio.quattro + 4 }}>
         <Entra indice={0} style={largo ? { flex: 1 } : undefined}>
           <IntroFit />
@@ -238,14 +204,14 @@ export function Schede() {
           <SchedeInArrivo />
         )
       ) : (
-        <Train dati={dati} misure={misure} largo={largo} />
+        <Train dati={dati} largo={largo} />
       )}
     </Schermata>
   )
 }
 
 /** L'area Train: quello che prima era tutto Workout, senza l'alimentazione (che sta in Food). */
-function Train({ dati, misure, largo }: { dati: Dati; misure: Misura[] | null; largo: boolean }) {
+function Train({ dati, largo }: { dati: Dati; largo: boolean }) {
   const p = usePalette()
   const { width: larghezza } = useWindowDimensions()
   const [obiettivo, setObiettivo] = useState<string | null>(null)
@@ -260,10 +226,6 @@ function Train({ dati, misure, largo }: { dati: Dati; misure: Misura[] | null; l
       <View style={largo ? stili.fila3 : { gap: spazio.quattro + 4 }}>
       <Entra indice={0} style={largo ? { flex: 1 } : undefined}>
         <CartaTest t={dati.test} riempi={largo} />
-      </Entra>
-
-      <Entra indice={1} style={largo ? { flex: 1 } : undefined}>
-        <CartaDati misure={misure} riempi={largo} />
       </Entra>
 
       <Entra indice={1} style={largo ? { flex: 1 } : undefined}>

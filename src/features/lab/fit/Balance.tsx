@@ -114,7 +114,7 @@ function Cifra({ etichetta, valore, colore }: { etichetta: string; valore: strin
 function senzaCorpo(d: DatiFit): string | null {
   if (d.corpo.stato === 'no') return 'Il Balance usa una formula pensata per gli adulti.'
   if (d.corpo.stato !== 'mancano-dati') return null
-  if (d.corpo.motivo === 'misure') return 'Per stimare quanto consumi servono peso e altezza: li segni in «I tuoi dati», nell’area Train.'
+  if (d.corpo.motivo === 'misure') return 'Per stimare quanto consumi servono peso e altezza: li segni in «Il tuo corpo», in cima all’Athlon Health System.'
   if (d.corpo.motivo === 'sesso') return 'Per stimare quanto consumi serve sapere se calcolare come uomo o come donna: lo scegli una volta, in una scheda di allenamento.'
   return 'Nella tua scheda del club manca la data di nascita, e senza l’età il consumo non si stima. Chiedi al desk di aggiungerla.'
 }
@@ -235,9 +235,9 @@ function Peso() {
     return (
       <Carta style={{ gap: spazio.due }}>
         <Text style={[stili.nota, { color: p.testoSecondario }]}>
-          Segna il peso ogni due settimane in «I tuoi dati»: qui compare la sua linea, ed è la verifica più onesta del Balance.
+          Segna il peso ogni due settimane in «Il tuo corpo»: qui compare la sua linea, ed è la verifica più onesta del Balance.
         </Text>
-        <Pulsante testo="I tuoi dati" icona="grafico" variante="secondario" piccolo onPress={() => router.push('/allenamento/misure')} />
+        <Pulsante testo="Il tuo corpo" icona="persona" variante="secondario" piccolo onPress={() => router.push('/allenamento/misure')} />
       </Carta>
     )
   }

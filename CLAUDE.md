@@ -166,6 +166,10 @@ l'allenamento, l'alimentazione e il recupero dell'adulto in un posto solo. Nel c
 - **Sotto il titolo la ruota** (`fit/Ruota.tsx`): tre frecce che si rincorrono, Train → Food → Relax, e girano piano
   (un giro in 24 s). Le etichette seguono la loro freccia ma restano diritte; la rotazione è una trasformazione della
   View, non una proprietà animata dell'SVG. Con «riduci movimento» è ferma.
+- **Poi «Il tuo corpo»** (`fit/Corpo.tsx`, dettaglio in `/allenamento/misure`): peso con la variazione degli ultimi 90
+  giorni, BMI con la fascia, massa grassa (o la vita). Sta in alto e non in Train perché non è del solo allenamento: è il
+  punto di partenza (stima le calorie) e la verifica dell'equilibrio. Le misure di composizione corporea che arriveranno
+  (una bilancia BIA, per esempio) si aggiungono qui.
 - **Poi l'introduzione** (`fit/Intro.tsx`): il benessere come equilibrio di allenamento giusto (Train), buona
   alimentazione (Food) e recupero (Relax: sonno e giorni di riposo, senza una sezione sua), cosa fa il Balance e, in un pannello che si apre, come leggere i
   numeri (`ComeLeggere` in `fit/Balance.tsx`, lo stesso testo in fondo alla schermata di Balance).
@@ -175,7 +179,7 @@ l'allenamento, l'alimentazione e il recupero dell'adulto in un posto solo. Nel c
   media al giorno le due cifre sono «pari»: tutte e due sbagliano del 10–20%. Descrive, non dà traguardi; il peso delle
   misure è la verifica. Senza consenso a Food, o nella vista cliente, mostra solo il consumo; con i numeri nascosti
   resta spento.
-- **Train** è il Workout di prima, senza l'alimentazione. **Food** (`fit/Food.tsx`) è la porta del diario: prima del
+- **Train** è il Workout di prima, senza l'alimentazione e senza i dati del corpo. **Food** (`fit/Food.tsx`) è la porta del diario: prima del
   consenso racconta cosa c'è e porta all'informativa; dopo, oggi e i comandi «Il diario» e «Fotografa»
   (`/allenamento/alimentazione?foto=1` apre la foto sul pasto dell'ora).
 - **I dati li legge `useFit`** con le chiavi di memoria del diario e del contatore (`alimentazione/chiavi.ts`), e li rilegge

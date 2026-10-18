@@ -200,7 +200,7 @@ function FoglioCalcolo({ aperto, stima, giorno, dataPeso, onChiudi }: { aperto: 
         <View style={[stili.avviso, { backgroundColor: p.incavo }]}>
           <Icona nome="info" size={17} colore={p.blu} />
           <Text style={[stili.piccola, { color: p.testo, flex: 1 }]}>
-            {`Sono stime: possono sbagliare anche del 20–30%, perché dipendono da quanto carichi, da quanto rispetti i recuperi e da come è fatto il tuo corpo. Non sono un’indicazione per la dieta: per quella rivolgiti a un professionista. L’età viene dalla tua scheda del club, il sesso l’hai scelto tu, peso e altezza da «I tuoi dati»${dataPeso ? ` (peso del ${dataCorta(dataPeso)})` : ''}.`}
+            {`Sono stime: possono sbagliare anche del 20–30%, perché dipendono da quanto carichi, da quanto rispetti i recuperi e da come è fatto il tuo corpo. Non sono un’indicazione per la dieta: per quella rivolgiti a un professionista. L’età viene dalla tua scheda del club, il sesso l’hai scelto tu, peso e altezza da «Il tuo corpo»${dataPeso ? ` (peso del ${dataCorta(dataPeso)})` : ''}.`}
           </Text>
         </View>
       </View>

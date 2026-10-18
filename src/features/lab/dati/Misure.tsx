@@ -15,7 +15,7 @@ import { colpetto, Tocco } from '../ui/Tocco'
 import { altezzaAl, bmi, dataCorta, differenza, fasciaBmi, METRICHE, numero, oggi, serie, valore, type Metrica } from './calcoli'
 import { Grafico } from './Grafico'
 
-// Fit -> Train -> I tuoi dati (16/10/2026): altezza e peso (col BMI), e se il socio
+// Athlon Health System -> Il tuo corpo (16/10/2026; in cima dal 19/10): altezza e peso (col BMI), e se il socio
 // li ha le circonferenze e la composizione (massa grassa e magra). In cima
 // l'ultimo peso e il BMI, poi l'andamento di una metrica a scelta, gli ultimi
 // valori e lo storico. Una misurazione per giorno: riscriverla la sostituisce.
@@ -277,7 +277,7 @@ export function Misure() {
 
   if (!misure) {
     return (
-      <Schermata sopratitolo="Train" titolo="I tuoi dati" indietro="/allenamento" barra={false}>
+      <Schermata sopratitolo="Athlon Health System" titolo="Il tuo corpo" indietro="/allenamento" barra={false}>
         {errore ? (
           <>
             <Messaggio>{errore}</Messaggio>
@@ -296,7 +296,7 @@ export function Misure() {
   const nuova = () => setBozza({ b: bozzaDa(misure.find((m) => m.data === oggi()) ?? null, altezza), esiste: misure.some((m) => m.data === oggi()) })
   const salvata = () => {
     setBozza(null)
-    // Anche Fit (area Train) mostra peso e BMI.
+    // Anche «Il tuo corpo», in cima all'Athlon Health System, mostra peso e BMI.
     dimentica()
     setMisure(null)
     carica()
@@ -305,7 +305,7 @@ export function Misure() {
 
   if (!n) {
     return (
-      <Schermata sopratitolo="Train" titolo="I tuoi dati" indietro="/allenamento" barra={false}>
+      <Schermata sopratitolo="Athlon Health System" titolo="Il tuo corpo" indietro="/allenamento" barra={false}>
         <Carta style={{ alignItems: 'center', gap: spazio.tre, paddingVertical: spazio.cinque }}>
           <View style={[stili.bollo, { backgroundColor: velo(p, 'accento') }]}>
             <Icona nome="grafico" size={30} colore={p.accento} />
@@ -340,7 +340,7 @@ export function Misure() {
     .filter((x): x is NonNullable<typeof x> => !!x)
 
   return (
-    <Schermata sopratitolo="Train" titolo="I tuoi dati" indietro="/allenamento" barra={false}>
+    <Schermata sopratitolo="Athlon Health System" titolo="Il tuo corpo" indietro="/allenamento" barra={false}>
       <Entra indice={0}>
         <Carta style={{ gap: spazio.tre }}>
           <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: spazio.tre }}>
