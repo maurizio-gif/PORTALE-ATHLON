@@ -1,11 +1,11 @@
 import { LinearGradient } from 'expo-linear-gradient'
+import { useLocalSearchParams } from 'expo-router'
 import { useEffect, useMemo, useState } from 'react'
 import { StyleSheet, Text, View } from 'react-native'
 import Svg, { Circle, Defs, Stop, LinearGradient as SvgGradient } from 'react-native-svg'
 
 import {
   catalogoAlimenti,
-  leggiDiario,
   mostraNumeri,
   PASTI,
   revocaConsenso,
@@ -31,6 +31,7 @@ import { F, NOTTE, ORTO, usePalette } from '../ui/tema'
 import { Tocco } from '../ui/Tocco'
 import { vistaCorrente } from '../vista'
 import { AggiungiAlimento } from './Aggiungi'
+import { CHIAVE_CATALOGO, CHIAVE_DIARIO, CHIAVE_STATO, GIORNI_DIARIO, leggiDiarioRecente } from './chiavi'
 import { consigliPer } from './consigli'
 import { consumoDelGiorno, LARN, oggiRoma, perPasto, ripartizione, somma, ZERO, type Totali } from './conti'
 import { FotoPiatto } from './FotoPiatto'
@@ -47,11 +48,7 @@ import { Vetrina } from './Vetrina'
 //      il questionario, si nascondono i numeri e si revoca il consenso.
 // Nella vista cliente dello staff la sezione non si apre: sono dati sulla salute.
 
-const CHIAVE_STATO = 'alimentazione:stato'
-const CHIAVE_CATALOGO = 'alimentazione:catalogo'
-const CHIAVE_DIARIO = 'alimentazione:diario'
-/** Quanti giorni del diario si leggono e si possono sfogliare. */
-const GIORNI = 31
+const GIORNI = GIORNI_DIARIO
 
 const intero = (n: number) => Math.round(n).toLocaleString('it-IT')
 const giornoLungo = new Intl.DateTimeFormat('it-IT', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'UTC' })
@@ -60,6 +57,12 @@ function spostaGiorno(giorno: string, n: number): string {
   const d = new Date(`${giorno}T12:00:00Z`)
   d.setUTCDate(d.getUTCDate() + n)
   return d.toISOString().slice(0, 10)
+}
+
+/** Il pasto dell'ora di adesso, a Roma: quello a cui va la foto aperta da Fit. */
+function pastoDellOra(): Pasto {
+  const ora = Number(new Intl.DateTimeFormat('it-IT', { hour: 'numeric', hour12: false, timeZone: 'Europe/Rome' }).format(new Date()))
+  return ora < 11 ? 'colazione' : ora < 16 ? 'pranzo' : ora < 19 ? 'spuntino' : 'cena'
 }
 
 function nomeGiorno(g: string, oggi: string): string {
@@ -214,7 +217,9 @@ function Diario({ profilo, onProfilo, onRevocato }: { profilo: Profilo; onProfil
   const [presenze, setPresenze] = useState<Presenze | null>(() => inMemoria<Presenze>(CHIAVE_PRESENZE) ?? null)
   const [errore, setErrore] = useState<string | null>(null)
   const [aggiungi, setAggiungi] = useState<Pasto | null>(null)
-  const [foto, setFoto] = useState<Pasto | null>(null)
+  // Da Fit, «Fotografa» apre il diario con la foto gia' pronta (`?foto=1`).
+  const { foto: fotoSubito } = useLocalSearchParams<{ foto?: string }>()
+  const [foto, setFoto] = useState<Pasto | null>(() => (fotoSubito === '1' ? pastoDellOra() : null))
   const [questionario, setQuestionario] = useState(false)
   const [revoca, setRevoca] = useState<'no' | 'chiedi' | 'in-corso'>('no')
   const [inCorsoNumeri, setInCorsoNumeri] = useState(false)
@@ -222,7 +227,7 @@ function Diario({ profilo, onProfilo, onRevocato }: { profilo: Profilo; onProfil
 
   useEffect(() => {
     let vivo = true
-    prendi(CHIAVE_DIARIO, () => leggiDiario(spostaGiorno(oggi, -(GIORNI - 1)), oggi)).then((r) => {
+    prendi(CHIAVE_DIARIO, leggiDiarioRecente).then((r) => {
       if (!vivo) return
       if (r.ok) setVoci(r.voci)
       else setErrore(r.errore)
@@ -447,7 +452,7 @@ export function Alimentazione() {
     })
   }
 
-  const testata = { sopratitolo: 'Workout', titolo: 'Alimentazione', indietro: '/allenamento' as const, barra: false }
+  const testata = { sopratitolo: 'Food', titolo: 'Il diario', indietro: '/allenamento?area=food' as const, barra: false }
 
   if (vista) {
     return (

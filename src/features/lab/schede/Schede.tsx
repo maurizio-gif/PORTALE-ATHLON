@@ -1,5 +1,5 @@
 import { LinearGradient } from 'expo-linear-gradient'
-import { router } from 'expo-router'
+import { router, useLocalSearchParams } from 'expo-router'
 import { useCallback, useEffect, useState } from 'react'
 import { ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native'
 
@@ -7,19 +7,29 @@ import { elencoMisure, elencoSchede, type Misura, type RigaSchedaLab, type Sedut
 import { LARGO } from '@/components/Pagina'
 import { spazio } from '@/theme'
 
+import { CartaBalance } from '../fit/Balance'
+import { AreaFood } from '../fit/Food'
+import { IntroFit } from '../fit/Intro'
+import { useFit } from '../fit/useFit'
 import { altezzaAl, bmi, dataCorta, fasciaBmi, numero } from '../dati/calcoli'
 import { CHIAVE_MISURE } from '../dati/Misure'
 import { inMemoria, prendi } from '../memoria'
 import { Icona, type NomeIcona } from '../ui/Icona'
 import { Carta, Entra, LinkSezione, Messaggio, Pulsante, Riga, SchedeInArrivo, Sezione, Tag } from '../ui/kit'
 import { Schermata } from '../ui/Schermata'
-import { coloreTono, F, FUOCO, MARE, NOTTE, ORTO, usePalette } from '../ui/tema'
+import { coloreTono, F, FUOCO, MARE, NOTTE, usePalette } from '../ui/tema'
 import { Tocco } from '../ui/Tocco'
 import { giorniAlTest, giornoTest, LIVELLI, quando, testDaRifare, TIPI } from './comune'
 
-// Allenamento: il test dei massimali, la richiesta di una scheda all'agente
-// AI, le schede del socio (del suo trainer, dell'agente) e quelle del club,
-// filtrabili per obiettivo, e gli ultimi allenamenti.
+// Fit (19/10/2026, era Workout): in cima l'introduzione (cosa si fa e cosa
+// vogliono dire i numeri) e il Balance; sotto, due aree da scegliere.
+//   - Train: il test dei massimali, i dati del corpo, il contatore delle calorie,
+//     la richiesta di una scheda all'agente AI, le schede del socio (del suo
+//     trainer, dell'agente) e quelle del club, filtrabili per obiettivo, e gli
+//     ultimi allenamenti;
+//   - Food: la porta del diario dei pasti (fit/Food.tsx).
+// L'area scelta sta nell'indirizzo (`?area=food`), cosi' tornando indietro dal
+// diario si ritrova Food. L'indirizzo resta /allenamento: e' quello dei link gia' dati.
 
 type Dati = { schede: RigaSchedaLab[]; ultimi: SedutaBreve[]; ai: { usate: number; massimo: number }; test: StatoTest }
 
@@ -117,25 +127,6 @@ function CartaCalorie({ riempi = false }: { riempi?: boolean }) {
   )
 }
 
-/** L'alimentazione (19/10/2026): il diario, la foto del piatto e i consigli, dietro il consenso. */
-function CartaAlimentazione({ riempi = false }: { riempi?: boolean }) {
-  const p = usePalette()
-  return (
-    <Tocco onPress={() => router.push('/allenamento/alimentazione')} etichetta="Alimentazione: il diario dei pasti e la foto del piatto" scala={0.985} style={riempi ? { flex: 1 } : undefined}>
-      <View style={[stili.agente, { backgroundColor: p.carta, borderColor: p.linea, boxShadow: p.ombra }, riempi && { flex: 1 }]}>
-        <LinearGradient colors={ORTO} style={stili.agenteIcona}>
-          <Icona nome="piatto" size={26} colore="#fff" />
-        </LinearGradient>
-        <View style={{ flex: 1, gap: 3 }}>
-          <Text style={[stili.agenteTitolo, { color: p.testo }]}>Alimentazione</Text>
-          <Text style={[stili.agenteTesto, { color: p.testoSecondario }]}>Il diario dei pasti, la foto del piatto che diventa calorie e i consigli per il tuo allenamento.</Text>
-        </View>
-        <Icona nome="avanti" size={18} colore={p.testoTerzo} />
-      </View>
-    </Tocco>
-  )
-}
-
 /** Il test dei massimali: da fare, fatto, o da rifare. */
 function CartaTest({ t, riempi = false }: { t: StatoTest; riempi?: boolean }) {
   const rifare = testDaRifare(t.ultimo, t.giorni)
@@ -190,11 +181,9 @@ function SchedaCarta({ s, indice }: { s: RigaSchedaLab; indice: number }) {
 }
 
 export function Schede() {
-  const p = usePalette()
   const { width: larghezza } = useWindowDimensions()
   const [dati, setDati] = useState<Dati | null>(() => inMemoria<Dati>(CHIAVE_SCHEDE) ?? null)
   const [errore, setErrore] = useState<string | null>(null)
-  const [obiettivo, setObiettivo] = useState<string | null>(null)
   const [misure, setMisure] = useState<Misura[] | null>(() => inMemoria<{ misure: Misura[] }>(CHIAVE_MISURE)?.misure ?? null)
 
   const carica = useCallback(async () => {
@@ -209,32 +198,60 @@ export function Schede() {
     prendi(CHIAVE_MISURE, elencoMisure).then((r) => r.ok && setMisure(r.misure))
   }, [carica])
 
-  if (!dati) {
-    return (
-      <Schermata titolo="Workout">
-        {errore ? (
+  const fit = useFit()
+  const { area: parametro } = useLocalSearchParams<{ area?: string }>()
+  const area: Area = parametro === 'food' ? 'food' : 'train'
+  const scegli = (a: Area) => router.setParams({ area: a })
+  // Su schermo largo (15/10/2026), come Prenotazioni: le card in fila e le
+  // schede su piu' colonne.
+  const largo = larghezza >= LARGO
+
+  return (
+    <Schermata titolo="Fit" sottotitolo="Il tuo allenamento e la tua alimentazione.">
+      <View style={largo ? stili.fila3 : { gap: spazio.quattro + 4 }}>
+        <Entra indice={0} style={largo ? { flex: 1 } : undefined}>
+          <IntroFit />
+        </Entra>
+        <Entra indice={1} style={largo ? { flex: 1 } : undefined}>
+          <CartaBalance dati={fit} onAttivaFood={area === 'food' ? undefined : () => scegli('food')} />
+        </Entra>
+      </View>
+
+      <Entra indice={2}>
+        <Interruttore area={area} onScegli={scegli} />
+      </Entra>
+
+      {area === 'food' ? (
+        <AreaFood dati={fit} />
+      ) : !dati ? (
+        errore ? (
           <>
             <Messaggio>{errore}</Messaggio>
             <Pulsante testo="Riprova" icona="aggiorna" onPress={carica} />
           </>
         ) : (
           <SchedeInArrivo />
-        )}
-      </Schermata>
-    )
-  }
+        )
+      ) : (
+        <Train dati={dati} misure={misure} largo={largo} />
+      )}
+    </Schermata>
+  )
+}
 
+/** L'area Train: quello che prima era tutto Workout, senza l'alimentazione (che sta in Food). */
+function Train({ dati, misure, largo }: { dati: Dati; misure: Misura[] | null; largo: boolean }) {
+  const p = usePalette()
+  const { width: larghezza } = useWindowDimensions()
+  const [obiettivo, setObiettivo] = useState<string | null>(null)
   const restano = Math.max(0, dati.ai.massimo - dati.ai.usate)
   const mie = dati.schede.filter((s) => s.tipo !== 'standard')
   const club = dati.schede.filter((s) => s.tipo === 'standard')
   const obiettivi = [...new Set(club.map((s) => s.obiettivo).filter((o): o is string => !!o))]
   const clubVisibili = obiettivo ? club.filter((s) => s.obiettivo === obiettivo) : club
-  // Su schermo largo (15/10/2026), come Prenotazioni: le tre card in fila e le
-  // schede su piu' colonne.
-  const largo = larghezza >= LARGO
   const cella = largo ? { flexGrow: 1, flexBasis: larghezza >= 1100 ? '31%' : '45%' } as const : null
   return (
-    <Schermata titolo="Workout" sottotitolo="Le tue schede, il registro dei pesi e il timer del recupero.">
+    <>
       <View style={largo ? stili.fila3 : { gap: spazio.quattro + 4 }}>
       <Entra indice={0} style={largo ? { flex: 1 } : undefined}>
         <CartaTest t={dati.test} riempi={largo} />
@@ -246,10 +263,6 @@ export function Schede() {
 
       <Entra indice={1} style={largo ? { flex: 1 } : undefined}>
         <CartaCalorie riempi={largo} />
-      </Entra>
-
-      <Entra indice={1} style={largo ? { flex: 1 } : undefined}>
-        <CartaAlimentazione riempi={largo} />
       </Entra>
 
       <Entra indice={1} style={largo ? { flex: 1 } : undefined}>
@@ -351,11 +364,45 @@ export function Schede() {
           )}
         </Carta>
       </Sezione>
-    </Schermata>
+    </>
+  )
+}
+
+type Area = 'train' | 'food'
+
+/** Le due aree di Fit, come due schede di una pillola. */
+function Interruttore({ area, onScegli }: { area: Area; onScegli: (a: Area) => void }) {
+  const p = usePalette()
+  const voci: { id: Area; nome: string; icona: NomeIcona }[] = [
+    { id: 'train', nome: 'Train', icona: 'peso' },
+    { id: 'food', nome: 'Food', icona: 'piatto' },
+  ]
+  return (
+    <View style={[stili.interruttore, { backgroundColor: p.incavo }]} accessibilityRole="tablist">
+      {voci.map((v) => {
+        const qui = v.id === area
+        return (
+          <Tocco
+            key={v.id}
+            ruolo="tab"
+            stato={{ selected: qui }}
+            vibra="scelta"
+            etichetta={v.nome}
+            onPress={() => !qui && onScegli(v.id)}
+            style={[stili.voce, qui && { backgroundColor: p.carta, boxShadow: p.ombra }]}
+          >
+            <Icona nome={v.icona} size={18} colore={qui ? p.testo : p.testoSecondario} />
+            <Text style={{ color: qui ? p.testo : p.testoSecondario, fontFamily: F.extra, fontSize: 15 }}>{v.nome}</Text>
+          </Tocco>
+        )
+      })}
+    </View>
   )
 }
 
 const stili = StyleSheet.create({
+  interruttore: { flexDirection: 'row', borderRadius: 999, padding: 4, gap: 4 },
+  voce: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, borderRadius: 999, minHeight: 44 },
   agente: { flexDirection: 'row', alignItems: 'center', gap: spazio.tre, padding: spazio.tre + 2, borderRadius: 26, borderWidth: StyleSheet.hairlineWidth },
   agenteIcona: { width: 52, height: 52, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
   agenteTitolo: { fontFamily: F.extra, fontSize: 16.5, letterSpacing: -0.3 },
