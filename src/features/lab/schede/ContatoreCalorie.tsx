@@ -525,7 +525,7 @@ export function ContatoreCalorie() {
     return contaCalorie(vociCalorie(sedute, presenze.presenze, presenze.schede, corpo.corpo), corpo.corpo)
   }, [corpo, sedute, presenze])
 
-  const testata = { sopratitolo: 'Workout', titolo: 'Le tue calorie', indietro: '/allenamento' as const, barra: false }
+  const testata = { sopratitolo: 'Train', titolo: 'Le tue calorie', indietro: '/allenamento' as const, barra: false }
 
   if (corpo.stato === 'mancano-dati' || corpo.stato === 'no') {
     return (

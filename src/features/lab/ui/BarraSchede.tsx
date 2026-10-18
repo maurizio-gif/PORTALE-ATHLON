@@ -26,7 +26,7 @@ const SCHEDE: { href: Href; percorso: string; titolo: string; icona: NomeIcona; 
   { href: '/', percorso: '/', titolo: 'Home', icona: 'casa' },
   // Il personal training e' l'altra faccia di Prenotazioni (SceltaPrenotazioni).
   { href: '/calendario', percorso: '/calendario', titolo: 'Prenotazioni', icona: 'calendario', anche: ['/personal'] },
-  { href: '/allenamento', percorso: '/allenamento', titolo: 'Workout', icona: 'peso' },
+  { href: '/allenamento', percorso: '/allenamento', titolo: 'Fit', icona: 'peso' },
   { href: '/tv', percorso: '/tv', titolo: 'TV', icona: 'play' },
   // News, eventi e Help Desk, coi dati del sito (clublife/ClubLife).
   { href: '/club-life', percorso: '/club-life', titolo: 'Club Life', icona: 'persone' },

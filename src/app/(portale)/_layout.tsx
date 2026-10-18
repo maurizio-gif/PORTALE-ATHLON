@@ -42,6 +42,7 @@ export default function LayoutLaboratorio() {
         <Stack.Screen name="allenamento/test" options={{ animation: 'slide_from_right' }} />
         <Stack.Screen name="allenamento/misure" options={{ animation: 'slide_from_right' }} />
         <Stack.Screen name="allenamento/alimentazione" options={{ animation: 'slide_from_right' }} />
+        <Stack.Screen name="allenamento/balance" options={{ animation: 'slide_from_right' }} />
         <Stack.Screen name="metodo-pagamento/index" options={{ animation: 'slide_from_right' }} />
         <Stack.Screen name="club-life/news/[id]" options={{ animation: 'slide_from_right' }} />
         <Stack.Screen name="club-life/eventi/[id]" options={{ animation: 'slide_from_right' }} />

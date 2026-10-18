@@ -111,8 +111,8 @@ minuti veri della lezione, `fine − inizio`); cambia come si sceglie il MET.
 
 `/allenamento/calorie` (`schede/ContatoreCalorie.tsx`, il conto in `schede/contatoreCalorie.ts`) somma le calorie del
 titolare giorno per giorno: due anelli in cima (la settimana rispetto alla settimana migliore, oggi rispetto a un giorno
-medio), i sette giorni, le ultime 12 settimane, il confronto e da dove vengono. Si entra dalla carta «Le tue calorie» in
-Workout.
+medio), i sette giorni, le ultime 12 settimane, il confronto e da dove vengono. Si entra dalla carta «Le tue calorie» nell'area
+Train di Fit.
 
 - **Due fonti, e nessun'altra.** Le sedute delle schede chiuse nell'app (durata vera fra 10 minuti e 3 ore, il consumo
   della scheda al MET di mezzo col dopo-allenamento) e le lezioni a cui la reception ha segnato la presenza (azione
@@ -131,7 +131,7 @@ Workout.
 
 ## L'alimentazione è educazione alimentare, e si apre solo col consenso
 
-`/allenamento/alimentazione` (cartella `src/features/lab/alimentazione/`, carta «Alimentazione» in Workout): il diario
+`/allenamento/alimentazione` (cartella `src/features/lab/alimentazione/`, area Food di Fit): il diario
 dei pasti, la foto del piatto che diventa una stima delle calorie, il bilancio con quello che si consuma e i consigli
 (richiesta del club, 19/10/2026). Il club **non ha un nutrizionista**: niente diete, niente obiettivi di calorie da
 raggiungere, nessuna frase che dica a una persona quanto deve mangiare.
@@ -156,3 +156,24 @@ raggiungere, nessuna frase che dica a una persona quanto deve mangiare.
   LARN 2014, ACSM 2016, OMS) sono ricordati, non riletti alla fonte: vanno ricontrollati.
 - **La foto si sceglie con `expo-document-picker`** (`src/lib/fotoPiatto.ts`), che sul telefono dal browser offre anche la
   fotocamera; sul web si porta a 1280 px in JPEG prima dell'invio.
+
+## Fit: Balance in cima, Train e Food sotto
+
+La scheda che era **Workout** si chiama **Fit** (richiesta del club, 19/10/2026): l'allenamento e l'alimentazione
+dell'adulto in un posto solo. L'indirizzo resta `/allenamento` (è quello dei link già dati); l'area scelta sta in
+`?area=food`, così tornando dal diario si ritrova Food. Nomi in inglese di proposito, il resto in italiano.
+
+- **In cima l'introduzione** (`fit/Intro.tsx`): il benessere come equilibrio di allenamento giusto (Train), buona
+  alimentazione (Food) e recupero (Relax: sonno e giorni di riposo, senza una sezione sua), cosa fa il Balance e, in un pannello che si apre, come leggere i
+  numeri (`ComeLeggere` in `fit/Balance.tsx`, lo stesso testo in fondo alla schermata di Balance).
+- **Balance** (`fit/Balance.tsx`, conto in `fit/bilancio.ts`, schermata `/allenamento/balance`): le calorie consumate
+  (le stime del contatore: riposo × 1,2 più l'attività contata) accanto a quelle del diario. **Un giorno senza niente nel
+  diario non vale zero** ed esce dalle medie; **oggi non è finito** ed esce dalle medie. Sotto 150 kcal di differenza
+  media al giorno le due cifre sono «pari»: tutte e due sbagliano del 10–20%. Descrive, non dà traguardi; il peso delle
+  misure è la verifica. Senza consenso a Food, o nella vista cliente, mostra solo il consumo; con i numeri nascosti
+  resta spento.
+- **Train** è il Workout di prima, senza l'alimentazione. **Food** (`fit/Food.tsx`) è la porta del diario: prima del
+  consenso racconta cosa c'è e porta all'informativa; dopo, oggi e i comandi «Il diario» e «Fotografa»
+  (`/allenamento/alimentazione?foto=1` apre la foto sul pasto dell'ora).
+- **I dati li legge `useFit`** con le chiavi di memoria del diario e del contatore (`alimentazione/chiavi.ts`), e li rilegge
+  a ogni ritorno su Fit: un pasto scritto nel diario cambia il Balance appena si torna indietro.
