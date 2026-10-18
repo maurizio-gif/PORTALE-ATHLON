@@ -125,6 +125,6 @@ Workout.
 - **Servono gli stessi quattro dati delle lezioni** (`useStatoCorpo` di `CalorieLezione.tsx`); senza, la schermata dice
   cosa manca. Se la lettura delle presenze non riesce si contano le schede, e lo si dice.
 - **Le animazioni che arrivano a un valore** (anelli, numeri, barre, linea, ciambella) seguono `useProgresso`, con
-  requestAnimationFrame e semplici props dell'SVG, perché sul web Reanimated non anima le proprietà dell'SVG in modo
-  affidabile; **partono quando la sezione entra nello schermo** (`useVisibile`), o sotto la piega sarebbero già finite.
+  requestAnimationFrame e semplici props dell'SVG, per non dipendere dalle proprietà animate di Reanimated sull'SVG, che sul
+  web non sono state provate; **partono quando la sezione entra nello schermo** (`useVisibile`), o sotto la piega sarebbero già finite.
   Con «riduci movimento» vanno subito al valore finale e niente gira in loop.
