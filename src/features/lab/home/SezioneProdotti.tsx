@@ -1,3 +1,4 @@
+import { router } from 'expo-router'
 import { useCallback, useEffect, useState } from 'react'
 import { StyleSheet, Text, View } from 'react-native'
 
@@ -5,7 +6,8 @@ import { elencoProdotti, type Prodotto, type StatoProdotto } from '@/api/prodott
 import { spazio } from '@/theme'
 
 import { inMemoria, prendi } from '../memoria'
-import { Carta, LinkSezione, Messaggio, Pulsante, Riga, SchedeInArrivo, Sezione } from '../ui/kit'
+import { Icona } from '../ui/Icona'
+import { Bollino, Carta, LinkSezione, Messaggio, Pulsante, Riga, SchedeInArrivo, Sezione } from '../ui/kit'
 import { F, usePalette, velo, coloreTono, type ToniTutti } from '../ui/tema'
 
 // La sezione Prodotti della Home: tutto quello che il socio e la famiglia hanno acquistato -
@@ -103,7 +105,24 @@ function Gruppo({ titolo, elenco }: { titolo: string; elenco: Prodotto[] }) {
   )
 }
 
-export function SezioneProdotti() {
+/** L'ingresso allo shop (18/10/2026): gli articoli e il merchandising del club, che si ritirano in segreteria. */
+function IngressoShop() {
+  const pal = usePalette()
+  return (
+    <Carta onPress={() => router.push('/shop')}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: spazio.tre }}>
+        <Bollino icona="sacchetto" tono="accento" size={44} />
+        <View style={{ flex: 1, gap: 3 }}>
+          <Text style={{ color: pal.testo, fontFamily: F.bold, fontSize: 16 }}>Shop del club</Text>
+          <Text style={{ color: pal.testoSecondario, fontFamily: F.medio, fontSize: 13.5, lineHeight: 19 }}>Articoli e merchandising: paghi online, ritiri in segreteria.</Text>
+        </View>
+        <Icona nome="avanti" size={16} colore={pal.testoTerzo} />
+      </View>
+    </Carta>
+  )
+}
+
+function ProdottiAcquistati() {
   const pal = usePalette()
   const { dati, errore, carica } = useProdotti()
 
@@ -144,6 +163,15 @@ export function SezioneProdotti() {
       <Text style={{ color: pal.testoTerzo, fontFamily: F.medio, fontSize: 13, lineHeight: 19, paddingHorizontal: 4 }}>
         Un recupero o una lezione singola si consuma quando la prenoti; se la disdici in tempo torna valido.
       </Text>
+    </View>
+  )
+}
+
+export function SezioneProdotti() {
+  return (
+    <View style={{ gap: spazio.quattro }}>
+      <IngressoShop />
+      <ProdottiAcquistati />
     </View>
   )
 }
