@@ -560,12 +560,19 @@ export async function chiudiAbbonamento(abbonamentoId: string): Promise<Esito<ob
 //   codice fiscale a null (il segnaposto di PerfectGym non si vede mai).
 //   { azione: 'email', email }                   -> { ok }  (manda un codice al nuovo indirizzo)
 //   { azione: 'conferma_email', email, codice }  -> { ok, anagrafica }
+//   { azione: 'foto', immagine: 'data:image/jpeg;base64,…' } -> { ok, anagrafica, in_arrivo }
 //
 // L'anagrafica porta anche `foto`: il link firmato (un'ora) della foto del profilo che il club ha su
 // PerfectGym, copiata nel bucket privato `foto-soci`, o null se non ne ha una. Si mostra solo nel Profilo.
 // Il link e' dentro l'anagrafica - e non in una chiamata a parte - perche' `salva` e `conferma_email`
 // rispondono con la stessa anagrafica e la schermata la sostituisce a quella che ha: altrimenti la foto
 // sparirebbe dopo aver cambiato il telefono.
+//
+// **Cambiare la foto** (`foto`, 20/10/2026): la funzione la mette su PerfectGym come foto del profilo e torna con
+// l'anagrafica gia' col link nuovo. `in_arrivo` e' vero se le misure non sono ancora pronte: la foto e' salvata e
+// il link arriva in qualche minuto, e fino ad allora la schermata tiene quella appena scelta. `foto_modificabile`
+// dice se chi guarda puo' cambiarla (non lo staff in vista cliente): l'invito si mostra solo se e' vero, quindi un'app
+// pubblicata prima della funzione - che non lo manda - non offre un comando che non risponde.
 //
 // La funzione non risponde mai 404 per una scheda che non trova: qui il 404
 // vuol dire che non e' pubblicata, e il profilo resta in sola lettura.
@@ -593,6 +600,8 @@ export type Anagrafica = {
   indirizzo: Indirizzo | null
   /** Il link firmato (un'ora) della foto del profilo, se il club ne ha una; null o assente altrimenti. */
   foto?: string | null
+  /** Chi guarda puo' cambiare la foto. Assente se la funzione non la conosce ancora: allora non si offre. */
+  foto_modificabile?: boolean
 }
 
 /** `nonAttiva`: la funzione non c'e' ancora (404): si mostra la sola lettura. */
@@ -616,6 +625,17 @@ export async function salvaTelefono(telefono: string): Promise<EsitoAnagrafica> 
 
 export async function salvaIndirizzo(indirizzo: Indirizzo): Promise<EsitoAnagrafica> {
   return esitoAnagrafica(await anagrafica({ azione: 'salva', indirizzo }), 'Non siamo riusciti a salvare l’indirizzo.')
+}
+
+export type EsitoFotoProfilo = { ok: true; anagrafica: Anagrafica; inArrivo: boolean } | { ok: false; errore: string }
+
+/** Cambia la foto del profilo. `immagine` e' un «data:image/…;base64,…» (`lib/fotoProfilo.ts`). La funzione ricontrolla i byte. */
+export async function caricaFotoProfilo(immagine: string): Promise<EsitoFotoProfilo> {
+  const r = await anagrafica({ azione: 'foto', immagine })
+  if (r.ok && r.dati.anagrafica) return { ok: true, anagrafica: r.dati.anagrafica as Anagrafica, inArrivo: r.dati.in_arrivo === true }
+  // Una funzione che non conosce ancora l'azione: «Azione sconosciuta.» (o 404 se non e' pubblicata).
+  if (r.stato === 404 || /sconosciuta/i.test(String(r.dati.errore ?? ''))) return { ok: false, errore: 'Il cambio foto non è ancora attivo.' }
+  return { ok: false, errore: r.dati.errore ?? 'Non siamo riusciti a salvare la foto.' }
 }
 
 export async function chiediCambioEmail(email: string): Promise<{ ok: true } | { ok: false; errore: string }> {
