@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { ScrollView, StyleSheet, Text, TextInput, View } from 'react-native'
 
-import { eliminaMisura, elencoMisure, salvaMisura, type Misura, type NuovaMisura } from '@/api/lab'
+import { eliminaMisura, elencoMisure, salvaMisura, type ConsensoCorpo, type Misura, type NuovaMisura } from '@/api/lab'
 import { CampoData } from '@/components/CampoData'
 import { spazio } from '@/theme'
 
@@ -13,6 +13,7 @@ import { Schermata } from '../ui/Schermata'
 import { coloreTono, F, usePalette, velo } from '../ui/tema'
 import { colpetto, Tocco } from '../ui/Tocco'
 import { altezzaAl, bmi, dataCorta, differenza, fasciaBmi, METRICHE, numero, oggi, serie, valore, type Metrica } from './calcoli'
+import { ConsensoCorpo as PaginaConsenso, ImpostazioniCorpo } from './ConsensoCorpo'
 import { Grafico } from './Grafico'
 
 // Athlon Health System -> Il tuo corpo (16/10/2026; in cima dal 19/10): altezza e peso (col BMI), e se il socio
@@ -24,6 +25,11 @@ import { Grafico } from './Grafico'
 // registrazione del peso, e l'altezza compare in sola lettura. Non e' una
 // scelta dell'interfaccia soltanto: la funzione che salva ignora un'altezza
 // nuova quando il socio ne ha gia' una, quindi non si cambia nemmeno da fuori.
+//
+// **Il consenso** (20/10/2026): le misure sono dati sulla salute. Senza un consenso vivo la funzione non le
+// restituisce (`consenso: null`) e questa schermata mostra la pagina del consenso (ConsensoCorpo.tsx) al posto dei dati;
+// con il consenso, in fondo, l'informativa e il pulsante per ritirarlo. `consenso` assente (`undefined`) e' una
+// funzione che non lo conosce ancora: la schermata e' quella di sempre, senza blocco e senza comando.
 
 export const CHIAVE_MISURE = 'misure:elenco'
 
@@ -258,6 +264,8 @@ function BarraBmi({ v }: { v: number }) {
 export function Misure() {
   const p = usePalette()
   const [misure, setMisure] = useState<Misura[] | null>(() => inMemoria<{ misure: Misura[] }>(CHIAVE_MISURE)?.misure ?? null)
+  // null: la funzione dice che manca il consenso; undefined: non si sa (o una funzione che non lo conosce).
+  const [consenso, setConsenso] = useState<ConsensoCorpo | null | undefined>(() => inMemoria<{ consenso?: ConsensoCorpo | null }>(CHIAVE_MISURE)?.consenso)
   const [errore, setErrore] = useState<string | null>(null)
   const [metrica, setMetrica] = useState<Metrica>('peso')
   const [bozza, setBozza] = useState<{ b: Bozza; esiste: boolean } | null>(null)
@@ -265,9 +273,19 @@ export function Misure() {
   const carica = useCallback(async () => {
     setErrore(null)
     const r = await prendi(CHIAVE_MISURE, elencoMisure)
-    if (r.ok) setMisure(r.misure)
-    else setErrore(r.errore)
+    if (r.ok) {
+      setMisure(r.misure)
+      setConsenso(r.consenso)
+    } else setErrore(r.errore)
   }, [])
+
+  // Dopo il consenso o la revoca cambia tutto quello che dipende dalle misure (Fit, Balance, calorie): si butta la memoria.
+  const rileggi = () => {
+    dimentica()
+    setMisure(null)
+    setConsenso(undefined)
+    carica()
+  }
 
   useEffect(() => {
     carica()
@@ -290,6 +308,15 @@ export function Misure() {
     )
   }
 
+  if (consenso === null) {
+    return (
+      <Schermata sopratitolo="Athlon Health System" titolo="Il tuo corpo" indietro="/allenamento" barra={false}>
+        <PaginaConsenso onConsenso={rileggi} />
+      </Schermata>
+    )
+  }
+
+  const impostazioni = consenso ? <ImpostazioniCorpo consenso={consenso} onRevocato={rileggi} /> : null
   const n = misure.length
   const altezza = n ? altezzaAl(misure, n - 1) : null
   const fissa = altezzaNota(misure)
@@ -316,6 +343,7 @@ export function Misure() {
           </Text>
           <Pulsante testo="Aggiungi i tuoi dati" icona="piu" onPress={nuova} />
         </Carta>
+        {impostazioni}
         {foglio}
       </Schermata>
     )
@@ -459,6 +487,7 @@ export function Misure() {
         </Carta>
       </Sezione>
 
+      {impostazioni}
       {foglio}
     </Schermata>
   )

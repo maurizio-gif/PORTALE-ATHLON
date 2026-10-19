@@ -1,12 +1,13 @@
 import { Image } from 'expo-image'
 import { LinearGradient } from 'expo-linear-gradient'
 import { useState } from 'react'
-import { StyleSheet, Text, View } from 'react-native'
+import { Linking, StyleSheet, Text, View } from 'react-native'
 import Animated, { FadeInRight } from 'react-native-reanimated'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { chiediCodice, entra } from '@/api/lab'
 import { emailValida } from '@/api/richieste'
+import { PRIVACY_URL } from '@/lib/guestPass'
 import { spazio } from '@/theme'
 
 import { CampoCodice, CampoTesto, CIFRE, IncollaCodice } from './ui/Campi'
@@ -15,7 +16,7 @@ import { Installa } from './ui/Installa'
 import { Carta, Messaggio, Pulsante } from './ui/kit'
 import { Schermata } from './ui/Schermata'
 import { F, FUOCO, NOTTE, usePalette } from './ui/tema'
-import { colpetto } from './ui/Tocco'
+import { colpetto, Tocco } from './ui/Tocco'
 
 // L'accesso all'area riservata di Athlon Club:
 // email, poi il codice di otto cifre che arriva per email (lo genera Supabase
@@ -24,6 +25,9 @@ import { colpetto } from './ui/Tocco'
 // Chi non e' fra i tester non riceve niente, ma la
 // pagina dice la stessa cosa a tutti: non deve diventare il modo di sapere chi
 // lo e'.
+// In fondo il link all'informativa privacy del club (20/10/2026): all'accesso si da' solo l'email, per farti
+// entrare, e non e' un consenso (nessuna casella): i consensi veri (alimentazione, sonno e dispositivi, misure del
+// corpo) si chiedono dove serve, la prima volta che si usa quella funzione.
 
 
 /** La testata scura, con il bagliore arancio e gli anelli che allargano il marchio. */
@@ -177,6 +181,11 @@ export function Accesso() {
           </View>
         ))}
       </View>
+      <Tocco onPress={() => Linking.openURL(PRIVACY_URL)} ruolo="link" etichetta="Informativa privacy del club" vibra={null} scala={0.99} style={{ alignSelf: 'center' }}>
+        <Text style={[stili.nota, { color: p.testoTerzo, textAlign: 'center', fontSize: 12.5 }]}>
+          Come trattiamo i tuoi dati: <Text style={{ fontFamily: F.bold, color: p.accento, textDecorationLine: 'underline' }}>informativa privacy</Text>
+        </Text>
+      </Tocco>
     </Schermata>
   )
 }
