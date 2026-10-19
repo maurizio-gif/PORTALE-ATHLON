@@ -815,3 +815,64 @@ di nuovo: li toglie la funzione (`portale-lab-pagamenti`, azione `movimenti`, ch
 
 Per verificare: nessun codice di questo repository è cambiato per questa richiesta (solo questa nota). Con una sessione di un socio che ha un voucher o un credito referral: la
 sezione Pagamenti non lo elenca e lo storico non cambia per chi non ne ha.
+
+## Le notifiche del club: una finestra appena arriva, il centro notifiche, e la push se la si attiva
+
+Richiesta del club (20/10/2026): il club scrive al socio **dentro l'app**, dalla scheda del contatto o dalla newsletter del CRM, e la notifica arriva in tre modi insieme: una
+**finestra** che compare appena arriva, il **centro notifiche** (l'elenco di tutto quello che il club ha scritto) e, per chi l'ha attivata, una **notifica push** sul dispositivo.
+Cartella `src/features/lab/notifiche/`, API `src/api/notifiche.ts`, rotta `src/app/(portale)/notifiche.tsx`, service worker `public/sw.js`. La funzione (`portale-lab-notifiche`), le
+tabelle, la natura servizio/marketing e il consenso, i tetti, il tracciamento e come si accende: sezione «Le notifiche ai soci» del `CLAUDE.md` di APP-ATHLON.
+
+- **L'app non sceglie niente e non manda niente**: legge quello che il club ha scritto e **dice al server cosa ha fatto la persona** (`segna`: `vista`, `aperta`, `azione`, `nascosta`),
+  che è il modo in cui il club vede se la comunicazione è arrivata e se è stata aperta. `segna` non aspetta e non solleva mai: il tracciamento non deve far fallire un tocco.
+  L'app non ricopia le regole di chi può scrivere a chi (consenso, tetti): le applica il database.
+- **La finestra** (`FinestraNotifica.tsx`, una `Modal` nativa): una alla volta, la più recente per prima, mai più di tre di fila. Compare **dopo l'avvio animato** (`ATTESA_AVVIO_MS`,
+  3,7 secondi dall'apertura: l'avvio dura 3,25 e una finestra sopra il logo che si costruisce sarebbe uno spreco per tutti e due). Chi la riceve vede titolo e testo **per intero**
+  (mai tagliato) e un solo pulsante, quello che il club ha scelto (una schermata dell'app, o una pagina di athlonroma.it), con il suo testo; senza pulsante, «Ok, letto».
+  **Cosa fa la persona dice com'è andata**: la comparsa è `vista` (si dice subito, una volta sola per notifica); il pulsante è `azione` e `aperta`; «Ok, letto» è `aperta`;
+  **la X o un tocco fuori la chiudono e la lasciano solo `vista`**, perché chi chiude non ha letto per forza: la notifica resta fra le non lette del centro. Il server dà come finestre
+  solo le notifiche create nelle ultime 48 ore e non ancora viste: una chiusura di tre giorni fa non salta fuori da sola.
+- **Compare «subito» in due modi** (`Notifiche.tsx`, montata una volta sola nel layout `(portale)`): l'app in primo piano chiede cosa c'è di nuovo **ogni venti secondi** (`nuove`,
+  e subito all'apertura, e al ritorno dopo averla lasciata); e chi ha la push attiva la riceve col service worker, che dice all'app aperta di rileggere **subito**
+  (`notifica-arrivata`). Un solo giro per tutta l'app (`store.ts`, una sola richiesta in volo alla volta). **La coda delle finestre si allunga e non si rimpiazza**: quella che la persona
+  sta leggendo è già `vista` per il server, che alla risposta dopo non la ridarà, e rimpiazzare la coda la farebbe sparire sotto gli occhi.
+- **Dove il server dice «non per te» l'app smette di chiedere**: 401, 403, 404 (funzione non ancora pubblicata) o 409 (nessuna scheda) mettono lo store in `spento` finché non si rientra;
+  senza risposta non compare **nemmeno il campanello**. L'app può uscire prima della funzione senza mostrare niente di rotto, e non martella una funzione che non c'è.
+- **Il campanello** (`Campanello.tsx`) sta nella testata della Home, accanto a «Profilo», con il numero delle non lette (9+ oltre le nove) e porta al centro. È l'unico ingresso fisso:
+  nella barra delle schede non c'è una voce, e aggiungerla è una scelta del club (come per lo Shop). **Nella testata c'è poco posto**: campanello e «Profilo» non si restringono mai e **a cedere è la data**
+  (va a capo su due righe, a 360 pt; si toglie sotto i 340 pt, dove non resterebbe leggibile): senza questo, a 360 pt «Profilo» usciva dalla carta.
+- **Il centro notifiche** (`Centro.tsx`, `/notifiche`): l'elenco dalla più recente, con il pallino sulle non lette, «oggi 10:30» / «ieri» / «12 ott» all'ora di Roma, e «Per <nome>» sulle notifiche
+  rivolte a un figlio del nucleo. **Si apre una notifica toccandola**: da lì è `aperta` (dal centro) e il pallino si spegne; il pulsante è `azione`. «Togli dall'elenco» la nasconde a chi la tocca
+  (`nascosta`: non cambia quello che il club vede dell'apertura). **«Segna tutte come lette» toglie i pallini e non conta come apertura**: il club vuole sapere chi l'ha letta davvero, non chi
+  ha fatto pulizia. Il tocco su una push porta a `/notifiche?apri=<id della notifica>` e la apre subito, una volta sola (l'id è quello della notifica, lo stesso per tutto il nucleo, non quello
+  della riga della singola persona).
+- **La push** (`push.ts`, `AttivaPush.tsx`, in cima al centro): **solo sul web**, dove l'app è una PWA con il suo service worker; sul telefono nativo non c'è (servirebbero `expo-notifications` e una build
+  nuova), e centro e finestra funzionano uguale. **Si attiva solo con un tocco della persona** (il browser chiede il permesso solo così) e il permesso è del dispositivo. Gli stati: nessuna carta se il
+  browser non le sa fare o il club non le ha ancora attivate sul server (`disponibile: false`: manca la chiave pubblica nel segreto della funzione); un avviso su **iPhone e iPad**, dove le push esistono solo
+  per l'app aggiunta alla schermata Home («Condividi», poi «Aggiungi alla schermata Home»); un avviso se la persona ha **negato** il permesso al browser (si cambia dalle impostazioni del browser, non da qui);
+  «Attiva le notifiche» / «Notifiche attive su questo dispositivo», con «Spegni su questo dispositivo». Chi non le attiva non perde niente: ogni notifica arriva comunque nell'app.
+- **Un dispositivo segue il nucleo e chi esce lo toglie.** Il server associa l'indirizzo push al titolare e ai figli (una notifica per un figlio arriva sul telefono del genitore, con «Per Giulia»);
+  **uscendo dall'app** (`esciDalLaboratorio`) il dispositivo si toglie dal club e dal browser **prima** di chiudere la sessione (il server vuole sapere chi è), senza far aspettare più di quattro secondi
+  chi esce: su un dispositivo condiviso le notifiche di una persona non devono passare a chi entra dopo. Chi attiva le notifiche sullo stesso browser dopo un altro se lo porta via.
+- **Il service worker** (`public/sw.js`, in fondo): `push` mostra sempre un avviso (i browser lo vogliono: una push senza avviso fa revocare la sottoscrizione, su iPhone al secondo tentativo),
+  segnala **«ricevuta»** al club con i gettoni della push (anche con l'app chiusa) e, se l'app è aperta, le dice di rileggere. `notificationclick` segnala **«aperta»** e porta al centro (riusa una finestra
+  già aperta dell'app). **Il service worker non ha la sessione della persona**: segnala con i gettoni che stanno nella push cifrata, a un solo indirizzo (`indirizzoPing`: la funzione del club su
+  `supabase.co`, qualunque cosa dica la push) e con una richiesta «semplice» (nessuna intestazione di contenuto, quindi niente richiesta preliminare). Porta **solo indirizzi dell'app stessa**: quello che
+  dice la push non porta fuori. La versione della cache (`VERSIONE`) **non è cambiata**: la parte nuova non tocca le pagine né i file statici.
+- **Il pulsante porta dove l'app conosce** (`DESTINAZIONI` in `api/notifiche.ts`: `home`, `calendario`, `abbonamenti`, `pagamenti`, `certificato`, `profilo`, `allenamento`, `shop`, `club-life`,
+  `personal`, `tv`; **lo stesso elenco di `app_notifica_destinazioni()` nel database e di `lib/notificheApp.ts` del CRM**: chi ne aggiunge una la aggiunge nei tre posti). Una schermata che l'app non
+  conosce non è un pulsante (la notifica si legge e basta), e un link che non è di athlonroma.it viene scartato. Un link del sito si apre nella schermata dell'app che lo mostra (una news, un evento) se
+  Club Life è già stato letto, altrimenti nel browser, come ogni link di Club Life.
+- **In vista cliente non c'è niente**: la funzione risponde 403 a tutto (non è fra le letture), il giro non gira, il campanello non compare e il centro dice che le notifiche sono del socio e che
+  guardarle le segnerebbe come viste (si trovano nella sua scheda, dal pannello). `scollegaDispositivo` non scrive niente.
+- **Solo in memoria**, come ogni dato del laboratorio: niente delle notifiche sta sul disco dell'app, e uscendo non resta nulla di chi c'era (`azzeraNotifiche`). Il browser conserva solo la sottoscrizione push
+  di questo dispositivo, che il club toglie all'uscita.
+- **L'informativa privacy del club non dice ancora** che l'app manda notifiche e che il club vede se sono state ricevute, viste e aperte da ogni persona: **va fatta rileggere al consulente privacy prima di aprire
+  le notifiche a tutti**. Le notifiche di marketing partono solo con il consenso della newsletter (lo controlla il database), ma il tracciamento riguarda anche quelle di servizio.
+
+Per verificare: `npx tsc --noEmit` pulito. **Provato in un browser vero** (Chromium, bundle web esportato, Supabase simulato con `page.route`, 360, 390, 430 e 1280 px, chiaro e scuro, anche con «riduci movimento»): la
+finestra che compare dopo l'avvio e mai sopra; `vista` una volta sola; il pulsante (`azione` e navigazione al calendario); «Ok, letto» (`aperta`); la X che lascia solo `vista` e la notifica non letta nel centro;
+il centro con le tre voci e «Per Giulia»; il dettaglio e il suo pulsante; «Togli dall'elenco»; «Segna tutte come lette» che chiama `leggi_tutte` e non segna nessuna apertura; `?apri=` con l'id della notifica; elenco vuoto;
+nessun comando per la push senza la chiave sul server; 403 e 404 che fermano il giro; il giro ogni venti secondi (con l'orologio finto); nessuno scorrimento orizzontale; il campanello della Home che porta al centro.
+**Non provato**: una push su un telefono vero, Android o iPhone con l'app installata (**la sottoscrizione, il service worker che segnala ricevuta e apertura, il tocco sull'avviso e il suo segnale al server non
+sono mai stati visti girare**), il permesso del browser (`Notification.requestPermission` non si simula), l'app nativa, le finestre con la funzione vera e una sessione vera, e il carico dei venti secondi.

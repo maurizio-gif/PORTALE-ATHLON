@@ -10,10 +10,12 @@ import { Stack } from 'expo-router'
 import { View } from 'react-native'
 
 import { Avvio } from '@/features/lab/avvio/Avvio'
+import { Notifiche } from '@/features/lab/notifiche/Notifiche'
 import { BannerVista } from '@/features/lab/ui/BannerVista'
 import { BarraSchede } from '@/features/lab/ui/BarraSchede'
 import { usePalette } from '@/features/lab/ui/tema'
 import { useSessione } from '@/features/lab/useSessione'
+import { vistaCorrente } from '@/features/lab/vista'
 
 // Il portale (le schermate dopo l'accesso) sta nel gruppo `(portale)`, che non compare
 // nell'indirizzo: la Home e' `/`, le altre `/calendario`, `/allenamento`, `/tv`...
@@ -52,6 +54,7 @@ export default function LayoutLaboratorio() {
         <Stack.Screen name="allenamento/percorso" options={{ animation: 'slide_from_right' }} />
         <Stack.Screen name="allenamento/percorso-nuovo" options={{ animation: 'slide_from_bottom' }} />
         <Stack.Screen name="allenamento/percorso-modifica" options={{ animation: 'slide_from_right' }} />
+        <Stack.Screen name="notifiche" options={{ animation: 'slide_from_right' }} />
         <Stack.Screen name="shop/index" options={{ animation: 'slide_from_right' }} />
         <Stack.Screen name="shop/[id]" options={{ animation: 'slide_from_right' }} />
         <Stack.Screen name="shop/carrello" options={{ animation: 'slide_from_bottom' }} />
@@ -65,6 +68,9 @@ export default function LayoutLaboratorio() {
         <Stack.Screen name="metodo-pagamento/fatto/[token]" options={{ animation: 'fade' }} />
       </Stack>
       {sessione ? <BarraSchede /> : null}
+      {/* Le notifiche del club (features/lab/notifiche): il giro che le legge e la finestra che compare appena ne arriva una. Solo per
+          chi e' entrato, e mai in vista cliente: chi guarda l'app di un socio non deve segnare come viste le sue notifiche. */}
+      {sessione && !vistaCorrente() ? <Notifiche /> : null}
       {/* L'avvio animato: una volta a ogni apertura, sopra tutto (features/lab/avvio). */}
       <Avvio />
     </View>

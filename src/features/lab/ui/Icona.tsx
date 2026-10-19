@@ -77,6 +77,8 @@ const ICONE = {
   foglia: ['leaf.fill', 'eco'],
   goccia: ['drop.fill', 'water_drop'],
   cestino: ['trash', 'delete'],
+  // Le notifiche del club (20/10/2026).
+  campanello: ['bell.fill', 'notifications'],
   // Lo shop (18/10/2026).
   carrello: ['cart.fill', 'shopping_cart'],
   sacchetto: ['bag.fill', 'shopping_bag'],

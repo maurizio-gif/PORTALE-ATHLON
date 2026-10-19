@@ -1,5 +1,7 @@
 import { esci } from '@/api/lab'
 
+import { azzeraNotifiche } from './notifiche/store'
+import { scollegaDispositivo } from './notifiche/push'
 import { svuotaCarrello } from './shop/carrello'
 import { memoria as memoriaTv } from './tv/comune'
 import { dimenticaLaVista } from './vista'
@@ -53,6 +55,10 @@ export function dimentica() {
 
 /** Esce dal laboratorio e svuota la memoria (anche quella di Athlon TV). Uscendo cade anche la vista cliente: al prossimo accesso si riparte dall'app di sempre. */
 export async function esciDalLaboratorio() {
+  // Le notifiche push di questo dispositivo sono di chi c'era: si tolgono **prima** di chiudere la sessione (il server vuole
+  // sapere chi e') e senza far aspettare chi esce. Su un dispositivo condiviso non devono passare a chi entra dopo.
+  await scollegaDispositivo()
+  azzeraNotifiche()
   dimentica()
   // Il carrello dello shop e' di chi c'era: sul web sta nella scheda del browser, e un dispositivo condiviso non lo deve passare al prossimo.
   svuotaCarrello()

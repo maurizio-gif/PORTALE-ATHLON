@@ -1,0 +1,93 @@
+import { useEffect } from 'react'
+import { Modal, Pressable, StyleSheet, Text, View } from 'react-native'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
+
+import { conPulsante, segna, type NotificaApp } from '@/api/notifiche'
+import { spazio } from '@/theme'
+
+import { Icona } from '../ui/Icona'
+import { Pulsante } from '../ui/kit'
+import { F, FUOCO, usePalette } from '../ui/tema'
+import { Tocco } from '../ui/Tocco'
+import { apriDestinazione } from './apri'
+import { chiudiFinestra, finestraComparsa } from './store'
+
+// La finestra che compare nell'app appena il club manda una notifica (20/10/2026). Una alla volta, dalla piu' recente.
+//
+// **Quello che la persona fa dice al club com'e' andata**: la finestra che compare e' `vista` (lo dice subito); il pulsante e'
+// `azione` e `aperta`; «Ok, letto» su una notifica senza pulsante e' `aperta`; chiudere con la X la lascia solo `vista`:
+// resta fra le non lette del centro notifiche, perche' chi chiude non ha letto per forza. Il testo non e' mai tagliato.
+
+export function FinestraNotifica({ notifica: n }: { notifica: NotificaApp }) {
+  const p = usePalette()
+  const ins = useSafeAreaInsets()
+  const pulsante = conPulsante(n)
+
+  // Comparsa: una volta sola per notifica, anche se il componente si rimonta.
+  useEffect(() => {
+    finestraComparsa(n)
+  }, [n])
+
+  function chiudi() {
+    chiudiFinestra(n.id)
+  }
+
+  function premi() {
+    segna(n.id, 'azione', 'finestra')
+    chiudiFinestra(n.id, true)
+    apriDestinazione(n)
+  }
+
+  function letto() {
+    segna(n.id, 'aperta', 'finestra')
+    chiudiFinestra(n.id, true)
+  }
+
+  return (
+    <Modal visible transparent animationType="fade" onRequestClose={chiudi} statusBarTranslucent>
+      <View style={[stili.velo, { paddingTop: ins.top + spazio.tre, paddingBottom: ins.bottom + spazio.tre }]}>
+        <Pressable style={StyleSheet.absoluteFill} onPress={chiudi} accessibilityLabel="Chiudi" />
+        <View style={[stili.carta, { backgroundColor: p.carta, borderColor: p.linea, boxShadow: p.ombra }]} accessibilityViewIsModal accessibilityLiveRegion="polite">
+          <View style={stili.testa}>
+            <View style={[stili.bollino, { backgroundColor: FUOCO[1] }]}>
+              <Icona nome="campanello" size={20} colore="#fff" />
+            </View>
+            <Text style={[stili.sopra, { color: p.accento }]} numberOfLines={1}>
+              {n.per?.nome ? `ATHLON CLUB · PER ${n.per.nome.toUpperCase()}` : 'ATHLON CLUB'}
+            </Text>
+            <Tocco onPress={chiudi} etichetta="Chiudi" style={[stili.chiudi, { backgroundColor: p.incavo }]}>
+              <Icona nome="chiudi" size={16} colore={p.testo} />
+            </Tocco>
+          </View>
+          <Text style={[stili.titolo, { color: p.testo }]} accessibilityRole="header">
+            {n.titolo}
+          </Text>
+          <Text style={[stili.testo, { color: p.testoSecondario }]} selectable>
+            {n.testo}
+          </Text>
+          <View style={{ gap: spazio.due, marginTop: spazio.due }}>
+            {pulsante ? (
+              <>
+                <Pulsante testo={n.etichetta ?? 'Apri'} icona="avanti" onPress={premi} />
+                <Pulsante testo="Chiudi" variante="fantasma" onPress={chiudi} />
+              </>
+            ) : (
+              <Pulsante testo="Ok, letto" icona="spunta" onPress={letto} />
+            )}
+          </View>
+        </View>
+      </View>
+    </Modal>
+  )
+}
+
+const stili = StyleSheet.create({
+  velo: { flex: 1, backgroundColor: 'rgba(0,0,0,0.55)', alignItems: 'center', justifyContent: 'center', paddingHorizontal: spazio.tre },
+  carta: { width: '100%', maxWidth: 440, borderRadius: 30, borderWidth: 1, padding: spazio.quattro - 2, gap: spazio.tre },
+  testa: { flexDirection: 'row', alignItems: 'center', gap: spazio.due + 2 },
+  bollino: { width: 40, height: 40, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
+  sopra: { flex: 1, fontFamily: F.extra, fontSize: 11.5, letterSpacing: 1.2 },
+  chiudi: { width: 34, height: 34, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+  titolo: { fontFamily: F.extra, fontSize: 24, lineHeight: 29, letterSpacing: -0.7 },
+  testo: { fontFamily: F.medio, fontSize: 16, lineHeight: 23 },
+})
