@@ -9,18 +9,22 @@ import { spazio } from '@/theme'
 
 import { oggiRoma } from '../alimentazione/conti'
 import { dopo, durata, giornoBreve, giorniUnici, inizialeGiorno, nomeSport, piuRecenti, quando, recupero } from '../dispositivi/comune'
-import type { Dispositivi } from '../dispositivi/useDispositivi'
+import { dispositiviCollegabili, type Dispositivi } from '../dispositivi/useDispositivi'
 import { spostaGiorno } from '../schede/contatoreCalorie'
 import { useProgresso } from '../schede/ContatoreCalorie'
 import { Icona, type NomeIcona } from '../ui/Icona'
 import { Bollino, Carta, Entra, Messaggio, Pulsante, SchedeInArrivo, Sezione } from '../ui/kit'
 import { F, RELAX, usePalette } from '../ui/tema'
 import { Tocco } from '../ui/Tocco'
+import { CheckInSonno } from './CheckInSonno'
 
 // L'area Relax di Fit (19/10/2026): il recupero, con quello che dicono l'anello Oura e gli
-// orologi Polar del socio. Senza dispositivi e' la porta per collegarli (il consenso e il
-// collegamento stanno in /allenamento/dispositivi); con un dispositivo mostra la notte, il
-// recupero, gli ultimi sette giorni di sonno e gli allenamenti registrati.
+// orologi Polar del socio. Dal 20/10/2026 **il sonno si scrive anche a mano** (CheckInSonno.tsx:
+// una domanda al mattino), perche' Relax e' il terzo pilastro dell'Athlon Health Score e non puo'
+// dipendere dal possedere un dispositivo: l'area c'e' per tutti i maggiorenni. Senza consenso e' la
+// porta per attivarla (il consenso e i collegamenti stanno in /allenamento/dispositivi); col consenso
+// mostra il check-in, la notte, il recupero, gli ultimi sette giorni di sonno e, se c'e' un dispositivo
+// collegato, i suoi allenamenti.
 // **Descrive, non consiglia**: nessuna frase dice cosa fare in base ai numeri, e le parole
 // del recupero sono morbide («da ricaricare», mai un allarme), e gli anelli e le colonne sono in
 // scala 0-10 ore (non c'e' un «obiettivo di sonno» che l'anello debba riempire). Sono valori
@@ -28,9 +32,9 @@ import { Tocco } from '../ui/Tocco'
 
 const apriDispositivi = () => router.push('/allenamento/dispositivi')
 
-const COSE: { icona: NomeIcona; testo: string }[] = [
-  { icona: 'foglia', testo: 'Il sonno di ogni notte e come ti sei ripreso.' },
-  { icona: 'cronometro', testo: 'Gli allenamenti registrati dal dispositivo, accanto a quelli del club.' },
+const cose = (collegabili: boolean): { icona: NomeIcona; testo: string }[] => [
+  { icona: 'foglia', testo: 'Il tuo sonno: lo scrivi in dieci secondi ogni mattina, e conta nel tuo Athlon Health Score.' },
+  ...(collegabili ? [{ icona: 'cronometro' as const, testo: 'Con un anello Oura o un orologio Polar il sonno, il recupero e gli allenamenti arrivano da soli.' }] : []),
   { icona: 'lucchetto', testo: 'Li vedi solo tu, e togli il permesso quando vuoi.' },
 ]
 
@@ -59,12 +63,12 @@ export function AreaRelax({ disp }: { disp: Dispositivi }) {
   if (!stato.consenso) {
     return (
       <Entra indice={0}>
-        <Tocco onPress={apriDispositivi} etichetta="Scopri i dispositivi" scala={0.985}>
+        <Tocco onPress={apriDispositivi} etichetta="Attiva Relax" scala={0.985}>
           <LinearGradient colors={RELAX} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={stili.vetrina}>
             <Text style={stili.vetrinaTitolo}>Recuperare fa parte dell’allenamento</Text>
-            <Text style={stili.vetrinaTesto}>Collega il tuo anello Oura o il tuo orologio Polar e vedi qui:</Text>
+            <Text style={stili.vetrinaTesto}>Scrivi quanto dormi e vedi qui come stai recuperando:</Text>
             <View style={{ gap: spazio.due }}>
-              {COSE.map((c) => (
+              {cose(dispositiviCollegabili(stato)).map((c) => (
                 <View key={c.icona} style={stili.riga}>
                   <View style={stili.bollo}>
                     <Icona nome={c.icona} size={16} colore="#fff" />
@@ -75,7 +79,7 @@ export function AreaRelax({ disp }: { disp: Dispositivi }) {
             </View>
             <Text style={stili.vetrinaPiccola}>Prima di cominciare si legge e si accetta l’informativa: i dati sono tuoi, e li vedi solo tu.</Text>
             <View style={stili.vetrinaPulsante}>
-              <Text style={stili.vetrinaPulsanteTesto}>Scopri i dispositivi</Text>
+              <Text style={stili.vetrinaPulsanteTesto}>Attiva Relax</Text>
               <Icona nome="avanti" size={16} colore={RELAX[2]} />
             </View>
           </LinearGradient>
@@ -85,20 +89,6 @@ export function AreaRelax({ disp }: { disp: Dispositivi }) {
   }
 
   if (!dati) return <SchedeInArrivo quante={2} />
-  if (!dati.collegamenti.length) {
-    return (
-      <Carta style={{ gap: spazio.tre }}>
-        <View style={stili.riga}>
-          <Bollino icona="orologio" tono="neutro" size={46} />
-          <View style={{ flex: 1, gap: 2 }}>
-            <Text style={[stili.titoletto, { color: p.testo }]}>Collega il tuo dispositivo</Text>
-            <Text style={[stili.nota, { color: p.testoSecondario }]}>Oura o Polar: in un minuto i tuoi dati sono qui.</Text>
-          </View>
-        </View>
-        <Pulsante testo="Collega" icona="avanti" onPress={apriDispositivi} />
-      </Carta>
-    )
-  }
   return <Dati disp={disp} />
 }
 
@@ -140,6 +130,8 @@ function Dati({ disp }: { disp: Dispositivi }) {
   const riautorizza = dati.collegamenti.filter((c) => c.stato === 'da_riautorizzare')
   const ultimaLettura = dati.collegamenti.map((c) => c.ultimo_sync_il).filter((x): x is string => !!x).sort().at(-1) ?? null
   const allenamenti = piuRecenti(dati.allenamenti, 5)
+  const collegati = dati.collegamenti.length > 0
+  const collegabili = dispositiviCollegabili(disp.stato)
 
   async function aggiorna() {
     setInCorso(true)
@@ -159,6 +151,10 @@ function Dati({ disp }: { disp: Dispositivi }) {
       ))}
       {riautorizza.length ? <Pulsante testo="Ricollega" icona="avanti" variante="secondario" onPress={apriDispositivi} /> : null}
 
+      <Entra indice={0}>
+        <CheckInSonno disp={disp} giorni={dati.giorni} />
+      </Entra>
+
       {notte ? (
         <Entra indice={0}>
           <LinearGradient colors={RELAX} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={stili.notte}>
@@ -167,15 +163,28 @@ function Dati({ disp }: { disp: Dispositivi }) {
               <Anello quota={(notte.sonno_minuti ?? 0) / 600} centro={durata(notte.sonno_minuti ?? 0)} sotto={notte.sonno_punteggio !== null ? `Sonno · punteggio ${notte.sonno_punteggio}` : 'Sonno'} colore="#fff" />
               {rec ? <Anello quota={rec.quota} centro={rec.parole} sotto={`Recupero · ${rec.valore}`} colore="#FFD166" /> : null}
             </View>
-            <Text style={stili.notteTesto}>{particolari(notte)}</Text>
+            {particolari(notte) ? <Text style={stili.notteTesto}>{particolari(notte)}</Text> : null}
           </LinearGradient>
         </Entra>
-      ) : (
+      ) : collegati ? (
         <Carta style={{ gap: spazio.due }}>
           <Text style={[stili.titoletto, { color: p.testo }]}>Ancora niente da mostrare</Text>
           <Text style={[stili.nota, { color: p.testoSecondario }]}>I dati arrivano quando il dispositivo ha sincronizzato col telefono: di solito entro la mezz’ora.</Text>
         </Carta>
-      )}
+      ) : null}
+
+      {!collegati && collegabili ? (
+        <Carta style={{ gap: spazio.tre }}>
+          <View style={stili.riga}>
+            <Bollino icona="orologio" tono="neutro" size={46} />
+            <View style={{ flex: 1, gap: 2 }}>
+              <Text style={[stili.titoletto, { color: p.testo }]}>Hai un anello o un orologio?</Text>
+              <Text style={[stili.nota, { color: p.testoSecondario }]}>Oura o Polar: il sonno e il recupero arrivano da soli, senza scriverli.</Text>
+            </View>
+          </View>
+          <Pulsante testo="Collega" icona="avanti" variante="secondario" onPress={apriDispositivi} />
+        </Carta>
+      ) : null}
 
       {giorni.length > 1 || notte ? (
         <Entra indice={1}>
@@ -190,6 +199,7 @@ function Dati({ disp }: { disp: Dispositivi }) {
 
       <Attivita giorni={giorni} oggi={oggi} ieri={ieri} />
 
+      {collegati ? (
       <Entra indice={3}>
         <Sezione titolo="Allenamenti dei dispositivi">
           {allenamenti.length ? (
@@ -205,26 +215,30 @@ function Dati({ disp }: { disp: Dispositivi }) {
           )}
         </Sezione>
       </Entra>
+      ) : null}
 
       {errore ? <Messaggio>{errore}</Messaggio> : null}
       <Text style={[stili.piccola, { color: p.testoTerzo, paddingHorizontal: 2 }]}>
-        {`Aggiornato ${dopo(ultimaLettura)}. Valori indicativi del tuo dispositivo: non sono un parere medico.`}
+        {collegati ? `Aggiornato ${dopo(ultimaLettura)}. Valori indicativi del tuo dispositivo: non sono un parere medico.` : 'Il sonno che hai scritto tu. Sono valori indicativi: non sono un parere medico.'}
       </Text>
       <View style={stili.azioni}>
+        {collegati ? (
+          <View style={{ flex: 1 }}>
+            <Pulsante testo="Aggiorna" icona="aggiorna" variante="secondario" piccolo inCorso={inCorso} onPress={aggiorna} />
+          </View>
+        ) : null}
         <View style={{ flex: 1 }}>
-          <Pulsante testo="Aggiorna" icona="aggiorna" variante="secondario" piccolo inCorso={inCorso} onPress={aggiorna} />
-        </View>
-        <View style={{ flex: 1 }}>
-          <Pulsante testo="I dispositivi" icona="orologio" variante="contorno" piccolo onPress={apriDispositivi} />
+          <Pulsante testo={collegati || collegabili ? 'I dispositivi' : 'Consenso e dati'} icona={collegati || collegabili ? 'orologio' : 'lucchetto'} variante="contorno" piccolo onPress={apriDispositivi} />
         </View>
       </View>
     </View>
   )
 }
 
-/** «Profondo 1 h 20 · REM 1 h 40 · battito più basso 48 · HRV 62 ms», con solo quello che c'e'. */
+/** «A letto 23:30 · sveglio 07:00 · Profondo 1 h 20 · REM 1 h 40 · battito più basso 48 · HRV 62 ms», con solo quello che c'e'. */
 function particolari(g: GiornoDispositivo): string {
   const pezzi: string[] = []
+  if (g.sonno_a_letto && g.sonno_sveglia) pezzi.push(`A letto ${g.sonno_a_letto} · sveglio ${g.sonno_sveglia}`)
   if (g.sonno_profondo_minuti !== null) pezzi.push(`Profondo ${durata(g.sonno_profondo_minuti)}`)
   if (g.sonno_rem_minuti !== null) pezzi.push(`REM ${durata(g.sonno_rem_minuti)}`)
   if (g.fc_notte !== null) pezzi.push(`battito più basso ${g.fc_notte}`)

@@ -30,11 +30,17 @@ export type Dispositivi = {
   rileggi: () => void
 }
 
-/** I dispositivi che l'app offre: almeno un fornitore disponibile, o un consenso gia' dato (per scollegare, revocare). */
+/**
+ * Relax e' aperto a tutti i maggiorenni (20/10/2026): il sonno si scrive a mano, anche senza un dispositivo,
+ * e conta nell'Athlon Health Score. Prima compariva solo dove un fornitore era disponibile o c'era un
+ * consenso: ora i dispositivi sono un modo in piu' di riempirlo, non la condizione per vederlo.
+ */
 export function relaxAperto(s: EsitoStato | null): boolean {
-  if (!s || !s.ok || !s.maggiorenne) return false
-  return !!s.consenso || s.fornitori.some((f) => f.disponibile)
+  return !!s && s.ok && s.maggiorenne
 }
+
+/** C'e' almeno un dispositivo che il socio puo' collegare adesso (il club ha registrato le sue applicazioni). */
+export const dispositiviCollegabili = (s: EsitoStato | null): boolean => !!s && s.ok && s.fornitori.some((f) => f.disponibile)
 
 export function useDispositivi(): Dispositivi {
   const vista = !!vistaCorrente()

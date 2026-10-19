@@ -10,6 +10,7 @@ import { spazio } from '@/theme'
 import { relaxAperto, useDispositivi } from '../dispositivi/useDispositivi'
 import { CartaBalance } from '../fit/Balance'
 import { CartaCorpo } from '../fit/Corpo'
+import { CartaPunteggio } from '../fit/Punteggio'
 import { AreaFood } from '../fit/Food'
 import { AreaRelax } from '../fit/Relax'
 import { IntroFit } from '../fit/Intro'
@@ -26,8 +27,9 @@ import { CHIAVE_ELENCO_PIANI, etichettaPiano, giorniAlTest, giornoTest, LIVELLI,
 import { eDiVasca, ETICHETTA_VASCA } from './nuoto'
 
 // Athlon Health System (19/10/2026, era Workout, poi Fit): sotto il titolo la
-// ruota Train, Food, Relax (fit/Ruota.tsx) e il tuo corpo (fit/Corpo.tsx); poi l'introduzione (cosa si fa e cosa
-// vogliono dire i numeri) e il Balance; sotto, le aree da scegliere (due, tre dove i dispositivi sono aperti).
+// ruota Train, Food, Relax (fit/Ruota.tsx), l'Athlon Health Score (fit/Punteggio.tsx: il punteggio da 0 a 100 sui tre
+// pilastri, 20/10/2026) e il tuo corpo (fit/Corpo.tsx); poi l'introduzione (cosa si fa e cosa vogliono dire i numeri)
+// e il Balance; sotto, le aree da scegliere (tre per i maggiorenni, due per gli altri).
 //   - Train: il test dei massimali, il contatore delle calorie, i Consigli Athlon (i tipi di lezione che
 //     fanno per te, con le alternative, e se vuoi sala e nuoto: non e' una settimana ne' un piano, vedi
 //     `consigli/`; il Percorso a tappe, `percorso/`, e' in standby: `percorso/standby.ts`),
@@ -36,10 +38,9 @@ import { eDiVasca, ETICHETTA_VASCA } from './nuoto'
 //     obiettivo) e, quarta, farsi seguire da un personal trainer (porta alla
 //     prenotazione, /personal); i tuoi piani in fondo, e gli ultimi allenamenti;
 //   - Food: la porta del diario dei pasti (fit/Food.tsx);
-//   - Relax: il recupero, con i dati dell'anello Oura o dell'orologio Polar del socio
-//     (fit/Relax.tsx). **L'area c'e' solo dove i dispositivi sono aperti**: finche' il club non
-//     ha registrato le sue applicazioni presso Oura e Polar (nessun fornitore disponibile) e il
-//     socio non ha dato il consenso, la scheda non compare e Fit e' quello di prima.
+//   - Relax: il recupero, col sonno che il socio scrive ogni mattina e, dove ci sono, i dati dell'anello
+//     Oura o dell'orologio Polar (fit/Relax.tsx). **L'area c'e' per tutti i maggiorenni** (20/10/2026):
+//     il sonno a mano non ha bisogno di un dispositivo; i dispositivi sono un modo in piu'.
 // L'area scelta sta nell'indirizzo (`?area=food`, `?area=relax`), cosi' tornando indietro dal
 // diario o dai dispositivi si ritrova la sua area. L'indirizzo resta /allenamento: e' quello dei link gia' dati.
 
@@ -294,6 +295,9 @@ export function Schede() {
     <Schermata titolo="Athlon Health System" sottotitolo="Allenamento, alimentazione e recupero.">
       <Entra indice={0}>
         <RuotaBenessere />
+      </Entra>
+      <Entra indice={0}>
+        <CartaPunteggio fit={fit} disp={disp} />
       </Entra>
       <Entra indice={0}>
         <CartaCorpo misure={misure} />

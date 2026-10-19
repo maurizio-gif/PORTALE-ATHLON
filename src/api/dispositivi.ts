@@ -26,12 +26,18 @@ export type Collegamento = {
 /** Il recupero com'e' per il fornitore: Oura «prontezza» 0-100, Polar «Nightly Recharge» 1-6. */
 export type ScalaRecupero = 'oura_prontezza' | 'polar_recharge'
 
+/** Da dove viene il riassunto di un giorno: un fornitore, o «manuale» (il sonno che il socio scrive, 20/10/2026). */
+export type FonteGiorno = IdFornitore | 'manuale'
+
 export type GiornoDispositivo = {
-  fornitore: IdFornitore
+  fornitore: FonteGiorno
   /** AAAA-MM-GG, il giorno del risveglio. */
   data: string
   sonno_punteggio: number | null
   sonno_minuti: number | null
+  /** Solo il sonno scritto a mano: «HH:MM», a che ora e' andato a dormire e a che ora si e' svegliato. Null altrimenti. */
+  sonno_a_letto?: string | null
+  sonno_sveglia?: string | null
   sonno_profondo_minuti: number | null
   sonno_rem_minuti: number | null
   recupero_valore: number | null
@@ -124,4 +130,16 @@ export async function aggiornaDispositivi(): Promise<Esito<DatiDispositivi & { a
   const { ok, dati } = await chiama({ azione: 'aggiorna' })
   if (ok) return { ok: true, aggiornati: Number(dati.aggiornati ?? 0), ...dei(dati) }
   return errore(dati, 'Non siamo riusciti ad aggiornare adesso. Riprova fra poco.')
+}
+
+/**
+ * Il sonno di una notte scritto a mano (20/10/2026): per chi non ha un dispositivo, e per le notti in cui non lo
+ * porta. `data` e' il giorno del risveglio (AAAA-MM-GG, fino a 30 giorni fa); `ore` sono a che ora e' andato a
+ * dormire e a che ora si e' svegliato («HH:MM»: la durata la calcola la funzione), `null` toglie la notte.
+ * Risponde con i dati aggiornati, come le altre scritture: la schermata si aggiorna da quella.
+ */
+export async function salvaSonno(data: string, ore: { letto: string; sveglia: string } | null): Promise<Esito<DatiDispositivi>> {
+  const { ok, dati } = await chiama({ azione: 'sonno', data, letto: ore ? ore.letto : null, sveglia: ore ? ore.sveglia : null })
+  if (ok) return { ok: true, ...dei(dati) }
+  return errore(dati, 'Non siamo riusciti a salvare adesso. Riprova.')
 }

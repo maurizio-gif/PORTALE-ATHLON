@@ -150,7 +150,7 @@ function Gestione({ d, fornitori, collegamenti, onRevocato }: { d: DatiDispositi
   return (
     <>
       <Text style={[stili.nota, { color: p.testoSecondario, paddingHorizontal: 2 }]}>
-        Collega il tuo anello o il tuo orologio: i dati compaiono in Relax, e si aggiornano da soli quando il dispositivo ha sincronizzato col telefono.
+        Collega il tuo anello o il tuo orologio: i dati compaiono in Relax, e si aggiornano da soli quando il dispositivo ha sincronizzato col telefono. Senza un dispositivo il sonno lo scrivi tu, da Relax.
       </Text>
       {errore ? <Messaggio>{errore}</Messaggio> : null}
       <View style={{ gap: spazio.tre }}>
@@ -164,7 +164,7 @@ function Gestione({ d, fornitori, collegamenti, onRevocato }: { d: DatiDispositi
       <Sezione titolo="I tuoi dati">
         <Carta style={{ gap: spazio.tre }}>
           <Text style={[stili.nota, { color: p.testoSecondario }]}>
-            Li vedi solo tu, nemmeno lo staff. Teniamo gli ultimi 90 giorni; se scolleghi un dispositivo cancelliamo subito i suoi dati.
+            Li vedi solo tu, nemmeno lo staff. Teniamo gli ultimi 90 giorni; se scolleghi un dispositivo cancelliamo subito i suoi dati. Il sonno che scrivi tu si cancella con la revoca.
           </Text>
           <Tocco onPress={() => setInformativa(true)} etichetta="Leggi l’informativa" ruolo="link" style={{ alignSelf: 'flex-start' }}>
             <Text style={[stili.link, { color: p.accento }]}>Leggi l’informativa</Text>

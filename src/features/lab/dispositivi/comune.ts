@@ -46,6 +46,12 @@ export function giorniUnici(giorni: GiornoDispositivo[]): GiornoDispositivo[] {
   return [...per.values()].sort((a, b) => b.data.localeCompare(a.data))
 }
 
+/** Minuti dalla mezzanotte di «HH:MM». */
+export const minutiDelGiorno = (ora: string) => Number(ora.slice(0, 2)) * 60 + Number(ora.slice(3, 5))
+
+/** Quanto si e' dormito fra le due ore, anche attraverso la mezzanotte (23:30 -> 07:00 = 450); 0 se sono uguali. Come `durataFra` della funzione. */
+export const durataFra = (letto: string, sveglia: string) => (minutiDelGiorno(sveglia) - minutiDelGiorno(letto) + 1440) % 1440
+
 /** «7 h 30», «45 min». */
 export function durata(minuti: number): string {
   const m = Math.max(0, Math.round(minuti))

@@ -42,11 +42,15 @@ export function IntroFit({ relax = false }: { relax?: boolean }) {
             <Text style={[stili.testo, { color: p.testoSecondario, flex: 1 }]}>
               <Text style={{ fontFamily: F.extra, color: p.testo }}>{`${x.nome}: `}</Text>
               {x.testo}
-              {x.nome === 'Relax' && relax ? ' Se hai un anello Oura o un orologio Polar puoi collegarlo e vedere qui il tuo sonno e come ti riprendi.' : ''}
+              {x.nome === 'Relax' && relax ? ' Ogni mattina scrivi quanto hai dormito, o collega un anello Oura o un orologio Polar: il sonno arriva da solo.' : ''}
             </Text>
           </View>
         ))}
       </View>
+      <Text style={[stili.testo, { color: p.testoSecondario }]}>
+        <Text style={{ fontFamily: F.extra, color: p.testo }}>Athlon Health Score </Text>
+        mette insieme i tre in un punteggio da 0 a 100: premia la regolarità, non la quantità.
+      </Text>
       <Text style={[stili.testo, { color: p.testoSecondario }]}>
         <Text style={{ fontFamily: F.extra, color: p.testo }}>Balance </Text>
         mette accanto le calorie che consumi e quelle che mangi: è il punto in cui allenamento e alimentazione si incontrano.
