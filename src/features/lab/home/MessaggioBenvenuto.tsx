@@ -20,8 +20,9 @@ import { useMessaggioBenvenuto } from './useMessaggioBenvenuto'
 //
 // - **Mentre arriva** c'e' lo scheletro, che sull'apertura dell'app si confonde con l'avvio animato; se la funzione non risponde (o
 //   non c'e' ancora) la carta non compare: nessun riquadro vuoto e nessun errore per una cosa che nessuno ha chiesto.
-// - **«Scritto dall'AI» solo se lo e' davvero**: quando l'AI non risponde il server ripiega su testi scritti a mano dal club, e
-//   quelli non portano l'etichetta.
+// - **L'etichetta e' sempre «PER TE»**, senza dire chi ha scritto il messaggio (richiesta del club, 19/10/2026): l'AI scrive solo le
+//   parole di un passo che decide il codice, e quando non risponde il server ripiega su testi scritti a mano. `origine` arriva comunque
+//   dalla funzione (e si registra), ma qui non si mostra.
 // - **Si puo' nascondere** (la X): resta nascosto fino al prossimo ritorno, quando ne arriva uno nuovo.
 // - **In vista cliente dello staff non c'e'**: chi guarda l'app di un socio non genera messaggi a suo nome.
 // - Il pulsante porta dove dice la destinazione: la prova e l'abbonamento sono le schermate che gia' esistono, il calendario e
@@ -81,7 +82,7 @@ function CartaMessaggio({ m, onSezione, onNascondi }: { m: MessaggioDato; onSezi
             <Icona nome="stella" size={18} colore="#fff" />
           </LinearGradient>
           <Text style={[stili.etichetta, { color: p.testoTerzo }]} numberOfLines={1}>
-            {m.origine === 'ai' ? 'PER TE · SCRITTO DALL’AI' : 'PER TE'}
+            PER TE
           </Text>
           <View style={{ flex: 1 }} />
           <Tocco onPress={onNascondi} etichetta="Nascondi il messaggio" scala={0.9} vibra={null}>
