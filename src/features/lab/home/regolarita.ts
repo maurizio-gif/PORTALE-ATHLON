@@ -38,6 +38,24 @@ export type Regolarita = {
 
 const ORDINE: ChiaveMotivo[] = ['debito', 'metodo', 'carta']
 
+/**
+ * E' un abbonamento? Quelli con una quota, e **i principali a quota zero** (20/10/2026, richiesta del club):
+ * gli omaggi e gli employee non hanno un canone ma sono abbonamenti veri, e senza questa regola un dipendente
+ * apriva l'app e leggeva «0 attivi». Il Guest Pass resta fuori: e' una prova, non un abbonamento. Gli aggiuntivi
+ * a quota zero (un servizio incluso) nemmeno.
+ *
+ * Con la funzione del database non ancora aggiornata `tipo` non c'e': si torna alla regola di prima (una quota).
+ */
+export function eAbbonamento(c: Pick<ContrattoArea, 'canone' | 'tipo' | 'aggiuntivo'>): boolean {
+  if ((c.canone ?? 0) > 0) return true
+  return c.tipo === 'gratuito' && !c.aggiuntivo
+}
+
+/** Le persone del nucleo che hanno un abbonamento in vigore (i contratti dell'area sono tutti vivi: in corso, non ancora iniziati o sospesi). */
+export function personeConAbbonamento(area: AreaTrovata): Set<number> {
+  return new Set(area.contratti.filter(eAbbonamento).map((c) => c.member_id))
+}
+
 function soldi(n: number): string {
   return n.toLocaleString('it-IT', { style: 'currency', currency: 'EUR' })
 }
@@ -85,13 +103,13 @@ export type RiepilogoAbbonamenti = {
 
 /**
  * Gli abbonamenti dell'intero nucleo, per il riquadro della Home. Si contano i soli abbonamenti
- * veri (con una quota): un Guest Pass e' una prova, e i contratti a quota zero non sono
- * abbonamenti. E' lo stesso elenco della sezione sotto il riquadro (`contratti` di
- * portale-abbonamento, che prende i contratti con una quota), cosi' il numero e la lista
- * non si contraddicono (17/10/2026).
+ * veri (`eAbbonamento`: con una quota, o principali a quota zero come gli omaggi e gli employee):
+ * un Guest Pass e' una prova. E' lo stesso elenco della sezione sotto il riquadro (`contratti` di
+ * portale-abbonamento, che prende gli stessi contratti), cosi' il numero e la lista
+ * non si contraddicono (17/10/2026, e dal 20/10/2026 con gli omaggi e gli employee).
  */
 export function riepilogoAbbonamenti(area: AreaTrovata): RiepilogoAbbonamenti {
-  const veri = area.contratti.filter((c) => (c.canone ?? 0) > 0)
+  const veri = area.contratti.filter(eAbbonamento)
   let attivi = 0
   let inPartenza = 0
   let sospesi = 0
