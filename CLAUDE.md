@@ -18,7 +18,7 @@ chiamata diretta al gestionale. Esempio: la sezione Prodotti usa l'azione `prodo
 - **Quello che PerfectGym non dice** (da quale dispositivo si è prenotato, per esempio) lo registra la
   nostra funzione nel suo log; la schermata non lo deduce.
 
-## La foto del profilo si mostra nel Profilo, e solo lì
+## La foto del profilo si mostra nel Profilo, e solo lì; dal Profilo si cambia
 
 L'anagrafica che `portale-lab-anagrafica` restituisce porta `foto`: il link firmato (un'ora) della foto che il
 club ha su PerfectGym, copiata nel bucket privato `foto-soci`, o `null`. È la **foto del titolare**, presa dal
@@ -29,9 +29,56 @@ APP-ATHLON.
 - **Sta dentro l'anagrafica, e non in una chiamata a parte**, perché `salva` e `conferma_email` rispondono con
   la stessa anagrafica e la schermata la sostituisce a quella che ha: se la foto vivesse altrove, cambiare il
   telefono la farebbe sparire.
-- **Senza foto, o con il link scaduto o la rete andata, la sezione è quella di prima**: niente segnaposto e
-  niente riquadro vuoto (`FotoProfilo` non rende nemmeno l'involucro). Un link nuovo, a ogni apertura del
-  Profilo, è un'altra possibilità.
+- **Dove la persona non può cambiare la foto, e il link è scaduto o la rete è andata, la sezione è quella di
+  prima**: niente segnaposto e niente riquadro vuoto (`FotoProfilo` non rende nemmeno l'involucro). Un link nuovo,
+  a ogni apertura del Profilo, è un'altra possibilità.
+
+### Si cambia da qui, e chi non ha una foto è invitato a metterla (20/10/2026)
+
+Cartella `src/features/lab/profilo/`, `src/lib/fotoProfilo.ts` e `src/lib/ritaglio.ts`; la funzione e la scrittura su PerfectGym
+sono nel `CLAUDE.md` di APP-ATHLON (`portale-lab-anagrafica`, azione `foto`). **La foto resta in due posti soli**
+(testata della scheda del CRM e Profilo): l'invito non la mostra, e il pallino sulla Home non è una faccia.
+
+- **Chi non ha una foto trova al suo posto un invito** (`FotoProfilo`): un riquadro vuoto nell'arancio del club con la
+  fotocamera e un «+», un anello che pulsa piano, «Aggiungi la tua foto» e una riga che dice dove si vedrà («nel tuo
+  Profilo e sulla tua scheda in segreteria»: i due posti, e non di più). Chi ce l'ha vede la foto con una fotocamera
+  sull'angolo e «Cambia foto». **Un comando c'è solo dove c'è qualcosa da fare**: per chi non può cambiarla è soltanto la foto.
+- **Il richiamo è lampeggiante ma discreto** (`profilo/Richiamo.tsx`): un anello che si allarga e svanisce, piccolo e lento
+  (1,5 s), nell'arancio del club; **tre anelli di fila, una pausa di 4,5 s, tre raffiche in tutto (una trentina di
+  secondi) e poi sta fermo fino alla prossima apertura**. Un'animazione che non finisce mai dopo una settimana non si vede
+  più o non si sopporta. **Con «riduci movimento» non c'è l'anello**: l'invito resta nel testo e nel pulsante. Sono due
+  posti soli e un effetto solo: l'anello intorno al riquadro nel Profilo e un **pallino** (`PuntoInvito`) sul «Profilo»
+  della testata della Home; il riquadro Profilo della Home dice «Aggiungi la tua foto» al posto dell'email, fermo.
+  **Un richiamo in più, o un altro posto, si chiede al club**, come per l'avvio animato.
+- **Quando si invita lo decide la funzione**, con `foto_modificabile` nell'anagrafica, e la Home aggiunge solo che una foto
+  non c'è (`invitoDa` in `AreaRiservata.tsx`). In vista cliente è falso, e con una funzione non ancora aggiornata il campo non
+  c'è: **niente invito e niente comando**, e la sezione è quella di prima. L'app può uscire prima della funzione senza offrire
+  un comando che non risponde, ma il cambio parte solo dopo la funzione.
+- **Il foglio** (`FoglioFoto`): «Scatta una foto» (solo dove c'è un touch, `fotocameraDisponibile`: sul computer `capture`
+  non conta e si aprirebbe una finestra di file, quindi lì c'è solo «Scegli una foto») e «Scegli dalla galleria», poi
+  l'**anteprima** («Così ti vedranno») e **«Usa questa foto»: niente parte prima**. Durante l'invio il foglio non si chiude.
+  Gli errori della funzione (formato, troppo piccola, limite di cinque cambi in un'ora, rifiutata da PerfectGym) arrivano così
+  come sono, nel foglio, e si può riprovare.
+- **La foto diventa un quadrato di 800 pixel in JPEG, sul web** (`fotoProfilo.ts`): ritagliato come li ritagliano gli avatar
+  del Profilo (`ritaglioQuadrato`: lato corto per intero, lungo l'altro lato al 30%, sopra il centro dove stanno le facce),
+  quindi l'anteprima è quello che si salva e non viene più tagliata. Pesa 60-200 kB e **perde l'EXIF, posizione compresa**;
+  l'orientamento lo applica il browser. Sotto i 200 pixel per lato la ferma l'app, prima di scomodare il server (che
+  ricontrolla tutto sui byte). **Nell'app nativa la foto parte com'è** (JPEG, PNG o WebP fino a 4 MB: un HEIC no), con l'EXIF
+  che ha, e senza fotocamera diretta: ritagliare e ripulire vorrebbero `expo-image-manipulator` e `expo-image-picker`, e
+  quindi una nuova build, come per le schede (`fileScheda.ts`).
+- **Se le misure non sono ancora pronte** (`in_arrivo`) la foto è salvata ma il link non c'è: per dieci minuti l'anagrafica
+  che si mostra porta quella appena scelta (`profilo/fotoLocale.ts`, solo in memoria, esce con l'uscita dall'app), così
+  non sparisce e l'invito non riappare a chi l'ha appena messa. Il messaggio lo dice: «Per la segreteria sarà pronta fra
+  qualche minuto».
+
+Per verificare: `npx tsc --noEmit` pulito; `ritaglioQuadrato` (`src/lib/ritaglio.ts`, puro) si prova con
+`node --experimental-strip-types`. **Provato in un browser vero** (Chromium, bundle web esportato, funzione simulata con
+`page.route`; 390 px con touch e 1280 px senza, tema chiaro e scuro): l'invito e il pallino che pulsano (fotogrammi diversi) e
+che con «riduci movimento» non si muovono; foglio, scelta dalla galleria e da «scatta», anteprima, invio, e cosa parte (un solo
+data URL JPEG, 800×800, 21 kB, senza EXIF); ritorno con foto, con `in_arrivo`, con 422, 429 e con la funzione che non conosce
+l'azione; foto troppo piccola ferma prima di ogni richiesta; vista cliente e funzione vecchia senza invito né comando; chi ha
+già la foto. **Non provato**: 360 e 430 px, un telefono vero (la fotocamera frontale, `capture="user"`, e l'HEIC di iOS), l'app
+nativa, e **PerfectGym vero** (vedi APP-ATHLON): la funzione era simulata.
 
 ## I video e i poster degli esercizi arrivano da un bucket privato, già firmati
 

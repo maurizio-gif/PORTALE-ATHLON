@@ -48,8 +48,11 @@ export async function scegliFile(): Promise<FileGrezzo | null> {
  * La fotocamera. Sul web apre quella posteriore del telefono (`capture`), e sul computer, dove `capture` non
  * conta, la scelta di una foto. Nell'app nativa per ora e' il selettore delle foto (serve `expo-image-picker`
  * per la fotocamera diretta, e quindi una nuova build).
+ *
+ * `fotocamera`: `'user'` apre quella frontale (la foto del Profilo, `fotoProfilo.ts`); `null` non chiede la
+ * fotocamera e lascia scegliere fra le foto del telefono. Di partenza e' la posteriore, come per le schede.
  */
-export function scattaFoto(): Promise<FileGrezzo | null> {
+export function scattaFoto(fotocamera: 'environment' | 'user' | null = 'environment'): Promise<FileGrezzo | null> {
   if (Platform.OS !== 'web' || typeof document === 'undefined') {
     return DocumentPicker.getDocumentAsync({ type: ['image/*'], copyToCacheDirectory: true, multiple: false, base64: false }).then((r) =>
       r.canceled || !r.assets?.[0] ? null : comeFile(r.assets[0])
@@ -59,7 +62,7 @@ export function scattaFoto(): Promise<FileGrezzo | null> {
     const campo = document.createElement('input')
     campo.type = 'file'
     campo.accept = 'image/*'
-    campo.setAttribute('capture', 'environment')
+    if (fotocamera) campo.setAttribute('capture', fotocamera)
     campo.style.display = 'none'
     const chiudi = (f: FileGrezzo | null) => {
       campo.remove()
@@ -94,7 +97,7 @@ export function pesoLeggibile(byte: number): string {
   return byte >= 1024 * 1024 ? `${(byte / 1024 / 1024).toFixed(1).replace('.', ',')} MB` : `${Math.max(1, Math.round(byte / 1024))} kB`
 }
 
-function inDataUrl(blob: Blob): Promise<string> {
+export function inDataUrl(blob: Blob): Promise<string> {
   return new Promise((risolvi, rifiuta) => {
     const lettore = new FileReader()
     lettore.onerror = () => rifiuta(new Error('lettura non riuscita'))

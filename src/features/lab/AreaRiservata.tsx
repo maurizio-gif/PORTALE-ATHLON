@@ -9,7 +9,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { contrattiAbbonamento } from '@/api/abbonamento'
 import { elencoDocumenti } from '@/api/documenti'
-import { laMiaArea, leggiAnagrafica, leggiGiorno, leggiVetrine, type Area, type PersonaArea } from '@/api/lab'
+import { laMiaArea, leggiAnagrafica, leggiGiorno, leggiVetrine, type Anagrafica, type Area, type EsitoAnagrafica, type PersonaArea } from '@/api/lab'
 import type { Tessera } from '@/api/tesseramenti'
 import { spazio } from '@/theme'
 
@@ -30,6 +30,8 @@ import { SEZIONI, SEZIONE_INIZIALE, sezioneDa, type SezioneHome } from './home/s
 import { inMemoria, precarica, prendi } from './memoria'
 import { useMovimenti } from './pagamenti/Movimenti'
 import { ProfiloContenuto } from './Profilo'
+import { conFotoLocale } from './profilo/fotoLocale'
+import { PuntoInvito } from './profilo/Richiamo'
 import { memoria as memoriaTv } from './tv/comune'
 import { Icona } from './ui/Icona'
 import { Avatar, Entra, Messaggio, Pulsante, SchedeInArrivo } from './ui/kit'
@@ -47,9 +49,9 @@ import { Tocco } from './ui/Tocco'
 // (portale_la_mia_area) e dalle schermate delle sezioni.
 
 /** La testata scura: la data, l'avatar, il saluto, le pillole di chi sei. Toccandola si apre il profilo, nella Home. */
-function Benvenuto({ titolare, email, famiglia, onProfilo }: { titolare: PersonaArea | undefined; email: string; famiglia: number; onProfilo: () => void }) {
+function Benvenuto({ titolare, email, famiglia, invitoFoto, onProfilo }: { titolare: PersonaArea | undefined; email: string; famiglia: number; /** La foto del profilo manca: sul «Profilo» pulsa un pallino. */ invitoFoto: boolean; onProfilo: () => void }) {
   return (
-    <Tocco onPress={onProfilo} ruolo="link" etichetta="Il mio profilo: anagrafica e contatti" scala={0.985}>
+    <Tocco onPress={onProfilo} ruolo="link" etichetta={invitoFoto ? 'Il mio profilo: anagrafica e contatti. Aggiungi la tua foto' : 'Il mio profilo: anagrafica e contatti'} scala={0.985}>
     <LinearGradient colors={NOTTE} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={stili.benvenuto}>
       <View style={stili.bagliore} />
       <View style={[stili.data, { justifyContent: 'space-between' }]}>
@@ -61,6 +63,7 @@ function Benvenuto({ titolare, email, famiglia, onProfilo }: { titolare: Persona
           <Icona nome="persona" size={14} colore="#fff" />
           <Text style={stili.profiloTesto}>Profilo</Text>
           <Icona nome="avanti" size={13} colore="rgba(255,255,255,0.7)" />
+          {invitoFoto ? <PuntoInvito /> : null}
         </View>
       </View>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: spazio.tre }}>
@@ -156,9 +159,21 @@ function riquadroTesseramento(tessere: Tessera[]): VoceRiquadro {
   return { valore: String(tessere.length), nota: 'tessere attive' }
 }
 
+/**
+ * Va invitata a mettere la foto? Solo se la funzione dice che si puo' cambiare (`foto_modificabile`: non in vista
+ * cliente, non con una funzione che non la conosce) e una foto non c'e' - nemmeno una appena scelta e non ancora pronta.
+ */
+function invitoDa(a: Anagrafica | null | undefined): boolean {
+  return !!a && a.foto_modificabile === true && !conFotoLocale(a).foto
+}
+
 export function AreaRiservata({ email }: { email: string }) {
   const [area, setArea] = useState<Area | null>(inMemoria<{ ok: true; area: Area }>('area')?.area ?? null)
   const [errore, setErrore] = useState<{ testo: string; nonAmmesso: boolean } | null>(null)
+  const [invitoFoto, setInvitoFoto] = useState<boolean>(() => {
+    const gia = inMemoria<EsitoAnagrafica>('anagrafica')
+    return gia?.ok ? invitoDa(gia.anagrafica) : false
+  })
   const movimenti = useMovimenti()
   const documenti = useDocumenti()
   const prodotti = useProdotti()
@@ -175,6 +190,9 @@ export function AreaRiservata({ email }: { email: string }) {
   const scorrimento = useRef<Animated.ScrollView>(null)
   const riquadri = useRef<View>(null)
 
+  // Il Profilo, quando si apre, dice com'e' la foto: si smette di invitare appena la si mette.
+  const aggiornaInvito = useCallback((a: Anagrafica) => setInvitoFoto(invitoDa(a)), [])
+
   const carica = useCallback(async () => {
     setErrore(null)
     const esito = await prendi('area', laMiaArea)
@@ -186,7 +204,10 @@ export function AreaRiservata({ email }: { email: string }) {
       precarica('giorno::', () => leggiGiorno())
       precarica(CHIAVE_CONTRATTI, contrattiAbbonamento)
       precarica(CHIAVE_DOCUMENTI, elencoDocumenti)
-      precarica('anagrafica', leggiAnagrafica)
+      // L'anagrafica serve al Profilo e, qui, a sapere se la foto c'e': l'invito col pallino sul «Profilo» (profilo/Richiamo).
+      const gia = inMemoria<EsitoAnagrafica>('anagrafica')
+      if (gia) setInvitoFoto(gia.ok && invitoDa(gia.anagrafica))
+      else prendi('anagrafica', leggiAnagrafica).then((r) => setInvitoFoto(r.ok && invitoDa(r.anagrafica)))
       if (!memoriaTv.vetrine) leggiVetrine().then((r) => r.ok && (memoriaTv.vetrine = r.vetrine))
     }
   }, [])
@@ -293,14 +314,14 @@ export function AreaRiservata({ email }: { email: string }) {
           : { valore: '…', nota: 'un attimo' },
     certificato: riquadroCertificato(area),
     famiglia: { valore: String(area.persone.length), nota: area.persone.length === 1 ? 'persona' : 'persone' },
-    profilo: { valore: titolare?.nome || 'Profilo', nota: titolare?.email || email },
+    profilo: { valore: titolare?.nome || 'Profilo', nota: invitoFoto ? 'Aggiungi la tua foto' : titolare?.email || email },
     tesseramento: riquadroTesseramento(tesseramenti ?? []),
   }
 
   return (
     <Schermata titolo={titolare?.nome ? `Ciao, ${titolare.nome}` : 'La mia area'} nascondiTitolo scorrimento={scorrimento}>
       <Entra indice={0}>
-        <Benvenuto titolare={titolare} email={email} famiglia={famiglia.length} onProfilo={() => vai('profilo', true)} />
+        <Benvenuto titolare={titolare} email={email} famiglia={famiglia.length} invitoFoto={invitoFoto} onProfilo={() => vai('profilo', true)} />
       </Entra>
 
       {/* Il messaggio di benvenuto: scritto a ogni ritorno nell'app, spinge verso il prossimo passo (home/MessaggioBenvenuto). */}
@@ -327,7 +348,7 @@ export function AreaRiservata({ email }: { email: string }) {
         {sezione === 'documenti' ? <SezioneDocumenti /> : null}
         {sezione === 'certificato' ? <SezioneCertificato area={area} onAggiorna={carica} /> : null}
         {sezione === 'famiglia' ? <SezioneFamiglia area={area} /> : null}
-        {sezione === 'profilo' ? <ProfiloContenuto /> : null}
+        {sezione === 'profilo' ? <ProfiloContenuto onAnagrafica={aggiornaInvito} /> : null}
         {sezione === 'tesseramento' && tesseramenti ? <SezioneTesseramento tessere={tesseramenti} /> : null}
       </Entra>
     </Schermata>

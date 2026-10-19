@@ -1,4 +1,3 @@
-import { Image } from 'expo-image'
 import { useCallback, useEffect, useState } from 'react'
 import { StyleSheet, Text, View } from 'react-native'
 
@@ -19,6 +18,8 @@ import { CODICE_FISCALE_NON_ATTRIBUITO, ITALIA, pulisciCapLibero } from '@/lib/r
 import { spazio } from '@/theme'
 
 import { inMemoria, prendi, ricorda } from './memoria'
+import { FoglioFoto, FotoProfilo } from './profilo/FotoProfilo'
+import { conFotoLocale, ricordaFotoLocale } from './profilo/fotoLocale'
 import { CampoCodice, CampoTesto } from './ui/Campi'
 import { Foglio } from './ui/Foglio'
 import { Icona, type NomeIcona } from './ui/Icona'
@@ -36,10 +37,14 @@ import { colpetto } from './ui/Tocco'
 //
 // **La foto del profilo** (17/10/2026) sta in cima, se il club ne ha una su PerfectGym: e' la sua foto, e qui
 // e' l'unico posto dell'app dove si mostra (richiesta del club) - non nella Home, non in Famiglia, non nel
-// Calendario. Senza foto la sezione e' quella di prima: niente segnaposto, perche' per chi non ce l'ha un
-// avatar con le iniziali sarebbe una novita' che nessuno ha chiesto.
+// Calendario.
+//
+// **Si cambia da qui** (20/10/2026, `profilo/FotoProfilo.tsx`): chi non ha una foto trova al suo posto un invito con
+// un anello che pulsa piano, chi ce l'ha un comando per cambiarla; scattare o scegliere, anteprima, conferma. La Home
+// rimanda a questa sezione con un pallino che pulsa sul «Profilo» (`AreaRiservata`), finche' la foto non c'e'.
+// Senza la funzione aggiornata, o in vista cliente, `foto_modificabile` non c'e' e la sezione e' quella di prima.
 
-type Modifica = 'email' | 'telefono' | 'indirizzo' | null
+type Modifica = 'email' | 'telefono' | 'indirizzo' | 'foto' | null
 
 // ---------------------------------------------------------------------------
 
@@ -201,43 +206,6 @@ function FoglioEmail({ attuale, onChiudi, onSalvato }: { attuale: string | null;
 
 // ---------------------------------------------------------------------------
 
-/** Quanto e' grande la foto in cima al Profilo, e quanto tonda: lo stesso rapporto degli avatar con le iniziali. */
-const LATO_FOTO = 112
-
-/**
- * La foto del profilo, al centro in cima alla sezione. Il link e' firmato e dura un'ora: se non si carica - scaduto,
- * o la rete e' andata - non si mostra niente, e la sezione resta com'era invece di tenere un riquadro vuoto. Un
- * link nuovo (la schermata si aggiorna a ogni apertura) e' un'altra possibilita'.
- */
-function FotoProfilo({ url, indice }: { url: string; indice: number }) {
-  const p = usePalette()
-  const [rotta, setRotta] = useState(false)
-  useEffect(() => setRotta(false), [url])
-  // Niente nemmeno l'involucro che entra dal basso: una vista vuota terrebbe lo spazio fra una sezione e l'altra.
-  if (rotta) return null
-  const forma = { width: LATO_FOTO, height: LATO_FOTO, borderRadius: LATO_FOTO * 0.36 }
-  return (
-    <Entra indice={indice}>
-      <View style={stili.foto}>
-        {/* L'ombra sta su una vista a parte: lo stile di un'immagine non ha `boxShadow`. */}
-        <View style={[forma, { boxShadow: p.ombra }]}>
-          <Image
-            source={{ uri: url }}
-            onError={() => setRotta(true)}
-            contentFit="cover"
-            // Le facce stanno sopra il centro: ritagliando una foto non quadrata si perde prima il fondo.
-            contentPosition={{ left: '50%', top: '30%' }}
-            transition={150}
-            accessibilityLabel="La tua foto del profilo"
-            accessibilityIgnoresInvertColors
-            style={[forma, { backgroundColor: p.incavo }]}
-          />
-        </View>
-      </View>
-    </Entra>
-  )
-}
-
 function ModificaPillola() {
   const p = usePalette()
   return (
@@ -252,10 +220,10 @@ function ModificaPillola() {
  * cambiare, i dati anagrafici, l'account. Il nucleo sta in Famiglia, e l'avviso
  * di un pagamento in sospeso nel «Da fare» della Home.
  */
-export function ProfiloContenuto() {
+export function ProfiloContenuto({ onAnagrafica }: { /** La Home lo usa per sapere se la foto c'e' (l'invito col pallino sul «Profilo»). */ onAnagrafica?: (a: Anagrafica) => void }) {
   const p = usePalette()
   const giaLetta = inMemoria<{ ok: true; anagrafica: Anagrafica }>('anagrafica')
-  const [dati, setDati] = useState<Anagrafica | null>(giaLetta?.anagrafica ?? null)
+  const [dati, setDati] = useState<Anagrafica | null>(giaLetta ? conFotoLocale(giaLetta.anagrafica) : null)
   const [modificabile, setModificabile] = useState(!!giaLetta)
   const [errore, setErrore] = useState<string | null>(null)
   const [modifica, setModifica] = useState<Modifica>(null)
@@ -266,7 +234,7 @@ export function ProfiloContenuto() {
     const [r, area] = await Promise.all([prendi('anagrafica', leggiAnagrafica), prendi('area', laMiaArea)])
     const trovata = area.ok && area.area.trovato ? area.area : null
     if (r.ok) {
-      setDati(r.anagrafica)
+      setDati(conFotoLocale(r.anagrafica))
       setModificabile(true)
       return
     }
@@ -294,12 +262,25 @@ export function ProfiloContenuto() {
   function salvato(cosa: string) {
     return (a: Anagrafica) => {
       colpetto('ok')
-      ricorda('anagrafica', { ok: true, anagrafica: a })
-      setDati(a)
+      const conFoto = conFotoLocale(a)
+      ricorda('anagrafica', { ok: true, anagrafica: conFoto })
+      setDati(conFoto)
       setModifica(null)
       setFatto(cosa)
     }
   }
+
+  // La foto: se le misure non sono ancora pronte su PerfectGym (`inArrivo`) si tiene quella appena scelta, per un po',
+  // al posto del link che non c'e' ancora; altrimenti la funzione ha gia' risposto col link nuovo.
+  function fotoSalvata(a: Anagrafica, esito: { anteprima: string; inArrivo: boolean }) {
+    ricordaFotoLocale(esito.inArrivo ? esito.anteprima : null)
+    salvato(esito.inArrivo ? 'Foto salvata. Per la segreteria sarà pronta fra qualche minuto.' : 'Foto aggiornata.')(a)
+  }
+
+  // La Home sa cosi' se la foto c'e', e smette di invitare appena si mette.
+  useEffect(() => {
+    if (dati) onAnagrafica?.(dati)
+  }, [dati, onAnagrafica])
 
   if (errore && !dati) {
     return (
@@ -311,7 +292,7 @@ export function ProfiloContenuto() {
   }
   if (!dati) return <SchedeInArrivo quante={2} />
 
-  const contatti: { chiave: Exclude<Modifica, null>; icona: NomeIcona; titolo: string; valore: string | null; vuoto: string }[] = [
+  const contatti: { chiave: Exclude<Modifica, null | 'foto'>; icona: NomeIcona; titolo: string; valore: string | null; vuoto: string }[] = [
     { chiave: 'email', icona: 'email', titolo: 'Email', valore: dati.email, vuoto: 'Nessuna email' },
     { chiave: 'telefono', icona: 'telefono', titolo: 'Telefono', valore: dati.telefono, vuoto: 'Nessun numero' },
     { chiave: 'indirizzo', icona: 'luogo', titolo: 'Indirizzo', valore: indirizzoInRiga(dati.indirizzo), vuoto: modificabile ? 'Aggiungi il tuo indirizzo' : 'Non disponibile' },
@@ -324,14 +305,17 @@ export function ProfiloContenuto() {
     { icona: 'tessera', titolo: 'Numero Utente', valore: dati.numero },
   ]
   const anagrafici = tutti.filter((x) => x.valore)
+  // Chi puo' cambiare la foto ha sempre il suo posto in cima (la foto, o l'invito); chi no, solo se la foto c'e'.
+  const puoCambiare = modificabile && dati.foto_modificabile === true
+  const mostraFoto = !!dati.foto || puoCambiare
   // Con la foto in cima le sezioni entrano una dopo l'altra, partendo dal suo posto.
-  const da = dati.foto ? 1 : 0
+  const da = mostraFoto ? 1 : 0
 
   return (
     <View style={{ gap: spazio.quattro + 4 }}>
       {fatto ? <Messaggio tono="ok">{fatto}</Messaggio> : null}
 
-      {dati.foto ? <FotoProfilo url={dati.foto} indice={0} /> : null}
+      {mostraFoto ? <FotoProfilo url={dati.foto ?? null} puoCambiare={puoCambiare} indice={0} onCambia={() => setModifica('foto')} /> : null}
 
       <Entra indice={da}>
         <Sezione titolo="Contatti" destra={modificabile ? <Text style={{ color: p.testoTerzo, fontFamily: F.semi, fontSize: 12.5 }}>tocca per cambiare</Text> : undefined}>
@@ -383,6 +367,7 @@ export function ProfiloContenuto() {
         </Sezione>
       </Entra>
 
+      {modifica === 'foto' ? <FoglioFoto attuale={dati.foto ?? null} onChiudi={() => setModifica(null)} onSalvato={fotoSalvata} /> : null}
       {modifica === 'telefono' ? <FoglioTelefono attuale={dati.telefono} onChiudi={() => setModifica(null)} onSalvato={salvato('Telefono aggiornato.')} /> : null}
       {modifica === 'indirizzo' ? <FoglioIndirizzo attuale={dati.indirizzo} onChiudi={() => setModifica(null)} onSalvato={salvato('Indirizzo aggiornato.')} /> : null}
       {modifica === 'email' ? (
@@ -393,7 +378,6 @@ export function ProfiloContenuto() {
 }
 
 const stili = StyleSheet.create({
-  foto: { alignItems: 'center' },
   attuale: { borderRadius: 18, padding: spazio.tre, gap: 2 },
   modifica: { width: 36, height: 36, borderRadius: 13, alignItems: 'center', justifyContent: 'center' },
   nota: { fontSize: 13, lineHeight: 19, fontFamily: F.medio },
