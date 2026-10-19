@@ -18,12 +18,13 @@ chiamata diretta al gestionale. Esempio: la sezione Prodotti usa l'azione `prodo
 - **Quello che PerfectGym non dice** (da quale dispositivo si è prenotato, per esempio) lo registra la
   nostra funzione nel suo log; la schermata non lo deduce.
 
-## La foto del profilo si mostra nel Profilo, e solo lì; dal Profilo si cambia
+## La foto del profilo si mostra nel Profilo e nella testata della Home; dal Profilo e dalla Home si cambia
 
 L'anagrafica che `portale-lab-anagrafica` restituisce porta `foto`: il link firmato (un'ora) della foto che il
 club ha su PerfectGym, copiata nel bucket privato `foto-soci`, o `null`. È la **foto del titolare**, presa dal
-token della sessione, e si mostra **solo nella sezione Profilo** (richiesta del club, 17/10/2026): non nella
-Home, non in Famiglia, non nel Calendario. Il perché e il resto della pipeline stanno nel `CLAUDE.md` di
+token della sessione, e nell'app si mostra **in due posti**: la sezione Profilo (richiesta del club, 17/10/2026) e, dal
+19/10/2026 (richiesta di Maurizio), **l'avatar della testata scura della Home**, al posto delle iniziali. Non in Famiglia, non
+nel Calendario, non nei riquadri né negli elenchi. Il perché e il resto della pipeline stanno nel `CLAUDE.md` di
 APP-ATHLON.
 
 - **Sta dentro l'anagrafica, e non in una chiamata a parte**, perché `salva` e `conferma_email` rispondono con
@@ -36,20 +37,21 @@ APP-ATHLON.
 ### Si cambia da qui, e chi non ha una foto è invitato a metterla (20/10/2026)
 
 Cartella `src/features/lab/profilo/`, `src/lib/fotoProfilo.ts` e `src/lib/ritaglio.ts`; la funzione e la scrittura su PerfectGym
-sono nel `CLAUDE.md` di APP-ATHLON (`portale-lab-anagrafica`, azione `foto`). **La foto resta in due posti soli**
-(testata della scheda del CRM e Profilo): l'invito non la mostra, e il pallino sulla Home non è una faccia.
+sono nel `CLAUDE.md` di APP-ATHLON (`portale-lab-anagrafica`, azione `foto`). **Nell'app la foto sta in due posti soli**
+(Profilo e avatar della testata della Home, vedi sotto), più la testata della scheda del CRM: l'invito nel Profilo non la mostra.
 
 - **Chi non ha una foto trova al suo posto un invito** (`FotoProfilo`): un riquadro vuoto nell'arancio del club con la
   fotocamera e un «+», un anello che pulsa piano, «Aggiungi la tua foto» e una riga che dice dove si vedrà («nel tuo
-  Profilo e sulla tua scheda in segreteria»: i due posti, e non di più). Chi ce l'ha vede la foto con una fotocamera
+  Profilo, in cima alla Home e sulla tua scheda in segreteria»: i tre posti, e non di più). Chi ce l'ha vede la foto con una fotocamera
   sull'angolo e «Cambia foto». **Un comando c'è solo dove c'è qualcosa da fare**: per chi non può cambiarla è soltanto la foto.
 - **Il richiamo è lampeggiante ma discreto** (`profilo/Richiamo.tsx`): un anello che si allarga e svanisce, piccolo e lento
   (1,5 s), nell'arancio del club; **tre anelli di fila, una pausa di 4,5 s, tre raffiche in tutto (una trentina di
   secondi) e poi sta fermo fino alla prossima apertura**. Un'animazione che non finisce mai dopo una settimana non si vede
   più o non si sopporta. **Con «riduci movimento» non c'è l'anello**: l'invito resta nel testo e nel pulsante. Sono due
-  posti soli e un effetto solo: l'anello intorno al riquadro nel Profilo e un **pallino** (`PuntoInvito`) sul «Profilo»
-  della testata della Home; il riquadro Profilo della Home dice «Aggiungi la tua foto» al posto dell'email, fermo.
-  **Un richiamo in più, o un altro posto, si chiede al club**, come per l'avvio animato.
+  posti e un effetto solo per posto: l'anello intorno al riquadro nel Profilo e quello intorno all'avatar della testata della Home
+  (sotto); il riquadro Profilo della Home dice «Aggiungi la tua foto» al posto dell'email, fermo. Il **pallino sul «Profilo»**
+  della testata (`PuntoInvito`) c'è stato per qualche ora e **non c'è più**: con l'anello sull'avatar sarebbe stato un secondo
+  effetto per lo stesso invito. **Un richiamo in più, o un altro posto, si chiede al club**, come per l'avvio animato.
 - **Quando si invita lo decide la funzione**, con `foto_modificabile` nell'anagrafica, e la Home aggiunge solo che una foto
   non c'è (`invitoDa` in `AreaRiservata.tsx`). In vista cliente è falso, e con una funzione non ancora aggiornata il campo non
   c'è: **niente invito e niente comando**, e la sezione è quella di prima. L'app può uscire prima della funzione senza offrire
@@ -71,13 +73,38 @@ sono nel `CLAUDE.md` di APP-ATHLON (`portale-lab-anagrafica`, azione `foto`). **
   non sparisce e l'invito non riappare a chi l'ha appena messa. Il messaggio lo dice: «Per la segreteria sarà pronta fra
   qualche minuto».
 
+### Nella testata della Home l'avatar è la foto (19/10/2026)
+
+Richiesta di Maurizio: all'apertura dell'app il riquadro con le iniziali («MT») in alto a sinistra della testata scura mostra **la foto del
+profilo**, se c'è. Se non c'è restano le iniziali, **un po' più grandi** (52 punti, erano 38: una faccia in 38 non si riconosce), con l'invito a
+metterla. File: `profilo/AvatarFoto.tsx` (l'avatar), `AreaRiservata.tsx` (`Benvenuto`, lo stato e il foglio).
+
+- **Con la foto** sta nello stesso riquadro 52×52 e con lo stesso bordo chiaro delle iniziali (`AvatarFoto`), ritagliata come gli altri avatar
+  (`contentPosition` 50% / 30%). Le iniziali stanno **sotto**: la foto entra in dissolvenza quando è caricata, e se il link è scaduto o la rete
+  è andata (`onError`) restano le iniziali, senza buchi e senza invito (una foto il server dice che c'è). **Non è un comando a parte**: il tocco
+  sulla testata porta al Profilo, dove «Cambia foto» c'è già.
+- **Senza foto** (e solo dove `foto_modificabile` è vero, `invitoDa`): le iniziali con l'anello che pulsa (`Richiamo`, lo stesso del Profilo: tre
+  raffiche e poi fermo), una fotocamera sull'angolo e, accanto alla data, «Aggiungi la tua foto» in arancio. **Con la sezione Profilo aperta sotto i riquadri l'invito della testata non c'è** (ha già il suo, `sezione !== 'profilo'`: un invito solo sullo schermo). **Toccando avatar e scritta si apre
+  subito il foglio** (`FoglioFoto`, lo stesso del Profilo): niente passa dal Profilo, e a salvataggio fatto la foto prende il posto delle iniziali,
+  con «Foto aggiornata.» sotto la testata per qualche secondo (o, se le misure non sono pronte, «Foto salvata. Per la segreteria sarà pronta fra
+  qualche minuto.» e la foto appena scelta resta per dieci minuti, `fotoLocale.ts`).
+- **La Home legge l'anagrafica a ogni apertura**, anche se in memoria c'è (`anagraficaRiletta`): il link della foto è firmato e dura un'ora, e uno
+  scaduto mostrerebbe le iniziali a chi ha una foto. Una sola rilettura per apertura, non a ogni `carica` (che gira anche dopo un certificato).
+  Il Profilo, aperto sotto i riquadri, aggiorna la testata (`aggiornaAnagrafica`): cambiare la foto lì la cambia in alto.
+- **In vista cliente** lo staff vede nella testata la foto del cliente, come nel Profilo (`foto` è del titolare che guarda); senza foto, o con una
+  funzione che non conosce il cambio, le iniziali di sempre, **senza invito e senza comando**. La testata è un posto in più rispetto alla regola del
+  17/10/2026 («solo nel Profilo»): **un altro posto si chiede al club**, e questo è una richiesta di Maurizio non ancora confermata dal club.
+
 Per verificare: `npx tsc --noEmit` pulito; `ritaglioQuadrato` (`src/lib/ritaglio.ts`, puro) si prova con
 `node --experimental-strip-types`. **Provato in un browser vero** (Chromium, bundle web esportato, funzione simulata con
 `page.route`; 390 px con touch e 1280 px senza, tema chiaro e scuro): l'invito e il pallino che pulsano (fotogrammi diversi) e
 che con «riduci movimento» non si muovono; foglio, scelta dalla galleria e da «scatta», anteprima, invio, e cosa parte (un solo
 data URL JPEG, 800×800, 21 kB, senza EXIF); ritorno con foto, con `in_arrivo`, con 422, 429 e con la funzione che non conosce
 l'azione; foto troppo piccola ferma prima di ogni richiesta; vista cliente e funzione vecchia senza invito né comando; chi ha
-già la foto. **Non provato**: 360 e 430 px, un telefono vero (la fotocamera frontale, `capture="user"`, e l'HEIC di iOS), l'app
+già la foto. **La testata della Home** (19/10/2026) nello stesso modo, 20 prove: senza foto (avatar 52, anello che pulsa, il «Profilo» fermo, il
+tocco apre il foglio e non il Profilo, la foto prende il posto delle iniziali dopo il salvataggio, un invito solo con il Profilo aperto), con la foto (riquadro 52×52, immagine caricata, il tocco
+porta al Profilo), link scaduto, vista cliente e funzione vecchia, «riduci movimento», misure non pronte, foto rifiutata e riprovata, 360, 430 e 1280 px
+senza scorrimento orizzontale. **Non provato**: un telefono vero (la fotocamera frontale, `capture="user"`, e l'HEIC di iOS), l'app
 nativa, e **PerfectGym vero** (vedi APP-ATHLON): la funzione era simulata.
 
 ## I video e i poster degli esercizi arrivano da un bucket privato, già firmati

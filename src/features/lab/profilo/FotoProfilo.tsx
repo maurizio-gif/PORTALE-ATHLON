@@ -15,8 +15,8 @@ import { Richiamo } from './Richiamo'
 
 // La foto del Profilo (17/10/2026) e il suo cambio (20/10/2026).
 //
-// La foto che il club ha su PerfectGym si vede in cima al Profilo, e solo li' (richiesta del club: non nella Home,
-// non in Famiglia, non nel Calendario). Dal 20/10/2026 chi non ne ha una trova al suo posto **un invito**: un
+// La foto che il club ha su PerfectGym si vede in cima al Profilo e, dal 19/10/2026, nell'avatar della testata della Home
+// (`AvatarFoto`); non in Famiglia, non nel Calendario. Dal 20/10/2026 chi non ne ha una trova al suo posto **un invito**: un
 // riquadro vuoto con la fotocamera, un anello che pulsa piano (`Richiamo`) e due righe che dicono dove si vedra'.
 // Chi ce l'ha trova la foto con un piccolo comando per cambiarla. Il cambio e' un foglio con due strade - scattare,
 // scegliere - e un'anteprima: **niente parte senza «Usa questa foto»**.
@@ -28,7 +28,7 @@ import { Richiamo } from './Richiamo'
 const LATO_FOTO = 112
 const forma = (lato: number) => ({ width: lato, height: lato, borderRadius: lato * 0.36 })
 
-export const TESTO_DOVE_SI_VEDE = 'Si vede nel tuo Profilo e sulla tua scheda in segreteria.'
+export const TESTO_DOVE_SI_VEDE = 'Si vede nel tuo Profilo, in cima alla Home e sulla tua scheda in segreteria.'
 
 /**
  * La foto del profilo, al centro in cima alla sezione. Il link e' firmato e dura un'ora: se non si carica - scaduto,

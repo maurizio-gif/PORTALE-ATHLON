@@ -1,10 +1,8 @@
 import { useEffect } from 'react'
-import { StyleSheet, View } from 'react-native'
+import { StyleSheet } from 'react-native'
 import Animated, { Easing, useAnimatedStyle, useReducedMotion, useSharedValue, withDelay, withRepeat, withSequence, withTiming } from 'react-native-reanimated'
 
-import { FUOCO } from '../ui/tema'
-
-// Il richiamo per la foto del Profilo (20/10/2026): un anello che si allarga e svanisce, tre volte di fila, poi una
+// Il richiamo per la foto del Profilo e della testata della Home (20/10/2026): un anello che si allarga e svanisce, tre volte di fila, poi una
 // pausa; tre raffiche in tutto (una trentina di secondi) e poi sta fermo fino alla prossima apertura.
 //
 // **Lampeggiante ma discreto**, e la discrezione e' fatta di quattro cose: piccolo (un anello, non un riquadro),
@@ -46,14 +44,4 @@ export function Richiamo({ raggio, colore, ingrandimento = 1.3, spessore = 2 }: 
 
   if (fermo) return null
   return <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, { borderRadius: raggio, borderWidth: spessore, borderColor: colore }, stile]} />
-}
-
-/** Il pallino sull'angolo di un comando (il «Profilo» della Home): un punto fermo e, intorno, il richiamo. */
-export function PuntoInvito({ lato = 9, colore = FUOCO[1] }: { lato?: number; colore?: string }) {
-  return (
-    <View pointerEvents="none" style={{ position: 'absolute', top: -3, right: -3, width: lato, height: lato }}>
-      <Richiamo raggio={lato / 2} colore={colore} ingrandimento={2.8} spessore={1.5} />
-      <View style={{ width: lato, height: lato, borderRadius: lato / 2, backgroundColor: colore }} />
-    </View>
-  )
 }
