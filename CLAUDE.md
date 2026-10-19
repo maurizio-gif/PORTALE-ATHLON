@@ -512,16 +512,17 @@ A che punto è il socio, qual è il suo passo, come si controlla quello che scri
   **legata all'email della sessione**: una richiesta ancora in volo quando si esce non finisce nella Home di chi entra dopo.
 - **Mentre arriva c'è uno scheletro** (la richiesta dura qualche secondo, AI compresa): all'apertura si confonde con l'avvio animato (3,25 s), che lo copre. **Se la funzione non risponde** (o non è ancora
   pubblicata, o per un minorenne) **la carta non compare**: niente riquadro vuoto e niente errore per una cosa che nessuno ha chiesto. L'attesa massima è 15 secondi.
-- **«Scritto dall'AI» solo se lo è davvero.** Quando l'AI non risponde il server ripiega su testi scritti a mano dal club (`origine: 'regole'`): quelli portano solo «PER TE». Si può **nascondere** (la X):
+- **L'etichetta è sempre «PER TE»**, senza dire chi ha scritto il messaggio (richiesta del club, 19/10/2026: prima diceva «PER TE · SCRITTO DALL'AI» quando il testo era dell'AI). La funzione manda comunque
+  `origine` (`ai` o `regole`) e la registra, ma l'app non la mostra: per sapere quanti messaggi escono dall'AI e quanti dai testi di riserva si guarda il registro. Si può **nascondere** (la X):
   resta nascosto fino al prossimo messaggio. Il tocco sul pulsante si segna (`toccato`, senza aspettare e senza sollevare): è il solo segno, per il club, che il messaggio ha funzionato.
 - **In vista cliente dello staff non c'è e non si chiama la funzione** (`vistaCorrente()`): chi guarda l'app di un socio non genera messaggi a suo nome.
 - **Le parole**: la prova non è mai «gratis» né ha un prezzo nel messaggio (il passo mostra il prezzo); niente peso, dimagrimento, salute; niente colpa per chi manca da un po'. Lo garantisce il controllo
   del server, non l'app.
 
-Per verificare: `npx tsc --noEmit` pulito. **Si guarda renderizzato** (390 e 1280 px, chiaro e scuro): lo scheletro mentre arriva, il messaggio con l'etichetta «PER TE · SCRITTO DALL'AI» e il pulsante, un testo di
-riserva (solo «PER TE»), la X, nessuna carta se la funzione dà errore o `messaggio: null`, nessuno scorrimento orizzontale a 390. Con le risposte della funzione simulate (Playwright con `page.route` su
+Per verificare: `npx tsc --noEmit` pulito. **Si guarda renderizzato** (390 e 1280 px, chiaro e scuro): lo scheletro mentre arriva, il messaggio con l'etichetta «PER TE» e il pulsante, la X, nessuna carta se la funzione dà errore o `messaggio: null`, nessuno scorrimento orizzontale a 390. Con le risposte della funzione simulate (Playwright con `page.route` su
 Supabase e `page.clock`): all'apertura una richiesta `apertura`; cinque minuti fuori dall'app non ne chiedono un'altra; oltre mezz'ora fuori ne arriva una `ritorno`; il pulsante porta a
-`/richiesta/guest-pass` e segna `toccato`; in vista cliente nessuna richiesta. **Non provato**: un telefono vero (iOS e Android, dove `AppState` ha anche lo stato `inactive`), e il messaggio con la funzione vera.
+`/richiesta/guest-pass` e segna `toccato`; in vista cliente nessuna richiesta. **Acceso il 19/10/2026 per i tester del portale**, con la funzione vera: un tester ha aperto l'app, il messaggio è arrivato (scritto da Gemini, registrato) e il pulsante è stato premuto. Il lato server (workflow, controlli, cosa si è
+provato con le risposte vere dei modelli) sta nel `CLAUDE.md` di APP-ATHLON. **Non provato**: un telefono vero (iOS e Android, dove `AppState` ha anche lo stato `inactive`).
 
 ## Lo shop: Articoli e Merchandising, si compra dall'app e si ritira in segreteria
 
