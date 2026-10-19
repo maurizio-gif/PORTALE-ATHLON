@@ -19,7 +19,7 @@ import { Tocco } from './Tocco'
 // molla, un velo tondo piu' chiaro. Il 15/10 era stata agganciata al bordo perche'
 // su iPhone sotto la pillola restava una striscia di pagina tagliata a meta': ora
 // sotto c'e' una sfumatura del colore del fondo, che quella striscia la copre.
-// Si vede solo sulle cinque schermate principali (i pagamenti stanno nella Home).
+// Si vede solo sulle sei schermate principali (i pagamenti stanno nella Home).
 // Senza nomi sotto le icone: il nome resta per chi usa lo screen reader.
 
 const SCHEDE: { href: Href; percorso: string; titolo: string; icona: NomeIcona; anche?: string[] }[] = [
@@ -27,6 +27,9 @@ const SCHEDE: { href: Href; percorso: string; titolo: string; icona: NomeIcona; 
   // Il personal training e' l'altra faccia di Prenotazioni (SceltaPrenotazioni).
   { href: '/calendario', percorso: '/calendario', titolo: 'Prenotazioni', icona: 'calendario', anche: ['/personal'] },
   { href: '/allenamento', percorso: '/allenamento', titolo: 'Athlon Health System', icona: 'peso' },
+  // Lo shop (19/10/2026, richiesta del club): una voce principale, non un angolo della Home. Le sue schermate interne
+  // (articolo, carrello, ordini) non mostrano la barra, come le altre schermate di dettaglio.
+  { href: '/shop', percorso: '/shop', titolo: 'Shop', icona: 'sacchetto' },
   { href: '/tv', percorso: '/tv', titolo: 'TV', icona: 'play' },
   // News, eventi e Help Desk, coi dati del sito (clublife/ClubLife).
   { href: '/club-life', percorso: '/club-life', titolo: 'Club Life', icona: 'persone' },

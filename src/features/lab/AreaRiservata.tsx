@@ -14,6 +14,7 @@ import type { Tessera } from '@/api/tesseramenti'
 import { spazio } from '@/theme'
 
 import { CHIAVE_CONTRATTI, ElencoAbbonamenti } from './AbbonamentiMiei'
+import { CartaShop } from './home/CartaShop'
 import { DaFare } from './home/DaFare'
 import { MessaggioBenvenuto } from './home/MessaggioBenvenuto'
 import { Riquadri, type VoceRiquadro } from './home/Riquadri'
@@ -306,6 +307,9 @@ export function AreaRiservata({ email }: { email: string }) {
       <MessaggioBenvenuto email={email} onSezione={(s) => vai(s, true)} />
 
       <DaFare area={area} onSezione={(s) => vai(s, true)} />
+
+      {/* Lo shop: una voce della barra e, qui, la sua carta, fuori dalla sezione Prodotti (home/CartaShop). */}
+      <CartaShop />
 
       <Installa />
 
