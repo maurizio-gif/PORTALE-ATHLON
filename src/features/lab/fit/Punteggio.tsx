@@ -61,7 +61,7 @@ export function Anello({ p, size = 132, chiaro = true }: { p: Punteggio; size?: 
   })
   const fondo = chiaro ? 'rgba(255,255,255,0.14)' : pal.incavo
   return (
-    <View ref={ref} collapsable={false} style={{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+    <View ref={ref} collapsable={false} style={{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }}  aria-hidden>
       <Svg width={size} height={size} viewBox="0 0 120 120">
         {settori.map(({ x, inizio: da, lunghezza }) => (
           <Circle key={`f-${x.id}`} cx={60} cy={60} r={R} stroke={fondo} strokeWidth={12} fill="none" strokeLinecap="round" strokeDasharray={`${lunghezza} ${GIRO}`} strokeDashoffset={-da} transform="rotate(-90 60 60)" />

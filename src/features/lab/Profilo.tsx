@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { StyleSheet, Text, View } from 'react-native'
+import { Linking, StyleSheet, Text, View } from 'react-native'
 
 import {
   chiediCambioEmail,
@@ -13,6 +13,7 @@ import {
 import { emailValida } from '@/api/richieste'
 import { CampoPaese } from '@/components/CampoPaese'
 import { controllaResidenza, controllaTelefono, indirizzoInRiga } from '@/lib/anagrafica'
+import { PRIVACY_URL } from '@/lib/guestPass'
 import { dataBreve } from '@/lib/metodoPagamento'
 import { CODICE_FISCALE_NON_ATTRIBUITO, ITALIA, pulisciCapLibero } from '@/lib/residenteEstero'
 import { spazio } from '@/theme'
@@ -363,6 +364,18 @@ export function ProfiloContenuto({ onAnagrafica }: { /** La Home lo usa per la t
 
       <Entra indice={da + 2}>
         <Sezione titolo="Account">
+          {/* L'informativa generale del club (20/10/2026): come si trattano i dati e come far valere i propri diritti. */}
+          <Carta style={{ paddingVertical: spazio.due }}>
+            <Riga
+              prima
+              icona="scudo"
+              tono="neutro"
+              titolo="Informativa privacy"
+              sotto="Come il club tratta i tuoi dati e come esercitare i tuoi diritti."
+              stileTitolo={{ fontSize: 14, fontFamily: F.bold, color: p.testo }}
+              onPress={() => Linking.openURL(PRIVACY_URL)}
+            />
+          </Carta>
           <PulsanteEsci email={dati.email} testo="Esci dall’account" />
         </Sezione>
       </Entra>

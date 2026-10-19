@@ -1075,11 +1075,35 @@ const misureLab = (corpo: Record<string, unknown>) => funzione('portale-lab-misu
 /** Il sesso per la stima delle calorie, scelto dal socio (quello di PerfectGym non e' affidabile). */
 export type SessoCalcolo = 'm' | 'f' | null
 
-/** Le misurazioni del socio, dalla piu' vecchia, e il sesso scelto per le calorie. */
-export async function elencoMisure(): Promise<Esito<{ misure: Misura[]; sesso: SessoCalcolo }>> {
+/** Il consenso alle misure del corpo (20/10/2026): la versione dell'informativa accettata e quando. */
+export type ConsensoCorpo = { versione: string; accettato_il: string }
+
+/**
+ * Le misurazioni del socio, dalla piu' vecchia, e il sesso scelto per le calorie.
+ * **Senza consenso la funzione risponde vuoto e `consenso: null`** (misure e sesso non escono). `consenso` assente
+ * (`undefined`) vuol dire una funzione che non conosce ancora il consenso: niente blocco e niente comando di revoca.
+ */
+export async function elencoMisure(): Promise<Esito<{ misure: Misura[]; sesso: SessoCalcolo; consenso?: ConsensoCorpo | null }>> {
   const { ok, dati } = await misureLab({ azione: 'elenco' })
-  if (ok) return { ok: true, misure: dati.misure ?? [], sesso: dati.sesso === 'm' || dati.sesso === 'f' ? dati.sesso : null }
+  if (ok) {
+    const consenso: ConsensoCorpo | null | undefined = dati.consenso === undefined ? undefined : dati.consenso && typeof dati.consenso.versione === 'string' ? dati.consenso : null
+    return { ok: true, misure: dati.misure ?? [], sesso: dati.sesso === 'm' || dati.sesso === 'f' ? dati.sesso : null, consenso }
+  }
   return { ok: false, errore: dati.errore ?? 'Non riusciamo a leggere i tuoi dati adesso.' }
+}
+
+/** Il consenso alle misure del corpo: dati relativi alla salute, si usano solo dopo. */
+export async function daiConsensoCorpo(versione: string): Promise<Esito<{ consenso: ConsensoCorpo }>> {
+  const { ok, dati } = await misureLab({ azione: 'consenso', versione })
+  if (ok && dati.consenso) return { ok: true, consenso: dati.consenso }
+  return { ok: false, errore: dati.errore ?? 'Non siamo riusciti a registrare il consenso. Riprova.' }
+}
+
+/** Ritira il consenso: la funzione cancella le misure e il sesso scritti dal socio. */
+export async function revocaConsensoCorpo(): Promise<Esito<object>> {
+  const { ok, dati } = await misureLab({ azione: 'revoca' })
+  if (ok) return { ok: true }
+  return { ok: false, errore: dati.errore ?? 'Non siamo riusciti a ritirare il consenso. Riprova.' }
 }
 
 /** Una misurazione: quella dello stesso giorno si sostituisce. */

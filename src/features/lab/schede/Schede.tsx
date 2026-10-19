@@ -267,6 +267,8 @@ export function Schede() {
   const [dati, setDati] = useState<Dati | null>(() => inMemoria<Dati>(CHIAVE_SCHEDE) ?? null)
   const [errore, setErrore] = useState<string | null>(null)
   const [misure, setMisure] = useState<Misura[] | null>(() => inMemoria<{ misure: Misura[] }>(CHIAVE_MISURE)?.misure ?? null)
+  // La funzione dice che manca il consenso alle misure del corpo (null): la carta invita a darlo.
+  const [senzaConsenso, setSenzaConsenso] = useState(() => inMemoria<{ consenso?: unknown }>(CHIAVE_MISURE)?.consenso === null)
 
   const carica = useCallback(async () => {
     setErrore(null)
@@ -277,7 +279,11 @@ export function Schede() {
 
   useEffect(() => {
     carica()
-    prendi(CHIAVE_MISURE, elencoMisure).then((r) => r.ok && setMisure(r.misure))
+    prendi(CHIAVE_MISURE, elencoMisure).then((r) => {
+      if (!r.ok) return
+      setMisure(r.misure)
+      setSenzaConsenso(r.consenso === null)
+    })
   }, [carica])
 
   const fit = useFit()
@@ -300,7 +306,7 @@ export function Schede() {
         <CartaPunteggio fit={fit} disp={disp} />
       </Entra>
       <Entra indice={0}>
-        <CartaCorpo misure={misure} />
+        <CartaCorpo misure={misure} senzaConsenso={senzaConsenso} />
       </Entra>
       <View style={largo ? stili.fila3 : { gap: spazio.quattro + 4 }}>
         <Entra indice={0} style={largo ? { flex: 1 } : undefined}>

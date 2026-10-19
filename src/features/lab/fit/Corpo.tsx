@@ -18,6 +18,8 @@ import { Tocco } from '../ui/Tocco'
 // peso, BMI, circonferenze e massa grassa e magra; le misure di composizione
 // corporea che arriveranno (una bilancia BIA, per esempio) si aggiungono qui.
 // Il dettaglio resta la schermata «Il tuo corpo» (/allenamento/misure).
+// Dal 20/10/2026 le misure si usano solo con un consenso proprio (dati sulla salute): senza, la carta lo dice e porta
+// alla pagina del consenso (dati/ConsensoCorpo.tsx).
 
 /** Quanto indietro si guarda per dire come e' cambiato il peso. */
 const FINESTRA = 90
@@ -39,7 +41,7 @@ function Cifra({ etichetta, valore, sotto, colore }: { etichetta: string; valore
   )
 }
 
-export function CartaCorpo({ misure }: { misure: Misura[] | null }) {
+export function CartaCorpo({ misure, senzaConsenso = false }: { misure: Misura[] | null; /** Le misure sono dati sulla salute: senza consenso la funzione non le da' e la carta invita a darlo. */ senzaConsenso?: boolean }) {
   const p = usePalette()
   const ordinate = [...(misure ?? [])].sort((a, b) => a.data.localeCompare(b.data))
   const conPeso = ordinate.filter((m) => m.peso_kg != null)
@@ -66,7 +68,11 @@ export function CartaCorpo({ misure }: { misure: Misura[] | null }) {
           <Icona nome="avanti" size={18} colore={p.testoTerzo} />
         </View>
 
-        {ultima ? (
+        {senzaConsenso ? (
+          <Text style={[stili.testo, { color: p.testoSecondario }]}>
+            Peso, altezza, circonferenze e composizione sono dati sulla salute: per segnarli e usarli per le stime delle calorie serve il tuo consenso. Tocca per leggere l’informativa e attivare «Il tuo corpo».
+          </Text>
+        ) : ultima ? (
           <>
             <View style={stili.cifre}>
               <Cifra

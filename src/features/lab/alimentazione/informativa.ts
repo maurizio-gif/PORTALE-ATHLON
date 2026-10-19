@@ -10,10 +10,18 @@
 // in piu', un fornitore diverso per le foto), cambia anche questo. Va fatto
 // rileggere dal consulente privacy del club prima di aprire la sezione a tutti.
 
-export const VERSIONE_INFORMATIVA = '2026-10-19'
+// Le versioni: 2026-10-19 la prima; **2026-10-20** dice anche che il diario alimenta l'Athlon Health Score e i livelli
+// (si contano i giorni in cui sono scritti i pasti principali, non cosa si e' mangiato) e che i punti settimanali si
+// conservano. L'uso del diario per il punteggio c'era gia' dal 20/10 mattina senza essere nel testo: da qui in poi e'
+// scritto, e chi aveva accettato la versione di prima la rilegge e la riaccetta.
+//
+// **Anche la copia in `_shared/alimentazione/versione.ts` (APP-ATHLON)**: la legge portale-lab-livelli, che conta i
+// punti di Food solo con un consenso alla versione corrente.
+
+export const VERSIONE_INFORMATIVA = '2026-10-20'
 
 export const CONSENSO =
-  'Acconsento al trattamento dei miei dati relativi alla salute (diario dei pasti, risposte al questionario e foto dei piatti) per usare la sezione Alimentazione, come descritto nell’informativa.'
+  'Acconsento al trattamento dei miei dati relativi alla salute (diario dei pasti, risposte al questionario e foto dei piatti) per usare la sezione Alimentazione e la parte Food dell’Athlon Health Score, come descritto nell’informativa.'
 
 export const INFORMATIVA: { titolo: string; testo: string }[] = [
   {
@@ -24,7 +32,7 @@ export const INFORMATIVA: { titolo: string; testo: string }[] = [
   {
     titolo: 'Quali dati usiamo',
     testo:
-      'Quello che scrivi nel diario (cosa, quanto, quando); le risposte al questionario, comprese quelle sulla gravidanza, su eventuali condizioni mediche e sul tuo rapporto col cibo; il numero e l’esito delle foto analizzate (non la foto). Per le stime usiamo anche peso, altezza, età e sesso che hai già nell’app, e le attività che il contatore delle calorie conta.',
+      'Quello che scrivi nel diario (cosa, quanto, quando); le risposte al questionario, comprese quelle sulla gravidanza, su eventuali condizioni mediche e sul tuo rapporto col cibo; il numero e l’esito delle foto analizzate (non la foto). Per le stime usiamo anche peso, altezza, età e sesso che hai già nell’app, e le attività che il contatore delle calorie conta. Per l’Athlon Health Score e i livelli usiamo soltanto in quali giorni hai scritto colazione, pranzo e cena: non cosa hai mangiato né quanto.',
   },
   {
     titolo: 'La foto del piatto',
@@ -34,17 +42,17 @@ export const INFORMATIVA: { titolo: string; testo: string }[] = [
   {
     titolo: 'Perché e su quale base',
     testo:
-      'Per mostrarti il diario, le stime e i consigli, e per nient’altro. Sono dati relativi alla salute: li trattiamo solo con il tuo consenso esplicito (art. 9, par. 2, lett. a del GDPR), che dai qui sotto.',
+      'Per mostrarti il diario, le stime e i consigli, e per calcolare la parte Food dell’Athlon Health Score (15 punti su 100) e dei tuoi livelli: il punteggio è un indicatore di regolarità, non un giudizio su come mangi. Per nient’altro. Sono dati relativi alla salute: li trattiamo solo con il tuo consenso esplicito (art. 9, par. 2, lett. a del GDPR), che dai qui sotto. Se non lo dai, il resto dell’app funziona e i livelli si raggiungono comunque con il solo allenamento, un po’ più lentamente.',
   },
   {
     titolo: 'Chi li vede',
     testo:
-      'Solo tu. Lo staff del club non vede la tua sezione Alimentazione né dall’app né dal gestionale, i dati non vanno su PerfectGym e non li usiamo per comunicazioni commerciali.',
+      'Solo tu. Lo staff del club non vede la tua sezione Alimentazione, né il tuo punteggio e i tuoi livelli, né dall’app né dal gestionale; i dati non vanno su PerfectGym e non li usiamo per comunicazioni commerciali.',
   },
   {
     titolo: 'Per quanto e come toglierli',
     testo:
-      'Li teniamo finché usi la sezione. Puoi revocare il consenso quando vuoi, da questa stessa sezione: il diario, il questionario e il registro delle foto vengono cancellati subito. Conserviamo solo la registrazione di quando hai dato e revocato il consenso, come prova. Per gli altri diritti (accesso, rettifica, cancellazione, reclamo al Garante) vale l’informativa privacy del club.',
+      'Li teniamo finché usi la sezione. Puoi revocare il consenso quando vuoi, da questa stessa sezione: il diario, il questionario e il registro delle foto vengono cancellati subito, e i punti di Food dei tuoi livelli tornano a zero. I punti dell’allenamento restano, perché non nascono da questi dati. Conserviamo solo la registrazione di quando hai dato e revocato il consenso, come prova. Per gli altri diritti (accesso, rettifica, cancellazione, reclamo al Garante) vale l’informativa privacy del club.',
   },
   {
     titolo: 'Per chi non è',
