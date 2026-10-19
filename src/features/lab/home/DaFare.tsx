@@ -6,6 +6,7 @@ import { spazio } from '@/theme'
 
 import { Carta, Entra, Pulsante, Riga, Sezione } from '../ui/kit'
 import { F, usePalette } from '../ui/tema'
+import { personeDaAvvisare } from './AvvisoCertificato'
 import { nome, richiedeAzione, statoCertificato, urgenzaCertificato } from './certificato'
 import { regolaritaContratto, type ChiaveMotivo } from './regolarita'
 import type { SezioneHome } from './sezioni'
@@ -13,7 +14,8 @@ import type { SezioneHome } from './sezioni'
 // «Da fare», in cima alla Home, solo se serve: un pagamento in sospeso, un
 // metodo di pagamento mancante o una carta scaduta, un certificato scaduto,
 // mancante, da consegnare o in scadenza, per te o per un familiare. Si ricava da `portale_la_mia_area`, gia' letta: nessuna chiamata
-// in piu'. Toccando una riga si apre la sezione che ne parla.
+// in piu'. Toccando una riga si apre la sezione che ne parla. Il certificato scaduto o mancante di chi ha un abbonamento
+// non e' qui: ha il suo avviso, piu' in evidenza, sotto la testata (AvvisoCertificato, 20/10/2026).
 
 type AreaTrovata = Extract<Area, { trovato: true }>
 
@@ -54,7 +56,12 @@ export function vociDaFare(area: AreaTrovata): Voce[] {
     if (!chi.size) continue
     voci.push({ chiave: `metodo-${t.chiave}`, icona: 'attenzione', tono: 'attenzione', titolo: t.titolo, chi: [...chi].join(', '), sotto: t.sotto, sezione: 'abbonamenti', urgenza: 6 })
   }
+  // Chi ha un abbonamento e il certificato scaduto o mancante ha il suo avviso in cima alla Home
+  // (AvvisoCertificato): qui non si ripete. Restano le altre voci: in scadenza, da consegnare entro i
+  // 6 anni, e il certificato di chi non ha un abbonamento in vigore.
+  const avvisate = new Set(personeDaAvvisare(area).map((a) => a.persona.member_id))
   for (const persona of area.persone) {
+    if (avvisate.has(persona.member_id)) continue
     const s = statoCertificato(area.certificati.find((c) => c.member_id === persona.member_id), persona.data_nascita)
     if (!richiedeAzione(s)) continue
     voci.push({
