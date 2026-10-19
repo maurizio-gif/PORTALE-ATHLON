@@ -27,19 +27,20 @@ import { SezioneTesseramento, useTesseramenti } from './home/SezioneTesseramento
 import { giorni, nome, oggi, statoCertificato, urgenzaCertificato } from './home/certificato'
 import { riepilogoAbbonamenti } from './home/regolarita'
 import { SEZIONI, SEZIONE_INIZIALE, sezioneDa, type SezioneHome } from './home/sezioni'
-import { inMemoria, precarica, prendi } from './memoria'
+import { inMemoria, precarica, prendi, ricorda } from './memoria'
 import { useMovimenti } from './pagamenti/Movimenti'
 import { ProfiloContenuto } from './Profilo'
-import { conFotoLocale } from './profilo/fotoLocale'
-import { PuntoInvito } from './profilo/Richiamo'
+import { AvatarFoto } from './profilo/AvatarFoto'
+import { FoglioFoto } from './profilo/FotoProfilo'
+import { conFotoLocale, ricordaFotoLocale } from './profilo/fotoLocale'
 import { memoria as memoriaTv } from './tv/comune'
 import { Icona } from './ui/Icona'
-import { Avatar, Entra, Messaggio, Pulsante, SchedeInArrivo } from './ui/kit'
+import { Entra, Messaggio, Pulsante, SchedeInArrivo } from './ui/kit'
 import { Installa } from './ui/Installa'
 import { Schermata } from './ui/Schermata'
 import { PulsanteEsci } from './ui/Uscita'
 import { F, FUOCO, MARE, NOTTE } from './ui/tema'
-import { Tocco } from './ui/Tocco'
+import { colpetto, Tocco } from './ui/Tocco'
 
 // La Home dell'app (17/10/2026): l'hub dell'account. In cima chi sei e le cose
 // da fare; poi cinque riquadri (Abbonamenti, Pagamenti, Certificato, Famiglia,
@@ -48,22 +49,61 @@ import { Tocco } from './ui/Tocco'
 // ricaricamento tornano al punto giusto. Tutto dal mirror di PerfectGym
 // (portale_la_mia_area) e dalle schermate delle sezioni.
 
-/** La testata scura: la data, l'avatar, il saluto, le pillole di chi sei. Toccandola si apre il profilo, nella Home. */
-function Benvenuto({ titolare, email, famiglia, invitoFoto, onProfilo }: { titolare: PersonaArea | undefined; email: string; famiglia: number; /** La foto del profilo manca: sul «Profilo» pulsa un pallino. */ invitoFoto: boolean; onProfilo: () => void }) {
+/** Quanto e' grande l'avatar della testata: con le iniziali erano 38, ma una faccia in 38 punti non si riconosce (19/10/2026). */
+const AVATAR_TESTATA = 52
+
+/**
+ * La testata scura: la data, l'avatar, il saluto, le pillole di chi sei. Toccandola si apre il profilo, nella Home.
+ *
+ * **L'avatar e' la foto del profilo**, se c'e' (19/10/2026, richiesta di Maurizio: prima erano sempre le iniziali); se
+ * manca restano le iniziali, con l'invito a metterla (anello che pulsa, fotocamera, «Aggiungi la tua foto») e toccando
+ * il gruppo si apre subito il foglio per scattarla o sceglierla. Con la foto l'avatar non e' un comando a parte: il
+ * tocco va al Profilo, dove «Cambia foto» c'e' gia'.
+ */
+function Benvenuto({
+  titolare,
+  email,
+  famiglia,
+  foto,
+  invitoFoto,
+  onProfilo,
+  onFoto,
+}: {
+  titolare: PersonaArea | undefined
+  email: string
+  famiglia: number
+  /** Il link firmato della foto del profilo, se c'e'. */
+  foto: string | null
+  /** La foto manca e si puo' metterla: invito sull'avatar (non con il Profilo aperto sotto, che ha il suo: un invito solo). */
+  invitoFoto: boolean
+  onProfilo: () => void
+  onFoto: () => void
+}) {
+  const avatar = (
+    <View style={[stili.data, { gap: 12 }]}>
+      <AvatarFoto nome={titolare?.nome ?? email} cognome={titolare?.cognome} foto={foto} size={AVATAR_TESTATA} anello="rgba(255,255,255,0.18)" invito={invitoFoto} />
+      <View style={{ gap: 3 }}>
+        <Text style={stili.dataTesto}>{oggi().toUpperCase()}</Text>
+        {invitoFoto ? <Text style={stili.invitoFoto}>Aggiungi la tua foto</Text> : null}
+      </View>
+    </View>
+  )
   return (
-    <Tocco onPress={onProfilo} ruolo="link" etichetta={invitoFoto ? 'Il mio profilo: anagrafica e contatti. Aggiungi la tua foto' : 'Il mio profilo: anagrafica e contatti'} scala={0.985}>
+    <Tocco onPress={onProfilo} ruolo="link" etichetta="Il mio profilo: anagrafica e contatti" scala={0.985}>
     <LinearGradient colors={NOTTE} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={stili.benvenuto}>
       <View style={stili.bagliore} />
       <View style={[stili.data, { justifyContent: 'space-between' }]}>
-        <View style={[stili.data, { gap: 10 }]}>
-          <Avatar nome={titolare?.nome ?? email} cognome={titolare?.cognome} size={38} anello="rgba(255,255,255,0.18)" />
-          <Text style={stili.dataTesto}>{oggi().toUpperCase()}</Text>
-        </View>
+        {invitoFoto ? (
+          <Tocco onPress={onFoto} etichetta="Aggiungi la tua foto" scala={0.96}>
+            {avatar}
+          </Tocco>
+        ) : (
+          avatar
+        )}
         <View style={stili.profilo}>
           <Icona nome="persona" size={14} colore="#fff" />
           <Text style={stili.profiloTesto}>Profilo</Text>
           <Icona nome="avanti" size={13} colore="rgba(255,255,255,0.7)" />
-          {invitoFoto ? <PuntoInvito /> : null}
         </View>
       </View>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: spazio.tre }}>
@@ -170,10 +210,15 @@ function invitoDa(a: Anagrafica | null | undefined): boolean {
 export function AreaRiservata({ email }: { email: string }) {
   const [area, setArea] = useState<Area | null>(inMemoria<{ ok: true; area: Area }>('area')?.area ?? null)
   const [errore, setErrore] = useState<{ testo: string; nonAmmesso: boolean } | null>(null)
-  const [invitoFoto, setInvitoFoto] = useState<boolean>(() => {
+  // L'anagrafica serve alla testata (la foto, o l'invito a metterla) e al Profilo: la Home parte da quella in memoria.
+  const [anagrafica, setAnagrafica] = useState<Anagrafica | null>(() => {
     const gia = inMemoria<EsitoAnagrafica>('anagrafica')
-    return gia?.ok ? invitoDa(gia.anagrafica) : false
+    return gia?.ok ? conFotoLocale(gia.anagrafica) : null
   })
+  const [foglioFoto, setFoglioFoto] = useState(false)
+  const [fotoFatta, setFotoFatta] = useState<string | null>(null)
+  const anagraficaRiletta = useRef(false)
+  const invitoFoto = invitoDa(anagrafica)
   const movimenti = useMovimenti()
   const documenti = useDocumenti()
   const prodotti = useProdotti()
@@ -190,8 +235,27 @@ export function AreaRiservata({ email }: { email: string }) {
   const scorrimento = useRef<Animated.ScrollView>(null)
   const riquadri = useRef<View>(null)
 
-  // Il Profilo, quando si apre, dice com'e' la foto: si smette di invitare appena la si mette.
-  const aggiornaInvito = useCallback((a: Anagrafica) => setInvitoFoto(invitoDa(a)), [])
+  // Il Profilo, quando si apre, dice com'e' la foto: la testata la segue, e si smette di invitare appena la si mette.
+  const aggiornaAnagrafica = useCallback((a: Anagrafica) => setAnagrafica(a), [])
+
+  // L'avviso «foto aggiornata» resta qualche secondo, poi se ne va (come nel Profilo).
+  useEffect(() => {
+    if (!fotoFatta) return
+    const t = setTimeout(() => setFotoFatta(null), 4000)
+    return () => clearTimeout(t)
+  }, [fotoFatta])
+
+  // La foto scelta dal foglio della testata: se le misure non sono ancora pronte su PerfectGym (`inArrivo`) si tiene quella
+  // appena scelta per un po', al posto del link che non c'e' ancora; altrimenti la funzione ha gia' risposto col link nuovo.
+  function fotoSalvata(a: Anagrafica, esito: { anteprima: string; inArrivo: boolean }) {
+    colpetto('ok')
+    ricordaFotoLocale(esito.inArrivo ? esito.anteprima : null)
+    const conFoto = conFotoLocale(a)
+    ricorda('anagrafica', { ok: true, anagrafica: conFoto })
+    setAnagrafica(conFoto)
+    setFoglioFoto(false)
+    setFotoFatta(esito.inArrivo ? 'Foto salvata. Per la segreteria sarà pronta fra qualche minuto.' : 'Foto aggiornata.')
+  }
 
   const carica = useCallback(async () => {
     setErrore(null)
@@ -204,10 +268,14 @@ export function AreaRiservata({ email }: { email: string }) {
       precarica('giorno::', () => leggiGiorno())
       precarica(CHIAVE_CONTRATTI, contrattiAbbonamento)
       precarica(CHIAVE_DOCUMENTI, elencoDocumenti)
-      // L'anagrafica serve al Profilo e, qui, a sapere se la foto c'e': l'invito col pallino sul «Profilo» (profilo/Richiamo).
+      // L'anagrafica serve al Profilo e alla testata (la foto, o l'invito a metterla). Si rilegge una volta a ogni apertura
+      // della Home, anche se in memoria c'e': il link della foto e' firmato e dura un'ora, e uno scaduto mostrerebbe le iniziali.
       const gia = inMemoria<EsitoAnagrafica>('anagrafica')
-      if (gia) setInvitoFoto(gia.ok && invitoDa(gia.anagrafica))
-      else prendi('anagrafica', leggiAnagrafica).then((r) => setInvitoFoto(r.ok && invitoDa(r.anagrafica)))
+      if (gia?.ok) setAnagrafica(conFotoLocale(gia.anagrafica))
+      if (!anagraficaRiletta.current) {
+        anagraficaRiletta.current = true
+        prendi('anagrafica', leggiAnagrafica).then((r) => r.ok && setAnagrafica(conFotoLocale(r.anagrafica)))
+      }
       if (!memoriaTv.vetrine) leggiVetrine().then((r) => r.ok && (memoriaTv.vetrine = r.vetrine))
     }
   }, [])
@@ -321,8 +389,10 @@ export function AreaRiservata({ email }: { email: string }) {
   return (
     <Schermata titolo={titolare?.nome ? `Ciao, ${titolare.nome}` : 'La mia area'} nascondiTitolo scorrimento={scorrimento}>
       <Entra indice={0}>
-        <Benvenuto titolare={titolare} email={email} famiglia={famiglia.length} invitoFoto={invitoFoto} onProfilo={() => vai('profilo', true)} />
+        <Benvenuto titolare={titolare} email={email} famiglia={famiglia.length} foto={anagrafica?.foto ?? null} invitoFoto={invitoFoto && sezione !== 'profilo'} onProfilo={() => vai('profilo', true)} onFoto={() => setFoglioFoto(true)} />
       </Entra>
+
+      {fotoFatta ? <Messaggio tono="ok">{fotoFatta}</Messaggio> : null}
 
       {/* Il messaggio di benvenuto: scritto a ogni ritorno nell'app, spinge verso il prossimo passo (home/MessaggioBenvenuto). */}
       <MessaggioBenvenuto email={email} onSezione={(s) => vai(s, true)} />
@@ -348,9 +418,11 @@ export function AreaRiservata({ email }: { email: string }) {
         {sezione === 'documenti' ? <SezioneDocumenti /> : null}
         {sezione === 'certificato' ? <SezioneCertificato area={area} onAggiorna={carica} /> : null}
         {sezione === 'famiglia' ? <SezioneFamiglia area={area} /> : null}
-        {sezione === 'profilo' ? <ProfiloContenuto onAnagrafica={aggiornaInvito} /> : null}
+        {sezione === 'profilo' ? <ProfiloContenuto onAnagrafica={aggiornaAnagrafica} /> : null}
         {sezione === 'tesseramento' && tesseramenti ? <SezioneTesseramento tessere={tesseramenti} /> : null}
       </Entra>
+
+      {foglioFoto ? <FoglioFoto attuale={anagrafica?.foto ?? null} onChiudi={() => setFoglioFoto(false)} onSalvato={fotoSalvata} /> : null}
     </Schermata>
   )
 }
@@ -367,6 +439,7 @@ const stili = StyleSheet.create({
   profilo: { flexDirection: 'row', alignItems: 'center', gap: 5, borderRadius: 999, paddingLeft: 10, paddingRight: 8, paddingVertical: 6, backgroundColor: 'rgba(255,255,255,0.12)' },
   profiloTesto: { color: '#fff', fontFamily: F.extra, fontSize: 12 },
   dataTesto: { color: 'rgba(255,255,255,0.6)', fontFamily: F.extra, fontSize: 11.5, letterSpacing: 1.2 },
+  invitoFoto: { color: FUOCO[0], fontFamily: F.semi, fontSize: 12.5 },
   ciao: { color: '#fff', fontFamily: F.extra, fontSize: 28, lineHeight: 32, letterSpacing: -0.9 },
   pillola: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   puntino: { width: 8, height: 8, borderRadius: 3 },

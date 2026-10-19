@@ -35,13 +35,13 @@ import { colpetto } from './ui/Tocco'
 // Se `portale-lab-anagrafica` non c'e' ancora, si vede tutto in sola lettura
 // con quello che da' la mia area (portale_la_mia_area).
 //
-// **La foto del profilo** (17/10/2026) sta in cima, se il club ne ha una su PerfectGym: e' la sua foto, e qui
-// e' l'unico posto dell'app dove si mostra (richiesta del club) - non nella Home, non in Famiglia, non nel
-// Calendario.
+// **La foto del profilo** (17/10/2026) sta in cima, se il club ne ha una su PerfectGym: e' la sua foto. Nell'app si
+// mostra qui e, dal 19/10/2026, nell'avatar della testata della Home (`profilo/AvatarFoto.tsx`) - non in Famiglia,
+// non nel Calendario.
 //
 // **Si cambia da qui** (20/10/2026, `profilo/FotoProfilo.tsx`): chi non ha una foto trova al suo posto un invito con
-// un anello che pulsa piano, chi ce l'ha un comando per cambiarla; scattare o scegliere, anteprima, conferma. La Home
-// rimanda a questa sezione con un pallino che pulsa sul «Profilo» (`AreaRiservata`), finche' la foto non c'e'.
+// un anello che pulsa piano, chi ce l'ha un comando per cambiarla; scattare o scegliere, anteprima, conferma. L'invito
+// c'e' anche sull'avatar della testata della Home, che apre lo stesso foglio senza passare da qui.
 // Senza la funzione aggiornata, o in vista cliente, `foto_modificabile` non c'e' e la sezione e' quella di prima.
 
 type Modifica = 'email' | 'telefono' | 'indirizzo' | 'foto' | null
@@ -220,7 +220,7 @@ function ModificaPillola() {
  * cambiare, i dati anagrafici, l'account. Il nucleo sta in Famiglia, e l'avviso
  * di un pagamento in sospeso nel «Da fare» della Home.
  */
-export function ProfiloContenuto({ onAnagrafica }: { /** La Home lo usa per sapere se la foto c'e' (l'invito col pallino sul «Profilo»). */ onAnagrafica?: (a: Anagrafica) => void }) {
+export function ProfiloContenuto({ onAnagrafica }: { /** La Home lo usa per la testata: la foto, o l'invito a metterla. */ onAnagrafica?: (a: Anagrafica) => void }) {
   const p = usePalette()
   const giaLetta = inMemoria<{ ok: true; anagrafica: Anagrafica }>('anagrafica')
   const [dati, setDati] = useState<Anagrafica | null>(giaLetta ? conFotoLocale(giaLetta.anagrafica) : null)
