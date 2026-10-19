@@ -72,6 +72,12 @@ export type StatoCertificato = {
   breve: string
   /** Manca, e' scaduto o va consegnato: si spiega quale certificato serve e si puo' caricare. */
   daConsegnare: boolean
+  /**
+   * Non c'e' o e' scaduto (non «da consegnare entro i 6 anni», non «in scadenza»): il caso che l'avviso in cima alla
+   * Home segnala a chi ha un abbonamento (20/10/2026). Falso se la persona ha gia' caricato un certificato che la
+   * segreteria sta guardando; vero se l'ultimo e' stato rifiutato, perche' la situazione di prima resta.
+   */
+  scadutoOMancante: boolean
   /** Ha caricato un certificato che la segreteria non ha ancora visto: non c'e' altro da fare. */
   inVerifica: boolean
   /** L'ultimo certificato caricato e' stato rifiutato: il motivo scritto dalla segreteria, se c'e'. */
@@ -91,15 +97,15 @@ function statoDelleDate(ce: CertificatoArea | undefined, nascita?: string | null
   const sei = seiAnni(nascita)
   const aiSei = giorniA(sei)
   if (sei && aiSei != null && aiSei > 30) {
-    return { testo: 'Non serve', tono: 'neutro', giorni: null, dettaglio: `Non serve fino ai 6 anni, il ${dataBreve(sei)}`, breve: 'fino ai 6 anni', daConsegnare: false, inVerifica: false, rifiutato: null }
+    return { testo: 'Non serve', tono: 'neutro', giorni: null, dettaglio: `Non serve fino ai 6 anni, il ${dataBreve(sei)}`, breve: 'fino ai 6 anni', daConsegnare: false, scadutoOMancante: false, inVerifica: false, rifiutato: null }
   }
   if (sei && aiSei != null && aiSei > 0 && (g == null || g < aiSei)) {
-    return { testo: 'Da consegnare', tono: 'attenzione', giorni: null, dettaglio: `Da consegnare entro il ${dataBreve(sei)}, quando compie 6 anni`, breve: `entro il ${dataBreve(sei)}`, daConsegnare: true, inVerifica: false, rifiutato: null }
+    return { testo: 'Da consegnare', tono: 'attenzione', giorni: null, dettaglio: `Da consegnare entro il ${dataBreve(sei)}, quando compie 6 anni`, breve: `entro il ${dataBreve(sei)}`, daConsegnare: true, scadutoOMancante: false, inVerifica: false, rifiutato: null }
   }
-  if (g == null || !data) return { testo: 'Mancante', tono: 'neutro', giorni: null, dettaglio: 'Non è mai stato consegnato', breve: 'mai consegnato', daConsegnare: true, inVerifica: false, rifiutato: null }
-  if (g < 0) return { testo: 'Scaduto', tono: 'errore', giorni: g, dettaglio: `Scaduto il ${data} · ${giorni(-g)} fa`, breve: '', daConsegnare: true, inVerifica: false, rifiutato: null }
-  if (g === 0) return { testo: 'Scade oggi', tono: 'attenzione', giorni: 0, dettaglio: `Valido fino a oggi, ${data}`, breve: '', daConsegnare: false, inVerifica: false, rifiutato: null }
-  return { testo: g <= 30 ? 'In scadenza' : 'Valido', tono: g <= 30 ? 'attenzione' : 'ok', giorni: g, dettaglio: `Valido fino al ${data} · ancora ${giorni(g)}`, breve: '', daConsegnare: false, inVerifica: false, rifiutato: null }
+  if (g == null || !data) return { testo: 'Mancante', tono: 'neutro', giorni: null, dettaglio: 'Non è mai stato consegnato', breve: 'mai consegnato', daConsegnare: true, scadutoOMancante: true, inVerifica: false, rifiutato: null }
+  if (g < 0) return { testo: 'Scaduto', tono: 'errore', giorni: g, dettaglio: `Scaduto il ${data} · ${giorni(-g)} fa`, breve: '', daConsegnare: true, scadutoOMancante: true, inVerifica: false, rifiutato: null }
+  if (g === 0) return { testo: 'Scade oggi', tono: 'attenzione', giorni: 0, dettaglio: `Valido fino a oggi, ${data}`, breve: '', daConsegnare: false, scadutoOMancante: false, inVerifica: false, rifiutato: null }
+  return { testo: g <= 30 ? 'In scadenza' : 'Valido', tono: g <= 30 ? 'attenzione' : 'ok', giorni: g, dettaglio: `Valido fino al ${data} · ancora ${giorni(g)}`, breve: '', daConsegnare: false, scadutoOMancante: false, inVerifica: false, rifiutato: null }
 }
 
 /**
@@ -123,6 +129,7 @@ export function statoCertificato(ce: CertificatoArea | undefined, nascita?: stri
       dettaglio: il ? `Caricato il ${il} · lo stiamo controllando` : 'Lo stiamo controllando',
       breve: 'in verifica',
       daConsegnare: false,
+      scadutoOMancante: false,
       inVerifica: true,
       rifiutato: null,
     }

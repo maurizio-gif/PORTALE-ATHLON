@@ -214,12 +214,6 @@ export function Scheda() {
             È un piano tuo, ma i trainer del club lo possono vedere dal pannello, per verificarlo e aiutarti a seguirlo. Non sostituisce il parere di un istruttore: con dolori o infortuni chiedi {vasca ? 'al tecnico a bordo vasca' : 'in sala'}.
           </Text>
         ) : null}
-        {s.tipo === 'ai' ? (
-          <Text style={[stili.piccola, { color: p.testoTerzo }]}>
-            Scritto dall’agente AI sulle tue risposte{s.rivista_il ? ' e rivisto da un trainer del club' : ': un trainer del club lo rivede nei prossimi giorni'}. Per dolori o
-            infortuni chiedi a un istruttore in sala.
-          </Text>
-        ) : null}
       </View>
 
       {s.tipo !== 'socio' ? (
@@ -382,6 +376,15 @@ export function Scheda() {
             <Pulsante testo="Elimina il piano" icona="cestino" variante="pericolo" piccolo onPress={() => setConfermo(true)} />
           </View>
         </View>
+      ) : null}
+
+      {/* La postilla (20/10/2026): che il piano sia stato composto con un'intelligenza artificiale si dice qui, in fondo e in piccolo; non sul titolo né sulla carta. */}
+      {s.origine === 'ai' || s.tipo === 'ai' ? (
+        <Text style={[stili.piccola, { color: p.testoTerzo, textAlign: 'center' }]}>
+          Piano composto con il supporto di un’intelligenza artificiale sulle tue risposte
+          {s.tipo === 'ai' ? (s.rivista_il ? ' e rivisto da un trainer del club' : ': un trainer del club lo rivede nei prossimi giorni') : ''}. Può contenere imprecisioni e non sostituisce il parere di un istruttore: con
+          dolori o infortuni chiedi {vasca ? 'al tecnico a bordo vasca' : 'in sala'}.
+        </Text>
       ) : null}
 
       <Foglio aperto={confermo} titolo="Eliminare il piano?" onChiudi={() => !eliminando && setConfermo(false)}>

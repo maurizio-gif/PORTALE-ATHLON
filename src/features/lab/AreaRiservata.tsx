@@ -14,6 +14,7 @@ import type { Tessera } from '@/api/tesseramenti'
 import { spazio } from '@/theme'
 
 import { CHIAVE_CONTRATTI, ElencoAbbonamenti } from './AbbonamentiMiei'
+import { AvvisoCertificato } from './home/AvvisoCertificato'
 import { CartaShop } from './home/CartaShop'
 import { DaFare } from './home/DaFare'
 import { MessaggioBenvenuto } from './home/MessaggioBenvenuto'
@@ -402,6 +403,9 @@ export function AreaRiservata({ email }: { email: string }) {
       </Entra>
 
       {fotoFatta ? <Messaggio tono="ok">{fotoFatta}</Messaggio> : null}
+
+      {/* Il certificato scaduto o mancante di chi ha un abbonamento: subito sotto la testata, prima di tutto il resto (home/AvvisoCertificato). */}
+      <AvvisoCertificato area={area} onVai={() => vai('certificato', true)} />
 
       {/* Il messaggio di benvenuto: scritto a ogni ritorno nell'app, spinge verso il prossimo passo (home/MessaggioBenvenuto). */}
       <MessaggioBenvenuto email={email} onSezione={(s) => vai(s, true)} />

@@ -4,7 +4,7 @@ import { Agente } from '@/features/lab/schede/Agente'
 import { SchermataInArrivo } from '@/features/lab/ui/Attesa'
 import { useSessione } from '@/features/lab/useSessione'
 
-// La scheda chiesta all'agente AI. Solo con la sessione.
+// «Componi il tuo piano» (era «Crealo con l'aiuto dell'AI»): il questionario che compone la bozza di un piano. Solo con la sessione.
 export default function PaginaAgente() {
   const sessione = useSessione()
   if (sessione === undefined) return <SchermataInArrivo />

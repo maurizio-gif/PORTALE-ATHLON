@@ -17,6 +17,10 @@ chiamata diretta al gestionale. Esempio: la sezione Prodotti usa l'azione `prodo
   dopo qualche secondo, non si aspetta che il mirror sia già allineato.
 - **Quello che PerfectGym non dice** (da quale dispositivo si è prenotato, per esempio) lo registra la
   nostra funzione nel suo log; la schermata non lo deduce.
+- **Il Calendario ha un gemello nel CRM: il Planning** (20/10/2026, funzione `crm-planning` di APP-ATHLON): le stesse lezioni, lo stesso filtro per età, la stessa apertura delle
+  prenotazioni e gli stessi limiti per categoria, ma a prenotare (e a disdire, con `CancelSingleBooking` e le regole di PerfectGym per la disdetta in ritardo) è l'operatore, a nome del cliente, e da lì non si incassa. **Non condivide il codice con
+  `portale-lab-calendario`** (la funzione dell'app non è stata toccata): se qui cambia la lettura del giorno, il filtro d'età, l'apertura o i limiti, va cambiato anche in
+  `_shared/planning-crm.ts` di APP-ATHLON. Il Calendario resta quello che il socio vede: il Planning non cambia niente nell'app.
 
 ## La foto del profilo si mostra nel Profilo e nella testata della Home; dal Profilo e dalla Home si cambia
 
@@ -152,6 +156,42 @@ link che il CRM manda per email (`src/features/certificato/CaricaDaLink.tsx`).
 - **Il link per email vale 30 giorni** e porta una persona sola; scaduto, la pagina lo dice (`Stati.tsx`) e chiede di
   farsene mandare uno nuovo.
 
+## L'avviso del certificato, subito sotto la testata, e gli abbonamenti a quota zero che contano
+
+Richiesta del club (20/10/2026). Due cose che si tengono insieme, perché l'avviso guarda gli abbonamenti:
+
+- **L'avviso** (`home/AvvisoCertificato.tsx`) sta **subito sotto la testata della Home**, prima del messaggio di benvenuto e di «Da fare»: bordo
+  e velo rossi, il titolo («Certificato medico mancante» / «scaduto» / «rifiutato», o «Certificati medici da sistemare» se sono più persone del
+  nucleo), chi e da quando, e il pulsante che apre la sezione Certificato (dove c'è la «i» di quale certificato serve e il caricamento). **Compare
+  solo per chi ha un abbonamento in vigore** (`personeConAbbonamento`) **e il certificato scaduto o mancante** (`StatoCertificato.scadutoOMancante`).
+  Vale **per persona**: il titolare senza abbonamento non è avvisato perché il figlio ha il corso. Non è un avviso: «in scadenza», «da consegnare entro
+  i 6 anni», sotto i 6 anni, un certificato caricato e «in verifica» (la persona ha fatto la sua parte). Un certificato **rifiutato** su uno scaduto o
+  mancante sì: la situazione di prima resta, e il motivo è nel dettaglio. Un abbonamento «in vigore» è come lo intende il resto della Home: in corso,
+  non ancora iniziato o sospeso (i contratti dell'area sono tutti vivi). Il tasto è a tutta larghezza sul telefono e largo quanto il testo sul desktop;
+  in vista cliente dello staff dice «Vedi il certificato», perché lì non si carica niente.
+- **Chi ha l'avviso non ha la stessa voce in «Da fare»** (sarebbe due volte la stessa cosa uno sopra l'altra): `vociDaFare` salta le persone avvisate.
+  Restano in «Da fare», com'erano, il certificato in scadenza o da consegnare e **quello di chi non ha un abbonamento in vigore** (un ex socio, una
+  prova, un familiare senza corso). Se il club vuole che di loro l'app non parli affatto, è una condizione in `vociDaFare` e nel riquadro
+  Certificato, e non è stata fatta: l'avviso del 20/10/2026 non tocca chi non ha un abbonamento.
+- **Gli abbonamenti principali a quota zero sono abbonamenti** (`eAbbonamento` in `home/regolarita.ts`): gli omaggi e gli employee (`tipo = 'gratuito'`,
+  non aggiuntivi: «Employee contract» e «Omaggio Club») contano nel riquadro Abbonamenti («1 attivo», prima «0
+  attivi»), nell'elenco «In vigore» sotto di lui e nell'avviso. **Restano fuori il Guest Pass** (è una prova: ha lo stesso canone zero), **i contratti
+  aggiuntivi a zero e i voucher Covid** (richiesta del club: per il database sono `gratuito` come gli omaggi, ma la funzione li manda con `tipo = 'voucher_covid'`). Il metodo di pagamento non si pretende dove non c'è un canone, e un pagamento in sospeso resta un pagamento in sospeso.
+- **Il tipo viene dal database**: `portale_la_mia_area` porta su ogni contratto `tipo` e `aggiuntivo` (migrazione `20261020g` di APP-ATHLON), e `portale-abbonamento`
+  (azione `contratti`) elenca anche i gratuiti principali. **Con la funzione non ancora aggiornata `tipo` non c'è e l'app fa come prima**: conta solo chi ha
+  un canone, nessun avviso nuovo per un employee, niente si rompe. **Pubblicare prima migrazione e funzione, poi l'app**: un'app nuova con la
+  funzione `contratti` vecchia dice «1 attivo» sopra e «Non troviamo abbonamenti in corso» sotto.
+- **Il CRM non è allineato su un punto**: `certificati_stato` (la pagina Certificati e i promemoria) guarda `socio_stato.stato = 'abbonato'`, cioè un contratto vivo
+  **a canone > 0**. Un employee o un omaggio con il certificato scaduto ha l'avviso nell'app ma non compare nelle liste Certificati del CRM né riceve il
+  promemoria per email. Se il club vuole le due cose uguali, si cambia lì (`socio_stato` ha già lo stato `gratuito`).
+
+Per verificare: `npx tsc --noEmit` pulito. **Provato in un browser vero** (Chromium, bundle web esportato con `EXPO_PUBLIC_SUPABASE_URL` locale, funzione simulata con
+`page.route`; 390 px chiaro e scuro, 1280 px): employee con certificato mancante (avviso, nessun «Da fare» doppio, «1 attivo»), famiglia con uno scaduto e uno
+mancante (titolo plurale, due righe), senza abbonamento (nessun avviso, la voce resta in «Da fare»), Guest Pass (nessun avviso), funzione vecchia (come prima),
+omaggio con certificato valido (nessun avviso), il pulsante che apre `?sezione=certificato`, nessuno scorrimento orizzontale, nessuna richiesta fuori dal computer.
+La logica pura (`eAbbonamento`, `personeDaAvvisare`, `vociDaFare`, `riepilogoAbbonamenti`) con 35 prove su dati finti (voucher Covid compresi), e provata con mutazioni (togliendo la regola le
+prove falliscono). **Non provato**: un telefono vero, e una sessione vera con la funzione del database aggiornata.
+
 ## Le calorie di una lezione: il tipo dà la forbice, non c'è un MET per lezione (prova)
 
 Nel calendario, una lezione di gruppo porta una stima delle calorie (`schede/CalorieLezione.tsx`, il calcolo in
@@ -231,24 +271,29 @@ raggiungere, nessuna frase che dica a una persona quanto deve mangiare.
 - **La foto si sceglie con `expo-document-picker`** (`src/lib/fotoPiatto.ts`), che sul telefono dal browser offre anche la
   fotocamera; sul web si porta a 1280 px in JPEG prima dell'invio.
 
-## I piani di allenamento: si parte da quattro origini, si modifica e si conferma, e restano suoi
+## I piani di allenamento: si compone insieme o si importa, si modifica e si conferma, e restano suoi
 
 Nell'app si chiamano **piani di allenamento** (richiesta del club, 19/10/2026): nei testi mai «schede» per questi. Resta «scheda» dove
 vuol dire altro (la scheda del socio al club, la scheda di una lezione, l'Help Desk), e nel codice (`/allenamento/[scheda]`,
 `SchedaLab`, `salva_mia`…). Cartella `src/features/lab/schede/`; funzione, tabelle e limiti sono nel `CLAUDE.md` di APP-ATHLON.
 
-- **La schermata Train (`Schede.tsx`) ha le origini sopra e «I tuoi piani» in fondo.** Dopo il test e le calorie: «Crea il tuo piano di
-  allenamento» con le quattro origini, poi **«I tuoi piani»** (quelli che il socio ha scelto: suoi, del suo trainer, e gli «AI» di prima), poi gli
-  ultimi allenamenti. Le origini: **«Crealo con l'aiuto dell'AI»** (`Agente.tsx`), **«Importa il tuo piano»** (`Importa.tsx`: «Da foto o
-  file», e «Scrivilo tu» per chi parte da zero) e **i piani consigliati dal club**, in un **carosello che scorre in orizzontale** (`PianoClub`,
-  non una lista verticale: con dieci piani non allunga la pagina), filtrabile per obiettivo. Su telefono la carta è larga il 74% dello
-  schermo, così si intravede la successiva e si capisce che scorre; su schermo largo compare la barra di scorrimento. **La quarta origine è il personal trainer** (`CartaPersonal`, dopo i piani del club):
-  «Vuoi essere seguito da un personal trainer?» porta **direttamente alla prenotazione** (`/personal`, l'altra faccia di Prenotazioni:
-  scegli trainer, giorno e ora). Non produce un piano da modificare: lo costruisce il trainer, e compare poi fra i piani «Dal tuo trainer».
+- **La schermata Train (`Schede.tsx`) ha le due origini sopra e «I tuoi piani» in fondo** (rifatta il 20/10/2026, richiesta del club: **via i piani
+  consigliati dal club e via l'AI come titolo**). Dopo il test e le calorie: «Crea il tuo piano di allenamento» con **due strade sole**, poi **«I tuoi
+  piani»** (quelli che il socio ha scelto: suoi, importati, composti, del suo trainer, e gli «AI» di prima), poi gli ultimi allenamenti. Le strade:
+  **«Componi il tuo piano»** (`CartaComponi`, che porta a `Agente.tsx`: «Generiamo insieme il tuo piano, in sala o in vasca: rispondi a qualche
+  domanda…», con la quota «Puoi comporne ancora N questo mese» e, sotto, «Preferisci partire da zero? Scrivilo tu», che porta all'editor vuoto: era
+  un pulsante della carta «Importa») e **«Importa il tuo piano»** (`CartaImporta`, `Importa.tsx`: «Da foto o file»). **Il carosello dei piani del club
+  (`PianoClub`, il filtro per obiettivo) è stato tolto**, e con lui il colore viola e l'icona «stella» dell'AI: la carta «Componi» è nei colori del club
+  (`FUOCO`, il manubrio). **Non è stato tolto altro**: i piani `standard` restano nel database e nella risposta di `elenco` (l'app li scarta), e la scheda di
+  un piano del club (`Scheda.tsx`, «Aggiungi ai tuoi piani», «Modifica e aggiungi») si apre ancora da un indirizzo già dato; semplicemente nessuna
+  schermata li offre più. Se il club li rivuole, basta rimettere la sezione (è nella cronologia di git, «Oppure scegli un piano consigliato dal club»).
+  **Dopo le due strade c'è il personal trainer** (`CartaPersonal`): «Vuoi essere seguito da un personal trainer?» porta **direttamente alla
+  prenotazione** (`/personal`, l'altra faccia di Prenotazioni: scegli trainer, giorno e ora). Non produce un piano da modificare: lo costruisce il
+  trainer, e compare poi fra i piani «Dal tuo trainer».
 - **Qualunque sia l'origine, si modifica e si conferma, e solo allora è fra i suoi piani.** Un piano del club si apre (`Scheda.tsx`) con
   **«Aggiungi ai tuoi piani»** (la copia com'è, `comeDaSalvare` in `copia.ts`) e **«Modifica e aggiungi»** (l'editor con `?copia=<id>`); quello
   di un trainer (o un «AI» di prima) solo **«Modifica una copia»**, perché è già suo. L'originale non si tocca. Un piano del club si può ancora
-  **iniziare direttamente** senza copiarlo: non si è tolto quello che c'era. L'agente AI e l'importazione rispondono con una **bozza**
+  **iniziare direttamente** senza copiarlo: non si è tolto quello che c'era (ma dal 20/10/2026 nessuna schermata lo offre). «Componi» e l'importazione rispondono con una **bozza**
   (`bozza.ts`, in memoria, mai sul disco, con la sua `origine`) che passa all'editor (`?da=bozza`), dove si guarda, si cambia e si conferma.
 - **L'editor è uno solo per cinque modi** (`EditorScheda.tsx`, `modo`): nuovo, modifica di un piano suo (`?id=`), copia (`?copia=`), bozza
   letta da un file e bozza dell'agente. Cambiano titolo, sottotitolo, avvisi e il tasto («Salva il piano» / «Salva le modifiche» / «Conferma
@@ -261,8 +306,8 @@ vuol dire altro (la scheda del socio al club, la scheda di una lezione, l'Help D
 - **Gli esercizi si scelgono dalla libreria del club** (`SceltaEsercizio.tsx`, senza video né poster: sono seicento, e la lista si ricorda
   sotto `schede:libreria`) **oppure si scrive il nome**: diventa un esercizio suo, senza video. In un esercizio letto da un file che non è in
   libreria resta «Hai scritto: …» e il segno «Da controllare».
-- **Da dove viene si dice sulla carta** (`etichettaPiano` in `comune.ts`): «Scritto da te», «Importato da te», «Creato con l'AI», «Dal club,
-  tuo», «Dal tuo trainer». Il piano consigliato dal club si legge «Consigliato dal club».
+- **Da dove viene si dice sulla carta** (`etichettaPiano` in `comune.ts`): «Scritto da te», «Importato da te», **«Composto per te»** (era «Creato con
+  l'AI»: un piano composto non dice «AI», 20/10/2026), «Dal club, tuo», «Dal tuo trainer». Il piano consigliato dal club si legge «Consigliato dal club».
 - **I trainer del club vedono i piani dei soci dal CRM, in sola lettura** (richiesta del club: chi porta un piano suo va verificato), e l'app
   lo dice al socio in tre punti: nel piano, in fondo all'editor e sotto l'avvertenza dell'importazione (più l'avviso dell'agente). Se cambia,
   cambiano tutti. Togliere un piano lo ritira e chiede conferma; le sedute fatte restano.
@@ -273,12 +318,38 @@ vuol dire altro (la scheda del socio al club, la scheda di una lezione, l'Help D
   JPG, PNG o WebP e PDF, fino a 4 MB; sul web una foto si porta a 1800 px in JPEG (300–600 kB, meno attesa). «Scatta una foto» apre la
   fotocamera posteriore del telefono dal browser (`capture`); **nell'app nativa non c'è la fotocamera diretta** (serve `expo-image-picker`
   e una nuova build).
-- **L'agente AI** (`Agente.tsx`) fa le sue sei domande e **non salva più un piano da solo**: torna una bozza (`origine: 'ai'`), con
-  l'avviso «Scritto da un'intelligenza artificiale». La quota (tre in trenta giorni) la dice `elenco`.
+- **«Componi il tuo piano»** (`Agente.tsx`, indirizzo `/allenamento/agente`: è quello dei link già dati) fa le sue domande e **non salva un piano da solo**:
+  torna una bozza (`origine: 'ai'`) che passa dall'editor. La quota (tre in trenta giorni) la dice `elenco`, e il messaggio quando è finita non nomina
+  l'agente («Hai già composto 3 piani negli ultimi trenta giorni…»). Le risposte ammesse sono in `schede/questionario.ts` (puro) e la funzione le ricontrolla:
+  - **Obiettivo «Salute»** (20/10/2026, richiesta del club; **sempre l'ultima pillola**, in sala e in vasca). **Non produce un piano**: sotto compaiono
+    le sottovoci **Recupero post traumatico, Malattia metabolica, Problemi articolari, Malattia cardiovascolare, Alterazioni posturali (scoliosi,
+    ipercifosi, ecc.)** e un riquadro «Per questo ti serve un personal trainer» col pulsante **«Prenota un personal trainer»**, che va a `/personal`.
+    Le sottovoci servono solo a dire al socio che è nel posto giusto (il riquadro nomina quella scelta); **qualunque sia la risposta si va dal
+    trainer**, e non si porta niente alla prenotazione (`/personal` non ha un campo note). Con «Salute» sparisce il resto del questionario (livello, giorni…)
+    e non parte nessuna richiesta; **la funzione la rifiuta comunque** (400, la stessa frase del riquadro), in sala e in vasca. Sotto «Limitazioni o
+    infortuni» una riga dice di scegliere «Salute» per un recupero o una patologia. Il testo del riquadro e la nota («porta le indicazioni del tuo medico o del
+    fisioterapista») sono miei, da far leggere al club.
+  - **Durata: 30, 45, 60 o 80 minuti** (prima 30, 45, 60, 75 e 90). Un'app rimasta aperta manda ancora 75 o 90: la funzione li accetta.
+  - **Cosa usi: «Tutto», «Prevalenza macchine isotoniche», «Prevalenza pesi liberi e corpo libero»** (`tutto`, `macchine`, `pesi_liberi`; prima `sala_completa`,
+    `manubri_e_corpo_libero`, `corpo_libero`, che la funzione legge come il più vicino). **È una prevalenza, non un'esclusiva**: lo dice una riga sotto le
+    pillole. La funzione filtra solo forza e pliometria (solo macchine e cavi, o tutto tranne loro); cardio, stretching e mobilità restano sempre.
+  - **L'AI non è in primo piano** (20/10/2026): niente «Agente AI», niente viola, i testi dicono «generiamo insieme» e «componi» («Stiamo leggendo le tue
+    risposte…» nell'attesa, che ora dura una decina di secondi e non un paio di minuti). **Che dietro ci sia un'intelligenza artificiale si dice nelle
+    postille**, in piccolo e senza nasconderlo: la nota in fondo al questionario, quella in fondo all'editor («Questa bozza è stata composta con il supporto di
+    un'intelligenza artificiale, che può sbagliare») e quella in fondo al piano composto (`Scheda.tsx`). **Non vanno tolte**: le limitazioni che il socio scrive sono
+    dati sulla salute e vanno a un fornitore di AI, e il socio ha il diritto di saperlo; l'avviso in cima all'editor, invece, non nomina più l'AI («Controllalo
+    prima di confermare»). L'informativa privacy del club va aggiornata di conseguenza (vedi più sotto «La privacy dell'Athlon Health System»).
 - **L'avvertenza è parte del comando**: la foto o il PDF vengono letti da un servizio di intelligenza artificiale, non si conservano,
   meglio non includere dati che non servono, e una lettura automatica può sbagliare. Se il testo cambia, va riletto con quello
   dell'informativa privacy del club.
 - **Nella vista cliente dello staff i comandi falliscono** (le azioni nuove non stanno fra le letture): come per ogni altra scrittura.
+
+Per verificare (20/10/2026): `npx tsc --noEmit` senza errori nuovi (41 di base); `schede/questionario.ts` è puro (`node --experimental-strip-types`). **Guardato in un browser vero**
+(Expo web con una finta funzione che registra le richieste, 390 e 1024 px): la schermata Train senza i piani del club, con «Componi il tuo piano» e «Importa il tuo piano» (a due
+colonne di pari altezza su schermo largo), la carta «Composto per te» e il piano vecchio «AI» senza viola; il questionario con «Salute» (le cinque sottovoci, il riquadro, il
+pulsante che apre `/personal`, nessuna richiesta partita), le durate 30/45/60/80, «Cosa usi», la richiesta che parte con `attrezzatura: 'macchine'` e `minuti: 80`, l'attesa, l'editor col
+nuovo avviso e la postilla, il piano composto con la postilla in fondo, «Salute» in vasca (con «Tecnica» prima) e l'errore 502 («Non siamo riusciti a comporre il piano adesso…»,
+il questionario resta com'era). **Non provato**: l'errore di quota nella schermata, un telefono, e una sessione vera (la funzione era finta).
 
 ## Athlon Health System: la ruota, il Balance, Train e Food
 
@@ -460,6 +531,42 @@ Per verificare: `npx tsc --noEmit` senza errori nuovi (41 di base). **Provato ne
 «Il tuo corpo» con i dati e in fondo consenso e revoca (la conferma, e dopo la revoca la pagina del consenso), la funzione vecchia senza il campo `consenso` (nessun blocco, nessun comando), la carta in Fit con l'invito, la
 nuova informativa di Food (versione del 20/10/2026 e il punteggio nel testo) e il link all'informativa nell'accesso. **Non provato**: la riga «Informativa privacy» del Profilo (la Home non si simula), un telefono, e le funzioni
 vere con una sessione vera.
+
+## Il pulsante «Feedback»: i tester ci dicono come sta andando, dall'app
+
+Richiesta di Maurizio (20/10/2026). In alto a destra, sopra ogni schermata dell'app, una pillola discreta («Feedback», con un fumetto) spinge i tester a dirci come sta andando, cosa suggeriscono e che
+problemi hanno avuto. Toccata, sale un foglio con un campo di testo e, se serve, fino a tre allegati. Il messaggio arriva nella sezione **Tester app** del CRM, che e' anche dove si aggiungono i tester: funzione
+`portale-lab-feedback`, tabella `portale_feedback`, bucket privato e tutto il resto nel `CLAUDE.md` di APP-ATHLON («I tester dell'app»). Cartella `src/features/lab/feedback/`, API `src/api/feedback.ts`.
+
+- **Il posto.** La pillola sta dove le schermate mettono il loro comando in alto a destra: stessa colonna di `Schermata` (640 sul telefono, 1180 sullo schermo largo, centrata), stesso gutter (18), centrata sulla barra col marchio.
+  Sembra parte della testata ma e' **una sola per tutta l'app**, montata nel layout (`(portale)/_layout.tsx`) accanto alla barra delle schede, prima dell'avvio animato (che la copre). L'area che si tocca e' alta 44; la pillola, 34.
+- **Dove la schermata ha gia' un comando li'** (il carrello della vetrina e dell'articolo dello shop, il salvataggio dell'editor di un piano) **si sposta di un bottone a sinistra e resta la sola icona**, invece di coprirlo
+  (`posizione.ts`: `Schermata` dice `useSegnaAzioneInAlto(!!destra, useIsFocused())`, un conteggio; e **solo la schermata che si vede lo dice**, o un carrello rimasto sotto nella pila spingerebbe la pillola anche sul calendario).
+  Sotto i 340 punti di larghezza e' sempre la sola icona: a 360, con freccia, marchio e carrello, la scritta andrebbe sul marchio (provato a 320, 360 e 390). Il nome per lo screen reader resta «Lascia un feedback sull'app».
+- **Solo per chi usa l'app da tester.** Il portale e' aperto solo ai tester e il layout lo monta solo con una sessione: senza accesso (e nelle pagine pubbliche `/r/<token>`, `/richiesta`) non c'e'.
+  **In vista cliente non c'e'** (`vistaCorrente()`): chi guarda l'app di un cliente non scrive feedback al suo posto, e la funzione risponderebbe 403 (non e' fra le letture).
+- **Il foglio** (`FoglioFeedback`): «Come sta andando?», una guida di cosa scrivere (come ti sembra l'app, un'idea o un suggerimento, un problema: cosa stavi facendo e cosa e' successo), le pillole **facoltative** «Come sta andando /
+  Un suggerimento / Un problema / Altro» (si tolgono ritoccandole), il campo del messaggio (fino a 3000 caratteri; il conto compare dopo 2500) e gli allegati. **Il testo e' obbligatorio**, il resto no. Niente parte prima di
+  «Invia il messaggio». Il foglio dice cosa arriva insieme al testo — **la schermata in cui si era e il dispositivo** — e chi lo legge («le persone del club che seguono i tester»).
+- **La bozza non si perde.** Lo stato del foglio vive in `PulsanteFeedback`, che resta montato per tutta la sessione (`useFeedback`): chiudere per sbaglio, o un invio rifiutato (limite orario, rete, funzione non pubblicata), lascia
+  testo, tipo e allegati dove stanno. Si svuota solo quando il messaggio e' partito; dopo il grazie il foglio torna com'era.
+- **La schermata che parte e' quella in cui si e' toccato il pulsante**, non quella in cui si preme «Invia» (`schermataDa`: il percorso senza parametri). Insieme vanno la piattaforma (`web`, `ios`, `android`) e il dispositivo
+  (sul web quello che dice il browser, sul telefono sistema e versione); la funzione li ripulisce e, se mancano, prende il dispositivo dall'intestazione. **Non parte nessuna email e nessun id di persona**: la funzione ricava chi e' dalla sessione.
+- **Gli allegati** (`allegati.ts`): si scelgono anche piu' d'uno insieme (`expo-document-picker`, `multiple`), **al massimo tre, JPG, PNG, WebP o PDF, 5 MB l'uno** (stessi limiti della funzione, che guarda i primi byte: qui servono a dirlo subito).
+  **Sul web uno screenshot sopra 1,2 MB si porta a 1800 pixel in JPEG** (una PNG retina da 4 MB diventa circa 1 MB), solo se il risultato pesa meno; un PDF non si tocca. Nell'app nativa il file parte com'e' (ridurlo vorrebbe
+  `expo-image-manipulator` e una nuova build, come per le schede). Il selettore non si aspetta con una rotellina (chi chiude la finestra senza scegliere non lascia traccia). Gli allegati che non vanno dicono perche', per
+  nome, e **non restano**; se se ne scelgono piu' di quelli che restano, ne entrano tre e lo dice. Il foglio invita a coprire gli screenshot che mostrano **dati sulla salute** (diario alimentare, sonno, misure del corpo): lo staff
+  non li vede per i consensi dell'app, e un'immagine non si controlla.
+- **Cosa risponde quando non va.** Funzione non ancora pubblicata (404 senza il nostro corpo): «Il feedback non e' ancora attivo: riprova fra qualche giorno» (`src/api/feedback.ts`); limite orario o giornaliero (429), tipo o
+  allegato non validi (400) e guasti arrivano con le parole della funzione.
+- **L'app non riapre i messaggi.** Non c'e' uno storico da mostrare e nessuna risposta del club: il foglio non la promette.
+- **Provato.** `npx tsc --noEmit` pulito. Le regole pure (`comune.ts`: tipo dell'allegato da mime ed estensione, posti, testo inviabile, peso, schermata) con `node --experimental-strip-types`. **A schermo, in Chromium** (bundle web esportato,
+  funzioni simulate, nessuna richiesta fuori dal computer), 72 controlli: la pillola nel gutter di 18 punti e a meta' della barra col marchio (390), nella colonna da 1180 sullo schermo largo (1280), solo icona accanto al carrello dello shop e
+  a 320 punti, e **di nuovo al suo posto quando dalla vetrina si va al carrello** (la vetrina resta montata sotto); il foglio vuoto e compilato (tipo che si sceglie e si toglie, «Invia» spento senza testo), gli allegati (screenshot grande ridotto
+  a JPEG, PDF, tre file e il comando che si spegne, «Togli», `.txt` e file oltre 5 MB rifiutati con il motivo, quattro file scelti insieme), la bozza che resta dopo aver chiuso e dopo un errore 429, il payload che parte (azione, testo ripulito
+  ai capi, tipo, schermata, piattaforma, dispositivo, nomi e base64 degli allegati, un JPEG vero, nessuna email, la sessione e nessuna vista cliente), il grazie e il foglio pulito alla riapertura, la schermata `/calendario` che parte da li', la
+  funzione 404, tema chiaro e scuro; e **in vista cliente e senza accesso la pillola non c'e'**. In piu' tutte le rotte principali (22, con e senza accesso) senza errori di pagina, perche' `Schermata` (usata in 149 punti) ora legge se e' in vista.
+  **Non provato**: un telefono vero (il selettore dei file e la fotocamera dell'iOS, il peso del base64 su una rete mobile), l'app nativa, e la funzione vera con una sessione vera (era simulata).
 
 ## L'avvio animato: il logo che si costruisce, una volta a ogni apertura
 
@@ -876,3 +983,10 @@ il centro con le tre voci e «Per Giulia»; il dettaglio e il suo pulsante; «To
 nessun comando per la push senza la chiave sul server; 403 e 404 che fermano il giro; il giro ogni venti secondi (con l'orologio finto); nessuno scorrimento orizzontale; il campanello della Home che porta al centro.
 **Non provato**: una push su un telefono vero, Android o iPhone con l'app installata (**la sottoscrizione, il service worker che segnala ricevuta e apertura, il tocco sull'avviso e il suo segnale al server non
 sono mai stati visti girare**), il permesso del browser (`Notification.requestPermission` non si simula), l'app nativa, le finestre con la funzione vera e una sessione vera, e il carico dei venti secondi.
+
+**Stato (19/10/2026, riletto sulla produzione):** il lato server c'è già (tabelle, funzioni SQL, permesso `notifiche-app`, `portale-lab-notifiche`, `newsletter-invio` v40) e il CRM
+(APP-ATHLON PR 385) si fonde prima di questa app. **Questa app va fusa solo dopo che in produzione esiste `app_notifica_push_esito`**: è la funzione con cui la push registra l'esito per
+dispositivo e toglie quelli scaduti, e la parte di migrazione che la crea non è passata dallo strumento MCP (vedi APP-ATHLON, «Stato»). Senza di lei il CRM può già mandare notifiche (la
+chiama solo se c'è un dispositivo registrato), ma l'app è proprio ciò che registra i dispositivi: fusa prima, la prima push attivata da un socio cadrebbe nel vuoto. **Le chiavi VAPID non sono
+verificabili da qui** (`NOTIFICHE_VAPID_PUBLIC_KEY` nella funzione; `NEXT_PUBLIC_VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` e `VAPID_SUBJECT` su Vercel): senza chiave l'app non offre il comando
+della push e le notifiche restano nell'app. Prima di aprire a tutti: una newsletter «Invia prova» con un campo dinamico, una notifica vera su un telefono e l'informativa privacy aggiornata.

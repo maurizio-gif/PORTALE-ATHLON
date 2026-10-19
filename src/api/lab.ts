@@ -60,6 +60,15 @@ export type ContrattoArea = {
   rinnovo_automatico: boolean | null
   canone: number | null
   metodo: unknown
+  /**
+   * Come il database classifica il contratto: `abbonamento` (con una quota), `gratuito` (Employee, Omaggio: il principale a
+   * quota zero), `guest_pass` (una prova), `voucher_covid` (i voucher legati al Covid: non sono abbonamenti, richiesta del
+   * club). Manca finche' la funzione del database non e' aggiornata (20/10/2026): allora si conta come abbonamento solo
+   * chi ha una quota.
+   */
+  tipo?: string | null
+  /** PerfectGym lo considera un contratto aggiuntivo (un servizio in piu'), non il principale. */
+  aggiuntivo?: boolean | null
 }
 
 /**
@@ -791,11 +800,14 @@ export type Precedente = { esercizio_id: string; inizio: string; serie: SerieFat
 export type SerieSeduta = SerieFatta & { scheda_esercizio_id: string; esercizio_id: string }
 
 export type Questionario = {
+  /** «Salute» non e' un obiettivo dell'agente (20/10/2026): l'app porta al personal trainer e non manda la richiesta; la funzione la rifiuta. */
   obiettivo: string
   livello: 'principiante' | 'intermedio' | 'esperto'
   giorni: number
+  /** 30, 45, 60 o 80 (dal 20/10/2026; prima anche 75 e 90, che la funzione accetta ancora da un'app rimasta aperta). */
   minuti: number
-  attrezzatura: 'sala_completa' | 'manubri_e_corpo_libero' | 'corpo_libero'
+  /** Cosa usa in sala (20/10/2026): una prevalenza, non un'esclusiva. `tutto`, `macchine` (isotoniche e cavi), `pesi_liberi` (e corpo libero). */
+  attrezzatura: 'tutto' | 'macchine' | 'pesi_liberi'
   limitazioni: string
   note: string
 }
@@ -865,13 +877,14 @@ export async function progressiEsercizio(esercizioId: string): Promise<Esito<{ e
 }
 
 /**
- * L'agente AI ci mette fino a un paio di minuti. **Non salva niente**: risponde con una bozza (19/10/2026) che il
- * socio rivede, modifica e conferma; solo allora e' un piano suo (`salvaSchedaMia`, origine «ai»).
+ * «Componi il tuo piano»: l'agente ci mette qualche decina di secondi (20/10/2026: da quando scrive con Gemini; prima, coi modelli
+ * gratuiti, andava in timeout). **Non salva niente**: risponde con una bozza (19/10/2026) che il socio rivede, modifica e conferma;
+ * solo allora e' un piano suo (`salvaSchedaMia`, origine «ai»). Nei testi per il socio non si nomina l'agente: «comporre».
  */
 export async function chiediSchedaAi(questionario: Questionario): Promise<Esito<{ bozza: BozzaScheda }>> {
   const { ok, dati } = await schedeLab({ azione: 'chiedi_ai', questionario })
   if (ok) return { ok: true, bozza: { ...dati.bozza, origine: 'ai' } }
-  return { ok: false, errore: dati.errore ?? 'L’agente non è riuscito a scrivere il piano adesso. Riprova fra qualche minuto.' }
+  return { ok: false, errore: dati.errore ?? 'Non siamo riusciti a comporre il piano adesso. Riprova fra qualche minuto.' }
 }
 
 // Il piano di nuoto (20/10/2026): per chi si allena in vasca, al Nuoto Libero. Un piano come gli altri, con gli esercizi di nuoto:
@@ -904,7 +917,7 @@ export const MESSAGGIO_SCUOLA_NUOTO =
   'Il Nuoto Libero chiede di saper nuotare stile libero e dorso. Se non ci sei ancora si parte dalla Scuola Nuoto Adulti: sono gli istruttori a dirti quando passare al nuoto libero.'
 
 /**
- * Il piano di nuoto scritto dall'agente: ci mette fino a un paio di minuti e **non salva niente** (come `chiediSchedaAi`):
+ * Il piano di nuoto scritto dall'agente: ci mette qualche decina di secondi e **non salva niente** (come `chiediSchedaAi`):
  * risponde con una bozza che il socio rivede, modifica e conferma; solo allora e' un piano suo (`salvaSchedaMia`, origine «ai»).
  */
 export async function chiediPianoNuoto(questionario: QuestionarioNuoto): Promise<Esito<{ bozza: BozzaScheda }>> {
@@ -913,7 +926,7 @@ export async function chiediPianoNuoto(questionario: QuestionarioNuoto): Promise
   // Le frasi della funzione sono scritte per il socio: il piano di nuoto non ancora attivo, la regola del Nuoto Libero, la quota.
   // Una funzione pubblicata prima del piano di nuoto non conosce l'azione: per il socio e' la stessa cosa del workflow spento.
   if (dati.errore === 'Azione sconosciuta.') return { ok: false, errore: 'Il piano di nuoto non è ancora attivo: puoi scriverlo tu.' }
-  return { ok: false, errore: dati.errore ?? 'L’agente non è riuscito a scrivere il piano di nuoto adesso. Riprova fra qualche minuto.' }
+  return { ok: false, errore: dati.errore ?? 'Non siamo riusciti a comporre il piano di nuoto adesso. Riprova fra qualche minuto.' }
 }
 
 // I piani del socio (19/10/2026): quelli che ha scelto lui. Vengono da quattro strade (`origine`): li scrive a mano,

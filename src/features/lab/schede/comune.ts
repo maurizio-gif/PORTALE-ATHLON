@@ -30,10 +30,12 @@ export const MUSCOLI: Record<string, string> = {
 
 export const LIVELLI: Record<string, string> = { principiante: 'Principiante', intermedio: 'Intermedio', esperto: 'Esperto' }
 
-export const TIPI: Record<string, string> = { standard: 'Consigliato dal club', personalizzata: 'Dal tuo trainer', ai: 'Creato con l’AI', socio: 'Tuo' }
+// **Un piano composto non dice «AI»** (20/10/2026, richiesta del club): sulla carta e' «Composto per te», come «Scritto da te» e
+// «Importato da te». Che dietro ci sia un'intelligenza artificiale sta nelle postille (in fondo all'editor e al piano).
+export const TIPI: Record<string, string> = { standard: 'Consigliato dal club', personalizzata: 'Dal tuo trainer', ai: 'Composto per te', socio: 'Tuo' }
 
 /** Da dove viene un piano del socio (`origine`), com'e' scritto sulla carta. */
-const ORIGINI: Record<string, string> = { creata: 'Scritto da te', importata: 'Importato da te', ai: 'Creato con l’AI', club: 'Dal club, tuo' }
+const ORIGINI: Record<string, string> = { creata: 'Scritto da te', importata: 'Importato da te', ai: 'Composto per te', club: 'Dal club, tuo' }
 
 /** L'etichetta di un piano: il suo tipo e, per quelli del socio, da dove viene. */
 export function etichettaPiano(s: { tipo: string; origine?: string | null }): string {
