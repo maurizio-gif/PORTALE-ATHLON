@@ -42,7 +42,8 @@ const ORDINE: ChiaveMotivo[] = ['debito', 'metodo', 'carta']
  * E' un abbonamento? Quelli con una quota, e **i principali a quota zero** (20/10/2026, richiesta del club):
  * gli omaggi e gli employee non hanno un canone ma sono abbonamenti veri, e senza questa regola un dipendente
  * apriva l'app e leggeva «0 attivi». Il Guest Pass resta fuori: e' una prova, non un abbonamento. Gli aggiuntivi
- * a quota zero (un servizio incluso) nemmeno.
+ * a quota zero (un servizio incluso) nemmeno, e nemmeno i voucher Covid: per il database sono `gratuito` come gli
+ * omaggi, ma la funzione li manda con `tipo = 'voucher_covid'` (richiesta del club, 20/10/2026).
  *
  * Con la funzione del database non ancora aggiornata `tipo` non c'e': si torna alla regola di prima (una quota).
  */

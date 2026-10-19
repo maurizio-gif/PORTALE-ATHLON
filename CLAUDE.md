@@ -174,9 +174,9 @@ Richiesta del club (20/10/2026). Due cose che si tengono insieme, perché l'avvi
   prova, un familiare senza corso). Se il club vuole che di loro l'app non parli affatto, è una condizione in `vociDaFare` e nel riquadro
   Certificato, e non è stata fatta: l'avviso del 20/10/2026 non tocca chi non ha un abbonamento.
 - **Gli abbonamenti principali a quota zero sono abbonamenti** (`eAbbonamento` in `home/regolarita.ts`): gli omaggi e gli employee (`tipo = 'gratuito'`,
-  non aggiuntivi: «Employee contract», «Omaggio Club», e un voucher covid del 2020 ancora vivo) contano nel riquadro Abbonamenti («1 attivo», prima «0
-  attivi»), nell'elenco «In vigore» sotto di lui e nell'avviso. **Restano fuori il Guest Pass** (è una prova: ha lo stesso canone zero) **e i contratti
-  aggiuntivi a zero**. Il metodo di pagamento non si pretende dove non c'è un canone, e un pagamento in sospeso resta un pagamento in sospeso.
+  non aggiuntivi: «Employee contract» e «Omaggio Club») contano nel riquadro Abbonamenti («1 attivo», prima «0
+  attivi»), nell'elenco «In vigore» sotto di lui e nell'avviso. **Restano fuori il Guest Pass** (è una prova: ha lo stesso canone zero), **i contratti
+  aggiuntivi a zero e i voucher Covid** (richiesta del club: per il database sono `gratuito` come gli omaggi, ma la funzione li manda con `tipo = 'voucher_covid'`). Il metodo di pagamento non si pretende dove non c'è un canone, e un pagamento in sospeso resta un pagamento in sospeso.
 - **Il tipo viene dal database**: `portale_la_mia_area` porta su ogni contratto `tipo` e `aggiuntivo` (migrazione `20261020g` di APP-ATHLON), e `portale-abbonamento`
   (azione `contratti`) elenca anche i gratuiti principali. **Con la funzione non ancora aggiornata `tipo` non c'è e l'app fa come prima**: conta solo chi ha
   un canone, nessun avviso nuovo per un employee, niente si rompe. **Pubblicare prima migrazione e funzione, poi l'app**: un'app nuova con la
@@ -189,7 +189,7 @@ Per verificare: `npx tsc --noEmit` pulito. **Provato in un browser vero** (Chrom
 `page.route`; 390 px chiaro e scuro, 1280 px): employee con certificato mancante (avviso, nessun «Da fare» doppio, «1 attivo»), famiglia con uno scaduto e uno
 mancante (titolo plurale, due righe), senza abbonamento (nessun avviso, la voce resta in «Da fare»), Guest Pass (nessun avviso), funzione vecchia (come prima),
 omaggio con certificato valido (nessun avviso), il pulsante che apre `?sezione=certificato`, nessuno scorrimento orizzontale, nessuna richiesta fuori dal computer.
-La logica pura (`eAbbonamento`, `personeDaAvvisare`, `vociDaFare`, `riepilogoAbbonamenti`) con 32 prove su dati finti, e provata con mutazioni (togliendo la regola le
+La logica pura (`eAbbonamento`, `personeDaAvvisare`, `vociDaFare`, `riepilogoAbbonamenti`) con 35 prove su dati finti (voucher Covid compresi), e provata con mutazioni (togliendo la regola le
 prove falliscono). **Non provato**: un telefono vero, e una sessione vera con la funzione del database aggiornata.
 
 ## Le calorie di una lezione: il tipo dà la forbice, non c'è un MET per lezione (prova)

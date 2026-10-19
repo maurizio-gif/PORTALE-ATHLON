@@ -62,8 +62,9 @@ export type ContrattoArea = {
   metodo: unknown
   /**
    * Come il database classifica il contratto: `abbonamento` (con una quota), `gratuito` (Employee, Omaggio: il principale a
-   * quota zero), `guest_pass` (una prova). Manca finche' la funzione del database non e' aggiornata (20/10/2026): allora
-   * si conta come abbonamento solo chi ha una quota.
+   * quota zero), `guest_pass` (una prova), `voucher_covid` (i voucher legati al Covid: non sono abbonamenti, richiesta del
+   * club). Manca finche' la funzione del database non e' aggiornata (20/10/2026): allora si conta come abbonamento solo
+   * chi ha una quota.
    */
   tipo?: string | null
   /** PerfectGym lo considera un contratto aggiuntivo (un servizio in piu'), non il principale. */
