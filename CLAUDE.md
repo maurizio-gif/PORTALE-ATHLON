@@ -18,7 +18,7 @@ chiamata diretta al gestionale. Esempio: la sezione Prodotti usa l'azione `prodo
 - **Quello che PerfectGym non dice** (da quale dispositivo si è prenotato, per esempio) lo registra la
   nostra funzione nel suo log; la schermata non lo deduce.
 - **Il Calendario ha un gemello nel CRM: il Planning** (20/10/2026, funzione `crm-planning` di APP-ATHLON): le stesse lezioni, lo stesso filtro per età, la stessa apertura delle
-  prenotazioni e gli stessi limiti per categoria, ma a prenotare è l'operatore, a nome del cliente, e da lì non si incassa né si disdice. **Non condivide il codice con
+  prenotazioni e gli stessi limiti per categoria, ma a prenotare (e a disdire, con `CancelSingleBooking` e le regole di PerfectGym per la disdetta in ritardo) è l'operatore, a nome del cliente, e da lì non si incassa. **Non condivide il codice con
   `portale-lab-calendario`** (la funzione dell'app non è stata toccata): se qui cambia la lettura del giorno, il filtro d'età, l'apertura o i limiti, va cambiato anche in
   `_shared/planning-crm.ts` di APP-ATHLON. Il Calendario resta quello che il socio vede: il Planning non cambia niente nell'app.
 
