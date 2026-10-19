@@ -10,6 +10,7 @@ import { Stack } from 'expo-router'
 import { View } from 'react-native'
 
 import { Avvio } from '@/features/lab/avvio/Avvio'
+import { PulsanteFeedback } from '@/features/lab/feedback/PulsanteFeedback'
 import { BannerVista } from '@/features/lab/ui/BannerVista'
 import { BarraSchede } from '@/features/lab/ui/BarraSchede'
 import { usePalette } from '@/features/lab/ui/tema'
@@ -65,6 +66,9 @@ export default function LayoutLaboratorio() {
         <Stack.Screen name="metodo-pagamento/fatto/[token]" options={{ animation: 'fade' }} />
       </Stack>
       {sessione ? <BarraSchede /> : null}
+      {/* Il pulsante «Feedback» dei tester, in alto a destra (features/lab/feedback): solo con una sessione, e prima
+          dell'avvio animato, che lo copre. In vista cliente non si disegna. */}
+      {sessione ? <PulsanteFeedback /> : null}
       {/* L'avvio animato: una volta a ogni apertura, sopra tutto (features/lab/avvio). */}
       <Avvio />
     </View>

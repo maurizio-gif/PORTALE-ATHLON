@@ -1,6 +1,6 @@
 import { BlurView } from 'expo-blur'
 import { Image } from 'expo-image'
-import { router, type Href } from 'expo-router'
+import { router, useIsFocused, type Href } from 'expo-router'
 import type { ReactNode, Ref } from 'react'
 import { Platform, StyleSheet, Text, useWindowDimensions, View } from 'react-native'
 import Animated, { interpolate, useAnimatedScrollHandler, useAnimatedStyle, useSharedValue, Extrapolation } from 'react-native-reanimated'
@@ -9,6 +9,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { LARGO } from '@/components/Pagina'
 import { spazio } from '@/theme'
 
+import { useSegnaAzioneInAlto } from '../feedback/posizione'
 import { ingombroBarra } from './BarraSchede'
 import { Icona } from './Icona'
 import { F, usePalette } from './tema'
@@ -80,6 +81,9 @@ export function Schermata({
   const ins = useSafeAreaInsets()
   const { width } = useWindowDimensions()
   const maxWidth = width < LARGO ? 640 : LARGHEZZA_APP
+  // Il pulsante «Feedback» sta in alto a destra, nel posto di `destra`: se qui c'e' un comando, gli si fa posto
+  // (solo finche' la schermata e' quella che si vede, vedi feedback/posizione.ts).
+  useSegnaAzioneInAlto(!!destra, useIsFocused())
   const y = useSharedValue(0)
   const onScroll = useAnimatedScrollHandler((e) => {
     y.value = e.contentOffset.y
