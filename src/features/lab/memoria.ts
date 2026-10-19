@@ -16,6 +16,18 @@ import { dimenticaLaVista } from './vista'
 const valori = new Map<string, unknown>()
 const inVolo = new Map<string, Promise<unknown>>()
 
+/**
+ * Le chiavi che `dimentica` lascia stare. `dimentica` si chiama dopo una scrittura (un piano salvato, una misura, il test) per far
+ * rileggere i dati che sono cambiati; ci sono dati che una scrittura non cambia e che non si devono riscrivere ogni volta, come il
+ * messaggio di benvenuto (un'altra chiamata all'AI e un altro testo). Si svuotano solo uscendo dal laboratorio (`dimentica(true)`).
+ */
+const durevoli = new Set<string>()
+
+/** Dichiara che questa chiave sopravvive a `dimentica()` (non a `dimentica(true)`, cioe' all'uscita). */
+export function durevole(chiave: string) {
+  durevoli.add(chiave)
+}
+
 /** L'ultimo valore buono, se c'e'. */
 export function inMemoria<T>(chiave: string): T | undefined {
   return valori.get(chiave) as T | undefined
@@ -45,15 +57,15 @@ export function precarica<T>(chiave: string, carica: () => Promise<T>) {
   if (!valori.has(chiave) && !inVolo.has(chiave)) prendi(chiave, carica).catch(() => undefined)
 }
 
-/** All'uscita dal laboratorio non deve restare niente dell'utente di prima. */
-export function dimentica() {
-  valori.clear()
+/** Dopo una scrittura: si rileggono i dati (non le chiavi `durevole`). All'uscita (`tutto`) non deve restare niente dell'utente di prima. */
+export function dimentica(tutto = false) {
+  for (const chiave of [...valori.keys()]) if (tutto || !durevoli.has(chiave)) valori.delete(chiave)
   inVolo.clear()
 }
 
 /** Esce dal laboratorio e svuota la memoria (anche quella di Athlon TV). Uscendo cade anche la vista cliente: al prossimo accesso si riparte dall'app di sempre. */
 export async function esciDalLaboratorio() {
-  dimentica()
+  dimentica(true)
   // Il carrello dello shop e' di chi c'era: sul web sta nella scheda del browser, e un dispositivo condiviso non lo deve passare al prossimo.
   svuotaCarrello()
   dimenticaLaVista()
