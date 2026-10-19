@@ -364,7 +364,7 @@ export function EditorScheda() {
     modifica: vasca ? 'Modifica il piano di nuoto' : 'Modifica il piano',
     copia: 'Modifica e aggiungi',
     file: 'Controlla il piano',
-    ai: vasca ? 'Il piano di nuoto dell’agente' : 'Il piano dell’agente',
+    ai: vasca ? 'Il piano di nuoto composto per te' : 'Il piano composto per te',
     nuovo: 'Scrivi il tuo piano',
   }[modo]
   const indietro = id ? (`/allenamento/${id}` as const) : copia ? (`/allenamento/${copia}` as const) : ('/allenamento' as const)
@@ -373,8 +373,8 @@ export function EditorScheda() {
     copia: daPiano ? `Parti da «${daPiano}»: cambia quello che vuoi e conferma. Lo trovi poi fra i tuoi piani; l’originale resta com’è.` : 'Cambia quello che vuoi e conferma: lo trovi poi fra i tuoi piani.',
     file: 'L’abbiamo letto dal tuo file. Controlla gli esercizi, le serie e i carichi: il piano si salva solo quando lo decidi tu.',
     ai: vasca
-      ? 'Ecco il piano di nuoto che l’agente ha scritto per te. Cambia sedute, distanze e recuperi e confermalo: lo trovi poi fra i tuoi piani, e si legge a bordo vasca.'
-      : 'Ecco il piano che l’agente ha scritto per te. Cambia quello che vuoi e confermalo: lo trovi poi fra i tuoi piani.',
+      ? 'Ecco il piano di nuoto che abbiamo composto sulle tue risposte. Cambia sedute, distanze e recuperi e confermalo: lo trovi poi fra i tuoi piani, e si legge a bordo vasca.'
+      : 'Ecco il piano che abbiamo composto sulle tue risposte. Cambia quello che vuoi e confermalo: lo trovi poi fra i tuoi piani.',
     nuovo: 'Giorni ed esercizi, con serie, ripetizioni, carico e recupero. Lo usi come gli altri: inizi l’allenamento e segni le serie.',
   }[modo]
 
@@ -406,10 +406,12 @@ export function EditorScheda() {
         </Messaggio>
       ) : null}
       {modo === 'ai' ? (
-        <Messaggio tono="attenzione" titolo="Scritto da un’intelligenza artificiale">
+        // L'avviso non nomina l'AI (20/10/2026): e' una prima versione da controllare, come ogni piano. Che sia composto con
+        // l'aiuto di un'intelligenza artificiale si dice in fondo, nella postilla sotto il pulsante.
+        <Messaggio tono="attenzione" titolo="Controllalo prima di confermare">
           {vasca
-            ? 'Può sbagliare: guarda distanze e recuperi, e correggi quello che non ti torna. Con dolori o infortuni parlane prima con il tecnico a bordo vasca.'
-            : 'Può sbagliare: guarda esercizi, carichi e recuperi, e correggi quello che non ti torna. Con dolori o infortuni parlane prima con un istruttore in sala.'}
+            ? 'È una prima versione: guarda distanze e recuperi, e correggi quello che non ti torna. Con dolori o infortuni parlane prima con il tecnico a bordo vasca.'
+            : 'È una prima versione: guarda esercizi, carichi e recuperi, e correggi quello che non ti torna. Con dolori o infortuni parlane prima con un istruttore in sala.'}
         </Messaggio>
       ) : null}
 
@@ -548,7 +550,8 @@ export function EditorScheda() {
       {errore ? <Messaggio>{errore}</Messaggio> : null}
       <Pulsante testo={modo === 'modifica' ? 'Salva le modifiche' : modo === 'nuovo' ? 'Salva il piano' : 'Conferma e aggiungi ai tuoi piani'} icona="spunta" inCorso={salvando} onPress={salva} />
       <Text style={[stili.avvertenza, { color: p.testoTerzo }]}>
-        È un piano tuo, ma i trainer del club lo possono vedere dal pannello, per verificarlo e aiutarti a seguirlo. Non sostituisce il parere di un istruttore: con dolori o infortuni parlane prima con {vasca ? 'il tecnico a bordo vasca' : 'un istruttore in sala'}.
+        {modo === 'ai' ? 'Questa bozza è stata composta con il supporto di un’intelligenza artificiale, che può sbagliare. ' : ''}È un piano tuo, ma i trainer del club lo possono vedere dal pannello, per verificarlo e aiutarti a seguirlo. Non sostituisce il parere di un istruttore: con dolori o infortuni parlane prima con{' '}
+        {vasca ? 'il tecnico a bordo vasca' : 'un istruttore in sala'}.
       </Text>
 
       <SceltaEsercizio
