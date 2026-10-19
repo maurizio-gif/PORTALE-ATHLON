@@ -1,9 +1,10 @@
 import { LinearGradient } from 'expo-linear-gradient'
 import { router, type Href } from 'expo-router'
+import { useEffect, useState } from 'react'
 import { StyleSheet, Text, View } from 'react-native'
 import Animated, { FadeIn } from 'react-native-reanimated'
 
-import { messaggioToccato, type DestinazioneBenvenuto, type MessaggioBenvenuto as MessaggioDato } from '@/api/benvenuto'
+import { messaggioToccato, ultimoMessaggio, type DestinazioneBenvenuto, type MessaggioBenvenuto as MessaggioDato } from '@/api/benvenuto'
 import { spazio } from '@/theme'
 import { vistaCorrente } from '../vista'
 
@@ -26,7 +27,9 @@ import { useMessaggioBenvenuto } from './useMessaggioBenvenuto'
 // - **L'etichetta e' sempre «PER TE»**, senza dire chi ha scritto il messaggio (richiesta del club, 19/10/2026): l'AI scrive solo le
 //   parole di un passo che decide il codice, e quando non risponde il server ripiega su testi scritti a mano. `origine` arriva comunque
 //   dalla funzione (e si registra), ma qui non si mostra.
-// - **In vista cliente dello staff non c'e'**: chi guarda l'app di un socio non genera messaggi a suo nome.
+// - **In vista cliente dello staff si legge l'ultimo che il socio ha ricevuto** (`ultimoMessaggio`), con la data e una riga che dice che e'
+//   una lettura: lo staff vede quello che il socio ha visto, o che non ne ha ancora ricevuti, ma non ne scrive uno a suo nome e il
+//   pulsante non segna nessun tocco.
 // - Il pulsante porta dove dice la destinazione: la prova e l'abbonamento sono le schermate che gia' esistono, il calendario e
 //   l'allenamento le sue schede, e i pagamenti la sezione della Home (`onSezione`).
 
@@ -38,11 +41,48 @@ const INDIRIZZI: Record<Exclude<DestinazioneBenvenuto, 'pagamenti'>, Href> = {
 }
 
 export function MessaggioBenvenuto({ email, onSezione }: { email: string; onSezione: (s: SezioneHome) => void }) {
-  const inVista = vistaCorrente() !== null
-  const { stato } = useMessaggioBenvenuto(!inVista, email)
-  if (inVista || stato.fase === 'niente') return null
+  return vistaCorrente() !== null ? <MessaggioInVista email={email} onSezione={onSezione} /> : <MessaggioDelSocio email={email} onSezione={onSezione} />
+}
+
+/** Il socio nella sua app: il messaggio di questo ritorno. */
+function MessaggioDelSocio({ email, onSezione }: { email: string; onSezione: (s: SezioneHome) => void }) {
+  const { stato } = useMessaggioBenvenuto(true, email)
+  if (stato.fase === 'niente') return null
   if (stato.fase === 'carico') return <Attesa />
   return <TestoMessaggio m={stato.messaggio} onSezione={onSezione} />
+}
+
+/** Lo staff in vista cliente: l'ultimo messaggio che il socio ha ricevuto, letto e non scritto. Un errore e la carta non c'e', come per il socio. */
+function MessaggioInVista({ email, onSezione }: { email: string; onSezione: (s: SezioneHome) => void }) {
+  const p = usePalette()
+  const [stato, setStato] = useState<{ fase: 'carico' } | { fase: 'niente' } | { fase: 'pronto'; messaggio: MessaggioDato | null }>({ fase: 'carico' })
+  useEffect(() => {
+    let vivo = true
+    setStato({ fase: 'carico' })
+    ultimoMessaggio().then((r) => {
+      if (vivo) setStato(r.ok ? { fase: 'pronto', messaggio: r.messaggio } : { fase: 'niente' })
+    })
+    return () => {
+      vivo = false
+    }
+  }, [email])
+
+  if (stato.fase === 'niente') return null
+  if (stato.fase === 'carico') return <Attesa />
+  if (!stato.messaggio) {
+    return (
+      <View style={stili.blocco}>
+        <Text style={[stili.nota, { color: p.testoTerzo }]}>Questo socio non ha ancora ricevuto un messaggio di benvenuto.</Text>
+      </View>
+    )
+  }
+  return <TestoMessaggio m={stato.messaggio} onSezione={onSezione} inVista />
+}
+
+/** «19 ott, 08:20», all'ora di Roma. */
+function quando(iso: string | null): string {
+  const d = iso ? new Date(iso) : null
+  return d && !Number.isNaN(d.getTime()) ? d.toLocaleString('it-IT', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Rome' }) : ''
 }
 
 function Attesa() {
@@ -63,13 +103,14 @@ function Attesa() {
   )
 }
 
-function TestoMessaggio({ m, onSezione }: { m: MessaggioDato; onSezione: (s: SezioneHome) => void }) {
+function TestoMessaggio({ m, onSezione, inVista = false }: { m: MessaggioDato; onSezione: (s: SezioneHome) => void; inVista?: boolean }) {
   const p = usePalette()
   const azione = m.azione
 
   function vai() {
     if (!azione) return
-    messaggioToccato(m.id)
+    // In vista cliente il tocco non e' del socio: non si segna.
+    if (!inVista) messaggioToccato(m.id)
     if (azione.destinazione === 'pagamenti') onSezione('pagamenti')
     else router.navigate(INDIRIZZI[azione.destinazione])
   }
@@ -98,6 +139,11 @@ function TestoMessaggio({ m, onSezione }: { m: MessaggioDato; onSezione: (s: Sez
             <Pulsante testo={azione.etichetta} icona="avanti" onPress={vai} />
           </View>
         ) : null}
+        {inVista ? (
+          <Text style={[stili.nota, { color: p.testoTerzo }]}>
+            {`Ultimo messaggio ricevuto dal socio${m.il ? `, il ${quando(m.il)}` : ''}. In vista cliente non se ne scrivono di nuovi.`}
+          </Text>
+        ) : null}
       </View>
     </Entra>
   )
@@ -111,4 +157,5 @@ const stili = StyleSheet.create({
   etichetta: { fontFamily: F.extra, fontSize: 11, letterSpacing: 1.1, flexShrink: 1 },
   titolo: { fontFamily: F.extra, fontSize: 24, lineHeight: 29, letterSpacing: -0.6 },
   testo: { fontFamily: F.medio, fontSize: 16, lineHeight: 24 },
+  nota: { fontFamily: F.medio, fontSize: 12.5, lineHeight: 18 },
 })

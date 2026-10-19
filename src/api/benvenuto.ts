@@ -17,6 +17,8 @@ export type MessaggioBenvenuto = {
   azione: { destinazione: DestinazioneBenvenuto; etichetta: string } | null
   /** `ai`: l'ha scritto un modello. `regole`: e' un testo scritto a mano dal club (il server ripiega su quelli se l'AI non risponde). */
   origine: 'ai' | 'regole'
+  /** Quando e' stato scritto (ISO): lo dice solo `ultimo`, la lettura della vista cliente dello staff. */
+  il: string | null
 }
 
 export type EsitoBenvenuto = { ok: true; messaggio: MessaggioBenvenuto | null } | { ok: false; errore: string }
@@ -34,16 +36,36 @@ function leggi(m: unknown): MessaggioBenvenuto | null {
     a && typeof a.etichetta === 'string' && a.etichetta.trim() && DESTINAZIONI.includes(a.destinazione as DestinazioneBenvenuto)
       ? { destinazione: a.destinazione as DestinazioneBenvenuto, etichetta: a.etichetta }
       : null
-  return { id: typeof x.id === 'string' ? x.id : '', titolo: x.titolo.trim(), testo: x.testo.trim(), azione, origine: x.origine === 'ai' ? 'ai' : 'regole' }
+  return {
+    id: typeof x.id === 'string' ? x.id : '',
+    titolo: x.titolo.trim(),
+    testo: x.testo.trim(),
+    azione,
+    origine: x.origine === 'ai' ? 'ai' : 'regole',
+    il: typeof x.creato_il === 'string' ? x.creato_il : null,
+  }
 }
 
-/** Il messaggio per questo ritorno. `motivo`: `apertura` (l'app e' stata appena aperta) o `ritorno` (e' tornato dopo un po'). */
-export async function messaggioDiBenvenuto(motivo: 'apertura' | 'ritorno'): Promise<EsitoBenvenuto> {
+/** Una richiesta alla funzione, con l'attesa massima: oltre, la Home va avanti senza il messaggio. */
+async function chiedi(corpo: Record<string, unknown>): Promise<EsitoBenvenuto> {
   const attesa = new Promise<null>((ok) => setTimeout(() => ok(null), ATTESA_MS))
-  const r = await Promise.race([funzione('portale-lab-benvenuto', { azione: 'messaggio', motivo }), attesa])
+  const r = await Promise.race([funzione('portale-lab-benvenuto', corpo), attesa])
   if (!r) return { ok: false, errore: 'Il messaggio non e’ arrivato in tempo.' }
   if (!r.ok) return { ok: false, errore: String(r.dati.errore ?? 'Non riusciamo a leggere il messaggio adesso.') }
   return { ok: true, messaggio: leggi(r.dati.messaggio) }
+}
+
+/** Il messaggio per questo ritorno. `motivo`: `apertura` (l'app e' stata appena aperta) o `ritorno` (e' tornato dopo un po'). */
+export function messaggioDiBenvenuto(motivo: 'apertura' | 'ritorno'): Promise<EsitoBenvenuto> {
+  return chiedi({ azione: 'messaggio', motivo })
+}
+
+/**
+ * L'ultimo messaggio che il socio ha ricevuto, senza scriverne un altro: e' quello che legge lo staff in vista cliente (la sola azione
+ * della funzione che in vista passa). `messaggio: null` se il socio non ne ha ancora ricevuti.
+ */
+export function ultimoMessaggio(): Promise<EsitoBenvenuto> {
+  return chiedi({ azione: 'ultimo' })
 }
 
 /** Il socio ha premuto il pulsante del messaggio: e' il solo segno, per il club, che il messaggio ha portato a un passo. Non aspetta e non solleva. */

@@ -3,7 +3,7 @@ import { AppState } from 'react-native'
 
 import { messaggioDiBenvenuto, type MessaggioBenvenuto } from '@/api/benvenuto'
 
-import { inMemoria, ricorda } from '../memoria'
+import { durevole, inMemoria, ricorda } from '../memoria'
 
 // Quando si scrive un messaggio nuovo: **a ogni ritorno nell'app**.
 //
@@ -25,6 +25,8 @@ export const VALIDITA_MS = 30 * 60_000
 const RIPROVA_MS = 2 * 60_000
 
 const CHIAVE = 'benvenuto'
+// Un piano salvato o una misura (`dimentica`) non cambiano il messaggio: non se ne scrive un altro a ogni passaggio. Sparisce solo uscendo.
+durevole(CHIAVE)
 
 type Memoria = {
   /** Di chi e': l'email della sessione che l'ha chiesto. */

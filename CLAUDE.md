@@ -517,13 +517,19 @@ A che punto è il socio, qual è il suo passo, come si controlla quello che scri
   questo non c'è più `nascondi` nel hook né `chiuso` nella memoria, e non va rimesso senza chiederlo al club. Sullo schermo largo il testo sta in 640 px e il pulsante in 420, per non stirarsi su tutta la riga.
 - **L'etichetta è sempre «PER TE»**, senza dire chi ha scritto il messaggio (richiesta del club, 19/10/2026: prima diceva «PER TE · SCRITTO DALL'AI» quando il testo era dell'AI). La funzione manda comunque
   `origine` (`ai` o `regole`) e la registra, ma l'app non la mostra: per sapere quanti messaggi escono dall'AI e quanti dai testi di riserva si guarda il registro. Il tocco sul pulsante si segna (`toccato`, senza aspettare e senza sollevare): è il solo segno, per il club, che il messaggio ha funzionato.
-- **In vista cliente dello staff non c'è e non si chiama la funzione** (`vistaCorrente()`): chi guarda l'app di un socio non genera messaggi a suo nome.
+- **In vista cliente dello staff si legge l'ultimo messaggio che il socio ha ricevuto** (20/10/2026, `MessaggioInVista`): lo staff vede quello che il socio ha visto, con la data («Ultimo
+  messaggio ricevuto dal socio, il 19 ott, 08:20. In vista cliente non se ne scrivono di nuovi.») o, se non ne ha ancora ricevuti, la riga «Questo socio non ha ancora ricevuto un messaggio di
+  benvenuto.» (così «perché a lui non compare?» ha una risposta). È la sola azione della funzione che in vista passa (`ultimo`): **non genera niente e non segna nessun tocco**, e il pulsante
+  porta dove porta ma non scrive `toccato`. Un errore e non compare niente.
+- **Il messaggio sopravvive alle scritture, non all'uscita.** La memoria (`memoria.ts`) si svuota con `dimentica()` dopo una scrittura (un piano salvato, una misura, il test) per rileggere i dati
+  che sono cambiati; il messaggio non cambia con una scrittura, e prima veniva cancellato anche lui, quindi tornando sulla Home ne partiva un altro (un'altra chiamata all'AI, e un testo diverso
+  sotto gli occhi). Ora la sua chiave è `durevole`: `dimentica()` la lascia, `dimentica(true)` (l'uscita, `esciDalLaboratorio`) la toglie.
 - **Le parole**: la prova non è mai «gratis» né ha un prezzo nel messaggio (il passo mostra il prezzo); niente peso, dimagrimento, salute; niente colpa per chi manca da un po'. Lo garantisce il controllo
   del server, non l'app.
 
 Per verificare: `npx tsc --noEmit` pulito. **Si guarda renderizzato** (390 e 1280 px, chiaro e scuro): lo scheletro mentre arriva, il messaggio con l'etichetta «PER TE» e il pulsante (senza riquadro e senza X), nessuna traccia se la funzione dà errore o `messaggio: null`, nessuno scorrimento orizzontale a 390. Con le risposte della funzione simulate (Playwright con `page.route` su
 Supabase e `page.clock`): all'apertura una richiesta `apertura`; cinque minuti fuori dall'app non ne chiedono un'altra; oltre mezz'ora fuori ne arriva una `ritorno`; il pulsante porta a
-`/richiesta/guest-pass` e segna `toccato`; in vista cliente nessuna richiesta. **Acceso il 19/10/2026 per i tester del portale**, con la funzione vera: un tester ha aperto l'app, il messaggio è arrivato (scritto da Gemini, registrato) e il pulsante è stato premuto. Il lato server (workflow, controlli, cosa si è
+`/richiesta/guest-pass` e segna `toccato`; in vista cliente una sola richiesta, di sola lettura (`ultimo`), con l'indirizzo del socio, e il pulsante non segna nessun tocco. **Acceso il 19/10/2026 per i tester del portale**, con la funzione vera: un tester ha aperto l'app, il messaggio è arrivato (scritto da Gemini, registrato) e il pulsante è stato premuto. Il lato server (workflow, controlli, cosa si è
 provato con le risposte vere dei modelli) sta nel `CLAUDE.md` di APP-ATHLON. **Non provato**: un telefono vero (iOS e Android, dove `AppState` ha anche lo stato `inactive`).
 
 ## Lo shop: Articoli e Merchandising, si compra dall'app e si ritira in segreteria
