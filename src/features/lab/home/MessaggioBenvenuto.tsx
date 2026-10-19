@@ -8,9 +8,8 @@ import { spazio } from '@/theme'
 import { vistaCorrente } from '../vista'
 
 import { Icona } from '../ui/Icona'
-import { Carta, Entra, Pulsante, Scheletro } from '../ui/kit'
+import { Entra, Pulsante, Scheletro } from '../ui/kit'
 import { F, FUOCO, usePalette } from '../ui/tema'
-import { Tocco } from '../ui/Tocco'
 import type { SezioneHome } from './sezioni'
 import { useMessaggioBenvenuto } from './useMessaggioBenvenuto'
 
@@ -18,12 +17,15 @@ import { useMessaggioBenvenuto } from './useMessaggioBenvenuto'
 // ritorno nell'app, che spinge il socio verso il suo prossimo passo (attivare la prova, scegliere un abbonamento, dare seguito agli
 // allenamenti, ricominciare). Il passo lo decide il server dai dati del mirror; qui si mostrano il testo e il pulsante che arrivano.
 //
-// - **Mentre arriva** c'e' lo scheletro, che sull'apertura dell'app si confonde con l'avvio animato; se la funzione non risponde (o
-//   non c'e' ancora) la carta non compare: nessun riquadro vuoto e nessun errore per una cosa che nessuno ha chiesto.
+// - **Non e' una carta**: e' testo direttamente sulla Home, senza riquadro, senza ombra e senza una X per chiuderlo (richiesta del
+//   club, 19/10/2026: una parte della Home, non un avviso che si scarta). Per questo non si puo' nascondere: resta fino al prossimo
+//   ritorno, quando ne arriva uno nuovo.
+// - **Mentre arriva** c'e' lo scheletro (le stesse righe, senza riquadro), che sull'apertura dell'app si confonde con l'avvio
+//   animato; se la funzione non risponde (o non c'e' ancora) non compare niente: nessun vuoto e nessun errore per una cosa che nessuno
+//   ha chiesto.
 // - **L'etichetta e' sempre «PER TE»**, senza dire chi ha scritto il messaggio (richiesta del club, 19/10/2026): l'AI scrive solo le
 //   parole di un passo che decide il codice, e quando non risponde il server ripiega su testi scritti a mano. `origine` arriva comunque
 //   dalla funzione (e si registra), ma qui non si mostra.
-// - **Si puo' nascondere** (la X): resta nascosto fino al prossimo ritorno, quando ne arriva uno nuovo.
 // - **In vista cliente dello staff non c'e'**: chi guarda l'app di un socio non genera messaggi a suo nome.
 // - Il pulsante porta dove dice la destinazione: la prova e l'abbonamento sono le schermate che gia' esistono, il calendario e
 //   l'allenamento le sue schede, e i pagamenti la sezione della Home (`onSezione`).
@@ -37,33 +39,31 @@ const INDIRIZZI: Record<Exclude<DestinazioneBenvenuto, 'pagamenti'>, Href> = {
 
 export function MessaggioBenvenuto({ email, onSezione }: { email: string; onSezione: (s: SezioneHome) => void }) {
   const inVista = vistaCorrente() !== null
-  const { stato, nascondi } = useMessaggioBenvenuto(!inVista, email)
+  const { stato } = useMessaggioBenvenuto(!inVista, email)
   if (inVista || stato.fase === 'niente') return null
   if (stato.fase === 'carico') return <Attesa />
-  return <CartaMessaggio m={stato.messaggio} onSezione={onSezione} onNascondi={nascondi} />
+  return <TestoMessaggio m={stato.messaggio} onSezione={onSezione} />
 }
 
 function Attesa() {
   return (
     <Entra indice={1}>
-      <Carta style={{ gap: spazio.tre }} piatta>
-        <View accessibilityLabel="Sto scrivendo il tuo messaggio" accessibilityRole="progressbar" style={{ gap: spazio.tre }}>
-          <View style={stili.testata}>
-            <Scheletro altezza={36} larghezza={36} tondo={13} />
-            <Scheletro altezza={12} larghezza={90} />
-          </View>
-          <Scheletro altezza={20} larghezza="62%" />
-          <View style={{ gap: spazio.due }}>
-            <Scheletro altezza={14} />
-            <Scheletro altezza={14} larghezza="82%" />
-          </View>
+      <View accessibilityLabel="Sto scrivendo il tuo messaggio" accessibilityRole="progressbar" style={[stili.blocco, { gap: spazio.tre }]}>
+        <View style={stili.testata}>
+          <Scheletro altezza={30} larghezza={30} tondo={11} />
+          <Scheletro altezza={12} larghezza={70} />
         </View>
-      </Carta>
+        <Scheletro altezza={22} larghezza="62%" />
+        <View style={{ gap: spazio.due }}>
+          <Scheletro altezza={14} />
+          <Scheletro altezza={14} larghezza="82%" />
+        </View>
+      </View>
     </Entra>
   )
 }
 
-function CartaMessaggio({ m, onSezione, onNascondi }: { m: MessaggioDato; onSezione: (s: SezioneHome) => void; onNascondi: () => void }) {
+function TestoMessaggio({ m, onSezione }: { m: MessaggioDato; onSezione: (s: SezioneHome) => void }) {
   const p = usePalette()
   const azione = m.azione
 
@@ -76,39 +76,39 @@ function CartaMessaggio({ m, onSezione, onNascondi }: { m: MessaggioDato; onSezi
 
   return (
     <Entra indice={1}>
-      <Carta style={{ gap: spazio.tre }}>
+      <View style={[stili.blocco, { gap: spazio.tre }]}>
         <View style={stili.testata}>
           <LinearGradient colors={FUOCO} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={stili.bollino}>
-            <Icona nome="stella" size={18} colore="#fff" />
+            <Icona nome="stella" size={16} colore="#fff" />
           </LinearGradient>
           <Text style={[stili.etichetta, { color: p.testoTerzo }]} numberOfLines={1}>
             PER TE
           </Text>
-          <View style={{ flex: 1 }} />
-          <Tocco onPress={onNascondi} etichetta="Nascondi il messaggio" scala={0.9} vibra={null}>
-            <View style={stili.chiudi}>
-              <Icona nome="chiudi" size={15} colore={p.testoTerzo} />
-            </View>
-          </Tocco>
         </View>
         {/* Il testo arriva con una dissolvenza: sull'apertura dell'app lo scheletro si trasforma, non salta. */}
-        <Animated.View key={m.id || m.titolo} entering={FadeIn.duration(380)} style={{ gap: spazio.due }}>
+        <Animated.View key={m.id || m.titolo} entering={FadeIn.duration(380)} style={{ gap: spazio.due, maxWidth: 640 }}>
           <Text style={[stili.titolo, { color: p.testo }]} accessibilityRole="header">
             {m.titolo}
           </Text>
           <Text style={[stili.testo, { color: p.testoSecondario }]}>{m.testo}</Text>
         </Animated.View>
-        {azione ? <Pulsante testo={azione.etichetta} icona="avanti" onPress={vai} /> : null}
-      </Carta>
+        {/* Sullo schermo largo il pulsante non si stira su tutta la riga. */}
+        {azione ? (
+          <View style={{ maxWidth: 420 }}>
+            <Pulsante testo={azione.etichetta} icona="avanti" onPress={vai} />
+          </View>
+        ) : null}
+      </View>
     </Entra>
   )
 }
 
 const stili = StyleSheet.create({
+  // Nessuno sfondo, bordo od ombra: e' testo sulla Home. Il margine allinea il testo a quello dentro la testata scura.
+  blocco: { paddingHorizontal: spazio.due, paddingVertical: spazio.due },
   testata: { flexDirection: 'row', alignItems: 'center', gap: spazio.due + 2 },
-  bollino: { width: 36, height: 36, borderRadius: 13, alignItems: 'center', justifyContent: 'center' },
+  bollino: { width: 30, height: 30, borderRadius: 11, alignItems: 'center', justifyContent: 'center' },
   etichetta: { fontFamily: F.extra, fontSize: 11, letterSpacing: 1.1, flexShrink: 1 },
-  chiudi: { width: 32, height: 32, borderRadius: 999, alignItems: 'center', justifyContent: 'center', marginRight: -6 },
-  titolo: { fontFamily: F.extra, fontSize: 21, lineHeight: 26, letterSpacing: -0.5 },
-  testo: { fontFamily: F.medio, fontSize: 15.5, lineHeight: 23 },
+  titolo: { fontFamily: F.extra, fontSize: 24, lineHeight: 29, letterSpacing: -0.6 },
+  testo: { fontFamily: F.medio, fontSize: 16, lineHeight: 24 },
 })

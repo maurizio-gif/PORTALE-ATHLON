@@ -33,8 +33,6 @@ type Memoria = {
   /** Quando e' stato scritto, o quando e' fallita la richiesta. */
   il: number
   fallita: boolean
-  /** Il socio l'ha nascosto: resta nascosto fino al prossimo messaggio. */
-  chiuso: boolean
 }
 
 export type StatoBenvenuto = { fase: 'carico' } | { fase: 'pronto'; messaggio: MessaggioBenvenuto } | { fase: 'niente' }
@@ -45,7 +43,7 @@ let inVolo: { email: string; richiesta: Promise<Memoria> } | null = null
 async function scrivi(motivo: 'apertura' | 'ritorno', email: string): Promise<Memoria> {
   if (inVolo?.email === email) return inVolo.richiesta
   const richiesta: Promise<Memoria> = messaggioDiBenvenuto(motivo)
-    .then((r): Memoria => ({ email, messaggio: r.ok ? r.messaggio : null, il: Date.now(), fallita: !r.ok, chiuso: false }))
+    .then((r): Memoria => ({ email, messaggio: r.ok ? r.messaggio : null, il: Date.now(), fallita: !r.ok }))
     .then((m) => {
       // Solo se la sessione e' ancora quella: chi e' uscito nel frattempo non lascia niente a chi entra.
       if (!inVolo || inVolo.richiesta === richiesta) ricorda(CHIAVE, m)
@@ -65,14 +63,14 @@ function mia(email: string): Memoria | undefined {
 }
 
 function statoDa(m: Memoria | undefined): StatoBenvenuto {
-  return m?.messaggio && !m.chiuso ? { fase: 'pronto', messaggio: m.messaggio } : { fase: 'niente' }
+  return m?.messaggio ? { fase: 'pronto', messaggio: m.messaggio } : { fase: 'niente' }
 }
 
 /**
- * Il messaggio di benvenuto da mostrare, e il comando per nasconderlo. `email` e' quella della sessione. Con `attivo` falso (la vista
- * cliente dello staff) non chiama niente.
+ * Il messaggio di benvenuto da mostrare. `email` e' quella della sessione. Con `attivo` falso (la vista cliente dello staff) non chiama
+ * niente. Non si puo' nascondere: e' una parte della Home, non un avviso.
  */
-export function useMessaggioBenvenuto(attivo: boolean, email: string): { stato: StatoBenvenuto; nascondi: () => void } {
+export function useMessaggioBenvenuto(attivo: boolean, email: string): { stato: StatoBenvenuto } {
   const [stato, setStato] = useState<StatoBenvenuto>(() => {
     const m = mia(email)
     return attivo && m && Date.now() - m.il < (m.fallita ? RIPROVA_MS : VALIDITA_MS) ? statoDa(m) : { fase: attivo ? 'carico' : 'niente' }
@@ -115,11 +113,5 @@ export function useMessaggioBenvenuto(attivo: boolean, email: string): { stato: 
     return () => s.remove()
   }, [attivo, carica])
 
-  const nascondi = useCallback(() => {
-    const m = mia(email)
-    if (m) ricorda(CHIAVE, { ...m, chiuso: true })
-    setStato({ fase: 'niente' })
-  }, [email])
-
-  return { stato, nascondi }
+  return { stato }
 }
