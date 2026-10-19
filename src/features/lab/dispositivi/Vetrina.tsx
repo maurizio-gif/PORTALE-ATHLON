@@ -12,13 +12,13 @@ import { F, RELAX, usePalette } from '../ui/tema'
 import { Tocco } from '../ui/Tocco'
 import { CONSENSO, INFORMATIVA, VERSIONE_INFORMATIVA } from './informativa'
 
-// La vetrina dei dispositivi (19/10/2026): quello che si ottiene collegando un anello Oura o
-// un orologio Polar, e sotto il consenso. **Senza il consenso niente si collega** (richiesta
+// La vetrina dei dispositivi (19/10/2026): quello che si ottiene scrivendo il sonno o collegando
+// un anello Oura o un orologio Polar (20/10/2026: il sonno scritto a mano e' per tutti), e sotto il consenso. **Senza il consenso niente si collega** (richiesta
 // del club): il pulsante si accende solo con la casella spuntata, e la funzione rifiuta ogni
 // azione finche' il consenso non e' registrato. L'informativa completa si apre in un foglio.
 
 const COSE: { icona: NomeIcona; colori: readonly [string, string]; titolo: string; testo: string }[] = [
-  { icona: 'foglia', colori: ['#5EEAD4', '#0F766E'], titolo: 'Il tuo sonno', testo: 'Quanto hai dormito e come, e come ti sei ripreso, dal tuo anello o dal tuo orologio.' },
+  { icona: 'foglia', colori: ['#5EEAD4', '#0F766E'], titolo: 'Il tuo sonno', testo: 'Scrivi ogni mattina quanto hai dormito, in dieci secondi: conta nel tuo Athlon Health Score. Con un anello o un orologio arriva da solo.' },
   { icona: 'cronometro', colori: ['#FF8A2B', '#E84300'], titolo: 'I tuoi allenamenti', testo: 'Quelli registrati dal dispositivo, accanto a quelli che fai nel club.' },
   { icona: 'fiamma', colori: ['#5C8DFF', '#1F4FD8'], titolo: 'Il battito di notte', testo: 'Il valore più basso e la sua variabilità: un modo per vedere come recuperi.' },
 ]
@@ -53,7 +53,7 @@ export function Vetrina({ onConsenso }: { onConsenso: () => void }) {
             <Text style={stili.novitaTesto}>NOVITÀ</Text>
           </View>
           <Text style={stili.eroeTitolo}>Il recupero fa parte dell’allenamento</Text>
-          <Text style={stili.eroeTesto}>Collega il tuo anello Oura o il tuo orologio Polar: nell’app vedi sonno, recupero e allenamenti insieme a quello che fai nel club.</Text>
+          <Text style={stili.eroeTesto}>Scrivi quanto dormi, o collega il tuo anello Oura o il tuo orologio Polar: nell’app vedi il sonno accanto a quello che fai nel club.</Text>
         </LinearGradient>
       </Entra>
 
@@ -77,7 +77,7 @@ export function Vetrina({ onConsenso }: { onConsenso: () => void }) {
         <Carta style={{ gap: spazio.tre }}>
           <Text style={[stili.titoletto, { color: p.testo }]}>I tuoi dati restano tuoi</Text>
           <Text style={[stili.cosaTesto, { color: p.testoSecondario }]}>
-            Sonno e battito sono dati sulla salute: per collegare un dispositivo ci serve il tuo consenso, che puoi ritirare quando vuoi.
+            Il sonno e il battito sono dati sulla salute: per scriverlo o collegare un dispositivo ci serve il tuo consenso, che puoi ritirare quando vuoi.
           </Text>
           <View style={{ gap: spazio.due }}>
             {GARANZIE.map((g) => (
@@ -99,7 +99,7 @@ export function Vetrina({ onConsenso }: { onConsenso: () => void }) {
             </View>
           </Tocco>
           {errore ? <Messaggio>{errore}</Messaggio> : null}
-          <Pulsante testo="Attiva i dispositivi" icona="avanti" onPress={attiva} disabilitato={!spunta} inCorso={inCorso} />
+          <Pulsante testo="Attiva Relax" icona="avanti" onPress={attiva} disabilitato={!spunta} inCorso={inCorso} />
         </Carta>
       </Entra>
 

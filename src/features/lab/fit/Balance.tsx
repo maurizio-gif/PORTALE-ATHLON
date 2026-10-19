@@ -122,33 +122,54 @@ function senzaCorpo(d: DatiFit): string | null {
 // ---------------------------------------------------------------------------
 // Il riquadro in cima a Fit
 
-function Cornice({ children, onPress }: { children: ReactNode; onPress?: () => void }) {
-  const dentro = (
-    <LinearGradient colors={NOTTE} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={stili.cornice}>
-      <View style={stili.testa}>
-        <LinearGradient colors={[ORTO[1], FUOCO[1]]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={stili.icona}>
-          <Icona nome="grafico" size={20} colore="#fff" />
-        </LinearGradient>
-        <View style={{ flex: 1 }}>
-          <Text style={stili.titolo}>Balance</Text>
-          <Text style={stili.sotto}>Consumate e mangiate · ultimi 7 giorni</Text>
-        </View>
-        {onPress ? <Icona nome="avanti" size={18} colore="rgba(255,255,255,0.7)" /> : null}
+/**
+ * La cornice del Balance. Sulla schermata di Fit (`comprimibile`) **si presenta chiusa** (20/10/2026, richiesta del club):
+ * il titolo e due righe che dicono cos'e', e i dati (il grafico, le cifre, i messaggi) compaiono solo toccando. Sulla sua
+ * schermata e' sempre aperta, senza tasto.
+ */
+function Cornice({ children, comprimibile }: { children: ReactNode; comprimibile?: { aperto: boolean; onToggle: () => void } }) {
+  const aperto = !comprimibile || comprimibile.aperto
+  const testa = (
+    <View style={stili.testa}>
+      <LinearGradient colors={[ORTO[1], FUOCO[1]]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={stili.icona}>
+        <Icona nome="grafico" size={20} colore="#fff" />
+      </LinearGradient>
+      <View style={{ flex: 1 }}>
+        <Text style={stili.titolo}>Balance</Text>
+        <Text style={stili.sotto}>{aperto ? 'Consumate e mangiate · ultimi 7 giorni' : 'Consumate e mangiate'}</Text>
       </View>
-      {children}
-    </LinearGradient>
+      {comprimibile ? (
+        <View style={{ transform: [{ rotate: comprimibile.aperto ? '-90deg' : '90deg' }] }}>
+          <Icona nome="avanti" size={18} colore="rgba(255,255,255,0.7)" />
+        </View>
+      ) : null}
+    </View>
   )
-  return onPress ? (
-    <Tocco onPress={onPress} etichetta="Balance: consumate e mangiate" scala={0.985}>
-      {dentro}
-    </Tocco>
-  ) : (
-    dentro
+  return (
+    <LinearGradient colors={NOTTE} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={stili.cornice}>
+      {comprimibile ? (
+        <Tocco onPress={comprimibile.onToggle} etichetta={comprimibile.aperto ? 'Balance: nascondi i dati' : 'Balance: mostra i dati degli ultimi 7 giorni'} scala={0.985}>
+          {testa}
+        </Tocco>
+      ) : (
+        testa
+      )}
+      {comprimibile && !comprimibile.aperto ? (
+        <Text style={stili.testo}>Il Balance mette accanto quanto consumi con l’allenamento e quanto mangi nel diario, giorno per giorno. Tocca per vedere i tuoi ultimi 7 giorni.</Text>
+      ) : (
+        children
+      )}
+    </LinearGradient>
   )
 }
 
-/** Il riquadro dei sette giorni. `apri`: sul riquadro di Fit porta alla schermata di Balance. */
+/**
+ * Il riquadro dei sette giorni. `apri`: e' quello di Fit, che si presenta chiuso (i dati compaiono toccando) e,
+ * aperto, ha il tasto per la schermata di Balance; senza, e' quello della schermata, sempre aperto.
+ */
 export function CartaBalance({ dati, apri = true, onAttivaFood }: { dati: DatiFit; apri?: boolean; onAttivaFood?: () => void }) {
+  const [aperto, setAperto] = useState(false)
+  const comprimibile = apri ? { aperto, onToggle: () => setAperto((a) => !a) } : undefined
   const oggi = oggiRoma()
   const manca = senzaCorpo(dati)
   const giorni = useMemo(() => {
@@ -156,18 +177,17 @@ export function CartaBalance({ dati, apri = true, onAttivaFood }: { dati: DatiFi
     return giorniBilancio(oggi, 7, dati.corpo.corpo, dati.attivita, dati.conDiario ? dati.diario : null)
   }, [dati, oggi])
   const nascosti = !!dati.food?.profilo?.nascondi_numeri
-  const vai = apri ? () => router.push('/allenamento/balance') : undefined
 
   if (nascosti) {
     return (
-      <Cornice>
+      <Cornice comprimibile={comprimibile}>
         <Text style={stili.testo}>Il Balance è fatto di calorie, e in Food hai scelto di nascondere i numeri: resta spento. Lo riaccendi dalle impostazioni del diario, quando vuoi.</Text>
       </Cornice>
     )
   }
   if (manca) {
     return (
-      <Cornice>
+      <Cornice comprimibile={comprimibile}>
         <Text style={stili.testo}>{manca}</Text>
         {dati.corpo.stato === 'mancano-dati' && dati.corpo.motivo === 'misure' ? (
           <Pulsante testo="Aggiungi i tuoi dati" icona="piu" variante="secondario" piccolo onPress={() => router.push('/allenamento/misure')} />
@@ -177,7 +197,7 @@ export function CartaBalance({ dati, apri = true, onAttivaFood }: { dati: DatiFi
   }
   if (!giorni) {
     return (
-      <Cornice>
+      <Cornice comprimibile={comprimibile}>
         <View style={{ height: 150, justifyContent: 'center' }}>
           <Text style={stili.testo}>Calcoliamo il tuo Balance…</Text>
         </View>
@@ -188,7 +208,7 @@ export function CartaBalance({ dati, apri = true, onAttivaFood }: { dati: DatiFi
   const m = dati.conDiario ? media(giorni) : null
   const consumo = mediaConsumo(giorni)
   return (
-    <Cornice onPress={vai}>
+    <Cornice comprimibile={comprimibile}>
       {m ? (
         <View style={stili.cifre}>
           <Cifra etichetta="CONSUMATE" valore={`${intero(m.consumate)}`} colore={FUOCO[1]} />
@@ -216,6 +236,7 @@ export function CartaBalance({ dati, apri = true, onAttivaFood }: { dati: DatiFi
           {onAttivaFood ? <Pulsante testo="Vai a Food" icona="piatto" variante="secondario" piccolo onPress={onAttivaFood} /> : null}
         </View>
       )}
+      {apri ? <Pulsante testo="Apri il dettaglio" icona="avanti" variante="secondario" piccolo onPress={() => router.push('/allenamento/balance')} /> : null}
     </Cornice>
   )
 }

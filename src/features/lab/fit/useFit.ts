@@ -11,6 +11,7 @@ import { CHIAVE_PRESENZE, type Presenze } from '../schede/ContatoreCalorie'
 import { contaCalorie, vociCalorie, type Voce } from '../schede/contatoreCalorie'
 import { CHIAVE_STORICO } from '../schede/Storico'
 import { vistaCorrente } from '../vista'
+import { sessioniDa, type Sessione } from './calcoloPunteggio'
 
 // I dati di Fit (19/10/2026), per il riquadro Balance, la sua schermata e l'area
 // Food: lo stato di Food (consenso, questionario, numeri nascosti), il diario,
@@ -33,6 +34,11 @@ export type DatiFit = {
   attivita: Voce[] | null
   /** Il consenso c'e' e i numeri non sono nascosti: si possono confrontare le due cifre. */
   conDiario: boolean
+  /**
+   * Le sessioni di allenamento (sedute chiuse e lezioni con la presenza) per l'Athlon Health Score: a differenza di
+   * `attivita` non servono peso, altezza e sesso, perche' il punteggio conta i giorni e non le calorie. null finche' non arrivano.
+   */
+  sessioni: Sessione[] | null
 }
 
 export function useFit(): DatiFit {
@@ -72,6 +78,8 @@ export function useFit(): DatiFit {
     return contaCalorie(vociCalorie(sedute, presenze.presenze, presenze.schede, corpo.corpo), corpo.corpo).voci
   }, [corpo, sedute, presenze])
 
+  const sessioni = useMemo(() => (sedute && presenze ? sessioniDa(sedute, presenze.presenze) : null), [sedute, presenze])
+
   const conDiario = !vista && !!food?.consenso && !!food.profilo && !food.profilo.nascondi_numeri && food.maggiorenne
-  return { vista, food, foodErrore, diario: food?.consenso ? diario : null, corpo, attivita, conDiario }
+  return { vista, food, foodErrore, diario: food?.consenso ? diario : null, corpo, attivita, conDiario, sessioni }
 }

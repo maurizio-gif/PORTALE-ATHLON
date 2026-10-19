@@ -46,6 +46,8 @@ export default function LayoutLaboratorio() {
         <Stack.Screen name="allenamento/misure" options={{ animation: 'slide_from_right' }} />
         <Stack.Screen name="allenamento/alimentazione" options={{ animation: 'slide_from_right' }} />
         <Stack.Screen name="allenamento/balance" options={{ animation: 'slide_from_right' }} />
+        <Stack.Screen name="allenamento/punteggio" options={{ animation: 'slide_from_right' }} />
+        <Stack.Screen name="allenamento/training" options={{ animation: 'slide_from_right' }} />
         <Stack.Screen name="allenamento/consigli" options={{ animation: 'slide_from_right' }} />
         <Stack.Screen name="allenamento/percorso" options={{ animation: 'slide_from_right' }} />
         <Stack.Screen name="allenamento/percorso-nuovo" options={{ animation: 'slide_from_bottom' }} />
