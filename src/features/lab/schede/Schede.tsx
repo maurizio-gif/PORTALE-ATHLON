@@ -1,7 +1,7 @@
 import { LinearGradient } from 'expo-linear-gradient'
 import { router, useLocalSearchParams } from 'expo-router'
 import { useCallback, useEffect, useState } from 'react'
-import { ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native'
+import { StyleSheet, Text, useWindowDimensions, View } from 'react-native'
 
 import { elencoMisure, elencoSchede, type Misura, type RigaSchedaLab, type SedutaBreve, type StatoTest } from '@/api/lab'
 import { LARGO } from '@/components/Pagina'
@@ -33,10 +33,10 @@ import { eDiVasca, ETICHETTA_VASCA } from './nuoto'
 //   - Train: il test dei massimali, il contatore delle calorie, i Consigli Athlon (i tipi di lezione che
 //     fanno per te, con le alternative, e se vuoi sala e nuoto: non e' una settimana ne' un piano, vedi
 //     `consigli/`; il Percorso a tappe, `percorso/`, e' in standby: `percorso/standby.ts`),
-//     le origini di un piano (l'agente AI, l'importazione del proprio, i piani
-//     consigliati dal club, in un carosello orizzontale filtrabile per
-//     obiettivo) e, quarta, farsi seguire da un personal trainer (porta alla
-//     prenotazione, /personal); i tuoi piani in fondo, e gli ultimi allenamenti;
+//     le **due origini di un piano** (20/10/2026: «Componi il tuo piano», che si fa insieme con qualche domanda, e «Importa il
+//     tuo piano», da una foto o da un file; **i piani consigliati dal club non ci sono piu'**, richiesta del club, e l'AI non
+//     e' il titolo di niente: sta nelle postille) e, dopo, farsi seguire da un personal trainer (porta alla prenotazione,
+//     /personal); i tuoi piani in fondo, e gli ultimi allenamenti;
 //   - Food: la porta del diario dei pasti (fit/Food.tsx);
 //   - Relax: il recupero, col sonno che il socio scrive ogni mattina e, dove ci sono, i dati dell'anello
 //     Oura o dell'orologio Polar (fit/Relax.tsx). **L'area c'e' per tutti i maggiorenni** (20/10/2026):
@@ -45,43 +45,6 @@ import { eDiVasca, ETICHETTA_VASCA } from './nuoto'
 // diario o dai dispositivi si ritrova la sua area. L'indirizzo resta /allenamento: e' quello dei link gia' dati.
 
 type Dati = { schede: RigaSchedaLab[]; ultimi: SedutaBreve[]; ai: { usate: number; massimo: number }; test: StatoTest }
-
-/** Il colore e l'icona di una scheda del club, dall'obiettivo. */
-function aspetto(obiettivo: string | null): { colori: readonly [string, string, ...string[]]; icona: NomeIcona } {
-  const o = (obiettivo ?? '').toLowerCase()
-  if (o.includes('ipertrofia') || o.includes('forza')) return { colori: NOTTE, icona: 'peso' }
-  if (o.includes('dimagri') || o.includes('resistenza') || o.includes('cardio')) return { colori: FUOCO, icona: 'fulmine' }
-  if (o.includes('tonific')) return { colori: ['#F06292', '#C2185B'], icona: 'stella' }
-  if (o.includes('benessere') || o.includes('mobilit') || o.includes('schiena')) return { colori: ['#34C38F', '#178A62'], icona: 'scudo' }
-  return { colori: MARE, icona: 'grafico' }
-}
-
-/**
- * Un piano consigliato dal club, nel carosello orizzontale (19/10/2026): una carta con la sua sfumatura (dall'obiettivo),
- * larga abbastanza da lasciar vedere l'inizio della successiva, cosi' si capisce che scorre. Si apre il piano, e da li'
- * lo si aggiunge ai propri com'e' o dopo averlo modificato.
- */
-function PianoClub({ s, larghezza }: { s: RigaSchedaLab; larghezza: number }) {
-  const a = aspetto(s.obiettivo)
-  return (
-    <Tocco onPress={() => router.push({ pathname: '/allenamento/[scheda]', params: { scheda: s.id } })} etichetta={`Piano ${s.titolo}`} scala={0.985}>
-      <LinearGradient colors={a.colori} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[stili.pianoClub, { width: larghezza }]}>
-        <View style={stili.filigrana} pointerEvents="none">
-          <Icona nome={a.icona} size={110} colore="rgba(255,255,255,0.09)" />
-        </View>
-        <Tag testo={s.giorni_settimana ? `${s.giorni_settimana} ${s.giorni_settimana === 1 ? 'giorno' : 'giorni'} a settimana` : s.giorni > 1 ? `${s.giorni} giorni` : 'Una seduta'} colore="#fff" fondo="rgba(0,0,0,0.18)" />
-        <Text style={stili.pianoClubTitolo} numberOfLines={3}>
-          {s.titolo}
-        </Text>
-        <View style={stili.pillole}>
-          {s.obiettivo ? <Text style={stili.pillola}>{s.obiettivo}</Text> : null}
-          {s.livello ? <Text style={stili.pillola}>{LIVELLI[s.livello] ?? s.livello}</Text> : null}
-        </View>
-        <Text style={[stili.ultimo, { color: 'rgba(255,255,255,0.8)' }]}>{s.ultimo ? `In corso · ultimo allenamento ${quando(s.ultimo)}` : 'Aprilo, modificalo e aggiungilo ai tuoi'}</Text>
-      </LinearGradient>
-    </Tocco>
-  )
-}
 
 /** Il contatore delle calorie: gli allenamenti chiusi e le lezioni con la presenza. */
 /**
@@ -141,7 +104,7 @@ function CartaTest({ t, riempi = false }: { t: StatoTest; riempi?: boolean }) {
     ? `L’ultimo è del ${giornoTest(t.ultimo!)}. Rifallo ogni ${Math.round(t.giorni / 7)} settimane: i chili dei piani seguono i tuoi progressi.`
     : fatto
       ? `Fatto il ${giornoTest(t.ultimo!)}: ${t.fatti} di ${t.totale} esercizi. Il prossimo fra ${prossimo} ${prossimo === 1 ? 'giorno' : 'giorni'}.`
-      : `${t.totale || 7} esercizi, una quindicina di minuti. Dopo, nei piani del club le percentuali diventano i tuoi chili.`
+      : `${t.totale || 7} esercizi, una quindicina di minuti. Dopo, nei tuoi piani le percentuali diventano i tuoi chili.`
   return (
     <Tocco onPress={() => router.push('/allenamento/test')} etichetta={titolo} scala={0.985} style={riempi ? { flex: 1 } : undefined}>
       <LinearGradient colors={rifare ? FUOCO : MARE} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[stili.test, riempi && { flex: 1 }]}>
@@ -159,7 +122,10 @@ function CartaTest({ t, riempi = false }: { t: StatoTest; riempi?: boolean }) {
 }
 export const CHIAVE_SCHEDE = CHIAVE_ELENCO_PIANI
 
-/** Le due origini «tue»: importare un piano che si ha gia' (foto o PDF) o scriverlo a mano (19/10/2026). */
+/**
+ * «Importa il tuo piano» (20/10/2026): chi ha gia' un piano, del suo trainer o di un'altra palestra, lo fotografa o carica il
+ * file e poi lo controlla e lo conferma. Una strada sola: «Scrivilo tu» (partire da zero) sta sotto «Componi il tuo piano».
+ */
 function CartaImporta({ riempi = false }: { riempi?: boolean }) {
   const p = usePalette()
   return (
@@ -175,13 +141,8 @@ function CartaImporta({ riempi = false }: { riempi?: boolean }) {
           </Text>
         </View>
       </View>
-      <View style={stili.azioniTue}>
-        <View style={{ flex: 1, minWidth: 150 }}>
-          <Pulsante testo="Da foto o file" icona="fotocamera" piccolo onPress={() => router.push('/allenamento/importa')} />
-        </View>
-        <View style={{ flex: 1, minWidth: 150 }}>
-          <Pulsante testo="Scrivilo tu" icona="modifica" variante="secondario" piccolo onPress={() => router.push('/allenamento/nuova')} />
-        </View>
+      <View style={riempi ? { marginTop: 'auto' } : undefined}>
+        <Pulsante testo="Da foto o file" icona="fotocamera" piccolo onPress={() => router.push('/allenamento/importa')} />
       </View>
     </Carta>
   )
@@ -212,39 +173,54 @@ function CartaPersonal() {
   )
 }
 
-/** L'origine «AI»: l'agente scrive un piano sulle risposte del socio, che lo modifica e lo conferma. */
-function CartaAi({ restano, massimo, riempi = false }: { restano: number; massimo: number; riempi?: boolean }) {
+/**
+ * «Componi il tuo piano» (20/10/2026; era «Crealo con l'aiuto dell'AI»): si risponde a qualche domanda e il piano si compone
+ * insieme, poi si modifica e si conferma. **L'AI non e' il titolo**: il club vuole che si veda un modo di fare il piano, non
+ * uno strumento (il colore e' quello del club, non il viola dell'AI); che dietro ci sia un'intelligenza artificiale lo dice la
+ * nota in fondo al questionario e quella sul piano composto. Chi preferisce partire da zero lo scrive a mano (`/allenamento/nuova`).
+ */
+function CartaComponi({ restano, massimo, riempi = false }: { restano: number; massimo: number; riempi?: boolean }) {
   const p = usePalette()
   return (
-    <Tocco onPress={() => router.push('/allenamento/agente')} etichetta="Crea un piano con l’aiuto dell’AI" scala={0.985} spento={!restano} style={riempi ? { flex: 1 } : undefined}>
-      <View style={[stili.agente, { backgroundColor: p.carta, borderColor: p.linea, boxShadow: p.ombra }, riempi && { flex: 1 }]}>
-        <LinearGradient colors={['#8B5CF6', '#5B21B6']} style={stili.agenteIcona}>
-          <Icona nome="stella" size={26} colore="#fff" />
-        </LinearGradient>
-        <View style={{ flex: 1, gap: 3 }}>
-          <Text style={[stili.agenteTitolo, { color: p.testo }]}>Crealo con l’aiuto dell’AI</Text>
-          <Text style={[stili.agenteTesto, { color: p.testoSecondario }]}>
-            {restano
-              ? `Rispondi a qualche domanda: l’agente scrive il piano in un paio di minuti, per la sala o per il nuoto libero, e tu lo modifichi prima di confermarlo. Ne puoi chiedere ancora ${restano} questo mese.`
-              : `Hai già chiesto ${massimo} piani negli ultimi trenta giorni: non è possibile chiederne altri per ora.`}
-          </Text>
+    <View style={[stili.agente, { backgroundColor: p.carta, borderColor: p.linea, boxShadow: p.ombra, flexDirection: 'column', alignItems: 'stretch' }, riempi && { flex: 1 }]}>
+      <Tocco onPress={() => router.push('/allenamento/agente')} etichetta="Componi il tuo piano di allenamento" scala={0.985} spento={!restano}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: spazio.tre }}>
+          <LinearGradient colors={FUOCO} style={stili.agenteIcona}>
+            <Icona nome="peso" size={26} colore="#fff" />
+          </LinearGradient>
+          <View style={{ flex: 1, gap: 3 }}>
+            <Text style={[stili.agenteTitolo, { color: p.testo }]}>Componi il tuo piano</Text>
+            <Text style={[stili.agenteTesto, { color: p.testoSecondario }]}>
+              {restano
+                ? `Generiamo insieme il tuo piano, in sala o in vasca: rispondi a qualche domanda e in meno di un minuto hai una prima versione da modificare. Puoi comporne ancora ${restano} questo mese.`
+                : `Hai già composto ${massimo} piani negli ultimi trenta giorni: per ora non è possibile comporne altri.`}
+            </Text>
+          </View>
+          {restano ? <Icona nome="avanti" size={18} colore={p.testoTerzo} /> : null}
         </View>
-        {restano ? <Icona nome="avanti" size={18} colore={p.testoTerzo} /> : null}
+      </Tocco>
+      <View style={riempi ? { marginTop: 'auto' } : undefined}>
+        <Tocco onPress={() => router.push('/allenamento/nuova')} etichetta="Preferisci partire da zero? Scrivi il piano da solo" scala={0.99}>
+          <Text style={[stili.agenteTesto, { color: p.testoSecondario, paddingTop: spazio.due }]}>
+            Preferisci partire da zero? <Text style={{ color: p.accento, fontFamily: F.bold }}>Scrivilo tu</Text>
+          </Text>
+        </Tocco>
       </View>
-    </Tocco>
+    </View>
   )
 }
 
 function SchedaCarta({ s, indice }: { s: RigaSchedaLab; indice: number }) {
   // Un piano di nuoto (20/10/2026) si legge in vasca: la goccia al posto del peso, «sedute» al posto di «giorni», e niente «non ancora iniziato».
   const vasca = eDiVasca(s)
-  const colori = s.tipo === 'ai' ? (['#8B5CF6', '#5B21B6'] as const) : s.tipo === 'personalizzata' ? FUOCO : s.tipo === 'socio' ? ORTO : NOTTE
+  // Un piano composto non ha un colore suo (20/10/2026): come ogni piano del socio. Il viola era quello dell'AI.
+  const colori = s.tipo === 'personalizzata' ? FUOCO : s.tipo === 'socio' || s.tipo === 'ai' ? ORTO : NOTTE
   return (
     <Entra indice={indice}>
       <Tocco onPress={() => router.push({ pathname: '/allenamento/[scheda]', params: { scheda: s.id } })} etichetta={`Piano ${s.titolo}`} scala={0.985}>
         <LinearGradient colors={colori} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={stili.scheda}>
           <View style={stili.filigrana} pointerEvents="none">
-            <Icona nome={vasca ? 'goccia' : s.tipo === 'ai' ? 'stella' : 'peso'} size={120} colore="rgba(255,255,255,0.08)" />
+            <Icona nome={vasca ? 'goccia' : 'peso'} size={120} colore="rgba(255,255,255,0.08)" />
           </View>
           <Tag testo={vasca ? ETICHETTA_VASCA : etichettaPiano(s)} colore="#fff" fondo="rgba(0,0,0,0.18)" />
           <Text style={stili.titolo} numberOfLines={2}>
@@ -342,23 +318,18 @@ export function Schede() {
 }
 
 /**
- * L'area Train. Sopra, le **origini** di un piano (19/10/2026): farlo scrivere all'agente AI, importare il proprio da
- * una foto o da un file (o scriverlo), sceglierne uno fra i piani consigliati dal club, che scorrono in orizzontale, o
- * **farsi seguire da un personal trainer** (la quarta: va alla prenotazione, non a un piano da modificare).
- * Sotto, **i tuoi piani**: quelli che il socio ha scelto. Qualunque sia l'origine, il piano si modifica e si conferma
- * prima di entrare fra i suoi. Poi gli ultimi allenamenti.
+ * L'area Train. Sopra, le **due origini** di un piano (20/10/2026, richiesta del club): **comporlo** insieme, con qualche domanda
+ * («Generiamo insieme il tuo piano di allenamento»: dietro c'e' l'AI, ma non e' il titolo; si dice nelle postille), oppure
+ * **importare** il proprio da una foto o da un file. Poi, a parte, farsi seguire da un personal trainer (va alla prenotazione,
+ * non a un piano da modificare). **I piani consigliati dal club non ci sono piu'** in questa schermata (il carosello e' stato
+ * tolto): la scheda di un piano del club si apre ancora da un indirizzo gia' dato, ma non si offre.
+ * Sotto, **i tuoi piani**: quelli che il socio ha scelto. Qualunque sia l'origine, il piano si modifica e si conferma prima di
+ * entrare fra i suoi. Poi gli ultimi allenamenti.
  */
 function Train({ dati, largo }: { dati: Dati; largo: boolean }) {
   const p = usePalette()
-  const { width: larghezza } = useWindowDimensions()
-  const [obiettivo, setObiettivo] = useState<string | null>(null)
   const restano = Math.max(0, dati.ai.massimo - dati.ai.usate)
   const mie = dati.schede.filter((s) => s.tipo !== 'standard')
-  const club = dati.schede.filter((s) => s.tipo === 'standard')
-  const obiettivi = [...new Set(club.map((s) => s.obiettivo).filter((o): o is string => !!o))]
-  const clubVisibili = obiettivo ? club.filter((s) => s.obiettivo === obiettivo) : club
-  // Su telefono la carta e' larga abbastanza da lasciar vedere l'inizio della successiva: si capisce che scorre.
-  const larghezzaCarta = largo ? 300 : Math.min(300, Math.round(larghezza * 0.74))
   return (
     <>
       <View style={largo ? stili.fila3 : { gap: spazio.quattro + 4 }}>
@@ -376,72 +347,15 @@ function Train({ dati, largo }: { dati: Dati; largo: boolean }) {
 
       <Sezione titolo="Crea il tuo piano di allenamento">
         <Text style={[stili.nota, { color: p.testoSecondario }]}>
-          Scegli da dove partire. Che sia l’AI, un tuo piano o uno del club, lo puoi modificare e, quando lo confermi, lo trovi fra i tuoi piani.
+          Scegli da dove partire: costruiamo il piano insieme, oppure importa quello che hai già. In tutti e due i casi lo guardi, lo modifichi e, quando lo confermi, lo trovi fra i tuoi piani.
         </Text>
         <View style={largo ? stili.fila3 : { gap: spazio.tre }}>
           <Entra indice={1} style={largo ? { flex: 1 } : undefined}>
-            <CartaAi restano={restano} massimo={dati.ai.massimo} riempi={largo} />
+            <CartaComponi restano={restano} massimo={dati.ai.massimo} riempi={largo} />
           </Entra>
           <Entra indice={2} style={largo ? { flex: 1 } : undefined}>
             <CartaImporta riempi={largo} />
           </Entra>
-        </View>
-
-        <View style={{ gap: spazio.tre }}>
-          <View style={{ gap: 3 }}>
-            <Text style={[stili.sottoTitolo, { color: p.testo }]}>Oppure scegli un piano consigliato dal club</Text>
-            <Text style={[stili.nota, { color: p.testoSecondario }]}>
-              {dati.test.ultimo
-                ? 'Preparati dai nostri istruttori. I carichi sono già calcolati sui tuoi massimali.'
-                : 'Preparati dai nostri istruttori. I carichi sono in percentuale del massimale: fai il test e diventano i tuoi chili.'}
-            </Text>
-          </View>
-          {club.length ? (
-            <>
-              {obiettivi.length > 1 ? (
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={stili.fila} style={stili.fuori}>
-                  {[null, ...obiettivi].map((o) => {
-                    const attivo = o === obiettivo
-                    const n = o ? club.filter((s) => s.obiettivo === o).length : club.length
-                    return (
-                      <Tocco
-                        key={o ?? 'tutti'}
-                        vibra="scelta"
-                        stato={{ selected: attivo }}
-                        onPress={() => setObiettivo(o)}
-                        etichetta={`${o ?? 'Tutti i piani'}, ${n}`}
-                        style={[stili.filtro, { backgroundColor: attivo ? p.testo : p.carta, borderColor: attivo ? p.testo : p.linea }]}
-                      >
-                        <Text style={{ color: attivo ? p.fondo : p.testo, fontFamily: attivo ? F.extra : F.semi, fontSize: 14 }}>{o ?? 'Tutti'}</Text>
-                        <View style={[stili.conta, { backgroundColor: attivo ? p.accento : p.incavo }]}>
-                          <Text style={{ color: attivo ? '#fff' : p.testoSecondario, fontFamily: F.extra, fontSize: 11 }}>{n}</Text>
-                        </View>
-                      </Tocco>
-                    )
-                  })}
-                </ScrollView>
-              ) : null}
-              {/* Scorre in orizzontale, non in verticale: con dieci piani l'elenco non deve allungare la pagina. */}
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={largo}
-                snapToInterval={larghezzaCarta + spazio.tre}
-                decelerationRate="fast"
-                contentContainerStyle={[stili.fila, { gap: spazio.tre }]}
-                style={stili.fuori}
-                accessibilityLabel="Piani consigliati dal club"
-              >
-                {clubVisibili.map((s) => (
-                  <PianoClub key={s.id} s={s} larghezza={larghezzaCarta} />
-                ))}
-              </ScrollView>
-            </>
-          ) : (
-            <Carta style={{ alignItems: 'center', gap: spazio.due, paddingVertical: spazio.cinque }}>
-              <Icona nome="peso" size={32} colore={p.testoTerzo} />
-              <Text style={[stili.nota, { color: p.testoSecondario, textAlign: 'center' }]}>Non ci sono ancora piani del club per te. Puoi farne scrivere uno all’agente AI qui sopra.</Text>
-            </Carta>
-          )}
         </View>
 
         <Entra indice={3}>
@@ -546,14 +460,6 @@ const stili = StyleSheet.create({
   testIcona: { width: 52, height: 52, borderRadius: 18, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.18)' },
   testTitolo: { color: '#fff', fontFamily: F.extra, fontSize: 17, letterSpacing: -0.3 },
   testTesto: { color: 'rgba(255,255,255,0.85)', fontFamily: F.medio, fontSize: 13.5, lineHeight: 19 },
-  pianoClub: { borderRadius: 28, padding: spazio.tre + 4, gap: spazio.due, overflow: 'hidden', minHeight: 190 },
-  pianoClubTitolo: { color: '#fff', fontFamily: F.extra, fontSize: 22, lineHeight: 26, letterSpacing: -0.6 },
-  sottoTitolo: { fontFamily: F.extra, fontSize: 17, letterSpacing: -0.3 },
-  fila: { gap: spazio.due, paddingHorizontal: spazio.tre + 2, paddingVertical: 4 },
-  fuori: { marginHorizontal: -(spazio.tre + 2), flexGrow: 0 },
-  filtro: { flexDirection: 'row', alignItems: 'center', gap: spazio.due, borderRadius: 999, paddingVertical: 9, paddingLeft: spazio.tre, paddingRight: 9, borderWidth: StyleSheet.hairlineWidth },
   fila3: { flexDirection: 'row', gap: spazio.tre, alignItems: 'stretch' },
-  azioniTue: { flexDirection: 'row', flexWrap: 'wrap', gap: spazio.due },
   griglia: { flexDirection: 'row', flexWrap: 'wrap', gap: spazio.tre },
-  conta: { minWidth: 22, height: 22, borderRadius: 11, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 6 },
 })
