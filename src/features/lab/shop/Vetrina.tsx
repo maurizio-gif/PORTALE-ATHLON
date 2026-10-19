@@ -19,8 +19,8 @@ import { useVetrina } from './useVetrina'
 // Lo shop (18/10/2026): gli articoli e il merchandising del club con foto e prezzi. Il catalogo e' quello di
 // PerfectGym, curato dalla segreteria (foto, descrizione, ordine): qui si sfoglia, e si compra dal carrello.
 // Si paga online (Adyen, attraverso PerfectGym) e si ritira in segreteria.
-// E' una schermata principale (19/10/2026): ha la sua voce nella barra delle schede, quindi niente freccia indietro.
-// Le altre (articolo, carrello, ordini) sono di dettaglio e tornano qui.
+// Non ha una voce nella barra delle schede (19/10/2026, richiesta del club: si entra solo dalla carta «Shop» della Home):
+// e' una schermata di dettaglio, senza barra e con la freccia che torna alla Home. Articolo, carrello e ordini tornano qui.
 
 const GAP = 12
 
@@ -67,6 +67,8 @@ export function Vetrina() {
       sopratitolo="Athlon Club"
       titolo="Shop"
       sottotitolo="Articoli e merchandising del club. Paghi online, ritiri in segreteria."
+      indietro="/"
+      barra={false}
       destra={inVista ? undefined : <BottoneCarrello />}
     >
       {inVista ? <Messaggio tono="attenzione">Vista cliente: lo shop si guarda soltanto, non si compra.</Messaggio> : null}

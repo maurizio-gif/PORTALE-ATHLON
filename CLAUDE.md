@@ -545,11 +545,11 @@ delle foto, i tre segnali di «pagato», il giro del cron e la sezione Shop del 
 - **Le schermate.** `/shop` (`Vetrina.tsx`: schede in griglia, filtro per categoria, «Esaurito» sulla foto spenta; la lettura sta in
   memoria sotto `shop:vetrina`, `useVetrina`), `/shop/[id]` (`Articolo.tsx`: foto, descrizione, quantità, «Aggiungi al carrello»), `/shop/carrello`
   (`Carrello.tsx`), `/shop/ordine/[id]` (`EsitoOrdine.tsx`, il ritorno dal pagamento) e `/shop/ordini` (`Ordini.tsx`, «I miei ordini»). **Si chiama «Shop» e
-  ha una voce nella barra delle schede** (19/10/2026, richiesta del club: prima era una carta «Shop del club» dentro la sezione Prodotti, che quasi nessuno
-  apre): sei voci, con lo Shop fra Athlon Health System e TV (`BarraSchede.tsx`, icona sacchetto). **È una schermata principale**: la vetrina ha la barra
-  e non ha la freccia indietro, mentre articolo, carrello, ordini ed esito sono di dettaglio, senza barra, con la freccia che torna alla vetrina. In
-  più, nella Home, la carta «Shop» (`home/CartaShop.tsx`, fra «Da fare» e i riquadri) è un secondo ingresso, **fuori da ogni sezione**: Prodotti torna
-  a mostrare solo gli acquisti già fatti. Con sei schede la barra a 360 px dà 51 px a scheda (56 a 390): sotto i 320 px andrebbe riguardata.
+  si entra da un posto solo: la carta «Shop» della Home** (`home/CartaShop.tsx`, fra «Da fare» e i riquadri, **fuori da ogni sezione**; 19/10/2026,
+  richiesta del club: prima era una carta «Shop del club» dentro la sezione Prodotti, che quasi nessuno apre, e Prodotti torna a mostrare solo gli acquisti
+  già fatti). **Non ha una voce nella barra delle schede**: l'ha avuta per qualche minuto (sesta, fra Athlon Health System e TV) e il club l'ha tolta, quindi
+  non va rimessa senza chiederlo. Per questo la vetrina è una schermata di dettaglio come le altre dello shop: senza barra, con la freccia che torna alla
+  Home (articolo, carrello, ordini ed esito tornano alla vetrina).
 - **Il carrello** (`carrello.ts`, un solo store per app, `useCarrello` con `useSyncExternalStore`) tiene **solo identificativi e quantità**. Sul web sta
   nella scheda del browser (`sessionStorage`, chiave `athlon_shop_carrello`) perché il pagamento porta fuori dall'app, sulla pagina di Adyen, e al
   ritorno la pagina si ricarica da capo: un carrello solo in memoria sarebbe vuoto proprio quando serve. **Non nel `localStorage`**: un dispositivo
@@ -587,7 +587,7 @@ overflow), in tema chiaro e scuro. **Cosa non lo è:**
   online (vedi APP-ATHLON).
 - **La vista cliente dello staff** (pulsante spento, avviso, niente bottone del carrello) è scritta ma **non è stata provata nel browser**, né il
   pagamento con carta salvata fino in fondo né un ordine «non riuscito» (`EsitoOrdine` con `errore`): sono coperti dalla funzione, non dalla schermata.
-- **Larghezza 430 px, «riduci movimento», nessuna prova su un telefono** (a 360 px sono provate solo vetrina, barra e Home, non carrello, articolo ed esito) e **nessuna prova dell'apertura di Adyen dall'app nativa**
+- **Larghezza 430 px, «riduci movimento», nessuna prova su un telefono** (a 360 px sono provate solo vetrina e Home, non carrello, articolo ed esito) e **nessuna prova dell'apertura di Adyen dall'app nativa**
   (`Linking.openURL`): sul web si lascia l'app e si torna, come per i pagamenti del Calendario; il ritorno su nativo non è stato provato, e il carrello lì
   sta solo in memoria.
 - **Nessuna foto vera**: le prove usano immagini finte. Come si vede una foto 4:3 o molto alta in un riquadro quadrato va guardato con le prime foto del club.
@@ -599,6 +599,6 @@ socio ha.
 
 Per verificare: `npx tsc --noEmit` pulito. **Le schermate si guardano renderizzate** (360, 390, 430 e 1280 px): vetrina senza articoli (messaggio, non
 una griglia vuota), articolo esaurito (foto smorzata, pulsante spento), carrello con l'ordine aperto (stepper e cestino spariti, «Torna al carrello»),
-ritorno dal pagamento che passa da «Verifichiamo…» a «Pagamento ricevuto», la Home con la carta «Shop» (e Prodotti senza), la vetrina con la barra a sei voci (360, 390 e 1280 px), e la vista cliente.
+ritorno dal pagamento che passa da «Verifichiamo…» a «Pagamento ricevuto», la Home con la carta «Shop» (e Prodotti senza), la vetrina senza barra e con la freccia alla Home (360, 390 e 1280 px), e la vista cliente.
 Nel carrello: cinque pezzi di un articolo e nessuno di più; con un prezzo cambiato lato funzione l'ordine non parte e il carrello si allinea; a logout il
 carrello è vuoto.
