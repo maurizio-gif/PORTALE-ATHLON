@@ -9,9 +9,9 @@ import { Carta, Entra } from '../ui/kit'
 import { F, FUOCO, usePalette } from '../ui/tema'
 
 // L'ingresso allo Shop dalla Home (19/10/2026, richiesta del club: lo shop era una carta dentro la sezione Prodotti, che
-// quasi nessuno apre). Sta fra «Da fare» e i riquadri, fuori da ogni sezione, ed e' un secondo modo di arrivarci: il primo
-// e' la voce «Shop» della barra delle schede. Non dice niente che dipenda dai dati (nessun conteggio di articoli): se la
-// vetrina e' vuota lo dice la vetrina.
+// quasi nessuno apre). Sta fra «Da fare» e i riquadri, fuori da ogni sezione, ed e' **l'unico ingresso**: una voce nella
+// barra delle schede c'e' stata per qualche minuto e il club l'ha tolta. Non dice niente che dipenda dai dati (nessun
+// conteggio di articoli): se la vetrina e' vuota lo dice la vetrina.
 
 export function CartaShop() {
   const p = usePalette()
