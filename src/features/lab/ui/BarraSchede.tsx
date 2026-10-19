@@ -10,6 +10,7 @@ import { tinta } from '@/theme'
 
 import { clubLifeDaCapo } from '../clublife/daCapo'
 import { Icona, type NomeIcona } from './Icona'
+import { IconaRuota } from './IconaRuota'
 import { usePalette } from './tema'
 import { Tocco } from './Tocco'
 
@@ -22,11 +23,11 @@ import { Tocco } from './Tocco'
 // Si vede solo sulle cinque schermate principali (i pagamenti stanno nella Home).
 // Senza nomi sotto le icone: il nome resta per chi usa lo screen reader.
 
-const SCHEDE: { href: Href; percorso: string; titolo: string; icona: NomeIcona; anche?: string[] }[] = [
+const SCHEDE: { href: Href; percorso: string; titolo: string; icona: NomeIcona; /** L'icona e' la ruota di Train, Food e Relax (ui/IconaRuota.tsx), non un simbolo. */ ruota?: boolean; anche?: string[] }[] = [
   { href: '/', percorso: '/', titolo: 'Home', icona: 'casa' },
   // Il personal training e' l'altra faccia di Prenotazioni (SceltaPrenotazioni).
   { href: '/calendario', percorso: '/calendario', titolo: 'Prenotazioni', icona: 'calendario', anche: ['/personal'] },
-  { href: '/allenamento', percorso: '/allenamento', titolo: 'Athlon Health System', icona: 'peso' },
+  { href: '/allenamento', percorso: '/allenamento', titolo: 'Athlon Health System', icona: 'peso', ruota: true },
   { href: '/tv', percorso: '/tv', titolo: 'TV', icona: 'play' },
   // News, eventi e Help Desk, coi dati del sito (clublife/ClubLife).
   { href: '/club-life', percorso: '/club-life', titolo: 'Club Life', icona: 'persone' },
@@ -122,7 +123,7 @@ export function BarraSchede() {
                   }}
                   style={stili.scheda}
                 >
-                  <Icona nome={s.icona} size={24} colore={colore} />
+                  {s.ruota ? <IconaRuota size={26} attiva={qui} colore={colore} /> : <Icona nome={s.icona} size={24} colore={colore} />}
                 </Tocco>
               )
             })}
