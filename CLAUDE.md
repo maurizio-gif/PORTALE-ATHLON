@@ -23,6 +23,14 @@ chiamata diretta al gestionale. Esempio: la sezione Prodotti usa l'azione `prodo
   `_shared/planning-crm.ts` di APP-ATHLON. Il Calendario resta quello che il socio vede: il Planning non cambia niente nell'app.
 - **I filtri per attività sono tessere** (20/10/2026, richiesta dei tester: «non si vedono»; proposta B scelta da Maurizio): sotto «Cosa vuoi fare?» ogni attività del giorno ha la sua tessera con icona, nome e numero di lezioni, tutte in vista (niente fila da scorrere). Quella scelta diventa arancione, e toccarla di nuovo toglie il filtro; «Tutte» lo toglie sempre. Icona e colore vengono da `segnoAttivita` in `Calendario.tsx` (dal nome: acqua e nuoto in blu, sala e corsi in arancio, il resto neutro): un'attività nuova del listino prende l'icona del calendario finché non si sceglie. Cambia solo il filtro: lezioni, Gym Floor e Nuoto Libero a griglia, regole sono quelli di prima. `tsc` pulito; **non guardato in un browser né su un telefono**.
 
+## Il tema: sul computer sempre chiaro, sul telefono quello del sistema
+
+Richiesta di Maurizio (20/10/2026). **Su web, da 900 px di larghezza in su, l'app è sempre chiara**, qualunque tema abbia il sistema; sotto i 900 px e nell'app nativa **segue il sistema**
+(`useSchemaColori` in `src/lib/schemaColori.ts`: è il solo posto che chiede a React Native il tema, e lo leggono `useColori` in `theme.ts` e `usePalette` in `lab/ui/tema.ts`). I 900 px sono la soglia con cui le
+schermate passano alle colonne larghe (`LARGO`, che `components/Pagina.tsx` riesporta): **se cambia, cambia anche in `public/index.html`** (fondo e `theme-color` prima che parta il codice) **e in `public/offline.html`**.
+Un tablet di traverso (da 900 px) conta come computer, e **ridimensionare la finestra attraverso i 900 px cambia il tema**. **L'avvio animato resta scuro** (è il suo design, e dura tre secondi), come le fasce scure della
+testata e le schede «carbone», che sono scure anche nel tema chiaro. Provato in Chromium (bundle web esportato, pagina d'accesso): computer con sistema scuro e chiaro → fondo `#E4E5EA` in tutti e due i casi; 390 px con sistema scuro → fondo `#050506`, con sistema chiaro → `#E4E5EA`. **Non provato**: le altre schermate e un telefono vero.
+
 ## La foto del profilo si mostra nel Profilo e nella testata della Home; dal Profilo e dalla Home si cambia
 
 L'anagrafica che `portale-lab-anagrafica` restituisce porta `foto`: il link firmato (un'ora) della foto che il

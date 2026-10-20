@@ -1,4 +1,4 @@
-import { useColorScheme } from 'react-native'
+import { useSchemaColori } from '@/lib/schemaColori'
 
 // I colori del club: l'arancio e' quello delle email e del CRM (#FF5701).
 const chiaro = {
@@ -30,7 +30,7 @@ const scuro: typeof chiaro = {
 export type Colori = typeof chiaro
 
 export function useColori(): Colori {
-  return useColorScheme() === 'dark' ? scuro : chiaro
+  return useSchemaColori() === 'dark' ? scuro : chiaro
 }
 
 export const spazio = { uno: 4, due: 8, tre: 16, quattro: 24, cinque: 32 } as const

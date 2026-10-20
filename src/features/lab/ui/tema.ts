@@ -1,4 +1,4 @@
-import { useColorScheme } from 'react-native'
+import { useSchemaColori } from '@/lib/schemaColori'
 
 import { tinta, useColori, type Colori, type Tono } from '@/theme'
 
@@ -36,7 +36,7 @@ export type Palette = Colori & {
 
 export function usePalette(): Palette {
   const c = useColori()
-  const scuro = useColorScheme() === 'dark'
+  const scuro = useSchemaColori() === 'dark'
   return {
     ...c,
     scuro,
