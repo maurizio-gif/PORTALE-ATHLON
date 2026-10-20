@@ -984,9 +984,8 @@ nessun comando per la push senza la chiave sul server; 403 e 404 che fermano il 
 **Non provato**: una push su un telefono vero, Android o iPhone con l'app installata (**la sottoscrizione, il service worker che segnala ricevuta e apertura, il tocco sull'avviso e il suo segnale al server non
 sono mai stati visti girare**), il permesso del browser (`Notification.requestPermission` non si simula), l'app nativa, le finestre con la funzione vera e una sessione vera, e il carico dei venti secondi.
 
-**Stato (19/10/2026, riletto sulla produzione):** il lato server c'è già (tabelle, funzioni SQL, permesso `notifiche-app`, `portale-lab-notifiche`, `newsletter-invio` v40) e il CRM
-(APP-ATHLON PR 385) si fonde prima di questa app. **Questa app va fusa solo dopo che in produzione esiste `app_notifica_push_esito`**: è la funzione con cui la push registra l'esito per
-dispositivo e toglie quelli scaduti, e la parte di migrazione che la crea non è passata dallo strumento MCP (vedi APP-ATHLON, «Stato»). Senza di lei il CRM può già mandare notifiche (la
-chiama solo se c'è un dispositivo registrato), ma l'app è proprio ciò che registra i dispositivi: fusa prima, la prima push attivata da un socio cadrebbe nel vuoto. **Le chiavi VAPID non sono
-verificabili da qui** (`NOTIFICHE_VAPID_PUBLIC_KEY` nella funzione; `NEXT_PUBLIC_VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` e `VAPID_SUBJECT` su Vercel): senza chiave l'app non offre il comando
-della push e le notifiche restano nell'app. Prima di aprire a tutti: una newsletter «Invia prova» con un campo dinamico, una notifica vera su un telefono e l'informativa privacy aggiornata.
+**Stato (20/10/2026): in produzione.** Il lato server (tabelle, funzioni SQL, permesso `notifiche-app`, `portale-lab-notifiche`, `newsletter-invio` v40) e il CRM (APP-ATHLON #385) erano già su, e
+questa app è su `main` dal 20/10/2026, **dopo** `app_notifica_push_esito` (la funzione con cui la push registra l'esito per dispositivo e toglie quelli scaduti: creata a mano dall'editor SQL di Supabase, perché lo
+strumento MCP va in timeout per il `delete` nel corpo; vedi APP-ATHLON, «Stato»). **Nessuna notifica è ancora stata mandata.** **Le chiavi VAPID non sono verificabili da qui** (`NOTIFICHE_VAPID_PUBLIC_KEY` nella funzione;
+`NEXT_PUBLIC_VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` e `VAPID_SUBJECT` su Vercel): senza chiave l'app non offre il comando della push e le notifiche restano nell'app. Prima di aprire a tutti: una newsletter «Invia
+prova» con un campo dinamico, una notifica vera su un telefono e l'informativa privacy aggiornata.
