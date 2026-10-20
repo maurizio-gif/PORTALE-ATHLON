@@ -35,8 +35,8 @@ export type PaginaEvento = {
     data: string
     nati_dal: number | null
     nati_al: number | null
-    /** Per chi: i figli (Open Day) o tutta la famiglia. Manca nelle risposte di prima del 13/10/2026. */
-    per?: 'figli' | 'famiglia'
+    /** Per chi: i figli (Open Day), tutta la famiglia o solo chi ha chiesto il link (20/10/2026). Manca nelle risposte di prima del 13/10/2026. */
+    per?: 'figli' | 'famiglia' | 'persona'
     /** Il tipo di lezione su PerfectGym. */
     lezione?: string
     categoria?: string | null
