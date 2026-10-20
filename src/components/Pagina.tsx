@@ -5,6 +5,7 @@ import { ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-n
 import { SafeAreaView } from 'react-native-safe-area-context'
 
 import { IntestazioneLegale } from '@/components/IntestazioneLegale'
+import { LARGO } from '@/lib/schemaColori'
 import { spazio, useColori } from '@/theme'
 
 // La cornice di ogni schermata: logo, titolo, contenuto. Sul telefono la
@@ -13,8 +14,8 @@ import { spazio, useColori } from '@/theme'
 // che dispongono le schede su piu' colonne (Griglia). In fondo, sempre, i
 // dati legali del club: valgono per ogni pagina dell'app (14/10/2026).
 
-/** Oltre questa larghezza si e' su un computer (o un tablet di traverso). */
-export const LARGO = 900
+// Oltre questa larghezza si e' su un computer (o un tablet di traverso): la soglia sta in `lib/schemaColori.ts`, perche' decide anche il tema.
+export { LARGO }
 
 export function Pagina({
   titolo,

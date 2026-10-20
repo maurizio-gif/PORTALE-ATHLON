@@ -10,8 +10,8 @@
          li tengono le schermate con le safe area) e il service worker. -->
     <link rel="manifest" href="/manifest.json" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
-    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#050506" />
-    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#E4E5EA" />
+    <meta name="theme-color" media="(prefers-color-scheme: dark) and (max-width: 899px)" content="#050506" />
+    <meta name="theme-color" media="(prefers-color-scheme: light), (min-width: 900px)" content="#E4E5EA" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-title" content="Athlon Club 4.0" />
@@ -82,7 +82,8 @@
       body {
         background-color: #e4e5ea;
       }
-      @media (prefers-color-scheme: dark) {
+      /* Sul computer (da 900 px) il tema e' sempre chiaro, quello del sistema conta solo sul telefono: lo decide src/lib/schemaColori.ts. */
+      @media (prefers-color-scheme: dark) and (max-width: 899px) {
         html,
         body {
           background-color: #050506;
