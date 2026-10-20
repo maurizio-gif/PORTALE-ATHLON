@@ -329,6 +329,12 @@ vuol dire altro (la scheda del socio al club, la scheda di una lezione, l'Help D
   JPG, PNG o WebP e PDF, fino a 4 MB; sul web una foto si porta a 1800 px in JPEG (300–600 kB, meno attesa). «Scatta una foto» apre la
   fotocamera posteriore del telefono dal browser (`capture`); **nell'app nativa non c'è la fotocamera diretta** (serve `expo-image-picker`
   e una nuova build).
+- **Un piano lungo si importa a pagine** (20/10/2026, segnalazione di un tester: una seduta lunga non sta in uno screenshot, e due foto davano due sedute, A e B, invece di una).
+  `Importa.tsx` fa scegliere **fino a quattro file** (foto o PDF, 4 MB l'uno e 10 MB in tutto, anche insieme dalla galleria), li mostra in un elenco nell'ordine («Pagina 1», «Pagina 2», con «Togli») e
+  **solo con «Leggi il piano» partono tutti insieme** (`importaScheda(files)`): la funzione li manda al modello come un piano solo, e una seduta che continua nella pagina dopo resta una seduta. Il
+  tasto «Leggi il piano» è un tocco in più anche per chi ha un file solo. **Serve la funzione aggiornata**: una vecchia (`file` e non `files`) risponde «Manca il file». Pubblicare prima il
+  workflow `athlon-scheda-import`, poi `portale-lab-schede`, poi l'app (APP-ATHLON, «I piani del socio»). Un'importazione con più file conta **una** nelle dieci al giorno. `tsc` pulito; **la schermata non è
+  stata guardata renderizzata né provata su un telefono**.
 - **«Componi il tuo piano»** (`Agente.tsx`, indirizzo `/allenamento/agente`: è quello dei link già dati) fa le sue domande e **non salva un piano da solo**:
   torna una bozza (`origine: 'ai'`) che passa dall'editor. La quota (tre in trenta giorni) la dice `elenco`, e il messaggio quando è finita non nomina
   l'agente («Hai già composto 3 piani negli ultimi trenta giorni…»). Le risposte ammesse sono in `schede/questionario.ts` (puro) e la funzione le ricontrolla:

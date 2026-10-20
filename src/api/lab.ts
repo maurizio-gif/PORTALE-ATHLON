@@ -1009,9 +1009,12 @@ export async function eliminaSchedaMia(id: string): Promise<Esito<{ eliminata: t
   return { ok: false, errore: dati.errore ?? 'Non siamo riusciti a togliere il piano. Riprova fra qualche minuto.' }
 }
 
-/** Legge un piano da una foto o da un PDF («data:…;base64,…»). Ci mette una decina di secondi, a volte un minuto. */
-export async function importaScheda(file: string): Promise<Esito<{ bozza: BozzaScheda; daControllare: number }>> {
-  const { ok, dati } = await schedeLab({ azione: 'importa', file })
+/**
+ * Legge un piano da una o piu' foto o PDF («data:…;base64,…», fino a quattro, in ordine: le pagine dello stesso piano).
+ * Ci mette una decina di secondi, a volte un minuto. **Serve la funzione aggiornata** (`files`): una vecchia risponde «Manca il file».
+ */
+export async function importaScheda(files: string[]): Promise<Esito<{ bozza: BozzaScheda; daControllare: number }>> {
+  const { ok, dati } = await schedeLab({ azione: 'importa', files })
   if (ok) return { ok: true, bozza: { ...dati.bozza, origine: 'importata' }, daControllare: Number(dati.da_controllare ?? 0) }
   return { ok: false, errore: dati.errore ?? 'Non siamo riusciti a leggere il piano adesso. Riprova fra qualche minuto, o scrivilo a mano.' }
 }
