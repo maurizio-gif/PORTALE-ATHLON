@@ -2,10 +2,10 @@ import * as DocumentPicker from 'expo-document-picker'
 import { Platform } from 'react-native'
 
 // Il file di una scheda di allenamento da importare (19/10/2026): una foto (scattata o scelta) o un PDF.
-// Lo si sceglie, lo si controlla e lo si porta in «data:…;base64,…», che e' come lo riceve la funzione
+// Lo si sceglie (anche piu' d'uno: le pagine dello stesso piano), lo si controlla e lo si porta in «data:…;base64,…», che e' come lo riceve la funzione
 // (`portale-lab-schede`, azione `importa`), e da li' il workflow che lo legge.
 //
-// **Formati: foto JPG, PNG, WebP e PDF; fino a 4 MB.** E' il limite della funzione, che guarda i primi byte
+// **Formati: foto JPG, PNG, WebP e PDF; fino a 4 MB l'uno, quattro file e 10 MB in tutto.** Sono i limiti della funzione, che guarda i primi byte
 // del file e non il nome: qui serve a dirlo subito e con parole chiare.
 //
 // **Sul web una foto si porta sempre a 1800 pixel sul lato lungo, in JPEG.** Per leggere una tabella servono
@@ -18,6 +18,9 @@ import { Platform } from 'react-native'
 // dopo la scelta (`preparaFileScheda`), come per il certificato e per la foto del piatto.
 
 export const MAX_BYTE = 4 * 1024 * 1024
+/** Un piano lungo non sta in uno screenshot (20/10/2026): fino a quattro file per lo stesso piano, 10 MB in tutto. Gli stessi limiti della funzione. */
+export const MAX_FILE = 4
+export const MAX_TOTALE_BYTE = 10 * 1024 * 1024
 const LATO = 1800
 
 export type TipoFileScheda = 'image/jpeg' | 'image/png' | 'image/webp' | 'application/pdf'
@@ -38,10 +41,10 @@ export type EsitoFileScheda = { ok: true; file: FileScheda } | { ok: false; erro
 
 const comeFile = (a: DocumentPicker.DocumentPickerAsset): FileGrezzo => ({ uri: a.uri, name: a.name, mimeType: a.mimeType, file: a.file })
 
-/** La finestra di scelta: una foto o un PDF (sul telefono offre anche la fotocamera). Null se la persona rinuncia. */
-export async function scegliFile(): Promise<FileGrezzo | null> {
-  const r = await DocumentPicker.getDocumentAsync({ type: ['application/pdf', 'image/*'], copyToCacheDirectory: true, multiple: false, base64: false })
-  return r.canceled || !r.assets?.[0] ? null : comeFile(r.assets[0])
+/** La finestra di scelta: una o piu' foto o PDF (sul telefono offre anche la fotocamera). Vuota se la persona rinuncia. */
+export async function scegliFile(): Promise<FileGrezzo[]> {
+  const r = await DocumentPicker.getDocumentAsync({ type: ['application/pdf', 'image/*'], copyToCacheDirectory: true, multiple: true, base64: false })
+  return r.canceled ? [] : (r.assets ?? []).map(comeFile)
 }
 
 /**
