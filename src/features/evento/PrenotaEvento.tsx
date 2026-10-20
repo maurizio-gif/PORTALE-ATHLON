@@ -145,6 +145,8 @@ export function PrenotaEvento({ token, nome, iniziale }: { token: string; nome: 
   const { evento, turni, fuori_fascia } = pagina
   const persone = pagina.persone ?? pagina.bambini
   const famiglia = evento.per === 'famiglia'
+  // Un evento a testa (20/10/2026): il link porta solo chi l'ha chiesto, e chi viene con lui chiede il suo.
+  const soloTu = evento.per === 'persona'
   // Si parte dal primo che non e' ancora prenotato: il caso normale e' «prenoto me, poi gli altri».
   const persona = persone.find((p) => p.member_id === sceltaId) ?? persone.find((p) => !p.prenotato) ?? persone[0] ?? null
   const nomeLezione = evento.lezione ?? evento.titolo
@@ -246,7 +248,15 @@ export function PrenotaEvento({ token, nome, iniziale }: { token: string; nome: 
     </Avviso>
   )
 
-  const aggiungi = famiglia ? null : (
+  const aggiungi = soloTu ? (
+    <Testo variante="piccolo">
+      {'La prenotazione è personale: chi viene con te chiede il suo link dalla '}
+      <Text style={{ color: c.accento, textDecorationLine: 'underline' }} onPress={() => Linking.openURL(`${paginaEventoSito(evento.slug)}#prenota`)}>
+        pagina dell’evento
+      </Text>
+      , con la sua email.
+    </Testo>
+  ) : famiglia ? null : (
     <Testo variante="piccolo">
       {`Manca un bambino${fascia ? ` ${fascia}` : ''}? Aggiungilo dalla `}
       <Text style={{ color: c.accento, textDecorationLine: 'underline' }} onPress={() => Linking.openURL(`${paginaEventoSito(evento.slug)}#prenota`)}>
@@ -303,7 +313,9 @@ export function PrenotaEvento({ token, nome, iniziale }: { token: string; nome: 
       {persone.length === 0 ? (
         <>
           <Testo>
-            {famiglia
+            {soloTu
+              ? `Per età non puoi partecipare a questo evento${fascia ? ` (${fascia})` : ''}.`
+              : famiglia
               ? `Nella tua famiglia non troviamo nessuno che possa partecipare a questo evento${fascia ? ` (${fascia})` : ''}.`
               : `Nel tuo account non troviamo bambini${fascia ? ` ${fascia}` : ''}, che è la fascia di questo evento.`}
           </Testo>
