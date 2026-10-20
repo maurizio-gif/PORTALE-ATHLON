@@ -170,9 +170,11 @@ Richiesta del club (20/10/2026). Due cose che si tengono insieme, perché l'avvi
   non ancora iniziato o sospeso (i contratti dell'area sono tutti vivi). Il tasto è a tutta larghezza sul telefono e largo quanto il testo sul desktop;
   in vista cliente dello staff dice «Vedi il certificato», perché lì non si carica niente.
 - **Chi ha l'avviso non ha la stessa voce in «Da fare»** (sarebbe due volte la stessa cosa uno sopra l'altra): `vociDaFare` salta le persone avvisate.
-  Restano in «Da fare», com'erano, il certificato in scadenza o da consegnare e **quello di chi non ha un abbonamento in vigore** (un ex socio, una
-  prova, un familiare senza corso). Se il club vuole che di loro l'app non parli affatto, è una condizione in `vociDaFare` e nel riquadro
-  Certificato, e non è stata fatta: l'avviso del 20/10/2026 non tocca chi non ha un abbonamento.
+  Restano in «Da fare» il certificato in scadenza o da consegnare entro i 6 anni, **solo per chi ha un abbonamento in vigore**.
+- **Chi non ha un abbonamento in vigore non legge niente del suo certificato in «Da fare»** (20/10/2026, richiesta di Maurizio): un ex socio, una prova
+  (Guest Pass), un familiare senza corso, un abbonamento finito. Vale per persona, titolare compreso: `vociDaFare` salta chi non è in `personeConAbbonamento`,
+  cioè chi non ha un contratto dell'area che sia un abbonamento (`eAbbonamento`) in corso, non ancora iniziato o sospeso (`vivo` = `Current`, `NotStarted`,
+  `Freezed`). **La sezione Certificato** (che si apre dal riquadro) **non è cambiata**: chi la apre vede lo stato e può caricare, abbonamento o no.
 - **Gli abbonamenti principali a quota zero sono abbonamenti** (`eAbbonamento` in `home/regolarita.ts`): gli omaggi e gli employee (`tipo = 'gratuito'`,
   non aggiuntivi: «Employee contract» e «Omaggio Club») contano nel riquadro Abbonamenti («1 attivo», prima «0
   attivi»), nell'elenco «In vigore» sotto di lui e nell'avviso. **Restano fuori il Guest Pass** (è una prova: ha lo stesso canone zero), **i contratti
@@ -187,7 +189,7 @@ Richiesta del club (20/10/2026). Due cose che si tengono insieme, perché l'avvi
 
 Per verificare: `npx tsc --noEmit` pulito. **Provato in un browser vero** (Chromium, bundle web esportato con `EXPO_PUBLIC_SUPABASE_URL` locale, funzione simulata con
 `page.route`; 390 px chiaro e scuro, 1280 px): employee con certificato mancante (avviso, nessun «Da fare» doppio, «1 attivo»), famiglia con uno scaduto e uno
-mancante (titolo plurale, due righe), senza abbonamento (nessun avviso, la voce resta in «Da fare»), Guest Pass (nessun avviso), funzione vecchia (come prima),
+mancante (titolo plurale, due righe), senza abbonamento (nessun avviso; allora la voce restava in «Da fare», ora non c’è più), Guest Pass (nessun avviso), funzione vecchia (come prima),
 omaggio con certificato valido (nessun avviso), il pulsante che apre `?sezione=certificato`, nessuno scorrimento orizzontale, nessuna richiesta fuori dal computer.
 La logica pura (`eAbbonamento`, `personeDaAvvisare`, `vociDaFare`, `riepilogoAbbonamenti`) con 35 prove su dati finti (voucher Covid compresi), e provata con mutazioni (togliendo la regola le
 prove falliscono). **Non provato**: un telefono vero, e una sessione vera con la funzione del database aggiornata.
