@@ -18,6 +18,7 @@ import { AvvisoCertificato } from './home/AvvisoCertificato'
 import { CartaShop } from './home/CartaShop'
 import { DaFare } from './home/DaFare'
 import { MessaggioBenvenuto } from './home/MessaggioBenvenuto'
+import { Campanello } from './notifiche/Campanello'
 import { Riquadri, type VoceRiquadro } from './home/Riquadri'
 import { SezioneCertificato } from './home/SezioneCertificato'
 import { SezioneFamiglia } from './home/SezioneFamiglia'
@@ -80,11 +81,14 @@ function Benvenuto({
   onProfilo: () => void
   onFoto: () => void
 }) {
+  // Su un telefono molto stretto (320 pt) la data non ha piu' posto accanto a campanello e Profilo, e a pezzi non dice niente: si toglie.
+  const { width: larghezza } = useWindowDimensions()
+  const conData = larghezza >= 340
   const avatar = (
-    <View style={[stili.data, { gap: 12 }]}>
+    <View style={[stili.data, { gap: 12, flexShrink: 1 }]}>
       <AvatarFoto nome={titolare?.nome ?? email} cognome={titolare?.cognome} foto={foto} size={AVATAR_TESTATA} anello="rgba(255,255,255,0.18)" invito={invitoFoto} />
-      <View style={{ gap: 3 }}>
-        <Text style={stili.dataTesto}>{oggi().toUpperCase()}</Text>
+      <View style={{ gap: 3, flexShrink: 1 }}>
+        {conData ? <Text style={stili.dataTesto} numberOfLines={2}>{oggi().toUpperCase()}</Text> : null}
         {invitoFoto ? <Text style={stili.invitoFoto}>Aggiungi la tua foto</Text> : null}
       </View>
     </View>
@@ -93,18 +97,23 @@ function Benvenuto({
     <Tocco onPress={onProfilo} ruolo="link" etichetta="Il mio profilo: anagrafica e contatti" scala={0.985}>
     <LinearGradient colors={NOTTE} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={stili.benvenuto}>
       <View style={stili.bagliore} />
-      <View style={[stili.data, { justifyContent: 'space-between' }]}>
+      <View style={[stili.data, { justifyContent: 'space-between', gap: 8 }]}>
         {invitoFoto ? (
-          <Tocco onPress={onFoto} etichetta="Aggiungi la tua foto" scala={0.96}>
+          <Tocco onPress={onFoto} etichetta="Aggiungi la tua foto" scala={0.96} style={{ flexShrink: 1 }}>
             {avatar}
           </Tocco>
         ) : (
           avatar
         )}
-        <View style={stili.profilo}>
-          <Icona nome="persona" size={14} colore="#fff" />
-          <Text style={stili.profiloTesto}>Profilo</Text>
-          <Icona nome="avanti" size={13} colore="rgba(255,255,255,0.7)" />
+        {/* A destra campanello e Profilo non si restringono mai: e' la data a cedere (va a capo) su un telefono stretto. */}
+        <View style={[stili.data, { gap: 8, flexShrink: 0 }]}>
+          {/* Il campanello delle notifiche del club (features/lab/notifiche): non si vede finche' la funzione non risponde. */}
+          <Campanello />
+          <View style={stili.profilo}>
+            <Icona nome="persona" size={14} colore="#fff" />
+            <Text style={stili.profiloTesto}>Profilo</Text>
+            <Icona nome="avanti" size={13} colore="rgba(255,255,255,0.7)" />
+          </View>
         </View>
       </View>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: spazio.tre }}>

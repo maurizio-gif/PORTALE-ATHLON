@@ -10,7 +10,7 @@
 // - I dati personali non passano di qui: arrivano da Supabase, un altro
 //   dominio, e le richieste verso altri domini non si toccano.
 //
-// Le notifiche push, quando arriveranno, si aggiungono qui (push, notificationclick).
+// Le notifiche push del club (20/10/2026) sono in fondo: `push` e `notificationclick`.
 
 const VERSIONE = 'v1'
 const PAGINE = `athlon-pagine-${VERSIONE}`
@@ -83,4 +83,92 @@ self.addEventListener('fetch', (evento) => {
     )
   }
   // Tutto il resto (manifest, icone, sw.js stesso): la rete, come senza service worker.
+})
+
+// ---------------------------------------------------------------------------
+// Le notifiche push del club (20/10/2026)
+//
+// Il CRM manda una push cifrata con { titolo, corpo, url, ids, ping, tag }. `ids` sono i gettoni della notifica per le persone
+// del nucleo che questo dispositivo serve, e `ping` e' dove dirlo: il service worker non ha la sessione della persona, quindi
+// segnala **«ricevuta»** appena la push arriva e **«aperta»** quando la persona la tocca con i gettoni, senza altro.
+// Sono i due segni, insieme a quelli che l'app manda da dentro (vista, aperta, pulsante premuto), con cui il club vede se la
+// comunicazione e' arrivata. Il tracciamento non deve mai far fallire una notifica: ogni richiesta si ignora se non va.
+//
+// **Ogni push mostra una notifica**, anche se l'app e' aperta: i browser lo vogliono (con `userVisibleOnly` una push senza
+// avviso fa revocare la sottoscrizione, su iPhone al secondo tentativo). Se l'app e' aperta le si dice anche di rileggere
+// subito (`notifica-arrivata`), cosi' la finestra compare senza aspettare il giro dei venti secondi.
+
+/** L'indirizzo per segnalare: solo quello della funzione del club, qualunque cosa dica la push. */
+function indirizzoPing(ping) {
+  return typeof ping === 'string' && /^https:\/\/[a-z0-9-]+\.supabase\.co\/functions\/v1\/portale-lab-notifiche$/.test(ping) ? ping : null
+}
+
+/** Dice al club cosa e' successo a una notifica. Non solleva mai. */
+function segnala(ping, ids, evento) {
+  const url = indirizzoPing(ping)
+  if (!url || !Array.isArray(ids) || !ids.length) return Promise.resolve()
+  return fetch(url, {
+    method: 'POST',
+    // Senza intestazioni di contenuto: e' una richiesta «semplice», niente preflight, e basta quello che serve.
+    body: JSON.stringify({ azione: 'gettone', ids: ids.slice(0, 10), evento }),
+    keepalive: true,
+  }).catch(() => undefined)
+}
+
+self.addEventListener('push', (evento) => {
+  let dati = {}
+  try {
+    dati = evento.data ? evento.data.json() : {}
+  } catch (e) {
+    dati = {}
+  }
+  const titolo = typeof dati.titolo === 'string' && dati.titolo ? dati.titolo : 'Athlon Club'
+  const opzioni = {
+    body: typeof dati.corpo === 'string' ? dati.corpo : '',
+    icon: '/logo192.png',
+    badge: '/logo192.png',
+    // Lo stesso `tag` sostituisce l'avviso invece di accumularne: un tentativo ripetuto non ne fa due.
+    tag: typeof dati.tag === 'string' ? dati.tag : undefined,
+    data: { url: typeof dati.url === 'string' ? dati.url : '/notifiche', ids: Array.isArray(dati.ids) ? dati.ids : [], ping: dati.ping },
+  }
+
+  evento.waitUntil(
+    Promise.all([
+      self.registration.showNotification(titolo, opzioni),
+      segnala(dati.ping, opzioni.data.ids, 'ricevuta'),
+      // Se l'app e' aperta: rilegge subito, e la finestra compare.
+      self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((finestre) => {
+        for (const f of finestre) f.postMessage({ tipo: 'notifica-arrivata' })
+      }),
+    ]),
+  )
+})
+
+// Un tocco sull'avviso porta al centro notifiche, riusando una finestra gia' aperta dell'app se c'e'. Solo indirizzi
+// dell'app stessa: quello che dice la push non porta fuori.
+self.addEventListener('notificationclick', (evento) => {
+  evento.notification.close()
+  const dati = evento.notification.data || {}
+  let url = '/notifiche'
+  try {
+    const u = new URL(dati.url || '/notifiche', self.location.origin)
+    if (u.origin === self.location.origin) url = u.pathname + u.search
+  } catch (e) {
+    url = '/notifiche'
+  }
+
+  evento.waitUntil(
+    Promise.all([
+      segnala(dati.ping, dati.ids, 'aperta'),
+      self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((finestre) => {
+        for (const f of finestre) {
+          if (new URL(f.url).origin === self.location.origin && 'focus' in f) {
+            if ('navigate' in f) return f.navigate(url).then((c) => (c || f).focus()).catch(() => f.focus())
+            return f.focus()
+          }
+        }
+        return self.clients.openWindow ? self.clients.openWindow(url) : undefined
+      }),
+    ]),
+  )
 })
