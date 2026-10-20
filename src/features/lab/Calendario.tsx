@@ -25,11 +25,11 @@ import { CalorieLezione, CorpoPerLezioni } from './schede/CalorieLezione'
 import { posizione } from './SchedaLezione'
 import { ingombroBarra } from './ui/BarraSchede'
 import { FoglioLezione } from './ui/FoglioLezione'
-import { Icona } from './ui/Icona'
-import { Avatar, Barra, Carta, Entra, Etichetta, Messaggio, Pulsante, Riga, SchedeInArrivo, Sezione, Tag } from './ui/kit'
+import { Icona, type NomeIcona } from './ui/Icona'
+import { Avatar, Barra, Bollino, Carta, Entra, Etichetta, Messaggio, Pulsante, Riga, SchedeInArrivo, Sezione, Tag } from './ui/kit'
 import { Schermata } from './ui/Schermata'
 import { SceltaPrenotazioni } from './ui/SceltaPrenotazioni'
-import { F, FUOCO, NOTTE, usePalette, velo } from './ui/tema'
+import { F, FUOCO, NOTTE, usePalette, velo, type ToniTutti } from './ui/tema'
 import { colpetto, Tocco } from './ui/Tocco'
 import { usePrenotazioneLezione } from './usePrenotazioneLezione'
 
@@ -325,6 +325,18 @@ function RigaLezione(props: PropsLezione & { titolare: boolean }) {
 // finti, «Con Assistenza» (c'e' l'assistente in sala) o «Allenamento Libero»
 // (non c'e'): gli orari con l'assistente hanno il bollino blu. Nel Nuoto
 // Libero e' l'assistente vero, col suo nome.
+
+// I filtri per attivita' (20/10/2026, richiesta dei tester: «i filtri non si vedono»): una tessera per attivita',
+// tutte in vista, con icona e colore. Nell'acqua il blu, in sala l'arancio, il resto neutro; un'attivita' nuova
+// del listino prende l'icona del calendario finche' non se ne sceglie una.
+function segnoAttivita(categoria: string | null): { icona: NomeIcona; tono: ToniTutti } {
+  if (!categoria) return { icona: 'elenco', tono: 'neutro' }
+  const c = categoria.toLowerCase()
+  if (/aqua|nuoto|acqua/.test(c)) return { icona: 'goccia', tono: 'blu' }
+  if (/gym|sala|forza/.test(c)) return { icona: 'peso', tono: 'accento' }
+  if (/corsi|fitness|reformer|master|pilates|yoga/.test(c)) return { icona: 'persone', tono: 'accento' }
+  return { icona: 'calendario', tono: 'neutro' }
+}
 
 const A_TURNI = [
   { categoria: 'Gym Floor', conPosti: false, assistente: 'in sala' },
@@ -917,29 +929,35 @@ function CalendarioGiorno() {
           <Text style={{ color: p.testoTerzo, fontFamily: F.semi, fontSize: 13 }}>{`${visibili.length} ${visibili.length === 1 ? 'lezione' : 'lezioni'}`}</Text>
         </View>
         {attivitaDelGiorno.length > 1 || attivita ? (
-          // La scelta attiva subito dopo «Tutte», e la fila torna all'inizio a
-          // ogni giorno (key): l'attivita' scelta non resta mai fuori vista.
-          <ScrollView key={giorno.data} horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={stili.fila} style={stili.fuori}>
-            {[null, ...(attivita ? [attivita] : []), ...attivitaDelGiorno.filter((x) => x !== attivita)].map((a) => {
-              const attivo = a === attivita
-              const n = a ? conteggi.get(a) ?? 0 : visibili.length
-              return (
-                <Tocco
-                  key={a ?? 'tutte'}
-                  vibra="scelta"
-                  stato={{ selected: attivo }}
-                  onPress={() => setAttivita(a)}
-                  etichetta={`${a ?? 'Tutte le attività'}, ${n}`}
-                  style={[stili.filtro, { backgroundColor: attivo ? p.testo : p.carta, borderColor: attivo ? p.testo : p.linea }]}
-                >
-                  <Text style={{ color: attivo ? p.fondo : p.testo, fontFamily: attivo ? F.extra : F.semi, fontSize: 14 }}>{a ?? 'Tutte'}</Text>
-                  <View style={[stili.conta, { backgroundColor: attivo ? p.accento : p.incavo }]}>
-                    <Text style={{ color: attivo ? '#fff' : p.testoSecondario, fontFamily: F.extra, fontSize: 11 }}>{n}</Text>
-                  </View>
-                </Tocco>
-              )
-            })}
-          </ScrollView>
+          // Tutte le attivita' del giorno in vista, a tessere (niente fila da scorrere). Una tessera sola attiva:
+          // «Tutte» le toglie il filtro. Toccare quella attiva la toglie.
+          <View style={{ gap: spazio.due }}>
+            <Text style={[stili.filtriTitolo, { color: p.testoSecondario }]} accessibilityRole="header">Cosa vuoi fare?</Text>
+            <View style={stili.tessere}>
+              {[null, ...attivitaDelGiorno].map((a) => {
+                const attivo = a === attivita
+                const n = a ? conteggi.get(a) ?? 0 : visibili.length
+                const segno = segnoAttivita(a)
+                return (
+                  <Tocco
+                    key={a ?? 'tutte'}
+                    vibra="scelta"
+                    stato={{ selected: attivo }}
+                    onPress={() => setAttivita(attivo && a ? null : a)}
+                    etichetta={`${a ?? 'Tutte le attività'}, ${n} ${n === 1 ? 'lezione' : 'lezioni'}`}
+                    style={[
+                      stili.tessera,
+                      { backgroundColor: attivo ? velo(p, 'accento', p.scuro ? 0.16 : 0.1) : p.carta, borderColor: attivo ? p.accento : p.linea, borderWidth: attivo ? 1.5 : StyleSheet.hairlineWidth },
+                    ]}
+                  >
+                    <Bollino icona={segno.icona} tono={attivo ? 'accento' : segno.tono} size={34} pieno={attivo} />
+                    <Text style={{ color: p.testo, fontFamily: attivo ? F.extra : F.semi, fontSize: 13.5, lineHeight: 17 }} numberOfLines={2}>{a ?? 'Tutte'}</Text>
+                    <Text style={{ color: attivo ? p.accento : p.testoTerzo, fontFamily: F.extra, fontSize: 11.5 }}>{`${n} ${n === 1 ? 'lezione' : 'lezioni'}`}</Text>
+                  </Tocco>
+                )
+              })}
+            </View>
+          </View>
         ) : null}
       </View>
 
@@ -1075,8 +1093,9 @@ const stili = StyleSheet.create({
   settimana: { fontSize: 11, fontFamily: F.extra, textTransform: 'uppercase', letterSpacing: 1 },
   numero: { fontSize: 24, fontFamily: F.extra, letterSpacing: -0.6 },
   giornoTitolo: { fontSize: 22, fontFamily: F.extra, letterSpacing: -0.6 },
-  filtro: { flexDirection: 'row', alignItems: 'center', gap: spazio.due, borderRadius: 999, paddingVertical: 9, paddingLeft: spazio.tre, paddingRight: 9, borderWidth: StyleSheet.hairlineWidth },
-  conta: { minWidth: 22, height: 22, borderRadius: 11, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 6 },
+  filtriTitolo: { fontSize: 13, fontFamily: F.extra, letterSpacing: 0.4, textTransform: 'uppercase', paddingHorizontal: 2 },
+  tessere: { flexDirection: 'row', flexWrap: 'wrap', gap: spazio.due },
+  tessera: { flexGrow: 1, flexBasis: 104, maxWidth: 220, minWidth: 0, gap: 6, padding: spazio.tre - 2, borderRadius: 18 },
   griglia: { flexDirection: 'row', flexWrap: 'wrap', gap: spazio.tre },
   cella: { flexGrow: 1, flexBasis: 340, minWidth: 0, maxWidth: 560 },
   lezione: { borderRadius: 30, overflow: 'hidden' },
