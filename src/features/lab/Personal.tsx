@@ -338,14 +338,6 @@ function FoglioCompra({
                 </Text>
               </Casella>
               <EstrattoTermini />
-              {/* I documenti fuori dalla casella: toccarli non deve spuntarla. */}
-              {stato.consensi_contratto
-                .filter((c) => c.allegato)
-                .map((c) => (
-                  <Tocco key={c.id} ruolo="link" etichetta={`Leggi ${c.nome}`} onPress={() => vai(c.allegato!)} style={{ alignSelf: 'flex-start', paddingVertical: 6 }}>
-                    <Text style={{ color: p.accento, fontFamily: F.bold, fontSize: 14 }}>{`Leggi «${c.nome}» ›`}</Text>
-                  </Tocco>
-                ))}
             </View>
           ) : null}
 
@@ -448,7 +440,7 @@ function FoglioCompra({
 
 /**
  * L'estratto della sezione 9 dei Termini (21/10/2026): chiuso, si apre al tocco. E' il testo alla lettera
- * (`personal/termini.ts`); il documento intero resta nel link «Leggi …» qui sotto.
+ * (`personal/termini.ts`). Il file dei Termini non si apre piu' da qui: c'e' solo questo estratto.
  */
 function EstrattoTermini() {
   const p = usePalette()
