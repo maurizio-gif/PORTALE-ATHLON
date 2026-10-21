@@ -429,7 +429,6 @@ function FoglioCompra({
             {stato.carta
               ? ': il club non vede mai il numero completo.'
               : ', e la carta resta salvata per i prossimi acquisti.'}
-            {cosa.tipo === 'pacchetto' ? ' Per la prima quota l’importo esatto lo calcola PerfectGym al momento del pagamento.' : ''}
           </Text>
           )}
         </View>
