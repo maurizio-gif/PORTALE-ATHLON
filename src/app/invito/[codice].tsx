@@ -18,7 +18,7 @@ export default function PaginaInvito() {
   useEffect(() => {
     let vivo = true
     leggiInvito(c).then((r) => {
-      if (vivo) setInvito(r.valido ? { codice: c, nome: r.nome } : null)
+      if (vivo) setInvito(r.valido ? { codice: c, nome: r.nome, prezzo: r.prezzo, prezzoPieno: r.prezzoPieno } : null)
     })
     return () => {
       vivo = false

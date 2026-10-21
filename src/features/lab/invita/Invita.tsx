@@ -13,7 +13,8 @@ import { manda, smsDisponibile, type Canale } from './condividi'
 
 // «Invita un amico» (21/10/2026, richiesta di Maurizio): il link personale del socio, i quattro modi di mandarlo
 // (WhatsApp, email, SMS, copia) e gli amici che l'hanno accettato. Chi apre il link fa la procedura del Guest Pass
-// da 19 € (pagina pubblica /invito/<codice>) e resta abbinato a chi l'ha invitato per 30 giorni.
+// (pagina pubblica /invito/<codice>), che con l'invito costa 5 € invece di 19 (21/10/2026), e resta abbinato a chi l'ha
+// invitato per 30 giorni.
 //
 // Le regole dette qui sono quelle della migrazione 20261021a di APP-ATHLON, e i due numeri (30 giorni, 50 €) arrivano
 // dalla funzione. **Non si nomina il vantaggio della quota di attivazione** per chi continua dopo la prova: il club lo
@@ -115,8 +116,8 @@ export function Invita() {
           <View style={{ flex: 1, gap: 4 }}>
             <Text style={[stili.titolo, { color: p.testo }]}>Porta un amico al club</Text>
             <Text style={[stili.corpo, { color: p.testoSecondario }]}>
-              Il tuo amico può provare il club per una settimana a 19 € o iscriversi subito. Se si iscrive, ricevi un voucher da {stato.voucher} € sul tuo
-              abbonamento.
+              Con il tuo invito il tuo amico prova il club per una settimana pagando solo {stato.prezzo_prova} € invece di {stato.prezzo_pieno}, oppure si
+              iscrive subito. Se si iscrive, ricevi un voucher da {stato.voucher} € sul tuo abbonamento.
             </Text>
           </View>
         </View>

@@ -306,7 +306,7 @@ export function AttivaGuestPass({ token, nome, iniziale }: { token: string; nome
     setAvviso({
       testo:
         d.pagamento === 'addebito'
-          ? 'Fatto: il tuo Guest Pass è attivo. I 19 € saranno addebitati sul conto.'
+          ? `Fatto: il tuo Guest Pass è attivo. I ${p.prezzo} € saranno addebitati sul conto.`
           : 'Fatto: il tuo Guest Pass è attivo.',
       tono: 'ok',
     })
