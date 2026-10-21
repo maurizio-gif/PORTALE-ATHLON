@@ -1097,3 +1097,5 @@ Per verificare: `npx tsc --noEmit` pulito; `comune.ts` con `npx tsx`. **Guardato
 di piu' anni, «Ultimo posto» e «Completo», il nucleo (l'anno del figlio aperto da solo, «Non ancora» per il neonato), il foglio (pulsante spento senza la dichiarazione, quello che parte: azione, nome, cognome, data
 `AAAA-MM-GG`, codice maiuscolo, `tutore: true`), il nucleo aggiornato dopo l'aggiunta, l'errore «già al club» nel foglio, nessuno scorrimento orizzontale, nessun errore di pagina. **Non provato**: la funzione vera con una
 sessione vera (e quindi la creazione su PerfectGym), un telefono, la carta in Home renderizzata.
+
+**Stato (21/10/2026): in produzione**, su richiesta di Maurizio: migrazione `20261021d` e `portale-lab-junior` (v1) pubblicate prima, poi questa app su `main` (vedi APP-ATHLON).
