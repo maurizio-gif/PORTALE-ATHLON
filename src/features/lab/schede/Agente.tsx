@@ -1,5 +1,5 @@
 import { LinearGradient } from 'expo-linear-gradient'
-import { router } from 'expo-router'
+import { router, useLocalSearchParams } from 'expo-router'
 import { useEffect, useState } from 'react'
 import { ActivityIndicator, StyleSheet, Text, TextInput, View } from 'react-native'
 
@@ -36,6 +36,9 @@ import { ATTREZZATURE, CONDIZIONI_SALUTE, DURATE_SALA, eSalute, NOTA_SALUTE, OBI
 // domande — quante volte, quanto dura il turno, gli stili che sa nuotare e quanto nuota di fila — e gli si compone un
 // **piano di nuoto**: gli stessi passi (bozza, editor, conferma), ma si legge a bordo vasca e non si registra. Il
 // Nuoto Libero chiede stile libero e dorso: chi non li sa non manda la richiesta e legge dove si comincia.
+//
+// **Da un consiglio** (21/10/2026): i Consigli di Athlon, per una seduta in sala o in vasca, portano qui con `?dove=sala` o
+// `?dove=vasca`, e la prima domanda e' gia' risposta. Il resto (l'obiettivo del piano compreso) lo sceglie il socio.
 
 const DOVE: { valore: 'sala' | 'vasca'; testo: string }[] = [
   { valore: 'sala', testo: 'In sala' },
@@ -63,7 +66,8 @@ const ATTESA_VASCA = [
 
 export function Agente() {
   const p = usePalette()
-  const [dove, setDove] = useState<'sala' | 'vasca'>('sala')
+  const { dove: doveDaFuori } = useLocalSearchParams<{ dove?: string }>()
+  const [dove, setDove] = useState<'sala' | 'vasca'>(doveDaFuori === 'vasca' ? 'vasca' : 'sala')
   const [obiettivo, setObiettivo] = useState<string | null>(null)
   // Sotto «Salute»: di cosa si tratta. Serve solo a dirlo al socio: qualunque sia, si va dal personal trainer.
   const [condizione, setCondizione] = useState<CondizioneSalute | null>(null)

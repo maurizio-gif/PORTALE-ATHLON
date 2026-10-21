@@ -615,33 +615,46 @@ logo è la parte che gli piace, quindi non si tocca. Un effetto nuovo si chiede 
   vede). Sul telefono si passa dalla schermata nativa arancione (`expo-splash-screen`) al fondo scuro dell'avvio senza dissolvenza: da guardare, e se
   stona si fa partire l'avvio dallo stesso arancio.
 
-## I consigli di Athlon: le lezioni che fanno per te, con le alternative; sala e nuoto se li vuoi
+## I consigli di Athlon: le lezioni che potrebbero interessarti, e quando le trovi; sala e vasca portano al piano
 
-Richiesta del club (20/10/2026): il Percorso (sezione sotto) era troppo complesso e la prenotazione dentro la settimana troppo stretta. Nella schermata Train la carta che c'era
-(`CartaConsigli` in `schede/Schede.tsx`) porta adesso ai **consigli** (`/allenamento/consigli`, cartella `src/features/lab/consigli/`): il socio dice cosa cerca e riceve **i tipi di lezione che
-fanno per lui, con le alternative**, e se vuole anche come affiancarli alla sala pesi (Gym Floor) e al Nuoto Libero. Non è una settimana e non è un piano di allenamento: niente tappe,
-niente editor, niente conferma, niente «Prenota la settimana». Funzione, controlli, quota e workflow: `CLAUDE.md` di APP-ATHLON (`portale-lab-percorso`, azioni `consigli_stato` e `consigli`).
+Richiesta del club (20/10/2026), **rifatti il 21/10/2026** su richiesta di Maurizio: il Percorso (sezione sotto) era troppo complesso e la prenotazione dentro la settimana troppo stretta. Nella schermata
+Train la carta che c'era (`CartaConsigli` in `schede/Schede.tsx`) porta ai **consigli** (`/allenamento/consigli`, cartella `src/features/lab/consigli/`). Il socio racconta **chi è e cosa gli piace**,
+non i dati di una scheda, e riceve **le lezioni che potrebbero interessargli, perché, con le alternative e gli orari in cui le trova**. Non è un programma («oggi fai questo»): niente tappe, niente
+editor, niente conferma, niente «Prenota la settimana». Funzione, controlli, quota e workflow: `CLAUDE.md` di APP-ATHLON (`portale-lab-percorso`, azioni `consigli_stato` e `consigli`).
 
-- **Una schermata sola con tre momenti** (`Consigli.tsx`): le domande, l'attesa e i consigli. Obbligatori solo obiettivo e livello; poi quante volte a settimana (1-6, di partenza 3), «Vuoi anche la sala pesi?»,
-  «E il nuoto?» (no · Nuoto Libero · Voglio imparare), e — facoltativi — che lezioni piacciono (i cinque gruppi del Percorso), quando si preferisce venire, in quali giorni si può, quali lezioni evitare (a parole,
-  separate da una virgola), se includere le non comprese e le limitazioni. **Sala e nuoto li sceglie il socio**: senza averli chiesti non compaiono. L'attesa è di pochi secondi, a volte mezzo minuto.
-- **I consigli sono carte per tipo di lezione** (`CartaConsiglio`): il nome, categoria, durata e quante volte a settimana conviene, «Spesso al completo» e «Da acquistare» dove servono, il perché (una riga, senza
-  numeri: li scrive il codice), **le prossime lezioni** (le prime due, le altre con «Mostra altre») e **le alternative** in una riga che si apre («Se questa non va: 2 alternative»), ognuna con le sue lezioni.
-  Poi i blocchi «E in sala» (`BloccoSala`: per giorno i turni con l'assistente di sala e quelli in allenamento libero, con le parole del sito: **l'assistente di sala supervisiona le attività in sala, non ti segue
-  né ti controlla mentre lavori**) e «E in vasca» (`BloccoNuoto`), gli avvisi della funzione in fondo e «Come metterli insieme». Un tipo senza lezioni nei prossimi giorni lo dice e rimanda alle alternative.
+- **Il questionario** (`Consigli.tsx`, parole e conti in `comune.ts`): **i tuoi obiettivi** (fino a tre, il primo è il principale), **la tua esperienza** (non ho mai praticato · ho praticato, poi ho
+  smesso · mi alleno già), e per chi ha smesso **quando** e **cosa facevi**, per chi pratica **cosa fai**, e per tutti e due **com'è la tua forma oggi** (chi non ha mai praticato non lo dice: è un
+  principiante); poi **cosa ti piace fare** (mente e corpo, forza e tono, cardio e musica, combattimento, lezioni in acqua, nuotare, sala pesi per conto mio), e chi sceglie «Nuotare» risponde **se sa
+  stile libero e dorso** (sì: Nuoto Libero; non ancora: si parte dalla Scuola Nuoto Adulti); l'**intensità** che preferisce, quante volte pensa di venire, **quando gli piacerebbe venire** (giorni e
+  fasce) e le lezioni da evitare, le limitazioni. Obbligatori solo un obiettivo, l'esperienza e la forma (o la risposta sul nuoto, per chi ha scelto «Nuotare»): sotto il pulsante si legge cosa manca.
+- **Giorni e fasce non sono un vincolo, e la schermata lo dice**: le lezioni nei suoi orari vengono prima, e quelle adatte che si tengono in altri momenti restano, con la riga «Non nei giorni o negli
+  orari che preferisci: te la proponiamo lo stesso». L'unico limite duro sono le lezioni che evita.
+- **I consigli sono carte per tipo di lezione** (`CartaConsiglio`): il nome, categoria, durata e quante volte a settimana conviene, «Spesso al completo» e «Da acquistare» dove servono, il perché (legato
+  ai suoi obiettivi e gusti, senza numeri: li scrive il codice), **«La trovi di solito»** (gli orari ricorrenti in pillole, `OrariDiSolito`, quelli nelle sue preferenze per primi e in arancio), **le
+  prossime lezioni** (le prime due, le altre con «Mostra altre») e **le alternative** in una riga che si apre, ognuna con i suoi orari e le sue lezioni. Con una funzione di prima gli orari non ci
+  sono e la carta è quella di prima.
+- **Sala e vasca: «In sala e in vasca, con il tuo piano»** (`BloccoSedute`, `CartaSeduta`). Dove serve — un lavoro di forza, un riscaldamento prima di una lezione, il Nuoto Libero come recupero —
+  una carta dice cosa fare in due parole, perché, quante volte e **«Potresti metterla fra martedì e venerdì»**, e porta a **«Componi il tuo piano in sala / di nuoto»** (`/allenamento/agente?dove=…`,
+  che si apre già in sala o in vasca: `Agente.tsx` legge `dove`) e a «Prenota un turno», il calendario sul primo giorno con turni e sull'attività (`?giorno=…&attivita=Gym Floor|Nuoto Libero`). **Qui non si
+  scrivono esercizi**: il piano se lo compone il socio con il suo obiettivo. I turni di Gym Floor e di Nuoto Libero non sono più elencati qui: si prenotano dal calendario. La vasca c'è solo per chi sa
+  stile libero e dorso; l'assistente di sala supervisiona le attività, non segue il socio.
 - **Si prenota con i pulsanti del Calendario** (`RigaLezione` in `Lezioni.tsx`: `AzioniLezione` e `usePrenotazioneLezione`, gli stessi del Percorso): prenota, lista d'attesa, disdici, acquista se non è compresa, «Prenotabile da…»
   se non si è ancora aperta, il motivo del limite della categoria. **Nessuna regola in più**: se il Calendario dice «hai già una prenotazione di Group Reformer», lo dice anche qui. Dopo un clic la riga si aggiorna
   subito con quello che ha detto PerfectGym (`conPrenotazione`, in ogni posto dove compare quella lezione) e la memoria del giorno del calendario si butta (`dimenticaGiornoCalendario`).
-- **La memoria è solo in memoria** (`consigli:ultimi`, `consigli:scelte`, `consigli:stato`, mai sul disco): l'ultima risposta e le scelte, **senza le limitazioni**, così dopo un pagamento o un «Dettagli» si
-  ritrovano i consigli («Cambia le risposte» → «Torna ai consigli di prima»). Non è niente di sanitario. Le dieci richieste al giorno le conta il server (`stato.quota`).
+- **La memoria è solo in memoria** (`consigli:ultimi`, `consigli:scelte`, `consigli:stato`, mai sul disco): l'ultima risposta e le scelte, **senza le limitazioni**, così dopo un pagamento o un
+  «Dettagli» si ritrovano i consigli («Cambia le risposte» → «Torna ai consigli di prima»). Non è niente di sanitario. Le scelte ricordate si fondono con quelle di partenza (una memoria di una versione di
+  prima non ha i campi nuovi). Le dieci richieste al giorno le conta il server (`stato.quota`).
 - **Nella vista cliente dello staff non si apre**: la schermata dice che i consigli li chiede solo il socio e la funzione risponde 403. Solo maggiorenni. Una funzione che non conosce ancora l'azione («Azione sconosciuta.») per
   il socio è «non ancora attivi».
 - **Il Percorso è in standby** (richiesta del club, 20/10/2026): non si vede e non si raggiunge. Il link in fondo ai consigli («Preferisci una settimana già a tappe?», `AltraStrada`) non compare, e le tre schermate (`/allenamento/percorso`, `percorso-nuovo`, `percorso-modifica`) rimandano ai consigli, così un vecchio link non apre una funzione che non si offre più. Non è stato tolto niente: la cartella `percorso/`, `src/api/percorso.ts`, la funzione e le tabelle restano. **Si riaccende con `PERCORSO_IN_STANDBY = false` in `percorso/standby.ts`**, ma prima si decide dove deve ricomparire (il link in fondo ai consigli o di nuovo la carta in Train) e lo si ricontrolla con i tester: dall'accensione non è mai stato provato con una sessione vera.
 - **Parole**: «consigli», «lezioni», «sala», «vasca»; mai «percorso» né «piano» per questa cosa, e niente promesse di risultati. I posti cambiano in fretta: l'ultima parola è del Calendario, e la schermata lo dice.
 
-Per verificare: `npx tsc --noEmit` pulito; `consigli/comune.ts` è puro (`conPrenotazione`, `evitateDa`, `questionarioDa`) e si prova con `npx tsx`. **La schermata si guarda renderizzata** (360, 390, 430 e 1280 px, anche con «riduci
-movimento»): le domande, l'attesa, i consigli con una lezione prenotata, da acquistare, spesso al completo e senza date, le alternative aperte, la sala con i due tipi di turno, il nuoto, la quota finita (il pulsante
-si spegne e lo dice) e la vista cliente. Si prova con il bundle esportato e le risposte della funzione intercettate; **con una sessione vera non è provata**, né su un telefono.
+Per verificare: `npx tsc --noEmit` pulito; `consigli/comune.ts` è puro (`questionarioDa`, `cosaManca`, `conGusti`, `orariOrdinati`, `giorniTesto`, `destinazioniSeduta`, `conPrenotazione`) e si prova con
+`npx tsx`. **Guardato in un browser vero** (21/10/2026: Chromium, bundle web esportato con un indirizzo Supabase finto e la funzione simulata con `page.route`, 390 px con touch e 1280 px): il questionario
+compilato (obiettivi, esperienza «ho smesso» con quando e cosa, forma, gusti con «Nuotare» e la domanda sullo stile, giorni e fasce), «Per continuare manca…», il questionario che parte (`obiettivi`,
+`obiettivo`, `esperienza`, `pausa`, `discipline`, `giorni`, `nuoto: 'libero'`), le carte con «La trovi di solito» e gli orari suoi in arancio, quella fuori dai suoi orari, le sedute in sala e in vasca con
+«Potresti metterla…», e «Componi il tuo piano di nuoto» che apre `/allenamento/agente?dove=vasca` già in vasca; nessuno scorrimento orizzontale, nessun errore di pagina. **Non provato**: una sessione vera, la
+funzione vera e il prompt nuovo con un modello vero, un telefono, e il tema scuro sotto i 900 px.
 
 ## Il Percorso Athlon: la settimana a tappe, composta dal tutor dentro il palinsesto vero
 

@@ -6,25 +6,26 @@ import { ActivityIndicator, StyleSheet, Text, TextInput, View } from 'react-nati
 import { MESSAGGIO_SCUOLA_NUOTO, type SchedaLezione } from '@/api/lab'
 import {
   chiediConsigli,
+  DISCIPLINE,
+  ESPERIENZE,
   FASCE,
-  GRUPPI,
+  INTENSITA,
   LIVELLI,
   OBIETTIVI,
+  OBIETTIVI_MAX,
+  PAUSE,
   statoConsigli,
   type ConsiglioRisolto,
-  type NuotoConsigliato,
-  type NuotoScelta,
+  type OrarioLezione,
   type RispostaConsigli,
-  type SalaConsigliata,
+  type SedutaConsigliata,
   type StatoConsigli,
 } from '@/api/percorso'
-import { ora, giornoEsteso } from '@/lib/eventi'
 import { spazio } from '@/theme'
 
 import { inMemoria, prendi, ricorda } from '../memoria'
-import { FASCIA_SALA } from '../percorso/TappaCarta'
 import { PERCORSO_IN_STANDBY } from '../percorso/standby'
-import { GIORNI, GIORNO_BREVE, NOME_FASCIA, NOME_GRUPPO } from '../percorso/comune'
+import { GIORNI, GIORNO_BREVE, NOME_FASCIA } from '../percorso/comune'
 import { giornoRoma } from '../schede/contatoreCalorie'
 import { Scelte, SceltePiu } from '../ui/Campi'
 import { FoglioLezione } from '../ui/FoglioLezione'
@@ -40,25 +41,41 @@ import {
   CHIAVE_SCELTE_CONSIGLI,
   CHIAVE_STATO_CONSIGLI,
   CHIAVE_ULTIMI_CONSIGLI,
+  conGusti,
   conPrenotazione,
+  cosaManca,
+  destinazioniSeduta,
+  DISCIPLINA_TESTO,
+  ESPERIENZA_TESTO,
+  giorniTesto,
+  GUSTI,
+  gustiDi,
+  INTENSITA_TESTO,
+  LIVELLO_TESTO,
+  orariOrdinati,
+  PAUSA_TESTO,
   questionarioDa,
-  titoloGiorno,
+  SCELTE_DI_PARTENZA,
+  testoOrario,
   trovaLezione,
-  VOLTE_DI_PARTENZA,
   volteTesto,
   type SceltePerConsigli,
 } from './comune'
-import { ConAltre, ElencoLezioni, RigaLezione, type ApriScheda, type AzioniPrenotazione } from './Lezioni'
+import { ElencoLezioni, type ApriScheda, type AzioniPrenotazione } from './Lezioni'
 
-// I consigli di Athlon (20/10/2026). Il Percorso era una settimana composta e controllata, e la prenotazione dentro
-// la settimana era troppo stretta: qui il socio riceve dei **consigli**. Dice cosa cerca (obiettivo, livello, quante
-// volte a settimana, e — se vuole — la sala pesi o il nuoto) e l'assistente gli propone i tipi di lezione che fanno per
-// lui, con le alternative; la funzione trova le prossime lezioni vere, coi posti. Si prenota dal Calendario o da qui,
-// una lezione alla volta e con le regole di sempre: nessun limite «dentro il percorso», niente si salva.
+// I consigli di Athlon (20/10/2026, rifatti il 21/10/2026 su richiesta di Maurizio). Il socio racconta chi e': uno o piu'
+// obiettivi, se ha mai praticato, se ha smesso o se pratica gia' (e cosa), cosa gli piace fare, l'intensita' che preferisce,
+// e quando gli piacerebbe venire. L'assistente gli dice quali lezioni **potrebbero interessargli e perche'**, con le
+// alternative, e **in quali orari le trova**; la funzione aggiunge le prossime lezioni vere, coi posti. Si prenota dal
+// Calendario o da qui, una lezione alla volta e con le regole di sempre: nessun limite «dentro il percorso», niente si salva.
 //
-// **Sala e nuoto sono una scelta del socio**: senza averli chiesti non compaiono. La sala e' la Gym Floor, con i suoi due
-// tipi di turno (con l'assistente di sala, o allenamento libero); il nuoto e' il Nuoto Libero, e per chi vuole imparare
-// la Scuola Nuoto Adulti, dove si comincia.
+// **Giorni e fasce orarie non sono vincoli**: ordinano le lezioni e segnano gli orari «tuoi», ma una lezione adatta che si tiene
+// in un altro momento resta, e lo si dice. L'unico limite duro sono le lezioni che il socio evita.
+//
+// **Sala e vasca non sono lezioni**: dove servono (un lavoro di forza, un riscaldamento prima di una lezione, il Nuoto Libero
+// come recupero) l'assistente lo dice in due parole, «potresti metterla il martedi'», e la carta porta a **comporre il piano**
+// («Componi il tuo piano», `/allenamento/agente`, gia' in sala o in vasca) e al calendario per prenotare il turno. Il piano se lo
+// costruisce il socio, con il suo obiettivo: qui non si scrivono esercizi. La vasca c'e' solo per chi sa stile libero e dorso.
 //
 // Il questionario non si conserva: le limitazioni sono dati sulla salute, arrivano all'AI e basta, e **non stanno nemmeno
 // nella memoria dell'app**. Si ricordano (solo in memoria, mai sul disco) le altre scelte e l'ultima risposta, cosi' dopo
@@ -67,32 +84,13 @@ import { ConAltre, ElencoLezioni, RigaLezione, type ApriScheda, type AzioniPreno
 
 const intestazione = { sopratitolo: 'Consigli Athlon', indietro: '/allenamento' as const }
 
-const LIVELLI_TESTO: Record<(typeof LIVELLI)[number], { testo: string; nota: string }> = {
-  principiante: { testo: 'Principiante', nota: 'Ho iniziato da poco o riprendo dopo una pausa' },
-  intermedio: { testo: 'Intermedio', nota: 'Mi alleno con regolarità da almeno sei mesi' },
-  esperto: { testo: 'Esperto', nota: 'Mi alleno da anni e conosco bene gli esercizi' },
-}
-
 const ATTESA = [
-  'Leggo le tue risposte…',
+  'Leggo quello che mi hai raccontato…',
   'Guardo le lezioni che ci sono…',
-  'Scelgo cosa ti conviene…',
+  'Scelgo quelle che fanno per te…',
   'Cerco le prossime lezioni…',
   'Ancora qualche secondo…',
 ]
-
-const SCELTE_DI_PARTENZA: SceltePerConsigli = {
-  obiettivo: null,
-  livello: null,
-  volte_settimana: VOLTE_DI_PARTENZA,
-  gruppi: [],
-  evitate: '',
-  fasce: [],
-  giorni_liberi: [],
-  sala: false,
-  nuoto: null,
-  includi_non_comprese: false,
-}
 
 type Fase = 'domande' | 'attesa' | 'consigli'
 
@@ -101,9 +99,13 @@ export function Consigli() {
   const vista = !!vistaCorrente()
   const [stato, setStato] = useState<StatoConsigli | null>(() => inMemoria<{ ok: true } & StatoConsigli>(CHIAVE_STATO_CONSIGLI) ?? null)
   const [erroreStato, setErroreStato] = useState<{ messaggio: string; nonAttivo: boolean } | null>(null)
-  const [risposta, setRisposta] = useState<RispostaConsigli | null>(() => inMemoria<RispostaConsigli>(CHIAVE_ULTIMI_CONSIGLI) ?? null)
+  const [risposta, setRisposta] = useState<RispostaConsigli | null>(() => {
+    const r = inMemoria<RispostaConsigli>(CHIAVE_ULTIMI_CONSIGLI)
+    return r ? { ...r, sedute: r.sedute ?? [] } : null
+  })
   const [fase, setFase] = useState<Fase>(() => (inMemoria<RispostaConsigli>(CHIAVE_ULTIMI_CONSIGLI) ? 'consigli' : 'domande'))
-  const [scelte, setScelte] = useState<SceltePerConsigli>(() => inMemoria<SceltePerConsigli>(CHIAVE_SCELTE_CONSIGLI) ?? SCELTE_DI_PARTENZA)
+  // Le scelte ricordate si fondono con quelle di partenza: una memoria scritta da una versione di prima non ha i campi nuovi.
+  const [scelte, setScelte] = useState<SceltePerConsigli>(() => ({ ...SCELTE_DI_PARTENZA, ...(inMemoria<Partial<SceltePerConsigli>>(CHIAVE_SCELTE_CONSIGLI) ?? {}) }))
   // Le limitazioni sono dati sulla salute: vivono solo qui, nel campo di testo.
   const [limitazioni, setLimitazioni] = useState('')
   const [errore, setErrore] = useState<string | null>(null)
@@ -165,6 +167,7 @@ export function Consigli() {
   })
 
   const questionario = questionarioDa(scelte, limitazioni)
+  const manca = cosaManca(scelte)
   const quotaFinita = !!stato && stato.quota.usate >= stato.quota.massimo
 
   async function chiedi() {
@@ -252,90 +255,112 @@ export function Consigli() {
     )
   }
 
-  const nuotoNonCompreso = scelte.nuoto === 'libero' && stato.idoneita.categorie != null && !stato.idoneita.categorie.includes('Nuoto Libero') && !scelte.includi_non_comprese
+  const nuotoNonCompreso = scelte.nuotare && scelte.saNuotare === true && stato.idoneita.categorie != null && !stato.idoneita.categorie.includes('Nuoto Libero') && !scelte.includi_non_comprese
+  const esperienza = scelte.esperienza
   return (
     <Schermata
       {...intestazione}
       titolo="Consigli su misura"
       barra={false}
-      sottotitolo="Dimmi cosa cerchi: ti consigliamo i tipi di lezione che fanno per te, con le alternative. Se vuoi, anche come affiancarli alla sala pesi o al nuoto."
+      sottotitolo="Raccontaci chi sei e cosa ti piace: ti diciamo quali lezioni potrebbero fare per te, perché, e quando le trovi."
     >
       <Carta style={{ gap: spazio.due }}>
         <Text style={[stili.nota, { color: p.testo, fontFamily: F.bold }]}>Consigli, non un programma</Text>
         <Text style={[stili.nota, { color: p.testoSecondario }]}>
-          Non c’è una settimana da rispettare: scegli tu quali lezioni fare e quando. Le prenoti dal Calendario o da qui, una alla volta, come sempre.
+          Non c’è una settimana da rispettare: scegli tu quali lezioni fare e quando. Le prenoti dal Calendario o da qui, una alla volta, come sempre. Per la sala e la vasca ti portiamo a comporre il tuo piano di allenamento.
         </Text>
       </Carta>
 
-      <Sezione titolo="Il tuo obiettivo">
-        <Scelte valori={OBIETTIVI.map((o) => ({ valore: o, testo: o }))} scelto={scelte.obiettivo} onScegli={(obiettivo) => cambia({ obiettivo })} />
+      <Sezione titolo="I tuoi obiettivi">
+        <SceltePiu
+          valori={OBIETTIVI.map((o) => ({ valore: o, testo: o }))}
+          scelti={scelte.obiettivi}
+          onCambia={(obiettivi) => obiettivi.length <= OBIETTIVI_MAX && cambia({ obiettivi })}
+        />
+        <Text style={[stili.nota, { color: p.testoSecondario }]}>
+          {scelte.obiettivi.length > 1
+            ? `Il primo che hai scelto, ${scelte.obiettivi[0]}, è quello principale.${scelte.obiettivi.length >= OBIETTIVI_MAX ? ' Ne puoi scegliere fino a tre.' : ''}`
+            : 'Puoi sceglierne più di uno, fino a tre: il primo è quello principale.'}
+        </Text>
       </Sezione>
 
-      <Sezione titolo="Il tuo livello">
-        <Scelte valori={LIVELLI.map((l) => ({ valore: l, testo: LIVELLI_TESTO[l].testo }))} scelto={scelte.livello} onScegli={(livello) => cambia({ livello })} />
-        {scelte.livello ? <Text style={[stili.nota, { color: p.testoSecondario }]}>{LIVELLI_TESTO[scelte.livello].nota}</Text> : null}
+      <Sezione titolo="La tua esperienza">
+        <Scelte valori={ESPERIENZE.map((e) => ({ valore: e, testo: ESPERIENZA_TESTO[e].testo }))} scelto={esperienza} onScegli={(e) => cambia({ esperienza: e })} />
+        {esperienza ? <Text style={[stili.nota, { color: p.testoSecondario }]}>{ESPERIENZA_TESTO[esperienza].nota}</Text> : null}
       </Sezione>
 
-      <Sezione titolo="Quante volte a settimana vuoi venire">
+      {esperienza === 'ex' ? (
+        <Sezione titolo="Quando hai smesso" destra={<Facoltativo />}>
+          <Scelte valori={PAUSE.map((v) => ({ valore: v, testo: PAUSA_TESTO[v] }))} scelto={scelte.pausa} onScegli={(pausa) => cambia({ pausa })} />
+        </Sezione>
+      ) : null}
+
+      {esperienza === 'ex' || esperienza === 'pratico' ? (
+        <>
+          <Sezione titolo={esperienza === 'ex' ? 'Cosa facevi' : 'Cosa fai'} destra={<Facoltativo />}>
+            <SceltePiu valori={DISCIPLINE.map((d) => ({ valore: d, testo: DISCIPLINA_TESTO[d] }))} scelti={scelte.discipline} onCambia={(discipline) => cambia({ discipline })} />
+            <Text style={[stili.nota, { color: p.testoSecondario }]}>
+              {esperienza === 'ex' ? 'Ripartire da quello che conosci rende la ripresa più facile.' : 'Ti proponiamo qualcosa che completi quello che fai già, senza ripeterlo.'}
+            </Text>
+          </Sezione>
+          <Sezione titolo="Com’è la tua forma oggi">
+            <Scelte valori={LIVELLI.map((l) => ({ valore: l, testo: LIVELLO_TESTO[l].testo }))} scelto={scelte.livello} onScegli={(livello) => cambia({ livello })} />
+            {scelte.livello ? <Text style={[stili.nota, { color: p.testoSecondario }]}>{LIVELLO_TESTO[scelte.livello].nota}</Text> : null}
+          </Sezione>
+        </>
+      ) : null}
+
+      <Sezione titolo="Cosa ti piace fare" destra={<Facoltativo />}>
+        <SceltePiu valori={GUSTI.map((g) => ({ valore: g.valore, testo: g.testo }))} scelti={gustiDi(scelte)} onCambia={(gusti) => cambia(conGusti(scelte, gusti))} />
+        <Text style={[stili.nota, { color: p.testoSecondario }]}>
+          {gustiDi(scelte).length
+            ? GUSTI.filter((g) => gustiDi(scelte).includes(g.valore))
+                .map((g) => `${g.testo}: ${g.nota}`)
+                .join(' · ')
+            : 'Se non scegli niente, guardiamo tutte le lezioni.'}
+        </Text>
+      </Sezione>
+
+      {scelte.nuotare ? (
+        <Sezione titolo="Sai nuotare stile libero e dorso?">
+          <Scelte
+            valori={[
+              { valore: 'si', testo: 'Sì' },
+              { valore: 'no', testo: 'Non ancora' },
+            ]}
+            scelto={scelte.saNuotare === null ? null : scelte.saNuotare ? 'si' : 'no'}
+            onScegli={(v) => cambia({ saNuotare: v === 'si' })}
+          />
+          <Text style={[stili.nota, { color: p.testoSecondario }]}>
+            {scelte.saNuotare === true
+              ? 'Ti diciamo come inserire il Nuoto Libero Assistito nella settimana, e ti portiamo a comporre il tuo piano di nuoto.'
+              : scelte.saNuotare === false
+                ? 'Ti consigliamo la Scuola Nuoto Adulti, dove si comincia: sono gli istruttori a dirti quando passare al nuoto libero.'
+                : MESSAGGIO_SCUOLA_NUOTO}
+          </Text>
+          {nuotoNonCompreso ? (
+            <Messaggio tono="attenzione">Il Nuoto Libero non risulta nel tuo abbonamento: i turni si prenotano a pagamento, come lezione singola.</Messaggio>
+          ) : null}
+        </Sezione>
+      ) : null}
+
+      <Sezione titolo="Che intensità preferisci" destra={<Facoltativo />}>
+        <Scelte valori={INTENSITA.map((i) => ({ valore: i, testo: INTENSITA_TESTO[i].testo }))} scelto={scelte.intensita} onScegli={(intensita) => cambia({ intensita: intensita === scelte.intensita ? null : intensita })} />
+        {scelte.intensita ? <Text style={[stili.nota, { color: p.testoSecondario }]}>{INTENSITA_TESTO[scelte.intensita].nota}</Text> : null}
+      </Sezione>
+
+      <Sezione titolo="Quante volte a settimana pensi di venire">
         <Scelte valori={[1, 2, 3, 4, 5, 6].map((n) => ({ valore: n, testo: String(n) }))} scelto={scelte.volte_settimana} onScegli={(volte_settimana) => cambia({ volte_settimana })} />
-        <Text style={[stili.nota, { color: p.testoSecondario }]}>{`Ti consigliamo lezioni e, se le vuoi, sala e nuoto per ${volteTesto(scelte.volte_settimana)}, più o meno.`}</Text>
+        <Text style={[stili.nota, { color: p.testoSecondario }]}>{`Ti proponiamo cose per ${volteTesto(scelte.volte_settimana)}, più o meno: poi scegli tu.`}</Text>
       </Sezione>
 
-      <Sezione titolo="Vuoi anche la sala pesi?" destra={<Facoltativo />}>
-        <Scelte
-          valori={[
-            { valore: 'no', testo: 'No, grazie' },
-            { valore: 'si', testo: 'Sì, la sala' },
-          ]}
-          scelto={scelte.sala ? 'si' : 'no'}
-          onScegli={(v) => cambia({ sala: v === 'si' })}
-        />
-        <Text style={[stili.nota, { color: p.testoSecondario }]}>
-          {scelte.sala
-            ? 'Ti diciamo come inserire la sala fra le lezioni e ti mostriamo i turni di Gym Floor: con l’assistente di sala, o in allenamento libero.'
-            : 'È la Gym Floor: ogni mezz’ora un turno, che si prenota come una lezione.'}
-        </Text>
-      </Sezione>
-
-      <Sezione titolo="E il nuoto?" destra={<Facoltativo />}>
-        <Scelte
-          valori={[
-            { valore: 'no', testo: 'No' },
-            { valore: 'libero', testo: 'Nuoto Libero' },
-            { valore: 'imparare', testo: 'Voglio imparare' },
-          ]}
-          scelto={scelte.nuoto ?? 'no'}
-          onScegli={(v) => cambia({ nuoto: (v === 'no' ? null : v) as NuotoScelta })}
-        />
-        <Text style={[stili.nota, { color: p.testoSecondario }]}>
-          {scelte.nuoto === 'libero'
-            ? 'Turni di Nuoto Libero Assistito, come recupero fra le lezioni più impegnative. Scegli questa strada se sai già nuotare stile libero e dorso.'
-            : scelte.nuoto === 'imparare'
-              ? 'Ti consigliamo la Scuola Nuoto Adulti, dove si comincia: sono gli istruttori a dirti quando passare al nuoto libero.'
-              : MESSAGGIO_SCUOLA_NUOTO}
-        </Text>
-        {nuotoNonCompreso ? (
-          <Messaggio tono="attenzione">Il Nuoto Libero non risulta nel tuo abbonamento. Scegli «Includi anche le altre» più sotto: i turni compaiono segnati «da acquistare».</Messaggio>
-        ) : null}
-      </Sezione>
-
-      <Sezione titolo="Che lezioni ti piacciono" destra={<Facoltativo />}>
-        <SceltePiu valori={GRUPPI.map((g) => ({ valore: g, testo: NOME_GRUPPO[g].titolo }))} scelti={scelte.gruppi} onCambia={(gruppi) => cambia({ gruppi })} />
-        <Text style={[stili.nota, { color: p.testoSecondario }]}>
-          {scelte.gruppi.length ? scelte.gruppi.map((g) => NOME_GRUPPO[g].nota).join(' · ') : 'Se non scegli niente, guardiamo tutte le lezioni.'}
-        </Text>
-      </Sezione>
-
-      <Sezione titolo="Quando preferisci venire" destra={<Facoltativo />}>
+      <Sezione titolo="Quando ti piacerebbe venire" destra={<Facoltativo />}>
+        <SceltePiu valori={GIORNI.map((g) => ({ valore: g as number, testo: GIORNO_BREVE[g] }))} scelti={scelte.giorni} onCambia={(v) => cambia({ giorni: [...v].sort((a, b) => a - b) })} />
         <SceltePiu valori={FASCE.map((f) => ({ valore: f, testo: NOME_FASCIA[f].titolo }))} scelti={scelte.fasce} onCambia={(fasce) => cambia({ fasce })} />
         <Text style={[stili.nota, { color: p.testoSecondario }]}>
-          {scelte.fasce.length ? scelte.fasce.map((f) => `${NOME_FASCIA[f].titolo}: ${NOME_FASCIA[f].nota}`).join(' · ') : 'Con un orario indicato, ti mostriamo prima le lezioni che ci stanno.'}
+          {scelte.fasce.length ? `${scelte.fasce.map((f) => `${NOME_FASCIA[f].titolo}: ${NOME_FASCIA[f].nota}`).join(' · ')}. ` : ''}
+          Non è un vincolo: ti mostriamo prima le lezioni che ci stanno, ma ti diciamo anche quelle adatte a te in altri momenti.
         </Text>
-      </Sezione>
-
-      <Sezione titolo="In quali giorni puoi venire" destra={<Facoltativo />}>
-        <SceltePiu valori={GIORNI.map((g) => ({ valore: g as number, testo: GIORNO_BREVE[g] }))} scelti={scelte.giorni_liberi} onCambia={(v) => cambia({ giorni_liberi: [...v].sort((a, b) => a - b) })} />
-        <Text style={[stili.nota, { color: p.testoSecondario }]}>Senza scelta, tutti i giorni vanno bene.</Text>
       </Sezione>
 
       <Sezione titolo="Lezioni che vuoi evitare" destra={<Facoltativo />}>
@@ -383,7 +408,7 @@ export function Consigli() {
 
       {errore ? <Messaggio>{errore}</Messaggio> : null}
       {quotaFinita ? <Messaggio tono="attenzione">{`Hai chiesto i consigli ${stato.quota.massimo} volte oggi: riprova domani. Intanto puoi guardare il Calendario.`}</Messaggio> : null}
-      {!questionario ? <Text style={[stili.nota, { color: p.testoSecondario, textAlign: 'center' }]}>Scegli obiettivo e livello per continuare.</Text> : null}
+      {manca.length ? <Text style={[stili.nota, { color: p.testoSecondario, textAlign: 'center' }]}>{`Per continuare manca ${manca.join(', ')}.`}</Text> : null}
       <Pulsante testo="Dammi i consigli" icona="stella" onPress={chiedi} disabilitato={!questionario || quotaFinita} />
       {risposta ? <Pulsante testo="Torna ai consigli di prima" variante="fantasma" onPress={() => setFase('consigli')} /> : null}
       <Text style={[stili.avvertenza, { color: p.testoTerzo }]}>
@@ -422,7 +447,7 @@ function Risposta({ risposta, azioni, onScheda, onCambia, quota }: { risposta: R
     <>
       {risposta.integrazione ? (
         <Carta style={{ gap: spazio.due }}>
-          <Text style={[stili.nota, { color: p.testo, fontFamily: F.bold }]}>Come metterli insieme</Text>
+          <Text style={[stili.nota, { color: p.testo, fontFamily: F.bold }]}>Come metterle insieme</Text>
           <Text style={[stili.nota, { color: p.testoSecondario }]}>{risposta.integrazione}</Text>
         </Carta>
       ) : null}
@@ -432,7 +457,7 @@ function Risposta({ risposta, azioni, onScheda, onCambia, quota }: { risposta: R
       ) : null}
 
       {risposta.consigli.length ? (
-        <Sezione titolo="Le lezioni che ti consigliamo">
+        <Sezione titolo="Le lezioni che potrebbero interessarti">
           <View style={{ gap: spazio.quattro }}>
             {risposta.consigli.map((c, i) => (
               <Entra key={c.tipo.id} indice={i}>
@@ -443,8 +468,7 @@ function Risposta({ risposta, azioni, onScheda, onCambia, quota }: { risposta: R
         </Sezione>
       ) : null}
 
-      {risposta.sala ? <BloccoSala sala={risposta.sala} schede={schede} azioni={azioni} onScheda={onScheda} /> : null}
-      {risposta.nuoto ? <BloccoNuoto nuoto={risposta.nuoto} schede={schede} azioni={azioni} onScheda={onScheda} /> : null}
+      {risposta.sedute.length ? <BloccoSedute sedute={risposta.sedute} /> : null}
 
       {risposta.avvisi.map((a) => (
         <Messaggio key={a} tono="attenzione">
@@ -488,6 +512,8 @@ function CartaConsiglio({ c, schede, azioni, onScheda }: { c: ConsiglioRisolto; 
       ) : null}
       {c.perche ? <Text style={[stili.perche, { color: p.testoSecondario }]}>{c.perche}</Text> : null}
 
+      <OrariDiSolito orari={c.orari} />
+
       <View style={{ gap: spazio.due }}>
         <Text style={[stili.sottoTitolo, { color: p.testo }]}>Le prossime</Text>
         <ElencoLezioni lezioni={c.prossime} vuoto="Nei prossimi giorni non ce ne sono: guarda le alternative, o il Calendario più avanti." {...comune} />
@@ -514,6 +540,7 @@ function CartaConsiglio({ c, schede, azioni, onScheda }: { c: ConsiglioRisolto; 
                     <Text style={[stili.sottoTitolo, { color: p.testo }]}>{a.tipo.nome}</Text>
                     <Text style={[stili.nota, { color: p.testoSecondario }]}>{[a.tipo.categoria !== a.tipo.nome ? a.tipo.categoria : null, `${a.tipo.minuti} min`].filter(Boolean).join(' · ')}</Text>
                   </View>
+                  <OrariDiSolito orari={a.orari} piccolo />
                   {a.tipo.compresa === false || a.tipo.spessoCompleta ? (
                     <View style={stili.etichette}>
                       {a.tipo.compresa === false ? <Etichetta testo="Da acquistare" tono="attenzione" /> : null}
@@ -530,74 +557,84 @@ function CartaConsiglio({ c, schede, azioni, onScheda }: { c: ConsiglioRisolto; 
   )
 }
 
-function BloccoSala({ sala, schede, azioni, onScheda }: { sala: SalaConsigliata; schede: Record<string, SchedaLezione>; azioni: AzioniPrenotazione; onScheda: ApriScheda }) {
+/**
+ * Quando la lezione si tiene di solito: una pillola per orario, prima quelli nei giorni e nelle fasce che il socio preferisce
+ * (segnati), poi gli altri. Se nessuno cade nelle sue preferenze lo si dice: la lezione resta fra i consigli, perche' le
+ * preferenze non sono un vincolo.
+ */
+function OrariDiSolito({ orari, piccolo }: { orari: OrarioLezione[]; piccolo?: boolean }) {
   const p = usePalette()
+  if (!orari.length) return null
+  const { orari: ordinati, fuori } = orariOrdinati(orari)
   return (
-    <Sezione titolo="E in sala">
-      <Carta style={{ gap: spazio.tre }}>
-        <View style={stili.testa}>
-          <Bollino icona="peso" tono="blu" size={42} />
-          <View style={{ flex: 1, gap: 2 }}>
-            <Text style={[stili.titolo, { color: p.testo }]}>Sala pesi · Gym Floor</Text>
-            <Text style={[stili.nota, { color: p.testoSecondario }]}>{`${volteTesto(sala.volte)}${sala.fascia ? ` · ti consigliamo ${FASCIA_SALA[sala.fascia].toLowerCase()}` : ''}`}</Text>
+    <View style={{ gap: spazio.due }}>
+      {piccolo ? null : <Text style={[stili.sottoTitolo, { color: p.testo }]}>La trovi di solito</Text>}
+      <View style={stili.etichette}>
+        {ordinati.map((o) => (
+          <View key={`${o.giorno}-${o.ora}`} style={[stili.orario, { backgroundColor: o.tuo ? p.accento : p.incavo }]}>
+            <Text style={[stili.orarioTesto, { color: o.tuo ? '#fff' : p.testo }]}>{testoOrario(o)}</Text>
           </View>
-        </View>
-        {sala.perche ? <Text style={[stili.perche, { color: p.testoSecondario }]}>{sala.perche}</Text> : null}
-        {sala.giorni.length ? (
-          <ConAltre
-            visibili={2}
-            nome={['giornata', 'giornate']}
-            voci={sala.giorni.map((g) => (
-              <View key={g.data} style={{ gap: spazio.due }}>
-                <Text style={[stili.sottoTitolo, { color: p.testo }]}>{titoloGiorno(giornoEsteso(g.data))}</Text>
-                {g.turni.map((t) => (
-                  <RigaLezione key={t.class_id} l={t} fascia={t.fascia} schede={schede} azioni={azioni} onScheda={onScheda} testoPrenota={ora(t.inizio)} />
-                ))}
-              </View>
-            ))}
-          />
-        ) : (
-          <Text style={[stili.nota, { color: p.testoSecondario }]}>Nei prossimi giorni non ci sono turni da prenotare nei giorni che hai scelto: li trovi nel Calendario quando si aprono.</Text>
-        )}
-        <Text style={[stili.piccola, { color: p.testoTerzo }]}>
-          Con l’assistente di sala c’è chi supervisiona le attività in sala e risponde ai tuoi dubbi; in allenamento libero ti alleni per conto tuo. L’orario è quello del turno.
-        </Text>
-      </Carta>
+        ))}
+      </View>
+      {fuori ? (
+        <Text style={[stili.piccola, { color: p.testoTerzo }]}>Non nei giorni o negli orari che preferisci: te la proponiamo lo stesso.</Text>
+      ) : ordinati.some((o) => o.tuo) && !piccolo ? (
+        <Text style={[stili.piccola, { color: p.testoTerzo }]}>In arancio gli orari nei giorni e nelle fasce che preferisci.</Text>
+      ) : null}
+    </View>
+  )
+}
+
+/**
+ * Le sedute in sala e in vasca. **Non sono lezioni e non si prenotano da qui come una lezione**: dicono cosa fare e quando, in
+ * due parole, e portano a comporre il piano di allenamento («Componi il tuo piano», gia' in sala o in vasca), dove il socio
+ * sceglie il suo obiettivo; e, per prenotare il turno, al calendario sul primo giorno utile.
+ */
+function BloccoSedute({ sedute }: { sedute: SedutaConsigliata[] }) {
+  return (
+    <Sezione titolo="In sala e in vasca, con il tuo piano">
+      <View style={{ gap: spazio.quattro }}>
+        {sedute.map((s, i) => (
+          <Entra key={`${s.ambiente}-${i}`} indice={i}>
+            <CartaSeduta s={s} />
+          </Entra>
+        ))}
+      </View>
     </Sezione>
   )
 }
 
-function BloccoNuoto({ nuoto, schede, azioni, onScheda }: { nuoto: NuotoConsigliato; schede: Record<string, SchedaLezione>; azioni: AzioniPrenotazione; onScheda: ApriScheda }) {
+function CartaSeduta({ s }: { s: SedutaConsigliata }) {
   const p = usePalette()
+  const inVasca = s.ambiente === 'vasca'
+  const dove = destinazioniSeduta(s)
+  const giorni = giorniTesto(s.giorni)
+  const titolo = s.cosa ?? (inVasca ? 'Nuoto Libero' : 'Una seduta in sala')
   return (
-    <Sezione titolo="E in vasca">
-      <Carta style={{ gap: spazio.tre }}>
-        <View style={stili.testa}>
-          <Bollino icona="goccia" tono="blu" size={42} />
-          <View style={{ flex: 1, gap: 2 }}>
-            <Text style={[stili.titolo, { color: p.testo }]}>Nuoto Libero</Text>
-            <Text style={[stili.nota, { color: p.testoSecondario }]}>{volteTesto(nuoto.volte)}</Text>
-          </View>
+    <Carta style={{ gap: spazio.tre }}>
+      <View style={stili.testa}>
+        <Bollino icona={inVasca ? 'goccia' : 'peso'} tono="blu" size={42} />
+        <View style={{ flex: 1, gap: 2 }}>
+          <Text style={[stili.titolo, { color: p.testo }]}>{titolo.charAt(0).toUpperCase() + titolo.slice(1)}</Text>
+          <Text style={[stili.nota, { color: p.testoSecondario }]}>
+            {[inVasca ? 'In vasca · Nuoto Libero' : 'In sala · Gym Floor', volteTesto(s.volte), s.fascia === 'con_assistenza' ? 'meglio nei turni con l’assistente di sala' : s.fascia === 'libero' ? 'anche in allenamento libero' : null].filter(Boolean).join(' · ')}
+          </Text>
         </View>
-        {nuoto.perche ? <Text style={[stili.perche, { color: p.testoSecondario }]}>{nuoto.perche}</Text> : null}
-        {nuoto.giorni.length ? (
-          <ConAltre
-            visibili={2}
-            nome={['giornata', 'giornate']}
-            voci={nuoto.giorni.map((g) => (
-              <View key={g.data} style={{ gap: spazio.due }}>
-                <Text style={[stili.sottoTitolo, { color: p.testo }]}>{titoloGiorno(giornoEsteso(g.data))}</Text>
-                {g.turni.map((t) => (
-                  <RigaLezione key={t.class_id} l={t} schede={schede} azioni={azioni} onScheda={onScheda} testoPrenota={ora(t.inizio)} />
-                ))}
-              </View>
-            ))}
-          />
-        ) : (
-          <Text style={[stili.nota, { color: p.testoSecondario }]}>Nei prossimi giorni non ci sono turni da prenotare nei giorni che hai scelto: li trovi nel Calendario quando si aprono.</Text>
-        )}
-      </Carta>
-    </Sezione>
+      </View>
+      {s.perche ? <Text style={[stili.perche, { color: p.testoSecondario }]}>{s.perche}</Text> : null}
+      {giorni ? <Text style={[stili.nota, { color: p.testo }]}>{`Potresti metterla ${s.giorni.length === 1 ? 'il' : 'fra'} ${giorni}.`}</Text> : null}
+      <Text style={[stili.piccola, { color: p.testoTerzo }]}>
+        {inVasca
+          ? 'Cosa fare in vasca te lo dice il tuo piano di nuoto: lo componi tu, con il tuo obiettivo, e lo leggi a bordo vasca.'
+          : 'Cosa fare in sala te lo dice il tuo piano di allenamento: lo componi tu, con il tuo obiettivo. Con l’assistente di sala c’è chi supervisiona le attività e risponde ai tuoi dubbi.'}
+      </Text>
+      <View style={{ gap: spazio.due }}>
+        <Pulsante testo={inVasca ? 'Componi il tuo piano di nuoto' : 'Componi il tuo piano in sala'} icona={inVasca ? 'goccia' : 'peso'} onPress={() => router.push(dove.piano)} />
+        {dove.calendario ? (
+          <Pulsante testo={inVasca ? 'Prenota un turno in vasca' : 'Prenota un turno in sala'} icona="calendario" variante="fantasma" onPress={() => router.push(dove.calendario!)} />
+        ) : null}
+      </View>
+    </Carta>
   )
 }
 
@@ -612,6 +649,8 @@ const stili = StyleSheet.create({
   etichette: { flexDirection: 'row', flexWrap: 'wrap', gap: spazio.due },
   alternativeTesta: { flexDirection: 'row', alignItems: 'center', gap: spazio.tre, paddingVertical: 4 },
   alternativa: { gap: spazio.due, borderLeftWidth: 3, paddingLeft: spazio.tre },
+  orario: { borderRadius: 999, paddingVertical: 5, paddingHorizontal: 11 },
+  orarioTesto: { fontFamily: F.bold, fontSize: 13 },
   riga: { borderRadius: 14, padding: spazio.tre, fontFamily: F.medio, fontSize: 14.5 },
   testo: { minHeight: 70, borderRadius: 14, padding: spazio.tre, fontFamily: F.medio, fontSize: 14.5, textAlignVertical: 'top' },
   avvertenza: { fontFamily: F.medio, fontSize: 12.5, lineHeight: 18, textAlign: 'center' },
