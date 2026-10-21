@@ -550,10 +550,9 @@ function CartaConsiglio({ c, schede, azioni, onScheda }: { c: ConsiglioRisolto; 
           <Text style={[stili.nota, { color: p.testoSecondario }]}>{[c.tipo.categoria !== c.tipo.nome ? c.tipo.categoria : null, `${c.tipo.minuti} min`, volteTesto(c.volte)].filter(Boolean).join(' · ')}</Text>
         </View>
       </View>
-      {c.tipo.compresa === false || c.tipo.spessoCompleta ? (
+      {c.tipo.compresa === false ? (
         <View style={stili.etichette}>
-          {c.tipo.compresa === false ? <Etichetta testo="Da acquistare" tono="attenzione" /> : null}
-          {c.tipo.spessoCompleta ? <Etichetta testo="Spesso al completo" tono="attenzione" /> : null}
+          <Etichetta testo="Da acquistare" tono="attenzione" />
         </View>
       ) : null}
       {c.perche ? <Text style={[stili.perche, { color: p.testoSecondario }]}>{c.perche}</Text> : null}
@@ -587,10 +586,9 @@ function CartaConsiglio({ c, schede, azioni, onScheda }: { c: ConsiglioRisolto; 
                     <Text style={[stili.nota, { color: p.testoSecondario }]}>{[a.tipo.categoria !== a.tipo.nome ? a.tipo.categoria : null, `${a.tipo.minuti} min`].filter(Boolean).join(' · ')}</Text>
                   </View>
                   <OrariDiSolito orari={a.orari} piccolo />
-                  {a.tipo.compresa === false || a.tipo.spessoCompleta ? (
+                  {a.tipo.compresa === false ? (
                     <View style={stili.etichette}>
-                      {a.tipo.compresa === false ? <Etichetta testo="Da acquistare" tono="attenzione" /> : null}
-                      {a.tipo.spessoCompleta ? <Etichetta testo="Spesso al completo" tono="attenzione" /> : null}
+                      <Etichetta testo="Da acquistare" tono="attenzione" />
                     </View>
                   ) : null}
                   <ElencoLezioni lezioni={a.prossime} vuoto="Nei prossimi giorni non ce ne sono." {...comune} />

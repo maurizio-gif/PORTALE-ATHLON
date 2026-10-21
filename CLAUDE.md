@@ -629,7 +629,7 @@ editor, niente conferma, niente «Prenota la settimana». Funzione, controlli, q
   fasce) e le lezioni da evitare, le limitazioni. Obbligatori solo un obiettivo, l'esperienza e la forma (o la risposta sul nuoto, per chi ha scelto «Nuotare»): sotto il pulsante si legge cosa manca.
 - **Giorni e fasce non sono un vincolo, e la schermata lo dice**: le lezioni nei suoi orari vengono prima, e quelle adatte che si tengono in altri momenti restano, con la riga «Non nei giorni o negli
   orari che preferisci: te la proponiamo lo stesso». L'unico limite duro sono le lezioni che evita.
-- **I consigli sono carte per tipo di lezione** (`CartaConsiglio`): il nome, categoria, durata e quante volte a settimana conviene, «Spesso al completo» e «Da acquistare» dove servono, il perché (legato
+- **I consigli sono carte per tipo di lezione** (`CartaConsiglio`): il nome, categoria, durata e quante volte a settimana conviene, «Da acquistare» dove serve (**«Spesso al completo» non c'è**: tolta il 21/10/2026 su richiesta di Maurizio, anche dalle alternative; la funzione lo manda ancora in `spessoCompleta`), il perché (legato
   ai suoi obiettivi e gusti, senza numeri: li scrive il codice), **«La trovi di solito»** (gli orari ricorrenti in pillole, `OrariDiSolito`, quelli nelle sue preferenze per primi e in arancio), **le
   prossime lezioni** (le prime due, le altre con «Mostra altre») e **le alternative** in una riga che si apre, ognuna con i suoi orari e le sue lezioni. Con una funzione di prima gli orari non ci
   sono e la carta è quella di prima.
