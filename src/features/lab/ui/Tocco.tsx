@@ -39,7 +39,7 @@ export function Tocco({
   vibra?: 'leggero' | 'scelta' | null
   ruolo?: AccessibilityRole
   etichetta?: string
-  stato?: { selected?: boolean; disabled?: boolean; busy?: boolean }
+  stato?: { selected?: boolean; disabled?: boolean; busy?: boolean; expanded?: boolean }
 }) {
   const s = useSharedValue(1)
   const animato = useAnimatedStyle(() => ({ transform: [{ scale: s.value }] }))
