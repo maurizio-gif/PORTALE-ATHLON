@@ -48,13 +48,20 @@ export async function verificaGuestPass(email: string): Promise<EsitoVerifica> {
   return { ok: true, idoneo: true, tipo: (dati.tipo ?? 'nuovo') as TipoVerifica, persona: dati.persona ?? null }
 }
 
+/**
+ * Com'e' andato l'abbinamento all'invito di un socio (21/10/2026), quando la richiesta arriva dalla pagina
+ * /invito/<codice>: lo dice `guest-pass` (`referral_accetta`). Non ferma mai la richiesta.
+ */
+export type EsitoInvito = 'accettato' | 'gia_accettato' | 'altro_invito' | 'gia_iscritto' | 'stesso_socio' | 'codice_non_valido'
+
 export async function richiediGuestPass(
   email: string,
   dati: DatiContatto,
-): Promise<{ ok: true; riprendi: string | null } | { ok: false; nonIdoneo: boolean; errore: string }> {
-  const r = await chiama({ azione: 'richiedi', email, dati })
+  invito?: string | null,
+): Promise<{ ok: true; riprendi: string | null; invito: EsitoInvito | null } | { ok: false; nonIdoneo: boolean; errore: string }> {
+  const r = await chiama({ azione: 'richiedi', email, dati, ...(invito ? { invito } : {}) })
   // Una richiesta gia' in corso non si duplica: il server rimanda la sua.
-  if (r.ok) return { ok: true, riprendi: r.dati.ripresa ? String(r.dati.riprendi ?? '') : null }
+  if (r.ok) return { ok: true, riprendi: r.dati.ripresa ? String(r.dati.riprendi ?? '') : null, invito: (r.dati.invito as EsitoInvito | undefined) ?? null }
   return { ok: false, nonIdoneo: r.dati.non_idoneo === true, errore: r.dati.errore ?? 'Non siamo riusciti a mandarti il link adesso.' }
 }
 
