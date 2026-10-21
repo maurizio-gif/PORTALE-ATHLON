@@ -1,10 +1,11 @@
-import { useLocalSearchParams } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 
 import {
   gruppiJunior,
   type EsitoGruppi,
+  type GruppoJunior,
   type NucleoJunior,
 } from "@/api/junior";
 import { spazio } from "@/theme";
@@ -21,6 +22,7 @@ import {
   SchedeInArrivo,
   Sezione,
 } from "../ui/kit";
+import { Foglio } from "../ui/Foglio";
 import { Schermata } from "../ui/Schermata";
 import { Tocco } from "../ui/Tocco";
 import { F, usePalette, velo } from "../ui/tema";
@@ -30,11 +32,14 @@ import {
   annoDalNucleo,
   annoDi,
   annoIniziale,
+  chiPuoIscriversi,
   anniDisponibili,
   conPosto,
   descriviPersona,
+  giorniDelAnno,
   gruppiDellAnno,
   personeDaMostrare,
+  SIGLE_GIORNI,
   statoPosti,
   titoloGruppo,
 } from "./comune";
@@ -62,7 +67,9 @@ export function Junior() {
   );
   const [anno, setAnno] = useState<number | null>(null);
   const [soloLiberi, setSoloLiberi] = useState(false);
+  const [giorni, setGiorni] = useState<number[]>([]);
   const [foglio, setFoglio] = useState(false);
+  const [daIscrivere, setDaIscrivere] = useState<GruppoJunior | null>(null);
   const [aggiunto, setAggiunto] = useState<string | null>(null);
   const vista = !!vistaCorrente();
 
@@ -93,10 +100,32 @@ export function Junior() {
       setEsito(nuovo);
     } else carica();
   }
-  const blocchi = useMemo(
-    () => (scelto == null ? [] : gruppiDellAnno(gruppi, scelto, soloLiberi)),
-    [gruppi, scelto, soloLiberi],
+  // Solo i giorni che quell'anno ha davvero; i giorni scelti che non ci sono piu' (cambio d'anno) non contano.
+  const giorniAnno = useMemo(
+    () => (scelto == null ? [] : giorniDelAnno(gruppi, scelto)),
+    [gruppi, scelto],
   );
+  const giorniAttivi = giorni.filter((i) => giorniAnno.includes(i));
+  function iscrivi(g: GruppoJunior, membro: number) {
+    setDaIscrivere(null);
+    router.navigate({ pathname: "/iscrizione", params: { group: g.id, membro: String(membro) } });
+  }
+  function tocca(g: GruppoJunior) {
+    const chi = chiPuoIscriversi(nucleo, g);
+    if (chi.length === 1) iscrivi(g, chi[0].member_id);
+    else if (chi.length > 1) setDaIscrivere(g);
+  }
+  const blocchi = useMemo(
+    () =>
+      scelto == null
+        ? []
+        : gruppiDellAnno(gruppi, scelto, soloLiberi, giorniAttivi),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [gruppi, scelto, soloLiberi, giorniAttivi.join(",")],
+  );
+  function scegliGiorno(i: number) {
+    setGiorni((v) => (v.includes(i) ? v.filter((x) => x !== i) : [...v, i]));
+  }
 
   const intestazione = {
     titolo: "Junior",
@@ -241,6 +270,79 @@ export function Junior() {
             );
           })}
         </View>
+        {giorniAnno.length ? (
+          <>
+            <Text
+              style={[stili.filtriTitolo, { color: p.testoSecondario }]}
+              accessibilityRole="header"
+            >
+              Giorno della settimana
+            </Text>
+            <View style={stili.tessere}>
+              <Tocco
+                vibra="scelta"
+                stato={{ selected: !giorniAttivi.length }}
+                onPress={() => setGiorni([])}
+                etichetta="Tutti i giorni"
+                style={[
+                  stili.giorno,
+                  stili.giornoTutti,
+                  {
+                    backgroundColor: !giorniAttivi.length
+                      ? velo(p, "accento", p.scuro ? 0.16 : 0.1)
+                      : p.carta,
+                    borderColor: !giorniAttivi.length ? p.accento : p.linea,
+                  },
+                ]}
+              >
+                <Text
+                  style={[
+                    stili.giornoTesto,
+                    {
+                      color: p.testo,
+                      fontFamily: !giorniAttivi.length ? F.extra : F.bold,
+                    },
+                  ]}
+                >
+                  Tutti
+                </Text>
+              </Tocco>
+              {giorniAnno.map((i) => {
+                const on = giorniAttivi.includes(i);
+                return (
+                  <Tocco
+                    key={i}
+                    vibra="scelta"
+                    stato={{ selected: on }}
+                    onPress={() => scegliGiorno(i)}
+                    etichetta={SIGLE_GIORNI[i]}
+                    style={[
+                      stili.giorno,
+                      {
+                        backgroundColor: on
+                          ? velo(p, "accento", p.scuro ? 0.16 : 0.1)
+                          : p.carta,
+                        borderColor: on ? p.accento : p.linea,
+                      },
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        stili.giornoTesto,
+                        {
+                          color: p.testo,
+                          fontFamily: on ? F.extra : F.bold,
+                        },
+                      ]}
+                    >
+                      {SIGLE_GIORNI[i]}
+                    </Text>
+                  </Tocco>
+                );
+              })}
+            </View>
+          </>
+        ) : null}
         <Tocco
           vibra="scelta"
           stato={{ selected: soloLiberi }}
@@ -279,6 +381,7 @@ export function Junior() {
             <Carta>
               {b.gruppi.map((g, i) => {
                 const s = statoPosti(g);
+                const chi = vista ? [] : chiPuoIscriversi(nucleo, g);
                 return (
                   <Riga
                     key={g.id}
@@ -292,11 +395,12 @@ export function Junior() {
                     }
                     titolo={titoloGruppo(g)}
                     sotto={
-                      g.posti != null
+                      (g.posti != null
                         ? `${annateGruppo(g)} · ${g.iscritti} su ${g.posti} iscritti`
-                        : annateGruppo(g)
+                        : annateGruppo(g)) + (chi.length ? " · Tocca per iscrivere" : "")
                     }
                     coda={<Etichetta testo={s.testo} tono={s.tono} />}
+                    onPress={chi.length ? () => tocca(g) : undefined}
                   />
                 );
               })}
@@ -306,10 +410,11 @@ export function Junior() {
       ) : (
         <Messaggio
           tono="attenzione"
-          titolo={`Nessun posto libero per i nati nel ${scelto}`}
+          titolo={`Nessun gruppo per i nati nel ${scelto}`}
         >
-          Tutti i gruppi di quest’anno sono al completo. Togli il filtro per
-          vederli, o chiedi in segreteria.
+          {soloLiberi && !giorniAttivi.length
+            ? "Tutti i gruppi di quest’anno sono al completo. Togli il filtro per vederli, o chiedi in segreteria."
+            : "Con questi filtri non c’è nessun gruppo. Prova a togliere un giorno o i posti liberi."}
         </Messaggio>
       )}
 
@@ -318,6 +423,28 @@ export function Junior() {
         minuti: al momento dell’iscrizione la segreteria ti conferma quello che
         c’è davvero.
       </Text>
+
+      <Foglio
+        aperto={!!daIscrivere}
+        titolo="Chi vuoi iscrivere?"
+        sottotitolo={daIscrivere ? titoloGruppo(daIscrivere) : undefined}
+        onChiudi={() => setDaIscrivere(null)}
+      >
+        <Carta>
+          {daIscrivere
+            ? chiPuoIscriversi(nucleo, daIscrivere).map((x, i) => (
+                <Riga
+                  key={x.member_id}
+                  prima={i === 0}
+                  testa={<Avatar nome={x.nome} cognome={x.cognome} size={40} />}
+                  titolo={[x.nome, x.cognome].filter(Boolean).join(" ") || "Senza nome"}
+                  sotto={descriviPersona(x)}
+                  onPress={() => iscrivi(daIscrivere, x.member_id)}
+                />
+              ))
+            : null}
+        </Carta>
+      </Foglio>
 
       {!vista ? (
         <FoglioComponente
@@ -357,6 +484,17 @@ const stili = StyleSheet.create({
     letterSpacing: -0.4,
     fontVariant: ["tabular-nums"],
   },
+  giorno: {
+    minWidth: 48,
+    minHeight: 44,
+    paddingHorizontal: 12,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: 999,
+    borderWidth: StyleSheet.hairlineWidth,
+  },
+  giornoTutti: { paddingHorizontal: 16 },
+  giornoTesto: { fontSize: 14, lineHeight: 18 },
   interruttore: {
     flexDirection: "row",
     alignItems: "center",

@@ -1084,6 +1084,7 @@ Richiesta di Maurizio. Cartella `src/features/lab/junior/` (`Junior.tsx`, `comun
 - **Si legge e basta**: tessere degli anni di nascita (dal piu' giovane; un anno senza posti e' piu' chiaro), «Solo i gruppi con posti liberi», poi i gruppi divisi per corso (Scuola Nuoto mono, bi, poi gli altri) in
   ordine di settimana e di ora, con «N posti liberi» / «Ultimo posto» / «Completo». Un gruppo di piu' anni («(2015-14-13)») compare sotto ognuno. **Da qui non ci si iscrive** (primo passo).
 - **L'anno si apre sul figlio**: la carta in Home, se nel nucleo c'e' un figlio fra i 3 e i 17 anni, apre `/junior?anno=<il suo anno>` e lo nomina; altrimenti il piu' giovane. In vista cliente si vede (nessun dato di persona).
+- **Filtro per giorno della settimana** (21/10/2026): sotto gli anni, pillole «Tutti · Lun … Dom» a selezione multipla (`giorniDelAnno`, `giorniDelGruppo` in `comune.ts`): si offrono solo i giorni che l'anno scelto ha davvero, e un gruppo passa se ha **almeno uno** dei giorni scelti (un bisettimanale «Lunedì, Giovedì» compare sotto Lun e sotto Gio). Si combina con l'anno e con «Solo i gruppi con posti liberi». I gruppi **senza giorni** nel nome (4 su 146 il 21/10) escono appena un giorno è scelto e tornano con «Tutti». `tsc` pulito e logica provata con `npx tsx`; **non guardato renderizzato né su un telefono**.
 - La nota in fondo dice che i posti sono quelli del gestionale e che la conferma e' della segreteria.
 - **In cima, «La tua famiglia»** (stesso giorno, seconda richiesta): chi del nucleo puo' fare le attivita' junior, con «Classe 2015» e i gruppi a cui e' iscritto (o «nessun gruppo per ora»); i minorenni non ancora
   idonei (un neonato sotto i 3 mesi) si vedono con il perche' e «Non ancora», gli adulti no. Chi e' idoneo lo dice il database (`nucleo` di `portale-lab-junior`: dai 3 mesi ai nati nell'anno piu' vecchio dei gruppi
@@ -1099,3 +1100,12 @@ di piu' anni, «Ultimo posto» e «Completo», il nucleo (l'anno del figlio aper
 sessione vera (e quindi la creazione su PerfectGym), un telefono, la carta in Home renderizzata.
 
 **Stato (21/10/2026): in produzione**, su richiesta di Maurizio: migrazione `20261021d` e `portale-lab-junior` (v1) pubblicate prima, poi questa app su `main` (vedi APP-ATHLON).
+
+## Iscriversi a un gruppo Junior dall'app (21/10/2026)
+
+Dalla sezione Junior, toccando un gruppo con posti si sceglie chi del nucleo iscrivere (`chiPuoIscriversi` in `junior/comune.ts`: idoneo, anno di nascita nel gruppo, minorenne o titolare, non già dentro, gruppo non completo) e si apre `/iscrizione?group=&membro=` (`junior/Iscrizione.tsx`). Due passi: **Costi** (parte sempre subito, nessuna scelta della data; riepilogo col pro-rata di PerfectGym) e **Dati e firma** (dati, contratto, consensi, firma). Funzione: `portale-abbonamento`, azioni `junior_anteprima` e `junior_firma` (APP-ATHLON). Dopo la firma si torna a `/abbonamento`, che riprende dal pagamento (stesso percorso degli adulti).
+
+- **Solo abbonamento mensile**: i piani «con Preiscrizione» e «Stagionale» sono fuori. Tutti i gruppi sono aperti (anche Agonistico e Pallanuoto: la prova di inserimento non viene chiesta da qui, scelta di Maurizio).
+- **Consensi: 20, 29, 32, 23, 1** (il 29 con il testo degli adulti, non il 28; niente 37 e 36). Le voci arrivano dal catalogo del sito (`junior` in `/contratto-abbonamento.json`).
+- **Vista cliente**: si vede, non si firma.
+- **Non provato**: `EnrollMemberToGroup` vero, nomi dei parametri di `GetEnrollmentOptions`/`CalculateProrata`, primo addebito su PerfectGym. Il browser è stato provato con funzioni simulate (390 e 1280 px). **Pubblicare in ordine**: sito, `portale-abbonamento`, app.
