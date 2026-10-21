@@ -94,7 +94,8 @@ export default function ArrivoDaLink() {
     case 'evento':
       return <PrenotaEvento token={token} nome={stato.nome} iniziale={stato.pagina} />
     case 'guest_pass':
-      return <AttivaGuestPass token={token} nome={stato.nome} iniziale={stato.pagina} />
+      // `key`: «Attiva un altro Guest Pass» porta a un altro link, e la pagina riparte da capo.
+      return <AttivaGuestPass key={token} token={token} nome={stato.nome} iniziale={stato.pagina} />
     case 'certificato':
       return <CaricaCertificatoDaLink token={token} iniziale={stato.pagina} />
     case 'appuntamento':

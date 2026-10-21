@@ -31,9 +31,47 @@ export function nomeMetodo(m: MetodoSalvato): string {
 
 export type ConsensoGuestPass = { id: number; nome: string; testo: string; allegato: string | null }
 
+/**
+ * Una persona per cui si puo' attivare il Guest Pass da questo link (21/10/2026): chi ha l'email (`me`) o un figlio
+ * del suo nucleo. `idoneo: false` col perche' (`motivo`): ha gia' un abbonamento, ha meno di 13 anni… Per `me` di chi il
+ * club non conosce ancora, `member_id` e' vuoto e l'idoneita' si vede dal codice fiscale.
+ */
+export type CandidatoGuestPass = {
+  chi: 'me' | 'figlio'
+  member_id: number | null
+  nome: string | null
+  cognome: string | null
+  /** Solo per i figli. */
+  nascita: string | null
+  idoneo: boolean
+  motivo: string | null
+}
+
+/** Il figlio scelto: una scheda del nucleo (`nuovo: false`) o quello scritto dal genitore, che nasce alla conferma. */
+export type FiglioGuestPass = { nome: string | null; cognome: string | null; nascita: string | null; codice_fiscale: string | null; nuovo: boolean }
+
+export type SceltaGuestPass = {
+  per: 'me' | 'figlio' | null
+  candidati: CandidatoGuestPass[]
+  beneficiario_id: number | null
+  figlio: FiglioGuestPass | null
+  tutore: boolean
+  eta: { min: number; max: number }
+}
+
 export type PaginaGuestPass = {
   stato: 'aperta' | 'attivato' | 'annullata' | 'errore'
+  /** I dati di chi ha l'email: per un figlio, il genitore che paga. */
   persona: PersonaGuestPass
+  /** Per chi e'. Manca con una funzione di prima: allora e' per chi ha l'email, come sempre. */
+  scelta?: SceltaGuestPass
+  /**
+   * Un'anagrafica simile nel club (21/10/2026): `in_attesa`, la segreteria la sta guardando (si risponde per email entro un
+   * giorno lavorativo); `bloccata`, ha confermato che e' la stessa persona. Il testo lo scrive la funzione.
+   */
+  verifica?: { stato: 'in_attesa' | 'bloccata'; testo: string } | null
+  /** A Guest Pass attivato, le persone per cui se ne puo' attivare un altro. */
+  anche_per?: { chi: 'me' | 'figlio'; member_id: number | null; nome: string | null }[]
   consensi: ConsensoGuestPass[]
   inizio: { dal: string; al: string; scelto: string | null }
   prezzo: number
@@ -73,13 +111,18 @@ export const GRUPPI: { titolo: string; campi: string[] }[] = [
 export const REGOLAMENTO_URL = 'https://www.athlonroma.it/regolamento/'
 export const PRIVACY_URL = 'https://www.athlonroma.it/privacy/'
 
-/** Cosa comprende il Guest Pass: le stesse parole della pagina «Attiva» del sito. */
-export const COSA_COMPRENDE = [
-  '7 giorni dal giorno che scegli, con accesso a tutto il club agli stessi orari di un abbonamento Premium: sala pesi, corsi fitness, piscine, aqua fitness e nuoto libero.',
-  'Senza impegno: nessun rinnovo automatico e nessun addebito oltre i 19 € iniziali. Alla fine decidi tu se iscriverti.',
-  'Paghi i 19 € con addebito su conto o con carta.',
-  'Il certificato medico non agonistico non serve subito: hai 15 giorni dall’inizio per portarlo.',
-]
+/**
+ * Cosa comprende il Guest Pass: le stesse parole della pagina «Attiva» del sito, col prezzo della richiesta (19 €, o 5
+ * con l'invito di un socio: prima qui c'era scritto 19 anche per chi pagava 5).
+ */
+export function cosaComprende(prezzo: number): string[] {
+  return [
+    '7 giorni dal giorno che scegli, con accesso a tutto il club agli stessi orari di un abbonamento Premium: sala pesi, corsi fitness, piscine, aqua fitness e nuoto libero.',
+    `Senza impegno: nessun rinnovo automatico e nessun addebito oltre i ${prezzo} € iniziali. Alla fine decidi tu se iscriverti.`,
+    `Paghi i ${prezzo} € con addebito su conto o con carta.`,
+    'Il certificato medico non agonistico non serve subito: hai 15 giorni dall’inizio per portarlo.',
+  ]
+}
 
 /** I giorni fra `dal` e `al`, compresi: «2026-10-13», … */
 export function giorniFra(dal: string, al: string): string[] {

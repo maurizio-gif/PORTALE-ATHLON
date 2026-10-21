@@ -121,6 +121,8 @@ export function GuestPassAttivo({
   prezzo,
   addebito,
   avviso,
+  figlio = null,
+  dopo = null,
 }: {
   email: string | null
   /** L'account e' nato in questa procedura: la password l'ha appena scelta. */
@@ -133,12 +135,23 @@ export function GuestPassAttivo({
   /** Pagato con addebito su conto: i soldi arrivano dopo, e lo si dice. */
   addebito: boolean
   avviso: { testo: string; tono: Tono } | null
+  /**
+   * Il Guest Pass e' di un figlio (21/10/2026): `nome` e `cognome` sono del genitore, che ha pagato ed entra nell'app;
+   * il figlio non ha un accesso suo, e le sue lezioni le prenota il genitore.
+   */
+  figlio?: { nome: string | null; primo: string | null } | null
+  /** In fondo, prima del saluto: «Attiva un altro Guest Pass». */
+  dopo?: ReactNode
 }) {
   const c = useColori()
   const chi = `${nome ?? ''} ${cognome ?? ''}`.trim()
+  const diChi = figlio ? `il Guest Pass di ${figlio.primo ?? figlio.nome ?? 'tuo figlio'}` : 'il tuo Guest Pass'
   let i = 0
   return (
-    <Pagina titolo="Il tuo Guest Pass è attivo" sottotitolo={chi ? `${chi}, siamo lieti di confermarti l’attivazione del tuo Guest Pass.` : 'Siamo lieti di confermarti l’attivazione del tuo Guest Pass.'}>
+    <Pagina
+      titolo={figlio ? `Il Guest Pass di ${figlio.primo ?? 'tuo figlio'} è attivo` : 'Il tuo Guest Pass è attivo'}
+      sottotitolo={chi ? `${chi}, siamo lieti di confermarti l’attivazione del${diChi.slice(2)}.` : `Siamo lieti di confermarti l’attivazione del${diChi.slice(2)}.`}
+    >
       <View style={stili.testa}>
         <Spunta />
         <View style={{ flex: 1 }}>
@@ -166,6 +179,17 @@ export function GuestPassAttivo({
         <Accesso email={email} nuovoAccount={nuovoAccount} />
       </Entra>
 
+      {figlio ? (
+        <Entra indice={i++}>
+          <Scheda titolo={`Le lezioni di ${figlio.primo ?? 'tuo figlio'}`}>
+            <Testo>
+              {figlio.primo ?? 'Tuo figlio'} non ha un accesso suo: le sue lezioni le prenoti tu, dall’app Athlon Club, scegliendo{' '}
+              <Forte>{figlio.primo ?? 'tuo figlio'}</Forte> fra le persone della tua famiglia.
+            </Testo>
+          </Scheda>
+        </Entra>
+      ) : null}
+
       <Entra indice={i++}>
         <Scheda titolo="Cosa comprende">
           <Testo>
@@ -183,8 +207,17 @@ export function GuestPassAttivo({
       <Entra indice={i++}>
         <Scheda titolo="Il primo accesso">
           <Testo>
-            Per entrare al Club il <Forte>badge</Forte> va abbinato alla tua anagrafica: lo ritiri al desk al tuo primo
-            accesso.
+            {figlio ? (
+              <>
+                Per entrare al Club il <Forte>badge</Forte> va abbinato all’anagrafica di {figlio.primo ?? 'tuo figlio'}: lo ritira
+                al desk al suo primo accesso.
+              </>
+            ) : (
+              <>
+                Per entrare al Club il <Forte>badge</Forte> va abbinato alla tua anagrafica: lo ritiri al desk al tuo primo
+                accesso.
+              </>
+            )}
           </Testo>
         </Scheda>
       </Entra>
@@ -205,6 +238,8 @@ export function GuestPassAttivo({
           <Bottone testo="Prenota una chiamata" onPress={() => Linking.openURL(LINK_CONFERMA.chiamata)} />
         </Scheda>
       </Entra>
+
+      {dopo ? <Entra indice={i++}>{dopo}</Entra> : null}
 
       <Entra indice={i++}>
         <Text style={[stili.saluto, { color: c.testo }]}>Ti auguriamo un buon allenamento!</Text>

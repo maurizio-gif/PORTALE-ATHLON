@@ -1,4 +1,4 @@
-import { useLocalSearchParams } from 'expo-router'
+import { router, useLocalSearchParams } from 'expo-router'
 import { useEffect, useRef, useState } from 'react'
 import { ActivityIndicator, Linking, Platform, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native'
 
@@ -13,11 +13,12 @@ import { ChiGestisceCarta, ChiGestisceConto } from '@/components/ChiGestisce'
 import { Casella } from '@/components/Casella'
 import { Pagina } from '@/components/Pagina'
 import { GuestPassAttivo } from '@/features/guest-pass/GuestPassAttivo'
+import { PerChi } from '@/features/guest-pass/PerChi'
 import { Scelta } from '@/components/Scelta'
 import { Forte, Testo } from '@/components/Testo'
 import {
   CAMPI,
-  COSA_COMPRENDE,
+  cosaComprende,
   fineSettimana,
   giornoBreve,
   giorniFra,
@@ -52,6 +53,12 @@ import { spazio, tinta, useColori } from '@/theme'
 //      vessatorie, niente firma.
 // Poi «Conferma e attiva»: solo allora il Guest Pass si carica su PerfectGym;
 // con la carta si paga la quota sulla pagina di PerfectGym e si torna qui.
+//
+// **Prima di tutto, per chi e'** (21/10/2026): il blocco «Per chi è il Guest Pass?» (`PerChi`), per se' o per un figlio
+// dai 13 ai 17 anni. Finche' non si sceglie, il resto non si vede. Per un figlio i dati del primo blocco sono quelli del
+// genitore (paga ed e' il tutore), il contratto e' intestato al figlio e il riepilogo lo dice. A Guest Pass fatto, se
+// c'e' un altro idoneo, «Attiva un altro Guest Pass» apre un link nuovo (`anche_per`). Con una funzione di prima
+// (`scelta` assente) la pagina e' quella di sempre.
 
 function apri(url: string) {
   if (Platform.OS === 'web') window.location.assign(url)
@@ -143,9 +150,12 @@ export function AttivaGuestPass({ token, nome, iniziale }: { token: string; nome
     const { ok, dati: d } = await chiamaLink(token, 'pagina')
     if (ok) {
       const { ok: _ok, ...resto } = d
-      setP(resto as unknown as PaginaGuestPass)
-      setDati(daPerfectGym(resto as unknown as PaginaGuestPass))
-      return resto as unknown as PaginaGuestPass
+      const nuova = resto as unknown as PaginaGuestPass
+      setP(nuova)
+      setDati(daPerfectGym(nuova))
+      // Per un figlio l'ultimo giorno d'inizio puo' essere piu' vicino (il giorno prima dei 18 anni).
+      setInizio((x) => (x && (x > nuova.inizio.al || x < nuova.inizio.dal) ? null : x))
+      return nuova
     }
     return null
   }
@@ -198,6 +208,15 @@ export function AttivaGuestPass({ token, nome, iniziale }: { token: string; nome
   }, [tornatoCarta, tornatoPagato, token])
 
   const persona = p.persona
+  const scelta = p.scelta ?? null
+  const perFiglio = scelta?.per === 'figlio'
+  const figlio = perFiglio ? scelta?.figlio ?? null : null
+  const nomeFiglio = figlio ? `${figlio.nome ?? ''} ${figlio.cognome ?? ''}`.trim() : ''
+  const primoFiglio = figlio?.nome?.split(/\s+/)[0] ?? null
+  // Con una funzione di prima non c'e' la scelta: e' per chi ha l'email, come sempre.
+  const sceltoPerChi = !scelta || !!scelta.per
+  // Il blocco «Per chi» c'e' solo con la funzione nuova: gli altri si numerano dopo di lui.
+  const n0 = scelta ? 1 : 0
   const giorni = giorniFra(p.inizio.dal, p.inizio.al)
   const tuttiIConsensi = accetto
   const originali = daPerfectGym(p)
@@ -277,7 +296,9 @@ export function AttivaGuestPass({ token, nome, iniziale }: { token: string; nome
     setOccupato(null)
     if (!ok) {
       setConfermati(false)
-      return setErroreDati(d.errore ?? 'Non siamo riusciti a controllare i dati adesso. Riprova fra qualche minuto.')
+      setErroreDati(d.errore ?? 'Non siamo riusciti a controllare i dati adesso. Riprova fra qualche minuto.')
+      // Un'anagrafica simile apre la verifica della segreteria: la pagina lo dice in cima.
+      return void (await ricarica())
     }
     await ricarica()
   }
@@ -306,8 +327,8 @@ export function AttivaGuestPass({ token, nome, iniziale }: { token: string; nome
     setAvviso({
       testo:
         d.pagamento === 'addebito'
-          ? `Fatto: il tuo Guest Pass è attivo. I ${p.prezzo} € saranno addebitati sul conto.`
-          : 'Fatto: il tuo Guest Pass è attivo.',
+          ? `Fatto: ${perFiglio ? `il Guest Pass di ${primoFiglio ?? 'tuo figlio'}` : 'il tuo Guest Pass'} è attivo. I ${p.prezzo} € saranno addebitati sul conto.`
+          : `Fatto: ${perFiglio ? `il Guest Pass di ${primoFiglio ?? 'tuo figlio'}` : 'il tuo Guest Pass'} è attivo.`,
       tono: 'ok',
     })
     await ricarica()
@@ -326,6 +347,28 @@ export function AttivaGuestPass({ token, nome, iniziale }: { token: string; nome
     setErrore(d.errore ?? 'Non riusciamo ad aprire il pagamento adesso. Riprova fra qualche minuto.')
   }
 
+  // «Attiva un altro Guest Pass»: un link nuovo dello stesso genitore, dove si sceglie per chi (anche per email).
+  async function unAltro() {
+    setErrore(null)
+    setOccupato('altro')
+    const { ok, dati: d } = await chiamaLink(token, 'anche_per')
+    setOccupato(null)
+    if (ok && typeof d.token === 'string') return router.replace(`/r/${d.token}`)
+    setErrore(d.errore ?? 'Non riusciamo ad aprire un altro Guest Pass adesso. Riprova fra qualche minuto.')
+  }
+  const altri = p.anche_per ?? []
+  const nomiAltri = altri.map((x) => (x.chi === 'me' ? 'te' : (x.nome ?? '').split(/\s+/)[0] || 'un figlio'))
+  const unAltroGuestPass =
+    p.stato === 'attivato' && altri.length ? (
+      <View style={{ gap: spazio.due }}>
+        <Testo>
+          {`Puoi attivare il Guest Pass anche per ${nomiAltri.length > 1 ? `${nomiAltri.slice(0, -1).join(', ')} e ${nomiAltri[nomiAltri.length - 1]}` : nomiAltri[0]}, o per un altro figlio dai 13 ai 17 anni: ognuno ha il suo.`}
+        </Testo>
+        <Bottone testo="Attiva un altro Guest Pass" variante="contorno" onPress={unAltro} inCorso={occupato === 'altro'} disabilitato={!!occupato} />
+        {errore ? <Avviso>{errore}</Avviso> : null}
+      </View>
+    ) : null
+
   if (p.stato === 'attivato') {
     const daPagare = p.pagamento_stato === 'da_pagare' || p.pagamento_stato === 'sconosciuto'
     const periodo = p.inizio.scelto ? `dal ${giornoLungo(p.inizio.scelto)} al ${giornoLungo(fineSettimana(p.inizio.scelto))}` : null
@@ -342,11 +385,16 @@ export function AttivaGuestPass({ token, nome, iniziale }: { token: string; nome
           // L'avviso appena confermato dice gia' dell'addebito: non due volte.
           addebito={p.pagamento_stato === 'addebito' && !avviso}
           avviso={avviso}
+          figlio={perFiglio ? { nome: nomeFiglio || null, primo: primoFiglio } : null}
+          dopo={unAltroGuestPass}
         />
       )
     }
     return (
-      <Pagina titolo="Manca il pagamento" sottotitolo={`Il tuo Guest Pass ${periodo ? `(${periodo}) ` : ''}è registrato: per usarlo manca il pagamento di ${p.resta ?? p.prezzo} €.`}>
+      <Pagina
+        titolo="Manca il pagamento"
+        sottotitolo={`${perFiglio ? `Il Guest Pass di ${primoFiglio ?? 'tuo figlio'}` : 'Il tuo Guest Pass'} ${periodo ? `(${periodo}) ` : ''}è registrato: per usarlo manca il pagamento di ${p.resta ?? p.prezzo} €.`}
+      >
         {avviso ? <Avviso tono={avviso.tono}>{avviso.testo}</Avviso> : null}
         {occupato === 'pagamento' ? (
           <View style={{ flexDirection: 'row', gap: spazio.due, alignItems: 'center' }}>
@@ -389,7 +437,7 @@ export function AttivaGuestPass({ token, nome, iniziale }: { token: string; nome
 
   const passwordObbligatoria = !!p.password?.obbligatoria
   const errorePassword = problemaPassword(password.nuova, password.conferma, passwordObbligatoria)
-  const pronto = datiCompleti && confermati && !errorePassword && tuttiIConsensi && !!inizio && metodoPronto
+  const pronto = !p.verifica && sceltoPerChi && datiCompleti && confermati && !errorePassword && tuttiIConsensi && !!inizio && metodoPronto
   const metodoLeggibile = salvatoScelto
     ? salvatoScelto.tipo === 'carta'
       ? `${nomeMetodo(salvatoScelto)}, addebito alla conferma`
@@ -400,13 +448,37 @@ export function AttivaGuestPass({ token, nome, iniziale }: { token: string; nome
         ? 'addebito su conto (SEPA)'
         : null
   return (
-    <Pagina titolo={nome ? `Ciao ${nome}, attiva il tuo Guest Pass` : 'Attiva il tuo Guest Pass'} sottotitolo={`Una settimana al club a ${p.prezzo} €.`}>
+    <Pagina
+      titolo={
+        perFiglio && primoFiglio
+          ? `Attiva il Guest Pass di ${primoFiglio}`
+          : !sceltoPerChi
+            ? nome
+              ? `Ciao ${nome}, per chi è il Guest Pass?`
+              : 'Per chi è il Guest Pass?'
+            : nome
+              ? `Ciao ${nome}, attiva il tuo Guest Pass`
+              : 'Attiva il tuo Guest Pass'
+      }
+      sottotitolo={`Una settimana al club a ${p.prezzo} €.`}
+    >
       {avviso ? <Avviso tono={avviso.tono}>{avviso.testo}</Avviso> : null}
+      {/* Un'anagrafica simile: finche' la segreteria non risponde (per email) non si conferma. */}
+      {p.verifica ? <Avviso tono={p.verifica.stato === 'bloccata' ? 'errore' : 'attenzione'}>{p.verifica.testo}</Avviso> : null}
 
-      <Blocco numero={1} titolo="I tuoi dati" fatto={datiCompleti && confermati}>
+      {scelta ? (
+        <Blocco numero={1} titolo="Per chi è il Guest Pass" fatto={!!scelta.per}>
+          <PerChi token={token} scelta={scelta} onScelto={ricarica} />
+        </Blocco>
+      ) : null}
+
+      {sceltoPerChi ? (
+      <>
+      <Blocco numero={n0 + 1} titolo={perFiglio ? 'I tuoi dati, come genitore' : 'I tuoi dati'} fatto={datiCompleti && confermati}>
         <Testo variante="piccolo">
-          Controlla i tuoi dati e correggili se serve. Quelli che mancano — di solito codice fiscale, data di nascita e indirizzo — servono
-          per registrarti al club.
+          {perFiglio
+            ? `Sei tu a pagare e ad attivare il Guest Pass di ${primoFiglio ?? 'tuo figlio'} come genitore: servono i tuoi dati. Quelli che mancano — di solito codice fiscale, data di nascita e indirizzo — servono per registrarti al club.`
+            : 'Controlla i tuoi dati e correggili se serve. Quelli che mancano — di solito codice fiscale, data di nascita e indirizzo — servono per registrarti al club.'}
         </Testo>
         {GRUPPI.map((g) => (
           <Gruppo key={g.titolo} titolo={g.titolo} due={dueColonne}>
@@ -513,7 +585,7 @@ export function AttivaGuestPass({ token, nome, iniziale }: { token: string; nome
         ) : null}
       </Blocco>
 
-      <Blocco numero={2} titolo="Quando vuoi cominciare" fatto={!!inizio}>
+      <Blocco numero={n0 + 2} titolo="Quando vuoi cominciare" fatto={!!inizio}>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: spazio.due }}>
           {giorni.map((g) => {
             const b = giornoBreve(g)
@@ -529,9 +601,12 @@ export function AttivaGuestPass({ token, nome, iniziale }: { token: string; nome
           })}
         </ScrollView>
         {inizio ? <Testo variante="piccolo">{`Dal ${giornoLungo(inizio)} al ${giornoLungo(fineSettimana(inizio))}.`}</Testo> : null}
+        {perFiglio && giorni.length && giorni.length < 15 ? (
+          <Testo variante="piccolo">{`Il Guest Pass di ${primoFiglio ?? 'tuo figlio'} deve cominciare prima che compia 18 anni.`}</Testo>
+        ) : null}
       </Blocco>
 
-      <Blocco numero={3} titolo="Come vuoi pagare" fatto={metodoPronto}>
+      <Blocco numero={n0 + 3} titolo="Come vuoi pagare" fatto={metodoPronto}>
         {salvati.length ? <Testo variante="piccolo">Hai già un metodo salvato al club: puoi usare quello.</Testo> : null}
         {(
           [
@@ -615,11 +690,12 @@ export function AttivaGuestPass({ token, nome, iniziale }: { token: string; nome
         ) : null}
       </Blocco>
 
-      <Blocco numero={4} titolo="Riepilogo e condizioni" fatto={tuttiIConsensi && !!inizio && metodoPronto}>
+      <Blocco numero={n0 + 4} titolo="Riepilogo e condizioni" fatto={tuttiIConsensi && !!inizio && metodoPronto}>
         <View style={[stili.contratto, { borderColor: c.bordo, backgroundColor: c.sfondo }]}>
           <Text style={[stili.titoloContratto, { color: c.testo }]}>Guest Pass Athlon Club · 1 settimana</Text>
           {[
-            ['Intestatario', [dati.nome, dati.cognome].filter(Boolean).join(' ')],
+            ['Intestatario', perFiglio ? nomeFiglio || 'tuo figlio' : [dati.nome, dati.cognome].filter(Boolean).join(' ')],
+            ...(perFiglio ? [['Genitore che paga', [dati.nome, dati.cognome].filter(Boolean).join(' ')]] : []),
             ['Validità', inizio ? `dal ${giornoLungo(inizio)} al ${giornoLungo(fineSettimana(inizio))} compresi` : 'scegli il giorno d’inizio'],
             ['Prezzo', `${p.prezzo} € una tantum, IVA inclusa`],
             ['Rinnovo', 'nessuno: finisce da solo, senza impegno e senza altri addebiti'],
@@ -632,7 +708,7 @@ export function AttivaGuestPass({ token, nome, iniziale }: { token: string; nome
           ))}
           <Text style={[stili.sezione, { color: c.testo }]}>Le condizioni in breve</Text>
           <View style={{ gap: spazio.uno + 2 }}>
-            {COSA_COMPRENDE.map((t) => (
+            {cosaComprende(p.prezzo).map((t) => (
               <View key={t} style={{ flexDirection: 'row', gap: spazio.due }}>
                 <Text style={{ color: c.accento, fontWeight: '800' }}>✓</Text>
                 <Testo variante="piccolo" style={{ flex: 1, color: c.testo }}>
@@ -696,6 +772,8 @@ export function AttivaGuestPass({ token, nome, iniziale }: { token: string; nome
           {metodo === 'carta' ? ` e paghi subito i ${p.prezzo} € con la carta.` : ` con l’addebito dei ${p.prezzo} € sul conto.`}
         </Testo>
       )}
+      </>
+      ) : null}
     </Pagina>
   )
 }
