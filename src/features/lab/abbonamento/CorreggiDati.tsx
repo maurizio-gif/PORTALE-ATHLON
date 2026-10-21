@@ -25,6 +25,7 @@ export function CorreggiDati({
   titolo,
   apertoDa = false,
   mancanti,
+  senzaRecapiti = false,
   onSalvato,
 }: {
   persona: PersonaDati
@@ -32,6 +33,8 @@ export function CorreggiDati({
   /** Si apre da solo: mancano dei dati e senza non si va avanti. */
   apertoDa?: boolean
   mancanti?: string[]
+  /** Indirizzo e cellulare non si chiedono: sono di un'altra persona (il genitore, per un minorenne). */
+  senzaRecapiti?: boolean
   onSalvato: () => void
 }) {
   const p = usePalette()
@@ -76,10 +79,10 @@ export function CorreggiDati({
       }
       cambi.codice_fiscale = cfNuovo
     }
-    if (telefono.trim() !== (persona.telefono ?? '')) cambi.telefono = telefono.trim()
+    if (!senzaRecapiti && telefono.trim() !== (persona.telefono ?? '')) cambi.telefono = telefono.trim()
     // Il Paese dell'indirizzo: quello della residenza all'estero, altrimenti l'Italia.
     const paeseIndirizzo = estero ? paese : ITALIA
-    if (via.trim() !== (persona.indirizzo?.via ?? '') || cap !== (persona.indirizzo?.cap ?? '') || citta.trim() !== (persona.indirizzo?.citta ?? '') || paeseIndirizzo !== paeseIndirizzoPrima) {
+    if (!senzaRecapiti && (via.trim() !== (persona.indirizzo?.via ?? '') || cap !== (persona.indirizzo?.cap ?? '') || citta.trim() !== (persona.indirizzo?.citta ?? '') || paeseIndirizzo !== paeseIndirizzoPrima)) {
       if (!via.trim() || !citta.trim()) {
         setErrore('Scrivi via e numero civico, CAP e città.')
         return
@@ -124,6 +127,7 @@ export function CorreggiDati({
         )}
         <CasellaResidenteEstero spuntata={estero} onCambia={cambiaEstero} lab />
         {estero ? <CampoPaese variante="lab" value={paese} onChange={(v) => { setPaese(v); setErrore(null) }} errore={!!errore && !paese} /> : null}
+        {senzaRecapiti ? null : (<>
         <CampoTesto etichetta="Cellulare" icona="telefono" value={telefono} onChangeText={setTelefono} autoComplete="tel" textContentType="telephoneNumber" keyboardType="phone-pad" />
         <CampoTesto etichetta="Via e numero civico" icona="luogo" value={via} onChangeText={setVia} autoComplete="street-address" textContentType="fullStreetAddress" placeholder="Via Ugo Ojetti 134" />
         <View style={{ flexDirection: 'row', gap: spazio.due }}>
@@ -138,6 +142,7 @@ export function CorreggiDati({
             <CampoTesto etichetta="Città" value={citta} onChangeText={setCitta} onSubmitEditing={salva} textContentType="addressCity" placeholder="Roma" />
           </View>
         </View>
+        </>)}
         {errore ? <Messaggio>{errore}</Messaggio> : null}
         <Pulsante testo="Salva i dati" icona="spunta" onPress={salva} inCorso={attesa} />
         {!apertoDa ? <Pulsante testo="Annulla" variante="fantasma" piccolo pieno={false} onPress={() => setAperto(false)} /> : null}
