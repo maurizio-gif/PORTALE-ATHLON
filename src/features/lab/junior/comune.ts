@@ -190,3 +190,22 @@ export function descriviPersona(p: PersonaJunior): string {
   if (!p.gruppi.length) return `${nato} · nessun gruppo per ora`;
   return `${nato} · ${p.gruppi.map((g) => nomeIscrizione(g.nome)).join(", ")}`;
 }
+
+/**
+ * Chi del nucleo puo' iscriversi a un gruppo da qui (21/10/2026): idoneo, nato in uno degli anni del gruppo, non gia' dentro,
+ * e che firma qualcuno: un minorenne (firma il genitore) o il titolare adulto. Un gruppo completo non si offre. Il server
+ * ricontrolla tutto con PerfectGym (`GetEnrollmentOptions`): questo serve a mostrare il comando solo dove puo' funzionare.
+ */
+export function chiPuoIscriversi(n: NucleoJunior | null, g: GruppoJunior): PersonaJunior[] {
+  if (!n || g.liberi === 0) return [];
+  return n.persone.filter((p) => {
+    const a = annoDi(p);
+    return (
+      p.idoneo &&
+      a != null &&
+      g.anni.includes(a) &&
+      (p.minorenne || p.titolare) &&
+      !p.gruppi.some((x) => String(x.group_id) === String(g.id))
+    );
+  });
+}

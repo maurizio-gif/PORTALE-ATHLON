@@ -1,10 +1,11 @@
-import { useLocalSearchParams } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 
 import {
   gruppiJunior,
   type EsitoGruppi,
+  type GruppoJunior,
   type NucleoJunior,
 } from "@/api/junior";
 import { spazio } from "@/theme";
@@ -21,6 +22,7 @@ import {
   SchedeInArrivo,
   Sezione,
 } from "../ui/kit";
+import { Foglio } from "../ui/Foglio";
 import { Schermata } from "../ui/Schermata";
 import { Tocco } from "../ui/Tocco";
 import { F, usePalette, velo } from "../ui/tema";
@@ -30,6 +32,7 @@ import {
   annoDalNucleo,
   annoDi,
   annoIniziale,
+  chiPuoIscriversi,
   anniDisponibili,
   conPosto,
   descriviPersona,
@@ -66,6 +69,7 @@ export function Junior() {
   const [soloLiberi, setSoloLiberi] = useState(false);
   const [giorni, setGiorni] = useState<number[]>([]);
   const [foglio, setFoglio] = useState(false);
+  const [daIscrivere, setDaIscrivere] = useState<GruppoJunior | null>(null);
   const [aggiunto, setAggiunto] = useState<string | null>(null);
   const vista = !!vistaCorrente();
 
@@ -102,6 +106,15 @@ export function Junior() {
     [gruppi, scelto],
   );
   const giorniAttivi = giorni.filter((i) => giorniAnno.includes(i));
+  function iscrivi(g: GruppoJunior, membro: number) {
+    setDaIscrivere(null);
+    router.navigate({ pathname: "/iscrizione", params: { group: g.id, membro: String(membro) } });
+  }
+  function tocca(g: GruppoJunior) {
+    const chi = chiPuoIscriversi(nucleo, g);
+    if (chi.length === 1) iscrivi(g, chi[0].member_id);
+    else if (chi.length > 1) setDaIscrivere(g);
+  }
   const blocchi = useMemo(
     () =>
       scelto == null
@@ -368,6 +381,7 @@ export function Junior() {
             <Carta>
               {b.gruppi.map((g, i) => {
                 const s = statoPosti(g);
+                const chi = vista ? [] : chiPuoIscriversi(nucleo, g);
                 return (
                   <Riga
                     key={g.id}
@@ -381,11 +395,12 @@ export function Junior() {
                     }
                     titolo={titoloGruppo(g)}
                     sotto={
-                      g.posti != null
+                      (g.posti != null
                         ? `${annateGruppo(g)} · ${g.iscritti} su ${g.posti} iscritti`
-                        : annateGruppo(g)
+                        : annateGruppo(g)) + (chi.length ? " · Tocca per iscrivere" : "")
                     }
                     coda={<Etichetta testo={s.testo} tono={s.tono} />}
+                    onPress={chi.length ? () => tocca(g) : undefined}
                   />
                 );
               })}
@@ -408,6 +423,28 @@ export function Junior() {
         minuti: al momento dell’iscrizione la segreteria ti conferma quello che
         c’è davvero.
       </Text>
+
+      <Foglio
+        aperto={!!daIscrivere}
+        titolo="Chi vuoi iscrivere?"
+        sottotitolo={daIscrivere ? titoloGruppo(daIscrivere) : undefined}
+        onChiudi={() => setDaIscrivere(null)}
+      >
+        <Carta>
+          {daIscrivere
+            ? chiPuoIscriversi(nucleo, daIscrivere).map((x, i) => (
+                <Riga
+                  key={x.member_id}
+                  prima={i === 0}
+                  testa={<Avatar nome={x.nome} cognome={x.cognome} size={40} />}
+                  titolo={[x.nome, x.cognome].filter(Boolean).join(" ") || "Senza nome"}
+                  sotto={descriviPersona(x)}
+                  onPress={() => iscrivi(daIscrivere, x.member_id)}
+                />
+              ))
+            : null}
+        </Carta>
+      </Foglio>
 
       {!vista ? (
         <FoglioComponente
