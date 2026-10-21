@@ -1099,3 +1099,29 @@ di piu' anni, «Ultimo posto» e «Completo», il nucleo (l'anno del figlio aper
 sessione vera (e quindi la creazione su PerfectGym), un telefono, la carta in Home renderizzata.
 
 **Stato (21/10/2026): in produzione**, su richiesta di Maurizio: migrazione `20261021d` e `portale-lab-junior` (v1) pubblicate prima, poi questa app su `main` (vedi APP-ATHLON).
+
+## L'app in due lingue: italiano e inglese, con le parole di PerfectGym (21/10/2026)
+
+Richiesta di Maurizio. Il socio sceglie la lingua nel **Profilo** (Account → Lingua) o in fondo alla **pagina d'accesso**; la prima volta vale
+quella del dispositivo (italiano se il dispositivo è in italiano, altrimenti inglese). La scelta si ricorda sul dispositivo (`localStorage`,
+`athlon_lingua`). Il lato server: `CLAUDE.md` di APP-ATHLON, «Le lingue del portale».
+
+- **I testi stanno accanto all'originale**: `t('Prenota', 'Book')` (`src/lib/lingua.ts`), non una chiave in un dizionario. Un testo nuovo si
+  scrive sempre con i due argomenti; `tv(it, en)` per elenchi ed elementi, `locale()` per date e numeri (`it-IT` / `en-GB`), mai `'it-IT'` scritto.
+  `lingua.ts` è un modulo puro (lo importano anche i calcoli provati con `npx tsx`); il gancio per i componenti è `useLingua` in `lingua-react.ts`.
+- **Cambiare lingua ricarica l'app sul web**: costanti di modulo, formattatori e risposte già in memoria si rifanno nella lingua nuova, quindi
+  un `t()` a livello di modulo va bene. Sull'app nativa il layout radice ha `key={lingua}` e ridisegna le schermate; le costanti di modulo si
+  aggiornano alla prossima apertura.
+- **Le parole inglesi sono quelle di PerfectGym** (`docs/glossario-inglese.md`, ricavato dal manuale inglese di PerfectGym e dallo swagger):
+  membership, payment plan, freeze, booking, waiting list, joining fee, payment method, front desk… Ortografia americana come PerfectGym, date
+  all'europea. **I nomi propri del club** (attività, abbonamenti, prodotti) e i marchi dell'app (Athlon Health System, Train, Food, Relax,
+  Club Life, Gym Floor, Guest Pass…) non si traducono nel codice: i nomi inglesi delle attività, dei piani e dei prodotti li scrive il club su
+  PerfectGym e arrivano dal mirror. **Il glossario va riletto dal club** accanto al Client Portal in inglese.
+- **Le funzioni rispondono nella lingua dell'app**: `intestazioneLingua()` manda `Accept-Language: en-x-athlon` (o `it-x-athlon`) da
+  `funzione()` di `api/lab.ts` e dalle altre chiamate alle funzioni (`link`, `guestPass`, `referral`). È un'intestazione che non passa dal
+  CORS, quindi un'app nuova con funzioni vecchie non si rompe (riceve l'italiano), e il segno `x-athlon` fa sì che un browser in inglese con
+  un'app di prima riceva ancora l'italiano.
+- **Cosa resta in italiano**: i contenuti del sito (news, eventi, schede dell'Help Desk, le schede delle lezioni), le notifiche scritte dallo
+  staff, il testo dei contratti e dei Termini e Condizioni (in inglese c'è una riga che lo dice: fa fede l'italiano), e i nomi da PerfectGym
+  che il club non ha tradotto. Le **informative privacy** sono tradotte con «Courtesy translation: the Italian text is the binding version»;
+  le versioni dei consensi non sono cambiate (stesso testo, due lingue): **la traduzione va fatta rileggere al consulente privacy**.
