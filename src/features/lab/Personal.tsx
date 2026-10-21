@@ -32,6 +32,7 @@ import { euro, giornoEsteso, ora } from '@/lib/eventi'
 import { spazio } from '@/theme'
 
 import { inMemoria, prendi, ricorda } from './memoria'
+import { SEZIONE_9, VERSIONE_TERMINI_PERSONAL } from './personal/termini'
 import { useNascite } from './nascite'
 import { Foglio } from './ui/Foglio'
 import { Icona } from './ui/Icona'
@@ -314,6 +315,8 @@ function FoglioCompra({
             <View style={{ gap: 6 }}>
               {[
                 `${cosa.pacchetto.sedute ?? 'Le'} sedute di personal ogni mese, da prenotare quando vuoi con i trainer del club.`,
+                'Le sedute si caricano il giorno 1 di ogni mese e vanno usate entro la fine dello stesso mese solare: quelle non usate non passano al mese dopo.',
+                `Se lo attivi a mese iniziato, la quota del mese si paga per intero e le sedute si caricano tutte insieme subito: le usi entro il ${fineMeseRoma()}.`,
                 'Si aggiunge al tuo abbonamento e si rinnova ogni mese, con un impegno di un mese.',
                 sulConto
                   ? 'Le quote, la prima compresa, si addebitano ogni mese sul conto corrente, con l’addebito diretto SEPA.'
@@ -334,14 +337,7 @@ function FoglioCompra({
                   {`Accetto ${stato.consensi_contratto.length ? stato.consensi_contratto.map((c) => `«${c.nome}»`).join(' e ') : 'le condizioni del contratto e del regolamento del club'}.`}
                 </Text>
               </Casella>
-              {/* I documenti fuori dalla casella: toccarli non deve spuntarla. */}
-              {stato.consensi_contratto
-                .filter((c) => c.allegato)
-                .map((c) => (
-                  <Tocco key={c.id} ruolo="link" etichetta={`Leggi ${c.nome}`} onPress={() => vai(c.allegato!)} style={{ alignSelf: 'flex-start', paddingVertical: 6 }}>
-                    <Text style={{ color: p.accento, fontFamily: F.bold, fontSize: 14 }}>{`Leggi «${c.nome}» ›`}</Text>
-                  </Tocco>
-                ))}
+              <EstrattoTermini />
             </View>
           ) : null}
 
@@ -433,13 +429,57 @@ function FoglioCompra({
             {stato.carta
               ? ': il club non vede mai il numero completo.'
               : ', e la carta resta salvata per i prossimi acquisti.'}
-            {cosa.tipo === 'pacchetto' ? ' Per la prima quota l’importo esatto lo calcola PerfectGym al momento del pagamento.' : ''}
           </Text>
           )}
         </View>
       ) : null}
     </Foglio>
   )
+}
+
+/**
+ * L'estratto della sezione 9 dei Termini (21/10/2026): chiuso, si apre al tocco. E' il testo alla lettera
+ * (`personal/termini.ts`). Il file dei Termini non si apre piu' da qui: c'e' solo questo estratto.
+ */
+function EstrattoTermini() {
+  const p = usePalette()
+  const [aperto, setAperto] = useState(false)
+  return (
+    <View style={[stili.estratto, { borderColor: p.linea, backgroundColor: p.carta }]}>
+      <Tocco
+        vibra="scelta"
+        etichetta={`${aperto ? 'Chiudi' : 'Leggi'} la sezione ${SEZIONE_9.numero} dei Termini e Condizioni`}
+        stato={{ expanded: aperto }}
+        onPress={() => setAperto((v) => !v)}
+        style={stili.estrattoTesta}
+      >
+        <Text style={[stili.voceTesto, { color: p.testo, fontFamily: F.bold }]}>
+          {`Termini e Condizioni, sez. ${SEZIONE_9.numero}: ${SEZIONE_9.titolo}`}
+        </Text>
+        <Text style={{ color: p.accento, fontFamily: F.bold, fontSize: 18 }}>{aperto ? '−' : '+'}</Text>
+      </Tocco>
+      {aperto ? (
+        <View style={{ gap: spazio.due, paddingHorizontal: spazio.tre, paddingBottom: spazio.tre }}>
+          {SEZIONE_9.clausole.map((c) => (
+            <View key={c.id} style={{ gap: 2 }}>
+              <Text style={[stili.nota, { color: p.testo, fontFamily: F.bold }]}>{`${c.id} ${c.titolo}`}</Text>
+              <Text style={[stili.nota, { color: p.testoSecondario }]}>{c.testo}</Text>
+            </View>
+          ))}
+          <Text style={[stili.nota, { color: p.testoSecondario }]}>{`Estratto dei Termini e Condizioni Generali, versione ${VERSIONE_TERMINI_PERSONAL}.`}</Text>
+        </View>
+      ) : null}
+    </View>
+  )
+}
+
+/** L'ultimo giorno del mese in corso a Roma, a parole: «31 ottobre». */
+function fineMeseRoma(): string {
+  const [a, m] = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Rome', year: 'numeric', month: '2-digit' })
+    .format(new Date())
+    .split('-')
+    .map(Number)
+  return new Date(Date.UTC(a, m, 0)).toLocaleDateString('it-IT', { day: 'numeric', month: 'long', timeZone: 'UTC' })
 }
 
 /** Le sedute gia' prenotate, con «Annulla» finche' mancano piu' delle ore della regola. */
@@ -1301,6 +1341,8 @@ const stili = StyleSheet.create({
   voce: { flexDirection: 'row', gap: spazio.due, alignItems: 'flex-start' },
   pallino: { width: 6, height: 6, borderRadius: 3, marginTop: 8 },
   voceTesto: { flex: 1, fontFamily: F.medio, fontSize: 14.5, lineHeight: 21 },
+  estratto: { borderWidth: StyleSheet.hairlineWidth, borderRadius: 14, overflow: 'hidden' },
+  estrattoTesta: { flexDirection: 'row', alignItems: 'center', gap: spazio.due, padding: spazio.tre },
   vetrina: { width: 132, borderRadius: 22, borderWidth: StyleSheet.hairlineWidth, padding: 8, gap: 8 },
   vetrinaFoto: { width: '100%', height: 140, borderRadius: 16 },
   radio: { width: 24, height: 24, borderRadius: 12, borderWidth: 2, alignItems: 'center', justifyContent: 'center' },
