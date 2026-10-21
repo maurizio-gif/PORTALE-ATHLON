@@ -32,6 +32,9 @@ export type StatoInvito =
       messaggio: string
       giorni: number
       voucher: number
+      /** La prova dell'amico con l'invito (5 €) e il listino (19 €): li dice la funzione. */
+      prezzo_prova: number
+      prezzo_pieno: number
       inviti: Amico[]
     }
   | { ok: false; errore: string }
@@ -53,21 +56,26 @@ export async function statoInvito(): Promise<StatoInvito> {
     messaggio: String(dati.messaggio ?? dati.link),
     giorni: Number(dati.giorni ?? 30),
     voucher: Number(dati.voucher ?? 50),
+    prezzo_prova: Number(dati.prezzo_prova ?? 5),
+    prezzo_pieno: Number(dati.prezzo_pieno ?? 19),
     inviti: Array.isArray(dati.inviti) ? (dati.inviti as Amico[]) : [],
   }
 }
 
-/** La pagina pubblica dell'invito: chi ha invitato (solo il primo nome) e se il link vale. Senza sessione. */
-export async function leggiInvito(codice: string): Promise<{ valido: boolean; nome: string | null }> {
+/**
+ * La pagina pubblica dell'invito: chi ha invitato (solo il primo nome), se il link vale e quanto costa la prova con
+ * l'invito (5 € invece di 19, dal 21/10/2026). Senza sessione.
+ */
+export async function leggiInvito(codice: string): Promise<{ valido: boolean; nome: string | null; prezzo: number; prezzoPieno: number }> {
   try {
     const r = await fetch(`${SUPABASE_URL}/functions/v1/guest-pass`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ azione: 'invito', codice }),
     })
-    const d = (await r.json().catch(() => null)) as { ok?: boolean; valido?: boolean; nome?: string | null } | null
-    return { valido: d?.ok === true && d.valido === true, nome: d?.nome ?? null }
+    const d = (await r.json().catch(() => null)) as { ok?: boolean; valido?: boolean; nome?: string | null; prezzo?: number; prezzo_pieno?: number } | null
+    return { valido: d?.ok === true && d.valido === true, nome: d?.nome ?? null, prezzo: Number(d?.prezzo ?? 5), prezzoPieno: Number(d?.prezzo_pieno ?? 19) }
   } catch {
-    return { valido: false, nome: null }
+    return { valido: false, nome: null, prezzo: 5, prezzoPieno: 19 }
   }
 }

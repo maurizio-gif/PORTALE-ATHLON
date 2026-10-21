@@ -21,7 +21,8 @@ import { useColori } from '@/theme'
 //
 // **Con un invito** (21/10/2026, pagina pubblica /invito/<codice>): la stessa procedura, con in cima chi ha invitato, e la
 // richiesta porta il codice, cosi' `guest-pass` la abbina al socio (`referral_accetta`: 30 giorni dall'accettazione, vince
-// il primo invito). Dopo l'invio, per chi preferisce non fare la prova, c'e' l'iscrizione diretta: per ora dal sito;
+// il primo invito). **Con l'invito la prova costa 5 € invece di 19** (21/10/2026): lo decide `guest-pass`, che crea il
+// contratto sul piano «Referral»; qui si dice soltanto. Dopo l'invio, per chi preferisce non fare la prova, c'e' l'iscrizione diretta: per ora dal sito;
 // l'abbonamento dal link per email e' il passo dopo. L'invito resta valido qualunque strada prenda.
 
 const CONSENSO_OBBLIGATORIO =
@@ -30,12 +31,13 @@ const CONSENSO_FACOLTATIVO = 'Voglio ricevere comunicazioni su corsi, promozioni
 
 type Fase = 'email' | 'dati' | 'riprendi' | 'inviata' | 'no'
 
-export type Invito = { codice: string; nome: string | null }
+export type Invito = { codice: string; nome: string | null; prezzo: number; prezzoPieno: number }
 
 /** Com'e' andato l'abbinamento all'invito, detto all'amico; niente per gli esiti che non lo riguardano. */
 function fraseInvito(esito: EsitoInvito | null, invito: Invito): string | null {
   const chi = invito.nome ?? 'chi ti ha invitato'
-  if (esito === 'accettato' || esito === 'gia_accettato') return `Hai accettato l’invito di ${chi}: hai 30 giorni per iscriverti.`
+  if (esito === 'accettato' || esito === 'gia_accettato')
+    return `Hai accettato l’invito di ${chi}: la tua settimana di prova costa ${invito.prezzo} €, e hai 30 giorni per iscriverti.`
   if (esito === 'altro_invito') return 'Avevi già accettato l’invito di un altro socio, ancora valido: resta quello.'
   return null
 }
@@ -207,7 +209,7 @@ export function RichiestaGuestPass({ invito, avviso }: { invito?: Invito; avviso
       titolo={invito ? (invito.nome ? `${invito.nome} ti invita da Athlon` : 'Sei invitato da Athlon') : 'Guest Pass'}
       sottotitolo={
         invito
-          ? 'Prova il club per una settimana a 19 € o iscriviti subito. Scrivi la tua email: ti mandiamo il link per cominciare. L’invito vale 30 giorni da quando lo accetti, per chi non ha avuto abbonamenti o Guest Pass negli ultimi 3 anni.'
+          ? `Con il suo invito provi il club per una settimana pagando solo ${invito.prezzo} € invece di ${invito.prezzoPieno}, oppure ti iscrivi subito. Scrivi la tua email: ti mandiamo il link per cominciare. L’invito vale 30 giorni da quando lo accetti, per chi non ha avuto abbonamenti o Guest Pass negli ultimi 3 anni.`
           : 'Una settimana al club a 19 €, per chi non ha avuto abbonamenti o Guest Pass negli ultimi 3 anni. Scrivi la tua email: ti mandiamo il link per attivarlo.'
       }
     >
