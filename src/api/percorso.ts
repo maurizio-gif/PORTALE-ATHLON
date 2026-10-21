@@ -308,33 +308,74 @@ export async function eliminaPercorso(): Promise<Esito<object>> {
 }
 
 // ---------------------------------------------------------------------------
-// I consigli di Athlon (20/10/2026)
+// I consigli di Athlon (20/10/2026, rifatti il 21/10/2026)
 //
-// Al posto di una settimana composta e controllata, il socio riceve dei **consigli**: quali tipi di lezione gli
-// convengono, quali alternative ha per ognuno e — solo se li chiede — come integrarli con la sala pesi (Gym Floor)
-// e con il Nuoto Libero. L'AI dice cosa e perche'; la funzione trova le prossime lezioni vere, coi posti e le
-// prenotazioni. **Non si salva niente e non c'e' nessuna regola «dentro il percorso»**: ogni lezione si prenota come dal
-// Calendario. Il questionario non si conserva (le limitazioni sono dati sulla salute): arriva al modello e basta.
+// Al posto di una settimana composta e controllata, il socio riceve dei **consigli**: dal suo profilo (uno o piu' obiettivi,
+// se ha mai praticato, se ha smesso o se pratica gia', cosa gli piace, quando preferisce venire) quali tipi di lezione
+// potrebbero interessargli e perche', con le alternative e **gli orari in cui li trova**, e dove serve una **seduta** in sala o
+// in vasca, che porta a comporre il piano di allenamento. **Giorni e fasce sono preferenze, non vincoli**: ordinano, non
+// tolgono. L'AI dice cosa e perche'; la funzione trova gli orari e le prossime lezioni vere, coi posti. **Non si salva niente e
+// non c'e' nessuna regola «dentro il percorso»**: ogni lezione si prenota come dal Calendario. Il questionario non si conserva
+// (le limitazioni sono dati sulla salute): arriva al modello e basta.
 
 export type NuotoScelta = 'libero' | 'imparare' | null
 
+export const ESPERIENZE = ['mai', 'ex', 'pratico'] as const
+export type Esperienza = (typeof ESPERIENZE)[number]
+export const PAUSE = ['meno_di_un_anno', 'da_uno_a_tre_anni', 'oltre_tre_anni'] as const
+export type Pausa = (typeof PAUSE)[number]
+export const DISCIPLINE = ['sala_pesi', 'corsa', 'corsi_di_gruppo', 'yoga_pilates', 'nuoto', 'sport_di_squadra', 'combattimento', 'danza', 'ciclismo', 'altro'] as const
+export type Disciplina = (typeof DISCIPLINE)[number]
+export const INTENSITA = ['dolce', 'media', 'intensa'] as const
+export type Intensita = (typeof INTENSITA)[number]
+export const PERSONAL_ESPERIENZE = ['mai', 'passato', 'ora'] as const
+export type PersonalEsperienza = (typeof PERSONAL_ESPERIENZE)[number]
+export const PERSONAL_INTERESSI = ['no', 'curioso', 'si'] as const
+export type PersonalInteresse = (typeof PERSONAL_INTERESSI)[number]
+/** I bisogni dietro agli obiettivi: le domande indirette sul personal. */
+export const BISOGNI = ['tecnica', 'scadenza', 'ripresa', 'costanza', 'su_misura'] as const
+export type Bisogno = (typeof BISOGNI)[number]
+/** Quanti macro obiettivi si scelgono insieme (lo stesso tetto della funzione). */
+export const OBIETTIVI_MAX = 3
+
 export type QuestionarioConsigli = {
+  /** Da uno a tre macro obiettivi, il primo e' il principale. */
+  obiettivi: Obiettivo[]
+  /** Lo stesso di `obiettivi[0]`: per una funzione di prima, che leggeva un obiettivo solo. */
   obiettivo: Obiettivo
+  esperienza: Esperienza
+  /** Solo per chi ha smesso: da quanto. */
+  pausa: Pausa | null
+  /** Cosa pratica o praticava (vuoto per chi non ha mai praticato). */
+  discipline: Disciplina[]
+  /** La forma di oggi; per chi non ha mai praticato e' «principiante». */
   livello: Livello
-  /** Quante volte a settimana puo' venire (1-6): dice quanti consigli dare. */
+  intensita: Intensita | null
+  /** Quante volte a settimana pensa di venire (1-6): dice quanti consigli dare. */
   volte_settimana: number
+  /** I generi di lezione che gli piacciono. */
   gruppi: Gruppo[]
-  /** I nomi delle lezioni che non vuole: la funzione li confronta senza maiuscole e accenti. */
-  evitate: string[]
-  fasce: Fascia[]
-  /** Giorni in cui puo' venire (1-7); vuoto = tutti. */
-  giorni_liberi: number[]
+  /** Gli piace allenarsi in sala pesi per conto suo. */
   sala: boolean
-  /** `libero`: sa stile libero e dorso e vuole i turni; `imparare`: si parte dalla Scuola Nuoto Adulti. */
+  /** `libero`: sa stile libero e dorso; `imparare`: si parte dalla Scuola Nuoto Adulti. */
   nuoto: NuotoScelta
+  /** I nomi delle lezioni che non vuole: la funzione li confronta senza maiuscole e accenti. Sono l'unico limite duro. */
+  evitate: string[]
+  /** Quando preferisce venire: **non vincolante**. */
+  fasce: Fascia[]
+  /** Giorni preferiti (1-7): **non vincolanti**; vuoto = nessuna preferenza. */
+  giorni: number[]
   includi_non_comprese: boolean
+  /** Se l'ha mai seguito un personal trainer; null se non l'ha detto. */
+  personal_esperienza: PersonalEsperienza | null
+  /** Se gli piacerebbe; con «no» il personal non si propone. */
+  personal_interesse: PersonalInteresse | null
+  bisogni: Bisogno[]
   limitazioni: string
 }
+
+/** Le sedute di personal da affiancare alle lezioni: quante al mese (una e' la seduta singola; 2, 4, 8 gli abbonamenti PT) e perche'. Prezzi e acquisto: `statoPersonal`. */
+export type ConsiglioPersonal = { sedute_mese: 1 | 2 | 4 | 8; perche: string | null }
 
 export type TipoConsigliato = {
   /** `class_type_id` di PerfectGym. */
@@ -350,29 +391,36 @@ export type TipoConsigliato = {
   spessoCompleta: boolean
 }
 
+/** Un orario in cui la lezione si tiene di solito (giorno 1-7, ora di Roma); `tuo` dice se cade nelle sue preferenze (null: non ne ha date). */
+export type OrarioLezione = { giorno: number; ora: string; tuo: boolean | null }
+
 /** Una lezione vera nella forma dei pulsanti del Calendario: `dopo` e' sempre null (qui non ci sono limiti «dentro il percorso»). */
 export type LezioneConsiglio = DatiLezione & { categoria: string; scheda: string | null; compresa: boolean | null }
-export type TurnoSala = LezioneConsiglio & { fascia: FasciaSala }
 
 export type ConsiglioRisolto = {
   tipo: TipoConsigliato
   perche: string | null
   /** Quante volte a settimana conviene. */
   volte: number
+  /** Quando si tiene di solito: vuoto con una funzione di prima. */
+  orari: OrarioLezione[]
   /** Le prossime lezioni di questo tipo (vuoto se nei prossimi giorni non ce ne sono). */
   prossime: LezioneConsiglio[]
-  alternative: { tipo: TipoConsigliato; prossime: LezioneConsiglio[] }[]
+  alternative: { tipo: TipoConsigliato; orari: OrarioLezione[]; prossime: LezioneConsiglio[] }[]
 }
 
-export type SalaConsigliata = {
+/** Una seduta per conto proprio: in sala (la Gym Floor) o in vasca (il Nuoto Libero). Non si prenota da qui: porta al piano e al calendario. */
+export type SedutaConsigliata = {
+  ambiente: 'sala' | 'vasca'
+  /** Cosa fare, in poche parole («un lavoro di forza con i pesi»). */
+  cosa: string | null
   perche: string | null
   volte: number
+  giorni: number[]
   fascia: FasciaSala
-  /** Per ogni giorno consigliato, i turni piu' vicini all'ora preferita: uno con l'assistente di sala e uno di allenamento libero. */
-  giorni: { data: string; turni: TurnoSala[] }[]
+  /** I prossimi giorni (AAAA-MM-GG) con turni da prenotare, per aprire il calendario. */
+  prossimi: string[]
 }
-
-export type NuotoConsigliato = { perche: string | null; volte: number; giorni: { data: string; turni: LezioneConsiglio[] }[] }
 
 export type StatoConsigli = {
   member_id: number
@@ -389,8 +437,8 @@ export type RispostaConsigli = {
   sintesi: string | null
   integrazione: string | null
   consigli: ConsiglioRisolto[]
-  sala: SalaConsigliata | null
-  nuoto: NuotoConsigliato | null
+  sedute: SedutaConsigliata[]
+  personal: ConsiglioPersonal | null
   schede: SchedeLezioni
   avvisi: string[]
   /** Falso se PerfectGym non ha risposto: i consigli si vedono, ma non si sa cosa e' gia' prenotato. */
@@ -425,9 +473,10 @@ export async function chiediConsigli(q: QuestionarioConsigli): Promise<Esito<{ r
         member_id: Number(dati.member_id),
         sintesi: dati.sintesi ?? null,
         integrazione: dati.integrazione ?? null,
-        consigli: dati.consigli,
-        sala: dati.sala ?? null,
-        nuoto: dati.nuoto ?? null,
+        // Una funzione di prima non manda gli orari: le carte restano senza «di solito».
+        consigli: (dati.consigli as ConsiglioRisolto[]).map((c) => ({ ...c, orari: c.orari ?? [], alternative: (c.alternative ?? []).map((a) => ({ ...a, orari: a.orari ?? [] })) })),
+        sedute: Array.isArray(dati.sedute) ? dati.sedute : [],
+        personal: dati.personal && typeof dati.personal === 'object' ? dati.personal : null,
         schede: dati.schede ?? {},
         avvisi: dati.avvisi ?? [],
         prenotazioni_lette: dati.prenotazioni_lette !== false,
