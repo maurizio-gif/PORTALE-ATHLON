@@ -15,7 +15,7 @@ import { euro } from '@/lib/eventi'
 import { CODICE_FISCALE_NON_ATTRIBUITO } from '@/lib/residenteEstero'
 import { spazio } from '@/theme'
 
-import { DocumentoContratto, giornoBreve, residenzaConPaese, RigaDato } from '../Abbonamento'
+import { DocumentoContratto, residenzaConPaese, RigaDato } from '../Abbonamento'
 import { CorreggiDati } from '../abbonamento/CorreggiDati'
 import { Indicatore } from '../abbonamento/Passi'
 import { FirmaPad } from '../FirmaPad'
@@ -44,7 +44,6 @@ export function Iscrizione() {
   const scorrimento = useRef<Animated.ScrollView>(null)
   const [anteprima, setAnteprima] = useState<AnteprimaIscrizione | null>(null)
   const [costi, setCosti] = useState<ImportiContratto | null>(null)
-  const [inizi, setInizi] = useState<{ data: string }[]>([])
   const [inizio, setInizio] = useState<string | null>(null)
   const [nomeGruppo, setNomeGruppo] = useState<string | null>(null)
   const [mancanti, setMancanti] = useState<string[] | null>(null)
@@ -73,7 +72,6 @@ export function Iscrizione() {
         const a = r.anteprima
         setAnteprima(a)
         setCosti(a.importi)
-        setInizi(a.inizi)
         setInizio(a.data_inizio)
         setNomeGruppo(a.gruppo.nome)
         setMancanti(null)
@@ -85,7 +83,6 @@ export function Iscrizione() {
         return
       }
       setAnteprima(null)
-      if (r.inizi) setInizi(r.inizi)
       if (r.data_inizio) setInizio(r.data_inizio)
       if (r.gruppo) setNomeGruppo(r.gruppo.nome)
       if (r.importi) setCosti(r.importi)
@@ -107,13 +104,6 @@ export function Iscrizione() {
     if (!Number.isFinite(memberId) || !group) return setFermo(true)
     carica()
   }, [carica, memberId, group])
-
-  function cambiaData(d: string) {
-    if (d === inizio) return
-    setInizio(d)
-    setDatiOk(false)
-    carica(d)
-  }
 
   const scorrimentoFoglio = useRef<ScrollView>(null)
   const posti = useRef({ corpo: 0, firma: 0 })
@@ -200,29 +190,9 @@ export function Iscrizione() {
         {passo === 1 ? (
           <>
             <Sezione titolo="Quando parte">
-              {inizi.length ? (
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: spazio.due }}>
-                  {inizi.map((g) => {
-                    const attivo = g.data === inizio
-                    return (
-                      <Tocco
-                        key={g.data}
-                        vibra="scelta"
-                        stato={{ selected: attivo }}
-                        etichetta={`Parte il ${giornoBreve(g.data)}`}
-                        onPress={() => cambiaData(g.data)}
-                        style={[stili.giorno, attivo ? { backgroundColor: p.accento, borderColor: p.accento } : { backgroundColor: p.carta, borderColor: p.linea }]}
-                      >
-                        <Text style={{ color: attivo ? '#fff' : p.testo, fontFamily: attivo ? F.extra : F.semi, fontSize: 13 }}>{giornoBreve(g.data)}</Text>
-                      </Tocco>
-                    )
-                  })}
-                </ScrollView>
-              ) : (
-                <Text style={[stili.nota, { color: p.testoSecondario }]}>{inizio ? `Parte il ${dataLunga(inizio)}.` : 'Calcoliamo le date…'}</Text>
-              )}
+              <Text style={[stili.nota, { color: p.testoSecondario }]}>{inizio ? `Parte oggi, ${dataLunga(inizio)}.` : 'Calcoliamo i costi…'}</Text>
               <Text style={[stili.nota, { color: p.testoSecondario }]}>
-                Sono le prossime lezioni del gruppo. Si paga alla firma: la prima quota dipende dalla data, e il mese dopo si rinnova ogni 1° del mese.
+                L’abbonamento parte subito. Si paga alla firma: la prima quota copre i giorni che restano del mese, e dal mese dopo si rinnova ogni 1°.
               </Text>
             </Sezione>
 
