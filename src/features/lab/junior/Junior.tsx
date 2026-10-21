@@ -33,8 +33,10 @@ import {
   anniDisponibili,
   conPosto,
   descriviPersona,
+  giorniDelAnno,
   gruppiDellAnno,
   personeDaMostrare,
+  SIGLE_GIORNI,
   statoPosti,
   titoloGruppo,
 } from "./comune";
@@ -62,6 +64,7 @@ export function Junior() {
   );
   const [anno, setAnno] = useState<number | null>(null);
   const [soloLiberi, setSoloLiberi] = useState(false);
+  const [giorni, setGiorni] = useState<number[]>([]);
   const [foglio, setFoglio] = useState(false);
   const [aggiunto, setAggiunto] = useState<string | null>(null);
   const vista = !!vistaCorrente();
@@ -93,10 +96,23 @@ export function Junior() {
       setEsito(nuovo);
     } else carica();
   }
-  const blocchi = useMemo(
-    () => (scelto == null ? [] : gruppiDellAnno(gruppi, scelto, soloLiberi)),
-    [gruppi, scelto, soloLiberi],
+  // Solo i giorni che quell'anno ha davvero; i giorni scelti che non ci sono piu' (cambio d'anno) non contano.
+  const giorniAnno = useMemo(
+    () => (scelto == null ? [] : giorniDelAnno(gruppi, scelto)),
+    [gruppi, scelto],
   );
+  const giorniAttivi = giorni.filter((i) => giorniAnno.includes(i));
+  const blocchi = useMemo(
+    () =>
+      scelto == null
+        ? []
+        : gruppiDellAnno(gruppi, scelto, soloLiberi, giorniAttivi),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [gruppi, scelto, soloLiberi, giorniAttivi.join(",")],
+  );
+  function scegliGiorno(i: number) {
+    setGiorni((v) => (v.includes(i) ? v.filter((x) => x !== i) : [...v, i]));
+  }
 
   const intestazione = {
     titolo: "Junior",
@@ -241,6 +257,79 @@ export function Junior() {
             );
           })}
         </View>
+        {giorniAnno.length ? (
+          <>
+            <Text
+              style={[stili.filtriTitolo, { color: p.testoSecondario }]}
+              accessibilityRole="header"
+            >
+              Giorno della settimana
+            </Text>
+            <View style={stili.tessere}>
+              <Tocco
+                vibra="scelta"
+                stato={{ selected: !giorniAttivi.length }}
+                onPress={() => setGiorni([])}
+                etichetta="Tutti i giorni"
+                style={[
+                  stili.giorno,
+                  stili.giornoTutti,
+                  {
+                    backgroundColor: !giorniAttivi.length
+                      ? velo(p, "accento", p.scuro ? 0.16 : 0.1)
+                      : p.carta,
+                    borderColor: !giorniAttivi.length ? p.accento : p.linea,
+                  },
+                ]}
+              >
+                <Text
+                  style={[
+                    stili.giornoTesto,
+                    {
+                      color: p.testo,
+                      fontFamily: !giorniAttivi.length ? F.extra : F.bold,
+                    },
+                  ]}
+                >
+                  Tutti
+                </Text>
+              </Tocco>
+              {giorniAnno.map((i) => {
+                const on = giorniAttivi.includes(i);
+                return (
+                  <Tocco
+                    key={i}
+                    vibra="scelta"
+                    stato={{ selected: on }}
+                    onPress={() => scegliGiorno(i)}
+                    etichetta={SIGLE_GIORNI[i]}
+                    style={[
+                      stili.giorno,
+                      {
+                        backgroundColor: on
+                          ? velo(p, "accento", p.scuro ? 0.16 : 0.1)
+                          : p.carta,
+                        borderColor: on ? p.accento : p.linea,
+                      },
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        stili.giornoTesto,
+                        {
+                          color: p.testo,
+                          fontFamily: on ? F.extra : F.bold,
+                        },
+                      ]}
+                    >
+                      {SIGLE_GIORNI[i]}
+                    </Text>
+                  </Tocco>
+                );
+              })}
+            </View>
+          </>
+        ) : null}
         <Tocco
           vibra="scelta"
           stato={{ selected: soloLiberi }}
@@ -306,10 +395,11 @@ export function Junior() {
       ) : (
         <Messaggio
           tono="attenzione"
-          titolo={`Nessun posto libero per i nati nel ${scelto}`}
+          titolo={`Nessun gruppo per i nati nel ${scelto}`}
         >
-          Tutti i gruppi di quest’anno sono al completo. Togli il filtro per
-          vederli, o chiedi in segreteria.
+          {soloLiberi && !giorniAttivi.length
+            ? "Tutti i gruppi di quest’anno sono al completo. Togli il filtro per vederli, o chiedi in segreteria."
+            : "Con questi filtri non c’è nessun gruppo. Prova a togliere un giorno o i posti liberi."}
         </Messaggio>
       )}
 
@@ -357,6 +447,17 @@ const stili = StyleSheet.create({
     letterSpacing: -0.4,
     fontVariant: ["tabular-nums"],
   },
+  giorno: {
+    minWidth: 48,
+    minHeight: 44,
+    paddingHorizontal: 12,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: 999,
+    borderWidth: StyleSheet.hairlineWidth,
+  },
+  giornoTutti: { paddingHorizontal: 16 },
+  giornoTesto: { fontSize: 14, lineHeight: 18 },
   interruttore: {
     flexDirection: "row",
     alignItems: "center",

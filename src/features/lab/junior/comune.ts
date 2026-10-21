@@ -25,6 +25,33 @@ function primoGiorno(g: GruppoJunior): number {
   return i < 0 ? 99 : i;
 }
 
+/** I giorni della settimana del turno (lunedi' 0), senza ripetizioni; vuoti se il gruppo non li dice. */
+export function giorniDelGruppo(g: GruppoJunior): number[] {
+  const out = new Set<number>();
+  for (const x of (g.giorni ?? "").split(",")) {
+    const i = GIORNI.indexOf(x.trim().toLowerCase());
+    if (i >= 0) out.add(i);
+  }
+  return [...out].sort((a, b) => a - b);
+}
+
+/** Le sigle dei giorni per le pillole, nell'ordine di settimana. */
+export const SIGLE_GIORNI = ["Lun", "Mar", "Mer", "Gio", "Ven", "Sab", "Dom"];
+
+/** I giorni in cui c'e' almeno un gruppo che accoglie quell'anno: solo questi si offrono come filtro. */
+export function giorniDelAnno(gruppi: GruppoJunior[], anno: number): number[] {
+  const out = new Set<number>();
+  for (const g of gruppi)
+    if (g.anni.includes(anno)) giorniDelGruppo(g).forEach((i) => out.add(i));
+  return [...out].sort((a, b) => a - b);
+}
+
+/** Un gruppo passa il filtro se ha almeno uno dei giorni scelti; senza giorni scelti passano tutti, senza giorni dichiarati nessuno. */
+function passaGiorni(g: GruppoJunior, giorni: number[]): boolean {
+  if (!giorni.length) return true;
+  return giorniDelGruppo(g).some((i) => giorni.includes(i));
+}
+
 /** Il nome del corso come lo dice il club: «Scuola Nuoto Bambini · Monosettimanale», o il nome della categoria. */
 export function nomeCorso(g: GruppoJunior): string {
   const c = g.categoria?.trim();
@@ -81,11 +108,13 @@ export function gruppiDellAnno(
   gruppi: GruppoJunior[],
   anno: number,
   soloLiberi = false,
+  giorni: number[] = [],
 ): BloccoCorso[] {
   const blocchi = new Map<string, GruppoJunior[]>();
   for (const g of gruppi) {
     if (!g.anni.includes(anno)) continue;
     if (soloLiberi && !((g.liberi ?? 0) > 0)) continue;
+    if (!passaGiorni(g, giorni)) continue;
     const c = nomeCorso(g);
     blocchi.set(c, [...(blocchi.get(c) ?? []), g]);
   }
