@@ -4,7 +4,6 @@ import { useState, type ReactNode } from 'react'
 import { StyleSheet, Text, View } from 'react-native'
 
 import type { ClubLife, Comando } from '@/api/clubLife'
-import { richiediLinkEvento } from '@/api/moduli'
 import { spazio } from '@/theme'
 
 import { Icona, type NomeIcona } from '../ui/Icona'
@@ -13,8 +12,8 @@ import { Schermata } from '../ui/Schermata'
 import { F, raggio, usePalette } from '../ui/tema'
 import { Contenuto } from './Blocchi'
 import { dataNews, giornoEvento } from './comune'
+import { condividiEvento } from './condividi'
 import { useClubLife } from './dati'
-import { inVista, useIdentita } from './moduli/identita'
 import { apriLink, destinazione } from './link'
 
 // Le tre schermate di dettaglio di Club Life: una news, un evento, una scheda
@@ -62,27 +61,49 @@ function Cta({ cta, dati }: { cta: Comando; dati: ClubLife | null }) {
   return <Pulsante testo={alCalendario ? 'Prenota dal calendario' : cta.etichetta} icona={d.tipo === 'fuori' ? 'apriFuori' : 'avanti'} onPress={() => apriLink(cta.url, dati, cta.etichetta)} />
 }
 
+/** Oggi a Roma, «2026-10-21». */
+const GIORNO_ROMA = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Rome', year: 'numeric', month: '2-digit', day: '2-digit' })
+
+/** Il calendario delle Prenotazioni mostra oggi e i 14 giorni dopo, ed e' anche quando le prenotazioni di un evento si aprono. */
+const GIORNI_CALENDARIO = 14
+
+const MS_GIORNO = 86_400_000
+
 /**
- * Gli eventi per bambini si prenotano da un link: il club lo manda per email e si
- * apre nell'app, dove si sceglie il turno e per quali bambini. Qui lo si chiede,
- * con l'email gia' scritta.
+ * Gli eventi che si prenotano dal sito (20/10/2026) si prenotano dalle Prenotazioni dell'app: il pulsante porta li',
+ * gia' sul giorno dell'evento e sulla sua categoria (21/10/2026, al posto del link per email). Se l'evento e' piu'
+ * lontano di quello che il calendario mostra, lo dice invece di portare su un altro giorno.
  */
-function LinkEvento({ slug, email }: { slug: string; email: string }) {
-  const [stato, setStato] = useState<'pronto' | 'invio' | 'inviato'>('pronto')
-  const [errore, setErrore] = useState<string | null>(null)
-  async function chiedi() {
-    setErrore(null)
-    setStato('invio')
-    const r = await richiediLinkEvento(slug, email)
-    if (r.ok) return setStato('inviato')
-    setStato('pronto')
-    setErrore(r.errore)
+function PrenotaDalCalendario({ data, categoria }: { data: string; categoria: string | null }) {
+  const giorno = data.slice(0, 10)
+  const fra = Math.round((Date.parse(giorno) - Date.parse(GIORNO_ROMA.format(new Date()))) / MS_GIORNO)
+  if (fra < 0) return null
+  if (fra > GIORNI_CALENDARIO) {
+    const apre = new Date(Date.parse(giorno) - GIORNI_CALENDARIO * MS_GIORNO).toISOString()
+    return <Messaggio tono="attenzione" icona="calendario" titolo="Le prenotazioni non sono ancora aperte">{`Si prenota dalle Prenotazioni dell'app, a partire da ${giornoEvento(apre).toLowerCase()}.`}</Messaggio>
   }
-  if (stato === 'inviato') return <Messaggio tono="ok" titolo="Link inviato">{`Ti abbiamo scritto a ${email}: aprilo da lì e scegli il turno e i bambini.`}</Messaggio>
+  return (
+    <Pulsante
+      testo="Prenota nel calendario"
+      icona="calendario"
+      onPress={() => router.push({ pathname: '/calendario', params: categoria ? { giorno, attivita: categoria } : { giorno } })}
+    />
+  )
+}
+
+/** «Condividi con un amico»: il foglio di condivisione del telefono col link alla pagina dell'evento; dove non c'e', il link si copia. */
+function CondividiEvento({ e }: { e: { titolo: string; data: string; ora: string | null; url: string } }) {
+  const [esito, setEsito] = useState<'copiato' | 'errore' | null>(null)
+  async function condividi() {
+    setEsito(null)
+    const r = await condividiEvento(e)
+    if (r === 'copiato' || r === 'errore') setEsito(r)
+  }
   return (
     <View style={{ gap: spazio.due }}>
-      {errore ? <Messaggio>{errore}</Messaggio> : null}
-      <Pulsante testo="Ricevi il link per prenotare" icona="email" onPress={chiedi} inCorso={stato === 'invio'} disabilitato={!email || inVista()} />
+      <Pulsante testo="Condividi con un amico" icona="condividi" variante="contorno" onPress={condividi} />
+      {esito === 'copiato' ? <Messaggio tono="ok">Link copiato: incollalo in un messaggio per il tuo amico.</Messaggio> : null}
+      {esito === 'errore' ? <Messaggio>Da questo dispositivo non si può condividere direttamente. Apri la pagina dell’evento sul sito e copia il link.</Messaggio> : null}
     </View>
   )
 }
@@ -106,11 +127,10 @@ export function NewsDettaglio() {
   )
 }
 
-export function EventoDettaglio({ emailAccesso }: { emailAccesso?: string | null }) {
+export function EventoDettaglio() {
   const p = usePalette()
   const { id } = useLocalSearchParams<{ id: string }>()
   const { dati, errore, riprova } = useClubLife()
-  const identita = useIdentita(emailAccesso)
   const e = dati?.eventi.find((x) => x.id === id)
   return (
     <Schermata indietro="/club-life" barra={false} sopratitolo={e?.etichetta ?? 'Evento'} titolo={e?.titolo ?? 'Evento'} sottotitolo={e?.sommario}>
@@ -129,7 +149,8 @@ export function EventoDettaglio({ emailAccesso }: { emailAccesso?: string | null
               </Info>
             ))}
           </Carta>
-          {e.prenotaSulSito ? <LinkEvento slug={e.id} email={identita?.email ?? ''} /> : e.cta ? <Cta cta={e.cta} dati={dati} /> : null}
+          {e.prenotaSulSito ? <PrenotaDalCalendario data={e.data} categoria={e.categoria ?? null} /> : e.cta ? <Cta cta={e.cta} dati={dati} /> : null}
+          <CondividiEvento e={e} />
           <Contenuto blocchi={e.blocchi} dati={dati} />
           {e.programma.map((sala) => (
             <View key={sala.sala} style={{ gap: spazio.due }}>
