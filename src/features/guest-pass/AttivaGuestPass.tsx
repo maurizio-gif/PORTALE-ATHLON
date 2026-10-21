@@ -7,6 +7,7 @@ import { Avviso } from '@/components/Avviso'
 import { Bottone } from '@/components/Bottone'
 import { Campo } from '@/components/Campo'
 import { CampoPaese } from '@/components/CampoPaese'
+import { CampoTelefono } from '@/components/CampoTelefono'
 import { CasellaResidenteEstero } from '@/components/CasellaResidenteEstero'
 import { CampoData } from '@/components/CampoData'
 import { ChiGestisceCarta, ChiGestisceConto } from '@/components/ChiGestisce'
@@ -508,6 +509,9 @@ export function AttivaGuestPass({ token, nome, iniziale }: { token: string; nome
                 // Con la spunta il codice fiscale non c'e': resta la casella, sotto il posto che occupava.
                 const casella = k === 'codice_fiscale' ? [<CasellaResidenteEstero key="estero" spuntata={estero} onCambia={cambiaEstero} />] : []
                 if (k === 'codice_fiscale' && estero) return casella
+                if (k === 'telefono') {
+                  return [<CampoTelefono key={k} etichetta={CAMPI[k]} value={dati[k] ?? ''} onChange={cambia} errore={!(dati[k] ?? '').trim()} sfondo={c.sfondo} />]
+                }
                 if (k === 'nascita') {
                   return [<CampoData key={k} etichetta={CAMPI[k]} value={dati[k] ?? ''} onChange={cambia} errore={!(dati[k] ?? '').trim()} sfondo={c.sfondo} />]
                 }
@@ -697,7 +701,7 @@ export function AttivaGuestPass({ token, nome, iniziale }: { token: string; nome
             ['Intestatario', perFiglio ? nomeFiglio || 'tuo figlio' : [dati.nome, dati.cognome].filter(Boolean).join(' ')],
             ...(perFiglio ? [['Genitore che paga', [dati.nome, dati.cognome].filter(Boolean).join(' ')]] : []),
             ['Validità', inizio ? `dal ${giornoLungo(inizio)} al ${giornoLungo(fineSettimana(inizio))} compresi` : 'scegli il giorno d’inizio'],
-            ['Prezzo', `${p.prezzo} € una tantum, IVA inclusa`],
+            ['Prezzo', `${p.prezzo} € una tantum`],
             ['Rinnovo', 'nessuno: finisce da solo, senza impegno e senza altri addebiti'],
             ['Pagamento', metodoLeggibile ?? 'scegli come pagare'],
           ].map(([k, v]) => (
