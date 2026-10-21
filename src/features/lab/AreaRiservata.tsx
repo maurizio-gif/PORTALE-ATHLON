@@ -15,6 +15,7 @@ import { spazio } from '@/theme'
 
 import { CHIAVE_CONTRATTI, ElencoAbbonamenti } from './AbbonamentiMiei'
 import { AvvisoCertificato } from './home/AvvisoCertificato'
+import { CartaInvita } from './home/CartaInvita'
 import { CartaShop } from './home/CartaShop'
 import { DaFare } from './home/DaFare'
 import { MessaggioBenvenuto } from './home/MessaggioBenvenuto'
@@ -411,6 +412,9 @@ export function AreaRiservata({ email }: { email: string }) {
       <MessaggioBenvenuto email={email} onSezione={(s) => vai(s, true)} />
 
       <DaFare area={area} onSezione={(s) => vai(s, true)} />
+
+      {/* L'invito di un amico: il link personale da condividere, solo per chi ha un abbonamento in vigore (home/CartaInvita). */}
+      <CartaInvita area={area} />
 
       {/* Lo shop: una voce della barra e, qui, la sua carta, fuori dalla sezione Prodotti (home/CartaShop). */}
       <CartaShop />

@@ -84,6 +84,9 @@ const ICONE = {
   // Lo shop (18/10/2026).
   carrello: ['cart.fill', 'shopping_cart'],
   sacchetto: ['bag.fill', 'shopping_bag'],
+  // L'invito di un amico (21/10/2026): l'SMS e il link da copiare.
+  fumetto: ['message.fill', 'sms'],
+  link: ['link', 'link'],
 } as const satisfies Record<string, readonly [SFSymbol, AndroidSymbol]>
 
 export type NomeIcona = keyof typeof ICONE
