@@ -222,9 +222,9 @@ export function Iscrizione() {
                       <RigaDato nome="Nome e cognome" valore={`${anteprima.contraente.nome} ${anteprima.contraente.cognome}`.trim()} />
                       <RigaDato nome="Nato/a il" valore={anteprima.contraente.data_nascita ? dataLunga(anteprima.contraente.data_nascita) : null} />
                       <RigaDato nome="Codice fiscale" valore={anteprima.contraente.codice_fiscale?.toUpperCase() ?? (anteprima.contraente.senza_codice_fiscale ? CODICE_FISCALE_NON_ATTRIBUITO : null)} />
-                      <RigaDato nome="Residenza" valore={residenzaConPaese(anteprima.contraente)} />
-                      <RigaDato nome="Email" valore={anteprima.contraente.email} />
-                      <RigaDato nome="Telefono" valore={anteprima.contraente.telefono} />
+                      <RigaDato nome={anteprima.genitore ? 'Indirizzo del genitore' : 'Residenza'} valore={residenzaConPaese(anteprima.contraente)} />
+                      {anteprima.contraente.email ? <RigaDato nome="Email" valore={anteprima.contraente.email} /> : null}
+                      <RigaDato nome={anteprima.genitore ? 'Cellulare del genitore' : 'Telefono'} valore={anteprima.contraente.telefono} />
                       {anteprima.genitore ? <RigaDato nome="Firma il genitore" valore={`${anteprima.genitore.nome} ${anteprima.genitore.cognome}`.trim()} /> : null}
                     </View>
                   </Carta>
@@ -232,7 +232,8 @@ export function Iscrizione() {
                     <CorreggiDati
                       key={`${d.member_id}-${d.codice_fiscale}-${d.paese}-${d.telefono}-${d.indirizzo?.via}-${d.indirizzo?.cap}-${d.indirizzo?.paese}`}
                       persona={d}
-                      titolo={d.ruolo === 'genitore' ? 'Dati del genitore che firma' : 'Correggi i dati'}
+                      titolo={d.ruolo === 'genitore' ? 'Indirizzo, cellulare e dati del genitore che firma' : 'Correggi i dati'}
+                      senzaRecapiti={d.ruolo === 'contraente' && !!anteprima.genitore}
                       onSalvato={() => carica(inizio)}
                     />
                   ))}
@@ -247,7 +248,8 @@ export function Iscrizione() {
                     <CorreggiDati
                       key={`${d.member_id}-m`}
                       persona={d}
-                      titolo={d.ruolo === 'genitore' ? 'Dati del genitore che firma' : 'I dati'}
+                      titolo={d.ruolo === 'genitore' ? 'Indirizzo, cellulare e dati del genitore che firma' : 'I dati'}
+                      senzaRecapiti={d.ruolo === 'contraente' && personeDati.some((x) => x.ruolo === 'genitore')}
                       apertoDa
                       mancanti={mancanti}
                       onSalvato={() => carica(inizio)}
