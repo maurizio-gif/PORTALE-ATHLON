@@ -127,7 +127,14 @@ export type PercorsoBozza = {
 
 export type PercorsoSalvato = PercorsoBozza & { id: string; creato_il: string; aggiornato_il: string }
 
-export type Quota = { usate: number; massimo: number }
+export type Quota = {
+  usate: number
+  massimo: number
+  /** I consigli si contano in una settimana; il Percorso in trenta giorni (allora il campo non c'e'). */
+  periodo?: 'settimana'
+  /** In prova il limite si dice ma non si applica (`CONSIGLI_IN_PROVA` della funzione). */
+  in_prova?: boolean
+}
 export type Idoneita = { categorie: string[] | null; incerta: boolean }
 export type SchedeLezioni = Record<string, SchedaLezione>
 
@@ -444,6 +451,10 @@ export type RispostaConsigli = {
   /** Falso se PerfectGym non ha risposto: i consigli si vedono, ma non si sa cosa e' gia' prenotato. */
   prenotazioni_lette: boolean
   quota: Quota
+  /** Quando sono stati scritti: restano salvati, e le lezioni si rileggono a ogni apertura. null se non si sono salvati. */
+  salvati_il: string | null
+  /** Le risposte salvate, senza le limitazioni: servono a riaprire il questionario com'era (solo con `consigli_ultimi`). */
+  questionario?: Partial<QuestionarioConsigli>
 }
 
 /** Per aprire la schermata: se i consigli sono accesi, se il socio puo' usarli, quante richieste gli restano oggi. */
@@ -454,7 +465,7 @@ export async function statoConsigli(): Promise<Esito<StatoConsigli>> {
       ok: true,
       member_id: Number(dati.member_id),
       maggiorenne: !!dati.maggiorenne,
-      quota: dati.quota ?? { usate: 0, massimo: 10 },
+      quota: dati.quota ?? { usate: 0, massimo: 1, periodo: 'settimana' },
       attivo: dati.attivo !== false,
       idoneita: dati.idoneita ?? { categorie: null, incerta: true },
     }
@@ -463,27 +474,43 @@ export async function statoConsigli(): Promise<Esito<StatoConsigli>> {
   return errore(dati, stato, 'Non riusciamo ad aprire i consigli adesso.')
 }
 
-/** Il questionario va all'AI e non si conserva. Ci vogliono pochi secondi, a volte mezzo minuto. */
+/** La risposta dei consigli (appena chiesti o salvati) nella forma che la schermata usa. */
+function rispostaDa(dati: Record<string, any>): RispostaConsigli {
+  return {
+    member_id: Number(dati.member_id),
+    sintesi: dati.sintesi ?? null,
+    integrazione: dati.integrazione ?? null,
+    // Una funzione di prima non manda gli orari: le carte restano senza «di solito».
+    consigli: (dati.consigli as ConsiglioRisolto[]).map((c) => ({ ...c, orari: c.orari ?? [], alternative: (c.alternative ?? []).map((a) => ({ ...a, orari: a.orari ?? [] })) })),
+    sedute: Array.isArray(dati.sedute) ? dati.sedute : [],
+    personal: dati.personal && typeof dati.personal === 'object' ? dati.personal : null,
+    schede: dati.schede ?? {},
+    avvisi: dati.avvisi ?? [],
+    prenotazioni_lette: dati.prenotazioni_lette !== false,
+    quota: dati.quota ?? { usate: 0, massimo: 1, periodo: 'settimana' },
+    salvati_il: typeof dati.salvati_il === 'string' ? dati.salvati_il : null,
+    questionario: dati.questionario && typeof dati.questionario === 'object' ? dati.questionario : undefined,
+  }
+}
+
+/**
+ * Il questionario va all'AI. Le limitazioni non si conservano; i consigli e le altre risposte restano salvati, cosi' si
+ * ritrovano (`ultimiConsigli`). Ci vogliono pochi secondi, a volte mezzo minuto.
+ */
 export async function chiediConsigli(q: QuestionarioConsigli): Promise<Esito<{ risposta: RispostaConsigli }>> {
   const { ok, dati, stato } = await chiama({ azione: 'consigli', questionario: q })
-  if (ok && Array.isArray(dati.consigli)) {
-    return {
-      ok: true,
-      risposta: {
-        member_id: Number(dati.member_id),
-        sintesi: dati.sintesi ?? null,
-        integrazione: dati.integrazione ?? null,
-        // Una funzione di prima non manda gli orari: le carte restano senza «di solito».
-        consigli: (dati.consigli as ConsiglioRisolto[]).map((c) => ({ ...c, orari: c.orari ?? [], alternative: (c.alternative ?? []).map((a) => ({ ...a, orari: a.orari ?? [] })) })),
-        sedute: Array.isArray(dati.sedute) ? dati.sedute : [],
-        personal: dati.personal && typeof dati.personal === 'object' ? dati.personal : null,
-        schede: dati.schede ?? {},
-        avvisi: dati.avvisi ?? [],
-        prenotazioni_lette: dati.prenotazioni_lette !== false,
-        quota: dati.quota ?? { usate: 0, massimo: 10 },
-      },
-    }
-  }
+  if (ok && Array.isArray(dati.consigli)) return { ok: true, risposta: rispostaDa(dati) }
   if (dati.errore === 'Azione sconosciuta.') return { ok: false, errore: 'I consigli non sono ancora attivi: riprova più avanti.', stato: 503 }
   return errore(dati, stato, 'L’assistente non è riuscito a dare i consigli adesso. Riprova fra qualche minuto.')
+}
+
+/**
+ * Gli ultimi consigli salvati, con le lezioni di adesso (le prenotazioni si aprono tre giorni prima, quindi cambiano).
+ * `risposta: null` se non ce ne sono, o se la funzione e' di prima e non conosce l'azione: allora si parte dal questionario.
+ */
+export async function ultimiConsigli(): Promise<Esito<{ risposta: RispostaConsigli | null }>> {
+  const { ok, dati, stato } = await chiama({ azione: 'consigli_ultimi' })
+  if (ok) return { ok: true, risposta: Array.isArray(dati.consigli) ? rispostaDa(dati) : null }
+  if (dati.errore === 'Azione sconosciuta.') return { ok: true, risposta: null }
+  return errore(dati, stato, 'Non riusciamo a ritrovare i tuoi consigli adesso.')
 }
