@@ -16,6 +16,7 @@ import { controllaResidenza, controllaTelefono, indirizzoInRiga } from '@/lib/an
 import { PRIVACY_URL } from '@/lib/guestPass'
 import { dataBreve } from '@/lib/metodoPagamento'
 import { CODICE_FISCALE_NON_ATTRIBUITO, ITALIA, pulisciCapLibero } from '@/lib/residenteEstero'
+import { t } from '@/lib/lingua'
 import { spazio } from '@/theme'
 
 import { inMemoria, prendi, ricorda } from './memoria'
@@ -25,6 +26,7 @@ import { CampoCodice, CampoTesto } from './ui/Campi'
 import { Foglio } from './ui/Foglio'
 import { Icona, type NomeIcona } from './ui/Icona'
 import { Carta, Entra, Messaggio, Pulsante, Riga, SchedeInArrivo, Sezione } from './ui/kit'
+import { SceltaLingua } from './ui/SceltaLingua'
 import { PulsanteEsci } from './ui/Uscita'
 import { F, usePalette } from './ui/tema'
 import { colpetto } from './ui/Tocco'
@@ -375,6 +377,11 @@ export function ProfiloContenuto({ onAnagrafica }: { /** La Home lo usa per la t
               stileTitolo={{ fontSize: 14, fontFamily: F.bold, color: p.testo }}
               onPress={() => Linking.openURL(PRIVACY_URL)}
             />
+          </Carta>
+          {/* La lingua dell'app (21/10/2026): italiano o inglese, con le parole inglesi di PerfectGym (lib/lingua.ts). */}
+          <Carta style={{ gap: spazio.due }}>
+            <Text style={{ color: p.testo, fontFamily: F.bold, fontSize: 14 }}>{t('Lingua', 'Language')}</Text>
+            <SceltaLingua />
           </Carta>
           <PulsanteEsci email={dati.email} testo="Esci dall’account" />
         </Sezione>

@@ -1,6 +1,7 @@
 import { SUPABASE_URL } from '@/config'
 import { vistaCorrente } from '@/features/lab/vista'
 import { supabase } from '@/lib/supabase'
+import { intestazioneLingua } from '@/lib/lingua'
 
 // Il laboratorio (binario B): login proprio, fuori da PerfectGym, solo per i
 // tester (tabella portale_lab_tester nel database).
@@ -13,7 +14,7 @@ export async function chiediCodice(email: string): Promise<{ ok: true } | { ok: 
   try {
     const r = await fetch(`${SUPABASE_URL}/functions/v1/portale-accesso`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...intestazioneLingua() },
       body: JSON.stringify({ email }),
     })
     const dati = (await r.json().catch(() => null)) as { ok?: boolean; errore?: string } | null
@@ -190,7 +191,7 @@ export async function funzione(nome: string, corpo: Record<string, unknown>): Pr
   try {
     const r = await fetch(`${SUPABASE_URL}/functions/v1/${nome}`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, ...(vista ? { 'X-Athlon-Come': vista } : {}) },
+      headers: { 'Content-Type': 'application/json', ...intestazioneLingua(), Authorization: `Bearer ${token}`, ...(vista ? { 'X-Athlon-Come': vista } : {}) },
       body: JSON.stringify(corpo),
     })
     const dati = ((await r.json().catch(() => null)) ?? {}) as Record<string, any>

@@ -1,4 +1,5 @@
 import { SUPABASE_URL } from '@/config'
+import { intestazioneLingua } from '@/lib/lingua'
 
 // Il Guest Pass dal link: il primo passo e' l'email con la privacy, e la Edge Function `guest-pass` risponde sempre
 // allo stesso modo, «ti abbiamo mandato il link» (21/10/2026): chi puo' averlo, e per chi (per se' o per un figlio dai
@@ -9,7 +10,7 @@ async function chiama(corpo: Record<string, unknown>, token?: string): Promise<{
   try {
     const r = await fetch(`${SUPABASE_URL}/functions/v1/guest-pass`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+      headers: { 'Content-Type': 'application/json', ...intestazioneLingua(), ...(token ? { Authorization: `Bearer ${token}` } : {}) },
       body: JSON.stringify(corpo),
     })
     const dati = ((await r.json().catch(() => null)) ?? {}) as Record<string, any>
@@ -43,7 +44,7 @@ export async function chiediResetPassword(email: string): Promise<boolean> {
   try {
     const r = await fetch(`${SUPABASE_URL}/functions/v1/sito-reset-password`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...intestazioneLingua() },
       body: JSON.stringify({ email, pagina: '/r', origine: 'guest-pass-reset' }),
     })
     const d = (await r.json().catch(() => null)) as { esito?: string } | null

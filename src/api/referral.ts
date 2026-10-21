@@ -1,5 +1,6 @@
 import { SUPABASE_URL } from '@/config'
 import { funzione } from '@/api/lab'
+import { intestazioneLingua } from '@/lib/lingua'
 
 // L'invito di un amico (21/10/2026): il link personale del socio e gli amici che l'hanno accettato, dalla funzione
 // `portale-lab-referral` (APP-ATHLON); e, per la pagina pubblica dell'invito, il nome di chi ha invitato (`guest-pass`,
@@ -70,7 +71,7 @@ export async function leggiInvito(codice: string): Promise<{ valido: boolean; no
   try {
     const r = await fetch(`${SUPABASE_URL}/functions/v1/guest-pass`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...intestazioneLingua() },
       body: JSON.stringify({ azione: 'invito', codice }),
     })
     const d = (await r.json().catch(() => null)) as { ok?: boolean; valido?: boolean; nome?: string | null; prezzo?: number; prezzo_pieno?: number } | null

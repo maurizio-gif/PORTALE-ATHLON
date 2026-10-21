@@ -14,6 +14,7 @@ import { CampoCodice, CampoTesto, CIFRE, IncollaCodice } from './ui/Campi'
 import { Icona } from './ui/Icona'
 import { Installa } from './ui/Installa'
 import { Carta, Messaggio, Pulsante } from './ui/kit'
+import { SceltaLingua } from './ui/SceltaLingua'
 import { Schermata } from './ui/Schermata'
 import { F, FUOCO, NOTTE, usePalette } from './ui/tema'
 import { colpetto, Tocco } from './ui/Tocco'
@@ -186,6 +187,8 @@ export function Accesso() {
           Come trattiamo i tuoi dati: <Text style={{ fontFamily: F.bold, color: p.accento, textDecorationLine: 'underline' }}>informativa privacy</Text>
         </Text>
       </Tocco>
+      {/* La lingua, anche prima di entrare (lib/lingua.ts). */}
+      <SceltaLingua centrata />
     </Schermata>
   )
 }
