@@ -1014,3 +1014,17 @@ giorno 1 e vanno usate entro la fine del mese solare**, e che **a mese iniziato 
 (la data la calcola `fineMeseRoma`). Sotto la casella dei consensi c'è l'**estratto espandibile della sezione 9 dei Termini e Condizioni** (`EstrattoTermini`), chiuso di partenza.
 **Non c'è il pro-rata: l'importo è fisso, qualunque sia il giorno di partenza** (Maurizio, 21/10/2026), e il foglio non dice più che «l'importo esatto lo calcola PerfectGym». Il file dei Termini allegato su PerfectGym **non si apre più da qui** (richiesta di Maurizio, 21/10/2026): resta solo l'estratto. Il testo è **copiato alla lettera** in `src/features/lab/personal/termini.ts` da `src/data/termini.json` del sito (SITO-ATHLON, versione Aprile 2026): è testo di contratto, non si
 riscrive; se il sito cambia la sezione 9, si ricopia da lì. Non si legge dal sito a ogni apertura perché il catalogo pubblico (`/contratto-abbonamento.json`) ha solo le sezioni 1, 2, 3 e 7.
+
+## Gli eventi di Club Life: si prenota dal calendario e si condividono con un amico
+
+Pagina dell'evento (`EventoDettaglio` in `src/features/lab/clublife/Dettaglio.tsx`, 21/10/2026, richiesta di Maurizio):
+
+- **Gli eventi che si prenotano dal sito (`prenotaSulSito`) non mandano più il link per email**: il pulsante «Prenota nel calendario» porta alle Prenotazioni
+  (`/calendario?giorno=AAAA-MM-GG&attivita=<categoria>`) già sul giorno dell'evento e sulla sua categoria su PerfectGym («Eventi Gratuiti», «Master Class»). La categoria
+  arriva da `categoria` dell'evento nel `club-life.json` del sito (che la prende da `sito-eventi`); finché non c'è, si apre il giorno e basta. Il `Calendario` legge i due
+  valori dall'indirizzo (`giorno` solo se ha la forma di una data, `attivita` solo insieme al giorno, al massimo 60 caratteri) e riparte da lì; il filtro si toglie dalle
+  tessere come sempre. **Il calendario mostra oggi e i 14 giorni dopo**, ed è anche quando si aprono le prenotazioni di un evento: se l'evento è più lontano, al posto del
+  pulsante c'è «Le prenotazioni non sono ancora aperte … a partire da <giorno>». Chi guarda in vista cliente arriva alle Prenotazioni come tutti: lì i comandi sono già chiusi.
+  Il modulo per email dell'app (`richiediLinkEvento`, `api/moduli.ts`) non è più chiamato da qui; il link per email esiste ancora dal sito.
+- **«Condividi con un amico»** (`condividi.ts`): il foglio di condivisione del telefono (Web Share sul web, `Share` sul nativo) con testo e link alla **pagina pubblica dell'evento
+  sul sito**; sul computer il link si copia. Non porta nessun dato di chi condivide. Lo stesso pulsante c'è nella pagina dell'evento del sito.

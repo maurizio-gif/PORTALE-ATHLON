@@ -9,5 +9,5 @@ export default function Pagina() {
   const sessione = useSessione()
   if (sessione === undefined) return <SchermataInArrivo />
   if (!sessione) return <Redirect href="/" />
-  return <EventoDettaglio emailAccesso={sessione.user.email} />
+  return <EventoDettaglio />
 }

@@ -65,8 +65,10 @@ export type EventoClub = {
   alt: string
   note: string[]
   programma: { sala: string; voci: { ora: string; lezione: string; trainer: string | null }[] }[]
-  /** Si prenota col modulo del sito: per ora il comando apre la pagina dell'evento. */
+  /** Si prenota dal calendario dell'app (non da un comando del sito): il comando porta alle Prenotazioni, su questo giorno e questa categoria. */
   prenotaSulSito: boolean
+  /** La categoria dell'evento su PerfectGym («Eventi Gratuiti», «Master Class»), il filtro del calendario; assente finche' il sito non la pubblica. */
+  categoria?: string | null
   cta: Comando | null
   url: string
   blocchi: Blocco[]

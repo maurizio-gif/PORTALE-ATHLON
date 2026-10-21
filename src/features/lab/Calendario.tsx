@@ -726,9 +726,16 @@ function CalendarioGiorno() {
     setCarica(false)
   }, [])
 
+  // Si puo' arrivare con un giorno e una categoria gia' scelti (`?giorno=2026-10-31&attivita=Eventi Gratuiti`): e' il
+  // pulsante «Prenota nel calendario» della pagina di un evento (21/10/2026). Un valore che non ha la forma giusta si
+  // ignora; un giorno fuori dai quindici del calendario il server lo riporta a oggi.
+  const { giorno: giornoDaFuori, attivita: attivitaDaFuori } = useLocalSearchParams<{ giorno?: string; attivita?: string }>()
+  const giornoScelto = typeof giornoDaFuori === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(giornoDaFuori) ? giornoDaFuori : undefined
+  const attivitaScelta = giornoScelto && typeof attivitaDaFuori === 'string' && attivitaDaFuori.length <= 60 ? attivitaDaFuori : null
   useEffect(() => {
-    leggi()
-  }, [leggi])
+    setAttivita(attivitaScelta)
+    leggi(giornoScelto)
+  }, [giornoScelto, attivitaScelta, leggi])
 
   // Il ritorno dal pagamento di PerfectGym (?acquisto=<id>): si chiede
   // com'e' andata finche' la prenotazione non c'e' (il pagamento arriva a
