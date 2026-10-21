@@ -16,6 +16,7 @@ import { spazio } from '@/theme'
 import { CHIAVE_CONTRATTI, ElencoAbbonamenti } from './AbbonamentiMiei'
 import { AvvisoCertificato } from './home/AvvisoCertificato'
 import { CartaInvita } from './home/CartaInvita'
+import { CartaJunior } from './home/CartaJunior'
 import { CartaShop } from './home/CartaShop'
 import { DaFare } from './home/DaFare'
 import { MessaggioBenvenuto } from './home/MessaggioBenvenuto'
@@ -418,6 +419,9 @@ export function AreaRiservata({ email }: { email: string }) {
 
       {/* Lo shop: una voce della barra e, qui, la sua carta, fuori dalla sezione Prodotti (home/CartaShop). */}
       <CartaShop />
+
+      {/* La sezione Junior: i gruppi dei corsi per bambini e ragazzi con i posti liberi, per anno di nascita (home/CartaJunior). */}
+      <CartaJunior area={area} />
 
       <Installa />
 

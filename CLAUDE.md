@@ -1075,3 +1075,27 @@ Decisione di Maurizio. Funzione, regole e controlli: `CLAUDE.md` di APP-ATHLON, 
 - **Il cellulare ha la tendina del prefisso** (`components/CampoTelefono.tsx`, prefissi in `lib/prefissi.ts`; richiesta di Maurizio, 21/10/2026): a sinistra il prefisso internazionale, già su +39, che si apre come la tendina del Paese e si cerca per nome o per numero; a destra il numero. Parte un valore solo, «+<prefisso><numero>» senza spazi, come lo legge `telefonoDa`; un numero già scritto si divide da sé (senza «+» è italiano; «+1», «+7», «+44» condivisi valgono Stati Uniti, Russia, Regno Unito), e chi incolla «+44…» nel numero sposta il prefisso nella tendina. **Il prezzo del riepilogo non dice più «IVA inclusa»** (richiesta di Maurizio). Provato nel browser con la funzione simulata: +39 di partenza, la ricerca, +41 scelto che fa partire `+413401234567`.
 
 Per verificare: `npx tsc --noEmit` con i soli 41 errori di base. **Provato in un browser vero** (Expo web, Supabase simulato da un piccolo server locale, 375 px e schermo largo): il primo passo (senza consenso non parte niente; poi parte solo `{ azione, email, privacy, marketing }`), la scelta con un genitore socio (per me spento col perché, Valentina 16 anni, Luca 10 anni spento), la dichiarazione, i dati del genitore, il riepilogo con intestataria e genitore, la conferma e la pagina finale del figlio, «Attiva un altro Guest Pass» (link nuovo, Valentina «ha già il Guest Pass»), il figlio nuovo con un codice fiscale già registrato (fermo) e con un caso da verificare (avviso, conferma spenta), chi il club non conosce («Per te» e la password). **Non provato**: le funzioni vere, PerfectGym vero, un telefono.
+
+## La sezione Junior: i gruppi dei corsi per bambini e ragazzi, per anno di nascita, con i posti liberi (21/10/2026)
+
+Richiesta di Maurizio. Cartella `src/features/lab/junior/` (`Junior.tsx`, `comune.ts` puro), rotta `(portale)/junior.tsx`, API `src/api/junior.ts`, carta `home/CartaJunior.tsx` (in Home dopo lo Shop). Dati: funzione
+`portale-lab-junior` di APP-ATHLON, che legge `public.gruppi_junior()` dal mirror (anni di nascita dal nome del gruppo, posti da PerfectGym): `CLAUDE.md` di APP-ATHLON.
+
+- **Si legge e basta**: tessere degli anni di nascita (dal piu' giovane; un anno senza posti e' piu' chiaro), «Solo i gruppi con posti liberi», poi i gruppi divisi per corso (Scuola Nuoto mono, bi, poi gli altri) in
+  ordine di settimana e di ora, con «N posti liberi» / «Ultimo posto» / «Completo». Un gruppo di piu' anni («(2015-14-13)») compare sotto ognuno. **Da qui non ci si iscrive** (primo passo).
+- **L'anno si apre sul figlio**: la carta in Home, se nel nucleo c'e' un figlio fra i 3 e i 17 anni, apre `/junior?anno=<il suo anno>` e lo nomina; altrimenti il piu' giovane. In vista cliente si vede (nessun dato di persona).
+- La nota in fondo dice che i posti sono quelli del gestionale e che la conferma e' della segreteria.
+- **In cima, «La tua famiglia»** (stesso giorno, seconda richiesta): chi del nucleo puo' fare le attivita' junior, con «Classe 2015» e i gruppi a cui e' iscritto (o «nessun gruppo per ora»); i minorenni non ancora
+  idonei (un neonato sotto i 3 mesi) si vedono con il perche' e «Non ancora», gli adulti no. Chi e' idoneo lo dice il database (`nucleo` di `portale-lab-junior`: dai 3 mesi ai nati nell'anno piu' vecchio dei gruppi
+  del Nuoto Agonistico). Toccando una persona si apre il suo anno, e senza `?anno=` la schermata parte dall'anno del piu' giovane idoneo (`annoDalNucleo`). Con una funzione che non da' `nucleo` il blocco non c'e'.
+- **«Aggiungi un componente»** (`FoglioComponente`, mai in vista cliente): nome, cognome, data di nascita, codice fiscale, tutti obbligatori, e la casella «Dichiaro di esserne il genitore o il tutore legale». L'app
+  ferma prima il codice fiscale non valido o non coerente (`problemaCodiceFiscale`, lo stesso del Guest Pass) e il maggiorenne; il resto lo controlla la funzione, compreso che la persona **non ci sia gia'** (nel nucleo:
+  «è già nel tuo nucleo familiare»; al club: «ha già una scheda… passa in segreteria», senza dire di chi). A scheda creata il nucleo si aggiorna dalla risposta e la memoria dell'area della Home si butta (`scorda('area')`).
+  `CampoData` sta dentro una `View` perche' ha `flex: 1` e in una colonna che scorre si schiacciava sul campo dopo (visto nel browser).
+
+Per verificare: `npx tsc --noEmit` pulito; `comune.ts` con `npx tsx`. **Guardato in Chromium** (bundle web esportato, funzione simulata con `page.route`, 390 px chiaro e scuro, 1280 px): tessere degli anni, filtro, gruppi
+di piu' anni, «Ultimo posto» e «Completo», il nucleo (l'anno del figlio aperto da solo, «Non ancora» per il neonato), il foglio (pulsante spento senza la dichiarazione, quello che parte: azione, nome, cognome, data
+`AAAA-MM-GG`, codice maiuscolo, `tutore: true`), il nucleo aggiornato dopo l'aggiunta, l'errore «già al club» nel foglio, nessuno scorrimento orizzontale, nessun errore di pagina. **Non provato**: la funzione vera con una
+sessione vera (e quindi la creazione su PerfectGym), un telefono, la carta in Home renderizzata.
+
+**Stato (21/10/2026): in produzione**, su richiesta di Maurizio: migrazione `20261021d` e `portale-lab-junior` (v1) pubblicate prima, poi questa app su `main` (vedi APP-ATHLON).
