@@ -3,8 +3,9 @@ import { router, useFocusEffect } from 'expo-router'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { ActivityIndicator, StyleSheet, Text, TextInput, View } from 'react-native'
 
-import { MESSAGGIO_SCUOLA_NUOTO, type SchedaLezione } from '@/api/lab'
+import { MESSAGGIO_SCUOLA_NUOTO, statoPersonal, type SchedaLezione, type StatoPersonal } from '@/api/lab'
 import {
+  BISOGNI,
   chiediConsigli,
   DISCIPLINE,
   ESPERIENZE,
@@ -14,13 +15,17 @@ import {
   OBIETTIVI,
   OBIETTIVI_MAX,
   PAUSE,
+  PERSONAL_ESPERIENZE,
+  PERSONAL_INTERESSI,
   statoConsigli,
+  type ConsiglioPersonal,
   type ConsiglioRisolto,
   type OrarioLezione,
   type RispostaConsigli,
   type SedutaConsigliata,
   type StatoConsigli,
 } from '@/api/percorso'
+import { euro } from '@/lib/eventi'
 import { spazio } from '@/theme'
 
 import { inMemoria, prendi, ricorda } from '../memoria'
@@ -41,12 +46,14 @@ import {
   CHIAVE_SCELTE_CONSIGLI,
   CHIAVE_STATO_CONSIGLI,
   CHIAVE_ULTIMI_CONSIGLI,
+  BISOGNO_TESTO,
   conGusti,
   conPrenotazione,
   cosaManca,
   destinazioniSeduta,
   DISCIPLINA_TESTO,
   ESPERIENZA_TESTO,
+  formulePersonal,
   giorniTesto,
   GUSTI,
   gustiDi,
@@ -54,11 +61,15 @@ import {
   LIVELLO_TESTO,
   orariOrdinati,
   PAUSA_TESTO,
+  PERSONAL_ESPERIENZA_TESTO,
+  PERSONAL_INTERESSE_TESTO,
   questionarioDa,
   SCELTE_DI_PARTENZA,
+  sedutePersonalTesto,
   testoOrario,
   trovaLezione,
   volteTesto,
+  type FormulaPersonal,
   type SceltePerConsigli,
 } from './comune'
 import { ElencoLezioni, type ApriScheda, type AzioniPrenotazione } from './Lezioni'
@@ -76,6 +87,12 @@ import { ElencoLezioni, type ApriScheda, type AzioniPrenotazione } from './Lezio
 // come recupero) l'assistente lo dice in due parole, «potresti metterla il martedi'», e la carta porta a **comporre il piano**
 // («Componi il tuo piano», `/allenamento/agente`, gia' in sala o in vasca) e al calendario per prenotare il turno. Il piano se lo
 // costruisce il socio, con il suo obiettivo: qui non si scrivono esercizi. La vasca c'e' solo per chi sa stile libero e dorso.
+//
+// **Il personal trainer** (21/10/2026): domande dirette (se l'ha mai seguito un personal, se gli piacerebbe) e indirette (cosa c'e'
+// dietro agli obiettivi: la tecnica, una data, ripartire, la costanza, un lavoro su misura). Se serve, i consigli propongono di
+// affiancare una seduta al mese o un abbonamento PT da due, quattro o otto: la carta mostra i prezzi di PerfectGym
+// (`statoPersonal`, gli stessi della schermata Personal) e porta a prenotare e pagare la seduta, o ad attivare l'abbonamento.
+// A chi ha risposto «No, grazie» non si propone.
 //
 // Il questionario non si conserva: le limitazioni sono dati sulla salute, arrivano all'AI e basta, e **non stanno nemmeno
 // nella memoria dell'app**. Si ricordano (solo in memoria, mai sul disco) le altre scelte e l'ultima risposta, cosi' dopo
@@ -284,6 +301,13 @@ export function Consigli() {
         </Text>
       </Sezione>
 
+      <Sezione titolo="Cosa c’è dietro ai tuoi obiettivi" destra={<Facoltativo />}>
+        <SceltePiu valori={BISOGNI.map((b) => ({ valore: b, testo: BISOGNO_TESTO[b].testo }))} scelti={scelte.bisogni} onCambia={(bisogni) => cambia({ bisogni })} />
+        {scelte.bisogni.length ? (
+          <Text style={[stili.nota, { color: p.testoSecondario }]}>{scelte.bisogni.map((b) => `${BISOGNO_TESTO[b].testo}: ${BISOGNO_TESTO[b].nota}`).join(' · ')}</Text>
+        ) : null}
+      </Sezione>
+
       <Sezione titolo="La tua esperienza">
         <Scelte valori={ESPERIENZE.map((e) => ({ valore: e, testo: ESPERIENZA_TESTO[e].testo }))} scelto={esperienza} onScegli={(e) => cambia({ esperienza: e })} />
         {esperienza ? <Text style={[stili.nota, { color: p.testoSecondario }]}>{ESPERIENZA_TESTO[esperienza].nota}</Text> : null}
@@ -360,6 +384,27 @@ export function Consigli() {
         <Text style={[stili.nota, { color: p.testoSecondario }]}>
           {scelte.fasce.length ? `${scelte.fasce.map((f) => `${NOME_FASCIA[f].titolo}: ${NOME_FASCIA[f].nota}`).join(' · ')}. ` : ''}
           Non è un vincolo: ti mostriamo prima le lezioni che ci stanno, ma ti diciamo anche quelle adatte a te in altri momenti.
+        </Text>
+      </Sezione>
+
+      <Sezione titolo="Ti ha mai seguito un personal trainer?" destra={<Facoltativo />}>
+        <Scelte
+          valori={PERSONAL_ESPERIENZE.map((v) => ({ valore: v, testo: PERSONAL_ESPERIENZA_TESTO[v] }))}
+          scelto={scelte.personal_esperienza}
+          onScegli={(v) => cambia({ personal_esperienza: v === scelte.personal_esperienza ? null : v })}
+        />
+      </Sezione>
+
+      <Sezione titolo="Ti piacerebbe allenarti con un personal trainer?" destra={<Facoltativo />}>
+        <Scelte
+          valori={PERSONAL_INTERESSI.map((v) => ({ valore: v, testo: PERSONAL_INTERESSE_TESTO[v] }))}
+          scelto={scelte.personal_interesse}
+          onScegli={(v) => cambia({ personal_interesse: v === scelte.personal_interesse ? null : v })}
+        />
+        <Text style={[stili.nota, { color: p.testoSecondario }]}>
+          {scelte.personal_interesse === 'no'
+            ? 'Va bene: non te lo proponiamo.'
+            : 'Un trainer del club che lavora solo con te, accanto alle lezioni: se ti può servire, ti diciamo quante sedute al mese avrebbero senso.'}
         </Text>
       </Sezione>
 
@@ -469,6 +514,7 @@ function Risposta({ risposta, azioni, onScheda, onCambia, quota }: { risposta: R
       ) : null}
 
       {risposta.sedute.length ? <BloccoSedute sedute={risposta.sedute} /> : null}
+      {risposta.personal ? <CartaPersonal c={risposta.personal} memberId={risposta.member_id} /> : null}
 
       {risposta.avvisi.map((a) => (
         <Messaggio key={a} tono="attenzione">
@@ -638,6 +684,96 @@ function CartaSeduta({ s }: { s: SedutaConsigliata }) {
   )
 }
 
+/**
+ * Il personal trainer da affiancare alle lezioni: quante sedute al mese e perche' (dal consiglio), e le formule con i prezzi di
+ * PerfectGym (`statoPersonal`, letto qui: e' la stessa lettura della schermata Personal). La consigliata e' in evidenza, le altre
+ * sotto, per chi vuole di piu' o di meno. Ognuna porta a `/personal`: a prenotare e pagare la seduta, o al foglio dell'abbonamento PT.
+ */
+function CartaPersonal({ c, memberId }: { c: ConsiglioPersonal; memberId: number }) {
+  const p = usePalette()
+  const [stato, setStato] = useState<StatoPersonal | null>(null)
+  const [letto, setLetto] = useState(false)
+  useEffect(() => {
+    let vivo = true
+    statoPersonal(memberId).then((r) => {
+      if (!vivo) return
+      if (r.ok) setStato(r.stato)
+      setLetto(true)
+    })
+    return () => {
+      vivo = false
+    }
+  }, [memberId])
+  const f = formulePersonal(c, stato)
+  return (
+    <Sezione titolo="Con un personal trainer">
+      <Carta style={{ gap: spazio.tre }}>
+        <View style={stili.testa}>
+          <Bollino icona="persona" tono="accento" size={42} />
+          <View style={{ flex: 1, gap: 2 }}>
+            <Text style={[stili.titolo, { color: p.testo }]}>{`Ti consigliamo ${sedutePersonalTesto(c.sedute_mese)}`}</Text>
+            <Text style={[stili.nota, { color: p.testoSecondario }]}>Accanto alle lezioni, con un trainer che lavora solo con te</Text>
+          </View>
+        </View>
+        {c.perche ? <Text style={[stili.perche, { color: p.testoSecondario }]}>{c.perche}</Text> : null}
+        {!letto ? (
+          <ActivityIndicator color={p.accento} />
+        ) : f.attivo ? (
+          <>
+            <Text style={[stili.nota, { color: p.testo }]}>{`Hai già l’abbonamento PT «${f.attivo}»: prenota le sedute del mese con il trainer che preferisci.`}</Text>
+            <Pulsante testo="Prenota una seduta" icona="calendario" onPress={() => router.push('/personal')} />
+          </>
+        ) : (
+          <>
+            <RigaFormula f={f.consigliata} principale />
+            {f.senzaAbbonamento ? (
+              <Text style={[stili.piccola, { color: p.testoTerzo }]}>
+                {`L’abbonamento PT da ${sedutePersonalTesto(c.sedute_mese)} si aggiunge a un abbonamento attivo: intanto puoi cominciare con una seduta singola.`}
+              </Text>
+            ) : null}
+            {f.altre.length ? (
+              <View style={{ gap: spazio.due }}>
+                <Text style={[stili.sottoTitolo, { color: p.testo }]}>Oppure</Text>
+                {f.altre.map((x) => (
+                  <RigaFormula key={x.chiave} f={x} />
+                ))}
+              </View>
+            ) : null}
+          </>
+        )}
+        <Text style={[stili.piccola, { color: p.testoTerzo }]}>Il personal si paga a parte. Prima di pagare un abbonamento PT leggi le sue regole nel foglio d’acquisto.</Text>
+      </Carta>
+    </Sezione>
+  )
+}
+
+function RigaFormula({ f, principale }: { f: FormulaPersonal; principale?: boolean }) {
+  const p = usePalette()
+  const prezzo = f.prezzo != null ? `${euro(f.prezzo)}${f.alMese ? ' al mese' : ''}` : null
+  const azione = f.destinazione.params ? 'Attiva l’abbonamento PT' : 'Prenota e paga la seduta'
+  if (principale) {
+    return (
+      <View style={[stili.formula, { backgroundColor: p.incavo }]}>
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: spazio.due }}>
+          <Text style={[stili.sottoTitolo, { color: p.testo, flex: 1 }]}>{f.titolo}</Text>
+          {prezzo ? <Text style={[stili.sottoTitolo, { color: p.testo }]}>{prezzo}</Text> : null}
+        </View>
+        {f.sotto ? <Text style={[stili.nota, { color: p.testoSecondario }]}>{f.sotto}</Text> : null}
+        <Pulsante testo={azione} icona={f.destinazione.params ? 'rinnovo' : 'calendario'} onPress={() => router.push(f.destinazione)} />
+      </View>
+    )
+  }
+  return (
+    <Tocco onPress={() => router.push(f.destinazione)} etichetta={`${f.titolo}${prezzo ? `, ${prezzo}` : ''}`} style={[stili.formulaAltra, { borderColor: p.linea }]}>
+      <View style={{ flex: 1, gap: 1 }}>
+        <Text style={[stili.nota, { color: p.testo, fontFamily: F.bold }]}>{f.titolo}</Text>
+        {prezzo ? <Text style={[stili.nota, { color: p.testoSecondario }]}>{prezzo}</Text> : null}
+      </View>
+      <Icona nome="avanti" size={18} colore={p.testoTerzo} />
+    </Tocco>
+  )
+}
+
 const stili = StyleSheet.create({
   nota: { fontFamily: F.medio, fontSize: 13.5, lineHeight: 19 },
   piccola: { fontFamily: F.medio, fontSize: 12, lineHeight: 17 },
@@ -650,6 +786,8 @@ const stili = StyleSheet.create({
   alternativeTesta: { flexDirection: 'row', alignItems: 'center', gap: spazio.tre, paddingVertical: 4 },
   alternativa: { gap: spazio.due, borderLeftWidth: 3, paddingLeft: spazio.tre },
   orario: { borderRadius: 999, paddingVertical: 5, paddingHorizontal: 11 },
+  formula: { borderRadius: 16, padding: spazio.tre, gap: spazio.due },
+  formulaAltra: { flexDirection: 'row', alignItems: 'center', gap: spazio.tre, borderWidth: 1, borderRadius: 14, padding: spazio.tre },
   orarioTesto: { fontFamily: F.bold, fontSize: 13 },
   riga: { borderRadius: 14, padding: spazio.tre, fontFamily: F.medio, fontSize: 14.5 },
   testo: { minHeight: 70, borderRadius: 14, padding: spazio.tre, fontFamily: F.medio, fontSize: 14.5, textAlignVertical: 'top' },

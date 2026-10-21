@@ -638,6 +638,13 @@ editor, niente conferma, niente «Prenota la settimana». Funzione, controlli, q
   che si apre già in sala o in vasca: `Agente.tsx` legge `dove`) e a «Prenota un turno», il calendario sul primo giorno con turni e sull'attività (`?giorno=…&attivita=Gym Floor|Nuoto Libero`). **Qui non si
   scrivono esercizi**: il piano se lo compone il socio con il suo obiettivo. I turni di Gym Floor e di Nuoto Libero non sono più elencati qui: si prenotano dal calendario. La vasca c'è solo per chi sa
   stile libero e dorso; l'assistente di sala supervisiona le attività, non segue il socio.
+- **Il personal trainer** (21/10/2026): nel questionario «Cosa c'è dietro ai tuoi obiettivi» (imparare a fare bene gli esercizi, ho una data in mente, ripartire dopo uno stop, restare costante, un lavoro su
+  misura) sono le domande indirette; «Ti ha mai seguito un personal trainer?» (mai · in passato · sì, adesso) e «Ti piacerebbe allenarti con un personal trainer?» (no, grazie · mi incuriosisce · sì) quelle
+  dirette. Se serve, i consigli hanno la carta **«Con un personal trainer»** (`CartaPersonal`): «Ti consigliamo N sedute al mese» e il perché, poi la formula consigliata in evidenza e le altre sotto
+  («Oppure»), tutte con **i prezzi di PerfectGym** letti da `statoPersonal` (la stessa lettura della schermata Personal; `formulePersonal` in `comune.ts`). La seduta singola porta a `/personal` (si sceglie
+  trainer e orario, e si paga); un abbonamento PT a **`/personal?compra=<piano>`**, che apre subito il suo foglio d'acquisto (regole del mese, consensi, carta o conto: `Personal.tsx` legge `compra`, anche
+  `compra=seduta`, e lo apre solo se quel piano è davvero in vendita a quella persona). Chi ha già un abbonamento PT legge «Hai già…» e prenota; chi non ha un abbonamento attivo non può attivarne uno PT e la
+  carta glielo dice, con la seduta singola. A chi ha risposto «No, grazie» non compare mai (lo garantisce la funzione).
 - **Si prenota con i pulsanti del Calendario** (`RigaLezione` in `Lezioni.tsx`: `AzioniLezione` e `usePrenotazioneLezione`, gli stessi del Percorso): prenota, lista d'attesa, disdici, acquista se non è compresa, «Prenotabile da…»
   se non si è ancora aperta, il motivo del limite della categoria. **Nessuna regola in più**: se il Calendario dice «hai già una prenotazione di Group Reformer», lo dice anche qui. Dopo un clic la riga si aggiorna
   subito con quello che ha detto PerfectGym (`conPrenotazione`, in ogni posto dove compare quella lezione) e la memoria del giorno del calendario si butta (`dimenticaGiornoCalendario`).
@@ -652,7 +659,8 @@ editor, niente conferma, niente «Prenota la settimana». Funzione, controlli, q
 Per verificare: `npx tsc --noEmit` pulito; `consigli/comune.ts` è puro (`questionarioDa`, `cosaManca`, `conGusti`, `orariOrdinati`, `giorniTesto`, `destinazioniSeduta`, `conPrenotazione`) e si prova con
 `npx tsx`. **Guardato in un browser vero** (21/10/2026: Chromium, bundle web esportato con un indirizzo Supabase finto e la funzione simulata con `page.route`, 390 px con touch e 1280 px): il questionario
 compilato (obiettivi, esperienza «ho smesso» con quando e cosa, forma, gusti con «Nuotare» e la domanda sullo stile, giorni e fasce), «Per continuare manca…», il questionario che parte (`obiettivi`,
-`obiettivo`, `esperienza`, `pausa`, `discipline`, `giorni`, `nuoto: 'libero'`), le carte con «La trovi di solito» e gli orari suoi in arancio, quella fuori dai suoi orari, le sedute in sala e in vasca con
+`obiettivo`, `esperienza`, `pausa`, `discipline`, `giorni`, `nuoto: 'libero'`, `personal_esperienza`, `personal_interesse`, `bisogni`), la carta del personal con i prezzi letti da `statoPersonal` e «Attiva
+l’abbonamento PT» che apre `/personal?compra=226` sul foglio dell'abbonamento da 4 sedute, le carte con «La trovi di solito» e gli orari suoi in arancio, quella fuori dai suoi orari, le sedute in sala e in vasca con
 «Potresti metterla…», e «Componi il tuo piano di nuoto» che apre `/allenamento/agente?dove=vasca` già in vasca; nessuno scorrimento orizzontale, nessun errore di pagina. **Non provato**: una sessione vera, la
 funzione vera e il prompt nuovo con un modello vero, un telefono, e il tema scuro sotto i 900 px.
 

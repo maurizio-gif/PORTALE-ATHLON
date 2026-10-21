@@ -1,4 +1,23 @@
-import type { DatiLezione, Disciplina, Esperienza, Gruppo, Intensita, LezioneConsiglio, Livello, Obiettivo, OrarioLezione, Pausa, QuestionarioConsigli, RispostaConsigli, SedutaConsigliata } from '@/api/percorso'
+import type { PacchettoPersonal, StatoPersonal } from '@/api/lab'
+import type {
+  Bisogno,
+  ConsiglioPersonal,
+  DatiLezione,
+  Disciplina,
+  Esperienza,
+  Gruppo,
+  Intensita,
+  LezioneConsiglio,
+  Livello,
+  Obiettivo,
+  OrarioLezione,
+  Pausa,
+  PersonalEsperienza,
+  PersonalInteresse,
+  QuestionarioConsigli,
+  RispostaConsigli,
+  SedutaConsigliata,
+} from '@/api/percorso'
 
 // Le parole e i piccoli conti dei Consigli di Athlon (20/10/2026, rifatti il 21/10/2026). Sono **consigli**, non una settimana:
 // dal profilo del socio (obiettivi, esperienza, gusti, quando preferisce venire) quali tipi di lezione potrebbero interessargli,
@@ -47,6 +66,9 @@ export const SCELTE_DI_PARTENZA: SceltePerConsigli = {
   fasce: [],
   giorni: [],
   includi_non_comprese: false,
+  personal_esperienza: null,
+  personal_interesse: null,
+  bisogni: [],
 }
 
 export const ESPERIENZA_TESTO: Record<Esperienza, { testo: string; nota: string }> = {
@@ -84,6 +106,18 @@ export const INTENSITA_TESTO: Record<Intensita, { testo: string; nota: string }>
   dolce: { testo: 'Tranquilla', nota: 'Mi piace muovermi senza affanno.' },
   media: { testo: 'Media', nota: 'Un po’ di fatica, ma senza esagerare.' },
   intensa: { testo: 'Intensa', nota: 'Mi piace sudare e spingere.' },
+}
+
+export const PERSONAL_ESPERIENZA_TESTO: Record<PersonalEsperienza, string> = { mai: 'Mai', passato: 'In passato', ora: 'Sì, adesso' }
+export const PERSONAL_INTERESSE_TESTO: Record<PersonalInteresse, string> = { no: 'No, grazie', curioso: 'Mi incuriosisce', si: 'Sì, mi piacerebbe' }
+
+/** Le domande indirette sul personal: cosa c'e' dietro agli obiettivi. */
+export const BISOGNO_TESTO: Record<Bisogno, { testo: string; nota: string }> = {
+  tecnica: { testo: 'Imparare a fare bene gli esercizi', nota: 'la tecnica giusta, senza farmi male' },
+  scadenza: { testo: 'Ho una data in mente', nota: 'un evento, una gara, l’estate' },
+  ripresa: { testo: 'Ripartire dopo uno stop', nota: 'una pausa lunga, un periodo difficile' },
+  costanza: { testo: 'Restare costante', nota: 'mi serve qualcuno che mi tenga sulla strada' },
+  su_misura: { testo: 'Un lavoro su misura', nota: 'costruito su di me e su come cambio' },
 }
 
 /** Cosa gli piace fare: i generi di lezione, e in piu' la sala pesi per conto suo e nuotare. */
@@ -135,6 +169,56 @@ export function destinazioniSeduta(s: SedutaConsigliata): { piano: { pathname: '
     piano: { pathname: '/allenamento/agente', params: { dove: s.ambiente } },
     calendario: s.prossimi[0] ? { pathname: '/calendario', params: { giorno: s.prossimi[0], attivita: s.ambiente === 'sala' ? 'Gym Floor' : 'Nuoto Libero' } } : null,
   }
+}
+
+/** Una formula di personal pronta da mostrare: cosa, quanto costa (dal listino di PerfectGym), e dove porta. */
+export type FormulaPersonal = {
+  chiave: string
+  titolo: string
+  sotto: string | null
+  prezzo: number | null
+  /** «al mese» per gli abbonamenti PT. */
+  alMese: boolean
+  destinazione: { pathname: '/personal'; params?: { compra: string } }
+}
+
+export const sedutePersonalTesto = (n: number) => (n === 1 ? 'una seduta al mese' : `${n} sedute al mese`)
+
+/**
+ * Dal consiglio (quante sedute al mese) e dallo stato del personal (`statoPersonal`: la seduta singola in vendita, gli
+ * abbonamenti PT che la persona puo' attivare, quello che ha gia') le formule da mostrare: **la consigliata** e **le altre**.
+ * I prezzi li dice PerfectGym, mai il consiglio. Una seduta singola porta a `/personal`, dove si sceglie trainer e orario e si
+ * paga; un abbonamento PT a `/personal?compra=<piano>`, che apre il suo foglio. Chi ha gia' un abbonamento PT ha solo da
+ * prenotare; chi non ha un abbonamento attivo non puo' attivarne uno PT, e gli resta la seduta singola. Senza stato (la
+ * funzione non ha risposto) le formule ci sono, senza prezzo.
+ */
+export function formulePersonal(c: ConsiglioPersonal, stato: StatoPersonal | null): { consigliata: FormulaPersonal; altre: FormulaPersonal[]; attivo: string | null; senzaAbbonamento: boolean } {
+  const prezzoSeduta = stato?.acquisto?.prodotto.prezzo ?? null
+  const minuti = stato?.acquisto?.minuti
+  const singola: FormulaPersonal = {
+    chiave: 'seduta',
+    titolo: 'Seduta singola',
+    sotto: `${minuti ? `${minuti} minuti` : 'Una seduta'} con un trainer, da prenotare quando vuoi`,
+    prezzo: prezzoSeduta,
+    alMese: false,
+    destinazione: { pathname: '/personal' },
+  }
+  const pacchetto = (k: PacchettoPersonal): FormulaPersonal => ({
+    chiave: `pt-${k.piano_id}`,
+    titolo: `Abbonamento PT · ${sedutePersonalTesto(k.sedute ?? 0)}`,
+    sotto: 'Si aggiunge al tuo abbonamento: le sedute si caricano ogni mese',
+    prezzo: k.prezzo_mese,
+    alMese: true,
+    destinazione: { pathname: '/personal', params: { compra: String(k.piano_id) } },
+  })
+  const attivo = stato?.pacchetto_attivo ?? null
+  const pacchetti = attivo ? [] : (stato?.pacchetti ?? [])
+  const scelto = c.sedute_mese === 1 ? null : pacchetti.find((k) => k.sedute === c.sedute_mese) ?? null
+  // Senza lo stato non si sa cosa e' in vendita: la consigliata resta, senza prezzo, e porta alla schermata del personal.
+  const senzaStato: FormulaPersonal = { ...singola, chiave: `pt-${c.sedute_mese}`, titolo: `Abbonamento PT · ${sedutePersonalTesto(c.sedute_mese)}`, sotto: null, alMese: true }
+  const consigliata = scelto ? pacchetto(scelto) : c.sedute_mese === 1 || stato ? singola : senzaStato
+  const altre = [singola, ...pacchetti.map(pacchetto)].filter((f) => f.chiave !== consigliata.chiave)
+  return { consigliata, altre: stato ? altre : [], attivo, senzaAbbonamento: !!stato && !attivo && !stato.pacchetti.length && c.sedute_mese > 1 }
 }
 
 /** Le lezioni da evitare scritte dal socio: separate da virgola, punto e virgola o a capo, senza doppioni. */

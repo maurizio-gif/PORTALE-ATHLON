@@ -654,6 +654,21 @@ export function Personal() {
     }
   }, [acquisto, leggi])
 
+  // Da un consiglio (21/10/2026): `?compra=<piano_id>` apre il foglio dell'abbonamento PT, `?compra=seduta` quello della seduta
+  // singola. Solo se quel piano e' davvero in vendita a questa persona (lo dice `stato`): altrimenti la schermata e' quella di sempre.
+  const { compra } = useLocalSearchParams<{ compra?: string }>()
+  const compraAperto = useRef(false)
+  useEffect(() => {
+    if (!compra || !stato || compraAperto.current) return
+    compraAperto.current = true
+    if (compra === 'seduta') {
+      if (stato.acquisto?.prodotto.prezzo != null) setDaComprare({ tipo: 'seduta', prezzo: stato.acquisto.prodotto.prezzo })
+      return
+    }
+    const k = stato.pacchetti.find((x) => String(x.piano_id) === compra)
+    if (k) setDaComprare({ tipo: 'pacchetto', pacchetto: k })
+  }, [compra, stato])
+
   // Il ritorno dall'abbonamento PT (?pacchetto=<id>): come per la seduta, si
   // chiede l'esito finche' il pagamento non e' arrivato.
   const { pacchetto, seduta } = useLocalSearchParams<{ pacchetto?: string; seduta?: string }>()

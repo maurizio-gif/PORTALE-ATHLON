@@ -328,6 +328,13 @@ export const DISCIPLINE = ['sala_pesi', 'corsa', 'corsi_di_gruppo', 'yoga_pilate
 export type Disciplina = (typeof DISCIPLINE)[number]
 export const INTENSITA = ['dolce', 'media', 'intensa'] as const
 export type Intensita = (typeof INTENSITA)[number]
+export const PERSONAL_ESPERIENZE = ['mai', 'passato', 'ora'] as const
+export type PersonalEsperienza = (typeof PERSONAL_ESPERIENZE)[number]
+export const PERSONAL_INTERESSI = ['no', 'curioso', 'si'] as const
+export type PersonalInteresse = (typeof PERSONAL_INTERESSI)[number]
+/** I bisogni dietro agli obiettivi: le domande indirette sul personal. */
+export const BISOGNI = ['tecnica', 'scadenza', 'ripresa', 'costanza', 'su_misura'] as const
+export type Bisogno = (typeof BISOGNI)[number]
 /** Quanti macro obiettivi si scelgono insieme (lo stesso tetto della funzione). */
 export const OBIETTIVI_MAX = 3
 
@@ -359,8 +366,16 @@ export type QuestionarioConsigli = {
   /** Giorni preferiti (1-7): **non vincolanti**; vuoto = nessuna preferenza. */
   giorni: number[]
   includi_non_comprese: boolean
+  /** Se l'ha mai seguito un personal trainer; null se non l'ha detto. */
+  personal_esperienza: PersonalEsperienza | null
+  /** Se gli piacerebbe; con «no» il personal non si propone. */
+  personal_interesse: PersonalInteresse | null
+  bisogni: Bisogno[]
   limitazioni: string
 }
+
+/** Le sedute di personal da affiancare alle lezioni: quante al mese (una e' la seduta singola; 2, 4, 8 gli abbonamenti PT) e perche'. Prezzi e acquisto: `statoPersonal`. */
+export type ConsiglioPersonal = { sedute_mese: 1 | 2 | 4 | 8; perche: string | null }
 
 export type TipoConsigliato = {
   /** `class_type_id` di PerfectGym. */
@@ -423,6 +438,7 @@ export type RispostaConsigli = {
   integrazione: string | null
   consigli: ConsiglioRisolto[]
   sedute: SedutaConsigliata[]
+  personal: ConsiglioPersonal | null
   schede: SchedeLezioni
   avvisi: string[]
   /** Falso se PerfectGym non ha risposto: i consigli si vedono, ma non si sa cosa e' gia' prenotato. */
@@ -460,6 +476,7 @@ export async function chiediConsigli(q: QuestionarioConsigli): Promise<Esito<{ r
         // Una funzione di prima non manda gli orari: le carte restano senza «di solito».
         consigli: (dati.consigli as ConsiglioRisolto[]).map((c) => ({ ...c, orari: c.orari ?? [], alternative: (c.alternative ?? []).map((a) => ({ ...a, orari: a.orari ?? [] })) })),
         sedute: Array.isArray(dati.sedute) ? dati.sedute : [],
+        personal: dati.personal && typeof dati.personal === 'object' ? dati.personal : null,
         schede: dati.schede ?? {},
         avvisi: dati.avvisi ?? [],
         prenotazioni_lette: dati.prenotazioni_lette !== false,
