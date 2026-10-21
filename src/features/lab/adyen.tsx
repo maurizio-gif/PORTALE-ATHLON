@@ -1,5 +1,6 @@
 import type { SessioneAdyen } from '@/api/lab'
 import { Avviso } from '@/components/Avviso'
+import { t } from '@/lib/lingua'
 
 // Nell'app nativa il modulo di pagamento di Adyen non c'e' ancora (servira'
 // @adyen/react-native, con la sua build): il laboratorio dei pagamenti si prova
@@ -8,9 +9,9 @@ import { Avviso } from '@/components/Avviso'
 export const pagamentoDisponibile = false
 
 export function DropIn(_: { sessione: SessioneAdyen; onFine: (sessionResult: string | null) => void; onErrore: (messaggio: string) => void }) {
-  return <Avviso tono="attenzione">Su questo dispositivo il pagamento con carta si completa dal browser: apri app.athlonroma.it.</Avviso>
+  return <Avviso tono="attenzione">{t('Su questo dispositivo il pagamento con carta si completa dal browser: apri app.athlonroma.it.', 'On this device, card payment is completed in the browser: open app.athlonroma.it.')}</Avviso>
 }
 
 export async function riprendiDopoRedirect(_: { clientKey: string; environment: string; sessionId: string; redirectResult: string }): Promise<string | null> {
-  throw new Error('Disponibile solo sul web.')
+  throw new Error(t('Disponibile solo sul web.', 'Only available on the web.'))
 }

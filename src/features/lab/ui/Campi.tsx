@@ -2,6 +2,7 @@ import { useEffect, useId, useRef, useState } from 'react'
 import { Platform, Pressable, StyleSheet, Text, TextInput, View, type TextInputProps } from 'react-native'
 
 import { spazio } from '@/theme'
+import { t } from '@/lib/lingua'
 
 import { Icona, type NomeIcona } from './Icona'
 import { Messaggio, Pulsante } from './kit'
@@ -143,7 +144,7 @@ export function CampoCodice({
   const caselle = Math.max(cifre, value.length)
   return (
     <Pressable onPress={() => campo.current?.focus()} style={{ gap: spazio.due }} accessible={false}>
-      <Text style={[stili.etichetta, { color: p.testoSecondario }]}>CODICE</Text>
+      <Text style={[stili.etichetta, { color: p.testoSecondario }]}>{t('CODICE', 'CODE')}</Text>
       <View style={stili.caselle}>
         {Array.from({ length: caselle }, (_, i) => {
           const cifra = value[i] ?? ''
@@ -167,7 +168,7 @@ export function CampoCodice({
         <TextInput
           ref={campo}
           autoFocus
-          accessibilityLabel={`Codice di ${cifre} cifre`}
+          accessibilityLabel={t(`Codice di ${cifre} cifre`, `${cifre}-digit code`)}
           value={value}
           onChangeText={(v) => onChange(estraiCodice(v, cifre))}
           onSubmitEditing={onInvio}
@@ -217,7 +218,7 @@ export function IncollaCodice({ cifre = CIFRE, onCodice, disabilitato = false }:
     if (typeof navigator === 'undefined' || !navigator.clipboard?.readText) return setAMano(true)
     try {
       const codice = estraiCodice(await navigator.clipboard.readText(), cifre)
-      if (codice.length !== cifre) return setAvviso(`Negli appunti non c’è un codice di ${cifre} cifre: copialo dall’email e riprova.`)
+      if (codice.length !== cifre) return setAvviso(t(`Negli appunti non c’è un codice di ${cifre} cifre: copialo dall’email e riprova.`, `There’s no ${cifre}-digit code on your clipboard: copy it from the email and try again.`))
       onCodice(codice)
     } catch {
       setAMano(true)
@@ -233,26 +234,26 @@ export function IncollaCodice({ cifre = CIFRE, onCodice, disabilitato = false }:
       return onCodice(codice)
     }
     setTesto(v)
-    setAvviso(v.replace(/\D/g, '').length >= cifre ? `Qui non c’è un codice di ${cifre} cifre: copialo dall’email e riprova.` : null)
+    setAvviso(v.replace(/\D/g, '').length >= cifre ? t(`Qui non c’è un codice di ${cifre} cifre: copialo dall’email e riprova.`, `This isn’t a ${cifre}-digit code: copy it from the email and try again.`) : null)
   }
 
   return (
     <View style={{ gap: spazio.due + 2 }}>
-      <Pulsante testo="Incolla il codice" icona="documento" variante="secondario" piccolo onPress={incolla} disabilitato={disabilitato} />
+      <Pulsante testo={t('Incolla il codice', 'Paste the code')} icona="documento" variante="secondario" piccolo onPress={incolla} disabilitato={disabilitato} />
       {aMano ? (
         <View ref={riquadro} style={{ gap: spazio.due }}>
           <CampoTesto
-            etichetta="Incolla qui il codice"
+            etichetta={t('Incolla qui il codice', 'Paste the code here')}
             icona="copia"
             value={testo}
             onChangeText={cambiaTesto}
-            placeholder="Incolla qui"
+            placeholder={t('Incolla qui', 'Paste here')}
             autoCapitalize="none"
             autoCorrect={false}
             spellCheck={false}
             errore={!!avviso}
           />
-          <Text style={[stili.nota, { color: p.testoSecondario }]}>Il telefono non ci lascia leggere gli appunti da soli: tieni premuto sul campo e scegli «Incolla».</Text>
+          <Text style={[stili.nota, { color: p.testoSecondario }]}>{t('Il telefono non ci lascia leggere gli appunti da soli: tieni premuto sul campo e scegli «Incolla».', 'Your phone won’t let us read the clipboard ourselves: press and hold the field and choose “Paste”.')}</Text>
         </View>
       ) : null}
       {avviso ? <Messaggio>{avviso}</Messaggio> : null}

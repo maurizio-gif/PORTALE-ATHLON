@@ -3,6 +3,7 @@ import { ScrollView, StyleSheet, Text, View } from 'react-native'
 
 import { aggiungiAlDiario, PASTI, type Alimento, type Pasto, type VoceDiario } from '@/api/alimentazione'
 import { spazio } from '@/theme'
+import { locale, t } from '@/lib/lingua'
 
 import { CampoTesto } from '../ui/Campi'
 import { Foglio } from '../ui/Foglio'
@@ -16,7 +17,7 @@ import { cerca, perGrammi } from './conti'
 // porzioni di casa sono le prime scelte, i grammi si correggono a mano; con i
 // numeri nascosti restano le sole porzioni (i grammi sono numeri anche loro).
 
-const intero = (n: number) => Math.round(n).toLocaleString('it-IT')
+const intero = (n: number) => Math.round(n).toLocaleString(locale())
 
 /** Le scelte rapide: gli alimenti piu' comuni a quell'ora del giorno. */
 const RAPIDI: Record<Pasto, string[]> = {
@@ -92,7 +93,7 @@ export function AggiungiAlimento({
   }
 
   return (
-    <Foglio aperto={aperto} titolo={scelto ? scelto.nome : 'Aggiungi un alimento'} sottotitolo={scelto ? 'Quanto ne hai mangiato?' : 'Cerca per nome: «pasta», «yogurt», «pollo»…'} onChiudi={onChiudi}>
+    <Foglio aperto={aperto} titolo={scelto ? scelto.nome : t('Aggiungi un alimento', 'Add a food')} sottotitolo={scelto ? t('Quanto ne hai mangiato?', 'How much did you eat?') : t('Cerca per nome: «pasta», «yogurt», «pollo»…', 'Search by name: “pasta”, “yogurt”, “pollo”…')} onChiudi={onChiudi}>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: spazio.due }}>
         {PASTI.map((x) => (
           <Tocco key={x.id} onPress={() => setPasto(x.id)} vibra="scelta" stato={{ selected: pasto === x.id }} etichetta={x.nome}>
@@ -105,12 +106,12 @@ export function AggiungiAlimento({
 
       {!scelto ? (
         <>
-          <CampoTesto etichetta="Cerca" icona="cerca" value={testo} onChangeText={setTesto} placeholder="Che cosa hai mangiato?" autoFocus autoCorrect={false} returnKeyType="search" />
+          <CampoTesto etichetta={t('Cerca', 'Search')} icona="cerca" value={testo} onChangeText={setTesto} placeholder={t('Che cosa hai mangiato?', 'What did you eat?')} autoFocus autoCorrect={false} returnKeyType="search" />
           {!catalogo ? (
-            <Text style={[stili.nota, { color: p.testoSecondario }]}>Carichiamo l’elenco…</Text>
+            <Text style={[stili.nota, { color: p.testoSecondario }]}>{t('Carichiamo l’elenco…', 'Loading the list…')}</Text>
           ) : trovati.length ? (
             <View>
-              {!testo.trim() ? <Text style={[stili.etichetta, { color: p.testoSecondario }]}>{`I PIÙ SCELTI A ${PASTI.find((x) => x.id === pasto)!.nome.toUpperCase()}`}</Text> : null}
+              {!testo.trim() ? <Text style={[stili.etichetta, { color: p.testoSecondario }]}>{t(`I PIÙ SCELTI A ${PASTI.find((x) => x.id === pasto)!.nome.toUpperCase()}`, `MOST CHOSEN FOR ${PASTI.find((x) => x.id === pasto)!.nome.toUpperCase()}`)}</Text> : null}
               {trovati.map((a, i) => (
                 <Tocco key={a.id} onPress={() => scegli(a)} etichetta={a.nome} scala={0.99}>
                   <View style={[stili.risultato, i > 0 && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: p.linea }]}>
@@ -124,7 +125,7 @@ export function AggiungiAlimento({
               ))}
             </View>
           ) : (
-            <Text style={[stili.nota, { color: p.testoSecondario }]}>Non lo troviamo nell’elenco. Prova con un nome più semplice, o fotografa il piatto.</Text>
+            <Text style={[stili.nota, { color: p.testoSecondario }]}>{t('Non lo troviamo nell’elenco. Prova con un nome più semplice, o fotografa il piatto.', 'We can’t find it in the list. Try a simpler name, or photograph your meal.')}</Text>
           )}
         </>
       ) : (
@@ -154,7 +155,7 @@ export function AggiungiAlimento({
           ) : null}
           {!nascondiNumeri ? (
             <CampoTesto
-              etichetta="Grammi"
+              etichetta={t('Grammi', 'Grams')}
               value={grammi}
               onChangeText={(v) => {
                 setGrammi(v.replace(/[^\d,.]/g, ''))
@@ -167,12 +168,15 @@ export function AggiungiAlimento({
           {stima && !nascondiNumeri ? (
             <View style={[stili.stima, { backgroundColor: p.incavo }]}>
               <Text style={[stili.stimaNumero, { color: p.testo }]}>{`${intero(stima.kcal)} kcal`}</Text>
-              <Text style={[stili.nota, { color: p.testoSecondario }]}>{`Proteine ${intero(stima.proteine)} g · Carboidrati ${intero(stima.carboidrati)} g · Grassi ${intero(stima.grassi)} g`}</Text>
+              <Text style={[stili.nota, { color: p.testoSecondario }]}>{t(
+                  `Proteine ${intero(stima.proteine)} g · Carboidrati ${intero(stima.carboidrati)} g · Grassi ${intero(stima.grassi)} g`,
+                  `Protein ${intero(stima.proteine)} g · Carbs ${intero(stima.carboidrati)} g · Fat ${intero(stima.grassi)} g`,
+                )}</Text>
             </View>
           ) : null}
           {errore ? <Messaggio>{errore}</Messaggio> : null}
-          <Pulsante testo={`Aggiungi a ${PASTI.find((x) => x.id === pasto)!.nome.toLowerCase()}`} icona="piu" onPress={conferma} inCorso={inCorso} disabilitato={!valido} />
-          <Pulsante testo="Scegli un altro alimento" variante="fantasma" onPress={() => setScelto(null)} />
+          <Pulsante testo={t(`Aggiungi a ${PASTI.find((x) => x.id === pasto)!.nome.toLowerCase()}`, `Add to ${PASTI.find((x) => x.id === pasto)!.nome.toLowerCase()}`)} icona="piu" onPress={conferma} inCorso={inCorso} disabilitato={!valido} />
+          <Pulsante testo={t('Scegli un altro alimento', 'Choose another food')} variante="fantasma" onPress={() => setScelto(null)} />
         </>
       )}
     </Foglio>

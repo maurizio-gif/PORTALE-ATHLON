@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react'
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native'
 
 import { esitoOrdine, type Ordine } from '@/api/shop'
+import { t } from '@/lib/lingua'
 import { spazio } from '@/theme'
 
 import { Carta, Messaggio, Pulsante } from '../ui/kit'
@@ -55,20 +56,20 @@ export function EsitoOrdine({ id }: { id: string }) {
 
   if (errore && !ordine) {
     return (
-      <Schermata titolo="Ordine" indietro="/shop" barra={false}>
+      <Schermata titolo={t('Ordine', 'Order')} indietro="/shop" barra={false}>
         <Messaggio>{errore}</Messaggio>
-        <Pulsante testo="Torna allo shop" variante="secondario" onPress={() => router.replace('/shop')} />
+        <Pulsante testo={t('Torna allo shop', 'Back to the shop')} variante="secondario" onPress={() => router.replace('/shop')} />
       </Schermata>
     )
   }
 
   if (!ordine || (ordine.stato === 'avviato' && !finito)) {
     return (
-      <Schermata titolo="Verifichiamo il pagamento…" indietro="/shop" barra={false}>
+      <Schermata titolo={t('Verifichiamo il pagamento…', 'Checking your payment…')} indietro="/shop" barra={false}>
         <Carta style={stili.attesa}>
           <ActivityIndicator color={p.accento} />
           <Text style={{ color: p.testoSecondario, fontFamily: F.medio, fontSize: 14.5, lineHeight: 21, textAlign: 'center' }}>
-            Aspettiamo la conferma di PerfectGym: di solito basta qualche secondo. Non chiudere la pagina.
+            {t('Aspettiamo la conferma di PerfectGym: di solito basta qualche secondo. Non chiudere la pagina.', 'We’re waiting for confirmation from PerfectGym: it usually takes a few seconds. Don’t close the page.')}
           </Text>
         </Carta>
       </Schermata>
@@ -77,29 +78,29 @@ export function EsitoOrdine({ id }: { id: string }) {
 
   if (ordine.stato === 'pagato') {
     return (
-      <Schermata titolo="Pagamento ricevuto" sopratitolo="Shop" indietro="/shop" barra={false}>
-        <Messaggio tono="ok" titolo={ordine.consegnato_il ? 'Ritirato' : 'Da ritirare in segreteria'}>
-          {ordine.consegnato_il ? 'Questo ordine è già stato consegnato.' : 'Passa in segreteria, negli orari di apertura del club: ti consegniamo gli articoli.'}
+      <Schermata titolo={t('Pagamento ricevuto', 'Payment received')} sopratitolo="Shop" indietro="/shop" barra={false}>
+        <Messaggio tono="ok" titolo={ordine.consegnato_il ? t('Ritirato', 'Picked up') : t('Da ritirare in segreteria', 'To pick up at reception')}>
+          {ordine.consegnato_il ? t('Questo ordine è già stato consegnato.', 'This order has already been picked up.') : t('Passa in segreteria, negli orari di apertura del club: ti consegniamo gli articoli.', 'Come to reception during the club’s opening hours: we’ll hand you the items.')}
         </Messaggio>
         <Carta style={{ paddingVertical: spazio.due }}>
           <RigheOrdine ordine={ordine} />
         </Carta>
-        <Pulsante testo="I miei ordini" variante="secondario" onPress={() => router.replace('/shop/ordini')} />
-        <Pulsante testo="Torna allo shop" variante="fantasma" onPress={() => router.replace('/shop')} />
+        <Pulsante testo={t('I miei ordini', 'My orders')} variante="secondario" onPress={() => router.replace('/shop/ordini')} />
+        <Pulsante testo={t('Torna allo shop', 'Back to the shop')} variante="fantasma" onPress={() => router.replace('/shop')} />
       </Schermata>
     )
   }
 
   // `errore`, oppure «avviato» dopo i due minuti: il pagamento non si vede.
   return (
-    <Schermata titolo={ordine.stato === 'errore' ? 'Pagamento non riuscito' : 'Non vediamo ancora il pagamento'} indietro="/shop" barra={false}>
+    <Schermata titolo={ordine.stato === 'errore' ? t('Pagamento non riuscito', 'Payment failed') : t('Non vediamo ancora il pagamento', 'We can’t see the payment yet')} indietro="/shop" barra={false}>
       <Messaggio tono={ordine.stato === 'errore' ? 'errore' : 'attenzione'}>
         {ordine.stato === 'errore'
-          ? (ordine.errore ?? 'Il pagamento non è andato a buon fine.')
-          : 'Se hai completato il pagamento, aspetta qualche minuto e guarda in «I miei ordini»: compare appena PerfectGym lo registra. Se invece sei tornato indietro senza pagare, non è stato addebitato niente.'}
+          ? (ordine.errore ?? t('Il pagamento non è andato a buon fine.', 'The payment didn’t go through.'))
+          : t('Se hai completato il pagamento, aspetta qualche minuto e guarda in «I miei ordini»: compare appena PerfectGym lo registra. Se invece sei tornato indietro senza pagare, non è stato addebitato niente.', 'If you completed the payment, wait a few minutes and check “My orders”: it shows up as soon as PerfectGym records it. If you went back without paying, nothing has been charged.')}
       </Messaggio>
-      <Pulsante testo="Torna al carrello" onPress={() => router.replace('/shop/carrello')} />
-      <Pulsante testo="I miei ordini" variante="secondario" onPress={() => router.replace('/shop/ordini')} />
+      <Pulsante testo={t('Torna al carrello', 'Back to cart')} onPress={() => router.replace('/shop/carrello')} />
+      <Pulsante testo={t('I miei ordini', 'My orders')} variante="secondario" onPress={() => router.replace('/shop/ordini')} />
     </Schermata>
   )
 }

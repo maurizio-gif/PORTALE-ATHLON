@@ -1,4 +1,5 @@
 import { funzione } from '@/api/lab'
+import { t } from '@/lib/lingua'
 
 // L'abbonamento principale comprato dal portale (portale-abbonamento): chi
 // puo' comprarlo, il contratto da leggere, la firma, e l'esito. Prezzi, date e
@@ -58,7 +59,7 @@ export type StatoAbbonamento = {
 export async function statoAbbonamento(): Promise<{ ok: true; stato: StatoAbbonamento } | { ok: false; errore: string }> {
   const { ok, dati } = await abbonamento({ azione: 'stato' })
   if (ok) return { ok: true, stato: dati as unknown as StatoAbbonamento }
-  return { ok: false, errore: dati.errore ?? 'Non riusciamo a leggere gli abbonamenti adesso.' }
+  return { ok: false, errore: dati.errore ?? t('Non riusciamo a leggere gli abbonamenti adesso.', 'We can’t load the memberships right now.') }
 }
 
 /** I blocchi del documento, come li compone il server: si disegnano, non si interpretano. */
@@ -155,7 +156,7 @@ export async function anteprimaAbbonamento(
   if (ok) return { ok: true, anteprima: dati as unknown as AnteprimaContratto }
   return {
     ok: false,
-    errore: dati.errore ?? 'Non riusciamo a preparare il contratto adesso.',
+    errore: dati.errore ?? t('Non riusciamo a preparare il contratto adesso.', 'We can’t prepare the contract right now.'),
     mancanti: Array.isArray(dati.mancanti) ? dati.mancanti : undefined,
     persone_dati: Array.isArray(dati.persone_dati) ? (dati.persone_dati as PersonaDati[]) : undefined,
   }
@@ -176,7 +177,7 @@ export type CambiDati = {
 
 export async function salvaDatiAbbonamento(memberId: number, cambi: CambiDati): Promise<{ ok: true } | { ok: false; errore: string }> {
   const { ok, dati } = await abbonamento({ azione: 'salva_dati', member_id: memberId, ...cambi })
-  return ok ? { ok: true } : { ok: false, errore: dati.errore ?? 'Non siamo riusciti a salvare i dati adesso.' }
+  return ok ? { ok: true } : { ok: false, errore: dati.errore ?? t('Non siamo riusciti a salvare i dati adesso.', 'We couldn’t save your details right now.') }
 }
 
 export type StatoContratto = 'firmato' | 'contratto_creato' | 'completato' | 'errore'
@@ -190,7 +191,7 @@ export async function firmaAbbonamento(
 ): Promise<{ ok: true; esito: EsitoFirma } | { ok: false; errore: string }> {
   const { ok, dati } = await abbonamento({ azione: 'firma', ...s, dati_confermati: true, impronta, consensi, firma_png: firmaPng })
   if (ok && dati.numero) return { ok: true, esito: { numero: String(dati.numero), stato: dati.stato as StatoContratto, totale_oggi: Number(dati.totale_oggi ?? 0) } }
-  return { ok: false, errore: dati.errore ?? 'Non siamo riusciti a registrare il contratto adesso.' }
+  return { ok: false, errore: dati.errore ?? t('Non siamo riusciti a registrare il contratto adesso.', 'We couldn’t register the contract right now.') }
 }
 
 export type EsitoPagamento = { numero: string; stato: StatoContratto; url: string | null }
@@ -199,7 +200,7 @@ export type EsitoPagamento = { numero: string; stato: StatoContratto; url: strin
 export async function pagaAbbonamento(numero: string, m: MetodoAbbonamento): Promise<{ ok: true; esito: EsitoPagamento } | { ok: false; errore: string }> {
   const { ok, dati } = await abbonamento({ azione: 'paga', numero, ...m })
   if (ok && dati.numero) return { ok: true, esito: { numero: String(dati.numero), stato: dati.stato as StatoContratto, url: typeof dati.url === 'string' ? dati.url : null } }
-  return { ok: false, errore: dati.errore ?? 'Non siamo riusciti a completare il pagamento adesso.' }
+  return { ok: false, errore: dati.errore ?? t('Non siamo riusciti a completare il pagamento adesso.', 'We couldn’t complete the payment right now.') }
 }
 
 export type EsitoContratto = { stato: StatoContratto; pagamento: { ok: boolean; come?: string; in_corso?: boolean; errore?: string } | null; errore: string | null }
@@ -207,14 +208,14 @@ export type EsitoContratto = { stato: StatoContratto; pagamento: { ok: boolean; 
 export async function esitoAbbonamento(numero: string): Promise<{ ok: true; esito: EsitoContratto } | { ok: false; errore: string }> {
   const { ok, dati } = await abbonamento({ azione: 'esito', numero })
   if (ok) return { ok: true, esito: dati as unknown as EsitoContratto }
-  return { ok: false, errore: dati.errore ?? 'Non riusciamo a verificare il contratto adesso.' }
+  return { ok: false, errore: dati.errore ?? t('Non riusciamo a verificare il contratto adesso.', 'We can’t check the contract right now.') }
 }
 
 /** Il riepilogo dei costi della scelta, calcolato dal server: si aggiorna a ogni cambio di piano o di data. */
 export async function riepilogoAbbonamento(s: SceltaAbbonamento): Promise<{ ok: true; importi: ImportiContratto } | { ok: false; errore: string }> {
   const { ok, dati } = await abbonamento({ azione: 'riepilogo', ...s })
   if (ok) return { ok: true, importi: dati.importi as ImportiContratto }
-  return { ok: false, errore: dati.errore ?? 'Non riusciamo a calcolare i costi adesso.' }
+  return { ok: false, errore: dati.errore ?? t('Non riusciamo a calcolare i costi adesso.', 'We can’t calculate the costs right now.') }
 }
 
 export type AddebitoContratto = { tipo: string; descrizione: string | null; scadenza: string | null; importo: number; da_pagare: number; stato: 'pagato' | 'da_pagare' | 'annullato' }
@@ -247,12 +248,12 @@ export type ContrattoElenco = {
 export async function contrattiAbbonamento(): Promise<{ ok: true; contratti: ContrattoElenco[] } | { ok: false; errore: string }> {
   const { ok, dati } = await abbonamento({ azione: 'contratti' })
   if (ok) return { ok: true, contratti: dati.contratti as ContrattoElenco[] }
-  return { ok: false, errore: dati.errore ?? 'Non riusciamo a leggere i tuoi abbonamenti adesso.' }
+  return { ok: false, errore: dati.errore ?? t('Non riusciamo a leggere i tuoi abbonamenti adesso.', 'We can’t load your memberships right now.') }
 }
 
 /** Il PDF firmato: un indirizzo che vale cinque minuti. */
 export async function documentoAbbonamento(numero: string): Promise<{ ok: true; url: string } | { ok: false; errore: string }> {
   const { ok, dati } = await abbonamento({ azione: 'documento', numero })
   if (ok && typeof dati.url === 'string') return { ok: true, url: dati.url }
-  return { ok: false, errore: dati.errore ?? 'Non riusciamo ad aprire il documento adesso.' }
+  return { ok: false, errore: dati.errore ?? t('Non riusciamo ad aprire il documento adesso.', 'We can’t open the document right now.') }
 }

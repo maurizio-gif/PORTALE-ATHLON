@@ -1,6 +1,7 @@
 import type { VoceDiario } from '@/api/alimentazione'
 
 import { consumoDelGiorno } from '../alimentazione/conti'
+import { locale, t } from '../../../lib/lingua'
 import { lunediDi, spostaGiorno, type Corpo, type Voce } from '../schede/contatoreCalorie'
 
 // Balance (19/10/2026): quanto si e' consumato e quanto si e' mangiato, giorno per
@@ -70,14 +71,20 @@ export const verso = (m: Media): Verso => (Math.abs(m.differenza) < SOGLIA_PARI 
 
 /** La frase della media: descrive, non giudica e non indica un traguardo. */
 export function frase(m: Media): string {
-  const giorni = m.giorni === 1 ? 'nell’unico giorno scritto' : `nei ${m.giorni} giorni scritti`
+  const giorni = m.giorni === 1 ? t('nell’unico giorno scritto', 'on the only day logged') : t(`nei ${m.giorni} giorni scritti`, `over the ${m.giorni} days logged`)
   switch (verso(m)) {
     case 'pari':
-      return `In media, ${giorni}, hai mangiato più o meno quanto hai consumato.`
+      return t(`In media, ${giorni}, hai mangiato più o meno quanto hai consumato.`, `On average, ${giorni}, you ate about as much as you burned.`)
     case 'meno':
-      return `In media, ${giorni}, hai mangiato circa ${a50(m.differenza).toLocaleString('it-IT')} kcal al giorno meno di quante ne hai consumate.`
+      return t(
+        `In media, ${giorni}, hai mangiato circa ${a50(m.differenza).toLocaleString(locale())} kcal al giorno meno di quante ne hai consumate.`,
+        `On average, ${giorni}, you ate about ${a50(m.differenza).toLocaleString(locale())} kcal a day less than you burned.`,
+      )
     case 'piu':
-      return `In media, ${giorni}, hai mangiato circa ${a50(m.differenza).toLocaleString('it-IT')} kcal al giorno più di quante ne hai consumate.`
+      return t(
+        `In media, ${giorni}, hai mangiato circa ${a50(m.differenza).toLocaleString(locale())} kcal al giorno più di quante ne hai consumate.`,
+        `On average, ${giorni}, you ate about ${a50(m.differenza).toLocaleString(locale())} kcal a day more than you burned.`,
+      )
   }
 }
 

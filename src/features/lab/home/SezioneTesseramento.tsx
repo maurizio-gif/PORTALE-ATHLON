@@ -3,6 +3,8 @@ import { Text, View } from 'react-native'
 
 import { leggiTesseramenti, scaricaTessera, type Tessera } from '@/api/tesseramenti'
 import { spazio } from '@/theme'
+// `t` qui e' la tessera: la traduzione si chiama `tx`.
+import { locale, t as tx } from '@/lib/lingua'
 
 import { useApriPdf } from '../apriPdf'
 import { inMemoria, prendi } from '../memoria'
@@ -36,21 +38,21 @@ export function useTesseramenti(): Tessera[] | null {
 
 /** «1 settembre 2026», dal giorno del database («2026-09-01»). */
 function giornoLungo(iso: string): string {
-  return new Date(`${iso.slice(0, 10)}T12:00:00`).toLocaleDateString('it-IT', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Europe/Rome' })
+  return new Date(`${iso.slice(0, 10)}T12:00:00`).toLocaleDateString(locale(), { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Europe/Rome' })
 }
 
 function validita(t: Tessera): string {
-  if (t.dal && t.al) return `Valida dal ${giornoLungo(t.dal)} al ${giornoLungo(t.al)}`
-  if (t.al) return `Valida fino al ${giornoLungo(t.al)}`
-  if (t.dal) return `Valida dal ${giornoLungo(t.dal)}, senza scadenza`
-  return 'Tessera attiva'
+  if (t.dal && t.al) return tx(`Valida dal ${giornoLungo(t.dal)} al ${giornoLungo(t.al)}`, `Valid from ${giornoLungo(t.dal)} to ${giornoLungo(t.al)}`)
+  if (t.al) return tx(`Valida fino al ${giornoLungo(t.al)}`, `Valid until ${giornoLungo(t.al)}`)
+  if (t.dal) return tx(`Valida dal ${giornoLungo(t.dal)}, senza scadenza`, `Valid from ${giornoLungo(t.dal)}, no expiry date`)
+  return tx('Tessera attiva', 'Active card')
 }
 
 function SchedaTessera({ t, conNome }: { t: Tessera; conNome: boolean }) {
   const p = usePalette()
   const { apri, avviso } = useApriPdf()
   const [inCorso, setInCorso] = useState(false)
-  const nome = [t.nome, t.cognome].filter(Boolean).join(' ').trim() || 'Tesseramento'
+  const nome = [t.nome, t.cognome].filter(Boolean).join(' ').trim() || tx('Tesseramento', 'ASI card')
 
   async function scarica() {
     setInCorso(true)
@@ -67,17 +69,17 @@ function SchedaTessera({ t, conNome }: { t: Tessera; conNome: boolean }) {
             <Text style={{ color: p.testo, fontFamily: F.extra, fontSize: 18, letterSpacing: -0.4 }} accessibilityRole="header">
               {nome}
             </Text>
-            {conNome ? <Text style={{ color: p.testoSecondario, fontFamily: F.medio, fontSize: 13 }}>{t.titolare ? 'Titolare' : 'Familiare'}</Text> : null}
+            {conNome ? <Text style={{ color: p.testoSecondario, fontFamily: F.medio, fontSize: 13 }}>{t.titolare ? tx('Titolare', 'Account holder') : tx('Familiare', 'Family member')}</Text> : null}
           </View>
         </View>
         <View style={{ gap: 4 }}>
-          <Text style={{ color: p.testoSecondario, fontFamily: F.semi, fontSize: 12, letterSpacing: 0.6 }}>TESSERA ASI N.</Text>
+          <Text style={{ color: p.testoSecondario, fontFamily: F.semi, fontSize: 12, letterSpacing: 0.6 }}>{tx('TESSERA ASI N.', 'ASI CARD NO.')}</Text>
           <Text style={{ color: p.testo, fontFamily: F.extra, fontSize: 22, letterSpacing: -0.3 }} selectable>
             {t.numero}
           </Text>
           <Text style={{ color: p.testoSecondario, fontFamily: F.medio, fontSize: 14.5, lineHeight: 20 }}>{validita(t)}</Text>
         </View>
-        <Pulsante testo="Scarica la tessera (PDF)" icona="scarica" onPress={scarica} inCorso={inCorso} />
+        <Pulsante testo={tx('Scarica la tessera (PDF)', 'Download the card (PDF)')} icona="scarica" onPress={scarica} inCorso={inCorso} />
         {avviso}
       </View>
     </Carta>

@@ -38,7 +38,7 @@ export function Grafico({ punti, unita, colore }: { punti: Punto[]; unita: strin
   const ultimo = xy[xy.length - 1]
 
   return (
-    <View onLayout={(e) => setLarghezza(e.nativeEvent.layout.width)} style={{ height: ALTEZZA }} accessibilityLabel={`Andamento: da ${numero(valori[0])} a ${numero(valori[valori.length - 1])} ${unita}`}>
+    <View onLayout={(e) => setLarghezza(e.nativeEvent.layout.width)} style={{ height: ALTEZZA }} accessibilityLabel={t(`Andamento: da ${numero(valori[0])} a ${numero(valori[valori.length - 1])} ${unita}`, `Trend: from ${numero(valori[0])} to ${numero(valori[valori.length - 1])} ${unita}`)}>
       {larghezza > 0 && punti.length ? (
         <>
           <Svg width={larghezza} height={ALTEZZA}>

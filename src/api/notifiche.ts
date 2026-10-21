@@ -3,6 +3,7 @@ import type { Href } from 'expo-router'
 import { hrefSezione } from '@/features/lab/home/sezioni'
 
 import { funzione } from './lab'
+import { t } from '@/lib/lingua'
 
 // Le notifiche del club (20/10/2026): la funzione portale-lab-notifiche di APP-ATHLON. Il club scrive al socio dal CRM
 // (dalla scheda del contatto o dalla newsletter) e la notifica arriva in tre modi insieme: la **finestra** che compare
@@ -113,14 +114,14 @@ export type Errore = { ok: false; stato: number; errore: string }
  */
 export async function leggiNuove(): Promise<{ ok: true; nonLette: number; finestre: NotificaApp[] } | Errore> {
   const r = await funzione('portale-lab-notifiche', { azione: 'nuove' })
-  if (!r.ok) return { ok: false, stato: r.stato, errore: String(r.dati.errore ?? 'Non riusciamo a leggere le notifiche adesso.') }
+  if (!r.ok) return { ok: false, stato: r.stato, errore: String(r.dati.errore ?? t('Non riusciamo a leggere le notifiche adesso.', 'We can’t load the notifications right now.')) }
   return { ok: true, nonLette: Math.max(0, Number(r.dati.non_lette) || 0), finestre: elenco(r.dati.finestre) }
 }
 
 /** Il centro notifiche: tutto quello che il club ha scritto, dalla piu' recente. */
 export async function leggiElenco(): Promise<{ ok: true; notifiche: NotificaApp[] } | Errore> {
   const r = await funzione('portale-lab-notifiche', { azione: 'elenco' })
-  if (!r.ok) return { ok: false, stato: r.stato, errore: String(r.dati.errore ?? 'Non riusciamo a leggere le notifiche adesso.') }
+  if (!r.ok) return { ok: false, stato: r.stato, errore: String(r.dati.errore ?? t('Non riusciamo a leggere le notifiche adesso.', 'We can’t load the notifications right now.')) }
   return { ok: true, notifiche: elenco(r.dati.notifiche) }
 }
 
@@ -157,7 +158,7 @@ export type StatoPushServer = {
 
 export async function statoPushServer(endpoint?: string): Promise<({ ok: true } & StatoPushServer) | Errore> {
   const r = await funzione('portale-lab-notifiche', { azione: 'push_stato', ...(endpoint ? { endpoint } : {}) })
-  if (!r.ok) return { ok: false, stato: r.stato, errore: String(r.dati.errore ?? 'Non riusciamo a leggere lo stato delle notifiche.') }
+  if (!r.ok) return { ok: false, stato: r.stato, errore: String(r.dati.errore ?? t('Non riusciamo a leggere lo stato delle notifiche.', 'We can’t load the notification status.')) }
   return {
     ok: true,
     disponibile: r.dati.disponibile === true && typeof r.dati.chiave === 'string' && r.dati.chiave.length > 0,
@@ -171,7 +172,7 @@ export type SottoscrizionePush = { endpoint: string; p256dh: string; auth: strin
 
 export async function iscriviPush(s: SottoscrizionePush): Promise<{ ok: true } | { ok: false; errore: string }> {
   const r = await funzione('portale-lab-notifiche', { azione: 'push_iscrivi', ...s })
-  return r.ok ? { ok: true } : { ok: false, errore: String(r.dati.errore ?? 'Non siamo riusciti ad attivare le notifiche. Riprova.') }
+  return r.ok ? { ok: true } : { ok: false, errore: String(r.dati.errore ?? t('Non siamo riusciti ad attivare le notifiche. Riprova.', 'We couldn’t turn on notifications. Try again.')) }
 }
 
 export async function rimuoviPush(endpoint: string): Promise<boolean> {

@@ -6,6 +6,7 @@ import Svg, { Circle } from 'react-native-svg'
 
 import { daiConsenso } from '@/api/alimentazione'
 import { spazio } from '@/theme'
+import { t } from '@/lib/lingua'
 
 import { useProgresso } from '../schede/ContatoreCalorie'
 import { Icona, type NomeIcona } from '../ui/Icona'
@@ -72,16 +73,16 @@ function Piatto() {
 }
 
 const COSE: { icona: NomeIcona; colori: readonly [string, string]; titolo: string; testo: string }[] = [
-  { icona: 'piatto', colori: ['#43E0A0', '#0A6B37'], titolo: 'Il diario in un tocco', testo: 'Cerchi l’alimento, scegli la porzione: calorie e nutrienti si contano da soli.' },
-  { icona: 'fotocamera', colori: ['#FF8A2B', '#E84300'], titolo: 'Fotografa il piatto', testo: 'L’intelligenza artificiale riconosce cosa c’è e stima i grammi. Tu controlli e confermi.' },
-  { icona: 'fiamma', colori: ['#5C8DFF', '#1F4FD8'], titolo: 'Accanto al tuo allenamento', testo: 'Quello che mangi vicino a quello che consumi con gli allenamenti e le lezioni.' },
-  { icona: 'stella', colori: ['#A78BFA', '#6D28D9'], titolo: 'Consigli per te', testo: 'Secondo il tuo obiettivo e come ti alleni, dalle linee guida ufficiali.' },
+  { icona: 'piatto', colori: ['#43E0A0', '#0A6B37'], titolo: t('Il diario in un tocco', 'Your diary in one tap'), testo: t('Cerchi l’alimento, scegli la porzione: calorie e nutrienti si contano da soli.', 'Search for the food, choose the portion: calories and nutrients add up on their own.') },
+  { icona: 'fotocamera', colori: ['#FF8A2B', '#E84300'], titolo: t('Fotografa il piatto', 'Photograph your meal'), testo: t('L’intelligenza artificiale riconosce cosa c’è e stima i grammi. Tu controlli e confermi.', 'Artificial intelligence recognizes what’s there and estimates the grams. You check and confirm.') },
+  { icona: 'fiamma', colori: ['#5C8DFF', '#1F4FD8'], titolo: t('Accanto al tuo allenamento', 'Next to your training'), testo: t('Quello che mangi vicino a quello che consumi con gli allenamenti e le lezioni.', 'What you eat next to what you burn in your workouts and classes.') },
+  { icona: 'stella', colori: ['#A78BFA', '#6D28D9'], titolo: t('Consigli per te', 'Tips for you'), testo: t('Secondo il tuo obiettivo e come ti alleni, dalle linee guida ufficiali.', 'Based on your goal and how you train, from the official guidelines.') },
 ]
 
 const GARANZIE: { icona: NomeIcona; testo: string }[] = [
-  { icona: 'lucchetto', testo: 'Li vedi solo tu: nemmeno lo staff del club.' },
-  { icona: 'fotocamera', testo: 'La foto serve solo a riconoscere il piatto: non la conserviamo.' },
-  { icona: 'cestino', testo: 'Revochi quando vuoi, e cancelliamo tutto subito.' },
+  { icona: 'lucchetto', testo: t('Li vedi solo tu: nemmeno lo staff del club.', 'Only you can see it: not even the club staff.') },
+  { icona: 'fotocamera', testo: t('La foto serve solo a riconoscere il piatto: non la conserviamo.', 'The photo is only used to recognize the meal: we don’t keep it.') },
+  { icona: 'cestino', testo: t('Revochi quando vuoi, e cancelliamo tutto subito.', 'Withdraw whenever you like, and we delete everything right away.') },
 ]
 
 export function Vetrina({ onConsenso }: { onConsenso: () => void }) {
@@ -107,13 +108,13 @@ export function Vetrina({ onConsenso }: { onConsenso: () => void }) {
           <View style={stili.eroeRiga}>
             <View style={{ flex: 1, gap: spazio.due }}>
               <View style={stili.novita}>
-                <Text style={stili.novitaTesto}>NOVITÀ</Text>
+                <Text style={stili.novitaTesto}>{t('NOVITÀ', 'NEW')}</Text>
               </View>
-              <Text style={stili.eroeTitolo}>Mangia bene, allenati meglio</Text>
+              <Text style={stili.eroeTitolo}>{t('Mangia bene, allenati meglio', 'Eat well, train better')}</Text>
             </View>
             <Piatto />
           </View>
-          <Text style={stili.eroeTesto}>Il diario dei pasti, la foto del piatto che diventa calorie, il bilancio con quello che consumi e i consigli per il tuo allenamento.</Text>
+          <Text style={stili.eroeTesto}>{t('Il diario dei pasti, la foto del piatto che diventa calorie, il bilancio con quello che consumi e i consigli per il tuo allenamento.', 'The meal diary, the photo of your meal that turns into calories, the balance with what you burn, and tips for your training.')}</Text>
         </LinearGradient>
       </Entra>
 
@@ -135,9 +136,9 @@ export function Vetrina({ onConsenso }: { onConsenso: () => void }) {
 
       <Entra indice={5}>
         <Carta style={{ gap: spazio.tre }}>
-          <Text style={[stili.titoletto, { color: p.testo }]}>I tuoi dati restano tuoi</Text>
+          <Text style={[stili.titoletto, { color: p.testo }]}>{t('I tuoi dati restano tuoi', 'Your data stays yours')}</Text>
           <Text style={[stili.cosaTesto, { color: p.testoSecondario }]}>
-            Quello che mangi è un dato sulla salute: per aprire la sezione ci serve il tuo consenso, che puoi ritirare quando vuoi.
+            {t('Quello che mangi è un dato sulla salute: per aprire la sezione ci serve il tuo consenso, che puoi ritirare quando vuoi.', 'What you eat is health data: to open the section we need your consent, which you can withdraw whenever you like.')}
           </Text>
           <View style={{ gap: spazio.due }}>
             {GARANZIE.map((g) => (
@@ -147,8 +148,8 @@ export function Vetrina({ onConsenso }: { onConsenso: () => void }) {
               </View>
             ))}
           </View>
-          <Tocco onPress={() => setAperta(true)} etichetta="Leggi l’informativa completa" ruolo="link" style={{ alignSelf: 'flex-start' }}>
-            <Text style={[stili.link, { color: p.accento }]}>Leggi l’informativa completa</Text>
+          <Tocco onPress={() => setAperta(true)} etichetta={t('Leggi l’informativa completa', 'Read the full privacy notice')} ruolo="link" style={{ alignSelf: 'flex-start' }}>
+            <Text style={[stili.link, { color: p.accento }]}>{t('Leggi l’informativa completa', 'Read the full privacy notice')}</Text>
           </Tocco>
           <Tocco onPress={() => setSpunta((v) => !v)} vibra="scelta" ruolo="checkbox" stato={{ selected: spunta }} etichetta={CONSENSO} scala={0.99}>
             <View style={[stili.spunta, { backgroundColor: p.incavo }]}>
@@ -159,18 +160,18 @@ export function Vetrina({ onConsenso }: { onConsenso: () => void }) {
             </View>
           </Tocco>
           {errore ? <Messaggio>{errore}</Messaggio> : null}
-          <Pulsante testo="Attiva l’alimentazione" icona="avanti" onPress={attiva} disabilitato={!spunta} inCorso={inCorso} />
+          <Pulsante testo={t('Attiva l’alimentazione', 'Turn on Nutrition')} icona="avanti" onPress={attiva} disabilitato={!spunta} inCorso={inCorso} />
         </Carta>
       </Entra>
 
-      <Foglio aperto={aperta} titolo="Informativa: Alimentazione" sottotitolo={`Versione del ${VERSIONE_INFORMATIVA.split('-').reverse().join('/')}`} onChiudi={() => setAperta(false)}>
+      <Foglio aperto={aperta} titolo={t('Informativa: Alimentazione', 'Privacy notice: Nutrition')} sottotitolo={t(`Versione del ${VERSIONE_INFORMATIVA.split('-').reverse().join('/')}`, `Version of ${VERSIONE_INFORMATIVA.split('-').reverse().join('/')}`)} onChiudi={() => setAperta(false)}>
         {INFORMATIVA.map((s) => (
           <View key={s.titolo} style={{ gap: 4 }}>
             <Text style={[stili.cosaTitolo, { color: p.testo }]}>{s.titolo}</Text>
             <Text style={[stili.cosaTesto, { color: p.testoSecondario }]}>{s.testo}</Text>
           </View>
         ))}
-        <Pulsante testo="Ho letto" variante="secondario" onPress={() => setAperta(false)} />
+        <Pulsante testo={t('Ho letto', 'I’ve read it')} variante="secondario" onPress={() => setAperta(false)} />
       </Foglio>
     </>
   )

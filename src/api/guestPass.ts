@@ -1,5 +1,5 @@
 import { SUPABASE_URL } from '@/config'
-import { intestazioneLingua } from '@/lib/lingua'
+import { intestazioneLingua, t } from '@/lib/lingua'
 
 // Il Guest Pass dal link: il primo passo e' l'email con la privacy, e la Edge Function `guest-pass` risponde sempre
 // allo stesso modo, «ti abbiamo mandato il link» (21/10/2026): chi puo' averlo, e per chi (per se' o per un figlio dai
@@ -16,7 +16,7 @@ async function chiama(corpo: Record<string, unknown>, token?: string): Promise<{
     const dati = ((await r.json().catch(() => null)) ?? {}) as Record<string, any>
     return { ok: r.ok && dati.ok === true, stato: r.status, dati }
   } catch {
-    return { ok: false, stato: 0, dati: { errore: 'Connessione non riuscita. Controlla la rete e riprova.' } }
+    return { ok: false, stato: 0, dati: { errore: t('Connessione non riuscita. Controlla la rete e riprova.', 'Connection failed. Check your network and try again.') } }
   }
 }
 
@@ -32,7 +32,7 @@ export async function richiediGuestPass(
 ): Promise<{ ok: true } | { ok: false; errore: string }> {
   const r = await chiama({ azione: 'richiedi', email, privacy: consensi.privacy, marketing: consensi.marketing, ...(invito ? { invito } : {}) })
   if (r.ok) return { ok: true }
-  return { ok: false, errore: r.dati.errore ?? 'Non siamo riusciti a mandarti il link adesso.' }
+  return { ok: false, errore: r.dati.errore ?? t('Non siamo riusciti a mandarti il link adesso.', 'We couldn’t send you the link right now.') }
 }
 
 /**

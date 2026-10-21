@@ -1,41 +1,52 @@
 import type { EsercizioScheda, GiornoSchedaLab, Massimale } from '@/api/lab'
+import { locale, t } from '@/lib/lingua'
 
 // Le schede di allenamento nel laboratorio: le etichette della libreria (le
 // stesse chiavi di lib/esercizi.ts nel CRM) e il calcolo di cosa viene dopo
 // una serie, col suo recupero.
 
 export const MUSCOLI: Record<string, string> = {
-  pettorali: 'Pettorali',
-  schiena: 'Schiena',
-  spalle: 'Spalle',
-  trapezi: 'Trapezi',
-  bicipiti: 'Bicipiti',
-  tricipiti: 'Tricipiti',
-  avambracci: 'Avambracci',
+  pettorali: t('Pettorali', 'Chest'),
+  schiena: t('Schiena', 'Back'),
+  spalle: t('Spalle', 'Shoulders'),
+  trapezi: t('Trapezi', 'Traps'),
+  bicipiti: t('Bicipiti', 'Biceps'),
+  tricipiti: t('Tricipiti', 'Triceps'),
+  avambracci: t('Avambracci', 'Forearms'),
   core: 'Core',
-  lombari: 'Lombari',
-  glutei: 'Glutei',
-  quadricipiti: 'Quadricipiti',
-  femorali: 'Femorali',
-  adduttori: 'Adduttori',
-  polpacci: 'Polpacci',
-  tibiale: 'Tibiale anteriore',
-  collo: 'Collo',
+  lombari: t('Lombari', 'Lower back'),
+  glutei: t('Glutei', 'Glutes'),
+  quadricipiti: t('Quadricipiti', 'Quads'),
+  femorali: t('Femorali', 'Hamstrings'),
+  adduttori: t('Adduttori', 'Adductors'),
+  polpacci: t('Polpacci', 'Calves'),
+  tibiale: t('Tibiale anteriore', 'Tibialis anterior'),
+  collo: t('Collo', 'Neck'),
   // Le chiavi di free-exercise-db, per gli esercizi del club scritti prima.
-  addominali: 'Addominali',
-  abduttori: 'Abduttori',
-  dorsali: 'Dorsali',
-  schiena_centrale: 'Schiena',
+  addominali: t('Addominali', 'Abs'),
+  abduttori: t('Abduttori', 'Abductors'),
+  dorsali: t('Dorsali', 'Lats'),
+  schiena_centrale: t('Schiena', 'Back'),
 }
 
-export const LIVELLI: Record<string, string> = { principiante: 'Principiante', intermedio: 'Intermedio', esperto: 'Esperto' }
+export const LIVELLI: Record<string, string> = { principiante: t('Principiante', 'Beginner'), intermedio: t('Intermedio', 'Intermediate'), esperto: t('Esperto', 'Advanced') }
 
 // **Un piano composto non dice «AI»** (20/10/2026, richiesta del club): sulla carta e' «Composto per te», come «Scritto da te» e
 // «Importato da te». Che dietro ci sia un'intelligenza artificiale sta nelle postille (in fondo all'editor e al piano).
-export const TIPI: Record<string, string> = { standard: 'Consigliato dal club', personalizzata: 'Dal tuo trainer', ai: 'Composto per te', socio: 'Tuo' }
+export const TIPI: Record<string, string> = {
+  standard: t('Consigliato dal club', 'Recommended by the club'),
+  personalizzata: t('Dal tuo trainer', 'From your trainer'),
+  ai: t('Composto per te', 'Built for you'),
+  socio: t('Tuo', 'Yours'),
+}
 
 /** Da dove viene un piano del socio (`origine`), com'e' scritto sulla carta. */
-const ORIGINI: Record<string, string> = { creata: 'Scritto da te', importata: 'Importato da te', ai: 'Composto per te', club: 'Dal club, tuo' }
+const ORIGINI: Record<string, string> = {
+  creata: t('Scritto da te', 'Written by you'),
+  importata: t('Importato da te', 'Imported by you'),
+  ai: t('Composto per te', 'Built for you'),
+  club: t('Dal club, tuo', 'From the club, yours'),
+}
 
 /** L'etichetta di un piano: il suo tipo e, per quelli del socio, da dove viene. */
 export function etichettaPiano(s: { tipo: string; origine?: string | null }): string {
@@ -43,13 +54,30 @@ export function etichettaPiano(s: { tipo: string; origine?: string | null }): st
   return TIPI[s.tipo] ?? s.tipo
 }
 
+/** L'attrezzo di un esercizio (le chiavi di lib/esercizi.ts nel CRM): in italiano la chiave senza trattini bassi, come prima. */
+const ATTREZZI_EN: Record<string, string> = {
+  corpo_libero: 'bodyweight',
+  macchina: 'machine',
+  manubri: 'dumbbells',
+  bilanciere: 'barbell',
+  bilanciere_ez: 'EZ bar',
+  cavi: 'cables',
+  kettlebell: 'kettlebell',
+  elastici: 'resistance bands',
+  palla_medica: 'medicine ball',
+  fitball: 'Swiss ball',
+  foam_roller: 'foam roller',
+  altro: 'other',
+}
+export const nomeAttrezzo = (a: string): string => t(a.replace(/_/g, ' '), ATTREZZI_EN[a] ?? a.replace(/_/g, ' '))
+
 export function muscoli(lista: string[]): string {
   return lista.map((m) => MUSCOLI[m] ?? m).join(', ')
 }
 
 /** «90» → «1:30», «45» → «45″». */
 export function recupero(secondi: number): string {
-  if (secondi <= 0) return 'nessuno'
+  if (secondi <= 0) return t('nessuno', 'none')
   const m = Math.floor(secondi / 60)
   const s = secondi % 60
   return m ? `${m}:${String(s).padStart(2, '0')}` : `${s}″`
@@ -57,12 +85,12 @@ export function recupero(secondi: number): string {
 
 /** «mar 14 ott, 18:30». */
 export function quando(iso: string): string {
-  return new Date(iso).toLocaleString('it-IT', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Rome' })
+  return new Date(iso).toLocaleString(locale(), { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Rome' })
 }
 
 /** «mer 26 ago»: la data del test, senza l'ora. */
 export function giornoTest(iso: string): string {
-  return new Date(iso).toLocaleDateString('it-IT', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'Europe/Rome' })
+  return new Date(iso).toLocaleDateString(locale(), { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'Europe/Rome' })
 }
 
 /** Gli esercizi a tempo («30 s», «45 sec», «1 min»): si registrano i secondi, non le ripetizioni. */
@@ -108,7 +136,7 @@ export function dopo(giorno: GiornoSchedaLab, indice: number, serie: number): { 
 /** «Panca piana · serie 2 di 4». */
 export function descriviPasso(giorno: GiornoSchedaLab, p: Passo): string {
   const e: EsercizioScheda | undefined = giorno.esercizi[p.indice]
-  return e ? `${e.nome} · serie ${p.serie} di ${e.serie}` : ''
+  return e ? t(`${e.nome} · serie ${p.serie} di ${e.serie}`, `${e.nome} · set ${p.serie} of ${e.serie}`) : ''
 }
 
 // ---------------------------------------------------------------------------
@@ -125,7 +153,7 @@ export function stimaMassimale(kg: number, ripetizioni: number): number {
 
 /** «37,5». */
 export function kg(n: number): string {
-  return (Math.round(n * 10) / 10).toLocaleString('it-IT', { maximumFractionDigits: 1 })
+  return (Math.round(n * 10) / 10).toLocaleString(locale(), { maximumFractionDigits: 1 })
 }
 
 export type Obiettivo =
@@ -157,8 +185,8 @@ export function obiettivo(
 export function descriviObiettivo(o: Obiettivo | null): string | null {
   if (!o) return null
   if (o.tipo === 'kg') return `${o.percentuale}% · ${kg(o.kg)} kg`
-  if (o.tipo === 'ripetizioni') return `${o.percentuale}% · ${o.ripetizioni} ripetizioni`
-  return `${o.percentuale}% del massimale`
+  if (o.tipo === 'ripetizioni') return t(`${o.percentuale}% · ${o.ripetizioni} ripetizioni`, `${o.percentuale}% · ${o.ripetizioni} reps`)
+  return t(`${o.percentuale}% del massimale`, `${o.percentuale}% of your 1RM`)
 }
 
 /** Il test e' da rifare? Ogni 6 settimane, 4 per i principianti. */
@@ -195,15 +223,20 @@ export function indicazione(e: EsercizioScheda, massimali: Massimale[]): Indicaz
     const stimato = m?.fonte === 'stima'
     return { ...base, carico: `${stimato ? '≈ ' : ''}${kg(o.kg)} kg · ${o.percentuale}%`, kg: o.kg, stimato }
   }
-  if (o.tipo === 'ripetizioni') return { ...base, serieRip: `${e.serie} × ${o.ripetizioni}`, carico: `${o.percentuale}% delle tue massime`, ripetizioni: o.ripetizioni }
-  return { ...base, carico: `${o.percentuale}% del massimale`, manca: true, daTest: o.daTest }
+  if (o.tipo === 'ripetizioni') return { ...base, serieRip: `${e.serie} × ${o.ripetizioni}`, carico: t(`${o.percentuale}% delle tue massime`, `${o.percentuale}% of your max reps`), ripetizioni: o.ripetizioni }
+  return { ...base, carico: t(`${o.percentuale}% del massimale`, `${o.percentuale}% of your 1RM`), manca: true, daTest: o.daTest }
 }
 
-export const SPIEGA_TARATURA = 'Alla prima seduta scegli un peso con cui fai le ripetizioni indicate tenendone un paio di riserva: da lì calcoliamo i tuoi chili.'
+export const SPIEGA_TARATURA = t(
+  'Alla prima seduta scegli un peso con cui fai le ripetizioni indicate tenendone un paio di riserva: da lì calcoliamo i tuoi chili.',
+  'In your first workout, pick a weight that lets you do the reps shown with a couple in reserve: from there we work out your weights.',
+)
 
 /** I carichi con «≈»: stimati dal test del distretto, poi corretti dalla prima seduta. */
-export const SPIEGA_STIMA =
-  'Dove vedi «≈» il carico è stimato dal test del tuo distretto (arti superiori, core o arti inferiori), con un margine di prudenza: alla prima seduta, coi chili che usi davvero, diventa il tuo.'
+export const SPIEGA_STIMA = t(
+  'Dove vedi «≈» il carico è stimato dal test del tuo distretto (arti superiori, core o arti inferiori), con un margine di prudenza: alla prima seduta, coi chili che usi davvero, diventa il tuo.',
+  'Where you see “≈” the load is estimated from the test for that body area (upper body, core or lower body), with a safety margin: in your first workout, with the weights you actually use, it becomes yours.',
+)
 
 /** Fra quanti giorni rifare il test (0 se e' gia' ora). */
 export function giorniAlTest(ultimo: string | null, giorni: number): number {

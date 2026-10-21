@@ -4,6 +4,7 @@ import { Text, View } from 'react-native'
 import { salvaDatiAbbonamento, type CambiDati, type PersonaDati } from '@/api/abbonamento'
 import { CampoPaese } from '@/components/CampoPaese'
 import { CasellaResidenteEstero } from '@/components/CasellaResidenteEstero'
+import { t } from '@/lib/lingua'
 import { capLiberoValido, ITALIA, pulisciCapLibero } from '@/lib/residenteEstero'
 import { spazio } from '@/theme'
 
@@ -62,7 +63,7 @@ export function CorreggiDati({
     if (estero) {
       // Residente all'estero: nessun codice da controllare. Su PerfectGym il campo resta vuoto.
       if (!paese) {
-        setErrore('Scegli il Paese in cui risiedi.')
+        setErrore(t('Scegli il Paese in cui risiedi.', 'Choose the country you live in.'))
         return
       }
       if (!persona.senza_codice_fiscale || paese !== persona.paese) {
@@ -71,7 +72,7 @@ export function CorreggiDati({
       }
     } else if (cfNuovo !== (persona.codice_fiscale ?? '').toUpperCase() || persona.senza_codice_fiscale) {
       if (!cfNuovo) {
-        setErrore('Scrivi il codice fiscale, oppure spunta che sei residente all’estero.')
+        setErrore(t('Scrivi il codice fiscale, oppure spunta che sei residente all’estero.', 'Enter your Italian tax code, or tick that you live abroad.'))
         return
       }
       cambi.codice_fiscale = cfNuovo
@@ -81,17 +82,17 @@ export function CorreggiDati({
     const paeseIndirizzo = estero ? paese : ITALIA
     if (via.trim() !== (persona.indirizzo?.via ?? '') || cap !== (persona.indirizzo?.cap ?? '') || citta.trim() !== (persona.indirizzo?.citta ?? '') || paeseIndirizzo !== paeseIndirizzoPrima) {
       if (!via.trim() || !citta.trim()) {
-        setErrore('Scrivi via e numero civico, CAP e città.')
+        setErrore(t('Scrivi via e numero civico, CAP e città.', 'Enter street and number, postal code and city.'))
         return
       }
       if (estero ? !capLiberoValido(cap) : !/^\d{5}$/.test(cap)) {
-        setErrore(estero ? 'Il CAP non è valido: da 2 a 12 caratteri fra lettere, cifre, spazio e trattino.' : 'Il CAP ha cinque cifre.')
+        setErrore(estero ? t('Il CAP non è valido: da 2 a 12 caratteri fra lettere, cifre, spazio e trattino.', 'The postal code isn’t valid: 2 to 12 characters among letters, digits, spaces and hyphens.') : t('Il CAP ha cinque cifre.', 'The postal code has five digits.'))
         return
       }
       cambi.indirizzo = { via: via.trim(), cap: cap.trim(), citta: citta.trim(), paese: paeseIndirizzo }
     }
     if (!Object.keys(cambi).length) {
-      setErrore('Non hai cambiato niente.')
+      setErrore(t('Non hai cambiato niente.', 'You haven’t changed anything.'))
       return
     }
     setErrore(null)
@@ -108,39 +109,39 @@ export function CorreggiDati({
   }
 
   if (!aperto) {
-    return <Pulsante testo={`Correggi i dati${persona.ruolo === 'genitore' ? ' del genitore' : ''}`} variante="fantasma" piccolo pieno={false} onPress={() => setAperto(true)} />
+    return <Pulsante testo={persona.ruolo === 'genitore' ? t('Correggi i dati del genitore', 'Edit the parent’s details') : t('Correggi i dati', 'Edit details')} variante="fantasma" piccolo pieno={false} onPress={() => setAperto(true)} />
   }
 
   return (
     <Carta piatta>
       <View style={{ gap: spazio.tre }}>
         <Text style={{ color: p.testo, fontFamily: F.extra, fontSize: 16 }}>{titolo}</Text>
-        {mancanti?.length ? <Messaggio tono="attenzione">{`Per il contratto serve: ${mancanti.join(', ')}.`}</Messaggio> : null}
+        {mancanti?.length ? <Messaggio tono="attenzione">{t(`Per il contratto serve: ${mancanti.join(', ')}.`, `The contract needs: ${mancanti.join(', ')}.`)}</Messaggio> : null}
         <Text style={{ color: p.testoSecondario, fontFamily: F.medio, fontSize: 13, lineHeight: 19 }}>
-          {`${persona.nome} ${persona.cognome}${persona.data_nascita ? `, nato/a il ${persona.data_nascita.split('-').reverse().join('/')}` : ''}. Nome e data di nascita si cambiano dal club.`}
+          {`${persona.nome} ${persona.cognome}${persona.data_nascita ? t(`, nato/a il ${persona.data_nascita.split('-').reverse().join('/')}`, `, born ${persona.data_nascita.split('-').reverse().join('/')}`) : ''}. ${t('Nome e data di nascita si cambiano dal club.', 'Name and date of birth can only be changed by the club.')}`}
         </Text>
         {estero ? null : (
-          <CampoTesto etichetta="Codice fiscale" value={cf} onChangeText={(v) => setCf(v.toUpperCase())} autoCapitalize="characters" autoCorrect={false} maxLength={16} placeholder="RSSMRA80A01H501U" />
+          <CampoTesto etichetta={t('Codice fiscale', 'Italian tax code')} value={cf} onChangeText={(v) => setCf(v.toUpperCase())} autoCapitalize="characters" autoCorrect={false} maxLength={16} placeholder="RSSMRA80A01H501U" />
         )}
         <CasellaResidenteEstero spuntata={estero} onCambia={cambiaEstero} lab />
         {estero ? <CampoPaese variante="lab" value={paese} onChange={(v) => { setPaese(v); setErrore(null) }} errore={!!errore && !paese} /> : null}
-        <CampoTesto etichetta="Cellulare" icona="telefono" value={telefono} onChangeText={setTelefono} autoComplete="tel" textContentType="telephoneNumber" keyboardType="phone-pad" />
-        <CampoTesto etichetta="Via e numero civico" icona="luogo" value={via} onChangeText={setVia} autoComplete="street-address" textContentType="fullStreetAddress" placeholder="Via Ugo Ojetti 134" />
+        <CampoTesto etichetta={t('Cellulare', 'Mobile number')} icona="telefono" value={telefono} onChangeText={setTelefono} autoComplete="tel" textContentType="telephoneNumber" keyboardType="phone-pad" />
+        <CampoTesto etichetta={t('Via e numero civico', 'Street and number')} icona="luogo" value={via} onChangeText={setVia} autoComplete="street-address" textContentType="fullStreetAddress" placeholder="Via Ugo Ojetti 134" />
         <View style={{ flexDirection: 'row', gap: spazio.due }}>
           <View style={{ flex: 1 }}>
             {estero ? (
-              <CampoTesto etichetta="CAP" value={cap} onChangeText={(v) => setCap(pulisciCapLibero(v))} autoComplete="postal-code" textContentType="postalCode" autoCapitalize="characters" autoCorrect={false} maxLength={12} placeholder="SW1A 1AA" />
+              <CampoTesto etichetta={t('CAP', 'Postal code')} value={cap} onChangeText={(v) => setCap(pulisciCapLibero(v))} autoComplete="postal-code" textContentType="postalCode" autoCapitalize="characters" autoCorrect={false} maxLength={12} placeholder="SW1A 1AA" />
             ) : (
-              <CampoTesto etichetta="CAP" value={cap} onChangeText={(v) => setCap(v.replace(/\D/g, '').slice(0, 5))} autoComplete="postal-code" textContentType="postalCode" inputMode="numeric" keyboardType="number-pad" placeholder="00137" />
+              <CampoTesto etichetta={t('CAP', 'Postal code')} value={cap} onChangeText={(v) => setCap(v.replace(/\D/g, '').slice(0, 5))} autoComplete="postal-code" textContentType="postalCode" inputMode="numeric" keyboardType="number-pad" placeholder="00137" />
             )}
           </View>
           <View style={{ flex: 1.6 }}>
-            <CampoTesto etichetta="Città" value={citta} onChangeText={setCitta} onSubmitEditing={salva} textContentType="addressCity" placeholder="Roma" />
+            <CampoTesto etichetta={t('Città', 'City')} value={citta} onChangeText={setCitta} onSubmitEditing={salva} textContentType="addressCity" placeholder="Roma" />
           </View>
         </View>
         {errore ? <Messaggio>{errore}</Messaggio> : null}
-        <Pulsante testo="Salva i dati" icona="spunta" onPress={salva} inCorso={attesa} />
-        {!apertoDa ? <Pulsante testo="Annulla" variante="fantasma" piccolo pieno={false} onPress={() => setAperto(false)} /> : null}
+        <Pulsante testo={t('Salva i dati', 'Save details')} icona="spunta" onPress={salva} inCorso={attesa} />
+        {!apertoDa ? <Pulsante testo={t('Annulla', 'Cancel')} variante="fantasma" piccolo pieno={false} onPress={() => setAperto(false)} /> : null}
       </View>
     </Carta>
   )

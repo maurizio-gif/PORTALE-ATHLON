@@ -3,6 +3,7 @@ import { Text, View } from 'react-native'
 
 import type { Area, PersonaArea } from '@/api/lab'
 import { spazio } from '@/theme'
+import { t } from '@/lib/lingua'
 
 import { Carta } from '../ui/kit'
 import { F, usePalette } from '../ui/tema'
@@ -44,7 +45,7 @@ export function SezioneCertificato({ area, onAggiorna }: { area: AreaTrovata; on
         ))}
       </Carta>
       <Text style={{ color: p.testoTerzo, fontFamily: F.medio, fontSize: 13, lineHeight: 19, paddingHorizontal: 4 }}>
-        Il certificato si consegna in formato digitale: tocca «Carica il certificato» e scegli una foto o un PDF. Toccando la «i» vedi quale serve.
+        {t('Il certificato si consegna in formato digitale: tocca «Carica il certificato» e scegli una foto o un PDF. Toccando la «i» vedi quale serve.', 'The certificate is handed in digitally: tap “Upload certificate” and choose a photo or a PDF. Tap the “i” to see which one you need.')}
       </Text>
       <FoglioCertificato aperto={aperto} persona={per} onChiudi={() => setAperto(false)} onCaricato={onAggiorna} />
     </View>

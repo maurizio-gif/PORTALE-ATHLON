@@ -1,5 +1,7 @@
 import { StyleSheet, Text, View } from 'react-native'
 
+import { t } from '@/lib/lingua'
+
 import { usePalette, F } from './ui/tema'
 
 // Il campo firma sul telefono nativo non c'e' ancora: il portale e' una PWA e
@@ -9,7 +11,7 @@ export function FirmaPad({ onCambia: _ }: { onCambia: (png: string | null) => vo
   return (
     <View style={[stili.avviso, { borderColor: p.linea, backgroundColor: p.incavo }]}>
       <Text style={{ color: p.testo, fontFamily: F.semi, fontSize: 14, lineHeight: 20 }}>
-        Per firmare il contratto apri il portale dal browser: app.athlonroma.it.
+        {t('Per firmare il contratto apri il portale dal browser: app.athlonroma.it.', 'To sign the contract, open the portal in your browser: app.athlonroma.it.')}
       </Text>
     </View>
   )

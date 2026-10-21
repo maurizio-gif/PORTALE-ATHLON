@@ -3,6 +3,7 @@ import { Text, View } from 'react-native'
 
 import { apriDocumento, elencoDocumenti, type Documento } from '@/api/documenti'
 import { spazio } from '@/theme'
+import { locale, t } from '@/lib/lingua'
 
 import { useApriPdf } from '../apriPdf'
 import { inMemoria, prendi } from '../memoria'
@@ -43,7 +44,7 @@ export function useDocumenti() {
 }
 
 function giorno(iso: string): string {
-  return new Date(`${iso.slice(0, 10)}T12:00:00`).toLocaleDateString('it-IT', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Europe/Rome' })
+  return new Date(`${iso.slice(0, 10)}T12:00:00`).toLocaleDateString(locale(), { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Europe/Rome' })
 }
 
 function RigaDocumento({ d, prima, aperto, onApri }: { d: Documento; prima: boolean; aperto: boolean; onApri: () => void }) {
@@ -57,7 +58,7 @@ function RigaDocumento({ d, prima, aperto, onApri }: { d: Documento; prima: bool
       titolo={d.titolo}
       sotto={sotto || undefined}
       onPress={aperto ? undefined : onApri}
-      coda={aperto ? <Text style={{ color: p.testoSecondario, fontFamily: F.semi, fontSize: 13 }}>Apro…</Text> : undefined}
+      coda={aperto ? <Text style={{ color: p.testoSecondario, fontFamily: F.semi, fontSize: 13 }}>{t('Apro…', 'Opening…')}</Text> : undefined}
     />
   )
 }
@@ -67,7 +68,7 @@ function Gruppo({ titolo, elenco, aperto, onApri }: { titolo: string; elenco: Do
   if (!elenco.length) return null
   const visibili = tutti ? elenco : elenco.slice(0, PRIMI)
   return (
-    <Sezione titolo={titolo} conteggio={elenco.length} destra={elenco.length > PRIMI ? <LinkSezione testo={tutti ? 'Mostra meno' : 'Mostra tutti'} onPress={() => setTutti(!tutti)} /> : undefined}>
+    <Sezione titolo={titolo} conteggio={elenco.length} destra={elenco.length > PRIMI ? <LinkSezione testo={tutti ? t('Mostra meno', 'Show less') : t('Mostra tutti', 'Show all')} onPress={() => setTutti(!tutti)} /> : undefined}>
       <Carta style={{ paddingVertical: spazio.due }}>
         {visibili.map((d, i) => (
           <RigaDocumento key={`${d.origine}:${d.id}`} d={d} prima={i === 0} aperto={aperto === `${d.origine}:${d.id}`} onApri={() => onApri(d)} />
@@ -88,7 +89,7 @@ export function SezioneDocumenti() {
     await apriPdf(async () => {
       const r = await apriDocumento(d)
       // Il nome del file, per chi lo salva o lo invia: il titolo del documento.
-      return r.ok ? { ...r, nome: `${d.titolo.replace(/[^\p{L}\p{N} _-]/gu, '').trim() || 'documento'}.pdf` } : r
+      return r.ok ? { ...r, nome: `${d.titolo.replace(/[^\p{L}\p{N} _-]/gu, '').trim() || t('documento', 'document')}.pdf` } : r
     })
     setAperto(null)
   }
@@ -97,7 +98,7 @@ export function SezioneDocumenti() {
     return (
       <View style={{ gap: spazio.tre }}>
         <Messaggio>{errore}</Messaggio>
-        <Pulsante testo="Riprova" icona="aggiorna" variante="secondario" onPress={carica} />
+        <Pulsante testo={t('Riprova', 'Try again')} icona="aggiorna" variante="secondario" onPress={carica} />
       </View>
     )
   }
@@ -107,9 +108,9 @@ export function SezioneDocumenti() {
   if (!documenti.length) {
     return (
       <Carta piatta>
-        <Text style={{ color: p.testo, fontFamily: F.semi, fontSize: 15, lineHeight: 22 }}>Non ci sono ancora documenti sulla tua scheda.</Text>
+        <Text style={{ color: p.testo, fontFamily: F.semi, fontSize: 15, lineHeight: 22 }}>{t('Non ci sono ancora documenti sulla tua scheda.', 'There are no documents on your account yet.')}</Text>
         <Text style={{ color: p.testoSecondario, fontFamily: F.medio, fontSize: 13.5, lineHeight: 20, marginTop: 4 }}>
-          I contratti, i moduli firmati e le ricevute dei pagamenti compaiono qui appena il club li emette.
+          {t('I contratti, i moduli firmati e le ricevute dei pagamenti compaiono qui appena il club li emette.', 'Contracts, signed forms and payment receipts show up here as soon as the club issues them.')}
         </Text>
       </Carta>
     )
@@ -118,11 +119,11 @@ export function SezioneDocumenti() {
   return (
     <View style={{ gap: spazio.quattro }}>
       {avviso}
-      <Gruppo titolo="Contratti e moduli" elenco={documenti.filter((d) => d.tipo === 'contratto')} aperto={aperto} onApri={apri} />
-      <Gruppo titolo="Ricevute" elenco={documenti.filter((d) => d.tipo === 'ricevuta')} aperto={aperto} onApri={apri} />
-      <Gruppo titolo="Altri documenti" elenco={documenti.filter((d) => d.tipo === 'altro')} aperto={aperto} onApri={apri} />
+      <Gruppo titolo={t('Contratti e moduli', 'Contracts and forms')} elenco={documenti.filter((d) => d.tipo === 'contratto')} aperto={aperto} onApri={apri} />
+      <Gruppo titolo={t('Ricevute', 'Receipts')} elenco={documenti.filter((d) => d.tipo === 'ricevuta')} aperto={aperto} onApri={apri} />
+      <Gruppo titolo={t('Altri documenti', 'Other documents')} elenco={documenti.filter((d) => d.tipo === 'altro')} aperto={aperto} onApri={apri} />
       <Text style={{ color: p.testoTerzo, fontFamily: F.medio, fontSize: 13, lineHeight: 19, paddingHorizontal: 4 }}>
-        Sono i documenti che il club ha reso visibili sulla tua scheda. Se ne manca uno che ti aspetti, scrivi al club.
+        {t('Sono i documenti che il club ha reso visibili sulla tua scheda. Se ne manca uno che ti aspetti, scrivi al club.', 'These are the documents the club has made visible on your account. If one you expect is missing, write to the club.')}
       </Text>
     </View>
   )

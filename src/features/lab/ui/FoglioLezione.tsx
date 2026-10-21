@@ -7,6 +7,7 @@ import { scheduleOnRN } from 'react-native-worklets'
 
 import type { SchedaLezione } from '@/api/lab'
 import { spazio } from '@/theme'
+import { t } from '@/lib/lingua'
 
 import { Descrizione, schedaPer, Video } from '../SchedaLezione'
 import { Icona } from './Icona'
@@ -95,7 +96,7 @@ export function FoglioLezione({
                   {v.titolo}
                 </Text>
               </View>
-              <Tocco onPress={onChiudi} etichetta="Chiudi" style={stili.chiudi}>
+              <Tocco onPress={onChiudi} etichetta={t('Chiudi', 'Close')} style={stili.chiudi}>
                 <Icona nome="chiudi" size={20} colore="#fff" />
               </Tocco>
             </View>

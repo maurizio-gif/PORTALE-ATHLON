@@ -5,6 +5,7 @@ import { ActivityIndicator, Image, StyleSheet, Text, View } from 'react-native'
 
 import { importaScheda } from '@/api/lab'
 import { MAX_FILE, MAX_TOTALE_BYTE, preparaFileScheda, pesoLeggibile, scattaFoto, scegliFile, type FileGrezzo, type FileScheda } from '@/lib/fileScheda'
+import { t, tv } from '@/lib/lingua'
 import { spazio } from '@/theme'
 
 import { Icona } from '../ui/Icona'
@@ -26,18 +27,21 @@ import { mettiBozza, scartaBozza } from './bozza'
 // al modello come un piano solo, e una seduta che continua nella pagina dopo resta una seduta.
 
 const PASSI = [
-  { icona: 'fotocamera', testo: 'Scatta una foto al piano o scegli il file (foto o PDF). Se non sta in una foto, aggiungine altre: le leggiamo come un piano solo.' },
-  { icona: 'stella', testo: 'Lo leggiamo e riconosciamo giorni, esercizi, serie e carichi.' },
-  { icona: 'spunta', testo: 'Lo controlli, correggi quello che non torna e lo confermi: va fra i tuoi piani.' },
+  {
+    icona: 'fotocamera',
+    testo: t(
+      'Scatta una foto al piano o scegli il file (foto o PDF). Se non sta in una foto, aggiungine altre: le leggiamo come un piano solo.',
+      'Take a photo of the plan or choose the file (photo or PDF). If it doesn’t fit in one photo, add more: we read them as a single plan.',
+    ),
+  },
+  { icona: 'stella', testo: t('Lo leggiamo e riconosciamo giorni, esercizi, serie e carichi.', 'We read it and recognize days, exercises, sets and loads.') },
+  { icona: 'spunta', testo: t('Lo controlli, correggi quello che non torna e lo confermi: va fra i tuoi piani.', 'You check it, fix anything that’s off and confirm it: it goes into your plans.') },
 ] as const
 
-const ATTESA = [
-  'Guardo il piano…',
-  'Riconosco i giorni e gli esercizi…',
-  'Li abbino alla libreria del club…',
-  'Ricontrollo serie, ripetizioni e recuperi…',
-  'Ancora qualche secondo…',
-]
+const ATTESA = tv(
+  ['Guardo il piano…', 'Riconosco i giorni e gli esercizi…', 'Li abbino alla libreria del club…', 'Ricontrollo serie, ripetizioni e recuperi…', 'Ancora qualche secondo…'],
+  ['Looking at the plan…', 'Recognizing days and exercises…', 'Matching them to the club’s library…', 'Double-checking sets, reps and rest…', 'Just a few more seconds…'],
+)
 
 export function Importa() {
   const p = usePalette()
@@ -75,7 +79,7 @@ export function Importa() {
     for (const g of presi) {
       const f = await preparaFileScheda(g)
       if (f.ok) nuove.push(f.file)
-      else problemi.push(scelti.length > 1 ? `${g.name || 'Un file'}: ${f.errore}` : f.errore)
+      else problemi.push(scelti.length > 1 ? `${g.name || t('Un file', 'A file')}: ${f.errore}` : f.errore)
     }
     if (!qui.current) return
     setPreparo(false)
@@ -83,9 +87,14 @@ export function Importa() {
     // Il peso di tutte insieme: lo stesso limite della funzione, detto qui prima di aspettare un'attesa inutile.
     while (tutte.length > pagine.length && tutte.reduce((t, x) => t + x.byte, 0) > MAX_TOTALE_BYTE) {
       const tolta = tutte.pop()
-      problemi.push(`${tolta?.nome ?? 'Un file'}: insieme agli altri i file pesano più di ${pesoLeggibile(MAX_TOTALE_BYTE)}.`)
+      problemi.push(
+        t(
+          `${tolta?.nome ?? 'Un file'}: insieme agli altri i file pesano più di ${pesoLeggibile(MAX_TOTALE_BYTE)}.`,
+          `${tolta?.nome ?? 'A file'}: together with the others, the files are larger than ${pesoLeggibile(MAX_TOTALE_BYTE)}.`,
+        ),
+      )
     }
-    if (scelti.length > presi.length) problemi.push(`Il massimo è ${MAX_FILE} file: gli altri non sono stati aggiunti.`)
+    if (scelti.length > presi.length) problemi.push(t(`Il massimo è ${MAX_FILE} file: gli altri non sono stati aggiunti.`, `The maximum is ${MAX_FILE} files: the others weren’t added.`))
     setPagine(tutte)
     if (problemi.length) {
       colpetto('errore')
@@ -113,20 +122,20 @@ export function Importa() {
   if (leggendo) {
     const prima = pagine[0]
     return (
-      <Schermata sopratitolo="Il tuo piano" titolo="Leggo il piano" indietro="/allenamento" barra={false}>
+      <Schermata sopratitolo={t('Il tuo piano', 'Your plan')} titolo={t('Leggo il piano', 'Reading the plan')} indietro="/allenamento" barra={false}>
         <LinearGradient colors={MARE} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={stili.attesa}>
           {prima?.anteprima ? (
-            <Image source={{ uri: prima.anteprima }} style={stili.anteprima} resizeMode="contain" accessibilityLabel="Il piano che stiamo leggendo" />
+            <Image source={{ uri: prima.anteprima }} style={stili.anteprima} resizeMode="contain" accessibilityLabel={t('Il piano che stiamo leggendo', 'The plan we’re reading')} />
           ) : (
             <View style={stili.pdf}>
               <Icona nome="ricevuta" size={40} colore="#fff" />
-              <Text style={stili.pdfNome} numberOfLines={2}>{prima ? `${prima.nome} · ${pesoLeggibile(prima.byte)}` : 'Il piano'}</Text>
+              <Text style={stili.pdfNome} numberOfLines={2}>{prima ? `${prima.nome} · ${pesoLeggibile(prima.byte)}` : t('Il piano', 'The plan')}</Text>
             </View>
           )}
-          {pagine.length > 1 ? <Text style={stili.attesaNota}>{`${pagine.length} pagine, lette come un piano solo`}</Text> : null}
+          {pagine.length > 1 ? <Text style={stili.attesaNota}>{t(`${pagine.length} pagine, lette come un piano solo`, `${pagine.length} pages, read as a single plan`)}</Text> : null}
           <ActivityIndicator color="#fff" />
           <Text style={stili.attesaTesto}>{ATTESA[frase]}</Text>
-          <Text style={stili.attesaNota}>Ci vuole una decina di secondi, a volte un minuto: resta su questa pagina.</Text>
+          <Text style={stili.attesaNota}>{t('Ci vuole una decina di secondi, a volte un minuto: resta su questa pagina.', 'It takes about ten seconds, sometimes a minute: stay on this page.')}</Text>
         </LinearGradient>
       </Schermata>
     )
@@ -134,11 +143,14 @@ export function Importa() {
 
   return (
     <Schermata
-      sopratitolo="Il tuo piano"
-      titolo="Importa il tuo piano"
+      sopratitolo={t('Il tuo piano', 'Your plan')}
+      titolo={t('Importa il tuo piano', 'Import your plan')}
       indietro="/allenamento"
       barra={false}
-      sottotitolo="Hai già un piano del tuo trainer o di un’altra palestra? Fotografalo o carica il file: lo ritrovi fra i tuoi piani e lo usi come gli altri."
+      sottotitolo={t(
+        'Hai già un piano del tuo trainer o di un’altra palestra? Fotografalo o carica il file: lo ritrovi fra i tuoi piani e lo usi come gli altri.',
+        'Already have a plan from your trainer or another gym? Take a photo or upload the file: you’ll find it among your plans and use it like the others.',
+      )}
     >
       <Carta style={{ gap: spazio.tre }}>
         {PASSI.map((x, i) => (
@@ -153,21 +165,21 @@ export function Importa() {
 
       {pagine.length ? (
         <Carta style={{ gap: spazio.tre }}>
-          <Text style={{ color: p.testo, fontFamily: F.extra, fontSize: 16 }}>{pagine.length === 1 ? 'La pagina del tuo piano' : `Le ${pagine.length} pagine del tuo piano`}</Text>
+          <Text style={{ color: p.testo, fontFamily: F.extra, fontSize: 16 }}>{pagine.length === 1 ? t('La pagina del tuo piano', 'Your plan’s page') : t(`Le ${pagine.length} pagine del tuo piano`, `Your plan’s ${pagine.length} pages`)}</Text>
           {pagine.map((x, i) => (
             <View key={`${x.nome}-${i}`} style={stili.pagina}>
               {x.anteprima ? (
-                <Image source={{ uri: x.anteprima }} style={[stili.miniatura, { backgroundColor: p.incavo }]} resizeMode="cover" accessibilityLabel={`Pagina ${i + 1}`} />
+                <Image source={{ uri: x.anteprima }} style={[stili.miniatura, { backgroundColor: p.incavo }]} resizeMode="cover" accessibilityLabel={t(`Pagina ${i + 1}`, `Page ${i + 1}`)} />
               ) : (
                 <View style={[stili.miniatura, { backgroundColor: p.incavo, alignItems: 'center', justifyContent: 'center' }]}>
                   <Icona nome="ricevuta" size={22} colore={p.testoSecondario} />
                 </View>
               )}
               <View style={{ flex: 1, gap: 2 }}>
-                <Text style={{ color: p.testo, fontFamily: F.semi, fontSize: 14.5 }} numberOfLines={1}>{`Pagina ${i + 1}`}</Text>
+                <Text style={{ color: p.testo, fontFamily: F.semi, fontSize: 14.5 }} numberOfLines={1}>{t(`Pagina ${i + 1}`, `Page ${i + 1}`)}</Text>
                 <Text style={{ color: p.testoSecondario, fontFamily: F.medio, fontSize: 12.5 }} numberOfLines={1}>{`${x.nome} · ${pesoLeggibile(x.byte)}`}</Text>
               </View>
-              <Pulsante testo="Togli" variante="fantasma" piccolo pieno={false} onPress={() => setPagine((v) => v.filter((_, k) => k !== i))} />
+              <Pulsante testo={t('Togli', 'Remove')} variante="fantasma" piccolo pieno={false} onPress={() => setPagine((v) => v.filter((_, k) => k !== i))} />
             </View>
           ))}
         </Carta>
@@ -176,15 +188,15 @@ export function Importa() {
       {preparo ? (
         <Carta style={{ flexDirection: 'row', alignItems: 'center', gap: spazio.tre }}>
           <ActivityIndicator color={p.accento} />
-          <Text style={[stili.testo, { color: p.testo }]}>Preparo il file…</Text>
+          <Text style={[stili.testo, { color: p.testo }]}>{t('Preparo il file…', 'Preparing the file…')}</Text>
         </Carta>
       ) : (
         <View style={{ gap: spazio.due }}>
-          {pagine.length ? <Pulsante testo={pagine.length === 1 ? 'Leggi il piano' : `Leggi il piano (${pagine.length} pagine)`} icona="avanti" onPress={leggi} /> : null}
+          {pagine.length ? <Pulsante testo={pagine.length === 1 ? t('Leggi il piano', 'Read the plan') : t(`Leggi il piano (${pagine.length} pagine)`, `Read the plan (${pagine.length} pages)`)} icona="avanti" onPress={leggi} /> : null}
           {pagine.length < MAX_FILE ? (
             <>
               <Pulsante
-                testo={pagine.length ? 'Aggiungi un’altra foto' : 'Scatta una foto'}
+                testo={pagine.length ? t('Aggiungi un’altra foto', 'Add another photo') : t('Scatta una foto', 'Take a photo')}
                 icona="fotocamera"
                 variante={pagine.length ? 'scuro' : 'primario'}
                 onPress={async () => {
@@ -193,25 +205,27 @@ export function Importa() {
                 }}
               />
               <Pulsante
-                testo={pagine.length ? 'Aggiungi altri file' : 'Scegli foto o PDF'}
+                testo={pagine.length ? t('Aggiungi altri file', 'Add more files') : t('Scegli foto o PDF', 'Choose photo or PDF')}
                 icona="ricevuta"
                 variante={pagine.length ? 'secondario' : 'scuro'}
                 onPress={async () => aggiungi(await scegliFile())}
               />
             </>
           ) : (
-            <Text style={[stili.nota, { color: p.testoTerzo }]}>{`Hai aggiunto ${MAX_FILE} file: è il massimo per volta.`}</Text>
+            <Text style={[stili.nota, { color: p.testoTerzo }]}>{t(`Hai aggiunto ${MAX_FILE} file: è il massimo per volta.`, `You’ve added ${MAX_FILE} files: that’s the maximum at a time.`)}</Text>
           )}
         </View>
       )}
 
       {errore ? <Messaggio>{errore}</Messaggio> : null}
 
-      <Pulsante testo="Preferisci scriverlo a mano?" variante="fantasma" onPress={() => router.replace('/allenamento/nuova')} />
+      <Pulsante testo={t('Preferisci scriverlo a mano?', 'Prefer to write it yourself?')} variante="fantasma" onPress={() => router.replace('/allenamento/nuova')} />
 
       <Text style={[stili.avvertenza, { color: p.testoTerzo }]}>
-        La foto o il PDF vengono letti da un servizio di intelligenza artificiale, solo per riconoscere gli esercizi, e non vengono conservati: resta soltanto quello che confermi tu.
-        Meglio non includere dati che non servono, come nomi e telefoni. Una lettura automatica può sbagliare: prima di confermare lo controlli sempre. Il piano che confermi lo possono vedere i trainer del club.
+        {t(
+          'La foto o il PDF vengono letti da un servizio di intelligenza artificiale, solo per riconoscere gli esercizi, e non vengono conservati: resta soltanto quello che confermi tu. Meglio non includere dati che non servono, come nomi e telefoni. Una lettura automatica può sbagliare: prima di confermare lo controlli sempre. Il piano che confermi lo possono vedere i trainer del club.',
+          'The photo or PDF is read by an artificial intelligence service, only to recognize the exercises, and isn’t kept: only what you confirm remains. Best not to include data that isn’t needed, like names and phone numbers. Automatic reading can make mistakes: you always check it before confirming. The club’s trainers can see the plan you confirm.',
+        )}
       </Text>
     </Schermata>
   )

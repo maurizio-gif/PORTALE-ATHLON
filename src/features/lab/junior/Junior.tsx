@@ -7,6 +7,7 @@ import {
   type EsitoGruppi,
   type NucleoJunior,
 } from "@/api/junior";
+import { t } from "@/lib/lingua";
 import { spazio } from "@/theme";
 
 import { inMemoria, prendi, ricorda, scorda } from "../memoria";
@@ -84,7 +85,7 @@ export function Junior() {
 
   function dopoAggiunta(nome: string, n: NucleoJunior | null) {
     setFoglio(false);
-    setAggiunto(`${nome} è nel tuo nucleo familiare.`);
+    setAggiunto(t(`${nome} è nel tuo nucleo familiare.`, `${nome} is now in your family members.`));
     // L'area della Home ha il nucleo di prima: alla prossima apertura si rilegge.
     scorda("area");
     if (esito?.ok && n) {
@@ -100,7 +101,7 @@ export function Junior() {
 
   const intestazione = {
     titolo: "Junior",
-    sopratitolo: "Corsi per bambini e ragazzi",
+    sopratitolo: t("Corsi per bambini e ragazzi", "Courses for kids and teens"),
     indietro: "/" as const,
     barra: false,
   };
@@ -118,7 +119,7 @@ export function Junior() {
       <Schermata {...intestazione}>
         <Messaggio>{esito.errore}</Messaggio>
         <Pulsante
-          testo="Riprova"
+          testo={t("Riprova", "Try again")}
           icona="aggiorna"
           variante="secondario"
           onPress={carica}
@@ -130,8 +131,8 @@ export function Junior() {
   if (!anni.length) {
     return (
       <Schermata {...intestazione}>
-        <Messaggio tono="attenzione" titolo="Nessun gruppo attivo">
-          In questo momento non ci sono gruppi dei corsi junior aperti.
+        <Messaggio tono="attenzione" titolo={t("Nessun gruppo attivo", "No active groups")}>
+          {t("In questo momento non ci sono gruppi dei corsi junior aperti.", "There are no junior course groups open right now.")}
         </Messaggio>
       </Schermata>
     );
@@ -140,10 +141,10 @@ export function Junior() {
   return (
     <Schermata
       {...intestazione}
-      sottotitolo="I gruppi attivi e i posti ancora liberi. Scegli l’anno di nascita."
+      sottotitolo={t("I gruppi attivi e i posti ancora liberi. Scegli l’anno di nascita.", "Active groups and spots still available. Choose the birth year.")}
     >
       {nucleo ? (
-        <Sezione titolo="La tua famiglia">
+        <Sezione titolo={t("La tua famiglia", "Your family")}>
           {persone.length ? (
             <Carta>
               {persone.map((x, i) => {
@@ -158,17 +159,17 @@ export function Junior() {
                     }
                     titolo={
                       [x.nome, x.cognome].filter(Boolean).join(" ") ||
-                      "Senza nome"
+                      t("Senza nome", "No name")
                     }
                     sotto={descriviPersona(x)}
                     coda={
                       apre ? (
                         <Etichetta
-                          testo={a === scelto ? "Il suo anno" : "Vedi i gruppi"}
+                          testo={a === scelto ? t("Il suo anno", "Their year") : t("Vedi i gruppi", "See groups")}
                           tono={a === scelto ? "accento" : "neutro"}
                         />
                       ) : !x.idoneo ? (
-                        <Etichetta testo="Non ancora" tono="neutro" />
+                        <Etichetta testo={t("Non ancora", "Not yet")} tono="neutro" />
                       ) : undefined
                     }
                     onPress={apre ? () => setAnno(a) : undefined}
@@ -178,14 +179,13 @@ export function Junior() {
             </Carta>
           ) : (
             <Text style={[stili.nota, { color: p.testoSecondario }]}>
-              Nel tuo nucleo familiare non c’è nessuno in età per i corsi junior
-              (dai {nucleo.mesi_minimi} mesi ai nati nel {nucleo.anno_minimo}).
+              {t(`Nel tuo nucleo familiare non c’è nessuno in età per i corsi junior (dai ${nucleo.mesi_minimi} mesi ai nati nel ${nucleo.anno_minimo}).`, `No one in your family is the right age for junior courses (from ${nucleo.mesi_minimi} months old to those born in ${nucleo.anno_minimo}).`)}
             </Text>
           )}
           {aggiunto ? <Messaggio tono="ok">{aggiunto}</Messaggio> : null}
           {!vista ? (
             <Pulsante
-              testo="Aggiungi un componente"
+              testo={t("Aggiungi un componente", "Add a family member")}
               icona="aggiungi"
               variante="secondario"
               onPress={() => {
@@ -202,7 +202,7 @@ export function Junior() {
           style={[stili.filtriTitolo, { color: p.testoSecondario }]}
           accessibilityRole="header"
         >
-          Anno di nascita
+          {t("Anno di nascita", "Birth year")}
         </Text>
         <View style={stili.tessere}>
           {anni.map((a) => {
@@ -214,7 +214,7 @@ export function Junior() {
                 vibra="scelta"
                 stato={{ selected: attivo }}
                 onPress={() => setAnno(a)}
-                etichetta={`Nati nel ${a}, ${n} ${n === 1 ? "gruppo" : "gruppi"} con posti liberi`}
+                etichetta={t(`Nati nel ${a}, ${n} ${n === 1 ? "gruppo" : "gruppi"} con posti liberi`, `Born in ${a}, ${n} ${n === 1 ? "group" : "groups"} with spots available`)}
                 style={[
                   stili.tessera,
                   {
@@ -245,7 +245,7 @@ export function Junior() {
           vibra="scelta"
           stato={{ selected: soloLiberi }}
           onPress={() => setSoloLiberi((v) => !v)}
-          etichetta="Mostra solo i gruppi con posti liberi"
+          etichetta={t("Mostra solo i gruppi con posti liberi", "Show only groups with spots available")}
           style={[
             stili.interruttore,
             {
@@ -268,7 +268,7 @@ export function Junior() {
             {soloLiberi ? <Text style={stili.spunta}>✓</Text> : null}
           </View>
           <Text style={{ color: p.testo, fontFamily: F.semi, fontSize: 14 }}>
-            Solo i gruppi con posti liberi
+            {t("Solo i gruppi con posti liberi", "Only groups with spots available")}
           </Text>
         </Tocco>
       </View>
@@ -293,7 +293,7 @@ export function Junior() {
                     titolo={titoloGruppo(g)}
                     sotto={
                       g.posti != null
-                        ? `${annateGruppo(g)} · ${g.iscritti} su ${g.posti} iscritti`
+                        ? t(`${annateGruppo(g)} · ${g.iscritti} su ${g.posti} iscritti`, `${annateGruppo(g)} · ${g.iscritti} of ${g.posti} enrolled`)
                         : annateGruppo(g)
                     }
                     coda={<Etichetta testo={s.testo} tono={s.tono} />}
@@ -306,17 +306,14 @@ export function Junior() {
       ) : (
         <Messaggio
           tono="attenzione"
-          titolo={`Nessun posto libero per i nati nel ${scelto}`}
+          titolo={t(`Nessun posto libero per i nati nel ${scelto}`, `No spots available for those born in ${scelto}`)}
         >
-          Tutti i gruppi di quest’anno sono al completo. Togli il filtro per
-          vederli, o chiedi in segreteria.
+          {t("Tutti i gruppi di quest’anno sono al completo. Togli il filtro per vederli, o chiedi in segreteria.", "All groups for this year are full. Remove the filter to see them, or ask at the front desk.")}
         </Messaggio>
       )}
 
       <Text style={[stili.nota, { color: p.testoTerzo }]}>
-        I posti sono quelli del gestionale del club e si aggiornano ogni pochi
-        minuti: al momento dell’iscrizione la segreteria ti conferma quello che
-        c’è davvero.
+        {t("I posti sono quelli del gestionale del club e si aggiornano ogni pochi minuti: al momento dell’iscrizione la segreteria ti conferma quello che c’è davvero.", "Spots come from the club’s management system and update every few minutes: when you enroll, the front desk confirms what’s actually available.")}
       </Text>
 
       {!vista ? (

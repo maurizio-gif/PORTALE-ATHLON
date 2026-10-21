@@ -7,6 +7,7 @@ import { Modal, Pressable, ScrollView, StyleSheet, Text, View, type StyleProp, t
 import type { SchedaLezione } from '@/api/lab'
 import { Bottone } from '@/components/Bottone'
 import { Testo } from '@/components/Testo'
+import { t } from '@/lib/lingua'
 import { spazio, useColori } from '@/theme'
 
 // La finestra di una lezione: video (o foto), descrizione e caratteristiche,
@@ -97,7 +98,7 @@ export function FinestraLezione({ scheda, titolo, onChiudi }: { scheda: SchedaLe
   const c = useColori()
   return (
     <Modal visible={!!scheda} transparent animationType="fade" onRequestClose={onChiudi}>
-      <Pressable style={stili.velo} onPress={onChiudi} accessibilityLabel="Chiudi">
+      <Pressable style={stili.velo} onPress={onChiudi} accessibilityLabel={t('Chiudi', 'Close')}>
         <Pressable style={[stili.finestra, { backgroundColor: c.sfondo }]} onPress={() => {}} accessibilityViewIsModal>
           {scheda ? (
             <ScrollView contentContainerStyle={{ gap: spazio.tre }}>
@@ -105,7 +106,7 @@ export function FinestraLezione({ scheda, titolo, onChiudi }: { scheda: SchedaLe
                 <Testo variante="sottotitolo" style={{ flex: 1 }}>
                   {titolo}
                 </Testo>
-                <Pressable onPress={onChiudi} accessibilityRole="button" accessibilityLabel="Chiudi" hitSlop={12}>
+                <Pressable onPress={onChiudi} accessibilityRole="button" accessibilityLabel={t('Chiudi', 'Close')} hitSlop={12}>
                   <Text style={[stili.chiudi, { color: c.testo }]}>×</Text>
                 </Pressable>
               </View>
@@ -123,7 +124,7 @@ export function FinestraLezione({ scheda, titolo, onChiudi }: { scheda: SchedaLe
                   ))}
                 </View>
               ) : null}
-              <Bottone testo="Chiudi" variante="contorno" onPress={onChiudi} />
+              <Bottone testo={t('Chiudi', 'Close')} variante="contorno" onPress={onChiudi} />
             </ScrollView>
           ) : null}
         </Pressable>
@@ -136,12 +137,12 @@ export function FinestraLezione({ scheda, titolo, onChiudi }: { scheda: SchedaLe
 export function Fotina({ scheda, onApri }: { scheda: SchedaLezione; onApri: () => void }) {
   const c = useColori()
   return (
-    <Pressable onPress={onApri} accessibilityRole="button" accessibilityLabel={`Scheda di ${scheda.nome}: video e descrizione`} style={({ pressed }) => ({ opacity: pressed ? 0.8 : 1 })}>
+    <Pressable onPress={onApri} accessibilityRole="button" accessibilityLabel={t(`Scheda di ${scheda.nome}: video e descrizione`, `${scheda.nome} details: video and description`)} style={({ pressed }) => ({ opacity: pressed ? 0.8 : 1 })}>
       {scheda.foto ? (
         <Image source={{ uri: scheda.foto }} style={stili.fotina} contentFit="cover" contentPosition={posizione(scheda.fuoco)} transition={150} />
       ) : (
         <View style={[stili.fotina, { backgroundColor: c.superficie, alignItems: 'center', justifyContent: 'center' }]}>
-          <Text style={{ color: c.testoSecondario, fontSize: 12 }}>Scheda</Text>
+          <Text style={{ color: c.testoSecondario, fontSize: 12 }}>{t('Scheda', 'Details')}</Text>
         </View>
       )}
       {/* Una «i» ben visibile su ogni foto: dice che toccandola si apre la

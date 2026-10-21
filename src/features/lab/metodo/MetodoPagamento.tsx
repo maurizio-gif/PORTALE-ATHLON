@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState, type ReactNode } from 'react'
 
 import { tokenMetodoPagamento } from '@/api/lab'
 import { chiamaLink } from '@/api/link'
+import { t } from '@/lib/lingua'
 import { GestioneNucleo } from '@/features/metodo-pagamento/GestioneNucleo'
 import type { ContrattoNucleo } from '@/lib/metodoPagamento'
 
@@ -19,7 +20,7 @@ import { Schermata } from '../ui/Schermata'
 /** La cornice del laboratorio per le schermate del metodo di pagamento (anche il ritorno dalla carta). */
 export function CorniceLab({ titolo, children }: { titolo: string; children: ReactNode; indietro?: boolean }) {
   return (
-    <Schermata sopratitolo="Pagamenti" titolo={titolo} indietro={hrefSezione('pagamenti')} barra={false}>
+    <Schermata sopratitolo={t('Pagamenti', 'Payments')} titolo={titolo} indietro={hrefSezione('pagamenti')} barra={false}>
       {children}
     </Schermata>
   )
@@ -35,11 +36,11 @@ export function MetodoPagamento() {
 
   const apri = useCallback(async () => {
     setStato({ fase: 'carica' })
-    const t = await tokenMetodoPagamento()
-    if (!t.ok) return setStato({ fase: 'errore', errore: t.errore })
-    const { ok, dati } = await chiamaLink(t.token, 'apri')
-    if (!ok || dati.tipo !== 'metodo_pagamento') return setStato({ fase: 'errore', errore: 'Non riusciamo a leggere i tuoi abbonamenti adesso. Riprova fra qualche minuto.' })
-    setStato({ fase: 'pronto', token: t.token, nome: dati.nome ?? null, nomeTitolare: dati.nomeTitolare ?? '', contratti: (dati.contratti ?? []) as ContrattoNucleo[] })
+    const tok = await tokenMetodoPagamento()
+    if (!tok.ok) return setStato({ fase: 'errore', errore: tok.errore })
+    const { ok, dati } = await chiamaLink(tok.token, 'apri')
+    if (!ok || dati.tipo !== 'metodo_pagamento') return setStato({ fase: 'errore', errore: t('Non riusciamo a leggere i tuoi abbonamenti adesso. Riprova fra qualche minuto.', 'We can’t read your memberships right now. Try again in a few minutes.') })
+    setStato({ fase: 'pronto', token: tok.token, nome: dati.nome ?? null, nomeTitolare: dati.nomeTitolare ?? '', contratti: (dati.contratti ?? []) as ContrattoNucleo[] })
   }, [])
 
   useEffect(() => {
@@ -50,11 +51,11 @@ export function MetodoPagamento() {
     return <GestioneNucleo Cornice={CorniceLab} token={stato.token} nome={stato.nome} nomeTitolare={stato.nomeTitolare} iniziali={stato.contratti} />
   }
   return (
-    <CorniceLab titolo="Metodo di pagamento">
+    <CorniceLab titolo={t('Metodo di pagamento', 'Payment method')}>
       {stato.fase === 'errore' ? (
         <>
           <Messaggio>{stato.errore}</Messaggio>
-          <Pulsante testo="Riprova" icona="aggiorna" onPress={apri} />
+          <Pulsante testo={t('Riprova', 'Try again')} icona="aggiorna" onPress={apri} />
         </>
       ) : (
         <SchedeInArrivo quante={2} />

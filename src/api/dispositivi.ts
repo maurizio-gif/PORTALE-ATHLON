@@ -1,4 +1,5 @@
 import { funzione } from './lab'
+import { t } from '@/lib/lingua'
 
 // I dispositivi personali (19/10/2026): la funzione portale-lab-dispositivi di APP-ATHLON.
 // Oura e Polar si collegano con un OAuth: `collega` chiede l'indirizzo del fornitore, il
@@ -83,53 +84,53 @@ const dei = (dati: Record<string, any>): DatiDispositivi => ({ collegamenti: dat
 export async function statoDispositivi(): Promise<Esito<StatoDispositivi>> {
   const { ok, dati } = await chiama({ azione: 'stato' })
   if (ok) return { ok: true, versione: dati.versione, consenso: dati.consenso ?? null, maggiorenne: !!dati.maggiorenne, fornitori: dati.fornitori ?? [], collegamenti: dati.collegamenti ?? [] }
-  return errore(dati, 'Non riusciamo a leggere i tuoi dispositivi adesso.')
+  return errore(dati, t('Non riusciamo a leggere i tuoi dispositivi adesso.', 'We can’t load your devices right now.'))
 }
 
 export async function daiConsensoDispositivi(versione: string): Promise<Esito<{ consenso: { versione: string; accettato_il: string } }>> {
   const { ok, dati } = await chiama({ azione: 'consenso', versione })
   if (ok) return { ok: true, consenso: dati.consenso }
-  return errore(dati, 'Non siamo riusciti a registrare il consenso. Riprova.')
+  return errore(dati, t('Non siamo riusciti a registrare il consenso. Riprova.', 'We couldn’t record your consent. Try again.'))
 }
 
 /** Scollega tutti i dispositivi e cancella i dati: la revoca del consenso. */
 export async function revocaConsensoDispositivi(): Promise<Esito<object>> {
   const { ok, dati } = await chiama({ azione: 'revoca' })
   if (ok) return { ok: true }
-  return errore(dati, 'Non siamo riusciti a revocare il consenso. Riprova.')
+  return errore(dati, t('Non siamo riusciti a revocare il consenso. Riprova.', 'We couldn’t withdraw your consent. Try again.'))
 }
 
 /** L'indirizzo del fornitore a cui mandare il socio per autorizzare il club. */
 export async function collega(fornitore: IdFornitore): Promise<Esito<{ url: string }>> {
   const { ok, dati } = await chiama({ azione: 'connetti', fornitore })
   if (ok && typeof dati.url === 'string') return { ok: true, url: dati.url }
-  return errore(dati, 'Non riusciamo ad avviare il collegamento adesso. Riprova.')
+  return errore(dati, t('Non riusciamo ad avviare il collegamento adesso. Riprova.', 'We can’t start the connection right now. Try again.'))
 }
 
 /** Chiude il collegamento col codice e lo state che il fornitore ha rimandato all'app. */
 export async function completaCollegamento(codice: string, state: string): Promise<Esito<DatiDispositivi & { fornitore: IdFornitore }>> {
   const { ok, dati } = await chiama({ azione: 'completa', codice, state })
   if (ok) return { ok: true, fornitore: dati.fornitore, ...dei(dati) }
-  return errore(dati, 'Non siamo riusciti a completare il collegamento. Riprova dal pulsante «Collega».')
+  return errore(dati, t('Non siamo riusciti a completare il collegamento. Riprova dal pulsante «Collega».', 'We couldn’t complete the connection. Try again from the «Connect» button.'))
 }
 
 export async function scollega(fornitore: IdFornitore): Promise<Esito<DatiDispositivi>> {
   const { ok, dati } = await chiama({ azione: 'scollega', fornitore })
   if (ok) return { ok: true, ...dei(dati) }
-  return errore(dati, 'Non siamo riusciti a scollegare il dispositivo. Riprova.')
+  return errore(dati, t('Non siamo riusciti a scollegare il dispositivo. Riprova.', 'We couldn’t disconnect the device. Try again.'))
 }
 
 export async function datiDispositivi(): Promise<Esito<DatiDispositivi>> {
   const { ok, dati } = await chiama({ azione: 'dati' })
   if (ok) return { ok: true, ...dei(dati) }
-  return errore(dati, 'Non riusciamo a leggere i dati dei dispositivi adesso.')
+  return errore(dati, t('Non riusciamo a leggere i dati dei dispositivi adesso.', 'We can’t load your device data right now.'))
 }
 
 /** Rilegge subito dal fornitore (la funzione non lo fa piu' di una volta ogni due minuti). */
 export async function aggiornaDispositivi(): Promise<Esito<DatiDispositivi & { aggiornati: number }>> {
   const { ok, dati } = await chiama({ azione: 'aggiorna' })
   if (ok) return { ok: true, aggiornati: Number(dati.aggiornati ?? 0), ...dei(dati) }
-  return errore(dati, 'Non siamo riusciti ad aggiornare adesso. Riprova fra poco.')
+  return errore(dati, t('Non siamo riusciti ad aggiornare adesso. Riprova fra poco.', 'We couldn’t refresh right now. Try again shortly.'))
 }
 
 /**
@@ -141,5 +142,5 @@ export async function aggiornaDispositivi(): Promise<Esito<DatiDispositivi & { a
 export async function salvaSonno(data: string, ore: { letto: string; sveglia: string } | null): Promise<Esito<DatiDispositivi>> {
   const { ok, dati } = await chiama({ azione: 'sonno', data, letto: ore ? ore.letto : null, sveglia: ore ? ore.sveglia : null })
   if (ok) return { ok: true, ...dei(dati) }
-  return errore(dati, 'Non siamo riusciti a salvare adesso. Riprova.')
+  return errore(dati, t('Non siamo riusciti a salvare adesso. Riprova.', 'We couldn’t save right now. Try again.'))
 }

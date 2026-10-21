@@ -1,6 +1,8 @@
 import { router } from 'expo-router'
 import { StyleSheet, Text, View } from 'react-native'
 
+import { t } from '@/lib/lingua'
+
 import { Icona, type NomeIcona } from './Icona'
 import { F, usePalette } from './tema'
 import { Tocco } from './Tocco'
@@ -11,7 +13,7 @@ import { Tocco } from './Tocco'
 // accumulare pagine (replace).
 
 const VOCI: { chiave: 'lezioni' | 'personal'; testo: string; icona: NomeIcona; percorso: '/calendario' | '/personal' }[] = [
-  { chiave: 'lezioni', testo: 'Lezioni', icona: 'calendario', percorso: '/calendario' },
+  { chiave: 'lezioni', testo: t('Lezioni', 'Classes'), icona: 'calendario', percorso: '/calendario' },
   { chiave: 'personal', testo: 'Personal', icona: 'persona', percorso: '/personal' },
 ]
 
@@ -27,7 +29,7 @@ export function SceltaPrenotazioni({ attiva }: { attiva: 'lezioni' | 'personal' 
             ruolo="tab"
             vibra="scelta"
             stato={{ selected: qui }}
-            etichetta={v.chiave === 'lezioni' ? 'Lezioni di gruppo' : 'Personal training'}
+            etichetta={v.chiave === 'lezioni' ? t('Lezioni di gruppo', 'Group classes') : 'Personal training'}
             onPress={() => !qui && router.replace(v.percorso)}
             style={[stili.voce, qui && { backgroundColor: p.carta, boxShadow: p.scuro ? '0 4px 14px rgba(0,0,0,0.45)' : '0 4px 14px rgba(20,20,40,0.10)' }]}
           >

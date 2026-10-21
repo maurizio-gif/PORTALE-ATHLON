@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState, type ReactNode } from 'react'
 import { Linking, Platform, Share, Text } from 'react-native'
+import { t } from '@/lib/lingua'
 
 import { Foglio } from './ui/Foglio'
 import { Messaggio, Pulsante } from './ui/kit'
@@ -110,22 +111,22 @@ function PdfPronto({ pronto, onChiudi }: { pronto: Pronto | null; onChiudi: () =
         window.location.href = `mailto:?subject=${encodeURIComponent(pronto.nome)}&body=${encodeURIComponent(pronto.url)}`
         return
       }
-      setErrore('Da questo dispositivo non si può inviare direttamente: salva il PDF e invialo dalla posta o da un messaggio.')
+      setErrore(t('Da questo dispositivo non si può inviare direttamente: salva il PDF e invialo dalla posta o da un messaggio.', 'You can’t send it directly from this device: save the PDF and send it by email or in a message.'))
     } catch (e) {
       // Chi chiude il foglio di condivisione non ha sbagliato niente.
-      if ((e as { name?: string })?.name !== 'AbortError') setErrore('Non siamo riusciti a inviare il PDF. Riprova, oppure salvalo e invialo da lì.')
+      if ((e as { name?: string })?.name !== 'AbortError') setErrore(t('Non siamo riusciti a inviare il PDF. Riprova, oppure salvalo e invialo da lì.', 'We couldn’t send the PDF. Try again, or save it and send it from there.'))
     }
   }
 
   return (
-    <Foglio aperto={Boolean(pronto)} titolo="Il documento è pronto" onChiudi={onChiudi}>
+    <Foglio aperto={Boolean(pronto)} titolo={t('Il documento è pronto', 'Your document is ready')} onChiudi={onChiudi}>
       <Text style={{ color: p.testoSecondario, fontFamily: F.medio, fontSize: 14.5, lineHeight: 21 }}>
-        {pronto?.nome ? `${pronto.nome}. ` : ''}Aprilo per guardarlo, salvalo sul dispositivo o invialo a chi vuoi.
+        {pronto?.nome ? `${pronto.nome}. ` : ''}{t('Aprilo per guardarlo, salvalo sul dispositivo o invialo a chi vuoi.', 'Open it to view it, save it to your device or send it to anyone you like.')}
       </Text>
       {errore ? <Messaggio>{errore}</Messaggio> : null}
-      <Pulsante testo="Invia" icona="condividi" onPress={invia} />
-      <Pulsante testo="Apri il PDF" icona="apriFuori" variante="secondario" onPress={apri} />
-      {Platform.OS === 'web' ? <Pulsante testo="Salva sul dispositivo" icona="scarica" variante="contorno" onPress={salva} /> : null}
+      <Pulsante testo={t('Invia', 'Send')} icona="condividi" onPress={invia} />
+      <Pulsante testo={t('Apri il PDF', 'Open the PDF')} icona="apriFuori" variante="secondario" onPress={apri} />
+      {Platform.OS === 'web' ? <Pulsante testo={t('Salva sul dispositivo', 'Save to device')} icona="scarica" variante="contorno" onPress={salva} /> : null}
     </Foglio>
   )
 }
@@ -155,7 +156,7 @@ export function useApriPdf(): { apri: (prendiUrl: () => Promise<EsitoPdf>) => Pr
       setErrore(r.errore)
       return
     }
-    setPronto({ url: r.url, nome: r.nome ?? 'documento.pdf' })
+    setPronto({ url: r.url, nome: r.nome ?? t('documento.pdf', 'document.pdf') })
   }, [])
 
   const avviso = (

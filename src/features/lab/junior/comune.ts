@@ -1,5 +1,7 @@
 import type { GruppoJunior, NucleoJunior, PersonaJunior } from "@/api/junior";
 
+import { t } from "../../../lib/lingua";
+
 // La sezione Junior, la parte che non disegna: quali anni ci sono, quali gruppi accolgono un anno, in che ordine. Pura:
 // si prova con `npx tsx`.
 
@@ -46,16 +48,16 @@ function pesoCorso(nome: string): string {
 /** Come si chiama una riga: «Lunedì 15:20» per un turno con giorno e ora, il nome del gruppo per gli altri. */
 export function titoloGruppo(g: GruppoJunior): string {
   if (g.giorni && g.orario)
-    return `${g.giorni.replace(/, /g, " e ")} · ${g.orario}`;
+    return `${g.giorni.replace(/, /g, t(" e ", " and "))} · ${g.orario}`;
   return g.corso;
 }
 
 /** «Nati nel 2023», «Nati dal 2013 al 2015»: tutti gli anni del gruppo, non solo quello scelto. */
 export function annateGruppo(g: GruppoJunior): string {
-  if (!g.anni.length) return "Anni di nascita non indicati";
+  if (!g.anni.length) return t("Anni di nascita non indicati", "Birth years not specified");
   const min = Math.min(...g.anni);
   const max = Math.max(...g.anni);
-  return min === max ? `Nati nel ${min}` : `Nati dal ${min} al ${max}`;
+  return min === max ? t(`Nati nel ${min}`, `Born in ${min}`) : t(`Nati dal ${min} al ${max}`, `Born ${min} to ${max}`);
 }
 
 export type StatoPosti = {
@@ -64,10 +66,10 @@ export type StatoPosti = {
 };
 
 export function statoPosti(g: GruppoJunior): StatoPosti {
-  if (g.liberi == null) return { testo: "Posti da verificare", tono: "neutro" };
-  if (g.liberi <= 0) return { testo: "Completo", tono: "neutro" };
-  if (g.liberi === 1) return { testo: "Ultimo posto", tono: "attenzione" };
-  return { testo: `${g.liberi} posti liberi`, tono: "ok" };
+  if (g.liberi == null) return { testo: t("Posti da verificare", "Spots to be confirmed"), tono: "neutro" };
+  if (g.liberi <= 0) return { testo: t("Completo", "Full"), tono: "neutro" };
+  if (g.liberi === 1) return { testo: t("Ultimo posto", "Last spot"), tono: "attenzione" };
+  return { testo: t(`${g.liberi} posti liberi`, `${g.liberi} spots available`), tono: "ok" };
 }
 
 export type BloccoCorso = {
@@ -156,8 +158,8 @@ export function nomeIscrizione(nome: string): string {
 /** La riga sotto il nome: l'anno e i gruppi a cui e' iscritto, o il motivo per cui non e' ancora idoneo. */
 export function descriviPersona(p: PersonaJunior): string {
   const a = annoDi(p);
-  const nato = a ? `Classe ${a}` : "Data di nascita mancante";
+  const nato = a ? t(`Classe ${a}`, `Born ${a}`) : t("Data di nascita mancante", "Date of birth missing");
   if (!p.idoneo) return p.motivo ? `${nato} · ${p.motivo}` : nato;
-  if (!p.gruppi.length) return `${nato} · nessun gruppo per ora`;
+  if (!p.gruppi.length) return t(`${nato} · nessun gruppo per ora`, `${nato} · no group yet`);
   return `${nato} · ${p.gruppi.map((g) => nomeIscrizione(g.nome)).join(", ")}`;
 }

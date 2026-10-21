@@ -5,6 +5,7 @@ import { StyleSheet, Text, View } from 'react-native'
 import type { Area } from '@/api/lab'
 import { statoInvito } from '@/api/referral'
 import { spazio } from '@/theme'
+import { t } from '@/lib/lingua'
 
 import { CHIAVE_INVITO } from '../invita/Invita'
 import { precarica } from '../memoria'
@@ -32,13 +33,13 @@ export function CartaInvita({ area }: { area: Extract<Area, { trovato: true }> }
   return (
     <Entra indice={2}>
       <Carta onPress={() => router.navigate('/invita')} style={[stili.carta, { backgroundColor: p.carbone }]}>
-        <View style={stili.riga} accessibilityRole="link" accessibilityLabel="Invita un amico. Allenati con un amico: per lui una settimana di prova, per te un voucher se si iscrive.">
+        <View style={stili.riga} accessibilityRole="link" accessibilityLabel={t('Invita un amico. Allenati con un amico: per lui una settimana di prova, per te un voucher se si iscrive.', 'Invite a friend. Train with a friend: a trial week for them, a voucher for you if they join.')}>
           <View style={[stili.bollino, { borderColor: FUOCO[0] }]}>
             <Icona nome="regalo" size={24} colore={FUOCO[0]} />
           </View>
           <View style={stili.testi}>
-            <Text style={stili.titolo}>Allenati con un amico</Text>
-            <Text style={stili.sotto}>Mandagli il tuo invito: può provare il club o iscriversi subito, e se si iscrive ricevi un voucher.</Text>
+            <Text style={stili.titolo}>{t('Allenati con un amico', 'Train with a friend')}</Text>
+            <Text style={stili.sotto}>{t('Mandagli il tuo invito: può provare il club o iscriversi subito, e se si iscrive ricevi un voucher.', 'Send them your invite: they can try the club or join right away, and if they join you get a voucher.')}</Text>
           </View>
           <Icona nome="avanti" size={18} colore="rgba(255,255,255,0.55)" />
         </View>

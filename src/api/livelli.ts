@@ -1,4 +1,5 @@
 import { funzione } from './lab'
+import { t } from '@/lib/lingua'
 
 // I livelli dell'Athlon Health Score (20/10/2026): il registro dei punti settimana per settimana, nella funzione
 // portale-lab-livelli di APP-ATHLON. **I punti li calcola l'app** (fit/calcoloLivelli.ts, le stesse regole del punteggio); il
@@ -14,8 +15,8 @@ const n = (x: unknown) => (typeof x === 'number' && Number.isFinite(x) ? x : 0)
 function leggi(r: Awaited<ReturnType<typeof funzione>>): EsitoRegistro {
   if (!r.ok) {
     // 404 o «azione sconosciuta»: la funzione non e' ancora pubblicata.
-    const manca = r.stato === 404 || String(r.dati.errore ?? '').startsWith('Azione sconosciuta')
-    return { ok: false, errore: String(r.dati.errore ?? 'Non riusciamo a leggere i tuoi livelli adesso.'), disponibile: !manca }
+    const manca = r.stato === 404 || String(r.dati.errore ?? '').startsWith('Azione sconosciuta') || String(r.dati.errore ?? '').startsWith('Unknown action')
+    return { ok: false, errore: String(r.dati.errore ?? t('Non riusciamo a leggere i tuoi livelli adesso.', 'We can’t load your levels right now.')), disponibile: !manca }
   }
   const settimane = Array.isArray(r.dati.settimane) ? (r.dati.settimane as Record<string, unknown>[]) : []
   return {

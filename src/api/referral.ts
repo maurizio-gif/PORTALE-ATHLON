@@ -1,6 +1,6 @@
 import { SUPABASE_URL } from '@/config'
 import { funzione } from '@/api/lab'
-import { intestazioneLingua } from '@/lib/lingua'
+import { intestazioneLingua, t } from '@/lib/lingua'
 
 // L'invito di un amico (21/10/2026): il link personale del socio e gli amici che l'hanno accettato, dalla funzione
 // `portale-lab-referral` (APP-ATHLON); e, per la pagina pubblica dell'invito, il nome di chi ha invitato (`guest-pass`,
@@ -40,8 +40,8 @@ export type StatoInvito =
     }
   | { ok: false; errore: string }
 
-const GUASTO = 'Non riusciamo a preparare il tuo invito adesso. Riprova fra qualche minuto.'
-const NON_ATTIVO = 'L’invito di un amico non è ancora attivo: riprova fra qualche giorno.'
+const GUASTO = t('Non riusciamo a preparare il tuo invito adesso. Riprova fra qualche minuto.', 'We can’t prepare your invitation right now. Try again in a few minutes.')
+const NON_ATTIVO = t('L’invito di un amico non è ancora attivo: riprova fra qualche giorno.', 'Inviting a friend isn’t active yet: try again in a few days.')
 
 export async function statoInvito(): Promise<StatoInvito> {
   const { ok, stato, dati } = await funzione('portale-lab-referral', { azione: 'stato' })
@@ -53,7 +53,7 @@ export async function statoInvito(): Promise<StatoInvito> {
     codice: String(dati.codice),
     link: String(dati.link),
     nome: String(dati.nome ?? ''),
-    oggetto: String(dati.oggetto ?? 'Allenati con me da Athlon'),
+    oggetto: String(dati.oggetto ?? t('Allenati con me da Athlon', 'Train with me at Athlon')),
     messaggio: String(dati.messaggio ?? dati.link),
     giorni: Number(dati.giorni ?? 30),
     voucher: Number(dati.voucher ?? 50),

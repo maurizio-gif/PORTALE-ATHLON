@@ -1,6 +1,7 @@
 import { StyleSheet, Text, View } from 'react-native'
 
 import type { PersonaArea } from '@/api/lab'
+import { locale, t } from '@/lib/lingua'
 
 import { Icona } from './Icona'
 import { F, usePalette, velo } from './tema'
@@ -11,7 +12,7 @@ import { F, usePalette, velo } from './tema'
 // evidenza nel «Da fare» della Home, e un bollino accanto al nome.
 
 function soldi(n: number): string {
-  return n.toLocaleString('it-IT', { style: 'currency', currency: 'EUR' })
+  return n.toLocaleString(locale(), { style: 'currency', currency: 'EUR' })
 }
 
 /** Il bollino rosso accanto al nome. */
@@ -19,9 +20,9 @@ export function BollinoDebito({ debito }: { debito: PersonaArea['debito'] }) {
   const p = usePalette()
   if (!debito) return null
   return (
-    <View style={[stili.bollino, { backgroundColor: velo(p, 'errore', 0.16) }]} accessibilityLabel={`Pagamento in sospeso: ${soldi(debito.importo)}`}>
+    <View style={[stili.bollino, { backgroundColor: velo(p, 'errore', 0.16) }]} accessibilityLabel={t(`Pagamento in sospeso: ${soldi(debito.importo)}`, `Outstanding payment: ${soldi(debito.importo)}`)}>
       <Icona nome="attenzione" size={12} colore={p.errore} />
-      <Text style={[stili.bollinoTesto, { color: p.errore }]}>{`Da saldare ${soldi(debito.importo)}`}</Text>
+      <Text style={[stili.bollinoTesto, { color: p.errore }]}>{t(`Da saldare ${soldi(debito.importo)}`, `To pay ${soldi(debito.importo)}`)}</Text>
     </View>
   )
 }

@@ -5,6 +5,7 @@ import type { CertificatoArea, PersonaArea } from '@/api/lab'
 import { istruzioniInRighe } from '@/lib/certificatoIstruzioni'
 import { dataBreve } from '@/lib/metodoPagamento'
 import { spazio } from '@/theme'
+import { locale, t } from '@/lib/lingua'
 
 import { Icona } from '../ui/Icona'
 import { Etichetta, Pulsante, Riga } from '../ui/kit'
@@ -19,7 +20,7 @@ import { vistaCorrente } from '../vista'
 // visto, «rifiutato» col motivo se non l'ha accettato.
 
 export function nome(p: Pick<PersonaArea, 'nome' | 'cognome'>): string {
-  return [p.nome, p.cognome].filter(Boolean).join(' ') || 'Senza nome'
+  return [p.nome, p.cognome].filter(Boolean).join(' ') || t('Senza nome', 'No name')
 }
 
 export const GIORNO = 86_400_000
@@ -38,12 +39,12 @@ export function giorniA(iso: string | null): number | null {
 
 /** «martedì 14 ottobre», all'ora di Roma. */
 export function oggi(): string {
-  return new Intl.DateTimeFormat('it-IT', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'Europe/Rome' }).format(new Date())
+  return new Intl.DateTimeFormat(locale(), { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'Europe/Rome' }).format(new Date())
 }
 
 /** «1 giorno», «76 giorni». */
 export function giorni(n: number): string {
-  return `${n} ${n === 1 ? 'giorno' : 'giorni'}`
+  return t(`${n} ${n === 1 ? 'giorno' : 'giorni'}`, `${n} ${n === 1 ? 'day' : 'days'}`)
 }
 
 /** Il giorno dei 6 anni, dalla data di nascita: da li' il certificato e' obbligatorio. */
@@ -58,7 +59,7 @@ function seiAnni(nascita: string | null | undefined): string | null {
 function giornoRoma(iso: string | null | undefined): string | null {
   const t = iso ? new Date(iso) : null
   if (!t || Number.isNaN(t.getTime())) return null
-  return new Intl.DateTimeFormat('it-IT', { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'Europe/Rome' }).format(t)
+  return new Intl.DateTimeFormat(locale(), { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'Europe/Rome' }).format(t)
 }
 
 export type StatoCertificato = {
@@ -97,15 +98,15 @@ function statoDelleDate(ce: CertificatoArea | undefined, nascita?: string | null
   const sei = seiAnni(nascita)
   const aiSei = giorniA(sei)
   if (sei && aiSei != null && aiSei > 30) {
-    return { testo: 'Non serve', tono: 'neutro', giorni: null, dettaglio: `Non serve fino ai 6 anni, il ${dataBreve(sei)}`, breve: 'fino ai 6 anni', daConsegnare: false, scadutoOMancante: false, inVerifica: false, rifiutato: null }
+    return { testo: t('Non serve', 'Not required'), tono: 'neutro', giorni: null, dettaglio: t(`Non serve fino ai 6 anni, il ${dataBreve(sei)}`, `Not required until age 6, on ${dataBreve(sei)}`), breve: t('fino ai 6 anni', 'until age 6'), daConsegnare: false, scadutoOMancante: false, inVerifica: false, rifiutato: null }
   }
   if (sei && aiSei != null && aiSei > 0 && (g == null || g < aiSei)) {
-    return { testo: 'Da consegnare', tono: 'attenzione', giorni: null, dettaglio: `Da consegnare entro il ${dataBreve(sei)}, quando compie 6 anni`, breve: `entro il ${dataBreve(sei)}`, daConsegnare: true, scadutoOMancante: false, inVerifica: false, rifiutato: null }
+    return { testo: t('Da consegnare', 'Due'), tono: 'attenzione', giorni: null, dettaglio: t(`Da consegnare entro il ${dataBreve(sei)}, quando compie 6 anni`, `Due by ${dataBreve(sei)}, when they turn 6`), breve: t(`entro il ${dataBreve(sei)}`, `by ${dataBreve(sei)}`), daConsegnare: true, scadutoOMancante: false, inVerifica: false, rifiutato: null }
   }
-  if (g == null || !data) return { testo: 'Mancante', tono: 'neutro', giorni: null, dettaglio: 'Non è mai stato consegnato', breve: 'mai consegnato', daConsegnare: true, scadutoOMancante: true, inVerifica: false, rifiutato: null }
-  if (g < 0) return { testo: 'Scaduto', tono: 'errore', giorni: g, dettaglio: `Scaduto il ${data} · ${giorni(-g)} fa`, breve: '', daConsegnare: true, scadutoOMancante: true, inVerifica: false, rifiutato: null }
-  if (g === 0) return { testo: 'Scade oggi', tono: 'attenzione', giorni: 0, dettaglio: `Valido fino a oggi, ${data}`, breve: '', daConsegnare: false, scadutoOMancante: false, inVerifica: false, rifiutato: null }
-  return { testo: g <= 30 ? 'In scadenza' : 'Valido', tono: g <= 30 ? 'attenzione' : 'ok', giorni: g, dettaglio: `Valido fino al ${data} · ancora ${giorni(g)}`, breve: '', daConsegnare: false, scadutoOMancante: false, inVerifica: false, rifiutato: null }
+  if (g == null || !data) return { testo: t('Mancante', 'Missing'), tono: 'neutro', giorni: null, dettaglio: t('Non è mai stato consegnato', 'Never handed in'), breve: t('mai consegnato', 'never handed in'), daConsegnare: true, scadutoOMancante: true, inVerifica: false, rifiutato: null }
+  if (g < 0) return { testo: t('Scaduto', 'Expired'), tono: 'errore', giorni: g, dettaglio: t(`Scaduto il ${data} · ${giorni(-g)} fa`, `Expired on ${data} · ${giorni(-g)} ago`), breve: '', daConsegnare: true, scadutoOMancante: true, inVerifica: false, rifiutato: null }
+  if (g === 0) return { testo: t('Scade oggi', 'Expires today'), tono: 'attenzione', giorni: 0, dettaglio: t(`Valido fino a oggi, ${data}`, `Valid until today, ${data}`), breve: '', daConsegnare: false, scadutoOMancante: false, inVerifica: false, rifiutato: null }
+  return { testo: g <= 30 ? t('In scadenza', 'Expiring soon') : t('Valido', 'Valid'), tono: g <= 30 ? 'attenzione' : 'ok', giorni: g, dettaglio: t(`Valido fino al ${data} · ancora ${giorni(g)}`, `Valid until ${data} · ${giorni(g)} left`), breve: '', daConsegnare: false, scadutoOMancante: false, inVerifica: false, rifiutato: null }
 }
 
 /**
@@ -123,11 +124,11 @@ export function statoCertificato(ce: CertificatoArea | undefined, nascita?: stri
   if (serve && c?.stato === 'in_verifica') {
     const il = giornoRoma(c.caricato_il)
     return {
-      testo: 'In verifica',
+      testo: t('In verifica', 'Under review'),
       tono: 'neutro',
       giorni: null,
-      dettaglio: il ? `Caricato il ${il} · lo stiamo controllando` : 'Lo stiamo controllando',
-      breve: 'in verifica',
+      dettaglio: il ? t(`Caricato il ${il} · lo stiamo controllando`, `Uploaded on ${il} · we’re checking it`) : t('Lo stiamo controllando', 'We’re checking it'),
+      breve: t('in verifica', 'under review'),
       daConsegnare: false,
       scadutoOMancante: false,
       inVerifica: true,
@@ -143,10 +144,13 @@ export function statoCertificato(ce: CertificatoArea | undefined, nascita?: stri
     // anche per chi era solo «in scadenza», che senza `daConsegnare` non avrebbe piu' il comando.
     return {
       ...base,
-      testo: 'Rifiutato',
+      testo: t('Rifiutato', 'Rejected'),
       tono: 'errore',
-      dettaglio: `${base.dettaglio}. Il certificato caricato${il ? ` il ${il}` : ''} non è stato accettato${motivo ? `: ${motivo}` : ''}`,
-      breve: base.breve ? `rifiutato · ${base.breve}` : 'rifiutato',
+      dettaglio: t(
+        `${base.dettaglio}. Il certificato caricato${il ? ` il ${il}` : ''} non è stato accettato${motivo ? `: ${motivo}` : ''}`,
+        `${base.dettaglio}. The certificate uploaded${il ? ` on ${il}` : ''} was not accepted${motivo ? `: ${motivo}` : ''}`,
+      ),
+      breve: base.breve ? t(`rifiutato · ${base.breve}`, `rejected · ${base.breve}`) : t('rifiutato', 'rejected'),
       daConsegnare: true,
       rifiutato: { motivo },
     }
@@ -157,7 +161,7 @@ export function statoCertificato(ce: CertificatoArea | undefined, nascita?: stri
 /** Quanto e' urgente un certificato: piu' alto e', prima si mostra (scaduto, mai consegnato, da consegnare, in scadenza). */
 export function urgenzaCertificato(s: StatoCertificato): number {
   if (s.tono === 'errore') return 5
-  if (s.daConsegnare) return s.testo === 'Mancante' ? 4 : 3
+  if (s.daConsegnare) return s.testo === t('Mancante', 'Missing') ? 4 : 3
   if (s.tono === 'attenzione') return 2
   return s.tono === 'ok' ? 1 : 0
 }
@@ -191,7 +195,7 @@ function InfoCertificato({ aperta, onCambia }: { aperta: boolean; onCambia: (ape
           onCambia(false)
         }}
         accessibilityRole="button"
-        accessibilityLabel={`Quale certificato serve. ${QUALE_CERTIFICATO.join(' ')}`}
+        accessibilityLabel={`${t('Quale certificato serve.', 'Which certificate you need.')} ${QUALE_CERTIFICATO.join(' ')}`}
         hitSlop={10}
         style={[stili.info, { backgroundColor: p.incavo }]}
       >
@@ -199,7 +203,7 @@ function InfoCertificato({ aperta, onCambia }: { aperta: boolean; onCambia: (ape
       </Pressable>
       {aperta ? (
         <View style={[stili.fumetto, { backgroundColor: p.scuro ? '#2A2B31' : p.carbone }]} pointerEvents="none">
-          <Text style={stili.fumettoTitolo}>Quale certificato serve</Text>
+          <Text style={stili.fumettoTitolo}>{t('Quale certificato serve', 'Which certificate you need')}</Text>
           {QUALE_CERTIFICATO.map((t) => (
             <View key={t} style={{ flexDirection: 'row', gap: 8 }}>
               <View style={stili.fumettoPunto} />
@@ -239,7 +243,7 @@ export function RigaCertificato({
         prima={prima}
         icona="certificato"
         tono={s.tono}
-        titolo={persona ? nome(persona) : 'Certificato'}
+        titolo={persona ? nome(persona) : t('Certificato', 'Certificate')}
         // L'etichetta sotto il testo e a destra solo la «i»: insieme a destra stringevano il nome e la data.
         sotto={
           <View style={{ gap: 6, alignItems: 'flex-start' }}>
@@ -247,7 +251,7 @@ export function RigaCertificato({
             <Etichetta testo={s.testo} tono={s.tono} />
             {puoCaricare ? (
               <Pulsante
-                testo={s.rifiutato ? 'Carica un certificato nuovo' : s.daConsegnare ? 'Carica il certificato' : 'Carica quello nuovo'}
+                testo={s.rifiutato ? t('Carica un certificato nuovo', 'Upload a new certificate') : s.daConsegnare ? t('Carica il certificato', 'Upload certificate') : t('Carica quello nuovo', 'Upload the new one')}
                 icona="condividi"
                 variante={s.daConsegnare ? 'primario' : 'contorno'}
                 piccolo

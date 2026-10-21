@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 import { StyleSheet, Text, View } from 'react-native'
 
+import { t } from '@/lib/lingua'
 import { spazio } from '@/theme'
 
 import { Icona } from '../ui/Icona'
@@ -15,14 +16,14 @@ import { Tocco } from '../ui/Tocco'
 export function Indicatore({ passo, nomi }: { passo: number; nomi: string[] }) {
   const p = usePalette()
   return (
-    <View style={{ gap: spazio.due }} accessibilityRole="progressbar" accessibilityLabel={`Passo ${passo} di ${nomi.length}: ${nomi[passo - 1]}`}>
+    <View style={{ gap: spazio.due }} accessibilityRole="progressbar" accessibilityLabel={t(`Passo ${passo} di ${nomi.length}: ${nomi[passo - 1]}`, `Step ${passo} of ${nomi.length}: ${nomi[passo - 1]}`)}>
       <View style={{ flexDirection: 'row', gap: 6 }}>
         {nomi.map((n, i) => (
           <View key={n} style={{ flex: 1, height: 5, borderRadius: 3, backgroundColor: i < passo ? p.accento : p.linea }} />
         ))}
       </View>
       <Text style={{ color: p.testoSecondario, fontFamily: F.semi, fontSize: 13 }}>
-        <Text style={{ color: p.accento, fontFamily: F.extra }}>{`Passo ${passo} di ${nomi.length}`}</Text>
+        <Text style={{ color: p.accento, fontFamily: F.extra }}>{t(`Passo ${passo} di ${nomi.length}`, `Step ${passo} of ${nomi.length}`)}</Text>
         {`  ·  ${nomi[passo - 1]}`}
       </Text>
     </View>

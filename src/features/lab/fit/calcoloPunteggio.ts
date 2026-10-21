@@ -3,6 +3,7 @@ import type { GiornoDispositivo } from '@/api/dispositivi'
 import type { PresenzaLezione, SedutaStorico } from '@/api/lab'
 
 import { giornoRoma, spostaGiorno } from '../schede/contatoreCalorie'
+import { locale, t } from '../../../lib/lingua'
 
 // L'Athlon Health Score (richiesta del club, 20/10/2026): un punteggio da 0 a 100 su tre
 // pilastri, Train, Food e Relax, che dice **come stai andando**: regolarita', non volume.
@@ -89,7 +90,7 @@ export function sessioniDa(sedute: SedutaStorico[], presenze: PresenzaLezione[])
       giorno: giornoRoma(s.inizio),
       minuti,
       fonte: 'scheda',
-      nome: [s.titolo, s.giorno_nome].filter(Boolean).join(' · ') || 'Allenamento in sala',
+      nome: [s.titolo, s.giorno_nome].filter(Boolean).join(' · ') || t('Allenamento in sala', 'Gym floor workout'),
       categoria: null,
       inizio: s.inizio,
       serie: s.serie,
@@ -288,31 +289,41 @@ export type Ingressi = {
   relax: { consenso: boolean; giorni: GiornoDispositivo[] } | null
 }
 
-const n = (x: number) => x.toLocaleString('it-IT')
-const giorniParola = (g: number) => (g === 1 ? '1 giorno' : `${g} giorni`)
+const n = (x: number) => x.toLocaleString(locale())
+const giorniParola = (g: number) => (g === 1 ? t('1 giorno', '1 day') : t(`${g} giorni`, `${g} days`))
 
-function fraseTrain(t: Train): string | null {
-  const g = t.settimane[0].giorni
-  if (!t.haStoria) return 'Contano i piani di allenamento chiusi nell’app e le lezioni con la presenza segnata dalla reception.'
-  if (g === 0) return 'Negli ultimi 7 giorni non c’è nessun allenamento.'
-  if (g === 1) return 'Un giorno attivo negli ultimi 7: con il secondo sei ai punti pieni.'
-  if (g <= 4) return `${giorniParola(g)} attivi negli ultimi 7: è il ritmo giusto.`
-  return `${giorniParola(g)} attivi negli ultimi 7: un giorno di riposo fa parte dell’allenamento.`
+function fraseTrain(tr: Train): string | null {
+  const g = tr.settimane[0].giorni
+  if (!tr.haStoria) return t('Contano i piani di allenamento chiusi nell’app e le lezioni con la presenza segnata dalla reception.', 'What counts: workout plans you finish in the app and classes where reception marks your attendance.')
+  if (g === 0) return t('Negli ultimi 7 giorni non c’è nessun allenamento.', 'No workouts in the last 7 days.')
+  if (g === 1) return t('Un giorno attivo negli ultimi 7: con il secondo sei ai punti pieni.', 'One active day in the last 7: one more and you’re at full points.')
+  if (g <= 4) return t(`${giorniParola(g)} attivi negli ultimi 7: è il ritmo giusto.`, `${giorniParola(g)} active in the last 7: that’s the right pace.`)
+  return t(`${giorniParola(g)} attivi negli ultimi 7: un giorno di riposo fa parte dell’allenamento.`, `${giorniParola(g)} active in the last 7: a rest day is part of training too.`)
 }
 
 function fraseFood(f: Food): string | null {
-  if (!f.haStoria) return `Scrivi ${f.senzaColazione ? 'pranzo e cena' : 'colazione, pranzo e cena'} nel diario: contano i giorni finiti, oggi no.`
+  if (!f.haStoria)
+    return t(
+      `Scrivi ${f.senzaColazione ? 'pranzo e cena' : 'colazione, pranzo e cena'} nel diario: contano i giorni finiti, oggi no.`,
+      `Log ${f.senzaColazione ? 'lunch and dinner' : 'breakfast, lunch and dinner'} in the diary: completed days count, today doesn’t.`,
+    )
   const g = f.settimane[0].giorni
-  return `Negli ultimi 7 giorni finiti hai scritto i pasti principali per ${giorniParola(g)}: ne bastano ${GIORNI_FOOD}.`
+  return t(
+    `Negli ultimi 7 giorni finiti hai scritto i pasti principali per ${giorniParola(g)}: ne bastano ${GIORNI_FOOD}.`,
+    `In the last 7 completed days you logged your main meals on ${giorniParola(g)}: ${GIORNI_FOOD} is enough.`,
+  )
 }
 
 const ore = (m: number) => `${Math.floor(m / 60)} h${m % 60 ? ` ${String(m % 60).padStart(2, '0')}` : ''}`
 
 function fraseRelax(r: Relax): string | null {
-  if (!r.haStoria) return 'Scrivi ogni mattina quanto hai dormito, o collega un dispositivo: contano le notti degli ultimi 7 giorni.'
+  if (!r.haStoria) return t('Scrivi ogni mattina quanto hai dormito, o collega un dispositivo: contano le notti degli ultimi 7 giorni.', 'Each morning, log how long you slept, or connect a device: nights from the last 7 days count.')
   const g = r.settimane[0].giorni
-  if (g === 0) return 'Negli ultimi 7 giorni non c’è nessuna notte scritta.'
-  return `${g === 1 ? 'Una notte scritta' : `${n(g)} notti scritte`} negli ultimi 7 giorni${r.mediaMinuti !== null ? `, in media ${ore(r.mediaMinuti)}` : ''}.`
+  if (g === 0) return t('Negli ultimi 7 giorni non c’è nessuna notte scritta.', 'No nights logged in the last 7 days.')
+  return t(
+    `${g === 1 ? 'Una notte scritta' : `${n(g)} notti scritte`} negli ultimi 7 giorni${r.mediaMinuti !== null ? `, in media ${ore(r.mediaMinuti)}` : ''}.`,
+    `${g === 1 ? 'One night logged' : `${n(g)} nights logged`} in the last 7 days${r.mediaMinuti !== null ? `, ${ore(r.mediaMinuti)} on average` : ''}.`,
+  )
 }
 
 export function calcolaPunteggio(i: Ingressi): Punteggio {

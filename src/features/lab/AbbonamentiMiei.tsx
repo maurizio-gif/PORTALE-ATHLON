@@ -5,6 +5,7 @@ import { StyleSheet, Text, View } from 'react-native'
 import { contrattiAbbonamento, documentoAbbonamento, type AddebitoContratto, type ContrattoElenco } from '@/api/abbonamento'
 import type { Area } from '@/api/lab'
 import { euro } from '@/lib/eventi'
+import { locale, t } from '@/lib/lingua'
 import { spazio } from '@/theme'
 
 import { regolaritaContratto, type Regolarita } from './home/regolarita'
@@ -25,7 +26,7 @@ import { Tocco } from './ui/Tocco'
 function data(iso: string | null): string {
   if (!iso) return '—'
   const [a, m, g] = iso.slice(0, 10).split('-').map(Number)
-  return new Intl.DateTimeFormat('it-IT', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' }).format(new Date(Date.UTC(a, m - 1, g)))
+  return new Intl.DateTimeFormat(locale(), { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' }).format(new Date(Date.UTC(a, m - 1, g)))
 }
 
 function giornoDopo(iso: string): string {
@@ -34,24 +35,24 @@ function giornoDopo(iso: string): string {
 }
 
 const TIPO_ADDEBITO: Record<string, string> = {
-  Membership: 'Quota',
-  Prorata: 'Pro-rata',
-  AdminFee: 'Quota di attivazione',
-  JoiningFee: 'Quota di attivazione',
-  Freeze: 'Sospensione',
+  Membership: t('Quota', 'Fee'),
+  Prorata: t('Pro-rata', 'Pro rata'),
+  AdminFee: t('Quota di attivazione', 'Joining fee'),
+  JoiningFee: t('Quota di attivazione', 'Joining fee'),
+  Freeze: t('Sospensione', 'Freeze'),
 }
 
 function nomeAddebito(a: AddebitoContratto): string {
-  if (a.tipo === 'Manual') return a.descrizione?.trim() || 'Addebito'
+  if (a.tipo === 'Manual') return a.descrizione?.trim() || t('Addebito', 'Charge')
   return TIPO_ADDEBITO[a.tipo] ?? a.tipo
 }
 
 function statoContratto(c: ContrattoElenco): { testo: string; tono: 'ok' | 'attenzione' | 'neutro' } {
-  if (c.in_vigore && !c.si_rinnova && c.data_fine) return { testo: `Termina il ${data(c.data_fine)}`, tono: 'attenzione' }
-  if (c.stato === 'NotStarted') return { testo: 'Non ancora iniziato', tono: 'attenzione' }
-  if (c.stato === 'Freezed') return { testo: 'Sospeso', tono: 'attenzione' }
-  if (c.in_vigore) return { testo: 'In corso', tono: 'ok' }
-  return { testo: 'Terminato', tono: 'neutro' }
+  if (c.in_vigore && !c.si_rinnova && c.data_fine) return { testo: t(`Termina il ${data(c.data_fine)}`, `Ends on ${data(c.data_fine)}`), tono: 'attenzione' }
+  if (c.stato === 'NotStarted') return { testo: t('Non ancora iniziato', 'Not started'), tono: 'attenzione' }
+  if (c.stato === 'Freezed') return { testo: t('Sospeso', 'Frozen'), tono: 'attenzione' }
+  if (c.in_vigore) return { testo: t('In corso', 'Current'), tono: 'ok' }
+  return { testo: t('Terminato', 'Ended'), tono: 'neutro' }
 }
 
 function Riga({ nome, valore, colore }: { nome: string; valore: string; colore?: string }) {
@@ -70,7 +71,7 @@ function DaSistemare({ regolarita, onSezione }: { regolarita: Regolarita; onSezi
   const debito = regolarita.motivi.some((m) => m.chiave === 'debito')
   const metodo = regolarita.motivi.some((m) => m.chiave === 'metodo' || m.chiave === 'carta')
   return (
-    <Messaggio tono={regolarita.tono ?? 'attenzione'} titolo="Da sistemare">
+    <Messaggio tono={regolarita.tono ?? 'attenzione'} titolo={t('Da sistemare', 'Needs attention')}>
       <View style={{ gap: spazio.due }}>
         {regolarita.motivi.map((m) => (
           <Text key={m.chiave} style={{ color: p.testoSecondario, fontFamily: F.medio, fontSize: 14, lineHeight: 20 }}>
@@ -78,8 +79,8 @@ function DaSistemare({ regolarita, onSezione }: { regolarita: Regolarita; onSezi
           </Text>
         ))}
         <View style={{ gap: spazio.due, paddingTop: 2 }}>
-          {debito ? <Pulsante testo="Vedi i pagamenti" icona="carta" piccolo variante={metodo ? 'contorno' : 'primario'} onPress={() => onSezione('pagamenti')} /> : null}
-          {metodo ? <Pulsante testo="Sistema il metodo" icona="carta" piccolo onPress={() => router.push('/metodo-pagamento')} /> : null}
+          {debito ? <Pulsante testo={t('Vedi i pagamenti', 'See payments')} icona="carta" piccolo variante={metodo ? 'contorno' : 'primario'} onPress={() => onSezione('pagamenti')} /> : null}
+          {metodo ? <Pulsante testo={t('Sistema il metodo', 'Fix the payment method')} icona="carta" piccolo onPress={() => router.push('/metodo-pagamento')} /> : null}
         </View>
       </View>
     </Messaggio>
@@ -103,7 +104,7 @@ function SchedaContratto({ c, conPersona, regolarita, onSezione }: { c: Contratt
     setScarico(true)
     await apriPdf(async () => {
       const r = await documentoAbbonamento(numero)
-      return r.ok ? { ...r, nome: `contratto-${numero}.pdf` } : r
+      return r.ok ? { ...r, nome: t(`contratto-${numero}.pdf`, `contract-${numero}.pdf`) } : r
     })
     setScarico(false)
   }
@@ -124,41 +125,41 @@ function SchedaContratto({ c, conPersona, regolarita, onSezione }: { c: Contratt
         </View>
         {irregolare || c.categoria !== 'principale' || rinnovoAutomatico ? (
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'flex-start', gap: spazio.due }}>
-            {irregolare ? <Etichetta testo="Irregolare" tono={regolarita?.tono ?? 'attenzione'} /> : null}
-            {c.categoria !== 'principale' ? <Etichetta testo={c.categoria === 'junior' ? 'Corso per bambini' : 'Abbonamento aggiuntivo'} tono="neutro" /> : null}
-            {rinnovoAutomatico ? <Etichetta testo="Rinnovo automatico attivo" tono="ok" /> : null}
+            {irregolare ? <Etichetta testo={t('Irregolare', 'Irregular')} tono={regolarita?.tono ?? 'attenzione'} /> : null}
+            {c.categoria !== 'principale' ? <Etichetta testo={c.categoria === 'junior' ? t('Corso per bambini', 'Kids’ course') : t('Abbonamento aggiuntivo', 'Add-on membership')} tono="neutro" /> : null}
+            {rinnovoAutomatico ? <Etichetta testo={t('Rinnovo automatico attivo', 'Auto-renewal on')} tono="ok" /> : null}
           </View>
         ) : null}
         {irregolare && regolarita ? <DaSistemare regolarita={regolarita} onSezione={onSezione} /> : null}
 
         <View style={{ gap: 6 }}>
-          <Riga nome="Sottoscritto il" valore={data(c.data_firma)} />
-          <Riga nome="Inizio" valore={data(c.data_inizio)} />
-          <Riga nome="Fine" valore={c.data_fine ? data(c.data_fine) : 'Si rinnova ogni mese'} />
-          {c.in_vigore && c.si_rinnova && c.data_fine ? <Riga nome="Si rinnova il" valore={data(giornoDopo(c.data_fine))} /> : null}
-          {c.data_disdetta ? <Riga nome="Disdetto il" valore={data(c.data_disdetta)} /> : null}
-          {c.canone ? <Riga nome="Quota" valore={euro(c.canone)} /> : null}
+          <Riga nome={t('Sottoscritto il', 'Signed on')} valore={data(c.data_firma)} />
+          <Riga nome={t('Inizio', 'Start')} valore={data(c.data_inizio)} />
+          <Riga nome={t('Fine', 'End')} valore={c.data_fine ? data(c.data_fine) : t('Si rinnova ogni mese', 'Renews every month')} />
+          {c.in_vigore && c.si_rinnova && c.data_fine ? <Riga nome={t('Si rinnova il', 'Renews on')} valore={data(giornoDopo(c.data_fine))} /> : null}
+          {c.data_disdetta ? <Riga nome={t('Disdetto il', 'Canceled on')} valore={data(c.data_disdetta)} /> : null}
+          {c.canone ? <Riga nome={t('Quota', 'Fee')} valore={euro(c.canone)} /> : null}
         </View>
 
         <View style={[stili.totali, { backgroundColor: p.incavo }]}>
           <View style={{ flex: 1 }}>
-            <Text style={[stili.nome, { color: p.testoSecondario }]}>Addebitato</Text>
+            <Text style={[stili.nome, { color: p.testoSecondario }]}>{t('Addebitato', 'Charged')}</Text>
             <Text style={[stili.totale, { color: p.testo }]}>{euro(c.totali.addebitato)}</Text>
           </View>
           <View style={{ flex: 1 }}>
-            <Text style={[stili.nome, { color: p.testoSecondario }]}>Pagato</Text>
+            <Text style={[stili.nome, { color: p.testoSecondario }]}>{t('Pagato', 'Paid')}</Text>
             <Text style={[stili.totale, { color: p.ok }]}>{euro(c.totali.pagato)}</Text>
           </View>
           <View style={{ flex: 1 }}>
-            <Text style={[stili.nome, { color: p.testoSecondario }]}>Da pagare</Text>
+            <Text style={[stili.nome, { color: p.testoSecondario }]}>{t('Da pagare', 'Due')}</Text>
             <Text style={[stili.totale, { color: c.totali.da_pagare > 0 ? p.accento : p.testo }]}>{euro(c.totali.da_pagare)}</Text>
           </View>
         </View>
 
         {daPagare.length ? (
           <>
-            <Tocco ruolo="button" etichetta={aperta ? 'Nascondi le quote da pagare' : 'Mostra le quote da pagare'} onPress={() => setAperta((v) => !v)} style={{ alignSelf: 'flex-start', paddingVertical: 4 }}>
-              <Text style={{ color: p.accento, fontFamily: F.bold, fontSize: 14 }}>{aperta ? 'Nascondi il dettaglio' : `Quote da pagare (${daPagare.length})  ›`}</Text>
+            <Tocco ruolo="button" etichetta={aperta ? t('Nascondi le quote da pagare', 'Hide due payments') : t('Mostra le quote da pagare', 'Show due payments')} onPress={() => setAperta((v) => !v)} style={{ alignSelf: 'flex-start', paddingVertical: 4 }}>
+              <Text style={{ color: p.accento, fontFamily: F.bold, fontSize: 14 }}>{aperta ? t('Nascondi il dettaglio', 'Hide details') : t(`Quote da pagare (${daPagare.length})  ›`, `Due payments (${daPagare.length})  ›`)}</Text>
             </Tocco>
             {aperta ? (
               <View style={{ gap: 8 }}>
@@ -166,11 +167,11 @@ function SchedaContratto({ c, conPersona, regolarita, onSezione }: { c: Contratt
                   <View key={i} style={stili.riga}>
                     <View style={{ flex: 1 }}>
                       <Text style={[stili.valore, { color: p.testo, textAlign: 'left' }]}>{nomeAddebito(a)}</Text>
-                      <Text style={[stili.nome, { color: p.testoSecondario }]}>{`Scade il ${data(a.scadenza)}`}</Text>
+                      <Text style={[stili.nome, { color: p.testoSecondario }]}>{t(`Scade il ${data(a.scadenza)}`, `Due on ${data(a.scadenza)}`)}</Text>
                     </View>
                     <View style={{ alignItems: 'flex-end' }}>
                       <Text style={[stili.valore, { color: p.testo }]}>{euro(a.da_pagare)}</Text>
-                      <Text style={{ color: p.accento, fontFamily: F.bold, fontSize: 12 }}>Da pagare</Text>
+                      <Text style={{ color: p.accento, fontFamily: F.bold, fontSize: 12 }}>{t('Da pagare', 'Due')}</Text>
                     </View>
                   </View>
                 ))}
@@ -178,12 +179,12 @@ function SchedaContratto({ c, conPersona, regolarita, onSezione }: { c: Contratt
             ) : null}
           </>
         ) : (
-          <Text style={[stili.nome, { color: p.testoSecondario }]}>Niente da pagare su questo contratto.</Text>
+          <Text style={[stili.nome, { color: p.testoSecondario }]}>{t('Niente da pagare su questo contratto.', 'Nothing to pay on this contract.')}</Text>
         )}
 
         {c.firmato?.pdf ? (
           <>
-            <Pulsante testo="Il contratto firmato (PDF)" icona="documento" variante="contorno" piccolo onPress={scarica} inCorso={scarico} />
+            <Pulsante testo={t('Il contratto firmato (PDF)', 'Signed contract (PDF)')} icona="documento" variante="contorno" piccolo onPress={scarica} inCorso={scarico} />
             {avviso}
           </>
         ) : null}
@@ -224,21 +225,21 @@ export function ElencoAbbonamenti({ area, onSezione }: { area: Extract<Area, { t
   }
   return (
     <View style={{ gap: spazio.quattro }}>
-      <Pulsante testo="Scegli un abbonamento" icona="avanti" onPress={() => router.navigate('/abbonamento')} />
+      <Pulsante testo={t('Scegli un abbonamento', 'Choose a membership')} icona="avanti" onPress={() => router.navigate('/abbonamento')} />
       {errore && !elenco ? (
         <>
           <Messaggio>{errore}</Messaggio>
-          <Pulsante testo="Riprova" icona="aggiorna" variante="secondario" onPress={carica} />
+          <Pulsante testo={t('Riprova', 'Try again')} icona="aggiorna" variante="secondario" onPress={carica} />
         </>
       ) : null}
       {!elenco && !errore ? <SchedeInArrivo quante={1} /> : null}
       {elenco && !vigore.length ? (
         <Carta piatta>
-          <Text style={{ color: p.testo, fontFamily: F.semi, fontSize: 15, lineHeight: 22 }}>Non troviamo abbonamenti in corso su questa scheda.</Text>
+          <Text style={{ color: p.testo, fontFamily: F.semi, fontSize: 15, lineHeight: 22 }}>{t('Non troviamo abbonamenti in corso su questa scheda.', 'We can’t find any current memberships on this profile.')}</Text>
         </Carta>
       ) : null}
       {vigore.length ? (
-        <Sezione titolo="In vigore" conteggio={vigore.length}>
+        <Sezione titolo={t('In vigore', 'Active')} conteggio={vigore.length}>
           <View style={{ gap: spazio.tre }}>
             {vigore.map((c) => (
               <SchedaContratto key={c.contract_id} c={c} conPersona={piuPersone} regolarita={regolarita(c)} onSezione={onSezione} />

@@ -1,4 +1,5 @@
 import { SITO_URL } from '@/config'
+import { t } from '@/lib/lingua'
 
 // Club Life: le news, gli eventi in arrivo e le schede dell'Help Desk, letti dal
 // sito (https://www.athlonroma.it/club-life.json). Il file lo genera il sito a
@@ -127,10 +128,10 @@ function salvaSulDisco(d: ClubLife) {
 export async function leggiClubLife(): Promise<{ ok: true; dati: ClubLife } | { ok: false; errore: string }> {
   try {
     const r = await fetch(URL_CLUB_LIFE_JSON, { headers: { Accept: 'application/json' } })
-    if (!r.ok) return { ok: false, errore: 'Club Life non risponde adesso. Riprova fra poco.' }
+    if (!r.ok) return { ok: false, errore: t('Club Life non risponde adesso. Riprova fra poco.', 'Club Life isn’t responding right now. Try again shortly.') }
     const d = (await r.json()) as ClubLife
     if (!Array.isArray(d?.news) || !Array.isArray(d?.eventi) || !Array.isArray(d?.schede)) {
-      return { ok: false, errore: 'Club Life non risponde adesso. Riprova fra poco.' }
+      return { ok: false, errore: t('Club Life non risponde adesso. Riprova fra poco.', 'Club Life isn’t responding right now. Try again shortly.') }
     }
     // Il campo nuovo manca finche' il sito non ha il deploy: senza, i link restano quelli di prima.
     const dati: ClubLife = {
@@ -144,6 +145,6 @@ export async function leggiClubLife(): Promise<{ ok: true; dati: ClubLife } | { 
     salvaSulDisco(dati)
     return { ok: true, dati }
   } catch {
-    return { ok: false, errore: 'Connessione non riuscita. Controlla la rete e riprova.' }
+    return { ok: false, errore: t('Connessione non riuscita. Controlla la rete e riprova.', 'Connection failed. Check your network and try again.') }
   }
 }

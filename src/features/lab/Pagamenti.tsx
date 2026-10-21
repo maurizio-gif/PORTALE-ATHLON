@@ -14,6 +14,7 @@ import {
   type SessioneAdyen,
 } from '@/api/lab'
 import { InfoAdyen } from '@/components/InfoAdyen'
+import { t, tv } from '@/lib/lingua'
 import { spazio, type Tono } from '@/theme'
 
 import { DropIn, pagamentoDisponibile } from './adyen'
@@ -43,16 +44,16 @@ function Piano({ piano, indice, onScegli, inCorso, spento }: { piano: PianoLab; 
       <View style={stili.pianoIcona}>
         <Icona nome="carta" size={120} colore="rgba(255,255,255,0.1)" />
       </View>
-      <Tag testo={`${piano.rate_totali} rate · ogni ${piano.intervallo_giorni} ${piano.intervallo_giorni === 1 ? 'giorno' : 'giorni'}`} colore="rgba(255,255,255,0.92)" />
+      <Tag testo={t(`${piano.rate_totali} rate · ogni ${piano.intervallo_giorni} ${piano.intervallo_giorni === 1 ? 'giorno' : 'giorni'}`, `${piano.rate_totali} installments · every ${piano.intervallo_giorni} ${piano.intervallo_giorni === 1 ? 'day' : 'days'}`)} colore="rgba(255,255,255,0.92)" />
       <Text style={stili.pianoNome}>{piano.nome}</Text>
       <View style={{ flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', gap: spazio.tre }}>
         <View>
           <Numero valore={euro(piano.importo_cent).replace(' €', '')} unita="€" size={44} colore="#fff" />
-          <Text style={stili.pianoNota}>{`la prima rata adesso · in tutto ${euro(piano.importo_cent * piano.rate_totali)}`}</Text>
+          <Text style={stili.pianoNota}>{t(`la prima rata adesso · in tutto ${euro(piano.importo_cent * piano.rate_totali)}`, `first installment now · ${euro(piano.importo_cent * piano.rate_totali)} in total`)}</Text>
         </View>
         <Colonnine quante={piano.rate_totali} piene={1} altezza={44} larghezza={7} />
       </View>
-      <BottoneBianco testo={`Paga ${euro(piano.importo_cent)}`} onPress={onScegli} inCorso={inCorso} spento={spento} />
+      <BottoneBianco testo={t(`Paga ${euro(piano.importo_cent)}`, `Pay ${euro(piano.importo_cent)}`)} onPress={onScegli} inCorso={inCorso} spento={spento} />
     </LinearGradient>
   )
 }
@@ -73,12 +74,12 @@ function CartaSalvata({ metodo, finale, scadenza }: { metodo: string | null; fin
       <View style={stili.cartaBagliore} />
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
         <View style={stili.chip} />
-        <Text style={stili.circuito}>{(metodo ?? 'carta').toUpperCase()}</Text>
+        <Text style={stili.circuito}>{(metodo ?? t('carta', 'card')).toUpperCase()}</Text>
       </View>
-      <Text style={stili.cifreCarta}>{finale ? `••••  ••••  ••••  ${finale}` : 'Carta non ancora salvata'}</Text>
+      <Text style={stili.cifreCarta}>{finale ? `••••  ••••  ••••  ${finale}` : t('Carta non ancora salvata', 'Card not saved yet')}</Text>
       <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-        <Text style={stili.cartaPiccolo}>CUSTODITA DA ADYEN</Text>
-        {scadenza ? <Text style={stili.cartaPiccolo}>{`SCAD. ${scadenza}`}</Text> : null}
+        <Text style={stili.cartaPiccolo}>{t('CUSTODITA DA ADYEN', 'STORED BY ADYEN')}</Text>
+        {scadenza ? <Text style={stili.cartaPiccolo}>{t(`SCAD. ${scadenza}`, `EXP. ${scadenza}`)}</Text> : null}
       </View>
     </LinearGradient>
   )
@@ -95,7 +96,7 @@ function Abbonamento({ a, onCambiato }: { a: AbbonamentoLab; onCambiato: () => v
   const haCarta = Boolean(a.ultime_quattro || a.metodo) && a.stato !== 'in_attesa'
   const pagate = a.pagamenti.filter((x) => x.stato === 'autorizzato').length
   const inAttesa = a.pagamenti.some((x) => STATI_IN_CORSO.includes(x.stato))
-  const carta = a.ultime_quattro ? `${a.metodo ? a.metodo.toUpperCase() + ' ' : ''}•••• ${a.ultime_quattro}${a.scadenza_carta ? ` (scad. ${a.scadenza_carta})` : ''}` : null
+  const carta = a.ultime_quattro ? `${a.metodo ? a.metodo.toUpperCase() + ' ' : ''}•••• ${a.ultime_quattro}${a.scadenza_carta ? t(` (scad. ${a.scadenza_carta})`, ` (exp. ${a.scadenza_carta})`) : ''}` : null
 
   async function addebita() {
     setDaConfermare(false)
@@ -104,9 +105,9 @@ function Abbonamento({ a, onCambiato }: { a: AbbonamentoLab; onCambiato: () => v
     const r = await addebitaRata(a.id)
     setInCorso(null)
     if (!r.ok) setMessaggio({ testo: r.errore, tono: 'errore' })
-    else if (r.esito === 'Authorised') setMessaggio({ testo: `Rata ${r.rata} pagata.`, tono: 'ok' })
-    else if (r.esito === 'Refused') setMessaggio({ testo: `Rata ${r.rata} rifiutata${r.motivo ? `: ${r.motivo}` : ''}.`, tono: 'errore' })
-    else setMessaggio({ testo: `Rata ${r.rata} inviata ad Adyen: l’esito arriva fra poco.`, tono: 'attenzione' })
+    else if (r.esito === 'Authorised') setMessaggio({ testo: t(`Rata ${r.rata} pagata.`, `Installment ${r.rata} paid.`), tono: 'ok' })
+    else if (r.esito === 'Refused') setMessaggio({ testo: t(`Rata ${r.rata} rifiutata${r.motivo ? `: ${r.motivo}` : ''}.`, `Installment ${r.rata} declined${r.motivo ? `: ${r.motivo}` : ''}.`), tono: 'errore' })
+    else setMessaggio({ testo: t(`Rata ${r.rata} inviata ad Adyen: l’esito arriva fra poco.`, `Installment ${r.rata} sent to Adyen: the result will arrive shortly.`), tono: 'attenzione' })
     colpetto(r.ok && r.esito === 'Authorised' ? 'ok' : r.ok ? 'leggero' : 'errore')
     onCambiato()
   }
@@ -126,7 +127,7 @@ function Abbonamento({ a, onCambiato }: { a: AbbonamentoLab; onCambiato: () => v
         <View style={{ flex: 1, gap: 4 }}>
           <Text style={[stili.abbNome, { color: p.testo }]}>{a.piano}</Text>
           <Text style={[stili.nota, { color: p.testoSecondario }]}>
-            {aperto && a.prossima_il ? `prossima rata ${quando(a.prossima_il)}` : `${euro(a.importo_cent)} ogni ${a.intervallo_giorni} ${a.intervallo_giorni === 1 ? 'giorno' : 'giorni'}`}
+            {aperto && a.prossima_il ? t(`prossima rata ${quando(a.prossima_il)}`, `next installment ${quando(a.prossima_il)}`) : t(`${euro(a.importo_cent)} ogni ${a.intervallo_giorni} ${a.intervallo_giorni === 1 ? 'giorno' : 'giorni'}`, `${euro(a.importo_cent)} every ${a.intervallo_giorni} ${a.intervallo_giorni === 1 ? 'day' : 'days'}`)}
           </Text>
         </View>
         <Etichetta testo={stato.testo} tono={stato.tono ?? 'neutro'} />
@@ -135,7 +136,7 @@ function Abbonamento({ a, onCambiato }: { a: AbbonamentoLab; onCambiato: () => v
       <View style={[stili.rate, { backgroundColor: p.incavo }]}>
         <View style={{ gap: 2 }}>
           <Numero valore={`${pagate}/${a.rate_totali}`} size={34} />
-          <Text style={[stili.nota, { color: p.testoSecondario }]}>rate pagate</Text>
+          <Text style={[stili.nota, { color: p.testoSecondario }]}>{t('rate pagate', 'installments paid')}</Text>
         </View>
         <Colonnine quante={a.rate_totali} piene={pagate} colore={p.accento} altezza={52} larghezza={9} />
       </View>
@@ -153,7 +154,7 @@ function Abbonamento({ a, onCambiato }: { a: AbbonamentoLab; onCambiato: () => v
                 prima={i === 0}
                 icona={x.stato === 'autorizzato' ? 'ok' : STATI_IN_CORSO.includes(x.stato) ? 'clessidra' : e.tono === 'errore' ? 'no' : 'ricevuta'}
                 tono={e.tono ?? 'neutro'}
-                titolo={`Rata ${x.numero_rata}${x.tentativo > 1 ? ` · tentativo ${x.tentativo}` : ''}`}
+                titolo={t(`Rata ${x.numero_rata}${x.tentativo > 1 ? ` · tentativo ${x.tentativo}` : ''}`, `Installment ${x.numero_rata}${x.tentativo > 1 ? ` · attempt ${x.tentativo}` : ''}`)}
                 sotto={[quando(x.aggiornato_il), x.stato === 'rifiutato' && x.motivo ? x.motivo : null].filter(Boolean).join(' · ')}
                 coda={
                   <View style={{ alignItems: 'flex-end', gap: 2 }}>
@@ -171,25 +172,25 @@ function Abbonamento({ a, onCambiato }: { a: AbbonamentoLab; onCambiato: () => v
       {aperto ? (
         daConfermare ? (
           <View style={{ gap: spazio.due }}>
-            <Messaggio tono="attenzione" titolo="Soldi veri">{`Addebitiamo davvero ${euro(a.importo_cent)} sulla carta ${carta ?? 'salvata'}. Confermi?`}</Messaggio>
+            <Messaggio tono="attenzione" titolo={t('Soldi veri', 'Real money')}>{t(`Addebitiamo davvero ${euro(a.importo_cent)} sulla carta ${carta ?? 'salvata'}. Confermi?`, `We’ll really charge ${euro(a.importo_cent)} to your ${carta ? `card ${carta}` : 'saved card'}. Confirm?`)}</Messaggio>
             <View style={stili.azioni}>
-              <Pulsante testo="No" variante="secondario" onPress={() => setDaConfermare(false)} />
-              <Pulsante testo={`Sì, ${euro(a.importo_cent)}`} onPress={addebita} />
+              <Pulsante testo={t('No', 'No')} variante="secondario" onPress={() => setDaConfermare(false)} />
+              <Pulsante testo={t(`Sì, ${euro(a.importo_cent)}`, `Yes, ${euro(a.importo_cent)}`)} onPress={addebita} />
             </View>
           </View>
         ) : (
           <View style={{ gap: spazio.due }}>
             {haCarta ? (
               <Pulsante
-                testo="Addebita la prossima rata ora"
+                testo={t('Addebita la prossima rata ora', 'Charge the next installment now')}
                 icona="fulmine"
                 onPress={() => setDaConfermare(true)}
                 inCorso={inCorso === 'addebita'}
                 disabilitato={inCorso !== null || inAttesa}
               />
             ) : null}
-            <Pulsante testo="Chiudi: niente altre rate" variante="contorno" icona="stop" onPress={chiudi} inCorso={inCorso === 'chiudi'} disabilitato={inCorso !== null} />
-            {!haCarta ? <Text style={[stili.nota, { color: p.testoSecondario, textAlign: 'center' }]}>La carta si salva quando la prima rata risulta pagata.</Text> : null}
+            <Pulsante testo={t('Chiudi: niente altre rate', 'Close: no more installments')} variante="contorno" icona="stop" onPress={chiudi} inCorso={inCorso === 'chiudi'} disabilitato={inCorso !== null} />
+            {!haCarta ? <Text style={[stili.nota, { color: p.testoSecondario, textAlign: 'center' }]}>{t('La carta si salva quando la prima rata risulta pagata.', 'The card is saved once the first installment shows as paid.')}</Text> : null}
           </View>
         )
       ) : null}
@@ -252,21 +253,28 @@ export function ProvaPagamento() {
     })
   }
 
-  const pagatoTotale = dati?.abbonamenti.reduce((t, a) => t + a.pagamenti.filter((x) => x.stato === 'autorizzato').reduce((s, x) => s + x.importo_cent, 0), 0) ?? 0
+  const pagatoTotale = dati?.abbonamenti.reduce((tot, a) => tot + a.pagamenti.filter((x) => x.stato === 'autorizzato').reduce((s, x) => s + x.importo_cent, 0), 0) ?? 0
 
   return (
     <View style={{ gap: spazio.quattro }}>
-      <Text style={[stili.sezioneLab, { color: p.testo }]}>Laboratorio: pagamento diretto con carta e rate</Text>
-      <Messaggio tono="attenzione" icona="fulmine" titolo="Soldi veri, massimo 5 €">
+      <Text style={[stili.sezioneLab, { color: p.testo }]}>{t('Laboratorio: pagamento diretto con carta e rate', 'Lab: direct card payment in installments')}</Text>
+      <Messaggio tono="attenzione" icona="fulmine" titolo={t('Soldi veri, massimo 5 €', 'Real money, 5 € max')}>
         <Text style={[stili.nota, { color: p.testoSecondario }]}>
-          È il conto del club su <InfoAdyen />, non una prova finta: ogni rata è 1 € e si addebita davvero. Il laboratorio non va oltre 5 €.
+          {tv(
+            <>
+              È il conto del club su <InfoAdyen />, non una prova finta: ogni rata è 1 € e si addebita davvero. Il laboratorio non va oltre 5 €.
+            </>,
+            <>
+              It’s the club’s account on <InfoAdyen />, not a mock test: each installment is 1 € and is really charged. The lab never goes over 5 €.
+            </>,
+          )}
         </Text>
       </Messaggio>
 
       {errore && !dati ? (
         <>
           <Messaggio>{errore}</Messaggio>
-          <Pulsante testo="Riprova" icona="aggiorna" onPress={carica} />
+          <Pulsante testo={t('Riprova', 'Try again')} icona="aggiorna" onPress={carica} />
         </>
       ) : !dati ? (
         <SchedeInArrivo quante={2} />
@@ -276,7 +284,7 @@ export function ProvaPagamento() {
             <View style={stili.testa}>
               <View style={{ flex: 1, gap: 4 }}>
                 <Text style={[stili.abbNome, { color: p.testo }]}>{checkout.piano.nome}</Text>
-                <Text style={[stili.nota, { color: p.testoSecondario }]}>{`riferimento ${checkout.sessione.riferimento}`}</Text>
+                <Text style={[stili.nota, { color: p.testoSecondario }]}>{t(`riferimento ${checkout.sessione.riferimento}`, `reference ${checkout.sessione.riferimento}`)}</Text>
               </View>
               <Numero valore={euro(checkout.piano.importo_cent).replace(' €', '')} unita="€" size={30} colore={p.accento} />
             </View>
@@ -284,7 +292,7 @@ export function ProvaPagamento() {
           </Carta>
           {erroreCheckout ? <Messaggio>{erroreCheckout}</Messaggio> : null}
           <Pulsante
-            testo="Annulla"
+            testo={t('Annulla', 'Cancel')}
             variante="secondario"
             onPress={() => {
               setCheckout(null)
@@ -295,8 +303,8 @@ export function ProvaPagamento() {
         </View>
       ) : (
         <>
-          <Sezione titolo="Prova un piano" destra={<Text style={{ color: p.testoTerzo, fontFamily: F.semi, fontSize: 12.5 }}>{`pagati finora ${euro(pagatoTotale)}`}</Text>}>
-            {!pagamentoDisponibile ? <Messaggio tono="attenzione">Il pagamento con carta, per ora, si prova dal sito: app.athlonroma.it/lab.</Messaggio> : null}
+          <Sezione titolo={t('Prova un piano', 'Try a plan')} destra={<Text style={{ color: p.testoTerzo, fontFamily: F.semi, fontSize: 12.5 }}>{t(`pagati finora ${euro(pagatoTotale)}`, `paid so far ${euro(pagatoTotale)}`)}</Text>}>
+            {!pagamentoDisponibile ? <Messaggio tono="attenzione">{t('Il pagamento con carta, per ora, si prova dal sito: app.athlonroma.it/lab.', 'For now, card payment can be tested from the website: app.athlonroma.it/lab.')}</Messaggio> : null}
             <View style={stili.griglia}>
               {dati.piani.map((x, i) => (
                 <Entra key={x.id} indice={i} style={stili.cellaPiano}>
@@ -307,7 +315,7 @@ export function ProvaPagamento() {
             {erroreCheckout ? <Messaggio>{erroreCheckout}</Messaggio> : null}
           </Sezione>
 
-          <Sezione titolo="I miei abbonamenti di prova" conteggio={dati.abbonamenti.length}>
+          <Sezione titolo={t('I miei abbonamenti di prova', 'My test memberships')} conteggio={dati.abbonamenti.length}>
             {dati.abbonamenti.length ? (
               <View style={stili.griglia}>
                 {dati.abbonamenti.map((a, i) => (
@@ -319,7 +327,7 @@ export function ProvaPagamento() {
             ) : (
               <Carta style={{ alignItems: 'center', gap: spazio.due, paddingVertical: spazio.cinque }}>
                 <Icona nome="carta" size={34} colore={p.testoTerzo} />
-                <Text style={[stili.nota, { color: p.testoSecondario }]}>Ancora nessuno: scegline uno qui sopra.</Text>
+                <Text style={[stili.nota, { color: p.testoSecondario }]}>{t('Ancora nessuno: scegline uno qui sopra.', 'None yet: choose one above.')}</Text>
               </Carta>
             )}
           </Sezione>

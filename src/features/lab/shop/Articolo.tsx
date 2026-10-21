@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { ScrollView, StyleSheet, Text, View, type NativeScrollEvent, type NativeSyntheticEvent } from 'react-native'
 
 import { euro } from '@/lib/eventi'
+import { t } from '@/lib/lingua'
 import { spazio } from '@/theme'
 
 import { Carta, Messaggio, Pulsante, SchedeInArrivo, Tag } from '../ui/kit'
@@ -42,11 +43,11 @@ export function Articolo({ id }: { id: number }) {
 
   if (!dati) {
     return (
-      <Schermata titolo="Articolo" indietro="/shop" barra={false}>
+      <Schermata titolo={t('Articolo', 'Item')} indietro="/shop" barra={false}>
         {errore ? (
           <View style={{ gap: spazio.tre }}>
             <Messaggio>{errore}</Messaggio>
-            <Pulsante testo="Riprova" icona="aggiorna" variante="secondario" onPress={() => carica(true)} />
+            <Pulsante testo={t('Riprova', 'Try again')} icona="aggiorna" variante="secondario" onPress={() => carica(true)} />
           </View>
         ) : (
           <SchedeInArrivo quante={2} />
@@ -57,9 +58,9 @@ export function Articolo({ id }: { id: number }) {
 
   if (!a) {
     return (
-      <Schermata titolo="Articolo" indietro="/shop" barra={false}>
-        <Messaggio tono="attenzione">Questo articolo non è più in vetrina.</Messaggio>
-        <Pulsante testo="Torna allo shop" variante="secondario" onPress={() => router.replace('/shop')} />
+      <Schermata titolo={t('Articolo', 'Item')} indietro="/shop" barra={false}>
+        <Messaggio tono="attenzione">{t('Questo articolo non è più in vetrina.', 'This item is no longer in the shop.')}</Messaggio>
+        <Pulsante testo={t('Torna allo shop', 'Back to the shop')} variante="secondario" onPress={() => router.replace('/shop')} />
       </Schermata>
     )
   }
@@ -90,7 +91,7 @@ export function Articolo({ id }: { id: number }) {
                 style={{ width: larghezza || 320, aspectRatio: 1 }}
                 contentFit="cover"
                 transition={200}
-                accessibilityLabel={`${a.nome}, foto ${i + 1} di ${a.foto.length}`}
+                accessibilityLabel={t(`${a.nome}, foto ${i + 1} di ${a.foto.length}`, `${a.nome}, photo ${i + 1} of ${a.foto.length}`)}
               />
             ))}
           </ScrollView>
@@ -111,29 +112,29 @@ export function Articolo({ id }: { id: number }) {
       <Carta>
         <View style={stili.testa}>
           <Text style={[stili.prezzo, { color: p.testo }]}>{euro(a.prezzo)}</Text>
-          {a.esaurito ? <Tag testo="Esaurito" colore={p.testo} /> : null}
+          {a.esaurito ? <Tag testo={t('Esaurito', 'Sold out')} colore={p.testo} /> : null}
         </View>
         {a.descrizione ? <Text style={[stili.descrizione, { color: p.testoSecondario }]}>{a.descrizione}</Text> : null}
-        <Text style={[stili.nota, { color: p.testoTerzo }]}>Si ritira in segreteria, negli orari di apertura del club.</Text>
+        <Text style={[stili.nota, { color: p.testoTerzo }]}>{t('Si ritira in segreteria, negli orari di apertura del club.', 'Pick up at reception during the club’s opening hours.')}</Text>
       </Carta>
 
       {inVista ? (
-        <Messaggio tono="attenzione">Vista cliente: lo shop si guarda soltanto, non si compra.</Messaggio>
+        <Messaggio tono="attenzione">{t('Vista cliente: lo shop si guarda soltanto, non si compra.', 'Client view: you can browse the shop, but not buy.')}</Messaggio>
       ) : (
         <View style={{ gap: spazio.tre }}>
           {a.esaurito ? null : posti > 0 ? (
             <View style={stili.quantita}>
-              <Text style={{ color: p.testo, fontFamily: F.bold, fontSize: 15 }}>Quanti</Text>
+              <Text style={{ color: p.testo, fontFamily: F.bold, fontSize: 15 }}>{t('Quanti', 'Quantity')}</Text>
               <Quantita valore={pezzi} massimo={posti} nome={a.nome} onCambia={(n) => setScelti(n)} />
             </View>
           ) : (
-            <Messaggio tono="attenzione">Nel carrello hai già il massimo di questo articolo ({massimo} pezzi per ordine).</Messaggio>
+            <Messaggio tono="attenzione">{t(`Nel carrello hai già il massimo di questo articolo (${massimo} pezzi per ordine).`, `You already have the maximum of this item in your cart (${massimo} per order).`)}</Messaggio>
           )}
-          <Pulsante testo={a.esaurito ? 'Esaurito' : `Aggiungi al carrello · ${euro(a.prezzo * pezzi)}`} icona="carrello" disabilitato={a.esaurito || posti === 0} onPress={aggiungi} />
+          <Pulsante testo={a.esaurito ? t('Esaurito', 'Sold out') : t(`Aggiungi al carrello · ${euro(a.prezzo * pezzi)}`, `Add to cart · ${euro(a.prezzo * pezzi)}`)} icona="carrello" disabilitato={a.esaurito || posti === 0} onPress={aggiungi} />
           {aggiunto ? (
             <>
-              <Messaggio tono="ok">{nelCarrello === 1 ? 'Aggiunto: nel carrello hai 1 pezzo.' : `Aggiunto: nel carrello hai ${nelCarrello} pezzi.`}</Messaggio>
-              <Pulsante testo="Vai al carrello" variante="scuro" icona="avanti" onPress={() => router.push('/shop/carrello')} />
+              <Messaggio tono="ok">{nelCarrello === 1 ? t('Aggiunto: nel carrello hai 1 pezzo.', 'Added: you have 1 item in your cart.') : t(`Aggiunto: nel carrello hai ${nelCarrello} pezzi.`, `Added: you have ${nelCarrello} items in your cart.`)}</Messaggio>
+              <Pulsante testo={t('Vai al carrello', 'Go to cart')} variante="scuro" icona="avanti" onPress={() => router.push('/shop/carrello')} />
             </>
           ) : null}
         </View>

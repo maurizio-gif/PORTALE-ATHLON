@@ -5,7 +5,15 @@
 // Non si legge dal sito a ogni apertura perche' il catalogo pubblico (`/contratto-abbonamento.json`) porta solo le
 // sezioni 1, 2, 3 e 7.
 
+import { tv } from '../../../lib/lingua'
+
 export const VERSIONE_TERMINI_PERSONAL = 'Aprile 2026'
+
+/**
+ * Il testo del contratto non si traduce: in inglese, accanto all'estratto, si dice che i termini sono solo in italiano.
+ * `null` in italiano. Lo mostra chi disegna l'estratto (`EstrattoTermini` in Personal.tsx).
+ */
+export const NOTA_LINGUA_TERMINI: string | null = tv<string | null>(null, 'The terms are available in Italian only.')
 
 export const SEZIONE_9 = {
   numero: '9',

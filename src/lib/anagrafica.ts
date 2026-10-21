@@ -5,6 +5,7 @@
 import type { Indirizzo } from '@/api/lab'
 
 import { capLiberoValido, ITALIA, nomePaese } from './residenteEstero'
+import { t } from './lingua'
 
 const pulito = (v: unknown) => String(v ?? '').replace(/\s+/g, ' ').trim()
 
@@ -18,7 +19,7 @@ export function controllaTelefono(t: string): { ok: true; valore: string } | { o
   const cifre = grezzo.replace(/[^0-9]/g, '')
   const estero = grezzo.startsWith('+') && cifre.slice(0, 2) !== '39'
   const valido = estero ? /^[1-9]\d{6,14}$/.test(cifre) : /^3\d{8,9}$/.test(cifre.replace(/^0039/, '').replace(/^39(?=3)/, ''))
-  if (!valido) return { ok: false, errore: 'Controlla il numero di cellulare.' }
+  if (!valido) return { ok: false, errore: t('Controlla il numero di cellulare.', 'Check your mobile number.') }
   return { ok: true, valore: grezzo }
 }
 
@@ -27,13 +28,13 @@ export function controllaResidenza(d: Partial<Record<keyof Indirizzo, unknown>>)
   const cap = pulito(d.cap)
   const citta = pulito(d.citta)
   const paese = pulito(d.paese) || ITALIA
-  if (via.length < 3) return { ok: false, errore: 'Scrivi via e numero civico.' }
-  if (via.length > 120) return { ok: false, errore: 'L’indirizzo è troppo lungo.' }
+  if (via.length < 3) return { ok: false, errore: t('Scrivi via e numero civico.', 'Enter the street and house number.') }
+  if (via.length > 120) return { ok: false, errore: t('L’indirizzo è troppo lungo.', 'The address is too long.') }
   // Fuori dall'Italia il CAP e' libero: i CAP esteri non hanno cinque cifre.
   if (paese === ITALIA ? !/^\d{5}$/.test(cap) : !capLiberoValido(cap)) {
-    return { ok: false, errore: paese === ITALIA ? 'Il CAP ha cinque cifre.' : 'Il CAP non è valido: da 2 a 12 caratteri fra lettere, cifre, spazio e trattino.' }
+    return { ok: false, errore: paese === ITALIA ? t('Il CAP ha cinque cifre.', 'The postcode has five digits.') : t('Il CAP non è valido: da 2 a 12 caratteri fra lettere, cifre, spazio e trattino.', 'The postcode isn’t valid: 2 to 12 characters among letters, digits, spaces and hyphens.') }
   }
-  if (citta.length < 2 || citta.length > 60) return { ok: false, errore: 'Scrivi la città.' }
+  if (citta.length < 2 || citta.length > 60) return { ok: false, errore: t('Scrivi la città.', 'Enter the city.') }
   return { ok: true, valori: { via, cap, citta, paese } }
 }
 

@@ -1,5 +1,6 @@
 import { createElement, useCallback, useEffect, useRef, useState } from 'react'
 import { StyleSheet, Text, View } from 'react-native'
+import { t } from '@/lib/lingua'
 
 import { spazio } from '@/theme'
 
@@ -97,13 +98,13 @@ export function FirmaPad({ onCambia }: { onCambia: (png: string | null) => void 
           onPointerUp: su,
           onPointerCancel: su,
           style: { width: '100%', height: ALTEZZA, touchAction: 'none', display: 'block', cursor: 'crosshair' },
-          'aria-label': 'Spazio per la firma',
+          'aria-label': t('Spazio per la firma', 'Signature area'),
         })}
         <View pointerEvents="none" style={stili.riga}>
-          <Text style={{ color: '#9a9a9a', fontFamily: F.medio, fontSize: 12 }}>{vuota ? 'Firma qui con il dito o il mouse' : 'Firma acquisita'}</Text>
+          <Text style={{ color: '#9a9a9a', fontFamily: F.medio, fontSize: 12 }}>{vuota ? t('Firma qui con il dito o il mouse', 'Sign here with your finger or mouse') : t('Firma acquisita', 'Signature captured')}</Text>
         </View>
       </View>
-      <Pulsante testo="Cancella e rifai" variante="fantasma" piccolo pieno={false} onPress={prepara} disabilitato={vuota && punti.current === 0} />
+      <Pulsante testo={t('Cancella e rifai', 'Clear and redo')} variante="fantasma" piccolo pieno={false} onPress={prepara} disabilitato={vuota && punti.current === 0} />
     </View>
   )
 }

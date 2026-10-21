@@ -4,6 +4,7 @@ import { StyleSheet, Text, TextInput, useWindowDimensions, View } from 'react-na
 
 import { leggiCatalogo, salvaPercorso, type Affollamento, type Catalogo, type GiornoSettimana, type PercorsoBozza, type SlotRicorrente, type Tappa } from '@/api/percorso'
 import { LARGO } from '@/components/Pagina'
+import { t as tr } from '@/lib/lingua'
 import { spazio } from '@/theme'
 
 import { prendi } from '../memoria'
@@ -97,7 +98,7 @@ export function EditorPercorso() {
   // Il piano di nuoto si apre da un turno di Nuoto Libero: senza, la funzione non lo salverebbe (422). Lo si dice prima.
   const problemi = useMemo(() => {
     const p = controllaTappe(tappe)
-    if (pianoNuoto && !tappe.some(eNuotoLibero)) p.push('Il piano di nuoto si apre da un turno di Nuoto Libero e il percorso non ne ha: aggiungine uno, oppure togli il piano di nuoto.')
+    if (pianoNuoto && !tappe.some(eNuotoLibero)) p.push(tr('Il piano di nuoto si apre da un turno di Nuoto Libero e il percorso non ne ha: aggiungine uno, oppure togli il piano di nuoto.', 'The swim plan opens from a Nuoto Libero slot and the program has none: add one, or remove the swim plan.'))
     return p
   }, [tappe, pianoNuoto])
   const effetti = useMemo(
@@ -110,11 +111,11 @@ export function EditorPercorso() {
 
   if (!bozza || !effetti) {
     return (
-      <Schermata {...intestazione} titolo="Il tuo percorso">
-        <Messaggio tono="attenzione" titolo="Non c’è niente da rivedere">
-          Il percorso che stavi modificando non è più qui (succede se la pagina si ricarica). Puoi ripartire dalla pagina del Percorso.
+      <Schermata {...intestazione} titolo={tr('Il tuo percorso', 'Your program')}>
+        <Messaggio tono="attenzione" titolo={tr('Non c’è niente da rivedere', 'Nothing to review')}>
+          {tr('Il percorso che stavi modificando non è più qui (succede se la pagina si ricarica). Puoi ripartire dalla pagina del Percorso.', 'The program you were editing is no longer here (this happens if the page reloads). You can start again from the program page.')}
         </Messaggio>
-        <Pulsante testo="Torna al Percorso" onPress={() => router.replace('/allenamento/percorso')} />
+        <Pulsante testo={tr('Torna al Percorso', 'Back to the program')} onPress={() => router.replace('/allenamento/percorso')} />
       </Schermata>
     )
   }
@@ -203,27 +204,27 @@ export function EditorPercorso() {
   }
 
   const haGia = !!stato?.percorso
-  const titoloSchermata = modo === 'tutor' ? 'Rivedi il tuo percorso' : 'Cambia le tappe'
+  const titoloSchermata = modo === 'tutor' ? tr('Rivedi il tuo percorso', 'Review your program') : tr('Cambia le tappe', 'Change the steps')
   const sottotitolo =
     modo === 'tutor'
-      ? 'Lo ha composto il tutor: cambialo come vuoi e, quando va bene, confermalo. Finché non lo confermi non è tuo.'
-      : 'Aggiungi, cambia o togli le tappe. Il percorso cambia solo quando salvi.'
+      ? tr('Lo ha composto il tutor: cambialo come vuoi e, quando va bene, confermalo. Finché non lo confermi non è tuo.', 'The coach put it together: change it as you like and, when it’s right, confirm it. Until you confirm it, it’s not yours.')
+      : tr('Aggiungi, cambia o togli le tappe. Il percorso cambia solo quando salvi.', 'Add, change or remove steps. The program only changes when you save.')
 
   return (
     <Schermata {...intestazione} titolo={titoloSchermata} sottotitolo={sottotitolo} barra={false}>
       {iniziale?.avvisi.length ? (
-        <Messaggio tono="attenzione" titolo="Il tutor ti segnala">
+        <Messaggio tono="attenzione" titolo={tr('Il tutor ti segnala', 'The coach points out')}>
           {iniziale.avvisi.join(' ')}
         </Messaggio>
       ) : null}
-      {modo === 'tutor' && haGia ? <Messaggio tono="attenzione">Confermandolo sostituisci il percorso che hai adesso. Le lezioni già prenotate restano prenotate.</Messaggio> : null}
+      {modo === 'tutor' && haGia ? <Messaggio tono="attenzione">{tr('Confermandolo sostituisci il percorso che hai adesso. Le lezioni già prenotate restano prenotate.', 'Confirming it replaces the program you have now. Classes you’ve already booked stay booked.')}</Messaggio> : null}
 
       <Carta style={{ gap: spazio.tre }}>
-        <Text style={[stili.campo, { color: p.testoSecondario }]}>IL NOME DEL PERCORSO</Text>
+        <Text style={[stili.campo, { color: p.testoSecondario }]}>{tr('IL NOME DEL PERCORSO', 'PROGRAM NAME')}</Text>
         <TextInput
           value={bozza.titolo}
           onChangeText={(t) => setBozza((b) => (b ? { ...b, titolo: t.slice(0, 120) } : b))}
-          placeholder="Dai un nome al tuo percorso"
+          placeholder={tr('Dai un nome al tuo percorso', 'Give your program a name')}
           placeholderTextColor={p.testoTerzo}
           style={[stili.titoloCampo, { color: p.testo, backgroundColor: p.incavo }]}
         />
@@ -231,7 +232,7 @@ export function EditorPercorso() {
         <PianoOPercorso />
       </Carta>
 
-      <Sezione titolo="Le tappe della settimana" conteggio={tappe.length}>
+      <Sezione titolo={tr('Le tappe della settimana', 'This week’s steps')} conteggio={tappe.length}>
         <View style={largo ? stili.griglia : { gap: spazio.quattro }}>
           {GIORNI.map((g, i) => {
             const delGiorno = tappeDelGiorno(tappe, g)
@@ -240,9 +241,9 @@ export function EditorPercorso() {
                 <Entra indice={i}>
                   <View style={stili.giornoTesta}>
                     <Text style={[stili.giornoNome, { color: delGiorno.length ? p.testo : p.testoSecondario }]}>{NOME_GIORNO[g]}</Text>
-                    {delGiorno.length ? null : <Etichetta testo="Riposo" tono="ok" icona="foglia" />}
+                    {delGiorno.length ? null : <Etichetta testo={tr('Riposo', 'Rest')} tono="ok" icona="foglia" />}
                     <View style={{ flex: 1 }} />
-                    <Pulsante testo="Aggiungi" icona="piu" variante="secondario" piccolo pieno={false} onPress={() => setFoglio({ giorno: g, tappa: null })} />
+                    <Pulsante testo={tr('Aggiungi', 'Add')} icona="piu" variante="secondario" piccolo pieno={false} onPress={() => setFoglio({ giorno: g, tappa: null })} />
                   </View>
                 </Entra>
                 {delGiorno.map((t) => (
@@ -252,14 +253,14 @@ export function EditorPercorso() {
             )
           })}
         </View>
-        {giorniAttivi.length === 0 ? <Text style={[stili.nota, { color: p.testoSecondario }]}>Il percorso non ha tappe: aggiungine una a un giorno.</Text> : null}
+        {giorniAttivi.length === 0 ? <Text style={[stili.nota, { color: p.testoSecondario }]}>{tr('Il percorso non ha tappe: aggiungine una a un giorno.', 'The program has no steps: add one to a day.')}</Text> : null}
       </Sezione>
 
       {pianoNuoto ? <PianoNuotoCarta piano={pianoNuoto} tappe={tappe} onTogli={togliPianoNuoto} disabilitato={salvando} /> : null}
 
-      <PannelloEffetti effetti={effetti} ultime={ultime} corpo={corpo} titolo="Cosa fa questa settimana" />
+      <PannelloEffetti effetti={effetti} ultime={ultime} corpo={corpo} titolo={tr('Cosa fa questa settimana', 'What this week does')} />
 
-      <Sezione titolo="Conferma">
+      <Sezione titolo={tr('Conferma', 'Confirm')}>
         <View style={{ gap: spazio.due }}>
           {problemi.map((x) => (
             <Messaggio key={x} tono="attenzione">
@@ -268,30 +269,33 @@ export function EditorPercorso() {
           ))}
           {errore ? <Messaggio>{errore}</Messaggio> : null}
           <Pulsante
-            testo={modo === 'tutor' ? 'Conferma e salva il percorso' : 'Salva le modifiche'}
+            testo={modo === 'tutor' ? tr('Conferma e salva il percorso', 'Confirm and save the program') : tr('Salva le modifiche', 'Save changes')}
             icona="spunta"
             onPress={salva}
             inCorso={salvando}
             disabilitato={problemi.length > 0}
           />
-          {modificata ? <Pulsante testo={modo === 'tutor' ? 'Torna alla proposta del tutor' : 'Annulla le modifiche'} variante="secondario" onPress={ripristina} disabilitato={salvando} /> : null}
+          {modificata ? <Pulsante testo={modo === 'tutor' ? tr('Torna alla proposta del tutor', 'Back to the coach’s proposal') : tr('Annulla le modifiche', 'Undo changes')} variante="secondario" onPress={ripristina} disabilitato={salvando} /> : null}
           {scartando ? (
             <View style={stili.azioni}>
               <Pulsante
-                testo="Sì, scarta"
+                testo={tr('Sì, scarta', 'Yes, discard')}
                 variante="pericolo"
                 onPress={() => {
                   scartaBozzaPercorso()
                   router.replace('/allenamento/percorso')
                 }}
               />
-              <Pulsante testo="No" variante="secondario" onPress={() => setScartando(false)} />
+              <Pulsante testo={tr('No', 'No')} variante="secondario" onPress={() => setScartando(false)} />
             </View>
           ) : (
-            <Pulsante testo={modo === 'tutor' ? 'Scarta questo percorso' : 'Esci senza salvare'} variante="fantasma" onPress={() => (modificata || modo === 'tutor' ? setScartando(true) : router.replace('/allenamento/percorso'))} disabilitato={salvando} />
+            <Pulsante testo={modo === 'tutor' ? tr('Scarta questo percorso', 'Discard this program') : tr('Esci senza salvare', 'Leave without saving')} variante="fantasma" onPress={() => (modificata || modo === 'tutor' ? setScartando(true) : router.replace('/allenamento/percorso'))} disabilitato={salvando} />
           )}
           <Text style={[stili.piccola, { color: p.testoTerzo, textAlign: 'center' }]}>
-            Confermando, il percorso diventa tuo. I trainer del club lo possono vedere dal pannello, in sola lettura. Non è un piano di allenamento: quelli restano come sono{pianoNuoto ? ', e il piano di nuoto entra fra i tuoi piani' : ''}.
+            {tr(
+              `Confermando, il percorso diventa tuo. I trainer del club lo possono vedere dal pannello, in sola lettura. Non è un piano di allenamento: quelli restano come sono${pianoNuoto ? ', e il piano di nuoto entra fra i tuoi piani' : ''}.`,
+              `Once you confirm, the program is yours. The club’s trainers can see it from their dashboard, read-only. It’s not a workout plan: those stay as they are${pianoNuoto ? ', and the swim plan joins your plans' : ''}.`,
+            )}
           </Text>
         </View>
       </Sezione>
@@ -346,52 +350,57 @@ function RigaTappa({
           <Text style={[stili.quando, { color: p.testoSecondario }]}>{`${fasciaOraria(t.ora, t.minuti)} · ${ETICHETTA_TIPO[t.tipo]}`}</Text>
           <Text style={[stili.titolo, { color: p.testo }]}>{titoloTappa(t)}</Text>
         </View>
-        {t.tipo === 'lezione' && t.lezione?.compresa === false ? <Etichetta testo="Da acquistare" tono="attenzione" /> : null}
+        {t.tipo === 'lezione' && t.lezione?.compresa === false ? <Etichetta testo={tr('Da acquistare', 'To purchase')} tono="attenzione" /> : null}
       </View>
       {t.perche ? <Text style={[stili.perche, { color: p.testoSecondario }]}>{t.perche}</Text> : null}
-      {t.tipo === 'sala' && t.sala?.disponibile === false ? <Messaggio tono="attenzione">Il piano di questa tappa non c’è più: cambiala.</Messaggio> : null}
+      {t.tipo === 'sala' && t.sala?.disponibile === false ? <Messaggio tono="attenzione">{tr('Il piano di questa tappa non c’è più: cambiala.', 'This step’s plan is no longer there: change it.')}</Messaggio> : null}
       {t.piano && t.piano.disponibile !== false ? (
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
           <Icona nome="goccia" size={15} colore={p.blu} />
-          <Text style={[stili.nota, { color: p.testoSecondario, flex: 1 }]}>{`In vasca: ${t.piano.giorno_nome ?? 'una seduta del piano di nuoto'}${t.piano.metri ? ` · ${inMetri(t.piano.metri)}` : ''}`}</Text>
+          <Text style={[stili.nota, { color: p.testoSecondario, flex: 1 }]}>{`${tr('In vasca', 'In the pool')}: ${t.piano.giorno_nome ?? tr('una seduta del piano di nuoto', 'a swim plan session')}${t.piano.metri ? ` · ${inMetri(t.piano.metri)}` : ''}`}</Text>
         </View>
       ) : null}
-      {t.piano?.disponibile === false ? <Messaggio tono="attenzione">Il piano di nuoto di questa tappa non c’è più: cambiala, e resta senza piano.</Messaggio> : null}
+      {t.piano?.disponibile === false ? <Messaggio tono="attenzione">{tr('Il piano di nuoto di questa tappa non c’è più: cambiala, e resta senza piano.', 'This step’s swim plan is no longer there: change the step, and it stays without a plan.')}</Messaggio> : null}
       {avviso ? (
         <View style={[stili.avviso, { backgroundColor: p.incavo }]}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
             <Icona nome="clessidra" size={15} colore={p.attenzione} />
-            <Text style={[stili.avvisoTitolo, { color: p.testo }]}>Spesso al completo</Text>
+            <Text style={[stili.avvisoTitolo, { color: p.testo }]}>{tr('Spesso al completo', 'Often full')}</Text>
           </View>
           <Text style={[stili.nota, { color: p.testoSecondario }]}>
-            {`Nelle ultime quattro settimane questo orario ha chiuso con tutti i posti presi ${avviso.affollamento.piene} volte su ${avviso.affollamento.osservate}. I posti si prenotano da tre giorni prima: conviene farlo appena si aprono${avviso.alternative.length ? ', oppure scegliere un orario con più posto:' : '.'}`}
+            {tr(
+              `Nelle ultime quattro settimane questo orario ha chiuso con tutti i posti presi ${avviso.affollamento.piene} volte su ${avviso.affollamento.osservate}. I posti si prenotano da tre giorni prima: conviene farlo appena si aprono${avviso.alternative.length ? ', oppure scegliere un orario con più posto:' : '.'}`,
+              `In the last four weeks this time slot filled up ${avviso.affollamento.piene} times out of ${avviso.affollamento.osservate}. Booking opens three days ahead: it’s best to book as soon as it opens${avviso.alternative.length ? ', or choose a time with more space:' : '.'}`,
+            )}
           </Text>
           {avviso.alternative.map(({ slot, tipo }) => (
             <Tocco
               key={slot.id}
               onPress={() => onSostituisci(slot)}
-              etichetta={`Metti ${slot.nome} di ${NOME_GIORNO[slot.giorno]} alle ${slot.ora} al posto di ${titoloTappa(t)}`}
+              etichetta={tr(`Metti ${slot.nome} di ${NOME_GIORNO[slot.giorno]} alle ${slot.ora} al posto di ${titoloTappa(t)}`, `Put ${slot.nome} on ${NOME_GIORNO[slot.giorno]} at ${slot.ora} instead of ${titoloTappa(t)}`)}
               style={[stili.suggerimento, { backgroundColor: p.carta, borderColor: p.linea }]}
             >
               <View style={{ flex: 1, gap: 1 }}>
-                <Text style={{ color: p.testo, fontFamily: F.bold, fontSize: 14 }}>{`${GIORNO_BREVE[slot.giorno]} ${slot.ora} · ${slot.nome}${tipo === 'simile' ? ' (simile)' : ''}`}</Text>
+                <Text style={{ color: p.testo, fontFamily: F.bold, fontSize: 14 }}>{`${GIORNO_BREVE[slot.giorno]} ${slot.ora} · ${slot.nome}${tipo === 'simile' ? tr(' (simile)', ' (similar)') : ''}`}</Text>
                 <Text style={{ color: p.testoSecondario, fontFamily: F.medio, fontSize: 12.5 }}>
-                  {slot.affollamento ? `Al completo ${slot.affollamento.piene} ${slot.affollamento.piene === 1 ? 'volta' : 'volte'} su ${slot.affollamento.osservate}` : 'Di questo orario non abbiamo lo storico'}
+                  {slot.affollamento
+                    ? tr(`Al completo ${slot.affollamento.piene} ${slot.affollamento.piene === 1 ? 'volta' : 'volte'} su ${slot.affollamento.osservate}`, `Full ${slot.affollamento.piene} ${slot.affollamento.piene === 1 ? 'time' : 'times'} out of ${slot.affollamento.osservate}`)
+                    : tr('Di questo orario non abbiamo lo storico', 'We have no history for this time slot')}
                 </Text>
               </View>
-              <Text style={{ color: p.accento, fontFamily: F.bold, fontSize: 13.5 }}>Metti questa</Text>
+              <Text style={{ color: p.accento, fontFamily: F.bold, fontSize: 13.5 }}>{tr('Metti questa', 'Use this one')}</Text>
             </Tocco>
           ))}
         </View>
       ) : null}
       <View style={stili.azioni}>
-        <Tocco onPress={onCambia} etichetta={`Cambia ${titoloTappa(t)}`} style={[stili.azione, { backgroundColor: p.incavo }]}>
+        <Tocco onPress={onCambia} etichetta={tr(`Cambia ${titoloTappa(t)}`, `Change ${titoloTappa(t)}`)} style={[stili.azione, { backgroundColor: p.incavo }]}>
           <Icona nome="modifica" size={15} colore={p.testo} />
-          <Text style={[stili.azioneTesto, { color: p.testo }]}>Cambia</Text>
+          <Text style={[stili.azioneTesto, { color: p.testo }]}>{tr('Cambia', 'Change')}</Text>
         </Tocco>
-        <Tocco onPress={onTogli} etichetta={`Togli ${titoloTappa(t)}`} style={[stili.azione, { backgroundColor: p.incavo }]}>
+        <Tocco onPress={onTogli} etichetta={tr(`Togli ${titoloTappa(t)}`, `Remove ${titoloTappa(t)}`)} style={[stili.azione, { backgroundColor: p.incavo }]}>
           <Icona nome="cestino" size={15} colore={p.errore} />
-          <Text style={[stili.azioneTesto, { color: p.errore }]}>Togli</Text>
+          <Text style={[stili.azioneTesto, { color: p.errore }]}>{tr('Togli', 'Remove')}</Text>
         </Tocco>
       </View>
     </Carta>

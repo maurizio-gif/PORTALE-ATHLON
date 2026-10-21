@@ -3,6 +3,8 @@ import { Pressable, StyleSheet, useWindowDimensions, View } from 'react-native'
 import { useReducedMotion } from 'react-native-reanimated'
 import Svg, { ClipPath, Circle, Defs, G, LinearGradient, Path, RadialGradient, Rect, Stop } from 'react-native-svg'
 
+import { t as tr } from '@/lib/lingua'
+
 import { colpetto } from '../ui/Tocco'
 import { ALTEZZA, FORME, LARGHEZZA, percorso, perimetro, puntoSu } from './logo'
 import { avvioDaMostrare } from './mostra'
@@ -108,7 +110,7 @@ function Scena({ onFine }: { onFine: () => void }) {
     <Pressable
       onPress={() => salto === null && !fermo && setSalto(ms)}
       accessibilityRole="button"
-      accessibilityLabel="Athlon. Tocca per continuare."
+      accessibilityLabel={tr('Athlon. Tocca per continuare.', 'Athlon. Tap to continue.')}
       style={[stili.radice, { opacity: opacita }]}
     >
       <View style={[StyleSheet.absoluteFill, { transform: [{ scale: 1 + 0.06 * rallenta(uscita) }] }]} pointerEvents="none">

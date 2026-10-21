@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { ScrollView, StyleSheet, Text, TextInput, View } from 'react-native'
 
 import { eserciziLibreria, type EsercizioLibreria } from '@/api/lab'
+import { t } from '@/lib/lingua'
 import { spazio } from '@/theme'
 
 import { inMemoria, prendi } from '../memoria'
@@ -10,7 +11,7 @@ import { Icona } from '../ui/Icona'
 import { Messaggio, Pulsante, Tag } from '../ui/kit'
 import { F, usePalette } from '../ui/tema'
 import { Tocco } from '../ui/Tocco'
-import { MUSCOLI, muscoli } from './comune'
+import { MUSCOLI, muscoli, nomeAttrezzo } from './comune'
 
 // La scelta di un esercizio per la scheda che il socio scrive (19/10/2026): la libreria accesa del club
 // (senza video e poster: sono seicento) e gli esercizi che ha gia' scritto lui, con la ricerca per nome e il
@@ -28,11 +29,11 @@ const PAGINA = 40
 const GRUPPI = ['pettorali', 'schiena', 'spalle', 'bicipiti', 'tricipiti', 'core', 'glutei', 'quadricipiti', 'femorali', 'polpacci']
 
 /** Senza accenti e maiuscole: «Rematore» e «rémator» si trovano. */
-const norma = (t: string) => t.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
+const norma = (x: string) => x.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
 
 type Dati = { esercizi: EsercizioLibreria[] }
 
-export function SceltaEsercizio({ aperto, titolo = 'Scegli un esercizio', onChiudi, onScegli, ambiente = 'sala' }: { aperto: boolean; titolo?: string; onChiudi: () => void; onScegli: (s: Scelta) => void; ambiente?: 'sala' | 'vasca' }) {
+export function SceltaEsercizio({ aperto, titolo = t('Scegli un esercizio', 'Choose an exercise'), onChiudi, onScegli, ambiente = 'sala' }: { aperto: boolean; titolo?: string; onChiudi: () => void; onScegli: (s: Scelta) => void; ambiente?: 'sala' | 'vasca' }) {
   const p = usePalette()
   const [dati, setDati] = useState<Dati | null>(() => inMemoria<Dati>(CHIAVE_LIBRERIA) ?? null)
   const [errore, setErrore] = useState<string | null>(null)
@@ -66,18 +67,22 @@ export function SceltaEsercizio({ aperto, titolo = 'Scegli un esercizio', onChiu
   const nomeLibero = libero.trim() || q.trim()
 
   return (
-    <Foglio aperto={aperto} titolo={titolo} sottotitolo={ambiente === 'vasca' ? 'Gli esercizi di nuoto della libreria del club.' : 'Cerca nella libreria del club, oppure scrivi il nome del tuo esercizio.'} onChiudi={onChiudi}>
+    <Foglio aperto={aperto} titolo={titolo} sottotitolo={
+        ambiente === 'vasca'
+          ? t('Gli esercizi di nuoto della libreria del club.', 'The swimming exercises in the club’s library.')
+          : t('Cerca nella libreria del club, oppure scrivi il nome del tuo esercizio.', 'Search the club’s library, or write the name of your exercise.')
+      } onChiudi={onChiudi}>
       <View style={[stili.cerca, { backgroundColor: p.incavo }]}>
         <Icona nome="cerca" size={18} colore={p.testoSecondario} />
         <TextInput
           value={q}
-          onChangeText={(t) => {
-            setQ(t.slice(0, 60))
+          onChangeText={(v) => {
+            setQ(v.slice(0, 60))
             setQuanti(PAGINA)
           }}
-          placeholder={ambiente === 'vasca' ? 'Cerca: stile libero, dorso, gambe…' : 'Cerca: panca, squat, lat machine…'}
+          placeholder={ambiente === 'vasca' ? t('Cerca: stile libero, dorso, gambe…', 'Search: freestyle, backstroke, kick…') : t('Cerca: panca, squat, lat machine…', 'Search: bench, squat, lat pulldown…')}
           placeholderTextColor={p.testoTerzo}
-          accessibilityLabel="Cerca un esercizio"
+          accessibilityLabel={t('Cerca un esercizio', 'Search for an exercise')}
           autoCorrect={false}
           style={[stili.campo, { color: p.testo }]}
         />
@@ -96,10 +101,10 @@ export function SceltaEsercizio({ aperto, titolo = 'Scegli un esercizio', onChiu
                   setGruppo(g)
                   setQuanti(PAGINA)
                 }}
-                etichetta={g ? MUSCOLI[g] : 'Tutti i muscoli'}
+                etichetta={g ? MUSCOLI[g] : t('Tutti i muscoli', 'All muscles')}
                 style={[stili.chip, { backgroundColor: attivo ? p.testo : p.incavo }]}
               >
-                <Text style={{ color: attivo ? p.fondo : p.testo, fontFamily: attivo ? F.extra : F.semi, fontSize: 13.5 }}>{g ? MUSCOLI[g] : 'Tutti'}</Text>
+                <Text style={{ color: attivo ? p.fondo : p.testo, fontFamily: attivo ? F.extra : F.semi, fontSize: 13.5 }}>{g ? MUSCOLI[g] : t('Tutti', 'All')}</Text>
               </Tocco>
             )
           })}
@@ -109,10 +114,10 @@ export function SceltaEsercizio({ aperto, titolo = 'Scegli un esercizio', onChiu
       {errore ? (
         <>
           <Messaggio>{errore}</Messaggio>
-          <Pulsante testo="Riprova" icona="aggiorna" variante="secondario" onPress={carica} />
+          <Pulsante testo={t('Riprova', 'Try again')} icona="aggiorna" variante="secondario" onPress={carica} />
         </>
       ) : !dati ? (
-        <Text style={[stili.nota, { color: p.testoSecondario }]}>Apro la libreria…</Text>
+        <Text style={[stili.nota, { color: p.testoSecondario }]}>{t('Apro la libreria…', 'Opening the library…')}</Text>
       ) : (
         <View style={{ gap: spazio.due }}>
           {trovati.slice(0, quanti).map((e) => (
@@ -123,32 +128,34 @@ export function SceltaEsercizio({ aperto, titolo = 'Scegli un esercizio', onChiu
                     {e.nome}
                   </Text>
                   <Text style={[stili.sotto, { color: p.testoSecondario }]} numberOfLines={1}>
-                    {[muscoli(e.muscoli_primari.slice(0, 2)), e.attrezzo ? e.attrezzo.replace(/_/g, ' ') : null].filter(Boolean).join(' · ')}
+                    {[muscoli(e.muscoli_primari.slice(0, 2)), e.attrezzo ? nomeAttrezzo(e.attrezzo) : null].filter(Boolean).join(' · ')}
                   </Text>
                 </View>
-                {e.mio ? <Tag testo="Tuo" colore={p.accento} /> : null}
+                {e.mio ? <Tag testo={t('Tuo', 'Yours')} colore={p.accento} /> : null}
                 <Icona nome="piu" size={18} colore={p.testoSecondario} />
               </View>
             </Tocco>
           ))}
-          {trovati.length > quanti ? <Pulsante testo={`Mostra altri (${trovati.length - quanti})`} variante="secondario" piccolo onPress={() => setQuanti((n) => n + PAGINA)} /> : null}
-          {!trovati.length ? <Text style={[stili.nota, { color: p.testoSecondario }]}>Nessun esercizio con questo nome nella libreria.</Text> : null}
+          {trovati.length > quanti ? <Pulsante testo={t(`Mostra altri (${trovati.length - quanti})`, `Show more (${trovati.length - quanti})`)} variante="secondario" piccolo onPress={() => setQuanti((n) => n + PAGINA)} /> : null}
+          {!trovati.length ? <Text style={[stili.nota, { color: p.testoSecondario }]}>{t('Nessun esercizio con questo nome nella libreria.', 'No exercise with this name in the library.')}</Text> : null}
         </View>
       )}
 
       {ambiente === 'sala' ? (
         <View style={[stili.libero, { borderColor: p.linea }]}>
-          <Text style={[stili.titoletto, { color: p.testo }]}>Non lo trovi?</Text>
-          <Text style={[stili.nota, { color: p.testoSecondario }]}>Scrivi il nome come lo chiami tu: resta un esercizio tuo, senza video, e lo segui come gli altri.</Text>
+          <Text style={[stili.titoletto, { color: p.testo }]}>{t('Non lo trovi?', 'Can’t find it?')}</Text>
+          <Text style={[stili.nota, { color: p.testoSecondario }]}>
+            {t('Scrivi il nome come lo chiami tu: resta un esercizio tuo, senza video, e lo segui come gli altri.', 'Write the name you call it: it stays your own exercise, without a video, and you follow it like the others.')}
+          </Text>
           <TextInput
             value={libero}
-            onChangeText={(t) => setLibero(t.slice(0, 80))}
-            placeholder={q.trim() ? q.trim() : 'Il nome del tuo esercizio'}
+            onChangeText={(v) => setLibero(v.slice(0, 80))}
+            placeholder={q.trim() ? q.trim() : t('Il nome del tuo esercizio', 'Your exercise’s name')}
             placeholderTextColor={p.testoTerzo}
-            accessibilityLabel="Il nome del tuo esercizio"
+            accessibilityLabel={t('Il nome del tuo esercizio', 'Your exercise’s name')}
             style={[stili.input, { color: p.testo, backgroundColor: p.incavo }]}
           />
-          <Pulsante testo={nomeLibero ? `Aggiungi «${nomeLibero}»` : 'Aggiungi un esercizio tuo'} icona="piu" variante="scuro" disabilitato={!nomeLibero} onPress={() => onScegli({ nome_libero: nomeLibero })} />
+          <Pulsante testo={nomeLibero ? t(`Aggiungi «${nomeLibero}»`, `Add “${nomeLibero}”`) : t('Aggiungi un esercizio tuo', 'Add your own exercise')} icona="piu" variante="scuro" disabilitato={!nomeLibero} onPress={() => onScegli({ nome_libero: nomeLibero })} />
         </View>
       ) : null}
     </Foglio>

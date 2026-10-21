@@ -1,5 +1,7 @@
 import { Platform, Share } from 'react-native'
 
+import { t } from '@/lib/lingua'
+
 import { giornoEvento } from './comune'
 
 // «Condividi con un amico» di un evento (21/10/2026, richiesta di Maurizio): lo stesso comando sulla pagina dell'evento
@@ -14,7 +16,7 @@ type DaCondividere = { titolo: string; data: string; ora: string | null; url: st
 
 /** «Athlon Halloween Night @ Opus Club · Sabato 31 ottobre, 20:00». */
 export function testoCondivisione(e: DaCondividere): string {
-  return `${e.titolo} · ${giornoEvento(e.data)}${e.ora ? `, ${e.ora}` : ''}. Vieni anche tu!`
+  return `${e.titolo} · ${giornoEvento(e.data)}${e.ora ? `, ${e.ora}` : ''}. ${t('Vieni anche tu!', 'Join me!')}`
 }
 
 export async function condividiEvento(e: DaCondividere): Promise<EsitoCondivisione> {

@@ -1,5 +1,6 @@
 import * as DocumentPicker from 'expo-document-picker'
 import { Platform } from 'react-native'
+import { t } from './lingua'
 
 // Il file di una scheda di allenamento da importare (19/10/2026): una foto (scattata o scelta) o un PDF.
 // Lo si sceglie (anche piu' d'uno: le pagine dello stesso piano), lo si controlla e lo si porta in «data:…;base64,…», che e' come lo riceve la funzione
@@ -97,7 +98,7 @@ function tipoDi(a: FileGrezzo): TipoFileScheda | null {
 
 /** Il peso come lo si legge: «2,4 MB», «380 kB». */
 export function pesoLeggibile(byte: number): string {
-  return byte >= 1024 * 1024 ? `${(byte / 1024 / 1024).toFixed(1).replace('.', ',')} MB` : `${Math.max(1, Math.round(byte / 1024))} kB`
+  return byte >= 1024 * 1024 ? `${(byte / 1024 / 1024).toFixed(1).replace('.', t(',', '.'))} MB` : `${Math.max(1, Math.round(byte / 1024))} kB`
 }
 
 export function inDataUrl(blob: Blob): Promise<string> {
@@ -132,7 +133,7 @@ async function riduci(blob: Blob): Promise<Blob | null> {
 /** Controlla il file scelto e lo porta in «data:…;base64,…». Non solleva mai. */
 export async function preparaFileScheda(a: FileGrezzo): Promise<EsitoFileScheda> {
   const tipo = tipoDi(a)
-  if (!tipo) return { ok: false, errore: 'Il file deve essere una foto (JPG, PNG, WebP) o un PDF.' }
+  if (!tipo) return { ok: false, errore: t('Il file deve essere una foto (JPG, PNG, WebP) o un PDF.', 'The file must be a photo (JPG, PNG, WebP) or a PDF.') }
   try {
     let blob: Blob = Platform.OS === 'web' && a.file ? a.file : await (await fetch(a.uri)).blob()
     let tipoFinale: TipoFileScheda = tipo
@@ -145,21 +146,21 @@ export async function preparaFileScheda(a: FileGrezzo): Promise<EsitoFileScheda>
         nome = nome.replace(/\.[A-Za-z0-9]{1,5}$/, '') + '.jpg'
       }
       // Una foto che il browser non sa aprire (per esempio HEIC su un computer) non si puo' ridurre.
-      else if (!/^image\/(jpeg|png|webp)$/.test(blob.type)) return { ok: false, errore: 'Questo formato di foto non si apre qui: prova con una foto JPG o PNG.' }
+      else if (!/^image\/(jpeg|png|webp)$/.test(blob.type)) return { ok: false, errore: t('Questo formato di foto non si apre qui: prova con una foto JPG o PNG.', 'This photo format can’t be opened here: try a JPG or PNG photo.') }
     }
-    if (blob.size === 0) return { ok: false, errore: 'Il file è vuoto.' }
+    if (blob.size === 0) return { ok: false, errore: t('Il file è vuoto.', 'The file is empty.') }
     if (blob.size > MAX_BYTE) {
       return {
         ok: false,
         errore:
           tipoFinale === 'application/pdf'
-            ? `Il PDF pesa troppo (${pesoLeggibile(blob.size)}): il limite è 4 MB. Prova con una foto del piano.`
-            : `La foto pesa troppo (${pesoLeggibile(blob.size)}): il limite è 4 MB.`,
+            ? t(`Il PDF pesa troppo (${pesoLeggibile(blob.size)}): il limite è 4 MB. Prova con una foto del piano.`, `The PDF is too large (${pesoLeggibile(blob.size)}): the limit is 4 MB. Try a photo of the plan.`)
+            : t(`La foto pesa troppo (${pesoLeggibile(blob.size)}): il limite è 4 MB.`, `The photo is too large (${pesoLeggibile(blob.size)}): the limit is 4 MB.`),
       }
     }
     const dati = await inDataUrl(blob)
     return { ok: true, file: { nome, tipo: tipoFinale, byte: blob.size, dati, anteprima: tipoFinale === 'application/pdf' ? null : dati } }
   } catch {
-    return { ok: false, errore: 'Non riusciamo a leggere il file. Riprova scegliendolo di nuovo.' }
+    return { ok: false, errore: t('Non riusciamo a leggere il file. Riprova scegliendolo di nuovo.', 'We can’t read the file. Try choosing it again.') }
   }
 }
