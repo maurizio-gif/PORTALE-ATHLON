@@ -5,6 +5,7 @@ import { StyleSheet, Text, useWindowDimensions, View } from 'react-native'
 
 import { elencoMisure, elencoSchede, type Misura, type RigaSchedaLab, type SedutaBreve, type StatoTest } from '@/api/lab'
 import { LARGO } from '@/components/Pagina'
+import { t } from '@/lib/lingua'
 import { spazio } from '@/theme'
 
 import { relaxAperto, useDispositivi } from '../dispositivi/useDispositivi'
@@ -56,20 +57,20 @@ type Dati = { schede: RigaSchedaLab[]; ultimi: SedutaBreve[]; ai: { usate: numbe
 function CartaConsigli() {
   const p = usePalette()
   return (
-    <Tocco onPress={() => router.push('/allenamento/consigli')} etichetta="Consigli Athlon: le lezioni che fanno per te, con le alternative" scala={0.985}>
+    <Tocco onPress={() => router.push('/allenamento/consigli')} etichetta={t('Consigli Athlon: le lezioni che fanno per te, con le alternative', 'Athlon Tips: the classes that suit you, with alternatives')} scala={0.985}>
       <LinearGradient colors={NOTTE} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={stili.percorso}>
         <View style={stili.percorsoRiga}>
           <LinearGradient colors={FUOCO} style={stili.agenteIcona}>
             <Icona nome="stella" size={26} colore="#fff" />
           </LinearGradient>
           <View style={{ flex: 1, gap: 3 }}>
-            <Text style={stili.percorsoTitolo}>Consigli Athlon</Text>
-            <Text style={stili.percorsoTesto}>Le lezioni che fanno per te, con le alternative. Se vuoi, anche sala pesi e nuoto.</Text>
+            <Text style={stili.percorsoTitolo}>{t('Consigli Athlon', 'Athlon Tips')}</Text>
+            <Text style={stili.percorsoTesto}>{t('Le lezioni che fanno per te, con le alternative. Se vuoi, anche sala pesi e nuoto.', 'The classes that suit you, with alternatives. If you like, gym floor and swimming too.')}</Text>
           </View>
           <Icona nome="avanti" size={18} colore="rgba(255,255,255,0.6)" />
         </View>
         <Text style={[stili.percorsoNota, { color: p.scuro ? 'rgba(255,255,255,0.7)' : 'rgba(255,255,255,0.72)' }]}>
-          Non è un programma da rispettare: scegli tu cosa fare e quando, e prenoti dal Calendario come sempre.
+          {t('Non è un programma da rispettare: scegli tu cosa fare e quando, e prenoti dal Calendario come sempre.', 'It’s not a program to follow: you choose what to do and when, and book from the Calendar as usual.')}
         </Text>
       </LinearGradient>
     </Tocco>
@@ -79,14 +80,16 @@ function CartaConsigli() {
 function CartaCalorie({ riempi = false }: { riempi?: boolean }) {
   const p = usePalette()
   return (
-    <Tocco onPress={() => router.push('/allenamento/calorie')} etichetta="Le tue calorie: il contatore di allenamenti e lezioni" scala={0.985} style={riempi ? { flex: 1 } : undefined}>
+    <Tocco onPress={() => router.push('/allenamento/calorie')} etichetta={t('Le tue calorie: il contatore di allenamenti e lezioni', 'Your calories: the workout and class counter')} scala={0.985} style={riempi ? { flex: 1 } : undefined}>
       <View style={[stili.agente, { backgroundColor: p.carta, borderColor: p.linea, boxShadow: p.ombra }, riempi && { flex: 1 }]}>
         <LinearGradient colors={FUOCO} style={stili.agenteIcona}>
           <Icona nome="fiamma" size={26} colore="#fff" />
         </LinearGradient>
         <View style={{ flex: 1, gap: 3 }}>
-          <Text style={[stili.agenteTitolo, { color: p.testo }]}>Le tue calorie</Text>
-          <Text style={[stili.agenteTesto, { color: p.testoSecondario }]}>Gli allenamenti che chiudi e le lezioni a cui vieni, giorno per giorno: la settimana, i trend e il confronto.</Text>
+          <Text style={[stili.agenteTitolo, { color: p.testo }]}>{t('Le tue calorie', 'Your calories')}</Text>
+          <Text style={[stili.agenteTesto, { color: p.testoSecondario }]}>
+            {t('Gli allenamenti che chiudi e le lezioni a cui vieni, giorno per giorno: la settimana, i trend e il confronto.', 'The workouts you finish and the classes you attend, day by day: the week, trends and comparison.')}
+          </Text>
         </View>
         <Icona nome="avanti" size={18} colore={p.testoTerzo} />
       </View>
@@ -95,16 +98,25 @@ function CartaCalorie({ riempi = false }: { riempi?: boolean }) {
 }
 
 /** Il test dei massimali: da fare, fatto, o da rifare. */
-function CartaTest({ t, riempi = false }: { t: StatoTest; riempi?: boolean }) {
-  const rifare = testDaRifare(t.ultimo, t.giorni)
-  const fatto = !!t.ultimo && !rifare
-  const prossimo = giorniAlTest(t.ultimo, t.giorni)
-  const titolo = rifare ? 'È ora di rifare il test' : fatto ? 'Il test dei massimali' : 'Fai il test dei massimali'
+function CartaTest({ test, riempi = false }: { test: StatoTest; riempi?: boolean }) {
+  const rifare = testDaRifare(test.ultimo, test.giorni)
+  const fatto = !!test.ultimo && !rifare
+  const prossimo = giorniAlTest(test.ultimo, test.giorni)
+  const titolo = rifare ? t('È ora di rifare il test', 'Time to retake the test') : fatto ? t('Il test dei massimali', 'The 1RM test') : t('Fai il test dei massimali', 'Take the 1RM test')
   const testo = rifare
-    ? `L’ultimo è del ${giornoTest(t.ultimo!)}. Rifallo ogni ${Math.round(t.giorni / 7)} settimane: i chili dei piani seguono i tuoi progressi.`
+    ? t(
+        `L’ultimo è del ${giornoTest(test.ultimo!)}. Rifallo ogni ${Math.round(test.giorni / 7)} settimane: i chili dei piani seguono i tuoi progressi.`,
+        `Your last one was on ${giornoTest(test.ultimo!)}. Retake it every ${Math.round(test.giorni / 7)} weeks: the weights in your plans follow your progress.`,
+      )
     : fatto
-      ? `Fatto il ${giornoTest(t.ultimo!)}: ${t.fatti} di ${t.totale} esercizi. Il prossimo fra ${prossimo} ${prossimo === 1 ? 'giorno' : 'giorni'}.`
-      : `${t.totale || 7} esercizi, una quindicina di minuti. Dopo, nei tuoi piani le percentuali diventano i tuoi chili.`
+      ? t(
+          `Fatto il ${giornoTest(test.ultimo!)}: ${test.fatti} di ${test.totale} esercizi. Il prossimo fra ${prossimo} ${prossimo === 1 ? 'giorno' : 'giorni'}.`,
+          `Done on ${giornoTest(test.ultimo!)}: ${test.fatti} of ${test.totale} exercises. The next one is in ${prossimo} ${prossimo === 1 ? 'day' : 'days'}.`,
+        )
+      : t(
+          `${test.totale || 7} esercizi, una quindicina di minuti. Dopo, nei tuoi piani le percentuali diventano i tuoi chili.`,
+          `${test.totale || 7} exercises, about fifteen minutes. Afterwards, the percentages in your plans become your own weights.`,
+        )
   return (
     <Tocco onPress={() => router.push('/allenamento/test')} etichetta={titolo} scala={0.985} style={riempi ? { flex: 1 } : undefined}>
       <LinearGradient colors={rifare ? FUOCO : MARE} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[stili.test, riempi && { flex: 1 }]}>
@@ -135,14 +147,17 @@ function CartaImporta({ riempi = false }: { riempi?: boolean }) {
           <Icona nome="fotocamera" size={26} colore="#fff" />
         </LinearGradient>
         <View style={{ flex: 1, gap: 3 }}>
-          <Text style={[stili.agenteTitolo, { color: p.testo }]}>Importa il tuo piano</Text>
+          <Text style={[stili.agenteTitolo, { color: p.testo }]}>{t('Importa il tuo piano', 'Import your plan')}</Text>
           <Text style={[stili.agenteTesto, { color: p.testoSecondario }]}>
-            Hai già un piano del tuo trainer o di un’altra palestra? Fotografalo o carica il file, poi controllalo e confermalo.
+            {t(
+              'Hai già un piano del tuo trainer o di un’altra palestra? Fotografalo o carica il file, poi controllalo e confermalo.',
+              'Already have a plan from your trainer or another gym? Take a photo or upload the file, then check it and confirm it.',
+            )}
           </Text>
         </View>
       </View>
       <View style={riempi ? { marginTop: 'auto' } : undefined}>
-        <Pulsante testo="Da foto o file" icona="fotocamera" piccolo onPress={() => router.push('/allenamento/importa')} />
+        <Pulsante testo={t('Da foto o file', 'From photo or file')} icona="fotocamera" piccolo onPress={() => router.push('/allenamento/importa')} />
       </View>
     </Carta>
   )
@@ -156,15 +171,18 @@ function CartaImporta({ riempi = false }: { riempi?: boolean }) {
 function CartaPersonal() {
   const p = usePalette()
   return (
-    <Tocco onPress={() => router.push('/personal')} etichetta="Prenota una seduta con un personal trainer" scala={0.985}>
+    <Tocco onPress={() => router.push('/personal')} etichetta={t('Prenota una seduta con un personal trainer', 'Book a session with a personal trainer')} scala={0.985}>
       <View style={[stili.agente, { backgroundColor: p.carta, borderColor: p.linea, boxShadow: p.ombra }]}>
         <LinearGradient colors={NOTTE} style={stili.agenteIcona}>
           <Icona nome="persona" size={26} colore="#fff" />
         </LinearGradient>
         <View style={{ flex: 1, gap: 3 }}>
-          <Text style={[stili.agenteTitolo, { color: p.testo }]}>Vuoi essere seguito da un personal trainer?</Text>
+          <Text style={[stili.agenteTitolo, { color: p.testo }]}>{t('Vuoi essere seguito da un personal trainer?', 'Want to be coached by a personal trainer?')}</Text>
           <Text style={[stili.agenteTesto, { color: p.testoSecondario }]}>
-            Scegli il trainer, il giorno e l’ora e prenota la tua seduta: il piano te lo costruisce lui e lo trovi poi fra i tuoi piani.
+            {t(
+              'Scegli il trainer, il giorno e l’ora e prenota la tua seduta: il piano te lo costruisce lui e lo trovi poi fra i tuoi piani.',
+              'Choose the trainer, day and time and book your session: they build the plan for you and you’ll then find it among your plans.',
+            )}
           </Text>
         </View>
         <Icona nome="avanti" size={18} colore={p.testoTerzo} />
@@ -183,26 +201,33 @@ function CartaComponi({ restano, massimo, riempi = false }: { restano: number; m
   const p = usePalette()
   return (
     <View style={[stili.agente, { backgroundColor: p.carta, borderColor: p.linea, boxShadow: p.ombra, flexDirection: 'column', alignItems: 'stretch' }, riempi && { flex: 1 }]}>
-      <Tocco onPress={() => router.push('/allenamento/agente')} etichetta="Componi il tuo piano di allenamento" scala={0.985} spento={!restano}>
+      <Tocco onPress={() => router.push('/allenamento/agente')} etichetta={t('Componi il tuo piano di allenamento', 'Build your workout plan')} scala={0.985} spento={!restano}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: spazio.tre }}>
           <LinearGradient colors={FUOCO} style={stili.agenteIcona}>
             <Icona nome="peso" size={26} colore="#fff" />
           </LinearGradient>
           <View style={{ flex: 1, gap: 3 }}>
-            <Text style={[stili.agenteTitolo, { color: p.testo }]}>Componi il tuo piano</Text>
+            <Text style={[stili.agenteTitolo, { color: p.testo }]}>{t('Componi il tuo piano', 'Build your plan')}</Text>
             <Text style={[stili.agenteTesto, { color: p.testoSecondario }]}>
               {restano
-                ? `Generiamo insieme il tuo piano, in sala o in vasca: rispondi a qualche domanda e in meno di un minuto hai una prima versione da modificare. Puoi comporne ancora ${restano} questo mese.`
-                : `Hai già composto ${massimo} piani negli ultimi trenta giorni: per ora non è possibile comporne altri.`}
+                ? t(
+                    `Generiamo insieme il tuo piano, in sala o in vasca: rispondi a qualche domanda e in meno di un minuto hai una prima versione da modificare. Puoi comporne ancora ${restano} questo mese.`,
+                    `Let’s build your plan together, in the gym or in the pool: answer a few questions and in under a minute you’ll have a first draft to edit. You can build ${restano} more this month.`,
+                  )
+                : t(
+                    `Hai già composto ${massimo} piani negli ultimi trenta giorni: per ora non è possibile comporne altri.`,
+                    `You’ve already built ${massimo} plans in the last thirty days: you can’t build more for now.`,
+                  )}
             </Text>
           </View>
           {restano ? <Icona nome="avanti" size={18} colore={p.testoTerzo} /> : null}
         </View>
       </Tocco>
       <View style={riempi ? { marginTop: 'auto' } : undefined}>
-        <Tocco onPress={() => router.push('/allenamento/nuova')} etichetta="Preferisci partire da zero? Scrivi il piano da solo" scala={0.99}>
+        <Tocco onPress={() => router.push('/allenamento/nuova')} etichetta={t('Preferisci partire da zero? Scrivi il piano da solo', 'Prefer to start from scratch? Write the plan yourself')} scala={0.99}>
           <Text style={[stili.agenteTesto, { color: p.testoSecondario, paddingTop: spazio.due }]}>
-            Preferisci partire da zero? <Text style={{ color: p.accento, fontFamily: F.bold }}>Scrivilo tu</Text>
+            {t('Preferisci partire da zero? ', 'Prefer to start from scratch? ')}
+            <Text style={{ color: p.accento, fontFamily: F.bold }}>{t('Scrivilo tu', 'Write it yourself')}</Text>
           </Text>
         </Tocco>
       </View>
@@ -217,7 +242,7 @@ function SchedaCarta({ s, indice }: { s: RigaSchedaLab; indice: number }) {
   const colori = s.tipo === 'personalizzata' ? FUOCO : s.tipo === 'socio' || s.tipo === 'ai' ? ORTO : NOTTE
   return (
     <Entra indice={indice}>
-      <Tocco onPress={() => router.push({ pathname: '/allenamento/[scheda]', params: { scheda: s.id } })} etichetta={`Piano ${s.titolo}`} scala={0.985}>
+      <Tocco onPress={() => router.push({ pathname: '/allenamento/[scheda]', params: { scheda: s.id } })} etichetta={t(`Piano ${s.titolo}`, `Plan ${s.titolo}`)} scala={0.985}>
         <LinearGradient colors={colori} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={stili.scheda}>
           <View style={stili.filigrana} pointerEvents="none">
             <Icona nome={vasca ? 'goccia' : 'peso'} size={120} colore="rgba(255,255,255,0.08)" />
@@ -229,9 +254,16 @@ function SchedaCarta({ s, indice }: { s: RigaSchedaLab; indice: number }) {
           <View style={stili.pillole}>
             {s.obiettivo ? <Text style={stili.pillola}>{s.obiettivo}</Text> : null}
             {s.livello ? <Text style={stili.pillola}>{LIVELLI[s.livello] ?? s.livello}</Text> : null}
-            <Text style={stili.pillola}>{`${s.giorni} ${vasca ? (s.giorni === 1 ? 'seduta' : 'sedute') : s.giorni === 1 ? 'giorno' : 'giorni'}`}</Text>
+            <Text style={stili.pillola}>{t(
+                `${s.giorni} ${vasca ? (s.giorni === 1 ? 'seduta' : 'sedute') : s.giorni === 1 ? 'giorno' : 'giorni'}`,
+                `${s.giorni} ${vasca ? (s.giorni === 1 ? 'session' : 'sessions') : s.giorni === 1 ? 'day' : 'days'}`,
+              )}</Text>
           </View>
-          <Text style={[stili.ultimo, { color: 'rgba(255,255,255,0.75)' }]}>{vasca ? 'Si legge a bordo vasca' : s.ultimo ? `Ultimo allenamento ${quando(s.ultimo)}` : 'Non ancora iniziato'}</Text>
+          <Text style={[stili.ultimo, { color: 'rgba(255,255,255,0.75)' }]}>{vasca
+              ? t('Si legge a bordo vasca', 'Read at the poolside')
+              : s.ultimo
+                ? t(`Ultimo allenamento ${quando(s.ultimo)}`, `Last workout ${quando(s.ultimo)}`)
+                : t('Non ancora iniziato', 'Not started yet')}</Text>
         </LinearGradient>
       </Tocco>
     </Entra>
@@ -274,7 +306,7 @@ export function Schede() {
   const largo = larghezza >= LARGO
 
   return (
-    <Schermata titolo="Athlon Health System" sottotitolo="Allenamento, alimentazione e recupero.">
+    <Schermata titolo="Athlon Health System" sottotitolo={t('Allenamento, alimentazione e recupero.', 'Training, nutrition and recovery.')}>
       <Entra indice={0}>
         <RuotaBenessere />
       </Entra>
@@ -305,7 +337,7 @@ export function Schede() {
         errore ? (
           <>
             <Messaggio>{errore}</Messaggio>
-            <Pulsante testo="Riprova" icona="aggiorna" onPress={carica} />
+            <Pulsante testo={t('Riprova', 'Try again')} icona="aggiorna" onPress={carica} />
           </>
         ) : (
           <SchedeInArrivo />
@@ -334,7 +366,7 @@ function Train({ dati, largo }: { dati: Dati; largo: boolean }) {
     <>
       <View style={largo ? stili.fila3 : { gap: spazio.quattro + 4 }}>
         <Entra indice={0} style={largo ? { flex: 1 } : undefined}>
-          <CartaTest t={dati.test} riempi={largo} />
+          <CartaTest test={dati.test} riempi={largo} />
         </Entra>
         <Entra indice={1} style={largo ? { flex: 1 } : undefined}>
           <CartaCalorie riempi={largo} />
@@ -345,9 +377,12 @@ function Train({ dati, largo }: { dati: Dati; largo: boolean }) {
         <CartaConsigli />
       </Entra>
 
-      <Sezione titolo="Crea il tuo piano di allenamento">
+      <Sezione titolo={t('Crea il tuo piano di allenamento', 'Create your workout plan')}>
         <Text style={[stili.nota, { color: p.testoSecondario }]}>
-          Scegli da dove partire: costruiamo il piano insieme, oppure importa quello che hai già. In tutti e due i casi lo guardi, lo modifichi e, quando lo confermi, lo trovi fra i tuoi piani.
+          {t(
+            'Scegli da dove partire: costruiamo il piano insieme, oppure importa quello che hai già. In tutti e due i casi lo guardi, lo modifichi e, quando lo confermi, lo trovi fra i tuoi piani.',
+            'Choose where to start: we build the plan together, or you import the one you already have. Either way you review it, edit it and, once you confirm it, you’ll find it among your plans.',
+          )}
         </Text>
         <View style={largo ? stili.fila3 : { gap: spazio.tre }}>
           <Entra indice={1} style={largo ? { flex: 1 } : undefined}>
@@ -363,7 +398,7 @@ function Train({ dati, largo }: { dati: Dati; largo: boolean }) {
         </Entra>
       </Sezione>
 
-      <Sezione titolo="I tuoi piani" conteggio={mie.length || undefined}>
+      <Sezione titolo={t('I tuoi piani', 'Your plans')} conteggio={mie.length || undefined}>
         {mie.length ? (
           <View style={largo ? stili.griglia : { gap: spazio.tre }}>
             {mie.map((s, i) => (
@@ -376,13 +411,13 @@ function Train({ dati, largo }: { dati: Dati; largo: boolean }) {
           <Carta style={{ alignItems: 'center', gap: spazio.due, paddingVertical: spazio.cinque }}>
             <Icona nome="peso" size={32} colore={p.testoTerzo} />
             <Text style={[stili.nota, { color: p.testoSecondario, textAlign: 'center' }]}>
-              Non hai ancora nessun piano. Parti da una delle strade qui sopra: lo modifichi, lo confermi e lo trovi qui.
+              {t('Non hai ancora nessun piano. Parti da una delle strade qui sopra: lo modifichi, lo confermi e lo trovi qui.', 'You don’t have any plans yet. Start from one of the options above: you edit it, confirm it and find it here.')}
             </Text>
           </Carta>
         )}
       </Sezione>
 
-      <Sezione titolo="Ultimi allenamenti" destra={<LinkSezione testo="Storico e progressi" onPress={() => router.push('/allenamento/storico')} />}>
+      <Sezione titolo={t('Ultimi allenamenti', 'Recent workouts')} destra={<LinkSezione testo={t('Storico e progressi', 'History and progress')} onPress={() => router.push('/allenamento/storico')} />}>
         <Carta style={{ paddingVertical: spazio.due }}>
           {dati.ultimi.length ? (
             dati.ultimi.map((a, i) => (
@@ -391,12 +426,15 @@ function Train({ dati, largo }: { dati: Dati; largo: boolean }) {
                 prima={i === 0}
                 icona={a.fine ? 'bandiera' : 'cronometro'}
                 tono={a.fine ? 'ok' : 'attenzione'}
-                titolo={[a.titolo, a.giorno_nome].filter(Boolean).join(' · ') || 'Allenamento'}
-                sotto={`${quando(a.inizio)} · ${a.serie} ${a.serie === 1 ? 'serie' : 'serie'}${a.fine ? '' : ' · non chiuso'}`}
+                titolo={[a.titolo, a.giorno_nome].filter(Boolean).join(' · ') || t('Allenamento', 'Workout')}
+                sotto={t(
+                  `${quando(a.inizio)} · ${a.serie} serie${a.fine ? '' : ' · non chiuso'}`,
+                  `${quando(a.inizio)} · ${a.serie} ${a.serie === 1 ? 'set' : 'sets'}${a.fine ? '' : ' · not finished'}`,
+                )}
               />
             ))
           ) : (
-            <Riga prima icona="cronometro" tono="neutro" titolo="Nessun allenamento registrato" sotto="Apri un piano e premi «Inizia l’allenamento»." />
+            <Riga prima icona="cronometro" tono="neutro" titolo={t('Nessun allenamento registrato', 'No workouts logged')} sotto={t('Apri un piano e premi «Inizia l’allenamento».', 'Open a plan and tap “Start workout”.')} />
           )}
         </Carta>
       </Sezione>

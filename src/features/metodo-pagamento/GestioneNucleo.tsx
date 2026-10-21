@@ -14,6 +14,7 @@ import { spazio } from '@/theme'
 
 import { ModuloIban, type DatiConto } from './ModuloIban'
 import { ElencoEsiti, MetodoAttualeBadge, chi, dateContratto, statoLeggibile } from './Metodo'
+import { t, tv } from '@/lib/lingua'
 
 // Gli abbonamenti del nucleo, col metodo che ciascuno ha adesso, e la scelta
 // di quali aggiornare. Ripresa dalla pagina del CRM
@@ -69,7 +70,7 @@ export function GestioneNucleo({
 
   async function salvaIban(conto: DatiConto): Promise<string | null> {
     const { ok, dati } = await chiamaLink(token, 'iban', { contratti: [...scelti], ...conto })
-    if (!ok) return dati.errore ?? 'Non siamo riusciti a salvarlo adesso. Riprova fra qualche minuto.'
+    if (!ok) return dati.errore ?? t('Non siamo riusciti a salvarlo adesso. Riprova fra qualche minuto.', 'We couldn’t save it right now. Try again in a few minutes.')
     setRisultati(dati.risultati ?? [])
     setFinale(dati.finale ?? '')
     setSchermata('esito')
@@ -84,7 +85,7 @@ export function GestioneNucleo({
       vaiA(String(dati.url))
       return
     }
-    setErrore(dati.errore ?? 'Non riusciamo ad aprire la pagina della carta adesso. Riprova fra qualche minuto.')
+    setErrore(dati.errore ?? t('Non riusciamo ad aprire la pagina della carta adesso. Riprova fra qualche minuto.', 'We can’t open the card page right now. Try again in a few minutes.'))
     setAttesa(false)
   }
 
@@ -106,34 +107,41 @@ export function GestioneNucleo({
   if (schermata === 'esito') {
     const tutti = risultati.length > 0 && risultati.every((r) => r.ok)
     return (
-      <Cornice titolo={tutti ? 'Fatto, grazie!' : 'Ecco com’è andata'}>
+      <Cornice titolo={tutti ? t('Fatto, grazie!', 'Done, thank you!') : t('Ecco com’è andata', 'Here’s how it went')}>
         <Testo>
           {finale ? (
-            <>
-              Il conto che finisce con <Forte>{finale}</Forte> {tutti ? 'è salvato su questi abbonamenti:' : 'è stato salvato così:'}
-            </>
+            tv(
+              <>
+                Il conto che finisce con <Forte>{finale}</Forte> {tutti ? 'è salvato su questi abbonamenti:' : 'è stato salvato così:'}
+              </>,
+              <>
+                The account ending in <Forte>{finale}</Forte> {tutti ? 'is saved on these memberships:' : 'was saved like this:'}
+              </>,
+            )
           ) : (
-            'Il metodo di pagamento è stato salvato così:'
+            t('Il metodo di pagamento è stato salvato così:', 'The payment method was saved like this:')
           )}
         </Testo>
         <ElencoEsiti contratti={contratti} risultati={risultati} />
         {!tutti ? (
-          <Testo variante="attenuato">Dove non è andato, riprova fra qualche minuto.</Testo>
+          <Testo variante="attenuato">{t('Dove non è andato, riprova fra qualche minuto.', 'Where it didn’t go through, try again in a few minutes.')}</Testo>
         ) : null}
-        <Bottone testo="Torna ai tuoi abbonamenti" variante="contorno" onPress={tornaAllElenco} inCorso={attesa} />
+        <Bottone testo={t('Torna ai tuoi abbonamenti', 'Back to your memberships')} variante="contorno" onPress={tornaAllElenco} inCorso={attesa} />
       </Cornice>
     )
   }
 
   if (schermata === 'iban') {
     return (
-      <Cornice titolo="Metodo di pagamento">
+      <Cornice titolo={t('Metodo di pagamento', 'Payment method')}>
         <ModuloIban
           nomeCompleto={nomeTitolare}
           introduzione={
             <View style={{ gap: spazio.uno }}>
               <Testo variante="attenuato">
-                Le quote di {selezionati.length === 1 ? 'questo abbonamento' : 'questi abbonamenti'} verranno addebitate su questo conto:
+                {selezionati.length === 1
+                  ? t('Le quote di questo abbonamento verranno addebitate su questo conto:', 'The fees for this membership will be charged to this account:')
+                  : t('Le quote di questi abbonamenti verranno addebitate su questo conto:', 'The fees for these memberships will be charged to this account:')}
               </Testo>
               {selezionati.map((c) => (
                 <Testo key={c.contract_id} variante="attenuato">
@@ -143,7 +151,7 @@ export function GestioneNucleo({
               ))}
             </View>
           }
-          etichettaInvio={selezionati.length > 1 ? `Salva il conto su ${selezionati.length} abbonamenti` : 'Salva il conto'}
+          etichettaInvio={selezionati.length > 1 ? t(`Salva il conto su ${selezionati.length} abbonamenti`, `Save the account on ${selezionati.length} memberships`) : t('Salva il conto', 'Save the account')}
           onInvia={salvaIban}
           onIndietro={() => setSchermata('elenco')}
         />
@@ -152,16 +160,18 @@ export function GestioneNucleo({
   }
 
   return (
-    <Cornice titolo={nome ? `Ciao ${nome}` : 'I tuoi abbonamenti'}>
+    <Cornice titolo={nome ? t(`Ciao ${nome}`, `Hi ${nome}`) : t('I tuoi abbonamenti', 'Your memberships')}>
       {contratti.length === 0 ? (
         <Testo variante="attenuato">
-          Non troviamo abbonamenti attivi a tuo nome o dei tuoi figli.
+          {t('Non troviamo abbonamenti attivi a tuo nome o dei tuoi figli.', 'We can’t find any active memberships in your name or your children’s.')}
         </Testo>
       ) : (
         <>
           <Testo>
-            Questi sono gli abbonamenti attivi tuoi e della tua famiglia, con il metodo di pagamento che hanno adesso. Scegli su quali
-            salvare quello nuovo.
+            {t(
+              'Questi sono gli abbonamenti attivi tuoi e della tua famiglia, con il metodo di pagamento che hanno adesso. Scegli su quali salvare quello nuovo.',
+              'These are the active memberships for you and your family, with the payment method they have now. Choose which ones to save the new one on.',
+            )}
           </Testo>
 
           <View style={stili.elenco}>
@@ -171,12 +181,12 @@ export function GestioneNucleo({
                 riquadro
                 spuntata={scelti.has(c.contract_id)}
                 onCambia={() => cambia(c.contract_id)}
-                etichetta={`${chi(c)}, ${c.piano ?? 'Abbonamento'}`}
+                etichetta={`${chi(c)}, ${c.piano ?? t('Abbonamento', 'Membership')}`}
               >
                 <View style={{ gap: 2 }}>
                   <Testo style={{ fontWeight: '700' }}>{chi(c)}</Testo>
                   <Testo variante="piccolo">
-                    {c.piano ?? 'Abbonamento'} · {statoLeggibile(c)}
+                    {c.piano ?? t('Abbonamento', 'Membership')} · {statoLeggibile(c)}
                   </Testo>
                   {dateContratto(c) ? <Testo variante="piccolo">{dateContratto(c)}</Testo> : null}
                   <View style={{ marginTop: spazio.uno + 2 }}>
@@ -187,12 +197,12 @@ export function GestioneNucleo({
             ))}
           </View>
 
-          <Testo variante="piccolo">Il metodo che scegli prende il posto di quello attuale sugli abbonamenti selezionati.</Testo>
+          <Testo variante="piccolo">{t('Il metodo che scegli prende il posto di quello attuale sugli abbonamenti selezionati.', 'The method you choose replaces the current one on the selected memberships.')}</Testo>
 
           {errore ? <Avviso>{errore}</Avviso> : null}
 
           <Bottone
-            testo="Conto corrente (IBAN)"
+            testo={t('Conto corrente (IBAN)', 'Bank account (IBAN)')}
             disabilitato={attesa || selezionati.length === 0}
             onPress={() => {
               setErrore('')
@@ -200,15 +210,23 @@ export function GestioneNucleo({
             }}
           />
           <Bottone
-            testo={attesa ? 'Apro la pagina di Adyen…' : 'Carta di credito o di debito'}
+            testo={attesa ? t('Apro la pagina di Adyen…', 'Opening the Adyen page…') : t('Carta di credito o di debito', 'Credit or debit card')}
             inCorso={attesa}
             disabilitato={selezionati.length === 0}
             onPress={vaiAllaCarta}
           />
-          {selezionati.length === 0 ? <Testo variante="piccolo">Seleziona almeno un abbonamento.</Testo> : null}
+          {selezionati.length === 0 ? <Testo variante="piccolo">{t('Seleziona almeno un abbonamento.', 'Select at least one membership.')}</Testo> : null}
           <Testo variante="piccolo">
-            La carta si salva sulla pagina protetta di <InfoAdyen />, il partner del club per i pagamenti con carta: i suoi dati non passano
-            da noi. Viene registrata a nome di {nomeTitolare || 'chi ha chiesto il link'} e collegata agli abbonamenti scelti.
+            {tv(
+              <>
+                La carta si salva sulla pagina protetta di <InfoAdyen />, il partner del club per i pagamenti con carta: i suoi dati non passano
+                da noi. Viene registrata a nome di {nomeTitolare || 'chi ha chiesto il link'} e collegata agli abbonamenti scelti.
+              </>,
+              <>
+                Your card is saved on the secure page of <InfoAdyen />, the club’s partner for card payments: your details don’t pass
+                through us. It’s registered in the name of {nomeTitolare || 'whoever requested the link'} and linked to the selected memberships.
+              </>,
+            )}
           </Testo>
         </>
       )}

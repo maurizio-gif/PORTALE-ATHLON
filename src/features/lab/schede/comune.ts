@@ -1,5 +1,5 @@
 import type { EsercizioScheda, GiornoSchedaLab, Massimale } from '@/api/lab'
-import { locale, t } from '@/lib/lingua'
+import { locale, t } from '../../../lib/lingua'
 
 // Le schede di allenamento nel laboratorio: le etichette della libreria (le
 // stesse chiavi di lib/esercizi.ts nel CRM) e il calcolo di cosa viene dopo

@@ -1,17 +1,18 @@
 import type { AllenamentoDispositivo, GiornoDispositivo, IdFornitore, ScalaRecupero } from '@/api/dispositivi'
+import { locale, t } from '@/lib/lingua'
 
 // Quello che le schermate dei dispositivi (Dispositivi.tsx, fit/Relax.tsx) hanno in
 // comune: i fornitori, il recupero in parole nostre, gli sport in italiano, i giorni.
 // Niente qui parla con la rete.
 
 export const FORNITORI: Record<IdFornitore, { nome: string; cosa: string; testo: string }> = {
-  oura: { nome: 'Oura', cosa: 'Anello', testo: 'Sonno, recupero, battito e variabilità dalla notte, passi e allenamenti.' },
-  polar: { nome: 'Polar', cosa: 'Orologi e fasce', testo: 'Sonno, recupero notturno, battito e variabilità, e gli allenamenti con il battito.' },
+  oura: { nome: 'Oura', cosa: t('Anello', 'Ring'), testo: t('Sonno, recupero, battito e variabilità dalla notte, passi e allenamenti.', 'Sleep, recovery, heart rate and variability from the night, steps and workouts.') },
+  polar: { nome: 'Polar', cosa: t('Orologi e fasce', 'Watches and bands'), testo: t('Sonno, recupero notturno, battito e variabilità, e gli allenamenti con il battito.', 'Sleep, overnight recovery, heart rate and variability, and workouts with heart rate.') },
 }
 
 export type Recupero = {
   /** In parole morbide, nostre: il fornitore ha le sue («Optimal», «Pay attention»). */
-  parole: 'Ottimo' | 'Buono' | 'Discreto' | 'Da ricaricare'
+  parole: string
   /** 0-1, per un anello o una barra. */
   quota: number
   /** Il numero del fornitore, com'e': «88 su 100», «4 su 6». */
@@ -27,11 +28,11 @@ export type Recupero = {
 export function recupero(scala: ScalaRecupero | null, valore: number | null): Recupero | null {
   if (scala === null || valore === null) return null
   if (scala === 'oura_prontezza') {
-    const parole = valore >= 85 ? 'Ottimo' : valore >= 70 ? 'Buono' : valore >= 60 ? 'Discreto' : 'Da ricaricare'
-    return { parole, quota: Math.max(0, Math.min(1, valore / 100)), valore: `${Math.round(valore)} su 100` }
+    const parole = valore >= 85 ? t('Ottimo', 'Excellent') : valore >= 70 ? t('Buono', 'Good') : valore >= 60 ? t('Discreto', 'Fair') : t('Da ricaricare', 'Needs recharging')
+    return { parole, quota: Math.max(0, Math.min(1, valore / 100)), valore: t(`${Math.round(valore)} su 100`, `${Math.round(valore)} out of 100`) }
   }
-  const parole = valore >= 6 ? 'Ottimo' : valore >= 5 ? 'Buono' : valore >= 4 ? 'Discreto' : 'Da ricaricare'
-  return { parole, quota: Math.max(0, Math.min(1, valore / 6)), valore: `${Math.round(valore)} su 6` }
+  const parole = valore >= 6 ? t('Ottimo', 'Excellent') : valore >= 5 ? t('Buono', 'Good') : valore >= 4 ? t('Discreto', 'Fair') : t('Da ricaricare', 'Needs recharging')
+  return { parole, quota: Math.max(0, Math.min(1, valore / 6)), valore: t(`${Math.round(valore)} su 6`, `${Math.round(valore)} out of 6`) }
 }
 
 const quantiDati = (g: GiornoDispositivo) => Object.entries(g).filter(([k, v]) => k !== 'data' && k !== 'fornitore' && v !== null).length
@@ -62,39 +63,39 @@ export function durata(minuti: number): string {
 }
 
 const SPORT: [RegExp, string][] = [
-  [/(run|jog|treadmill)/, 'Corsa'],
-  [/walk|nordic/, 'Camminata'],
-  [/(cycl|bik|spin)/, 'Bicicletta'],
-  [/(strength|weight|gym|resistance|crossfit)/, 'Pesi'],
-  [/swim/, 'Nuoto'],
+  [/(run|jog|treadmill)/, t('Corsa', 'Running')],
+  [/walk|nordic/, t('Camminata', 'Walking')],
+  [/(cycl|bik|spin)/, t('Bicicletta', 'Cycling')],
+  [/(strength|weight|gym|resistance|crossfit)/, t('Pesi', 'Weights')],
+  [/swim/, t('Nuoto', 'Swimming')],
   [/yoga/, 'Yoga'],
   [/pilates/, 'Pilates'],
-  [/hiit|interval|circuit/, 'Allenamento a intervalli'],
-  [/row|kayak|paddle/, 'Canottaggio'],
-  [/hik|trek|mountain/, 'Escursione'],
-  [/danc/, 'Danza'],
+  [/hiit|interval|circuit/, t('Allenamento a intervalli', 'Interval training')],
+  [/row|kayak|paddle/, t('Canottaggio', 'Rowing')],
+  [/hik|trek|mountain/, t('Escursione', 'Hiking')],
+  [/danc/, t('Danza', 'Dance')],
   [/stretch|mobility/, 'Stretching'],
-  [/(fitness|class|aerob|zumba|group)/, 'Lezione'],
-  [/(football|soccer|tennis|padel|basket|volley|golf)/, 'Sport'],
+  [/(fitness|class|aerob|zumba|group)/, t('Lezione', 'Class')],
+  [/(football|soccer|tennis|padel|basket|volley|golf)/, t('Sport', 'Sport')],
 ]
 
 /** Lo sport del fornitore in italiano; se non lo conosciamo, «Allenamento». */
 export function nomeSport(sport: string | null): string {
   const s = (sport ?? '').toLowerCase()
-  return SPORT.find(([re]) => re.test(s))?.[1] ?? 'Allenamento'
+  return SPORT.find(([re]) => re.test(s))?.[1] ?? t('Allenamento', 'Workout')
 }
 
-const giornoUTC = new Intl.DateTimeFormat('it-IT', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' })
+const giornoUTC = new Intl.DateTimeFormat(locale(), { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' })
 /** «dom 18 ott» da AAAA-MM-GG. */
 export function giornoBreve(giorno: string): string {
   return giornoUTC.format(new Date(`${giorno}T12:00:00Z`)).replace('.', '')
 }
 
-const lettera = new Intl.DateTimeFormat('it-IT', { weekday: 'narrow', timeZone: 'UTC' })
+const lettera = new Intl.DateTimeFormat(locale(), { weekday: 'narrow', timeZone: 'UTC' })
 /** L'iniziale del giorno della settimana, per le barre. */
 export const inizialeGiorno = (giorno: string) => lettera.format(new Date(`${giorno}T12:00:00Z`)).toUpperCase()
 
-const orario = new Intl.DateTimeFormat('it-IT', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Rome' })
+const orario = new Intl.DateTimeFormat(locale(), { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Rome' })
 const giornoRoma = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Rome', year: 'numeric', month: '2-digit', day: '2-digit' })
 
 /** «oggi alle 17:30», «ieri alle 07:10», «dom 18 ott, 17:30» (a Roma). */
@@ -102,8 +103,8 @@ export function quando(iso: string, oggi: string, ieri: string): string {
   const d = new Date(iso)
   const g = giornoRoma.format(d)
   const ora = orario.format(d)
-  if (g === oggi) return `oggi alle ${ora}`
-  if (g === ieri) return `ieri alle ${ora}`
+  if (g === oggi) return t(`oggi alle ${ora}`, `today at ${ora}`)
+  if (g === ieri) return t(`ieri alle ${ora}`, `yesterday at ${ora}`)
   return `${giornoBreve(g)}, ${ora}`
 }
 
@@ -114,12 +115,12 @@ export const piuRecenti = (a: AllenamentoDispositivo[], n: number) => [...a].sor
 
 /** Da quanto e' stato letto: «adesso», «5 minuti fa», «3 ore fa», «ieri». */
 export function dopo(iso: string | null, adesso = Date.now()): string {
-  if (!iso) return 'mai'
+  if (!iso) return t('mai', 'never')
   const min = Math.max(0, Math.round((adesso - Date.parse(iso)) / 60000))
-  if (min < 2) return 'adesso'
-  if (min < 60) return `${min} minuti fa`
+  if (min < 2) return t('adesso', 'just now')
+  if (min < 60) return t(`${min} minuti fa`, `${min} minutes ago`)
   const ore = Math.round(min / 60)
-  if (ore < 24) return ore === 1 ? '1 ora fa' : `${ore} ore fa`
+  if (ore < 24) return ore === 1 ? t('1 ora fa', '1 hour ago') : t(`${ore} ore fa`, `${ore} hours ago`)
   const giorni = Math.round(ore / 24)
-  return giorni === 1 ? 'ieri' : `${giorni} giorni fa`
+  return giorni === 1 ? t('ieri', 'yesterday') : t(`${giorni} giorni fa`, `${giorni} days ago`)
 }

@@ -1,5 +1,5 @@
 import type { PresenzaLezione, SchedaLezione, SedutaStorico } from '@/api/lab'
-import { t } from '@/lib/lingua'
+import { t } from '../../../lib/lingua'
 
 import { dopoSeduta, kcal, MET_MEDIO, metabolismoBasale, type Sesso } from './stimaCalorie'
 import { stimaLezione } from './stimaCorso'

@@ -14,8 +14,8 @@ const pulito = (v: unknown) => String(v ?? '').replace(/\s+/g, ' ').trim()
  * CRM): italiano, che comincia per 3, o col prefisso internazionale. Il
  * valore che si manda e' quello scritto: lo normalizza la funzione.
  */
-export function controllaTelefono(t: string): { ok: true; valore: string } | { ok: false; errore: string } {
-  const grezzo = pulito(t)
+export function controllaTelefono(telefono: string): { ok: true; valore: string } | { ok: false; errore: string } {
+  const grezzo = pulito(telefono)
   const cifre = grezzo.replace(/[^0-9]/g, '')
   const estero = grezzo.startsWith('+') && cifre.slice(0, 2) !== '39'
   const valido = estero ? /^[1-9]\d{6,14}$/.test(cifre) : /^3\d{8,9}$/.test(cifre.replace(/^0039/, '').replace(/^39(?=3)/, ''))

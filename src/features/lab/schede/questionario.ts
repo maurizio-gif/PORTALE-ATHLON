@@ -8,7 +8,7 @@
 //
 // I valori (`OBIETTIVI`, `valore`) vanno al server e restano in italiano: si traducono solo le etichette (`nomeObiettivo`, `testo`).
 
-import { t } from '@/lib/lingua'
+import { t } from '../../../lib/lingua'
 
 export const OBIETTIVI = ['Tonificazione', 'Ipertrofia', 'Dimagrimento', 'Forza', 'Resistenza', 'Mobilità', 'Benessere generale'] as const
 /** In vasca c'e' anche «Tecnica», che in sala non ha senso. */

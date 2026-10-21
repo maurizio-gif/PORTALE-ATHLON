@@ -1,5 +1,5 @@
 import type { Continuo, Stile } from '@/api/lab'
-import { t } from '@/lib/lingua'
+import { t } from '../../../lib/lingua'
 
 // Il piano di nuoto nell'app (20/10/2026): le parole, e i conti che si fanno a vista. Un piano di vasca e' un piano
 // come gli altri — le righe sono «4 × 100 m, recupero 20″, medio» — ma **si legge e non si registra**: in acqua non

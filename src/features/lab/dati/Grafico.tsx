@@ -2,6 +2,8 @@ import { useState } from 'react'
 import { StyleSheet, Text, View } from 'react-native'
 import Svg, { Circle, Defs, Line, LinearGradient, Path, Stop } from 'react-native-svg'
 
+import { t } from '@/lib/lingua'
+
 import { F, usePalette } from '../ui/tema'
 import { dataMinima, numero, type Punto } from './calcoli'
 

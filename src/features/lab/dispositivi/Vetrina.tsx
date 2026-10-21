@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { StyleSheet, Text, View } from 'react-native'
 
 import { daiConsensoDispositivi } from '@/api/dispositivi'
+import { t } from '@/lib/lingua'
 import { spazio } from '@/theme'
 
 import { Icona, type NomeIcona } from '../ui/Icona'
@@ -18,15 +19,15 @@ import { CONSENSO, INFORMATIVA, VERSIONE_INFORMATIVA } from './informativa'
 // azione finche' il consenso non e' registrato. L'informativa completa si apre in un foglio.
 
 const COSE: { icona: NomeIcona; colori: readonly [string, string]; titolo: string; testo: string }[] = [
-  { icona: 'foglia', colori: ['#5EEAD4', '#0F766E'], titolo: 'Il tuo sonno', testo: 'Scrivi ogni mattina quanto hai dormito, in dieci secondi: conta nel tuo Athlon Health Score. Con un anello o un orologio arriva da solo.' },
-  { icona: 'cronometro', colori: ['#FF8A2B', '#E84300'], titolo: 'I tuoi allenamenti', testo: 'Quelli registrati dal dispositivo, accanto a quelli che fai nel club.' },
-  { icona: 'fiamma', colori: ['#5C8DFF', '#1F4FD8'], titolo: 'Il battito di notte', testo: 'Il valore più basso e la sua variabilità: un modo per vedere come recuperi.' },
+  { icona: 'foglia', colori: ['#5EEAD4', '#0F766E'], titolo: t('Il tuo sonno', 'Your sleep'), testo: t('Scrivi ogni mattina quanto hai dormito, in dieci secondi: conta nel tuo Athlon Health Score. Con un anello o un orologio arriva da solo.', 'Log how long you slept each morning, in ten seconds: it counts toward your Athlon Health Score. With a ring or a watch it comes in by itself.') },
+  { icona: 'cronometro', colori: ['#FF8A2B', '#E84300'], titolo: t('I tuoi allenamenti', 'Your workouts'), testo: t('Quelli registrati dal dispositivo, accanto a quelli che fai nel club.', 'The ones recorded by your device, next to the ones you do at the club.') },
+  { icona: 'fiamma', colori: ['#5C8DFF', '#1F4FD8'], titolo: t('Il battito di notte', 'Your heart rate at night'), testo: t('Il valore più basso e la sua variabilità: un modo per vedere come recuperi.', 'The lowest value and its variability: a way to see how you’re recovering.') },
 ]
 
 const GARANZIE: { icona: NomeIcona; testo: string }[] = [
-  { icona: 'lucchetto', testo: 'Li vedi solo tu: nemmeno lo staff o i trainer.' },
-  { icona: 'scudo', testo: 'Non vediamo la tua password e non leggiamo posizione né percorsi.' },
-  { icona: 'cestino', testo: 'Scolleghi o revochi quando vuoi, e cancelliamo tutto subito.' },
+  { icona: 'lucchetto', testo: t('Li vedi solo tu: nemmeno lo staff o i trainer.', 'Only you see them: not even staff or trainers.') },
+  { icona: 'scudo', testo: t('Non vediamo la tua password e non leggiamo posizione né percorsi.', 'We never see your password and we don’t read your location or routes.') },
+  { icona: 'cestino', testo: t('Scolleghi o revochi quando vuoi, e cancelliamo tutto subito.', 'Disconnect or withdraw whenever you like, and we delete everything straight away.') },
 ]
 
 export function Vetrina({ onConsenso }: { onConsenso: () => void }) {
@@ -50,10 +51,10 @@ export function Vetrina({ onConsenso }: { onConsenso: () => void }) {
       <Entra indice={0}>
         <LinearGradient colors={RELAX} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={stili.eroe}>
           <View style={stili.novita}>
-            <Text style={stili.novitaTesto}>NOVITÀ</Text>
+            <Text style={stili.novitaTesto}>{t('NOVITÀ', 'NEW')}</Text>
           </View>
-          <Text style={stili.eroeTitolo}>Il recupero fa parte dell’allenamento</Text>
-          <Text style={stili.eroeTesto}>Scrivi quanto dormi, o collega il tuo anello Oura o il tuo orologio Polar: nell’app vedi il sonno accanto a quello che fai nel club.</Text>
+          <Text style={stili.eroeTitolo}>{t('Il recupero fa parte dell’allenamento', 'Recovery is part of training')}</Text>
+          <Text style={stili.eroeTesto}>{t('Scrivi quanto dormi, o collega il tuo anello Oura o il tuo orologio Polar: nell’app vedi il sonno accanto a quello che fai nel club.', 'Log how much you sleep, or connect your Oura ring or Polar watch: in the app you see your sleep next to what you do at the club.')}</Text>
         </LinearGradient>
       </Entra>
 
@@ -75,9 +76,12 @@ export function Vetrina({ onConsenso }: { onConsenso: () => void }) {
 
       <Entra indice={4}>
         <Carta style={{ gap: spazio.tre }}>
-          <Text style={[stili.titoletto, { color: p.testo }]}>I tuoi dati restano tuoi</Text>
+          <Text style={[stili.titoletto, { color: p.testo }]}>{t('I tuoi dati restano tuoi', 'Your data stays yours')}</Text>
           <Text style={[stili.cosaTesto, { color: p.testoSecondario }]}>
-            Il sonno e il battito sono dati sulla salute: per scriverlo o collegare un dispositivo ci serve il tuo consenso, che puoi ritirare quando vuoi.
+            {t(
+              'Il sonno e il battito sono dati sulla salute: per scriverlo o collegare un dispositivo ci serve il tuo consenso, che puoi ritirare quando vuoi.',
+              'Sleep and heart rate are health data: to log it or connect a device we need your consent, which you can withdraw whenever you like.',
+            )}
           </Text>
           <View style={{ gap: spazio.due }}>
             {GARANZIE.map((g) => (
@@ -87,8 +91,8 @@ export function Vetrina({ onConsenso }: { onConsenso: () => void }) {
               </View>
             ))}
           </View>
-          <Tocco onPress={() => setAperta(true)} etichetta="Leggi l’informativa completa" ruolo="link" style={{ alignSelf: 'flex-start' }}>
-            <Text style={[stili.link, { color: p.accento }]}>Leggi l’informativa completa</Text>
+          <Tocco onPress={() => setAperta(true)} etichetta={t('Leggi l’informativa completa', 'Read the full privacy notice')} ruolo="link" style={{ alignSelf: 'flex-start' }}>
+            <Text style={[stili.link, { color: p.accento }]}>{t('Leggi l’informativa completa', 'Read the full privacy notice')}</Text>
           </Tocco>
           <Tocco onPress={() => setSpunta((v) => !v)} vibra="scelta" ruolo="checkbox" stato={{ selected: spunta }} etichetta={CONSENSO} scala={0.99}>
             <View style={[stili.spunta, { backgroundColor: p.incavo }]}>
@@ -99,7 +103,7 @@ export function Vetrina({ onConsenso }: { onConsenso: () => void }) {
             </View>
           </Tocco>
           {errore ? <Messaggio>{errore}</Messaggio> : null}
-          <Pulsante testo="Attiva Relax" icona="avanti" onPress={attiva} disabilitato={!spunta} inCorso={inCorso} />
+          <Pulsante testo={t('Attiva Relax', 'Turn on Relax')} icona="avanti" onPress={attiva} disabilitato={!spunta} inCorso={inCorso} />
         </Carta>
       </Entra>
 
@@ -112,14 +116,14 @@ export function Vetrina({ onConsenso }: { onConsenso: () => void }) {
 export function FoglioInformativa({ aperto, onChiudi }: { aperto: boolean; onChiudi: () => void }) {
   const p = usePalette()
   return (
-    <Foglio aperto={aperto} titolo="Informativa: Dispositivi" sottotitolo={`Versione del ${VERSIONE_INFORMATIVA.split('-').reverse().join('/')}`} onChiudi={onChiudi}>
+    <Foglio aperto={aperto} titolo={t('Informativa: Dispositivi', 'Privacy notice: Devices')} sottotitolo={t(`Versione del ${VERSIONE_INFORMATIVA.split('-').reverse().join('/')}`, `Version of ${VERSIONE_INFORMATIVA.split('-').reverse().join('/')}`)} onChiudi={onChiudi}>
       {INFORMATIVA.map((s) => (
         <View key={s.titolo} style={{ gap: 4 }}>
           <Text style={[stili.cosaTitolo, { color: p.testo }]}>{s.titolo}</Text>
           <Text style={[stili.cosaTesto, { color: p.testoSecondario }]}>{s.testo}</Text>
         </View>
       ))}
-      <Pulsante testo="Ho letto" variante="secondario" onPress={onChiudi} />
+      <Pulsante testo={t('Ho letto', 'Got it')} variante="secondario" onPress={onChiudi} />
     </Foglio>
   )
 }

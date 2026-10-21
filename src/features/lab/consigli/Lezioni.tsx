@@ -3,6 +3,7 @@ import { StyleSheet, Text, View } from 'react-native'
 
 import type { SchedaLezione } from '@/api/lab'
 import type { FasciaSala, LezioneConsiglio } from '@/api/percorso'
+import { t as tr, tv } from '@/lib/lingua'
 import { spazio } from '@/theme'
 
 import { AzioniLezione } from '../Calendario'
@@ -47,12 +48,12 @@ export function RigaLezione({
           <Text style={[stili.quando, { color: p.testo }]}>{giornoOra(l.inizio)}</Text>
           {fascia ? <Text style={[stili.nota, { color: p.testoSecondario }]}>{FASCIA_SALA[fascia]}</Text> : null}
         </View>
-        <Text style={[stili.nota, { color: p.testoSecondario, flex: 1, textAlign: 'right' }]}>{l.iniziata ? 'Già iniziata' : postiDi(l)}</Text>
+        <Text style={[stili.nota, { color: p.testoSecondario, flex: 1, textAlign: 'right' }]}>{l.iniziata ? tr('Già iniziata', 'Already started') : postiDi(l)}</Text>
       </View>
       {l.prenotazione || l.compresa === false ? (
         <View style={stili.etichette}>
-          {l.prenotazione ? <Etichetta testo={l.prenotazione.attesa ? 'In lista d’attesa' : 'Prenotata'} tono="ok" icona="spunta" /> : null}
-          {l.compresa === false && !l.prenotazione ? <Etichetta testo="Da acquistare" tono="attenzione" /> : null}
+          {l.prenotazione ? <Etichetta testo={l.prenotazione.attesa ? tr('In lista d’attesa', 'On the waiting list') : tr('Prenotata', 'Booked')} tono="ok" icona="spunta" /> : null}
+          {l.compresa === false && !l.prenotazione ? <Etichetta testo={tr('Da acquistare', 'To purchase')} tono="attenzione" /> : null}
         </View>
       ) : null}
       <AzioniLezione
@@ -80,7 +81,7 @@ export function ConAltre({ voci, visibili, nome }: { voci: ReactNode[]; visibili
   return (
     <>
       {tutte || resto <= 0 ? voci : voci.slice(0, visibili)}
-      {resto > 0 && !tutte ? <Pulsante testo={`Mostra ${resto === 1 ? `un’altra ${nome[0]}` : `altre ${resto} ${nome[1]}`}`} variante="fantasma" piccolo onPress={() => setTutte(true)} /> : null}
+      {resto > 0 && !tutte ? <Pulsante testo={tr(`Mostra ${resto === 1 ? `un’altra ${nome[0]}` : `altre ${resto} ${nome[1]}`}`, `Show ${resto === 1 ? `one more ${nome[0]}` : `${resto} more ${nome[1]}`}`)} variante="fantasma" piccolo onPress={() => setTutte(true)} /> : null}
     </>
   )
 }
@@ -101,7 +102,7 @@ export function ElencoLezioni({
   if (!lezioni.length) return <Text style={[stili.nota, { color: p.testoSecondario }]}>{vuoto}</Text>
   return (
     <View style={{ gap: spazio.due }}>
-      <ConAltre visibili={2} nome={['lezione', 'lezioni']} voci={lezioni.map((l) => <RigaLezione key={l.class_id} l={l} {...resto} />)} />
+      <ConAltre visibili={2} nome={tv<[string, string]>(['lezione', 'lezioni'], ['class', 'classes'])} voci={lezioni.map((l) => <RigaLezione key={l.class_id} l={l} {...resto} />)} />
     </View>
   )
 }

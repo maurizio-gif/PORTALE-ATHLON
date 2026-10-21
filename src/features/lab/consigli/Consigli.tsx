@@ -26,12 +26,14 @@ import {
   type StatoConsigli,
 } from '@/api/percorso'
 import { euro } from '@/lib/eventi'
+import { t as tr, tv } from '@/lib/lingua'
 import { spazio } from '@/theme'
 
 import { inMemoria, prendi, ricorda } from '../memoria'
 import { PERCORSO_IN_STANDBY } from '../percorso/standby'
 import { GIORNI, GIORNO_BREVE, NOME_FASCIA } from '../percorso/comune'
 import { giornoRoma } from '../schede/contatoreCalorie'
+import { nomeObiettivo } from '../schede/questionario'
 import { Scelte, SceltePiu } from '../ui/Campi'
 import { FoglioLezione } from '../ui/FoglioLezione'
 import { Icona } from '../ui/Icona'
@@ -99,15 +101,12 @@ import { ElencoLezioni, type ApriScheda, type AzioniPrenotazione } from './Lezio
 // un pagamento o un «Dettagli» si ritrova quello che si stava guardando. Nella vista cliente dello staff non si chiede
 // niente: la funzione risponde 403 e qui non compare nessun comando.
 
-const intestazione = { sopratitolo: 'Consigli Athlon', indietro: '/allenamento' as const }
+const intestazione = { sopratitolo: tr('Consigli Athlon', 'Athlon Tips'), indietro: '/allenamento' as const }
 
-const ATTESA = [
-  'Leggo quello che mi hai raccontato…',
-  'Guardo le lezioni che ci sono…',
-  'Scelgo quelle che fanno per te…',
-  'Cerco le prossime lezioni…',
-  'Ancora qualche secondo…',
-]
+const ATTESA = tv(
+  ['Leggo quello che mi hai raccontato…', 'Guardo le lezioni che ci sono…', 'Scelgo quelle che fanno per te…', 'Cerco le prossime lezioni…', 'Ancora qualche secondo…'],
+  ['Reading what you told me…', 'Looking at the classes available…', 'Picking the ones that suit you…', 'Finding the next classes…', 'Just a few more seconds…'],
+)
 
 type Fase = 'domande' | 'attesa' | 'consigli'
 
@@ -213,16 +212,16 @@ export function Consigli() {
 
   if (vista) {
     return (
-      <Schermata {...intestazione} titolo="Consigli su misura" barra={false}>
-        <Messaggio tono="attenzione">In vista cliente i consigli non si chiedono: li chiede solo il socio.</Messaggio>
+      <Schermata {...intestazione} titolo={tr('Consigli su misura', 'Tailored tips')} barra={false}>
+        <Messaggio tono="attenzione">{tr('In vista cliente i consigli non si chiedono: li chiede solo il socio.', 'In member view tips can’t be requested: only the member can request them.')}</Messaggio>
       </Schermata>
     )
   }
   if (erroreStato?.nonAttivo || (stato && !stato.attivo)) {
     return (
-      <Schermata {...intestazione} titolo="Consigli su misura" barra={false}>
-        <Messaggio tono="attenzione" titolo="Non sono ancora attivi">
-          {erroreStato?.messaggio ?? 'I consigli non sono ancora attivi: riprova più avanti.'}
+      <Schermata {...intestazione} titolo={tr('Consigli su misura', 'Tailored tips')} barra={false}>
+        <Messaggio tono="attenzione" titolo={tr('Non sono ancora attivi', 'Not active yet')}>
+          {erroreStato?.messaggio ?? tr('I consigli non sono ancora attivi: riprova più avanti.', 'Tips aren’t active yet: try again later.')}
         </Messaggio>
         <AltraStrada />
       </Schermata>
@@ -230,11 +229,11 @@ export function Consigli() {
   }
   if (!stato) {
     return (
-      <Schermata {...intestazione} titolo="Consigli su misura" barra={false}>
+      <Schermata {...intestazione} titolo={tr('Consigli su misura', 'Tailored tips')} barra={false}>
         {erroreStato ? (
           <>
             <Messaggio>{erroreStato.messaggio}</Messaggio>
-            <Pulsante testo="Riprova" icona="aggiorna" onPress={ricarica} />
+            <Pulsante testo={tr('Riprova', 'Try again')} icona="aggiorna" onPress={ricarica} />
           </>
         ) : (
           <SchedeInArrivo />
@@ -244,20 +243,20 @@ export function Consigli() {
   }
   if (!stato.maggiorenne) {
     return (
-      <Schermata {...intestazione} titolo="Consigli su misura" barra={false}>
-        <Messaggio tono="attenzione">I consigli sono riservati ai maggiorenni.</Messaggio>
+      <Schermata {...intestazione} titolo={tr('Consigli su misura', 'Tailored tips')} barra={false}>
+        <Messaggio tono="attenzione">{tr('I consigli sono riservati ai maggiorenni.', 'Tips are for adults only.')}</Messaggio>
       </Schermata>
     )
   }
 
   if (fase === 'attesa') {
     return (
-      <Schermata {...intestazione} titolo="I tuoi consigli" barra={false}>
+      <Schermata {...intestazione} titolo={tr('I tuoi consigli', 'Your tips')} barra={false}>
         <LinearGradient colors={FUOCO} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={stili.attesa}>
           <Icona nome="stella" size={44} colore="#fff" />
           <ActivityIndicator color="#fff" />
           <Text style={stili.attesaTesto}>{ATTESA[frase]}</Text>
-          <Text style={stili.attesaNota}>Ci vogliono pochi secondi, a volte mezzo minuto: resta su questa pagina.</Text>
+          <Text style={stili.attesaNota}>{tr('Ci vogliono pochi secondi, a volte mezzo minuto: resta su questa pagina.', 'It takes a few seconds, sometimes half a minute: stay on this page.')}</Text>
         </LinearGradient>
       </Schermata>
     )
@@ -265,7 +264,7 @@ export function Consigli() {
 
   if (fase === 'consigli' && risposta) {
     return (
-      <Schermata {...intestazione} titolo="I tuoi consigli" sottotitolo={risposta.sintesi ?? undefined}>
+      <Schermata {...intestazione} titolo={tr('I tuoi consigli', 'Your tips')} sottotitolo={risposta.sintesi ?? undefined}>
         <Risposta risposta={risposta} azioni={azioni} onScheda={setAperta} onCambia={() => setFase('domande')} quota={stato.quota} />
         {aperta ? <FoglioLezione scheda={aperta.scheda} titolo={aperta.nome} categoria={aperta.categoria} onChiudi={() => setAperta(null)} /> : null}
       </Schermata>
@@ -277,117 +276,123 @@ export function Consigli() {
   return (
     <Schermata
       {...intestazione}
-      titolo="Consigli su misura"
+      titolo={tr('Consigli su misura', 'Tailored tips')}
       barra={false}
-      sottotitolo="Raccontaci chi sei e cosa ti piace: ti diciamo quali lezioni potrebbero fare per te, perché, e quando le trovi."
+      sottotitolo={tr('Raccontaci chi sei e cosa ti piace: ti diciamo quali lezioni potrebbero fare per te, perché, e quando le trovi.', 'Tell us who you are and what you like: we’ll tell you which classes might suit you, why, and when you can find them.')}
     >
       <Carta style={{ gap: spazio.due }}>
-        <Text style={[stili.nota, { color: p.testo, fontFamily: F.bold }]}>Consigli, non un programma</Text>
+        <Text style={[stili.nota, { color: p.testo, fontFamily: F.bold }]}>{tr('Consigli, non un programma', 'Tips, not a program')}</Text>
         <Text style={[stili.nota, { color: p.testoSecondario }]}>
-          Non c’è una settimana da rispettare: scegli tu quali lezioni fare e quando. Le prenoti dal Calendario o da qui, una alla volta, come sempre. Per la sala e la vasca ti portiamo a comporre il tuo piano di allenamento.
+          {tr(
+            'Non c’è una settimana da rispettare: scegli tu quali lezioni fare e quando. Le prenoti dal Calendario o da qui, una alla volta, come sempre. Per la sala e la vasca ti portiamo a comporre il tuo piano di allenamento.',
+            'There’s no weekly schedule to follow: you choose which classes to do and when. Book them from the Calendar or from here, one at a time, as usual. For the gym floor and the pool we take you to build your workout plan.',
+          )}
         </Text>
       </Carta>
 
-      <Sezione titolo="I tuoi obiettivi">
+      <Sezione titolo={tr('I tuoi obiettivi', 'Your goals')}>
         <SceltePiu
-          valori={OBIETTIVI.map((o) => ({ valore: o, testo: o }))}
+          valori={OBIETTIVI.map((o) => ({ valore: o, testo: nomeObiettivo(o) }))}
           scelti={scelte.obiettivi}
           onCambia={(obiettivi) => obiettivi.length <= OBIETTIVI_MAX && cambia({ obiettivi })}
         />
         <Text style={[stili.nota, { color: p.testoSecondario }]}>
           {scelte.obiettivi.length > 1
-            ? `Il primo che hai scelto, ${scelte.obiettivi[0]}, è quello principale.${scelte.obiettivi.length >= OBIETTIVI_MAX ? ' Ne puoi scegliere fino a tre.' : ''}`
-            : 'Puoi sceglierne più di uno, fino a tre: il primo è quello principale.'}
+            ? tr(
+                `Il primo che hai scelto, ${nomeObiettivo(scelte.obiettivi[0])}, è quello principale.${scelte.obiettivi.length >= OBIETTIVI_MAX ? ' Ne puoi scegliere fino a tre.' : ''}`,
+                `The first one you chose, ${nomeObiettivo(scelte.obiettivi[0])}, is the main one.${scelte.obiettivi.length >= OBIETTIVI_MAX ? ' You can choose up to three.' : ''}`,
+              )
+            : tr('Puoi sceglierne più di uno, fino a tre: il primo è quello principale.', 'You can choose more than one, up to three: the first is the main one.')}
         </Text>
       </Sezione>
 
-      <Sezione titolo="Cosa c’è dietro ai tuoi obiettivi" destra={<Facoltativo />}>
+      <Sezione titolo={tr('Cosa c’è dietro ai tuoi obiettivi', 'What’s behind your goals')} destra={<Facoltativo />}>
         <SceltePiu valori={BISOGNI.map((b) => ({ valore: b, testo: BISOGNO_TESTO[b].testo }))} scelti={scelte.bisogni} onCambia={(bisogni) => cambia({ bisogni })} />
         {scelte.bisogni.length ? (
           <Text style={[stili.nota, { color: p.testoSecondario }]}>{scelte.bisogni.map((b) => `${BISOGNO_TESTO[b].testo}: ${BISOGNO_TESTO[b].nota}`).join(' · ')}</Text>
         ) : null}
       </Sezione>
 
-      <Sezione titolo="La tua esperienza">
+      <Sezione titolo={tr('La tua esperienza', 'Your experience')}>
         <Scelte valori={ESPERIENZE.map((e) => ({ valore: e, testo: ESPERIENZA_TESTO[e].testo }))} scelto={esperienza} onScegli={(e) => cambia({ esperienza: e })} />
         {esperienza ? <Text style={[stili.nota, { color: p.testoSecondario }]}>{ESPERIENZA_TESTO[esperienza].nota}</Text> : null}
       </Sezione>
 
       {esperienza === 'ex' ? (
-        <Sezione titolo="Quando hai smesso" destra={<Facoltativo />}>
+        <Sezione titolo={tr('Quando hai smesso', 'When you stopped')} destra={<Facoltativo />}>
           <Scelte valori={PAUSE.map((v) => ({ valore: v, testo: PAUSA_TESTO[v] }))} scelto={scelte.pausa} onScegli={(pausa) => cambia({ pausa })} />
         </Sezione>
       ) : null}
 
       {esperienza === 'ex' || esperienza === 'pratico' ? (
         <>
-          <Sezione titolo={esperienza === 'ex' ? 'Cosa facevi' : 'Cosa fai'} destra={<Facoltativo />}>
+          <Sezione titolo={esperienza === 'ex' ? tr('Cosa facevi', 'What you used to do') : tr('Cosa fai', 'What you do')} destra={<Facoltativo />}>
             <SceltePiu valori={DISCIPLINE.map((d) => ({ valore: d, testo: DISCIPLINA_TESTO[d] }))} scelti={scelte.discipline} onCambia={(discipline) => cambia({ discipline })} />
             <Text style={[stili.nota, { color: p.testoSecondario }]}>
-              {esperienza === 'ex' ? 'Ripartire da quello che conosci rende la ripresa più facile.' : 'Ti proponiamo qualcosa che completi quello che fai già, senza ripeterlo.'}
+              {esperienza === 'ex' ? tr('Ripartire da quello che conosci rende la ripresa più facile.', 'Starting from what you know makes getting back into it easier.') : tr('Ti proponiamo qualcosa che completi quello che fai già, senza ripeterlo.', 'We’ll suggest something that complements what you already do, without repeating it.')}
             </Text>
           </Sezione>
-          <Sezione titolo="Com’è la tua forma oggi">
+          <Sezione titolo={tr('Com’è la tua forma oggi', 'How fit you are today')}>
             <Scelte valori={LIVELLI.map((l) => ({ valore: l, testo: LIVELLO_TESTO[l].testo }))} scelto={scelte.livello} onScegli={(livello) => cambia({ livello })} />
             {scelte.livello ? <Text style={[stili.nota, { color: p.testoSecondario }]}>{LIVELLO_TESTO[scelte.livello].nota}</Text> : null}
           </Sezione>
         </>
       ) : null}
 
-      <Sezione titolo="Cosa ti piace fare" destra={<Facoltativo />}>
+      <Sezione titolo={tr('Cosa ti piace fare', 'What you like to do')} destra={<Facoltativo />}>
         <SceltePiu valori={GUSTI.map((g) => ({ valore: g.valore, testo: g.testo }))} scelti={gustiDi(scelte)} onCambia={(gusti) => cambia(conGusti(scelte, gusti))} />
         <Text style={[stili.nota, { color: p.testoSecondario }]}>
           {gustiDi(scelte).length
             ? GUSTI.filter((g) => gustiDi(scelte).includes(g.valore))
                 .map((g) => `${g.testo}: ${g.nota}`)
                 .join(' · ')
-            : 'Se non scegli niente, guardiamo tutte le lezioni.'}
+            : tr('Se non scegli niente, guardiamo tutte le lezioni.', 'If you don’t choose anything, we look at all the classes.')}
         </Text>
       </Sezione>
 
       {scelte.nuotare ? (
-        <Sezione titolo="Sai nuotare stile libero e dorso?">
+        <Sezione titolo={tr('Sai nuotare stile libero e dorso?', 'Can you swim freestyle and backstroke?')}>
           <Scelte
             valori={[
-              { valore: 'si', testo: 'Sì' },
-              { valore: 'no', testo: 'Non ancora' },
+              { valore: 'si', testo: tr('Sì', 'Yes') },
+              { valore: 'no', testo: tr('Non ancora', 'Not yet') },
             ]}
             scelto={scelte.saNuotare === null ? null : scelte.saNuotare ? 'si' : 'no'}
             onScegli={(v) => cambia({ saNuotare: v === 'si' })}
           />
           <Text style={[stili.nota, { color: p.testoSecondario }]}>
             {scelte.saNuotare === true
-              ? 'Ti diciamo come inserire il Nuoto Libero Assistito nella settimana, e ti portiamo a comporre il tuo piano di nuoto.'
+              ? tr('Ti diciamo come inserire il Nuoto Libero Assistito nella settimana, e ti portiamo a comporre il tuo piano di nuoto.', 'We’ll tell you how to fit Nuoto Libero Assistito into your week, and take you to build your swim plan.')
               : scelte.saNuotare === false
-                ? 'Ti consigliamo la Scuola Nuoto Adulti, dove si comincia: sono gli istruttori a dirti quando passare al nuoto libero.'
+                ? tr('Ti consigliamo la Scuola Nuoto Adulti, dove si comincia: sono gli istruttori a dirti quando passare al nuoto libero.', 'We recommend Scuola Nuoto Adulti, where you start: the instructors will tell you when to move on to lap swimming.')
                 : MESSAGGIO_SCUOLA_NUOTO}
           </Text>
           {nuotoNonCompreso ? (
-            <Messaggio tono="attenzione">Il Nuoto Libero non risulta nel tuo abbonamento: i turni si prenotano a pagamento, come lezione singola.</Messaggio>
+            <Messaggio tono="attenzione">{tr('Il Nuoto Libero non risulta nel tuo abbonamento: i turni si prenotano a pagamento, come lezione singola.', 'Nuoto Libero isn’t in your membership: slots are booked for a fee, as a single class.')}</Messaggio>
           ) : null}
         </Sezione>
       ) : null}
 
-      <Sezione titolo="Che intensità preferisci" destra={<Facoltativo />}>
+      <Sezione titolo={tr('Che intensità preferisci', 'What intensity you prefer')} destra={<Facoltativo />}>
         <Scelte valori={INTENSITA.map((i) => ({ valore: i, testo: INTENSITA_TESTO[i].testo }))} scelto={scelte.intensita} onScegli={(intensita) => cambia({ intensita: intensita === scelte.intensita ? null : intensita })} />
         {scelte.intensita ? <Text style={[stili.nota, { color: p.testoSecondario }]}>{INTENSITA_TESTO[scelte.intensita].nota}</Text> : null}
       </Sezione>
 
-      <Sezione titolo="Quante volte a settimana pensi di venire">
+      <Sezione titolo={tr('Quante volte a settimana pensi di venire', 'How many times a week you plan to come')}>
         <Scelte valori={[1, 2, 3, 4, 5, 6].map((n) => ({ valore: n, testo: String(n) }))} scelto={scelte.volte_settimana} onScegli={(volte_settimana) => cambia({ volte_settimana })} />
-        <Text style={[stili.nota, { color: p.testoSecondario }]}>{`Ti proponiamo cose per ${volteTesto(scelte.volte_settimana)}, più o meno: poi scegli tu.`}</Text>
+        <Text style={[stili.nota, { color: p.testoSecondario }]}>{tr(`Ti proponiamo cose per ${volteTesto(scelte.volte_settimana)}, più o meno: poi scegli tu.`, `We’ll suggest things for about ${volteTesto(scelte.volte_settimana)}: then it’s up to you.`)}</Text>
       </Sezione>
 
-      <Sezione titolo="Quando ti piacerebbe venire" destra={<Facoltativo />}>
+      <Sezione titolo={tr('Quando ti piacerebbe venire', 'When you’d like to come')} destra={<Facoltativo />}>
         <SceltePiu valori={GIORNI.map((g) => ({ valore: g as number, testo: GIORNO_BREVE[g] }))} scelti={scelte.giorni} onCambia={(v) => cambia({ giorni: [...v].sort((a, b) => a - b) })} />
         <SceltePiu valori={FASCE.map((f) => ({ valore: f, testo: NOME_FASCIA[f].titolo }))} scelti={scelte.fasce} onCambia={(fasce) => cambia({ fasce })} />
         <Text style={[stili.nota, { color: p.testoSecondario }]}>
           {scelte.fasce.length ? `${scelte.fasce.map((f) => `${NOME_FASCIA[f].titolo}: ${NOME_FASCIA[f].nota}`).join(' · ')}. ` : ''}
-          Non è un vincolo: ti mostriamo prima le lezioni che ci stanno, ma ti diciamo anche quelle adatte a te in altri momenti.
+          {tr('Non è un vincolo: ti mostriamo prima le lezioni che ci stanno, ma ti diciamo anche quelle adatte a te in altri momenti.', 'It’s not a constraint: we show the classes that fit first, but we also tell you about ones that suit you at other times.')}
         </Text>
       </Sezione>
 
-      <Sezione titolo="Ti ha mai seguito un personal trainer?" destra={<Facoltativo />}>
+      <Sezione titolo={tr('Ti ha mai seguito un personal trainer?', 'Have you ever worked with a personal trainer?')} destra={<Facoltativo />}>
         <Scelte
           valori={PERSONAL_ESPERIENZE.map((v) => ({ valore: v, testo: PERSONAL_ESPERIENZA_TESTO[v] }))}
           scelto={scelte.personal_esperienza}
@@ -395,7 +400,7 @@ export function Consigli() {
         />
       </Sezione>
 
-      <Sezione titolo="Ti piacerebbe allenarti con un personal trainer?" destra={<Facoltativo />}>
+      <Sezione titolo={tr('Ti piacerebbe allenarti con un personal trainer?', 'Would you like to train with a personal trainer?')} destra={<Facoltativo />}>
         <Scelte
           valori={PERSONAL_INTERESSI.map((v) => ({ valore: v, testo: PERSONAL_INTERESSE_TESTO[v] }))}
           scelto={scelte.personal_interesse}
@@ -403,61 +408,64 @@ export function Consigli() {
         />
         <Text style={[stili.nota, { color: p.testoSecondario }]}>
           {scelte.personal_interesse === 'no'
-            ? 'Va bene: non te lo proponiamo.'
-            : 'Un trainer del club che lavora solo con te, accanto alle lezioni: se ti può servire, ti diciamo quante sedute al mese avrebbero senso.'}
+            ? tr('Va bene: non te lo proponiamo.', 'That’s fine: we won’t suggest it.')
+            : tr('Un trainer del club che lavora solo con te, accanto alle lezioni: se ti può servire, ti diciamo quante sedute al mese avrebbero senso.', 'A club trainer who works only with you, alongside classes: if it could help, we’ll tell you how many sessions a month would make sense.')}
         </Text>
       </Sezione>
 
-      <Sezione titolo="Lezioni che vuoi evitare" destra={<Facoltativo />}>
+      <Sezione titolo={tr('Lezioni che vuoi evitare', 'Classes you want to avoid')} destra={<Facoltativo />}>
         <Carta style={{ gap: spazio.due }}>
           <TextInput
             value={scelte.evitate}
-            onChangeText={(t) => cambia({ evitate: t.slice(0, 200) })}
-            placeholder="Per esempio: boxing, step. Separale con una virgola."
+            onChangeText={(v) => cambia({ evitate: v.slice(0, 200) })}
+            placeholder={tr('Per esempio: boxing, step. Separale con una virgola.', 'For example: boxing, step. Separate them with a comma.')}
             placeholderTextColor={p.testoTerzo}
             style={[stili.riga, { color: p.testo, backgroundColor: p.incavo }]}
-            accessibilityLabel="Lezioni da evitare"
+            accessibilityLabel={tr('Lezioni da evitare', 'Classes to avoid')}
           />
         </Carta>
       </Sezione>
 
       {stato.idoneita.categorie != null ? (
-        <Sezione titolo="Lezioni non comprese">
+        <Sezione titolo={tr('Lezioni non comprese', 'Classes not included')}>
           <Scelte
             valori={[
-              { valore: 'no', testo: 'Solo quelle comprese' },
-              { valore: 'si', testo: 'Includi anche le altre' },
+              { valore: 'no', testo: tr('Solo quelle comprese', 'Only those included') },
+              { valore: 'si', testo: tr('Includi anche le altre', 'Include the others too') },
             ]}
             scelto={scelte.includi_non_comprese ? 'si' : 'no'}
             onScegli={(v) => cambia({ includi_non_comprese: v === 'si' })}
           />
           <Text style={[stili.nota, { color: p.testoSecondario }]}>
-            Quelle fuori dal tuo abbonamento compaiono segnate «da acquistare» e si prenotano come lezione singola, a pagamento. Di base le lasciamo fuori.
+            {tr('Quelle fuori dal tuo abbonamento compaiono segnate «da acquistare» e si prenotano come lezione singola, a pagamento. Di base le lasciamo fuori.', 'Those outside your membership are marked “to purchase” and are booked as a paid single class. By default we leave them out.')}
           </Text>
         </Sezione>
       ) : null}
 
-      <Sezione titolo="Limitazioni o infortuni" destra={<Facoltativo />}>
+      <Sezione titolo={tr('Limitazioni o infortuni', 'Limitations or injuries')} destra={<Facoltativo />}>
         <Carta style={{ gap: spazio.due }}>
           <TextInput
             value={limitazioni}
-            onChangeText={(t) => setLimitazioni(t.slice(0, 500))}
-            placeholder="Per esempio: mal di schiena, una spalla da proteggere. Lascia vuoto se non ne hai."
+            onChangeText={(v) => setLimitazioni(v.slice(0, 500))}
+            placeholder={tr('Per esempio: mal di schiena, una spalla da proteggere. Lascia vuoto se non ne hai.', 'For example: back pain, a shoulder to protect. Leave empty if you have none.')}
             placeholderTextColor={p.testoTerzo}
             multiline
             style={[stili.testo, { color: p.testo, backgroundColor: p.incavo }]}
-            accessibilityLabel="Limitazioni o infortuni"
+            accessibilityLabel={tr('Limitazioni o infortuni', 'Limitations or injuries')}
           />
         </Carta>
       </Sezione>
 
       {errore ? <Messaggio>{errore}</Messaggio> : null}
-      {quotaFinita ? <Messaggio tono="attenzione">{`Hai chiesto i consigli ${stato.quota.massimo} volte oggi: riprova domani. Intanto puoi guardare il Calendario.`}</Messaggio> : null}
-      {manca.length ? <Text style={[stili.nota, { color: p.testoSecondario, textAlign: 'center' }]}>{`Per continuare manca ${manca.join(', ')}.`}</Text> : null}
-      <Pulsante testo="Dammi i consigli" icona="stella" onPress={chiedi} disabilitato={!questionario || quotaFinita} />
-      {risposta ? <Pulsante testo="Torna ai consigli di prima" variante="fantasma" onPress={() => setFase('consigli')} /> : null}
+      {quotaFinita ? <Messaggio tono="attenzione">{tr(`Hai chiesto i consigli ${stato.quota.massimo} volte oggi: riprova domani. Intanto puoi guardare il Calendario.`, `You’ve asked for tips ${stato.quota.massimo} times today: try again tomorrow. Meanwhile you can check the Calendar.`)}</Messaggio> : null}
+      {manca.length ? <Text style={[stili.nota, { color: p.testoSecondario, textAlign: 'center' }]}>{tr(`Per continuare manca ${manca.join(', ')}.`, `To continue we still need ${manca.join(', ')}.`)}</Text> : null}
+      <Pulsante testo={tr('Dammi i consigli', 'Give me tips')} icona="stella" onPress={chiedi} disabilitato={!questionario || quotaFinita} />
+      {risposta ? <Pulsante testo={tr('Torna ai consigli di prima', 'Back to the previous tips')} variante="fantasma" onPress={() => setFase('consigli')} /> : null}
       <Text style={[stili.avvertenza, { color: p.testoTerzo }]}>
-        I consigli li scrive un’intelligenza artificiale: le tue risposte, limitazioni comprese, non vengono conservate. Non sostituiscono il parere di un medico: con dolori, infortuni o patologie parlane prima con un istruttore in sala.
+        {tr(
+          'I consigli li scrive un’intelligenza artificiale: le tue risposte, limitazioni comprese, non vengono conservate. Non sostituiscono il parere di un medico: con dolori, infortuni o patologie parlane prima con un istruttore in sala.',
+          'The tips are written by an artificial intelligence: your answers, limitations included, aren’t stored. They don’t replace a doctor’s advice: if you have pain, injuries or medical conditions, talk to an instructor on the gym floor first.',
+        )}
       </Text>
       <AltraStrada />
     </Schermata>
@@ -466,7 +474,7 @@ export function Consigli() {
 
 const Facoltativo = () => {
   const p = usePalette()
-  return <Text style={[stili.facoltativo, { color: p.testoTerzo }]}>FACOLTATIVO</Text>
+  return <Text style={[stili.facoltativo, { color: p.testoTerzo }]}>{tr('FACOLTATIVO', 'OPTIONAL')}</Text>
 }
 
 /** Per chi preferisce la settimana a tappe del tutor (il Percorso Athlon): in standby non si offre (`percorso/standby.ts`). */
@@ -474,9 +482,10 @@ function AltraStrada() {
   const p = usePalette()
   if (PERCORSO_IN_STANDBY) return null
   return (
-    <Tocco onPress={() => router.push('/allenamento/percorso')} etichetta="Apri il Percorso Athlon, la settimana a tappe" style={stili.altraStrada}>
+    <Tocco onPress={() => router.push('/allenamento/percorso')} etichetta={tr('Apri il Percorso Athlon, la settimana a tappe', 'Open the Athlon Program, the week in steps')} style={stili.altraStrada}>
       <Text style={[stili.nota, { color: p.testoSecondario, textAlign: 'center' }]}>
-        Preferisci una settimana già a tappe? <Text style={{ color: p.accento, fontFamily: F.bold }}>Apri il Percorso Athlon</Text>
+        {tr('Preferisci una settimana già a tappe? ', 'Prefer a week already planned in steps? ')}
+        <Text style={{ color: p.accento, fontFamily: F.bold }}>{tr('Apri il Percorso Athlon', 'Open the Athlon Program')}</Text>
       </Text>
     </Tocco>
   )
@@ -492,17 +501,17 @@ function Risposta({ risposta, azioni, onScheda, onCambia, quota }: { risposta: R
     <>
       {risposta.integrazione ? (
         <Carta style={{ gap: spazio.due }}>
-          <Text style={[stili.nota, { color: p.testo, fontFamily: F.bold }]}>Come metterle insieme</Text>
+          <Text style={[stili.nota, { color: p.testo, fontFamily: F.bold }]}>{tr('Come metterle insieme', 'How to put them together')}</Text>
           <Text style={[stili.nota, { color: p.testoSecondario }]}>{risposta.integrazione}</Text>
         </Carta>
       ) : null}
 
       {!risposta.prenotazioni_lette ? (
-        <Messaggio tono="attenzione">Non riusciamo a leggere le tue prenotazioni adesso: le lezioni si vedono, ma non sappiamo cosa hai già prenotato.</Messaggio>
+        <Messaggio tono="attenzione">{tr('Non riusciamo a leggere le tue prenotazioni adesso: le lezioni si vedono, ma non sappiamo cosa hai già prenotato.', 'We can’t read your bookings right now: you can see the classes, but we don’t know what you’ve already booked.')}</Messaggio>
       ) : null}
 
       {risposta.consigli.length ? (
-        <Sezione titolo="Le lezioni che potrebbero interessarti">
+        <Sezione titolo={tr('Le lezioni che potrebbero interessarti', 'Classes you might like')}>
           <View style={{ gap: spazio.quattro }}>
             {risposta.consigli.map((c, i) => (
               <Entra key={c.tipo.id} indice={i}>
@@ -523,12 +532,15 @@ function Risposta({ risposta, azioni, onScheda, onCambia, quota }: { risposta: R
       ))}
 
       <Text style={[stili.avvertenza, { color: p.testoTerzo }]}>
-        I posti cambiano in fretta: l’ultima parola è del Calendario. Prima di una nuova lezione contano le regole di sempre, per esempio quante prenotazioni attive si possono avere per categoria.
+        {tr(
+          'I posti cambiano in fretta: l’ultima parola è del Calendario. Prima di una nuova lezione contano le regole di sempre, per esempio quante prenotazioni attive si possono avere per categoria.',
+          'Spots change quickly: the Calendar has the final say. The usual rules apply before a new class, for example how many active bookings you can have per category.',
+        )}
       </Text>
 
       <View style={{ gap: spazio.due }}>
-        <Pulsante testo="Cambia le risposte" icona="modifica" variante="scuro" onPress={onCambia} />
-        <Text style={[stili.piccola, { color: p.testoTerzo, textAlign: 'center' }]}>{`Hai chiesto i consigli ${quota.usate} ${quota.usate === 1 ? 'volta' : 'volte'} oggi su ${quota.massimo}.`}</Text>
+        <Pulsante testo={tr('Cambia le risposte', 'Change your answers')} icona="modifica" variante="scuro" onPress={onCambia} />
+        <Text style={[stili.piccola, { color: p.testoTerzo, textAlign: 'center' }]}>{tr(`Hai chiesto i consigli ${quota.usate} ${quota.usate === 1 ? 'volta' : 'volte'} oggi su ${quota.massimo}.`, `You’ve asked for tips ${quota.usate} ${quota.usate === 1 ? 'time' : 'times'} today out of ${quota.massimo}.`)}</Text>
       </View>
     </>
   )
@@ -552,8 +564,8 @@ function CartaConsiglio({ c, schede, azioni, onScheda }: { c: ConsiglioRisolto; 
       </View>
       {c.tipo.compresa === false || c.tipo.spessoCompleta ? (
         <View style={stili.etichette}>
-          {c.tipo.compresa === false ? <Etichetta testo="Da acquistare" tono="attenzione" /> : null}
-          {c.tipo.spessoCompleta ? <Etichetta testo="Spesso al completo" tono="attenzione" /> : null}
+          {c.tipo.compresa === false ? <Etichetta testo={tr('Da acquistare', 'To purchase')} tono="attenzione" /> : null}
+          {c.tipo.spessoCompleta ? <Etichetta testo={tr('Spesso al completo', 'Often full')} tono="attenzione" /> : null}
         </View>
       ) : null}
       {c.perche ? <Text style={[stili.perche, { color: p.testoSecondario }]}>{c.perche}</Text> : null}
@@ -561,18 +573,18 @@ function CartaConsiglio({ c, schede, azioni, onScheda }: { c: ConsiglioRisolto; 
       <OrariDiSolito orari={c.orari} />
 
       <View style={{ gap: spazio.due }}>
-        <Text style={[stili.sottoTitolo, { color: p.testo }]}>Le prossime</Text>
-        <ElencoLezioni lezioni={c.prossime} vuoto="Nei prossimi giorni non ce ne sono: guarda le alternative, o il Calendario più avanti." {...comune} />
+        <Text style={[stili.sottoTitolo, { color: p.testo }]}>{tr('Le prossime', 'Upcoming')}</Text>
+        <ElencoLezioni lezioni={c.prossime} vuoto={tr('Nei prossimi giorni non ce ne sono: guarda le alternative, o il Calendario più avanti.', 'There are none in the next few days: look at the alternatives, or at the Calendar further ahead.')} {...comune} />
         {!c.prossime.length && schedaSito ? (
-          <Pulsante testo="Com’è la lezione" variante="fantasma" piccolo onPress={() => onScheda({ nome: c.tipo.nome, categoria: c.tipo.categoria, scheda: schedaSito })} />
+          <Pulsante testo={tr('Com’è la lezione', 'What the class is like')} variante="fantasma" piccolo onPress={() => onScheda({ nome: c.tipo.nome, categoria: c.tipo.categoria, scheda: schedaSito })} />
         ) : null}
       </View>
 
       {c.alternative.length ? (
         <View style={{ gap: spazio.due }}>
-          <Tocco onPress={() => setAlternative((a) => !a)} vibra="scelta" etichetta={`${alternative ? 'Nascondi' : 'Mostra'} le alternative a ${c.tipo.nome}`} style={stili.alternativeTesta}>
+          <Tocco onPress={() => setAlternative((a) => !a)} vibra="scelta" etichetta={tr(`${alternative ? 'Nascondi' : 'Mostra'} le alternative a ${c.tipo.nome}`, `${alternative ? 'Hide' : 'Show'} alternatives to ${c.tipo.nome}`)} style={stili.alternativeTesta}>
             <View style={{ flex: 1, gap: 1 }}>
-              <Text style={[stili.sottoTitolo, { color: p.testo }]}>{`Se questa non va: ${c.alternative.length} ${c.alternative.length === 1 ? 'alternativa' : 'alternative'}`}</Text>
+              <Text style={[stili.sottoTitolo, { color: p.testo }]}>{tr(`Se questa non va: ${c.alternative.length} ${c.alternative.length === 1 ? 'alternativa' : 'alternative'}`, `If this one doesn’t work: ${c.alternative.length} ${c.alternative.length === 1 ? 'alternative' : 'alternatives'}`)}</Text>
               <Text style={[stili.nota, { color: p.testoSecondario }]} numberOfLines={alternative ? undefined : 1}>
                 {c.alternative.map((a) => a.tipo.nome).join(' · ')}
               </Text>
@@ -589,11 +601,11 @@ function CartaConsiglio({ c, schede, azioni, onScheda }: { c: ConsiglioRisolto; 
                   <OrariDiSolito orari={a.orari} piccolo />
                   {a.tipo.compresa === false || a.tipo.spessoCompleta ? (
                     <View style={stili.etichette}>
-                      {a.tipo.compresa === false ? <Etichetta testo="Da acquistare" tono="attenzione" /> : null}
-                      {a.tipo.spessoCompleta ? <Etichetta testo="Spesso al completo" tono="attenzione" /> : null}
+                      {a.tipo.compresa === false ? <Etichetta testo={tr('Da acquistare', 'To purchase')} tono="attenzione" /> : null}
+                      {a.tipo.spessoCompleta ? <Etichetta testo={tr('Spesso al completo', 'Often full')} tono="attenzione" /> : null}
                     </View>
                   ) : null}
-                  <ElencoLezioni lezioni={a.prossime} vuoto="Nei prossimi giorni non ce ne sono." {...comune} />
+                  <ElencoLezioni lezioni={a.prossime} vuoto={tr('Nei prossimi giorni non ce ne sono.', 'There are none in the next few days.')} {...comune} />
                 </View>
               ))
             : null}
@@ -614,7 +626,7 @@ function OrariDiSolito({ orari, piccolo }: { orari: OrarioLezione[]; piccolo?: b
   const { orari: ordinati, fuori } = orariOrdinati(orari)
   return (
     <View style={{ gap: spazio.due }}>
-      {piccolo ? null : <Text style={[stili.sottoTitolo, { color: p.testo }]}>La trovi di solito</Text>}
+      {piccolo ? null : <Text style={[stili.sottoTitolo, { color: p.testo }]}>{tr('La trovi di solito', 'Usually held')}</Text>}
       <View style={stili.etichette}>
         {ordinati.map((o) => (
           <View key={`${o.giorno}-${o.ora}`} style={[stili.orario, { backgroundColor: o.tuo ? p.accento : p.incavo }]}>
@@ -623,9 +635,9 @@ function OrariDiSolito({ orari, piccolo }: { orari: OrarioLezione[]; piccolo?: b
         ))}
       </View>
       {fuori ? (
-        <Text style={[stili.piccola, { color: p.testoTerzo }]}>Non nei giorni o negli orari che preferisci: te la proponiamo lo stesso.</Text>
+        <Text style={[stili.piccola, { color: p.testoTerzo }]}>{tr('Non nei giorni o negli orari che preferisci: te la proponiamo lo stesso.', 'Not on the days or at the times you prefer: we’re suggesting it anyway.')}</Text>
       ) : ordinati.some((o) => o.tuo) && !piccolo ? (
-        <Text style={[stili.piccola, { color: p.testoTerzo }]}>In arancio gli orari nei giorni e nelle fasce che preferisci.</Text>
+        <Text style={[stili.piccola, { color: p.testoTerzo }]}>{tr('In arancio gli orari nei giorni e nelle fasce che preferisci.', 'Times on your preferred days and time slots are in orange.')}</Text>
       ) : null}
     </View>
   )
@@ -638,7 +650,7 @@ function OrariDiSolito({ orari, piccolo }: { orari: OrarioLezione[]; piccolo?: b
  */
 function BloccoSedute({ sedute }: { sedute: SedutaConsigliata[] }) {
   return (
-    <Sezione titolo="In sala e in vasca, con il tuo piano">
+    <Sezione titolo={tr('In sala e in vasca, con il tuo piano', 'On the gym floor and in the pool, with your plan')}>
       <View style={{ gap: spazio.quattro }}>
         {sedute.map((s, i) => (
           <Entra key={`${s.ambiente}-${i}`} indice={i}>
@@ -655,7 +667,7 @@ function CartaSeduta({ s }: { s: SedutaConsigliata }) {
   const inVasca = s.ambiente === 'vasca'
   const dove = destinazioniSeduta(s)
   const giorni = giorniTesto(s.giorni)
-  const titolo = s.cosa ?? (inVasca ? 'Nuoto Libero' : 'Una seduta in sala')
+  const titolo = s.cosa ?? (inVasca ? 'Nuoto Libero' : tr('Una seduta in sala', 'A gym floor session'))
   return (
     <Carta style={{ gap: spazio.tre }}>
       <View style={stili.testa}>
@@ -663,21 +675,21 @@ function CartaSeduta({ s }: { s: SedutaConsigliata }) {
         <View style={{ flex: 1, gap: 2 }}>
           <Text style={[stili.titolo, { color: p.testo }]}>{titolo.charAt(0).toUpperCase() + titolo.slice(1)}</Text>
           <Text style={[stili.nota, { color: p.testoSecondario }]}>
-            {[inVasca ? 'In vasca · Nuoto Libero' : 'In sala · Gym Floor', volteTesto(s.volte), s.fascia === 'con_assistenza' ? 'meglio nei turni con l’assistente di sala' : s.fascia === 'libero' ? 'anche in allenamento libero' : null].filter(Boolean).join(' · ')}
+            {[inVasca ? tr('In vasca · Nuoto Libero', 'In the pool · Nuoto Libero') : tr('In sala · Gym Floor', 'On the floor · Gym Floor'), volteTesto(s.volte), s.fascia === 'con_assistenza' ? tr('meglio nei turni con l’assistente di sala', 'best in slots with the floor assistant') : s.fascia === 'libero' ? tr('anche in allenamento libero', 'free workout works too') : null].filter(Boolean).join(' · ')}
           </Text>
         </View>
       </View>
       {s.perche ? <Text style={[stili.perche, { color: p.testoSecondario }]}>{s.perche}</Text> : null}
-      {giorni ? <Text style={[stili.nota, { color: p.testo }]}>{`Potresti metterla ${s.giorni.length === 1 ? 'il' : 'fra'} ${giorni}.`}</Text> : null}
+      {giorni ? <Text style={[stili.nota, { color: p.testo }]}>{tr(`Potresti metterla ${s.giorni.length === 1 ? 'il' : 'fra'} ${giorni}.`, `You could do it on ${giorni}.`)}</Text> : null}
       <Text style={[stili.piccola, { color: p.testoTerzo }]}>
         {inVasca
-          ? 'Cosa fare in vasca te lo dice il tuo piano di nuoto: lo componi tu, con il tuo obiettivo, e lo leggi a bordo vasca.'
-          : 'Cosa fare in sala te lo dice il tuo piano di allenamento: lo componi tu, con il tuo obiettivo. Con l’assistente di sala c’è chi supervisiona le attività e risponde ai tuoi dubbi.'}
+          ? tr('Cosa fare in vasca te lo dice il tuo piano di nuoto: lo componi tu, con il tuo obiettivo, e lo leggi a bordo vasca.', 'What to do in the pool is in your swim plan: you build it yourself, around your goal, and read it poolside.')
+          : tr('Cosa fare in sala te lo dice il tuo piano di allenamento: lo componi tu, con il tuo obiettivo. Con l’assistente di sala c’è chi supervisiona le attività e risponde ai tuoi dubbi.', 'What to do on the gym floor is in your workout plan: you build it yourself, around your goal. With the floor assistant there’s someone supervising the gym floor and answering your questions.')}
       </Text>
       <View style={{ gap: spazio.due }}>
-        <Pulsante testo={inVasca ? 'Componi il tuo piano di nuoto' : 'Componi il tuo piano in sala'} icona={inVasca ? 'goccia' : 'peso'} onPress={() => router.push(dove.piano)} />
+        <Pulsante testo={inVasca ? tr('Componi il tuo piano di nuoto', 'Build your swim plan') : tr('Componi il tuo piano in sala', 'Build your gym floor plan')} icona={inVasca ? 'goccia' : 'peso'} onPress={() => router.push(dove.piano)} />
         {dove.calendario ? (
-          <Pulsante testo={inVasca ? 'Prenota un turno in vasca' : 'Prenota un turno in sala'} icona="calendario" variante="fantasma" onPress={() => router.push(dove.calendario!)} />
+          <Pulsante testo={inVasca ? tr('Prenota un turno in vasca', 'Book a pool slot') : tr('Prenota un turno in sala', 'Book a gym floor slot')} icona="calendario" variante="fantasma" onPress={() => router.push(dove.calendario!)} />
         ) : null}
       </View>
     </Carta>
@@ -706,13 +718,13 @@ function CartaPersonal({ c, memberId }: { c: ConsiglioPersonal; memberId: number
   }, [memberId])
   const f = formulePersonal(c, stato)
   return (
-    <Sezione titolo="Con un personal trainer">
+    <Sezione titolo={tr('Con un personal trainer', 'With a personal trainer')}>
       <Carta style={{ gap: spazio.tre }}>
         <View style={stili.testa}>
           <Bollino icona="persona" tono="accento" size={42} />
           <View style={{ flex: 1, gap: 2 }}>
-            <Text style={[stili.titolo, { color: p.testo }]}>{`Ti consigliamo ${sedutePersonalTesto(c.sedute_mese)}`}</Text>
-            <Text style={[stili.nota, { color: p.testoSecondario }]}>Accanto alle lezioni, con un trainer che lavora solo con te</Text>
+            <Text style={[stili.titolo, { color: p.testo }]}>{tr(`Ti consigliamo ${sedutePersonalTesto(c.sedute_mese)}`, `We recommend ${sedutePersonalTesto(c.sedute_mese)}`)}</Text>
+            <Text style={[stili.nota, { color: p.testoSecondario }]}>{tr('Accanto alle lezioni, con un trainer che lavora solo con te', 'Alongside classes, with a trainer who works only with you')}</Text>
           </View>
         </View>
         {c.perche ? <Text style={[stili.perche, { color: p.testoSecondario }]}>{c.perche}</Text> : null}
@@ -720,20 +732,20 @@ function CartaPersonal({ c, memberId }: { c: ConsiglioPersonal; memberId: number
           <ActivityIndicator color={p.accento} />
         ) : f.attivo ? (
           <>
-            <Text style={[stili.nota, { color: p.testo }]}>{`Hai già l’abbonamento PT «${f.attivo}»: prenota le sedute del mese con il trainer che preferisci.`}</Text>
-            <Pulsante testo="Prenota una seduta" icona="calendario" onPress={() => router.push('/personal')} />
+            <Text style={[stili.nota, { color: p.testo }]}>{tr(`Hai già l’abbonamento PT «${f.attivo}»: prenota le sedute del mese con il trainer che preferisci.`, `You already have the PT membership “${f.attivo}”: book this month’s sessions with the trainer you prefer.`)}</Text>
+            <Pulsante testo={tr('Prenota una seduta', 'Book a session')} icona="calendario" onPress={() => router.push('/personal')} />
           </>
         ) : (
           <>
             <RigaFormula f={f.consigliata} principale />
             {f.senzaAbbonamento ? (
               <Text style={[stili.piccola, { color: p.testoTerzo }]}>
-                {`L’abbonamento PT da ${sedutePersonalTesto(c.sedute_mese)} si aggiunge a un abbonamento attivo: intanto puoi cominciare con una seduta singola.`}
+                {tr(`L’abbonamento PT da ${sedutePersonalTesto(c.sedute_mese)} si aggiunge a un abbonamento attivo: intanto puoi cominciare con una seduta singola.`, `The PT membership with ${sedutePersonalTesto(c.sedute_mese)} is added to an active membership: meanwhile you can start with a single session.`)}
               </Text>
             ) : null}
             {f.altre.length ? (
               <View style={{ gap: spazio.due }}>
-                <Text style={[stili.sottoTitolo, { color: p.testo }]}>Oppure</Text>
+                <Text style={[stili.sottoTitolo, { color: p.testo }]}>{tr('Oppure', 'Or')}</Text>
                 {f.altre.map((x) => (
                   <RigaFormula key={x.chiave} f={x} />
                 ))}
@@ -741,7 +753,7 @@ function CartaPersonal({ c, memberId }: { c: ConsiglioPersonal; memberId: number
             ) : null}
           </>
         )}
-        <Text style={[stili.piccola, { color: p.testoTerzo }]}>Il personal si paga a parte. Prima di pagare un abbonamento PT leggi le sue regole nel foglio d’acquisto.</Text>
+        <Text style={[stili.piccola, { color: p.testoTerzo }]}>{tr('Il personal si paga a parte. Prima di pagare un abbonamento PT leggi le sue regole nel foglio d’acquisto.', 'Personal training is paid separately. Before paying for a PT membership, read its rules in the purchase sheet.')}</Text>
       </Carta>
     </Sezione>
   )
@@ -749,8 +761,8 @@ function CartaPersonal({ c, memberId }: { c: ConsiglioPersonal; memberId: number
 
 function RigaFormula({ f, principale }: { f: FormulaPersonal; principale?: boolean }) {
   const p = usePalette()
-  const prezzo = f.prezzo != null ? `${euro(f.prezzo)}${f.alMese ? ' al mese' : ''}` : null
-  const azione = f.destinazione.params ? 'Attiva l’abbonamento PT' : 'Prenota e paga la seduta'
+  const prezzo = f.prezzo != null ? `${euro(f.prezzo)}${f.alMese ? tr(' al mese', ' a month') : ''}` : null
+  const azione = f.destinazione.params ? tr('Attiva l’abbonamento PT', 'Activate the PT membership') : tr('Prenota e paga la seduta', 'Book and pay for the session')
   if (principale) {
     return (
       <View style={[stili.formula, { backgroundColor: p.incavo }]}>

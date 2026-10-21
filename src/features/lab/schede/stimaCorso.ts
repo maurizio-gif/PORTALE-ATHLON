@@ -1,5 +1,5 @@
 import type { SchedaLezione } from '@/api/lab'
-import { t } from '@/lib/lingua'
+import { t } from '../../../lib/lingua'
 
 import { kcal, metabolismoBasale, type Sesso } from './stimaCalorie'
 
