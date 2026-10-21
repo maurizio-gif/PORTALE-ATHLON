@@ -662,7 +662,7 @@ compilato (obiettivi, esperienza «ho smesso» con quando e cosa, forma, gusti c
 `obiettivo`, `esperienza`, `pausa`, `discipline`, `giorni`, `nuoto: 'libero'`, `personal_esperienza`, `personal_interesse`, `bisogni`), la carta del personal con i prezzi letti da `statoPersonal` e «Attiva
 l’abbonamento PT» che apre `/personal?compra=226` sul foglio dell'abbonamento da 4 sedute, le carte con «La trovi di solito» e gli orari suoi in arancio, quella fuori dai suoi orari, le sedute in sala e in vasca con
 «Potresti metterla…», e «Componi il tuo piano di nuoto» che apre `/allenamento/agente?dove=vasca` già in vasca; nessuno scorrimento orizzontale, nessun errore di pagina. **Non provato**: una sessione vera, la
-funzione vera e il prompt nuovo con un modello vero, un telefono, e il tema scuro sotto i 900 px.
+funzione vera e il prompt nuovo con un modello vero, un telefono, e il tema scuro sotto i 900 px. **In produzione dal 21/10/2026** (merge di questa app dopo `portale-lab-percorso` v4 e prima del nodo n8n nuovo, vedi APP-ATHLON).
 
 ## Il Percorso Athlon: la settimana a tappe, composta dal tutor dentro il palinsesto vero
 
