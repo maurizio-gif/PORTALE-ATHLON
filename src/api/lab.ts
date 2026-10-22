@@ -824,9 +824,22 @@ export type Questionario = {
   attrezzatura: 'tutto' | 'macchine' | 'pesi_liberi'
   limitazioni: string
   note: string
+  // Le risposte del questionario a passi (22/10/2026): tutte facoltative, una chiave c'e' solo se la risposta e' stata data. I valori sono
+  // quelli di `schede/questionario.ts`, che la funzione ricontrolla (`_shared/schede/questionario.ts` di APP-ATHLON): una funzione che non li
+  // conosce ancora li ignora, e il piano si scrive con le sette risposte di sempre.
+  focus?: string[]
+  esperienza?: string
+  strumenti?: string[]
+  capacita?: Record<string, string>
+  zone?: string[]
+  giornata?: string
+  evita?: string[]
+  cardio?: string
+  intensita?: string
+  fascia?: string
 }
 
-const schedeLab = (corpo: Record<string, unknown>) => funzione('portale-lab-schede', corpo)
+const schedeLab =(corpo: Record<string, unknown>) => funzione('portale-lab-schede', corpo)
 
 export async function elencoSchede(): Promise<Esito<{ schede: RigaSchedaLab[]; ultimi: SedutaBreve[]; ai: { usate: number; massimo: number }; test: StatoTest }>> {
   const { ok, dati } = await schedeLab({ azione: 'elenco' })
