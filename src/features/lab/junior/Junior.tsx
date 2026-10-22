@@ -113,8 +113,14 @@ export function Junior() {
   // gia' iscritto (ha il suo abbonamento sopra), salvo che li chieda.
   const mostraGruppi =
     !persona || tuttiIGruppi || (!personaBaby && !personaIscritta);
+  // Con una persona scelta l'anno e' il suo: non si sceglie (si vedono solo i gruppi per i suoi anni). Le tessere restano
+  // solo se non si sa chi e', o se il suo anno non ha nessun gruppo.
+  const annoPersona = persona ? annoDi(persona) : null;
+  const annoFisso = annoPersona != null && anni.includes(annoPersona) ? annoPersona : null;
   const scelto =
-    anno != null && anni.includes(anno)
+    annoFisso != null
+      ? annoFisso
+      : anno != null && anni.includes(anno)
       ? anno
       : annoIniziale(anni, chiesto ?? annoDalNucleo(nucleo, anni)?.toString());
 
@@ -203,7 +209,7 @@ export function Junior() {
       {...intestazione}
       sottotitolo={
         mostraGruppi
-          ? t("I gruppi attivi e i posti ancora liberi. Scegli l’anno di nascita.", "Active groups and spots still available. Choose the birth year.")
+          ? t("I gruppi attivi e i posti ancora liberi.", "Active groups and spots still available.")
           : t(`I corsi di ${persona?.nome ?? "chi hai scelto"}: abbonamento, lezioni e recuperi.`, `${persona?.nome ?? "The person you chose"}’s courses: membership, classes and make-ups.`)
       }
     >
@@ -339,6 +345,18 @@ export function Junior() {
       {mostraGruppi ? (
         <>
           <View style={{ gap: spazio.due }}>
+            {annoFisso != null && persona ? (
+              <Text
+                style={[stili.filtriTitolo, { color: p.testoSecondario }]}
+                accessibilityRole="header"
+              >
+                {t(
+                  `Gruppi per ${persona.nome ?? "chi hai scelto"} · nato nel ${annoFisso}`,
+                  `Groups for ${persona.nome ?? "the person you chose"} · born in ${annoFisso}`,
+                )}
+              </Text>
+            ) : (
+              <>
             <Text
               style={[stili.filtriTitolo, { color: p.testoSecondario }]}
               accessibilityRole="header"
@@ -382,6 +400,8 @@ export function Junior() {
                 );
               })}
             </View>
+              </>
+            )}
             {giorniAnno.length ? (
               <>
                 <Text

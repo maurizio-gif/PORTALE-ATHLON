@@ -1177,3 +1177,7 @@ Richiesta di Maurizio: Junior deve essere «una vera sezione junior only one», 
 - **Chi prenota lo decide il server**: il titolare è l'indirizzo della sessione, il bambino deve essere un minorenne del suo nucleo con un'iscrizione in corso. Poi la funzione chiama la stessa rotta del sito: stessa agenda, stesso tetto di due al giorno, stessa email di conferma e avviso a nuoto@; la riga nasce con `origine = 'app'`. Un orario preso nel frattempo rilegge gli orari e lo dice.
 - **In vista cliente** si vede la spiegazione e non si prenota (`dt_prenota` risponde 403).
 - **Non provato**: una prenotazione vera con una sessione vera, la schermata resa (390 e 1280 px), un telefono. `tsc` pulito sui file toccati. **Pubblicare in ordine**: migrazione `20261022e`, `portale-lab-junior`, CRM (merge), app.
+
+## Junior: l'anno di nascita non si sceglie, è quello della persona (22/10/2026)
+
+Richiesta di Maurizio. Con una persona scelta in «La tua famiglia» (`Junior.tsx`, `annoFisso`) i gruppi sono **solo quelli del suo anno di nascita**: le tessere degli anni non compaiono, al loro posto una riga «Gruppi per <nome> · nato nel <anno>». Le tessere restano solo se non c'è una persona o se il suo anno non ha nessun gruppo. Il filtro per giorno e «solo con posti liberi» restano. `tsc` pulito; **non guardato renderizzato**.
