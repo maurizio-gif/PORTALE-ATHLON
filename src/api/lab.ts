@@ -1199,8 +1199,44 @@ export type QuotaFutura = {
   carta_scade: string | null
 }
 
-export async function movimentiPagamenti(): Promise<Esito<{ storico: Movimento[]; daSaldare: Movimento[]; futuri: QuotaFutura[] }>> {
+/** Con quale carta si propone di saldare le quote scadute: le ultime cifre e la scadenza («AAAA-MM»), o null. */
+export type CartaSaldo = { finale: string | null; scade: string | null }
+
+export async function movimentiPagamenti(): Promise<Esito<{ storico: Movimento[]; daSaldare: Movimento[]; futuri: QuotaFutura[]; cartaSaldo: CartaSaldo | null }>> {
   const { ok, dati } = await pagamenti({ azione: 'movimenti' })
-  if (ok) return { ok: true, storico: dati.storico ?? [], daSaldare: dati.da_saldare ?? [], futuri: dati.futuri ?? [] }
+  // `saldo` manca con la funzione di prima (22/10/2026): niente carta da proporre, si paga dalla pagina della carta.
+  if (ok) return { ok: true, storico: dati.storico ?? [], daSaldare: dati.da_saldare ?? [], futuri: dati.futuri ?? [], cartaSaldo: dati.saldo?.carta ?? null }
   return { ok: false, errore: dati.errore ?? t('Non riusciamo a leggere i tuoi pagamenti adesso.', 'We can’t load your payments right now.') }
+}
+
+// ---------------------------------------------------------------------------
+// Il saldo delle quote scadute (22/10/2026): si pagano adesso, con la carta salvata o dalla pagina della carta di Adyen.
+// Il server rilegge le quote da PerfectGym e non addebita niente se il totale non e' quello mostrato (`importo_cambiato`).
+
+export type EsitoSaldo =
+  | { ok: true; stato: 'in_corso' | 'pagato'; url?: undefined }
+  | { ok: true; stato: 'redirect'; url: string }
+  | { ok: false; errore: string; importoCambiato?: number; nonAttivo?: boolean }
+
+export async function saldaPagamenti(totale: number, conCarta: boolean): Promise<EsitoSaldo> {
+  const { ok, dati } = await pagamenti({ azione: 'salda', totale, con_carta: conCarta })
+  if (ok && dati.stato === 'redirect' && typeof dati.url === 'string') return { ok: true, stato: 'redirect', url: dati.url }
+  if (ok && (dati.stato === 'in_corso' || dati.stato === 'pagato')) return { ok: true, stato: dati.stato }
+  // Una funzione di prima non conosce l'azione: il pagamento da qui non c'e' ancora.
+  if (dati.errore === 'Azione sconosciuta.' || dati.errore === 'Unknown action.') {
+    return { ok: false, nonAttivo: true, errore: t('Il pagamento dall’app non è ancora attivo: aggiorna il metodo di pagamento, il club riprova l’addebito.', 'Paying from the app isn’t available yet: update your payment method, the club will retry the charge.') }
+  }
+  return {
+    ok: false,
+    errore: dati.errore ?? t('Non siamo riusciti a completare il pagamento adesso.', 'We couldn’t complete the payment right now.'),
+    importoCambiato: dati.codice === 'importo_cambiato' && typeof dati.totale === 'number' ? dati.totale : undefined,
+  }
+}
+
+export type StatoSaldo = { stato: 'nessuno' | 'in_corso' | 'pagato' | 'fallito'; daPagare: number | null; motivo: string | null }
+
+export async function esitoSaldo(): Promise<Esito<StatoSaldo>> {
+  const { ok, dati } = await pagamenti({ azione: 'saldo_esito' })
+  if (ok) return { ok: true, stato: dati.stato ?? 'nessuno', daPagare: typeof dati.da_pagare === 'number' ? dati.da_pagare : null, motivo: dati.motivo ?? null }
+  return { ok: false, errore: dati.errore ?? t('Non riusciamo a verificare il pagamento adesso.', 'We can’t check the payment right now.') }
 }
