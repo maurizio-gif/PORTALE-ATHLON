@@ -354,8 +354,8 @@ vuol dire altro (la scheda del socio al club, la scheda di una lezione, l'Help D
   - **In sala il questionario è a passi** (22/10/2026, richiesta di Maurizio: «le domande che facciamo oggi per la scheda d'allenamento sono veramente troppo poche»; l'idea
     è delle app che chiedono una cosa per schermata). **Una domanda per schermata**, indietro a sinistra, **l'anello in alto a destra che si chiude** (`AnelloPassi.tsx`: un
     `Svg` fermo, il valore passa da `requestAnimationFrame`; con «riduci movimento» salta) e «Continua» in basso, spento finché non si risponde. File: `Agente.tsx` (sceglie fra sala e
-    vasca), `PassiSala.tsx` (i passi), `PassiUI.tsx` (la carta di una risposta, la griglia), `SaluteBlocco.tsx` (il riquadro del personal trainer, lo stesso in sala e in vasca), `FormVasca.tsx`
-    (**la vasca resta il modulo di prima**: le domande sul nuoto si rifanno dopo, e qui non ci sono squat o flessioni), `rispostePiano.ts` (le risposte in memoria).
+    vasca), `PassiSala.tsx` (i passi), `PassiUI.tsx` (la carta di una risposta, la griglia), `SaluteBlocco.tsx` (il riquadro del personal trainer, lo stesso in sala e in vasca), `rispostePiano.ts`
+    (le risposte in memoria). **La vasca ha il suo questionario a passi, più corto** (22/10/2026, più sotto): qui non ci sono squat o flessioni.
     - **I 18 passi, in ordine**: obiettivo (con «Salute» che porta al personal trainer, **com'era**: non c'è una domanda in più sui limiti del medico), su cosa concentrarsi (fino a 3, facoltativo),
       esperienza, **con cosa ti trovi bene** (multipla), i tre test (squat, flessioni, plank, con «non lo so»), **il tuo livello** (stimato, cambiabile), fastidi per zona (o «nessun fastidio»; se c'è una
       zona compare un campo facoltativo), com'è la giornata, cosa evitare (o «niente»), cardio, intensità (dolce, media, intensa: le parole dei consigli), durata, **giorni a settimana** (solo il numero,
@@ -383,6 +383,32 @@ vuol dire altro (la scheda del socio al club, la scheda di una lezione, l'Help D
       passaggio alla vasca e il ritorno in sala, `?dove=sala` e `?dove=vasca`, la memoria uscendo e rientrando, niente delle risposte sul disco. **Non provato**: un telefono vero, la funzione vera con una sessione vera,
       il piano che il modello scrive visto dall'app (provato con il modello vero dal database, otto profili: vedi APP-ATHLON), e le animazioni con «riduci movimento».
       **Pubblicato il 22/10/2026 nell'ordine giusto**: prima il nodo n8n e `portale-lab-schede` v16 (la funzione accetta sia le risposte di prima sia le nuove, quindi un'app rimasta aperta funziona), poi questa app.
+  - **In vasca il questionario è a passi, e più semplice** (22/10/2026, richiesta di Maurizio: «qualcosa di più semplice e focalizzato sull'acqua»). Stesso schema della sala (una domanda per
+    schermata, l'anello che si chiude, «Continua», il riepilogo «Ecco cosa abbiamo capito» che si corregge riga per riga; solo «Componi il mio piano di nuoto» fa partire la richiesta), ma **sei domande
+    sole e tutte sul nuoto**. File: `PassiVasca.tsx` (i passi), `questionarioVasca.ts` (le regole, **pure**: si provano con `LC_ALL=it_IT.UTF-8 npx tsx`), `rispostePiano.ts` (la memoria, ora una per la
+    sala e una per la vasca) e gli stessi `PassiUI.tsx`, `AnelloPassi.tsx`, `SaluteBlocco.tsx` della sala. **`FormVasca.tsx`, il modulo a pagina sola, è stato tolto**; `CampiNuoto.tsx` resta (lo usa il
+    Percorso, in standby).
+    - **I sei passi e il riepilogo.** (1) **Cosa vuoi ottenere in vasca**, con le parole dell'acqua: Nuotare meglio (`Tecnica`), Avere più fiato (`Resistenza`), Tonificarmi (`Tonificazione`), Dimagrire
+      (`Dimagrimento`), Stare bene (`Benessere generale`), e «Salute» in fondo, che porta al personal trainer **com'era**. Mobilità, Forza e Ipertrofia non si offrono più (la funzione li accetta ancora).
+      (2) **Che stili sai nuotare** (multipla, con «Non ne so ancora nessuno» che esclude gli altri): senza stile libero e dorso si legge dove si comincia (`MESSAGGIO_SCUOLA_NUOTO`, la Scuola Nuoto Adulti,
+      mai un «non sei pronto») e «Continua» resta spento. (3) **Quanto riesci a nuotare di fila**, con le vasche accanto ai metri (la vasca è da 25 m: quattro vasche sono 100 m). (4) **Quanto tempo hai**
+      (30, 45 o 60 minuti: il turno è di un'ora, il piano sta nel tempo che scegli). (5) **Quante volte a settimana** (da 1 a 4, con «Consigliato»). (6) **Fastidi** (spalle, collo, zona lombare, ginocchia,
+      anche, o «nessun fastidio»; con una zona si può aggiungere due righe). Il **riepilogo** ha sette righe e ognuna si tocca per cambiarla.
+    - **Il livello non si chiede: si stima e si mostra nel riepilogo** (`livelloVascaDa`). Quanto nuota di fila (da 0 a 3 punti) più un punto se sa tre stili o più: da 2 punti è intermedio, da 4 esperto
+      (oltre 1000 m con due stili resta intermedio). Toccando la riga «Livello» si apre «Il tuo livello in acqua» (`PassoVascaTutti`: un passo che non è di fila e a cui si arriva solo dal riepilogo), dove
+      si cambia; cambiare stili o distanza fa decadere un livello scelto a mano. **Le volte consigliate** (`volteConsigliate`): due, tre per un esperto, una in più per chi è intermedio e punta a fiato o
+      dimagrimento e per le sedute da 30 minuti, sempre fra 2 e 4. **Soglie nostre, da far validare dal Direttore Tecnico.**
+    - **La funzione non è cambiata**: parte lo stesso `QuestionarioNuoto` di prima (otto campi). I **fastidi** vanno nel testo delle `limitazioni` («Fastidio o dolore a: spalle, ginocchia. <quello che ha
+      scritto>», in italiano, al massimo 500 caratteri, e **solo se c'è una zona**); `note` parte vuota. **Non c'è una regola che tolga la farfalla a chi ha male a una spalla o la rana per le
+      ginocchia**: lo decide il modello dalla regola 9 del suo prompt (esercizi e distanze prudenti, ricordare il tecnico a bordo vasca). Se il club la vuole, è una regola nel codice della funzione
+      (APP-ATHLON), come la pliometria in sala.
+    - **Le risposte non restano**: solo in memoria (`rispostePiano.ts`), si buttano a piano composto e uscendo dall'app (`dimenticaTutteLeRisposte` in `memoria.ts`). Dal primo passo, con `?dove=vasca` (dai
+      Consigli) si esce; se invece si è scelto «In vasca» in «Dove ti alleni?», indietro riporta a quella domanda e le risposte della vasca restano.
+    - **Provato.** `npx tsc --noEmit` pulito; le regole pure con `LC_ALL=it_IT.UTF-8 npx tsx` (7 gruppi: stili e Scuola Nuoto, livello, volte, passi, questionario, opzioni, riepilogo; provate per
+      mutazione); **in Chromium** (bundle web esportato, funzione simulata con `page.route`; 390, 360 e 1280 px, tema chiaro e scuro, e in inglese): i sei passi e il riepilogo, Salute (nessun «Continua»),
+      il messaggio della Scuola Nuoto, il livello cambiato dal riepilogo, la richiesta che parte (otto campi, valori giusti), una prima richiesta non riuscita con l'errore sul riepilogo e le risposte che
+      restano, la partenza con `?dove=vasca`, il ritorno a «Dove ti alleni?»; nessuno scorrimento orizzontale. **Non provato**: un telefono vero, la funzione vera con una sessione vera, e il piano
+      che il modello scrive con le risposte nuove (i campi sono gli stessi, ma `limitazioni` ora comincia con una frase fissa).
   - **L'AI non è in primo piano** (20/10/2026): niente «Agente AI», niente viola, i testi dicono «generiamo insieme» e «componi» («Stiamo leggendo le tue
     risposte…» nell'attesa, che ora dura una decina di secondi e non un paio di minuti). **Che dietro ci sia un'intelligenza artificiale si dice nelle
     postille**, in piccolo e senza nasconderlo: la nota in fondo al questionario, quella in fondo all'editor («Questa bozza è stata composta con il supporto di
@@ -842,11 +868,11 @@ Richiesta del club (20/10/2026). Cartelle `src/features/lab/schede/` (`nuoto.ts`
 **piano di nuoto**: un piano come gli altri (`schede`, `tipo = 'socio'`, `origine = 'ai'`), fatto con gli esercizi di nuoto della libreria — «4 × 100 m, recupero 20″, medio» —
 e scritto dall'agente. Funzione, regole del codice, quota e come si accende: sezione «Il piano di nuoto» del `CLAUDE.md` di APP-ATHLON.
 
-- **Due strade, un piano solo.** Dall'**agente dei piani** (`Agente.tsx`): la prima domanda è «Dove ti alleni» (in sala / in vasca · Nuoto Libero); in vasca si chiedono
-  obiettivo (c'è anche «Tecnica»), livello, quante volte (1-4), quanto dura la seduta (30, 45 o 60 minuti), gli stili che sa nuotare e quanto nuota di fila, e le limitazioni;
+- **Due strade, un piano solo.** Dall'**agente dei piani** (`Agente.tsx`): la prima domanda è «Dove ti alleni» (in sala / in vasca · Nuoto Libero); in vasca il questionario è a passi
+  (22/10/2026, `PassiVasca.tsx`: cosa vuoi ottenere in vasca, che stili sai, quanto nuoti di fila, quanto tempo hai, quante volte, fastidi; il livello si stima e si cambia dal riepilogo, vedi la sezione dei piani);
   `chiediPianoNuoto` risponde con una **bozza** che passa dall'editor (`?da=bozza`). Dal **Percorso**: «Quante volte in vasca» (0-3), con gli stessi due campi
   (`CampiNuoto`), e il piano torna con la bozza del percorso. In tutti e due i casi lo si rivede, lo si modifica e lo si conferma: solo allora è un piano suo.
-- **Il Nuoto Libero chiede stile libero e dorso.** Scelti gli stili senza uno dei due, `CampiNuoto` dice dove si comincia (`MESSAGGIO_SCUOLA_NUOTO`: la Scuola Nuoto Adulti, dove
+- **Il Nuoto Libero chiede stile libero e dorso.** Scelti gli stili senza uno dei due, `PassiVasca` (e `CampiNuoto`, nel Percorso) dice dove si comincia (`MESSAGGIO_SCUOLA_NUOTO`: la Scuola Nuoto Adulti, dove
   sono gli istruttori a dire quando passare — **non «non sei pronto»**) e il pulsante resta spento. Il testo è lo stesso della funzione, che ricontrolla (400): se cambia, cambia
   in `src/api/lab.ts` e là.
 - **Si legge, non si registra** (`Scheda.tsx`, `ambiente: 'vasca'`): niente «Inizia» (il server rifiuta), niente calorie, niente «ultima volta». Al posto del conto degli esercizi
