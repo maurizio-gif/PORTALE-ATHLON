@@ -5,18 +5,22 @@ import { ActivityIndicator, ScrollView, StyleSheet, Text, TextInput, useWindowDi
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { chiediSchedaAi } from '@/api/lab'
+import { ultimiConsigli } from '@/api/percorso'
 import { t, tv } from '@/lib/lingua'
 import { spazio, tinta } from '@/theme'
 
 import { mettiBozza, scartaBozza } from './bozza'
+import { SCELTE_DI_PARTENZA, scelteDa } from '../consigli/comune'
 import { useSegnaAzioneInAlto } from '../feedback/posizione'
 import { Icona } from '../ui/Icona'
 import { Carta, Entra, Messaggio, Pulsante } from '../ui/kit'
 import { Schermata } from '../ui/Schermata'
 import { F, FUOCO, usePalette } from '../ui/tema'
 import { colpetto, Tocco } from '../ui/Tocco'
+import { vistaCorrente } from '../vista'
 import { AnelloPassi } from './AnelloPassi'
 import { Griglia, OpzioneCarta } from './PassiUI'
+import { aggiornaProfilo, daConsigli, daSala, daSalaCambiate, giaCercato, inSala, leggiProfilo, livelloDaSala, salaDaProfilo, segnaCercato, senzaToccate, soloMancanti, type CampoSala } from './profiloComune'
 import {
   accendi, CARDIO, DURATE_SALA, ESPERIENZE, eSalute, EVITA, FASCE, FOCUS, FOCUS_MAX, giorniConsigliati, giorniScelti, GIORNATE, INTENSITA, LIVELLI_PASSI, livelloDa, livelloScelto, nomeObiettivo, NESSUNO, OBIETTIVI, OBIETTIVO_SALUTE,
   PASSI_SALA, passoCompleto, questionarioSalaDa, riepilogoDa, STRUMENTI, TEST, ZONE, type NomeTest, type PassoSala, type Risposte,
@@ -33,6 +37,10 @@ import { SaluteBlocco } from './SaluteBlocco'
 // «Componi il mio piano» fa partire la richiesta; torna una bozza, che l'editor fa rivedere e confermare come prima. **Le risposte non
 // restano**: solo in memoria (`rispostePiano.ts`), perche' i fastidi sono dati sulla salute, e uscendo dall'app si buttano.
 // **Salute** (20/10/2026) resta com'era: non e' un obiettivo per l'agente, porta al personal trainer. La vasca ha il suo, di sei domande sul nuoto (`PassiVasca.tsx`).
+//
+// **Quello che la persona ha gia' detto nei Consigli** (22/10/2026, `profiloComune.ts`) si ritrova scelto e segnato («Dalle tue risposte precedenti»):
+// obiettivo, esperienza, intensita' e quando si allena, mai i fastidi. Solo dove non ha ancora risposto, finche' non lo tocca; quello che risponde qui
+// passa ai Consigli.
 
 const ATTESA = tv(
   [
@@ -51,6 +59,9 @@ const ATTESA = tv(
   ],
 )
 
+/** La riga sopra una risposta che la persona aveva gia' dato (nei Consigli o in un piano di prima): `profiloComune.ts`. */
+const DAL_PROFILO = t('Dalle tue risposte precedenti', 'From your earlier answers')
+
 const DOVE = [
   { valore: 'sala', testo: t('In sala', 'In the gym') },
   { valore: 'vasca', testo: t('In vasca · Nuoto Libero', 'In the pool · Nuoto Libero') },
@@ -66,7 +77,12 @@ export function PassiSala({ dove, onDove, saltaDove, onVasca }: { dove: 'sala' |
 
   // Si riparte da dove si era arrivati (solo in memoria): un gesto indietro per sbaglio non fa perdere venti risposte.
   const ricordate = useRef(leggiRisposte()).current
-  const [r, setR] = useState<Risposte>(ricordate.risposte)
+  // Quello che ha gia' detto (nei Consigli, o in un piano di prima) si ritrova scelto e segnato finche' non lo tocca: `profiloComune.ts`.
+  const partenza = useRef(salaDaProfilo(ricordate.risposte, ricordate.riportate, leggiProfilo())).current
+  const [r, setR] = useState<Risposte>(partenza.risposte)
+  const [riportate, setRiportate] = useState<CampoSala[]>(partenza.riportate)
+  const rCorrente = useRef(r)
+  rCorrente.current = r
   const [passo, setPasso] = useState<Passo>(() => (ricordate.passo && ordine.includes(ricordate.passo) ? ricordate.passo : ordine[0]))
   // Si e' saltati qui dal riepilogo per cambiare una riga: finito il passo si torna al riepilogo, non si rifanno quelli in mezzo.
   const [daRiepilogo, setDaRiepilogo] = useState(false)
@@ -79,8 +95,36 @@ export function PassiSala({ dove, onDove, saltaDove, onVasca }: { dove: 'sala' |
   useSegnaAzioneInAlto(!inCorso, useIsFocused())
 
   useEffect(() => {
-    ricordaRisposte(r, passo)
+    ricordaRisposte(r, passo, riportate)
+  }, [r, passo, riportate])
+  // La forma di oggi, come l'hanno stimata i test, passa al profilo quando la persona l'ha vista: da dopo il passo «Il tuo livello».
+  useEffect(() => {
+    if (PASSI_SALA.indexOf(passo as PassoSala) <= PASSI_SALA.indexOf('livello')) return
+    const l = livelloDaSala(r)
+    if (l) aggiornaProfilo({ livello: l })
   }, [r, passo])
+  // Senza un profilo in questa apertura dell'app, chi ha gia' chiesto i Consigli li ha salvati dalla funzione: il profilo si ricava da li'
+  // (una volta per apertura, e mai in vista cliente). Arriva in ritardo: scrive solo cio' che il profilo non ha ancora, e riporta nelle
+  // domande solo cio' che la persona non ha ancora risposto.
+  useEffect(() => {
+    if (vistaCorrente() || giaCercato() || Object.keys(leggiProfilo()).length) return
+    let vivo = true
+    ;(async () => {
+      const x = await ultimiConsigli()
+      // Se la funzione ha risposto (anche «niente salvato») non si cerca piu' fino alla prossima apertura dell'app; se non ha risposto si riprova.
+      if (x.ok) segnaCercato()
+      if (!x.ok || !x.risposta?.questionario) return
+      aggiornaProfilo(soloMancanti(leggiProfilo(), daConsigli({ ...SCELTE_DI_PARTENZA, ...scelteDa(x.risposta.questionario) })))
+      if (!vivo) return
+      const dal = inSala(leggiProfilo(), rCorrente.current)
+      if (!dal.riportate.length) return
+      setR({ ...rCorrente.current, ...dal.risposte })
+      setRiportate((prima) => [...new Set([...prima, ...dal.riportate])])
+    })()
+    return () => {
+      vivo = false
+    }
+  }, [])
   useEffect(() => {
     scorri.current?.scrollTo({ y: 0, animated: false })
   }, [passo])
@@ -99,6 +143,9 @@ export function PassiSala({ dove, onDove, saltaDove, onVasca }: { dove: 'sala' |
       if ('esperienza' in x || 'squat' in x || 'flessioni' in x || 'plank' in x) nuovo.livello = null
       return nuovo
     })
+    // Quello che tocca e' suo: non si segna piu' come riportato, e quello che e' in comune passa al profilo, per i Consigli.
+    setRiportate((prima) => senzaToccate(prima, Object.keys(x)))
+    aggiornaProfilo(daSalaCambiate(x))
   }
 
   const i = Math.max(0, ordine.indexOf(passo))
@@ -146,6 +193,8 @@ export function PassiSala({ dove, onDove, saltaDove, onVasca }: { dove: 'sala' |
     colpetto('ok')
     scartaBozza()
     mettiBozza(risposta.bozza)
+    // Quello che ha confermato (non i fastidi) si ritrova nei Consigli, e in un piano di dopo.
+    aggiornaProfilo({ ...daSala(r), livello: livelloDaSala(r) })
     // Il piano e' composto: le risposte (con i fastidi) non servono piu'.
     dimenticaRisposte()
     router.replace({ pathname: '/allenamento/nuova', params: { da: 'bozza' } })
@@ -176,6 +225,8 @@ export function PassiSala({ dove, onDove, saltaDove, onVasca }: { dove: 'sala' |
       ))}
     </View>
   )
+  /** L'etichetta «Dalle tue risposte precedenti» sulla risposta portata dal profilo, finche' non la tocca. */
+  const eti = <T extends string>(campo: CampoSala, valore: T | null): Partial<Record<T, string>> | undefined => (valore && riportate.includes(campo) ? ({ [valore]: DAL_PROFILO } as Partial<Record<T, string>>) : undefined)
   const piu = <T extends string>(opzioni: readonly { valore: T; testo: string; nota?: string }[], scelti: readonly (T | typeof NESSUNO)[], onCambia: (v: (T | typeof NESSUNO)[]) => void, max = Infinity, nessuno?: string) => (
     <View style={stili.lista}>
       {opzioni.map((o) => (
@@ -215,7 +266,7 @@ export function PassiSala({ dove, onDove, saltaDove, onVasca }: { dove: 'sala' |
       titolo = t('Qual è il tuo obiettivo?', 'What’s your goal?')
       corpo = (
         <>
-          {una([...OBIETTIVI, OBIETTIVO_SALUTE].map((o) => ({ valore: o as string, testo: nomeObiettivo(o) })), r.obiettivo, (o) => imposta({ obiettivo: o, condizione: eSalute(o) ? r.condizione : null }))}
+          {una([...OBIETTIVI, OBIETTIVO_SALUTE].map((o) => ({ valore: o as string, testo: nomeObiettivo(o) })), r.obiettivo, (o) => imposta({ obiettivo: o, condizione: eSalute(o) ? r.condizione : null }), eti('obiettivo', r.obiettivo))}
           {salute ? <SaluteBlocco condizione={r.condizione} onCondizione={(c) => imposta({ condizione: c })} /> : null}
         </>
       )
@@ -227,7 +278,7 @@ export function PassiSala({ dove, onDove, saltaDove, onVasca }: { dove: 'sala' |
       break
     case 'esperienza':
       titolo = t('Hai già esperienza di allenamento?', 'Do you have training experience?')
-      corpo = una(ESPERIENZE, r.esperienza, (v) => imposta({ esperienza: v }))
+      corpo = una(ESPERIENZE, r.esperienza, (v) => imposta({ esperienza: v }), eti('esperienza', r.esperienza))
       break
     case 'strumenti':
       titolo = t('Con cosa ti trovi bene in sala?', 'What are you comfortable using in the gym?')
@@ -286,7 +337,7 @@ export function PassiSala({ dove, onDove, saltaDove, onVasca }: { dove: 'sala' |
       break
     case 'intensita':
       titolo = t('Quanto vuoi che sia impegnativo?', 'How demanding should it be?')
-      corpo = una(INTENSITA, r.intensita, (v) => imposta({ intensita: v }))
+      corpo = una(INTENSITA, r.intensita, (v) => imposta({ intensita: v }), eti('intensita', r.intensita))
       break
     case 'durata':
       titolo = t('Quanto dura una seduta?', 'How long is a session?')
@@ -307,7 +358,7 @@ export function PassiSala({ dove, onDove, saltaDove, onVasca }: { dove: 'sala' |
     case 'fascia':
       titolo = t('Quando ti alleni di solito?', 'When do you usually train?')
       nota = t('Ci aiuta a tenere conto di quando la sala è più piena.', 'It helps us account for when the gym is busiest.')
-      corpo = una(FASCE, r.fascia, (v) => imposta({ fascia: v }))
+      corpo = una(FASCE, r.fascia, (v) => imposta({ fascia: v }), eti('fascia', r.fascia))
       break
     case 'note':
       titolo = t('Qualcosa che vuoi dirci?', 'Anything you’d like to tell us?')

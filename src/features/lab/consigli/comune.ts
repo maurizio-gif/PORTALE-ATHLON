@@ -32,6 +32,8 @@ import { locale, t, tv } from '@/lib/lingua'
 export const CHIAVE_STATO_CONSIGLI = 'consigli:stato'
 export const CHIAVE_ULTIMI_CONSIGLI = 'consigli:ultimi'
 export const CHIAVE_SCELTE_CONSIGLI = 'consigli:scelte'
+/** Le scelte portate dal profilo comune (`schede/profiloComune.ts`) e non ancora toccate: alla riapertura si rifanno dal profilo. */
+export const CHIAVE_RIPORTATE_CONSIGLI = 'consigli:riportate'
 
 /**
  * Le scelte del questionario nella forma in cui stanno nella schermata. **Le limitazioni non ci sono**: sono dati sulla salute,
