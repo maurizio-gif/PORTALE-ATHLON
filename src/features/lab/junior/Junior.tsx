@@ -33,6 +33,7 @@ import {
   annoDalNucleo,
   annoDi,
   annoIniziale,
+  calendarioGruppo,
   chiPuoIscriversi,
   anniDisponibili,
   conPosto,
@@ -45,9 +46,11 @@ import {
   statoPosti,
   titoloGruppo,
 } from "./comune";
+import { ComeFunziona } from "./ComeFunziona";
 import { CorsiPersona } from "./Corsi";
 import { FoglioComponente } from "./FoglioComponente";
 import { FoglioLivelli } from "./FoglioLivelli";
+import { TestataJunior } from "./Presentazione";
 
 // La sezione Junior (21/10/2026, richiesta di Maurizio): tutti i gruppi dei corsi per bambini e ragazzi attivi adesso
 // (Scuola Nuoto mono e bisettimanale, Nuoto Agonistico e Propaganda, Pallanuoto), divisi per anno di nascita, con i
@@ -201,6 +204,7 @@ export function Junior() {
           : t(`I corsi di ${persona?.nome ?? "chi hai scelto"}: abbonamento, lezioni e recuperi.`, `${persona?.nome ?? "The person you chose"}’s courses: membership, classes and make-ups.`)
       }
     >
+      <TestataJunior nome={persona?.nome} />
       {nucleo ? (
         <Sezione titolo={t("La tua famiglia", "Your family")}>
           {persone.length ? (
@@ -315,6 +319,8 @@ export function Junior() {
         aperto={storiaLivelli}
         onChiudi={() => setStoriaLivelli(false)}
       />
+
+      <ComeFunziona />
 
       {mostraGruppi ? (
         <>
@@ -489,6 +495,7 @@ export function Junior() {
                         }
                         titolo={titoloGruppo(g)}
                         sotto={
+                          (calendarioGruppo(g) ? calendarioGruppo(g) + "\n" : "") +
                           (g.posti != null
                             ? t(`${annateGruppo(g)} · ${g.iscritti} su ${g.posti} iscritti`, `${annateGruppo(g)} · ${g.iscritti} of ${g.posti} enrolled`)
                             : annateGruppo(g)) +
