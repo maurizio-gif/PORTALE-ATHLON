@@ -19,6 +19,7 @@ import {
 } from "@/api/abbonamento";
 import { Casella } from "@/components/Casella";
 import { euro } from "@/lib/eventi";
+import { t } from "@/lib/lingua";
 import { CODICE_FISCALE_NON_ATTRIBUITO } from "@/lib/residenteEstero";
 import { spazio } from "@/theme";
 
@@ -48,10 +49,17 @@ import { vistaCorrente } from "../vista";
 
 export function Iscrizione() {
   const p = usePalette();
-  const { group, membro } = useLocalSearchParams<{
+  const {
+    group,
+    membro,
+    baby: babyParam,
+  } = useLocalSearchParams<{
     group?: string;
     membro?: string;
+    baby?: string;
   }>();
+  // Il mensile del Baby Nuoto (22/10/2026): stessa procedura, ma senza gruppo (`?baby=1`).
+  const baby = babyParam === "1";
   const memberId = Number(membro);
   const vista = !!vistaCorrente();
   const [passo, setPasso] = useState<1 | 2>(1);
@@ -81,7 +89,7 @@ export function Iscrizione() {
       setErrore(null);
       const r = await anteprimaIscrizione({
         member_id: memberId,
-        group_id: String(group),
+        ...(baby ? { baby: true } : { group_id: String(group) }),
         data_inizio: data ?? undefined,
       });
       if (mio !== giro.current) return;
@@ -123,12 +131,12 @@ export function Iscrizione() {
       // Senza costi non c'e' niente da scegliere: un gruppo pieno o un'iscrizione non permessa chiude la strada.
       if (!r.importi) setFermo(true);
     },
-    [memberId, group],
+    [memberId, group, baby],
   );
   useEffect(() => {
-    if (!Number.isFinite(memberId) || !group) return setFermo(true);
+    if (!Number.isFinite(memberId) || (!group && !baby)) return setFermo(true);
     carica();
-  }, [carica, memberId, group]);
+  }, [carica, memberId, group, baby]);
 
   const scorrimentoFoglio = useRef<ScrollView>(null);
   const posti = useRef({ corpo: 0, firma: 0 });
@@ -170,7 +178,11 @@ export function Iscrizione() {
     setErroreFirma(null);
     setFirmando(true);
     const r = await firmaIscrizione(
-      { member_id: memberId, group_id: String(group), data_inizio: inizio },
+      {
+        member_id: memberId,
+        ...(baby ? { baby: true } : { group_id: String(group) }),
+        data_inizio: inizio,
+      },
       anteprima.impronta,
       consensi,
       firmaPng,
@@ -188,8 +200,10 @@ export function Iscrizione() {
   }
 
   const intestazione = {
-    titolo: "Iscrizione",
-    sopratitolo: "Corsi per bambini e ragazzi",
+    titolo: t("Iscrizione", "Enrollment"),
+    sopratitolo: baby
+      ? "Baby Nuoto"
+      : t("Corsi per bambini e ragazzi", "Courses for children and teens"),
     indietro: "/junior" as const,
     barra: false,
   };
@@ -197,9 +211,14 @@ export function Iscrizione() {
   if (vista) {
     return (
       <Schermata {...intestazione}>
-        <Messaggio tono="attenzione" titolo="Solo dal suo account">
-          L’iscrizione si firma dall’account del socio: da qui si guarda e
-          basta.
+        <Messaggio
+          tono="attenzione"
+          titolo={t("Solo dal suo account", "Only from their account")}
+        >
+          {t(
+            "L’iscrizione si firma dall’account del socio: da qui si guarda e basta.",
+            "The enrollment is signed from the member’s own account: from here you can only look.",
+          )}
         </Messaggio>
       </Schermata>
     );
@@ -209,7 +228,11 @@ export function Iscrizione() {
       <Schermata {...intestazione}>
         <Messaggio>{errore}</Messaggio>
         <Pulsante
-          testo="Torna ai gruppi"
+          testo={
+            baby
+              ? t("Torna alla sezione Junior", "Back to the Junior section")
+              : t("Torna ai gruppi", "Back to groups")
+          }
           variante="secondario"
           onPress={() => router.navigate("/junior" as const)}
         />
@@ -218,15 +241,32 @@ export function Iscrizione() {
   if (fermo)
     return (
       <Schermata {...intestazione}>
-        <Messaggio>Non troviamo questo gruppo.</Messaggio>
+        <Messaggio>
+          {baby
+            ? t(
+                "Non troviamo questo abbonamento.",
+                "We can’t find this membership.",
+              )
+            : t("Non troviamo questo gruppo.", "We can’t find this group.")}
+        </Messaggio>
       </Schermata>
     );
-  if (!costi && lettura) return <SchermataInArrivo titolo="Iscrizione" />;
+  if (!costi && lettura)
+    return <SchermataInArrivo titolo={t("Iscrizione", "Enrollment")} />;
 
-  const NOMI_PASSI = ["Data e costi", "Dati e firma"];
+  const NOMI_PASSI = [
+    t("Data e costi", "Date and costs"),
+    t("Dati e firma", "Details and signature"),
+  ];
   const SOTTOTITOLI = [
-    "Scegli quando parte: vedi subito quanto e quando paghi.",
-    "Conferma i dati, leggi il contratto e firma. Il pagamento viene dopo.",
+    t(
+      "Scegli quando parte: vedi subito quanto e quando paghi.",
+      "See right away how much you pay and when.",
+    ),
+    t(
+      "Conferma i dati, leggi il contratto e firma. Il pagamento viene dopo.",
+      "Confirm the details, read the contract and sign. Payment comes next.",
+    ),
   ];
 
   return (
@@ -248,7 +288,7 @@ export function Iscrizione() {
                 fontSize: 12,
               }}
             >
-              Gruppo
+              {baby ? t("Abbonamento", "Membership") : t("Gruppo", "Group")}
             </Text>
             <Text
               style={{
@@ -274,7 +314,10 @@ export function Iscrizione() {
                 {anteprima.gruppo.giorni || anteprima.gruppo.orario
                   ? " · "
                   : ""}
-                {`${euro(anteprima.piano.mensile)} al mese`}
+                {t(
+                  `${euro(anteprima.piano.mensile)} al mese`,
+                  `${euro(anteprima.piano.mensile)} a month`,
+                )}
               </Text>
             ) : null}
           </Carta>
@@ -282,42 +325,52 @@ export function Iscrizione() {
 
         {passo === 1 ? (
           <>
-            <Sezione titolo="Quando parte">
+            <Sezione titolo={t("Quando parte", "When it starts")}>
               <Text style={[stili.nota, { color: p.testoSecondario }]}>
                 {inizio
-                  ? `Parte oggi, ${dataLunga(inizio)}.`
-                  : "Calcoliamo i costi…"}
+                  ? t(
+                      `Parte oggi, ${dataLunga(inizio)}.`,
+                      `It starts today, ${dataLunga(inizio)}.`,
+                    )
+                  : t("Calcoliamo i costi…", "Calculating the costs…")}
               </Text>
               <Text style={[stili.nota, { color: p.testoSecondario }]}>
-                L’abbonamento parte subito. Si paga alla firma: la prima quota
-                copre i giorni che restano del mese, e dal mese dopo si rinnova
-                ogni 1°.
+                {t(
+                  "L’abbonamento parte subito. Si paga alla firma: la prima quota copre i giorni che restano del mese, e dal mese dopo si rinnova ogni 1°.",
+                  "The membership starts right away. You pay when you sign: the first payment covers the days left in the month, and from next month it renews on the 1st.",
+                )}
               </Text>
             </Sezione>
 
-            <Sezione titolo="Il tuo piano di pagamento">
+            <Sezione
+              titolo={t("Il tuo piano di pagamento", "Your payment plan")}
+            >
               {costi ? (
                 <RiepilogoCosti importi={costi} />
               ) : (
                 <Text style={[stili.nota, { color: p.testoSecondario }]}>
-                  Calcoliamo i costi…
+                  {t("Calcoliamo i costi…", "Calculating the costs…")}
                 </Text>
               )}
               {lettura && costi ? (
                 <Text style={[stili.nota, { color: p.testoSecondario }]}>
-                  Aggiorniamo i costi…
+                  {t("Aggiorniamo i costi…", "Updating the costs…")}
                 </Text>
               ) : null}
             </Sezione>
 
             <Pulsante
-              testo="Continua"
+              testo={t("Continua", "Continue")}
               icona="avanti"
               onPress={() => vai(2)}
               disabilitato={!costi || lettura}
             />
             <Pulsante
-              testo="Torna ai gruppi"
+              testo={
+                baby
+                  ? t("Torna alla sezione Junior", "Back to the Junior section")
+                  : t("Torna ai gruppi", "Back to groups")
+              }
               variante="fantasma"
               piccolo
               pieno={false}
@@ -329,22 +382,26 @@ export function Iscrizione() {
         {passo === 2 ? (
           <>
             <Sezione
-              titolo={anteprima?.genitore ? "I dati del contratto" : "I dati"}
+              titolo={
+                anteprima?.genitore
+                  ? t("I dati del contratto", "Contract details")
+                  : t("I dati", "Details")
+              }
             >
               {lettura && !anteprima ? (
                 <Text style={[stili.nota, { color: p.testoSecondario }]}>
-                  Prepariamo il contratto…
+                  {t("Prepariamo il contratto…", "Preparing the contract…")}
                 </Text>
               ) : anteprima ? (
                 <>
                   <Carta piatta>
                     <View style={{ gap: spazio.due }}>
                       <RigaDato
-                        nome="Nome e cognome"
+                        nome={t("Nome e cognome", "Full name")}
                         valore={`${anteprima.contraente.nome} ${anteprima.contraente.cognome}`.trim()}
                       />
                       <RigaDato
-                        nome="Nato/a il"
+                        nome={t("Nato/a il", "Born on")}
                         valore={
                           anteprima.contraente.data_nascita
                             ? dataLunga(anteprima.contraente.data_nascita)
@@ -352,7 +409,7 @@ export function Iscrizione() {
                         }
                       />
                       <RigaDato
-                        nome="Codice fiscale"
+                        nome={t("Codice fiscale", "Tax code (codice fiscale)")}
                         valore={
                           anteprima.contraente.codice_fiscale?.toUpperCase() ??
                           (anteprima.contraente.senza_codice_fiscale
@@ -363,8 +420,8 @@ export function Iscrizione() {
                       <RigaDato
                         nome={
                           anteprima.genitore
-                            ? "Indirizzo del genitore"
-                            : "Residenza"
+                            ? t("Indirizzo del genitore", "Parent’s address")
+                            : t("Residenza", "Address")
                         }
                         valore={residenzaConPaese(anteprima.contraente)}
                       />
@@ -377,14 +434,14 @@ export function Iscrizione() {
                       <RigaDato
                         nome={
                           anteprima.genitore
-                            ? "Cellulare del genitore"
-                            : "Telefono"
+                            ? t("Cellulare del genitore", "Parent’s mobile")
+                            : t("Telefono", "Phone")
                         }
                         valore={anteprima.contraente.telefono}
                       />
                       {anteprima.genitore ? (
                         <RigaDato
-                          nome="Firma il genitore"
+                          nome={t("Firma il genitore", "Signed by the parent")}
                           valore={`${anteprima.genitore.nome} ${anteprima.genitore.cognome}`.trim()}
                         />
                       ) : null}
@@ -396,8 +453,11 @@ export function Iscrizione() {
                       persona={d}
                       titolo={
                         d.ruolo === "genitore"
-                          ? "Indirizzo, cellulare e dati del genitore che firma"
-                          : "Correggi i dati"
+                          ? t(
+                              "Indirizzo, cellulare e dati del genitore che firma",
+                              "Address, mobile and details of the signing parent",
+                            )
+                          : t("Correggi i dati", "Correct the details")
                       }
                       senzaRecapiti={
                         d.ruolo === "contraente" && !!anteprima.genitore
@@ -408,7 +468,10 @@ export function Iscrizione() {
                   <Casella
                     spuntata={datiOk}
                     onCambia={() => setDatiOk((v) => !v)}
-                    etichetta="Confermo che i dati sono corretti"
+                    etichetta={t(
+                      "Confermo che i dati sono corretti",
+                      "I confirm the details are correct",
+                    )}
                   >
                     <Text
                       style={{
@@ -418,15 +481,20 @@ export function Iscrizione() {
                         lineHeight: 20,
                       }}
                     >
-                      Confermo che questi dati sono corretti.
+                      {t(
+                        "Confermo che questi dati sono corretti.",
+                        "I confirm these details are correct.",
+                      )}
                     </Text>
                   </Casella>
                 </>
               ) : mancanti?.length ? (
                 <>
                   <Text style={[stili.nota, { color: p.testoSecondario }]}>
-                    Per il contratto servono dati corretti: completali qui
-                    sotto, poi si va avanti.
+                    {t(
+                      "Per il contratto servono dati corretti: completali qui sotto, poi si va avanti.",
+                      "The contract needs correct details: complete them below, then continue.",
+                    )}
                   </Text>
                   {personeDati.map((d) => (
                     <CorreggiDati
@@ -434,8 +502,11 @@ export function Iscrizione() {
                       persona={d}
                       titolo={
                         d.ruolo === "genitore"
-                          ? "Indirizzo, cellulare e dati del genitore che firma"
-                          : "I dati"
+                          ? t(
+                              "Indirizzo, cellulare e dati del genitore che firma",
+                              "Address, mobile and details of the signing parent",
+                            )
+                          : t("I dati", "Details")
                       }
                       senzaRecapiti={
                         d.ruolo === "contraente" &&
@@ -452,16 +523,25 @@ export function Iscrizione() {
 
             <Messaggio
               tono="attenzione"
-              titolo="Adesso il contratto"
+              titolo={t("Adesso il contratto", "Now the contract")}
               icona="documento"
             >
               {anteprima?.firmatario === "genitore"
-                ? "Lo leggi, spunti le dichiarazioni e firma il genitore, con il dito o con il mouse. Il pagamento viene dopo: carta o conto corrente, lo scegli allora."
-                : "Lo leggi, spunti le dichiarazioni e firmi con il dito o con il mouse. Il pagamento viene dopo: carta o conto corrente, lo scegli allora."}
+                ? t(
+                    "Lo leggi, spunti le dichiarazioni e firma il genitore, con il dito o con il mouse. Il pagamento viene dopo: carta o conto corrente, lo scegli allora.",
+                    "You read it, tick the declarations and the parent signs with a finger or the mouse. Payment comes next: card or bank account, you choose then.",
+                  )
+                : t(
+                    "Lo leggi, spunti le dichiarazioni e firmi con il dito o con il mouse. Il pagamento viene dopo: carta o conto corrente, lo scegli allora.",
+                    "You read it, tick the declarations and sign with a finger or the mouse. Payment comes next: card or bank account, you choose then.",
+                  )}
             </Messaggio>
 
             <Pulsante
-              testo="Leggi il contratto e firma"
+              testo={t(
+                "Leggi il contratto e firma",
+                "Read the contract and sign",
+              )}
               icona="documento"
               onPress={() => {
                 setFirmaVicina(false);
@@ -471,11 +551,14 @@ export function Iscrizione() {
             />
             {anteprima && !datiOk ? (
               <Text style={[stili.nota, { color: p.testoSecondario }]}>
-                Conferma i dati per continuare.
+                {t(
+                  "Conferma i dati per continuare.",
+                  "Confirm the details to continue.",
+                )}
               </Text>
             ) : null}
             <Pulsante
-              testo="Indietro"
+              testo={t("Indietro", "Back")}
               variante="fantasma"
               piccolo
               pieno={false}
@@ -487,8 +570,11 @@ export function Iscrizione() {
 
       <Foglio
         aperto={foglio && !!anteprima}
-        titolo="Il contratto"
-        sottotitolo="Leggilo, oppure vai subito alle dichiarazioni e alla firma."
+        titolo={t("Il contratto", "The contract")}
+        sottotitolo={t(
+          "Leggilo, oppure vai subito alle dichiarazioni e alla firma.",
+          "Read it, or go straight to the declarations and the signature.",
+        )}
         onChiudi={() => !firmando && setFoglio(false)}
         scorrimento={scorrimentoFoglio}
         onScorri={scorriFoglio}
@@ -496,14 +582,17 @@ export function Iscrizione() {
           anteprima && !firmaVicina ? (
             <Tocco
               onPress={vaiAllaFirma}
-              etichetta="Firma ora: vai alle dichiarazioni e alla firma"
+              etichetta={t(
+                "Firma ora: vai alle dichiarazioni e alla firma",
+                "Sign now: go to the declarations and the signature",
+              )}
               scala={0.96}
               style={[stili.firmaOra, { backgroundColor: p.accento }]}
             >
               <Text
                 style={{ color: "#fff", fontFamily: F.extra, fontSize: 15 }}
               >
-                Firma ora
+                {t("Firma ora", "Sign now")}
               </Text>
               <Icona nome="giu" size={18} colore="#fff" />
             </Tocco>
@@ -527,7 +616,7 @@ export function Iscrizione() {
               }}
               onLayout={(e) => (posti.current.firma = e.nativeEvent.layout.y)}
             >
-              Dichiarazioni
+              {t("Dichiarazioni", "Declarations")}
             </Text>
             {anteprima.consensi.some((c) => !c.obbligatorio) ? (
               <Text
@@ -538,8 +627,10 @@ export function Iscrizione() {
                   lineHeight: 18,
                 }}
               >
-                Le dichiarazioni del contratto sono già spuntate. Puoi togliere
-                solo quella facoltativa, per le comunicazioni.
+                {t(
+                  "Le dichiarazioni del contratto sono già spuntate. Puoi togliere solo quella facoltativa, per le comunicazioni.",
+                  "The contract declarations are already ticked. You can only untick the optional one, for communications.",
+                )}
               </Text>
             ) : null}
             {anteprima.consensi.map((c) => (
@@ -561,7 +652,7 @@ export function Iscrizione() {
                   }}
                 >
                   {c.testo}
-                  {c.obbligatorio ? "" : " (facoltativo)"}
+                  {c.obbligatorio ? "" : t(" (facoltativo)", " (optional)")}
                 </Text>
               </Casella>
             ))}
@@ -575,8 +666,8 @@ export function Iscrizione() {
               }}
             >
               {anteprima.firmatario === "genitore"
-                ? "Firma del genitore"
-                : "La tua firma"}
+                ? t("Firma del genitore", "Parent’s signature")
+                : t("La tua firma", "Your signature")}
             </Text>
             <FirmaPad onCambia={setFirmaPng} />
             <Text
@@ -587,13 +678,14 @@ export function Iscrizione() {
                 lineHeight: 17,
               }}
             >
-              Firmando confermi di aver letto il contratto. Conserviamo la firma
-              insieme a data, ora, indirizzo IP e dispositivo, come prova della
-              sottoscrizione.
+              {t(
+                "Firmando confermi di aver letto il contratto. Conserviamo la firma insieme a data, ora, indirizzo IP e dispositivo, come prova della sottoscrizione.",
+                "By signing you confirm you have read the contract. We keep the signature together with the date, time, IP address and device, as proof of signing.",
+              )}
             </Text>
             {erroreFirma ? <Messaggio>{erroreFirma}</Messaggio> : null}
             <Pulsante
-              testo="Firma il contratto"
+              testo={t("Firma il contratto", "Sign the contract")}
               icona="impronta"
               onPress={firma}
               inCorso={firmando}
@@ -601,7 +693,10 @@ export function Iscrizione() {
             />
             {!obbligatoriOk ? (
               <Text style={[stili.nota, { color: p.testoSecondario }]}>
-                Spunta tutte le dichiarazioni obbligatorie per firmare.
+                {t(
+                  "Spunta tutte le dichiarazioni obbligatorie per firmare.",
+                  "Tick all the required declarations to sign.",
+                )}
               </Text>
             ) : null}
           </View>
