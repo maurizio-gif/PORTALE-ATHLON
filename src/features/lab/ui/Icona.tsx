@@ -87,6 +87,8 @@ const ICONE = {
   // L'invito di un amico (21/10/2026): l'SMS e il link da copiare.
   fumetto: ['message.fill', 'sms'],
   link: ['link', 'link'],
+  // Il badge di accesso nel wallet del telefono (22/10/2026).
+  wallet: ['wallet.pass.fill', 'wallet'],
 } as const satisfies Record<string, readonly [SFSymbol, AndroidSymbol]>
 
 export type NomeIcona = keyof typeof ICONE
