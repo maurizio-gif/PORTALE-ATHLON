@@ -209,10 +209,25 @@ function SezioneIscrizione({
               evidenza={i.conteggi.da_recuperare > 0}
             />
           </View>
+          {i.conteggi.da_recuperare > 0 && i.conteggi.scade_il ? (
+            <Text style={[stili.nota, { color: p.testoSecondario }]}>
+              Hai {nLezioni(i.conteggi.da_recuperare)} da recuperare: il
+              recupero si usa entro il {dataIt(i.conteggi.scade_il)}.
+            </Text>
+          ) : null}
+          {(i.conteggi.scadute ?? 0) > 0 ? (
+            <Text style={[stili.nota, { color: p.testoSecondario }]}>
+              {nLezioni(i.conteggi.scadute ?? 0)} di recupero non{" "}
+              {(i.conteggi.scadute ?? 0) === 1
+                ? "è stata usata"
+                : "sono state usate"}{" "}
+              in tempo e{" "}
+              {(i.conteggi.scadute ?? 0) === 1 ? "è scaduta" : "sono scadute"}.
+            </Text>
+          ) : null}
           <Text style={[stili.nota, { color: p.testoTerzo }]}>
-            Il conteggio è una stima dalle prenotazioni del club: l’ultima
-            parola sul recupero è di PerfectGym, che lo concede se hai disdetto
-            in tempo.
+            Un recupero ti viene assegnato quando disdici una lezione in tempo:
+            lo vedi anche fra i prodotti del tuo profilo.
           </Text>
         </Sezione>
       ) : null}

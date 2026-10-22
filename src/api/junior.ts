@@ -155,8 +155,16 @@ export type IscrizioneJunior = {
   recuperabile: boolean;
   dal: string;
   contratto: ContrattoJunior;
-  /** Stime dal mirror (che non dice chi ha annullato): da recuperare = disdette meno recuperi gia' prenotati. */
-  conteggi: { disdette: number; recuperate: number; da_recuperare: number };
+  /** Dai prodotti «Recupero» della persona su PerfectGym: uno per ogni disdetta valida, usato o no, con scadenza. */
+  conteggi: {
+    disdette: number;
+    recuperate: number;
+    da_recuperare: number;
+    /** Recuperi non usati e scaduti (fine del mese del contratto). */
+    scadute?: number;
+    /** Il primo giorno in cui scade un recupero non usato (ISO), se ce n'e'. */
+    scade_il?: string | null;
+  };
   prossime: LezioneIscritto[];
   recuperi: LezioneIscritto[];
 };
