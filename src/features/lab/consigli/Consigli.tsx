@@ -34,6 +34,7 @@ import { inMemoria, prendi, ricorda } from '../memoria'
 import { PERCORSO_IN_STANDBY } from '../percorso/standby'
 import { GIORNI, GIORNO_BREVE, NOME_FASCIA } from '../percorso/comune'
 import { giornoRoma } from '../schede/contatoreCalorie'
+import { aggiornaProfilo, CHIAVI_CONSIGLI, consigliDaProfilo, daConsigli, leggiProfilo, senzaToccate, type CampoConsigli } from '../schede/profiloComune'
 import { nomeObiettivo } from '../schede/questionario'
 import { Scelte, SceltePiu } from '../ui/Campi'
 import { FoglioLezione } from '../ui/FoglioLezione'
@@ -46,6 +47,7 @@ import { usePrenotazioneLezione } from '../usePrenotazioneLezione'
 import { vistaCorrente } from '../vista'
 import { dimenticaGiornoCalendario } from '../percorso/useSettimana'
 import {
+  CHIAVE_RIPORTATE_CONSIGLI,
   CHIAVE_SCELTE_CONSIGLI,
   CHIAVE_STATO_CONSIGLI,
   CHIAVE_ULTIMI_CONSIGLI,
@@ -126,8 +128,16 @@ export function Consigli() {
     return r ? { ...r, sedute: r.sedute ?? [] } : null
   })
   const [fase, setFase] = useState<Fase>(() => (inMemoria<RispostaConsigli>(CHIAVE_ULTIMI_CONSIGLI) ? 'consigli' : 'domande'))
-  // Le scelte ricordate si fondono con quelle di partenza: una memoria scritta da una versione di prima non ha i campi nuovi.
-  const [scelte, setScelte] = useState<SceltePerConsigli>(() => ({ ...SCELTE_DI_PARTENZA, ...(inMemoria<Partial<SceltePerConsigli>>(CHIAVE_SCELTE_CONSIGLI) ?? {}) }))
+  // Le scelte ricordate si fondono con quelle di partenza: una memoria scritta da una versione di prima non ha i campi nuovi. Quello che la
+  // persona ha gia' detto nel piano in sala (o in un questionario di prima) si ritrova scelto e segnato finche' non lo tocca; le risposte che
+  // ha gia' dato qui non si cambiano mai (`schede/profiloComune.ts`).
+  const partenza = useRef<ReturnType<typeof consigliDaProfilo> | null>(null)
+  if (!partenza.current) {
+    const base: SceltePerConsigli = { ...SCELTE_DI_PARTENZA, ...(inMemoria<Partial<SceltePerConsigli>>(CHIAVE_SCELTE_CONSIGLI) ?? {}) }
+    partenza.current = consigliDaProfilo(base, inMemoria<CampoConsigli[]>(CHIAVE_RIPORTATE_CONSIGLI) ?? [], leggiProfilo())
+  }
+  const [scelte, setScelte] = useState<SceltePerConsigli>(partenza.current.scelte)
+  const [riportate, setRiportate] = useState<CampoConsigli[]>(partenza.current.riportate)
   // Le limitazioni sono dati sulla salute: vivono solo qui, nel campo di testo.
   const [limitazioni, setLimitazioni] = useState('')
   const [errore, setErrore] = useState<string | null>(null)
@@ -169,6 +179,9 @@ export function Consigli() {
         const nuove = { ...SCELTE_DI_PARTENZA, ...scelteDa(ritrovata.questionario) }
         ricorda(CHIAVE_SCELTE_CONSIGLI, nuove)
         setScelte(nuove)
+        // Le sue risposte salvate valgono piu' di quelle portate dal profilo.
+        ricorda(CHIAVE_RIPORTATE_CONSIGLI, [])
+        setRiportate([])
       }
     }
     if (cerca) setCercati(true)
@@ -190,6 +203,12 @@ export function Consigli() {
     const nuove = { ...scelte, ...n }
     setScelte(nuove)
     ricorda(CHIAVE_SCELTE_CONSIGLI, nuove)
+    // Quello che tocca e' suo (non si segna piu' come riportato) e quello che e' in comune passa al profilo, per il piano in sala.
+    const chiavi = Object.keys(n)
+    const restano = senzaToccate(riportate, chiavi, (c) => CHIAVI_CONSIGLI[c])
+    setRiportate(restano)
+    ricorda(CHIAVE_RIPORTATE_CONSIGLI, restano)
+    aggiornaProfilo(daConsigli(nuove, chiavi))
   }
 
   // Dopo un clic la riga si aggiorna subito con quello che ha detto PerfectGym; la memoria del giorno del calendario non vale piu'.
@@ -223,6 +242,8 @@ export function Consigli() {
       return setFase('domande')
     }
     colpetto('ok')
+    // Quello che ha confermato si ritrova nel piano in sala.
+    aggiornaProfilo(daConsigli(scelte))
     ricorda(CHIAVE_ULTIMI_CONSIGLI, r.risposta)
     if (stato) {
       const nuovo = { ...stato, quota: r.risposta.quota }
@@ -332,6 +353,7 @@ export function Consigli() {
               )
             : tr('Puoi sceglierne più di uno, fino a tre: il primo è quello principale.', 'You can choose more than one, up to three: the first is the main one.')}
         </Text>
+        <Riportata mostra={riportate.includes('obiettivi')} />
       </Sezione>
 
       <Sezione titolo={tr('Cosa c’è dietro ai tuoi obiettivi', 'What’s behind your goals')} destra={<Facoltativo />}>
@@ -344,6 +366,7 @@ export function Consigli() {
       <Sezione titolo={tr('La tua esperienza', 'Your experience')}>
         <Scelte valori={ESPERIENZE.map((e) => ({ valore: e, testo: ESPERIENZA_TESTO[e].testo }))} scelto={esperienza} onScegli={(e) => cambia({ esperienza: e })} />
         {esperienza ? <Text style={[stili.nota, { color: p.testoSecondario }]}>{ESPERIENZA_TESTO[esperienza].nota}</Text> : null}
+        <Riportata mostra={riportate.includes('esperienza')} />
       </Sezione>
 
       {esperienza === 'ex' ? (
@@ -363,6 +386,7 @@ export function Consigli() {
           <Sezione titolo={tr('Com’è la tua forma oggi', 'How fit you are today')}>
             <Scelte valori={LIVELLI.map((l) => ({ valore: l, testo: LIVELLO_TESTO[l].testo }))} scelto={scelte.livello} onScegli={(livello) => cambia({ livello })} />
             {scelte.livello ? <Text style={[stili.nota, { color: p.testoSecondario }]}>{LIVELLO_TESTO[scelte.livello].nota}</Text> : null}
+            <Riportata mostra={riportate.includes('livello')} />
           </Sezione>
         </>
       ) : null}
@@ -404,6 +428,7 @@ export function Consigli() {
       <Sezione titolo={tr('Che intensità preferisci', 'What intensity you prefer')} destra={<Facoltativo />}>
         <Scelte valori={INTENSITA.map((i) => ({ valore: i, testo: INTENSITA_TESTO[i].testo }))} scelto={scelte.intensita} onScegli={(intensita) => cambia({ intensita: intensita === scelte.intensita ? null : intensita })} />
         {scelte.intensita ? <Text style={[stili.nota, { color: p.testoSecondario }]}>{INTENSITA_TESTO[scelte.intensita].nota}</Text> : null}
+        <Riportata mostra={riportate.includes('intensita')} />
       </Sezione>
 
       <Sezione titolo={tr('Quante volte a settimana pensi di venire', 'How many times a week you plan to come')}>
@@ -418,6 +443,7 @@ export function Consigli() {
           {scelte.fasce.length ? `${scelte.fasce.map((f) => `${NOME_FASCIA[f].titolo}: ${NOME_FASCIA[f].nota}`).join(' · ')}. ` : ''}
           {tr('Non è un vincolo: ti mostriamo prima le lezioni che ci stanno, ma ti diciamo anche quelle adatte a te in altri momenti.', 'It’s not a constraint: we show the classes that fit first, but we also tell you about ones that suit you at other times.')}
         </Text>
+        <Riportata mostra={riportate.includes('fasce')} />
       </Sezione>
 
       <Sezione titolo={tr('Ti ha mai seguito un personal trainer?', 'Have you ever worked with a personal trainer?')} destra={<Facoltativo />}>
@@ -835,6 +861,13 @@ function RigaFormula({ f, principale }: { f: FormulaPersonal; principale?: boole
       <Icona nome="avanti" size={18} colore={p.testoTerzo} />
     </Tocco>
   )
+}
+
+/** Sotto una risposta portata dal profilo comune (`schede/profiloComune.ts`): si vede da dove viene, finche' la persona non la tocca. */
+function Riportata({ mostra }: { mostra: boolean }) {
+  const p = usePalette()
+  if (!mostra) return null
+  return <Text style={[stili.nota, { color: p.accento, fontFamily: F.bold }]}>{tr('Riportato dalle tue risposte precedenti: cambialo se serve.', 'Carried over from your earlier answers: change it if you like.')}</Text>
 }
 
 const stili = StyleSheet.create({

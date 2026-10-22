@@ -377,6 +377,26 @@ vuol dire altro (la scheda del socio al club, la scheda di una lezione, l'Help D
       caviglia o schiena non compaiono pliometria e corsa. Se in futuro l'editor dovesse mostrare perché un esercizio c'è, la fonte è il programma, non il modello.
     - **Le risposte non restano.** Le zone che danno fastidio sono dati sulla salute: stanno solo in memoria (`rispostePiano.ts`, mai sul disco, niente nel `localStorage`: provato), servono a non perdere venti risposte
       se si esce per sbaglio (si riparte da dove si era), si buttano quando il piano è composto e uscendo dall'app (`esciDalLaboratorio`). Dopo un ricaricamento della pagina si ricomincia.
+    - **Il profilo comune con i Consigli** (22/10/2026, richiesta di Maurizio: i due questionari erano lunghi e si ripetevano; `schede/profiloComune.ts`, **puro**).
+      Cinque risposte sono *la stessa domanda* nei due posti e passano dall'uno all'altro: **obiettivo** (il primo dei Consigli), **esperienza** (le due «ho smesso» della sala sono
+      «ho smesso» con da quanto nei Consigli: meno di un anno / oltre; «ho smesso da tempo» non dice se uno o tre anni, e nei Consigli quella domanda resta da fare), **intensità**,
+      **quando si viene** (le fasce dei Consigli ridotte a una; più fasce diverse sono «cambia da un giorno all'altro») e **la forma di oggi**, che scrive solo la sala (stimata dai test,
+      quando la persona ha visto il passo «Il tuo livello») e che i Consigli mostrano come risposta loro. **Non si porta altro, di proposito**: «quante volte a settimana» nei Consigli
+      sono le volte al club, lezioni comprese, non i giorni di sala; «lezioni da evitare» sono nomi di lezioni, non esercizi; e **niente di sanitario** (zone, limitazioni, note, test,
+      strumenti): resta dove è stato scritto.
+      **Le regole**: si porta **solo dove la persona non ha ancora risposto, e una risposta sua non si riscrive mai**; la risposta riportata si vede (in sala «Dalle tue risposte
+      precedenti» sopra l'opzione, nei Consigli una riga arancio sotto la domanda) finché non la tocca, e finché è riportata e non toccata **segue il profilo** (a ogni apertura si
+      rifà da lì); nel profilo vince l'ultima risposta data, in uno dei due posti (una risposta tolta nei Consigli la toglie dal profilo), e si scrive quando la persona tocca una
+      risposta o conferma il questionario, mai solo perché una schermata si apre. **Il profilo sta in memoria** (mai sul disco) e esce con l'uscita dall'app
+      (`dimenticaTutteLeRisposte`). Per non perderlo fra un'apertura dell'app e l'altra, **la sala, se non c'è un profilo, cerca i Consigli salvati dalla funzione** (`consigli_ultimi`:
+      una volta per apertura, mai in vista cliente, e si riprova solo se la funzione non ha risposto): niente di nuovo sul server.
+      **Non c'è un profilo salvato oltre a quello**: chi compone un piano in sala senza aver mai chiesto i Consigli non lascia niente che sopravviva a una nuova apertura dell'app.
+      Se serve, è una tabella sul server, con la decisione se salvare anche i fastidi (oggi no).
+      **Provato**: le regole pure con `LC_ALL=it_IT.UTF-8 npx tsx` (19 gruppi, provati per mutazione: 19 modifiche del codice, tutte rilevate), `tsc` pulito e, in Chromium (bundle
+      web esportato, funzioni simulate con `page.route`; 390 e 1280 px, chiaro e scuro, italiano e inglese): dai Consigli alla sala (obiettivo, esperienza, intensità e fascia già
+      scelti e segnati, la forma no, toccarne una toglie il segno), dalla sala ai Consigli (cinque risposte riportate; nessun fastidio né nota sulla pagina, nella richiesta o nel browser),
+      l'avvio a freddo con i Consigli salvati (una sola richiesta, nessuna alla riapertura), senza Consigli salvati o con la funzione che non risponde (la sala è quella di prima),
+      nessuno scorrimento orizzontale. **Non provato**: una sessione vera, un telefono, e la vista cliente (dove la sala non cerca niente).
     - **Il pulsante «Feedback» si fa da parte**: l'anello sta dove di solito sta lui, quindi `PassiSala` dice `useSegnaAzioneInAlto` (resta la sola icona, accanto all'anello; durante l'attesa torna al suo posto).
     - **Provato in Chromium** (bundle web esportato, funzione simulata con `page.route`; 390 px chiaro e scuro, 360 px, 1280 px): i 18 passi di fila, Salute (riquadro del personal trainer, niente «Continua»), il
       tetto di tre zone, il livello stimato, il campo dei fastidi, il riepilogo con la riga che si cambia, la richiesta che parte con le risposte giuste (e senza il quarto «su cosa concentrarti» né i «non lo so»), il
@@ -714,7 +734,10 @@ editor, niente conferma, niente «Prenota la settimana». Funzione, controlli, q
   stesso nella carta in cima al questionario e nell'avvertenza in fondo. Con una funzione di prima (`Azione sconosciuta.`) si parte dal questionario, come prima.
 - **Una volta a settimana, e in prova senza limite**: `quota` porta `periodo: 'settimana'` e `in_prova`. `quotaFinita` blocca solo fuori prova («…potrai chiederne di nuovi da mercoledì 28 ottobre»); in prova
   il pulsante resta acceso e il testo dice comunque «una volta a settimana». Il contatore «Hai chiesto i consigli N volte oggi» non c'è più.
-- **La memoria dell'app è solo in memoria** (`consigli:ultimi`, `consigli:scelte`, `consigli:stato`, mai sul disco): l'ultima risposta e le scelte, **senza le limitazioni**, così dopo un pagamento o un
+- **Quello che hai già detto nel piano in sala si ritrova scelto** (22/10/2026, `schede/profiloComune.ts`: le regole stanno in «In sala il questionario è a passi»): obiettivo, esperienza
+  (con da quanto, se si sa), forma di oggi, intensità e quando; sotto ogni risposta riportata una riga arancio «Riportato dalle tue risposte precedenti», finché non la tocchi. Le risposte
+  che hai già dato nei Consigli non cambiano mai, e fastidi, limitazioni e note della sala non passano.
+- **La memoria dell'app è solo in memoria** (`consigli:ultimi`, `consigli:scelte`, `consigli:riportate` — le scelte portate dal profilo e non ancora toccate —, `consigli:stato`, mai sul disco): l'ultima risposta e le scelte, **senza le limitazioni**, così dopo un pagamento o un
   «Dettagli» si ritrovano i consigli («Cambia le risposte» → «Torna ai consigli di prima»). Le scelte ricordate si fondono con quelle di partenza (una memoria di una versione di prima non ha i campi nuovi).
 - **Nella vista cliente dello staff non si apre**: la schermata dice che i consigli li chiede solo il socio e la funzione risponde 403. Solo maggiorenni. Una funzione che non conosce ancora l'azione («Azione sconosciuta.») per
   il socio è «non ancora attivi».

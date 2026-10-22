@@ -1,3 +1,4 @@
+import { dimenticaProfilo, type CampoSala } from './profiloComune'
 import { RISPOSTE_VUOTE, type PassoSala, type Risposte } from './questionario'
 import { RISPOSTE_VASCA_VUOTE, type PassoVascaTutti, type RisposteVasca } from './questionarioVasca'
 
@@ -8,19 +9,23 @@ import { RISPOSTE_VASCA_VUOTE, type PassoVascaTutti, type RisposteVasca } from '
 
 let risposte: Risposte = { ...RISPOSTE_VUOTE }
 let passo: PassoSala | 'dove' | null = null
+/** Le risposte della sala portate dal profilo comune e non ancora toccate (`profiloComune.ts`): alla riapertura si rifanno dal profilo. */
+let riportate: CampoSala[] = []
 
-export function leggiRisposte(): { risposte: Risposte; passo: PassoSala | 'dove' | null } {
-  return { risposte, passo }
+export function leggiRisposte(): { risposte: Risposte; passo: PassoSala | 'dove' | null; riportate: CampoSala[] } {
+  return { risposte, passo, riportate }
 }
 
-export function ricordaRisposte(r: Risposte, p: PassoSala | 'dove') {
+export function ricordaRisposte(r: Risposte, p: PassoSala | 'dove', rip: readonly CampoSala[] = []) {
   risposte = r
   passo = p
+  riportate = [...rip]
 }
 
 export function dimenticaRisposte() {
   risposte = { ...RISPOSTE_VUOTE }
   passo = null
+  riportate = []
 }
 
 // ---- la vasca (22/10/2026) ------------------------------------------------------------------------------------------------
@@ -42,8 +47,12 @@ export function dimenticaRisposteVasca() {
   passoVasca = null
 }
 
-/** All'uscita dall'app: niente di nessuno dei due questionari resta a chi entra dopo. */
+/**
+ * All'uscita dall'app: niente dei questionari resta a chi entra dopo. Il profilo comune (obiettivo, esperienza, forma, intensita',
+ * quando si viene) non e' sanitario, ma e' di chi c'era: esce con le risposte.
+ */
 export function dimenticaTutteLeRisposte() {
   dimenticaRisposte()
   dimenticaRisposteVasca()
+  dimenticaProfilo()
 }
