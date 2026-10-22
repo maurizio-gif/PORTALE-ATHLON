@@ -15,10 +15,11 @@ import type {
   PersonalEsperienza,
   PersonalInteresse,
   QuestionarioConsigli,
+  Quota,
   RispostaConsigli,
   SedutaConsigliata,
 } from '@/api/percorso'
-import { t, tv } from '@/lib/lingua'
+import { locale, t, tv } from '@/lib/lingua'
 
 // Le parole e i piccoli conti dei Consigli di Athlon (20/10/2026, rifatti il 21/10/2026). Sono **consigli**, non una settimana:
 // dal profilo del socio (obiettivi, esperienza, gusti, quando preferisce venire) quali tipi di lezione potrebbero interessargli,
@@ -241,6 +242,46 @@ export function evitateDa(testo: string): string[] {
 }
 
 /** Cosa manca perche' il questionario si possa mandare, nell'ordine delle domande; vuoto se c'e' tutto. */
+/**
+ * Le scelte da un questionario salvato (`ultimiConsigli`), per riaprirlo com'era: e' l'inverso di `questionarioDa`, senza
+ * le limitazioni, che non si conservano. Un campo che il questionario di prima non aveva resta com'e' di partenza.
+ */
+export function scelteDa(q: Partial<QuestionarioConsigli> | undefined): Partial<SceltePerConsigli> {
+  if (!q) return {}
+  const s: Partial<SceltePerConsigli> = {}
+  if (Array.isArray(q.obiettivi)) s.obiettivi = q.obiettivi
+  if (q.esperienza !== undefined) s.esperienza = q.esperienza
+  if (q.pausa !== undefined) s.pausa = q.pausa
+  if (Array.isArray(q.discipline)) s.discipline = q.discipline
+  if (q.livello && q.esperienza !== 'mai') s.livello = q.livello
+  if (q.intensita !== undefined) s.intensita = q.intensita
+  if (typeof q.volte_settimana === 'number') s.volte_settimana = q.volte_settimana
+  if (Array.isArray(q.gruppi)) s.gruppi = q.gruppi
+  if (typeof q.sala === 'boolean') s.sala = q.sala
+  if (q.nuoto !== undefined) {
+    s.nuotare = q.nuoto != null
+    s.saNuotare = q.nuoto === 'libero' ? true : q.nuoto === 'imparare' ? false : null
+  }
+  if (Array.isArray(q.evitate)) s.evitate = q.evitate.join(', ')
+  if (Array.isArray(q.fasce)) s.fasce = q.fasce
+  if (Array.isArray(q.giorni)) s.giorni = q.giorni
+  if (typeof q.includi_non_comprese === 'boolean') s.includi_non_comprese = q.includi_non_comprese
+  if (q.personal_esperienza !== undefined) s.personal_esperienza = q.personal_esperienza
+  if (q.personal_interesse !== undefined) s.personal_interesse = q.personal_interesse
+  if (Array.isArray(q.bisogni)) s.bisogni = q.bisogni
+  return s
+}
+
+/**
+ * I consigli si chiedono una volta a settimana, e la schermata lo dice sempre. **In prova il limite non si applica**
+ * (`in_prova` dalla funzione): il questionario resta aperto anche a chi li ha gia' chiesti.
+ */
+export const quotaFinita = (q: Quota | undefined): boolean => !!q && !q.in_prova && q.usate >= q.massimo
+
+/** «martedì 21 ottobre», all'ora di Roma. */
+export const giornoEsteso = (iso: string, giorniDopo = 0): string =>
+  new Date(new Date(iso).getTime() + giorniDopo * 86_400_000).toLocaleDateString(locale(), { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'Europe/Rome' })
+
 export function cosaManca(s: SceltePerConsigli): string[] {
   const manca: string[] = []
   if (!s.obiettivi.length) manca.push(t('un obiettivo', 'a goal'))

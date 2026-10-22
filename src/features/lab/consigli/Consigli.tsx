@@ -18,6 +18,7 @@ import {
   PERSONAL_ESPERIENZE,
   PERSONAL_INTERESSI,
   statoConsigli,
+  ultimiConsigli,
   type ConsiglioPersonal,
   type ConsiglioRisolto,
   type OrarioLezione,
@@ -73,6 +74,9 @@ import {
   volteTesto,
   type FormulaPersonal,
   type SceltePerConsigli,
+  giornoEsteso,
+  quotaFinita,
+  scelteDa,
 } from './comune'
 import { ElencoLezioni, type ApriScheda, type AzioniPrenotazione } from './Lezioni'
 
@@ -96,9 +100,11 @@ import { ElencoLezioni, type ApriScheda, type AzioniPrenotazione } from './Lezio
 // (`statoPersonal`, gli stessi della schermata Personal) e porta a prenotare e pagare la seduta, o ad attivare l'abbonamento.
 // A chi ha risposto «No, grazie» non si propone.
 //
-// Il questionario non si conserva: le limitazioni sono dati sulla salute, arrivano all'AI e basta, e **non stanno nemmeno
-// nella memoria dell'app**. Si ricordano (solo in memoria, mai sul disco) le altre scelte e l'ultima risposta, cosi' dopo
-// un pagamento o un «Dettagli» si ritrova quello che si stava guardando. Nella vista cliente dello staff non si chiede
+// Le limitazioni sono dati sulla salute: arrivano all'AI e basta, e **non stanno nemmeno nella memoria dell'app**. Gli ultimi
+// consigli invece **restano salvati dalla funzione** (21/10/2026, `consigli_ultimi`): chi riapre la schermata li ritrova, con le
+// lezioni di adesso, e il questionario si riapre com'era (senza le limitazioni). Nella memoria dell'app (mai sul disco) restano
+// le scelte e l'ultima risposta, cosi' dopo un pagamento o un «Dettagli» si ritrova quello che si stava guardando. I consigli si
+// chiedono una volta a settimana, e la schermata lo dice; **in prova il limite non si applica** (`quota.in_prova`). Nella vista cliente dello staff non si chiede
 // niente: la funzione risponde 403 e qui non compare nessun comando.
 
 const intestazione = { sopratitolo: tr('Consigli Athlon', 'Athlon Tips'), indietro: '/allenamento' as const }
@@ -130,6 +136,8 @@ export function Consigli() {
 
   // Chi esce dalla schermata mentre l'AI lavora non deve ritrovarsi, dopo, con i consigli aperti da sola.
   const qui = useRef(true)
+  const rispostaCorrente = useRef(risposta)
+  rispostaCorrente.current = risposta
   useEffect(() => {
     qui.current = true
     return () => {
@@ -137,14 +145,33 @@ export function Consigli() {
     }
   }, [])
 
+  // Senza una risposta in memoria si cercano gli ultimi consigli salvati, una volta per apertura della schermata: finche'
+  // non si sa, al posto del questionario c'e' lo scheletro (chi li ha non deve vedere le domande per un istante).
+  const [cercati, setCercati] = useState(() => !!inMemoria<RispostaConsigli>(CHIAVE_ULTIMI_CONSIGLI))
+  const cercatiRef = useRef(cercati)
   const ricarica = useCallback(async () => {
     if (vista) return
-    const r = await prendi(CHIAVE_STATO_CONSIGLI, statoConsigli)
+    const cerca = !cercatiRef.current
+    cercatiRef.current = true
+    const [r, salvati] = await Promise.all([prendi(CHIAVE_STATO_CONSIGLI, statoConsigli), cerca ? ultimiConsigli() : Promise.resolve(null)])
     if (!qui.current) return
     if (r.ok) {
       setStato(r)
       setErroreStato(null)
     } else setErroreStato({ messaggio: r.errore, nonAttivo: r.stato === 404 || r.stato === 503 })
+    if (salvati?.ok && salvati.risposta && !rispostaCorrente.current) {
+      const ritrovata = salvati.risposta
+      ricorda(CHIAVE_ULTIMI_CONSIGLI, ritrovata)
+      setRisposta(ritrovata)
+      setFase('consigli')
+      // Il questionario si riapre com'era, se in questa apertura il socio non ha gia' cominciato a cambiarlo.
+      if (!inMemoria(CHIAVE_SCELTE_CONSIGLI)) {
+        const nuove = { ...SCELTE_DI_PARTENZA, ...scelteDa(ritrovata.questionario) }
+        ricorda(CHIAVE_SCELTE_CONSIGLI, nuove)
+        setScelte(nuove)
+      }
+    }
+    if (cerca) setCercati(true)
   }, [vista])
   useFocusEffect(
     useCallback(() => {
@@ -166,8 +193,6 @@ export function Consigli() {
   }
 
   // Dopo un clic la riga si aggiorna subito con quello che ha detto PerfectGym; la memoria del giorno del calendario non vale piu'.
-  const rispostaCorrente = useRef(risposta)
-  rispostaCorrente.current = risposta
   const aggiorna = (classId: number, nuova: { booking_id: number; attesa: boolean } | null, delta: number, deltaAttesa: number) => {
     const r = rispostaCorrente.current
     if (!r) return
@@ -184,10 +209,10 @@ export function Consigli() {
 
   const questionario = questionarioDa(scelte, limitazioni)
   const manca = cosaManca(scelte)
-  const quotaFinita = !!stato && stato.quota.usate >= stato.quota.massimo
+  const finita = quotaFinita(stato?.quota)
 
   async function chiedi() {
-    if (!questionario || quotaFinita) return
+    if (!questionario || finita) return
     setErrore(null)
     setFase('attesa')
     const r = await chiediConsigli(questionario)
@@ -227,7 +252,7 @@ export function Consigli() {
       </Schermata>
     )
   }
-  if (!stato) {
+  if (!stato || !cercati) {
     return (
       <Schermata {...intestazione} titolo={tr('Consigli su misura', 'Tailored tips')} barra={false}>
         {erroreStato ? (
@@ -265,7 +290,7 @@ export function Consigli() {
   if (fase === 'consigli' && risposta) {
     return (
       <Schermata {...intestazione} titolo={tr('I tuoi consigli', 'Your tips')} sottotitolo={risposta.sintesi ?? undefined}>
-        <Risposta risposta={risposta} azioni={azioni} onScheda={setAperta} onCambia={() => setFase('domande')} quota={stato.quota} />
+        <Risposta risposta={risposta} azioni={azioni} onScheda={setAperta} onCambia={() => setFase('domande')} />
         {aperta ? <FoglioLezione scheda={aperta.scheda} titolo={aperta.nome} categoria={aperta.categoria} onChiudi={() => setAperta(null)} /> : null}
       </Schermata>
     )
@@ -287,6 +312,9 @@ export function Consigli() {
             'Non c’è una settimana da rispettare: scegli tu quali lezioni fare e quando. Le prenoti dal Calendario o da qui, una alla volta, come sempre. Per la sala e la vasca ti portiamo a comporre il tuo piano di allenamento.',
             'There’s no weekly schedule to follow: you choose which classes to do and when. Book them from the Calendar or from here, one at a time, as usual. For the gym floor and the pool we take you to build your workout plan.',
           )}
+        </Text>
+        <Text style={[stili.nota, { color: p.testoSecondario }]}>
+          {tr('I consigli restano salvati e li ritrovi qui quando torni. Puoi chiederne di nuovi una volta a settimana.', 'Your tips are saved and you’ll find them here when you come back. You can ask for new ones once a week.')}
         </Text>
       </Carta>
 
@@ -457,14 +485,23 @@ export function Consigli() {
       </Sezione>
 
       {errore ? <Messaggio>{errore}</Messaggio> : null}
-      {quotaFinita ? <Messaggio tono="attenzione">{tr(`Hai chiesto i consigli ${stato.quota.massimo} volte oggi: riprova domani. Intanto puoi guardare il Calendario.`, `You’ve asked for tips ${stato.quota.massimo} times today: try again tomorrow. Meanwhile you can check the Calendar.`)}</Messaggio> : null}
+      {finita ? (
+        <Messaggio tono="attenzione">
+          {risposta?.salvati_il
+            ? tr(
+                `Puoi chiedere nuovi consigli una volta a settimana: i tuoi li ritrovi qui, e potrai chiederne di nuovi da ${giornoEsteso(risposta.salvati_il, 7)}.`,
+                `You can ask for new tips once a week: you’ll find yours here, and you can ask for new ones from ${giornoEsteso(risposta.salvati_il, 7)}.`,
+              )
+            : tr('Puoi chiedere nuovi consigli una volta a settimana: i tuoi li ritrovi qui.', 'You can ask for new tips once a week: you’ll find yours here.')}
+        </Messaggio>
+      ) : null}
       {manca.length ? <Text style={[stili.nota, { color: p.testoSecondario, textAlign: 'center' }]}>{tr(`Per continuare manca ${manca.join(', ')}.`, `To continue we still need ${manca.join(', ')}.`)}</Text> : null}
-      <Pulsante testo={tr('Dammi i consigli', 'Give me tips')} icona="stella" onPress={chiedi} disabilitato={!questionario || quotaFinita} />
+      <Pulsante testo={tr('Dammi i consigli', 'Give me tips')} icona="stella" onPress={chiedi} disabilitato={!questionario || finita} />
       {risposta ? <Pulsante testo={tr('Torna ai consigli di prima', 'Back to the previous tips')} variante="fantasma" onPress={() => setFase('consigli')} /> : null}
       <Text style={[stili.avvertenza, { color: p.testoTerzo }]}>
         {tr(
-          'I consigli li scrive un’intelligenza artificiale: le tue risposte, limitazioni comprese, non vengono conservate. Non sostituiscono il parere di un medico: con dolori, infortuni o patologie parlane prima con un istruttore in sala.',
-          'The tips are written by an artificial intelligence: your answers, limitations included, aren’t stored. They don’t replace a doctor’s advice: if you have pain, injuries or medical conditions, talk to an instructor on the gym floor first.',
+          'I consigli li scrive un’intelligenza artificiale. Le limitazioni che scrivi non vengono conservate; i consigli e le altre risposte restano salvati, così li ritrovi quando torni. Non sostituiscono il parere di un medico: con dolori, infortuni o patologie parlane prima con un istruttore in sala.',
+          'The tips are written by an artificial intelligence. The limitations you write aren’t stored; the tips and your other answers are saved, so you’ll find them when you come back. They don’t replace a doctor’s advice: if you have pain, injuries or medical conditions, talk to an instructor on the gym floor first.',
         )}
       </Text>
       <AltraStrada />
@@ -494,11 +531,28 @@ function AltraStrada() {
 // ---------------------------------------------------------------------------
 // I consigli
 
-function Risposta({ risposta, azioni, onScheda, onCambia, quota }: { risposta: RispostaConsigli; azioni: AzioniPrenotazione; onScheda: ApriScheda; onCambia: () => void; quota: { usate: number; massimo: number } }) {
+function Risposta({ risposta, azioni, onScheda, onCambia }: { risposta: RispostaConsigli; azioni: AzioniPrenotazione; onScheda: ApriScheda; onCambia: () => void }) {
   const p = usePalette()
   const { schede } = risposta
   return (
     <>
+      <Carta style={{ gap: spazio.due }}>
+        <Text style={[stili.nota, { color: p.testo, fontFamily: F.bold }]}>{tr('Come leggere questi consigli', 'How to read these tips')}</Text>
+        <Text style={[stili.nota, { color: p.testoSecondario }]}>
+          {risposta.salvati_il
+            ? tr(
+                `Sono suggerimenti basati sulle risposte che ci hai dato ${giornoEsteso(risposta.salvati_il)}, non un programma da seguire. Restano salvati: quando torni li ritrovi qui.`,
+                `They’re suggestions based on the answers you gave us on ${giornoEsteso(risposta.salvati_il)}, not a program to follow. They’re saved: you’ll find them here when you come back.`,
+              )
+            : tr('Sono suggerimenti basati sulle risposte che ci hai dato, non un programma da seguire.', 'They’re suggestions based on the answers you gave us, not a program to follow.')}{' '}
+          {tr(
+            'Le lezioni che puoi prenotare cambiano da sole, perché la prenotazione si apre tre giorni prima: quelle più avanti compaiono man mano.',
+            'The classes you can book change by themselves, because booking opens three days before: later ones appear as time goes on.',
+          )}
+        </Text>
+        <Text style={[stili.nota, { color: p.testoSecondario }]}>{tr('Puoi chiedere nuovi consigli una volta a settimana.', 'You can ask for new tips once a week.')}</Text>
+      </Carta>
+
       {risposta.integrazione ? (
         <Carta style={{ gap: spazio.due }}>
           <Text style={[stili.nota, { color: p.testo, fontFamily: F.bold }]}>{tr('Come metterle insieme', 'How to put them together')}</Text>
@@ -540,7 +594,6 @@ function Risposta({ risposta, azioni, onScheda, onCambia, quota }: { risposta: R
 
       <View style={{ gap: spazio.due }}>
         <Pulsante testo={tr('Cambia le risposte', 'Change your answers')} icona="modifica" variante="scuro" onPress={onCambia} />
-        <Text style={[stili.piccola, { color: p.testoTerzo, textAlign: 'center' }]}>{tr(`Hai chiesto i consigli ${quota.usate} ${quota.usate === 1 ? 'volta' : 'volte'} oggi su ${quota.massimo}.`, `You’ve asked for tips ${quota.usate} ${quota.usate === 1 ? 'time' : 'times'} today out of ${quota.massimo}.`)}</Text>
       </View>
     </>
   )
@@ -562,10 +615,9 @@ function CartaConsiglio({ c, schede, azioni, onScheda }: { c: ConsiglioRisolto; 
           <Text style={[stili.nota, { color: p.testoSecondario }]}>{[c.tipo.categoria !== c.tipo.nome ? c.tipo.categoria : null, `${c.tipo.minuti} min`, volteTesto(c.volte)].filter(Boolean).join(' · ')}</Text>
         </View>
       </View>
-      {c.tipo.compresa === false || c.tipo.spessoCompleta ? (
+      {c.tipo.compresa === false ? (
         <View style={stili.etichette}>
-          {c.tipo.compresa === false ? <Etichetta testo={tr('Da acquistare', 'To purchase')} tono="attenzione" /> : null}
-          {c.tipo.spessoCompleta ? <Etichetta testo={tr('Spesso al completo', 'Often full')} tono="attenzione" /> : null}
+          <Etichetta testo={tr('Da acquistare', 'To purchase')} tono="attenzione" />
         </View>
       ) : null}
       {c.perche ? <Text style={[stili.perche, { color: p.testoSecondario }]}>{c.perche}</Text> : null}
@@ -599,10 +651,9 @@ function CartaConsiglio({ c, schede, azioni, onScheda }: { c: ConsiglioRisolto; 
                     <Text style={[stili.nota, { color: p.testoSecondario }]}>{[a.tipo.categoria !== a.tipo.nome ? a.tipo.categoria : null, `${a.tipo.minuti} min`].filter(Boolean).join(' · ')}</Text>
                   </View>
                   <OrariDiSolito orari={a.orari} piccolo />
-                  {a.tipo.compresa === false || a.tipo.spessoCompleta ? (
+                  {a.tipo.compresa === false ? (
                     <View style={stili.etichette}>
-                      {a.tipo.compresa === false ? <Etichetta testo={tr('Da acquistare', 'To purchase')} tono="attenzione" /> : null}
-                      {a.tipo.spessoCompleta ? <Etichetta testo={tr('Spesso al completo', 'Often full')} tono="attenzione" /> : null}
+                      <Etichetta testo={tr('Da acquistare', 'To purchase')} tono="attenzione" />
                     </View>
                   ) : null}
                   <ElencoLezioni lezioni={a.prossime} vuoto={tr('Nei prossimi giorni non ce ne sono.', 'There are none in the next few days.')} {...comune} />

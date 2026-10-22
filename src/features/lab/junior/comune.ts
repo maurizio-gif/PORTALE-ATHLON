@@ -1,6 +1,6 @@
 import type { GruppoJunior, NucleoJunior, PersonaJunior } from "@/api/junior";
 
-import { t } from "../../../lib/lingua";
+import { locale, t } from "../../../lib/lingua";
 
 // La sezione Junior, la parte che non disegna: quali anni ci sono, quali gruppi accolgono un anno, in che ordine. Pura:
 // si prova con `npx tsx`.
@@ -81,10 +81,13 @@ export function titoloGruppo(g: GruppoJunior): string {
 
 /** «Nati nel 2023», «Nati dal 2013 al 2015»: tutti gli anni del gruppo, non solo quello scelto. */
 export function annateGruppo(g: GruppoJunior): string {
-  if (!g.anni.length) return t("Anni di nascita non indicati", "Birth years not specified");
+  if (!g.anni.length)
+    return t("Anni di nascita non indicati", "Birth years not specified");
   const min = Math.min(...g.anni);
   const max = Math.max(...g.anni);
-  return min === max ? t(`Nati nel ${min}`, `Born in ${min}`) : t(`Nati dal ${min} al ${max}`, `Born ${min} to ${max}`);
+  return min === max
+    ? t(`Nati nel ${min}`, `Born in ${min}`)
+    : t(`Nati dal ${min} al ${max}`, `Born ${min} to ${max}`);
 }
 
 export type StatoPosti = {
@@ -93,10 +96,18 @@ export type StatoPosti = {
 };
 
 export function statoPosti(g: GruppoJunior): StatoPosti {
-  if (g.liberi == null) return { testo: t("Posti da verificare", "Spots to be confirmed"), tono: "neutro" };
+  if (g.liberi == null)
+    return {
+      testo: t("Posti da verificare", "Spots to be confirmed"),
+      tono: "neutro",
+    };
   if (g.liberi <= 0) return { testo: t("Completo", "Full"), tono: "neutro" };
-  if (g.liberi === 1) return { testo: t("Ultimo posto", "Last spot"), tono: "attenzione" };
-  return { testo: t(`${g.liberi} posti liberi`, `${g.liberi} spots available`), tono: "ok" };
+  if (g.liberi === 1)
+    return { testo: t("Ultimo posto", "Last spot"), tono: "attenzione" };
+  return {
+    testo: t(`${g.liberi} posti liberi`, `${g.liberi} spots available`),
+    tono: "ok",
+  };
 }
 
 export type BloccoCorso = {
@@ -187,7 +198,9 @@ export function nomeIscrizione(nome: string): string {
 /** La riga sotto il nome: l'anno e i gruppi a cui e' iscritto, o il motivo per cui non e' ancora idoneo. */
 export function descriviPersona(p: PersonaJunior): string {
   const a = annoDi(p);
-  const nato = a ? t(`Classe ${a}`, `Born ${a}`) : t("Data di nascita mancante", "Date of birth missing");
+  const nato = a
+    ? t(`Classe ${a}`, `Born ${a}`)
+    : t("Data di nascita mancante", "Date of birth missing");
   if (!p.idoneo) return p.motivo ? `${nato} · ${p.motivo}` : nato;
   // Il Baby Nuoto non ha gruppi: si prenota lezione per lezione, come le attività degli adulti.
   if (!p.gruppi.length)
@@ -227,22 +240,22 @@ export function dataIt(d: string | null | undefined): string {
   if (!d) return "";
   const x = new Date(`${d.slice(0, 10)}T12:00:00`);
   if (Number.isNaN(x.getTime())) return "";
-  return x.toLocaleDateString("it-IT", {
+  return x.toLocaleDateString(locale(), {
     day: "numeric",
     month: "long",
     year: "numeric",
   });
 }
 
-const STATI_CONTRATTO: Record<string, string> = {
-  Current: "In corso",
-  NotStarted: "Non ancora iniziato",
-  Freezed: "Sospeso",
-  Ended: "Finito",
-};
+const statiContratto = (): Record<string, string> => ({
+  Current: t("In corso", "Active"),
+  NotStarted: t("Non ancora iniziato", "Not started yet"),
+  Freezed: t("Sospeso", "Frozen"),
+  Ended: t("Finito", "Ended"),
+});
 
 export function statoContratto(stato: string | null | undefined): string {
-  return (stato && STATI_CONTRATTO[stato]) || "In corso";
+  return (stato && statiContratto()[stato]) || t("In corso", "Active");
 }
 
 /** Come si rinnova, in una riga: da dove la persona legge se l'abbonamento continua da solo. */
@@ -252,9 +265,15 @@ export function rinnovoContratto(c: {
   fine: string | null;
 }): string {
   if (c.disdetta)
-    return `Disdetto il ${dataIt(c.disdetta)}: finisce il ${dataIt(c.fine)} e non si rinnova`;
-  if (c.rinnovo_automatico) return "Si rinnova ogni mese";
-  return c.fine ? `Fino al ${dataIt(c.fine)}` : "Senza scadenza";
+    return t(
+      `Disdetto il ${dataIt(c.disdetta)}: finisce il ${dataIt(c.fine)} e non si rinnova`,
+      `Cancelled on ${dataIt(c.disdetta)}: ends on ${dataIt(c.fine)} and won’t renew`,
+    );
+  if (c.rinnovo_automatico)
+    return t("Si rinnova ogni mese", "Renews every month");
+  return c.fine
+    ? t(`Fino al ${dataIt(c.fine)}`, `Until ${dataIt(c.fine)}`)
+    : t("Senza scadenza", "No end date");
 }
 
 /**
@@ -265,21 +284,34 @@ export function finestraLezioni(c: {
   fine: string | null;
   disdetta: string | null;
 }): string {
-  if (!c.fine) return "Qui vedi le lezioni che hai in programma.";
+  if (!c.fine)
+    return t(
+      "Qui vedi le lezioni che hai in programma.",
+      "Here you can see your upcoming classes.",
+    );
   if (c.disdetta)
-    return `Qui vedi le lezioni fino al ${dataIt(c.fine)}, quando finisce il tuo abbonamento.`;
-  return `Qui vedi le lezioni fino al ${dataIt(c.fine)}, la fine del mese pagato. Quando l’abbonamento si rinnova (di solito fra il 20 e il 21) compaiono quelle del mese dopo.`;
+    return t(
+      `Qui vedi le lezioni fino al ${dataIt(c.fine)}, quando finisce il tuo abbonamento.`,
+      `Here you can see classes up to ${dataIt(c.fine)}, when your membership ends.`,
+    );
+  return t(
+    `Qui vedi le lezioni fino al ${dataIt(c.fine)}, la fine del mese pagato. Quando l’abbonamento si rinnova (di solito fra il 20 e il 21) compaiono quelle del mese dopo.`,
+    `Here you can see classes up to ${dataIt(c.fine)}, the end of the paid month. When the membership renews (usually around the 20th–21st) next month’s classes appear.`,
+  );
 }
 
 /** «1 lezione» / «3 lezioni». */
 export function nLezioni(n: number): string {
-  return `${n} ${n === 1 ? "lezione" : "lezioni"}`;
+  return t(
+    `${n} ${n === 1 ? "lezione" : "lezioni"}`,
+    `${n} ${n === 1 ? "class" : "classes"}`,
+  );
 }
 
 /** Il canone, «109 €» o «89,50 €». */
 export function euroIt(n: number | null | undefined): string {
   if (n == null || !Number.isFinite(n)) return "";
-  return `${n.toLocaleString("it-IT", { minimumFractionDigits: Number.isInteger(n) ? 0 : 2, maximumFractionDigits: 2 })} €`;
+  return `${n.toLocaleString(locale(), { minimumFractionDigits: Number.isInteger(n) ? 0 : 2, maximumFractionDigits: 2 })} €`;
 }
 
 /** L'iscrizione che la persona ha alla Scuola Nuoto (da cui i recuperi), se c'e'. */
