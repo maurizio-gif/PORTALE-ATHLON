@@ -1,13 +1,15 @@
-import { router } from 'expo-router'
-import { useCallback, useEffect, useState } from 'react'
-import { StyleSheet, Text, View } from 'react-native'
+import { router, useLocalSearchParams } from 'expo-router'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { Linking, Platform, StyleSheet, Text, View } from 'react-native'
 
-import { movimentiPagamenti, type Movimento, type QuotaFutura } from '@/api/lab'
+import { esitoSaldo, movimentiPagamenti, saldaPagamenti, type CartaSaldo, type Movimento, type QuotaFutura } from '@/api/lab'
 import { locale, t } from '@/lib/lingua'
 import { spazio } from '@/theme'
 
 import { hrefSezione } from '../home/sezioni'
-import { inMemoria, prendi } from '../memoria'
+import { inMemoria, prendi, scorda } from '../memoria'
+import { colpetto } from '../ui/Tocco'
+import { vistaCorrente } from '../vista'
 import { Foglio } from '../ui/Foglio'
 import { Icona, type NomeIcona } from '../ui/Icona'
 import { Carta, Etichetta, LinkSezione, Messaggio, Numero, Pulsante, Riga, SchedeInArrivo, Sezione } from '../ui/kit'
@@ -19,10 +21,17 @@ import { Tocco } from '../ui/Tocco'
 // le quote scadute da saldare, i prossimi pagamenti e lo storico, ognuno col
 // metodo e con a cosa corrisponde. Nella sezione Pagamenti della Home il riepilogo; lo storico
 // completo, per mese, in /pagamenti/storico.
+//
+// **Le quote da pagare si pagano da qui** (22/10/2026, richiesta di Maurizio): prima c'era solo «Aggiorna il metodo di
+// pagamento», ripetuto in quattro posti, e chi aveva gia' una carta valida non poteva fare niente. Ora «Da pagare» ha
+// «Paga … con la carta •••• 1234» (la carta registrata sul contratto, anche quella di un genitore per il figlio) e
+// «Usa un'altra carta» (la pagina della carta di Adyen, che torna qui con `?saldo=1`); il metodo sta in un riquadro suo
+// della sezione (home/MetodoPagamento). Il server rilegge le quote da PerfectGym prima di addebitare (portale-lab-pagamenti,
+// azioni `salda` e `saldo_esito`); dopo il pagamento si chiede com'e' andata ogni 4 secondi per due minuti.
 
 export const CHIAVE_MOVIMENTI = 'pagamenti:movimenti'
 
-type Dati = { storico: Movimento[]; daSaldare: Movimento[]; futuri: QuotaFutura[] }
+type Dati = { storico: Movimento[]; daSaldare: Movimento[]; futuri: QuotaFutura[]; cartaSaldo: CartaSaldo | null }
 
 export function soldi(n: number): string {
   return n.toLocaleString(locale(), { style: 'currency', currency: 'EUR' })
@@ -54,13 +63,19 @@ export function useMovimenti() {
   const carica = useCallback(async () => {
     setErrore(null)
     const r = await prendi(CHIAVE_MOVIMENTI, movimentiPagamenti)
-    if (r.ok) setDati({ storico: r.storico, daSaldare: r.daSaldare, futuri: r.futuri })
+    if (r.ok) setDati({ storico: r.storico, daSaldare: r.daSaldare, futuri: r.futuri, cartaSaldo: r.cartaSaldo })
     else setErrore(r.errore)
   }, [])
+  /** Dopo un pagamento: si butta la memoria e si rilegge (la Home ricalcola i riquadri dalla sua lettura). */
+  const rileggi = useCallback(async () => {
+    scorda(CHIAVE_MOVIMENTI)
+    scorda('area')
+    await carica()
+  }, [carica])
   useEffect(() => {
     carica()
   }, [carica])
-  return { dati, errore, carica }
+  return { dati, errore, carica, rileggi }
 }
 
 /** Una riga di pagamento: la data, a cosa corrisponde, per chi e come, l'importo. */
@@ -156,9 +171,12 @@ function FoglioDettaglio({ scelto, onChiudi }: { scelto: Scelto; onChiudi: () =>
           </View>
         ) : null}
         {!futuro && scelto.m.nota ? <Messaggio tono="attenzione">{scelto.m.nota}</Messaggio> : null}
-        {(!futuro && scelto.m.esito === 'da_pagare') || (futuro && !scelto.q.metodo) ? (
+        {!futuro && scelto.m.esito === 'da_pagare' ? (
+          <Text style={[stili.nota, { color: p.testoSecondario }]}>{t('La paghi da «Da pagare», nella sezione Pagamenti.', 'You can pay it from “Due now”, in the Payments section.')}</Text>
+        ) : null}
+        {futuro && !scelto.q.metodo ? (
           <Pulsante
-            testo={t('Aggiorna il metodo di pagamento', 'Update payment method')}
+            testo={t('Aggiungi un metodo di pagamento', 'Add a payment method')}
             icona="carta"
             onPress={() => {
               onChiudi()
@@ -171,35 +189,175 @@ function FoglioDettaglio({ scelto, onChiudi }: { scelto: Scelto; onChiudi: () =>
   )
 }
 
-/** Le quote scadute e non pagate: in rosso, con l'invito a sistemare il metodo. */
-function DaSaldare({ elenco, onApri }: { elenco: Movimento[]; onApri: (m: Movimento) => void }) {
+const oggiRoma = () => new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Rome' }).format(new Date())
+
+type Fase = 'pronto' | 'invio-carta' | 'invio-altra' | 'verifica' | 'pagato' | 'attesa-lunga'
+
+/**
+ * Le quote scadute e non pagate, in rosso, e il modo di pagarle adesso. Non si dice «non è andato a buon fine»: una
+ * quota che scade oggi non e' ancora stata addebitata, e il nostro dato non dice se un addebito e' fallito. Si dice che
+ * risulta da pagare, e si paga.
+ */
+function DaPagare({ elenco, carta, onApri, onAggiorna, verificaSubito }: { elenco: Movimento[]; carta: CartaSaldo | null; onApri: (m: Movimento) => void; onAggiorna: () => void; verificaSubito: boolean }) {
   const p = usePalette()
-  const totale = elenco.reduce((t, m) => t + m.importo, 0)
+  const totale = Math.round(elenco.reduce((t, m) => t + m.importo, 0) * 100) / 100
+  const vista = vistaCorrente() !== null
+  const [fase, setFase] = useState<Fase>(verificaSubito ? 'verifica' : 'pronto')
+  const [errore, setErrore] = useState<string | null>(null)
+  const giri = useRef(0)
+  const vivo = useRef(true)
+  useEffect(() => {
+    vivo.current = true
+    return () => {
+      vivo.current = false
+    }
+  }, [])
+
+  // Com'e' andata: ogni 4 secondi per due minuti, rileggendo le quote da PerfectGym (dal server).
+  useEffect(() => {
+    if (fase !== 'verifica') return
+    giri.current = 0
+    let timer: ReturnType<typeof setTimeout>
+    const giro = async () => {
+      const r = await esitoSaldo()
+      if (!vivo.current) return
+      giri.current += 1
+      if (r.ok && r.stato === 'pagato') {
+        colpetto('ok')
+        setFase('pagato')
+        // Il mirror arriva qualche secondo dopo PerfectGym: la lista si rilegge fra un po'.
+        timer = setTimeout(onAggiorna, 6000)
+        return
+      }
+      if (r.ok && r.stato === 'fallito') {
+        colpetto('errore')
+        setErrore(r.motivo ?? t('Il pagamento non è andato a buon fine.', 'The payment didn’t go through.'))
+        setFase('pronto')
+        return
+      }
+      if (r.ok && r.stato === 'nessuno') {
+        setFase('pronto')
+        return
+      }
+      if (giri.current >= 30) {
+        setFase('attesa-lunga')
+        return
+      }
+      timer = setTimeout(giro, 4000)
+    }
+    timer = setTimeout(giro, verificaSubito && giri.current === 0 ? 500 : 3000)
+    return () => clearTimeout(timer)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fase])
+
+  async function paga(conCarta: boolean) {
+    setErrore(null)
+    setFase(conCarta ? 'invio-carta' : 'invio-altra')
+    const r = await saldaPagamenti(totale, conCarta)
+    if (!vivo.current) return
+    if (!r.ok) {
+      colpetto('errore')
+      setErrore(r.errore)
+      setFase('pronto')
+      if (r.importoCambiato != null) onAggiorna()
+      return
+    }
+    if (r.stato === 'pagato') {
+      setFase('pagato')
+      onAggiorna()
+      return
+    }
+    if (r.stato === 'redirect') {
+      // Si esce dall'app per la pagina della carta, e si torna qui con `?saldo=1`.
+      if (Platform.OS === 'web') window.location.assign(r.url)
+      else {
+        await Linking.openURL(r.url)
+        setFase('verifica')
+      }
+      return
+    }
+    setFase('verifica')
+  }
+
+  const oggi = oggiRoma()
+  const tutteOggi = elenco.every((m) => (m.scadenza ?? '').slice(0, 10) === oggi)
+  const uno = elenco.length === 1
+  const spiegazione = tutteOggi
+    ? uno
+      ? t('Scade oggi e non risulta ancora pagata.', 'It’s due today and isn’t paid yet.')
+      : t('Scadono oggi e non risultano ancora pagate.', 'They’re due today and aren’t paid yet.')
+    : uno
+      ? t('È scaduta e non risulta ancora pagata.', 'It’s past due and isn’t paid yet.')
+      : t('Sono scadute e non risultano ancora pagate.', 'They’re past due and aren’t paid yet.')
+  const occupato = fase === 'invio-carta' || fase === 'invio-altra' || fase === 'verifica'
+  const cifre = carta?.finale ? ` •••• ${carta.finale}` : ''
+
   return (
-    <Carta style={{ gap: spazio.due, borderWidth: 1.5, borderColor: p.errore }}>
+    <Carta style={{ gap: spazio.due, borderWidth: 1.5, borderColor: fase === 'pagato' ? p.ok : p.errore }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: spazio.due }}>
-        <Icona nome="attenzione" size={20} colore={p.errore} />
-        <Text style={[stili.titoletto, { color: p.testo, flex: 1 }]}>{t(`Da saldare: ${soldi(totale)}`, `Outstanding: ${soldi(totale)}`)}</Text>
+        <Icona nome={fase === 'pagato' ? 'spunta' : 'attenzione'} size={20} colore={fase === 'pagato' ? p.ok : p.errore} />
+        <Text style={[stili.titoletto, { color: p.testo, flex: 1 }]}>{fase === 'pagato' ? t(`Pagato: ${soldi(totale)}`, `Paid: ${soldi(totale)}`) : t(`Da pagare: ${soldi(totale)}`, `Due now: ${soldi(totale)}`)}</Text>
       </View>
-      <Text style={[stili.nota, { color: p.testoSecondario }]}>
-        {elenco.length === 1 ? t('Questo pagamento non è andato a buon fine.', 'This payment didn’t go through.') : t('Questi pagamenti non sono andati a buon fine.', 'These payments didn’t go through.')}{' '}
-        {t('Controlla il metodo di pagamento: il club riprova l’addebito con quello registrato.', 'Check your payment method: the club will retry the charge with the one on file.')}
-      </Text>
+      {fase !== 'pagato' ? (
+        <Text style={[stili.nota, { color: p.testoSecondario }]}>
+          {spiegazione} {vista ? '' : t('Puoi pagare adesso, con la carta.', 'You can pay now, by card.')}
+        </Text>
+      ) : null}
       <View>
         {elenco.map((m, i) => (
           <RigaMovimento key={m.id} m={m} prima={i === 0} onPress={() => onApri(m)} />
         ))}
       </View>
-      <Pulsante testo={t('Aggiorna il metodo di pagamento', 'Update payment method')} icona="carta" onPress={() => router.push('/metodo-pagamento')} />
+
+      {fase === 'pagato' ? (
+        <Messaggio tono="ok">{t('Pagamento ricevuto, grazie. Fra qualche minuto lo trovi fra i pagamenti effettuati.', 'Payment received, thank you. In a few minutes you’ll see it among the payments made.')}</Messaggio>
+      ) : fase === 'verifica' ? (
+        <Messaggio tono="attenzione" icona="clessidra">{t('Verifichiamo il pagamento… non chiudere la pagina.', 'Checking the payment… don’t close the page.')}</Messaggio>
+      ) : fase === 'attesa-lunga' ? (
+        <Messaggio tono="attenzione">{t('Non vediamo ancora il pagamento. Se è andato a buon fine compare qui fra qualche minuto; se sei tornato indietro senza pagare, non è stato addebitato niente.', 'We can’t see the payment yet. If it went through it’ll show up here in a few minutes; if you went back without paying, nothing was charged.')}</Messaggio>
+      ) : null}
+      {errore ? <Messaggio>{errore}</Messaggio> : null}
+
+      {!vista && fase !== 'pagato' && fase !== 'verifica' ? (
+        <View style={{ gap: spazio.due }}>
+          {carta ? (
+            <Pulsante
+              testo={t(`Paga ${soldi(totale)} con la carta${cifre}`, `Pay ${soldi(totale)} with card${cifre}`)}
+              icona="carta"
+              inCorso={fase === 'invio-carta'}
+              disabilitato={occupato}
+              onPress={() => paga(true)}
+            />
+          ) : null}
+          <Pulsante
+            testo={carta ? t('Usa un’altra carta', 'Use another card') : t(`Paga ${soldi(totale)} con la carta`, `Pay ${soldi(totale)} by card`)}
+            icona={carta ? undefined : 'carta'}
+            variante={carta ? 'secondario' : 'primario'}
+            inCorso={fase === 'invio-altra'}
+            disabilitato={occupato}
+            onPress={() => paga(false)}
+          />
+        </View>
+      ) : null}
     </Carta>
   )
 }
 
 /** Il riepilogo nella sezione Pagamenti: da saldare, i prossimi tre, gli ultimi quattro. */
-export function RiepilogoPagamenti() {
+export function RiepilogoPagamenti({ onPagato }: { onPagato?: () => void } = {}) {
   const p = usePalette()
-  const { dati, errore, carica } = useMovimenti()
+  const { dati, errore, carica, rileggi } = useMovimenti()
   const [scelto, setScelto] = useState<Scelto>(null)
+  // Il ritorno dalla pagina della carta (`?saldo=1`): si verifica subito, e il parametro si toglie.
+  const { saldo } = useLocalSearchParams<{ saldo?: string }>()
+  const [ritorno] = useState(saldo === '1')
+  useEffect(() => {
+    if (saldo) router.setParams({ saldo: undefined })
+  }, [saldo])
+  const aggiorna = useCallback(() => {
+    rileggi()
+    onPagato?.()
+  }, [rileggi, onPagato])
 
   if (!dati) {
     return errore ? (
@@ -215,7 +373,9 @@ export function RiepilogoPagamenti() {
   const prossimo = dati.futuri[0]
   return (
     <View style={{ gap: spazio.quattro }}>
-      {dati.daSaldare.length ? <DaSaldare elenco={dati.daSaldare} onApri={(m) => setScelto({ tipo: 'movimento', m })} /> : null}
+      {dati.daSaldare.length ? (
+        <DaPagare elenco={dati.daSaldare} carta={dati.cartaSaldo} onApri={(m) => setScelto({ tipo: 'movimento', m })} onAggiorna={aggiorna} verificaSubito={ritorno} />
+      ) : null}
 
       <Sezione titolo={t('Prossimi pagamenti', 'Upcoming payments')} destra={dati.futuri.length > 3 ? <LinkSezione testo={t('Tutti', 'All')} onPress={() => router.push({ pathname: '/pagamenti/storico', params: { vista: 'futuri' } })} /> : undefined}>
         {prossimo ? (
@@ -255,7 +415,7 @@ export function RiepilogoPagamenti() {
 /** Lo storico completo, per mese: gli effettuati o i futuri. */
 export function StoricoPagamenti({ vistaIniziale }: { vistaIniziale: 'effettuati' | 'futuri' }) {
   const p = usePalette()
-  const { dati, errore, carica } = useMovimenti()
+  const { dati, errore, carica, rileggi } = useMovimenti()
   const [vista, setVista] = useState(vistaIniziale)
   const [scelto, setScelto] = useState<Scelto>(null)
 
@@ -308,7 +468,9 @@ export function StoricoPagamenti({ vistaIniziale }: { vistaIniziale: 'effettuati
   return (
     <Schermata sopratitolo={t('Pagamenti', 'Payments')} titolo={t('I tuoi pagamenti', 'Your payments')} sottotitolo={t('Tuoi e della tua famiglia, da PerfectGym.', 'Yours and your family’s, from PerfectGym.')} indietro={hrefSezione('pagamenti')} barra={false}>
       {intestazione}
-      {dati.daSaldare.length && vista === 'effettuati' ? <DaSaldare elenco={dati.daSaldare} onApri={(m) => setScelto({ tipo: 'movimento', m })} /> : null}
+      {dati.daSaldare.length && vista === 'effettuati' ? (
+        <DaPagare elenco={dati.daSaldare} carta={dati.cartaSaldo} onApri={(m) => setScelto({ tipo: 'movimento', m })} onAggiorna={rileggi} verificaSubito={false} />
+      ) : null}
       {gruppi.length ? (
         gruppi.map((g) => (
           <View key={g.mese} style={{ gap: spazio.due }}>

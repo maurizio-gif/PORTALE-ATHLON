@@ -435,7 +435,7 @@ export function AreaRiservata({ email }: { email: string }) {
       {/* Almeno un'altezza di schermo, meno poco: cosi' i riquadri si possono portare in cima anche con una sezione corta. */}
       <Entra key={sezione} indice={0} style={[stili.sezione, { minHeight: Math.max(0, height - 220) }]}>
         {sezione === 'abbonamenti' ? <ElencoAbbonamenti area={area} onSezione={(s) => vai(s, true)} /> : null}
-        {sezione === 'pagamenti' ? <SezionePagamenti /> : null}
+        {sezione === 'pagamenti' ? <SezionePagamenti area={area} onAggiorna={carica} /> : null}
         {sezione === 'prodotti' ? <SezioneProdotti /> : null}
         {sezione === 'documenti' ? <SezioneDocumenti /> : null}
         {sezione === 'certificato' ? <SezioneCertificato area={area} onAggiorna={carica} /> : null}
