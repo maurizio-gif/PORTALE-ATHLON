@@ -1,9 +1,9 @@
 // Modulo puro (niente React ne' React Native): lo importano anche i calcoli che si provano con `npx tsx`.
 // Il gancio per i componenti e' `useLingua` in `lingua-react.ts`.
 //
-// La lingua dell'app: italiano o inglese, scelta dal socio (Profilo, o la pagina d'accesso) e ricordata sul
-// dispositivo. Le parole inglesi seguono quelle di PerfectGym (docs/glossario-inglese.md): chi passa dalla
-// nostra app al portale clienti o alle email del club trova gli stessi nomi.
+// La lingua dell'app: italiano o inglese, scelta dal socio (Profilo, o la pagina d'accesso; o il link `?lingua=en`
+// dell'invito ai tester) e ricordata sul dispositivo. Le parole inglesi seguono quelle di PerfectGym
+// (docs/glossario-inglese.md): chi passa dalla nostra app al portale clienti o alle email del club trova gli stessi nomi.
 //
 // **I testi stanno accanto all'originale**: `t('Prenota', 'Book')`, non una chiave in un dizionario. Chi
 // cambia una frase italiana vede la sua traduzione nella stessa riga, e un testo nuovo senza inglese non
@@ -46,11 +46,39 @@ function delDispositivo(): Lingua {
   }
 }
 
+/**
+ * La lingua chiesta dall'indirizzo, `?lingua=en` o `?lingua=it` (solo sul web). E' il link dell'email di invito ai tester
+ * (22/10/2026, richiesta di Maurizio: dal CRM si invita un tester anche in inglese, e chi apre il link deve trovare l'app gia'
+ * in inglese). **Vale come una scelta del socio**: si ricorda sul dispositivo, come dal Profilo, e il parametro si toglie
+ * dall'indirizzo, cosi' non resta nei link copiati e non scavalca una scelta fatta dopo. Un valore diverso da `it` e `en` non
+ * conta.
+ */
+function dallIndirizzo(): Lingua | null {
+  try {
+    const loc = globalThis.location
+    if (!loc?.search) return null
+    const parametri = new URLSearchParams(loc.search)
+    const v = (parametri.get('lingua') ?? '').trim().toLowerCase()
+    if (v !== 'it' && v !== 'en') return null
+    try {
+      globalThis.localStorage?.setItem(CHIAVE, v)
+    } catch {
+      // senza memoria del dispositivo vale per questa apertura
+    }
+    parametri.delete('lingua')
+    const resto = parametri.toString()
+    globalThis.history?.replaceState?.(globalThis.history.state, '', `${loc.pathname}${resto ? `?${resto}` : ''}${loc.hash}`)
+    return v
+  } catch {
+    return null
+  }
+}
+
 // Si decide alla prima domanda e non al caricamento del modulo: sul nativo `localStorage` lo installa expo-sqlite
-// (`localStorage.native.ts`), che puo' arrivare dopo.
+// (`localStorage.native.ts`), che puo' arrivare dopo. L'ordine: l'indirizzo, poi la scelta ricordata, poi il dispositivo.
 let scelta: Lingua | null = null
 function cur(): Lingua {
-  if (!scelta) scelta = salvata() ?? delDispositivo()
+  if (!scelta) scelta = dallIndirizzo() ?? salvata() ?? delDispositivo()
   return scelta
 }
 const ascoltatori = new Set<() => void>()
