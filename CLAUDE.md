@@ -382,6 +382,7 @@ vuol dire altro (la scheda del socio al club, la scheda di una lezione, l'Help D
       tetto di tre zone, il livello stimato, il campo dei fastidi, il riepilogo con la riga che si cambia, la richiesta che parte con le risposte giuste (e senza il quarto «su cosa concentrarti» né i «non lo so»), il
       passaggio alla vasca e il ritorno in sala, `?dove=sala` e `?dove=vasca`, la memoria uscendo e rientrando, niente delle risposte sul disco. **Non provato**: un telefono vero, la funzione vera con una sessione vera,
       il piano che il modello scrive visto dall'app (provato con il modello vero dal database, otto profili: vedi APP-ATHLON), e le animazioni con «riduci movimento».
+      **Pubblicato il 22/10/2026 nell'ordine giusto**: prima il nodo n8n e `portale-lab-schede` v16 (la funzione accetta sia le risposte di prima sia le nuove, quindi un'app rimasta aperta funziona), poi questa app.
   - **L'AI non è in primo piano** (20/10/2026): niente «Agente AI», niente viola, i testi dicono «generiamo insieme» e «componi» («Stiamo leggendo le tue
     risposte…» nell'attesa, che ora dura una decina di secondi e non un paio di minuti). **Che dietro ci sia un'intelligenza artificiale si dice nelle
     postille**, in piccolo e senza nasconderlo: la nota in fondo al questionario, quella in fondo all'editor («Questa bozza è stata composta con il supporto di
