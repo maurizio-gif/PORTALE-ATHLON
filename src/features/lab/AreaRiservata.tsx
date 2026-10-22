@@ -322,10 +322,28 @@ export function AreaRiservata({ email }: { email: string }) {
 
   /** Sceglie la sezione (cambia il parametro). Da «Da fare» porta anche in vista i riquadri. */
   function vai(s: SezioneHome, inVista = false) {
+    sceltaQui.current = s
     router.setParams({ sezione: s })
     // Dopo che la sezione nuova ha preso il suo posto, o l'altezza non basta ancora.
     if (inVista) setTimeout(portaInVista, 120)
   }
+
+  // Una sezione chiesta da fuori (il pulsante di una notifica, «Vai ai pagamenti»; un link `/?sezione=…`) si porta in
+  // vista appena la Home c'e': sta sotto la testata, l'avviso e i riquadri, e senza scorrere sembrava di essere sulla Home
+  // (visto il 22/10/2026 con la notifica dell'accesso negato). Una sezione scelta qui (i riquadri, «Da fare») no: la
+  // sceglie chi sta gia' guardando, e `vai` decide se scorrere.
+  const sceltaQui = useRef<SezioneHome | null>(null)
+  const pronta = Boolean(area)
+  useEffect(() => {
+    if (!pronta || !richiesta || !sezioniVisibili.includes(richiesta)) return
+    if (sceltaQui.current === richiesta) {
+      sceltaQui.current = null
+      return
+    }
+    const timer = setTimeout(portaInVista, 300)
+    return () => clearTimeout(timer)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pronta, richiesta])
 
   // Nelle schermate d'errore si esce subito.
   const uscita = <PulsanteEsci testo={t('Esci', 'Sign out')} conferma={false} />
