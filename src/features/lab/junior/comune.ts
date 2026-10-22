@@ -72,11 +72,37 @@ function pesoCorso(nome: string): string {
   return `2${n}`;
 }
 
-/** Come si chiama una riga: «Lunedì 15:20» per un turno con giorno e ora, il nome del gruppo per gli altri. */
+/** Un turno col giorno e l'ora nel nome («Lun 15.20»): l'orario e' la sola ora d'inizio. Gli altri gruppi la ricevono dal palinsesto, con la fine. */
+function turnoNelNome(g: GruppoJunior): boolean {
+  return !!g.giorni && !!g.orario && !g.orario.includes("–");
+}
+
+/** Come si chiama una riga: «Lunedì e Giovedì · 15:20» per un turno con giorno e ora nel nome, il nome del gruppo per gli altri. */
 export function titoloGruppo(g: GruppoJunior): string {
-  if (g.giorni && g.orario)
-    return `${g.giorni.replace(/, /g, t(" e ", " and "))} · ${g.orario}`;
+  if (turnoNelNome(g))
+    return `${g.giorni!.replace(/, /g, t(" e ", " and "))} · ${g.orario}`;
   return g.corso;
+}
+
+const SIGLE_IT = ["Lun", "Mar", "Mer", "Gio", "Ven", "Sab", "Dom"];
+const SIGLE_EN = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+
+/**
+ * I giorni e le ore dei gruppi che non li hanno nel nome (Nuoto Agonistico e Propaganda, Pallanuoto: dal palinsesto, 22/10/2026):
+ * «Lun, Mar, Gio, Ven · 15:00–15:50», o per piu' fasce «17:30–18:20 (Lun, Gio) · 18:30–19:20 (Sab)». Vuoto per un turno che li ha
+ * gia' nel titolo, e per un gruppo senza lezioni in programma.
+ */
+export function calendarioGruppo(g: GruppoJunior): string | null {
+  if (turnoNelNome(g)) return null;
+  const orario = g.orario?.trim();
+  if (!g.giorni || !orario) return null;
+  const en = (s: string) =>
+    SIGLE_IT.reduce((acc, it, i) => acc.replace(new RegExp(`\\b${it}\\b`, "g"), t(it, SIGLE_EN[i])), s);
+  if (/\(/.test(orario)) return en(orario);
+  const giorni = giorniDelGruppo(g)
+    .map((i) => t(SIGLE_IT[i], SIGLE_EN[i]))
+    .join(", ");
+  return `${giorni} · ${orario}`;
 }
 
 /** «Nati nel 2023», «Nati dal 2013 al 2015»: tutti gli anni del gruppo, non solo quello scelto. */
