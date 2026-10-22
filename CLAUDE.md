@@ -1136,3 +1136,14 @@ Dalla sezione Junior, toccando un gruppo con posti si sceglie chi del nucleo isc
 - **Vista cliente**: si vede, non si firma.
 - **Minorenne**: indirizzo e cellulare sono quelli del genitore (la carta del bambino chiede solo il codice fiscale: `senzaRecapiti` di `CorreggiDati`), l'email non si chiede.
 - **Non provato**: `EnrollMemberToGroup` vero, nomi dei parametri di `GetEnrollmentOptions`/`CalculateProrata`, primo addebito su PerfectGym. Il browser è stato provato con funzioni simulate (390 e 1280 px). **Pubblicare in ordine**: sito, `portale-abbonamento`, app.
+
+## Junior: i corsi della persona scelta (22/10/2026)
+
+Sotto «La tua famiglia» della sezione Junior si sceglie una persona (tocco su «Vedi i corsi»; di partenza la prima in età) e sotto compaiono i suoi corsi (`junior/Corsi.tsx`, `CorsiPersona`). Funzioni e regole del database: `CLAUDE.md` di APP-ATHLON, «I corsi di una persona».
+
+- **Iscritta a un gruppo**: «L'abbonamento di <nome>» (piano, quota, stato, dal, rinnovo, pagato fino al), i conteggi **Disdette / Recuperate / Da recuperare** (dai prodotti «Recupero» del profilo su PerfectGym, con la scadenza e gli eventuali recuperi scaduti), «Le prossime lezioni del corso» con **Disdici** (conferma, regole di PerfectGym) e «Prenota un recupero» col calendario dei recuperi. **Le lezioni si vedono fino alla fine del contratto**; il rinnovo di metà mese (20-21) porta quelle del mese dopo, e la schermata lo dice. Disdire e recuperare solo per la Scuola Nuoto.
+- **In età Baby Nuoto** (3-36 mesi, `eBaby`): l'abbonamento mensile se c'è; se no le due strade con i prezzi (lezione singola, che si compra prenotando dal calendario; mensile + quota). **L'iscrizione al mensile da qui non c'è ancora**: il testo dice di passare in segreteria. Sotto, il calendario Baby Nuoto.
+- **I gruppi per anno di nascita** restano per chi non è iscritto e non è in età Baby Nuoto; per gli iscritti dietro «Vedi tutti i gruppi».
+- **In vista cliente** si legge soltanto (niente Disdici né calendari: `periodo` non è fra le letture).
+- Provato: `comune.ts` con `node --experimental-strip-types`; browser (Chromium, 390 e 1280 px, chiaro e scuro, funzioni simulate): 46 controlli, nessun errore di pagina. **Non provato**: funzioni vere, `CancelSingleBooking` su una prenotazione di gruppo, un telefono.
+- **Da pubblicare**: migrazione `20261022a`, poi `portale-lab-junior` e `portale-lab-calendario`, poi l'app.

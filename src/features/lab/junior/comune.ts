@@ -189,7 +189,11 @@ export function descriviPersona(p: PersonaJunior): string {
   const a = annoDi(p);
   const nato = a ? t(`Classe ${a}`, `Born ${a}`) : t("Data di nascita mancante", "Date of birth missing");
   if (!p.idoneo) return p.motivo ? `${nato} · ${p.motivo}` : nato;
-  if (!p.gruppi.length) return t(`${nato} · nessun gruppo per ora`, `${nato} · no group yet`);
+  // Il Baby Nuoto non ha gruppi: si prenota lezione per lezione, come le attività degli adulti.
+  if (!p.gruppi.length)
+    return eBaby(p.data_nascita)
+      ? `${nato} · Baby Nuoto`
+      : t(`${nato} · nessun gruppo per ora`, `${nato} · no group yet`);
   return `${nato} · ${p.gruppi.map((g) => nomeIscrizione(g.nome)).join(", ")}`;
 }
 
@@ -198,7 +202,10 @@ export function descriviPersona(p: PersonaJunior): string {
  * e che firma qualcuno: un minorenne (firma il genitore) o il titolare adulto. Un gruppo completo non si offre. Il server
  * ricontrolla tutto con PerfectGym (`GetEnrollmentOptions`): questo serve a mostrare il comando solo dove puo' funzionare.
  */
-export function chiPuoIscriversi(n: NucleoJunior | null, g: GruppoJunior): PersonaJunior[] {
+export function chiPuoIscriversi(
+  n: NucleoJunior | null,
+  g: GruppoJunior,
+): PersonaJunior[] {
   if (!n || g.liberi === 0) return [];
   return n.persone.filter((p) => {
     const a = annoDi(p);
@@ -210,4 +217,99 @@ export function chiPuoIscriversi(n: NucleoJunior | null, g: GruppoJunior): Perso
       !p.gruppi.some((x) => String(x.group_id) === String(g.id))
     );
   });
+}
+
+// ---------------------------------------------------------------------------
+// I corsi di una persona (22/10/2026): contratto, finestra delle lezioni, conteggi.
+
+/** «2026-10-31» -> «31 ottobre 2026». Una data senza ora si legge a mezzogiorno, o il fuso la sposta di un giorno. */
+export function dataIt(d: string | null | undefined): string {
+  if (!d) return "";
+  const x = new Date(`${d.slice(0, 10)}T12:00:00`);
+  if (Number.isNaN(x.getTime())) return "";
+  return x.toLocaleDateString("it-IT", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+}
+
+const STATI_CONTRATTO: Record<string, string> = {
+  Current: "In corso",
+  NotStarted: "Non ancora iniziato",
+  Freezed: "Sospeso",
+  Ended: "Finito",
+};
+
+export function statoContratto(stato: string | null | undefined): string {
+  return (stato && STATI_CONTRATTO[stato]) || "In corso";
+}
+
+/** Come si rinnova, in una riga: da dove la persona legge se l'abbonamento continua da solo. */
+export function rinnovoContratto(c: {
+  rinnovo_automatico: boolean | null;
+  disdetta: string | null;
+  fine: string | null;
+}): string {
+  if (c.disdetta)
+    return `Disdetto il ${dataIt(c.disdetta)}: finisce il ${dataIt(c.fine)} e non si rinnova`;
+  if (c.rinnovo_automatico) return "Si rinnova ogni mese";
+  return c.fine ? `Fino al ${dataIt(c.fine)}` : "Senza scadenza";
+}
+
+/**
+ * Perche' le lezioni si vedono solo fin li': PerfectGym tiene vive le lezioni fino alla fine del contratto, e il rinnovo di
+ * meta' mese (di solito fra il 20 e il 21) la sposta al mese dopo. Chi ha disdetto non ha un mese dopo.
+ */
+export function finestraLezioni(c: {
+  fine: string | null;
+  disdetta: string | null;
+}): string {
+  if (!c.fine) return "Qui vedi le lezioni che hai in programma.";
+  if (c.disdetta)
+    return `Qui vedi le lezioni fino al ${dataIt(c.fine)}, quando finisce il tuo abbonamento.`;
+  return `Qui vedi le lezioni fino al ${dataIt(c.fine)}, la fine del mese pagato. Quando l’abbonamento si rinnova (di solito fra il 20 e il 21) compaiono quelle del mese dopo.`;
+}
+
+/** «1 lezione» / «3 lezioni». */
+export function nLezioni(n: number): string {
+  return `${n} ${n === 1 ? "lezione" : "lezioni"}`;
+}
+
+/** Il canone, «109 €» o «89,50 €». */
+export function euroIt(n: number | null | undefined): string {
+  if (n == null || !Number.isFinite(n)) return "";
+  return `${n.toLocaleString("it-IT", { minimumFractionDigits: Number.isInteger(n) ? 0 : 2, maximumFractionDigits: 2 })} €`;
+}
+
+/** L'iscrizione che la persona ha alla Scuola Nuoto (da cui i recuperi), se c'e'. */
+export function iscrizioneScuola<T extends { recuperabile: boolean }>(
+  iscrizioni: T[],
+): T | null {
+  return iscrizioni.find((i) => i.recuperabile) ?? null;
+}
+
+/** I mesi compiuti alla data, dalla nascita «AAAA-MM-GG»; null se la data non c'e'. */
+export function mesiCompiuti(
+  nascita: string | null | undefined,
+  oggi: Date = new Date(),
+): number | null {
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(nascita ?? "");
+  if (!m) return null;
+  const [a, me, g] = [Number(m[1]), Number(m[2]), Number(m[3])];
+  let mesi = (oggi.getFullYear() - a) * 12 + (oggi.getMonth() + 1 - me);
+  if (oggi.getDate() < g) mesi -= 1;
+  return mesi;
+}
+
+/**
+ * In eta' per il Baby Nuoto: da 3 a 36 mesi compiuti, i limiti dei due tipi di lezione («3-15 Mesi», «16-36 Mesi»). E' la stessa
+ * regola di `junior_corsi_di` nel database, che resta l'autorita': qui serve a non mostrare i gruppi della scuola a un lattante.
+ */
+export function eBaby(
+  nascita: string | null | undefined,
+  oggi: Date = new Date(),
+): boolean {
+  const m = mesiCompiuti(nascita, oggi);
+  return m != null && m >= 3 && m <= 36;
 }
