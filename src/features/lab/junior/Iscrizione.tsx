@@ -36,6 +36,8 @@ import { SchermataInArrivo } from "../ui/Attesa";
 import { Foglio } from "../ui/Foglio";
 import { Icona } from "../ui/Icona";
 import { Carta, Messaggio, Pulsante, Sezione } from "../ui/kit";
+import { chiaveDelGruppo } from "./attivita";
+import { DaSapere } from "./SchedaAttivita";
 import { Schermata } from "../ui/Schermata";
 import { F, usePalette } from "../ui/tema";
 import { colpetto, Tocco } from "../ui/Tocco";
@@ -325,6 +327,13 @@ export function Iscrizione() {
 
         {passo === 1 ? (
           <>
+            {(() => {
+              const nome = anteprima?.gruppo.nome ?? nomeGruppo ?? "";
+              const chiave = baby
+                ? "baby"
+                : chiaveDelGruppo({ nome, corso: nome });
+              return chiave ? <DaSapere chiave={chiave} /> : null;
+            })()}
             <Sezione titolo={t("Quando parte", "When it starts")}>
               <Text style={[stili.nota, { color: p.testoSecondario }]}>
                 {inizio

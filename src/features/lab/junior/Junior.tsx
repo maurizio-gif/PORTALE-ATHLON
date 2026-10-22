@@ -46,11 +46,13 @@ import {
   statoPosti,
   titoloGruppo,
 } from "./comune";
+import { attivitaDiPersona } from "./attivita";
 import { ComeFunziona } from "./ComeFunziona";
 import { CorsiPersona } from "./Corsi";
 import { FoglioComponente } from "./FoglioComponente";
 import { FoglioLivelli } from "./FoglioLivelli";
 import { TestataJunior } from "./Presentazione";
+import { SchedaAttivita } from "./SchedaAttivita";
 
 // La sezione Junior (21/10/2026, richiesta di Maurizio): tutti i gruppi dei corsi per bambini e ragazzi attivi adesso
 // (Scuola Nuoto mono e bisettimanale, Nuoto Agonistico e Propaganda, Pallanuoto), divisi per anno di nascita, con i
@@ -319,6 +321,14 @@ export function Junior() {
         aperto={storiaLivelli}
         onChiudi={() => setStoriaLivelli(false)}
       />
+
+      {persona ? (
+        <SchedaAttivita
+          key={persona.member_id}
+          chiavi={attivitaDiPersona(persona)}
+          nome={persona.nome}
+        />
+      ) : null}
 
       <ComeFunziona />
 

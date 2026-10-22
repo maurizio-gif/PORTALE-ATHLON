@@ -74,8 +74,12 @@ const VOCI: Voce[] = [
         "Unused make-ups expire at the end of the contract’s month. Here you can see how many classes you cancelled, made up and still have to make up.",
       ),
       t(
-        "Una disdetta oltre l’ora non dà diritto al recupero. I recuperi sono della Scuola Nuoto Bambini.",
-        "A cancellation inside that hour doesn’t earn a make-up. Make-ups are for the Kids Swim School.",
+        "Non ci sono recuperi nella prima settimana di corso né nella settimana dei Brevetti. Servono abbonamento attivo e pagamenti in regola; con la disdetta del contratto si perdono; vanno usati entro il 20 giugno.",
+        "There are no make-ups in the first week of the course or in Badge week. They need an active membership and payments up to date; cancelling the contract loses them; use them by 20 June.",
+        ),
+        t(
+        "Una disdetta fuori termine non dà diritto al recupero: le richieste fuori termine si valutano caso per caso. I recuperi sono della Scuola Nuoto Bambini.",
+        "A late cancellation doesn’t entitle you to a make-up: late requests are assessed case by case. Make-ups are for the Kids Swim School.",
       ),
     ],
   },
@@ -84,8 +88,8 @@ const VOCI: Voce[] = [
     titolo: () => t("Agonistico, Propaganda e Pallanuoto", "Competitive, Propaganda and Water polo"),
     righe: () => [
       t(
-        "Sono gruppi con giorni e orari propri: li vedi sotto, accanto a ogni gruppo.",
-        "These are groups with their own days and times: you’ll see them next to each group below.",
+        "Sono gruppi con giorni e orari propri: li vedi sotto, accanto a ogni gruppo. Pallanuoto e Nuoto Agonistico hanno una prova di inserimento obbligatoria, da chiedere dalla pagina del corso su athlonroma.it; Propaganda e Agonistico vogliono il certificato medico agonistico.",
+        "These are groups with their own days and times: you’ll see them next to each group below. Water polo and Competitive Swimming have a mandatory placement trial, to request from the course page on athlonroma.it; Propaganda and Competitive need the competitive medical certificate.",
       ),
       t(
         "Non hanno recuperi: i recuperi sono solo della Scuola Nuoto Bambini.",
@@ -98,8 +102,8 @@ const VOCI: Voce[] = [
     titolo: () => t("Baby Nuoto", "Baby Swim"),
     righe: () => [
       t(
-        "Dai 3 ai 36 mesi, con un genitore in acqua. Qui si prenota lezione per lezione, oppure si sceglie l’abbonamento mensile.",
-        "From 3 to 36 months, with a parent in the water. Here you book class by class, or choose the monthly membership.",
+        "Per i nati nel 2024, 2025 e 2026 (dai 3 mesi), con un genitore in acqua. Qui si prenota lezione per lezione, oppure si sceglie l’abbonamento mensile.",
+        "For children born in 2024, 2025 and 2026 (from 3 months), with a parent in the water. Here you book class by class, or choose the monthly membership.",
       ),
     ],
   },
