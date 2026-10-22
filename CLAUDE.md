@@ -1001,7 +1001,11 @@ tabelle, la natura servizio/marketing e il consenso, i tetti, il tracciamento e 
   nuova), e centro e finestra funzionano uguale. **Si attiva solo con un tocco della persona** (il browser chiede il permesso solo così) e il permesso è del dispositivo. Gli stati: nessuna carta se il
   browser non le sa fare o il club non le ha ancora attivate sul server (`disponibile: false`: manca la chiave pubblica nel segreto della funzione); un avviso su **iPhone e iPad**, dove le push esistono solo
   per l'app aggiunta alla schermata Home («Condividi», poi «Aggiungi alla schermata Home»); un avviso se la persona ha **negato** il permesso al browser (si cambia dalle impostazioni del browser, non da qui);
-  «Attiva le notifiche» / «Notifiche attive su questo dispositivo», con «Spegni su questo dispositivo». Chi non le attiva non perde niente: ogni notifica arriva comunque nell'app.
+  «Attiva le notifiche: te lo consigliamo» / «Notifiche attive: sei sempre aggiornato», con «Spegni su questo dispositivo». **Dal 22/10/2026 (richiesta di Maurizio) l'invito
+  spinge ad attivarle**, quasi come un requisito: novità, iniziative, eventi e comunicazioni del club arrivano subito, «senza rischi di perderti qualcosa»; attive, «Bene! Così resti
+  aggiornato su tutte le nostre novità…». Non si dice più «il club ti scrive solo per cose che ti riguardano». **Attivarle di default non si può**: il browser accende la push
+  solo dopo un tocco e il «Consenti» della persona. Ogni notifica arriva comunque anche nell'app, e quelle di marketing solo a chi ha il consenso della newsletter (lo decide il
+  database, non questo testo).
 - **Un dispositivo segue il nucleo e chi esce lo toglie.** Il server associa l'indirizzo push al titolare e ai figli (una notifica per un figlio arriva sul telefono del genitore, con «Per Giulia»);
   **uscendo dall'app** (`esciDalLaboratorio`) il dispositivo si toglie dal club e dal browser **prima** di chiudere la sessione (il server vuole sapere chi è), senza far aspettare più di quattro secondi
   chi esce: su un dispositivo condiviso le notifiche di una persona non devono passare a chi entra dopo. Chi attiva le notifiche sullo stesso browser dopo un altro se lo porta via.
