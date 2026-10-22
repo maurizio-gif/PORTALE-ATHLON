@@ -1113,6 +1113,10 @@ Richiesta di Maurizio. Il socio sceglie la lingua nel **Profilo** (Account → L
 quella del dispositivo (italiano se il dispositivo è in italiano, altrimenti inglese). La scelta si ricorda sul dispositivo (`localStorage`,
 `athlon_lingua`). Il lato server: `CLAUDE.md` di APP-ATHLON, «Le lingue del portale».
 
+- **Il link `?lingua=en` (o `?lingua=it`) apre l'app in quella lingua** (22/10/2026, per l'invito ai tester in inglese dal CRM, APP-ATHLON «I tester dell'app»):
+  `dallIndirizzo()` in `lingua.ts` lo legge alla prima domanda, **vale come una scelta del socio** (si ricorda sul dispositivo, sopra a quella di prima) e toglie il
+  parametro dall'indirizzo con `history.replaceState`. Solo sul web. **Su iPhone l'app aggiunta alla schermata Home ha una memoria sua**: si apre nella lingua del
+  dispositivo, e l'email lo dice (Profilo → Lingua). Un valore diverso da `it` e `en` non conta.
 - **I testi stanno accanto all'originale**: `t('Prenota', 'Book')` (`src/lib/lingua.ts`), non una chiave in un dizionario. Un testo nuovo si
   scrive sempre con i due argomenti; `tv(it, en)` per elenchi ed elementi, `locale()` per date e numeri (`it-IT` / `en-GB`), mai `'it-IT'` scritto.
   `lingua.ts` è un modulo puro (lo importano anche i calcoli provati con `npx tsx`); il gancio per i componenti è `useLingua` in `lingua-react.ts`.
