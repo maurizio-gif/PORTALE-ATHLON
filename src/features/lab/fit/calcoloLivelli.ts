@@ -2,6 +2,7 @@ import type { VoceDiario } from '@/api/alimentazione'
 import type { GiornoDispositivo } from '@/api/dispositivi'
 
 import { spostaGiorno } from '../schede/contatoreCalorie'
+import { t } from '../../../lib/lingua'
 import { CURVA_TRAIN, GIORNI_FOOD, giorniBuoniFood, minutiPerGiorno, nottiDa, NOTTI_RELAX, PUNTI, quotaNotte, MINUTI_GIORNO_ATTIVO, type Punteggio, type SessioneBase } from './calcoloPunteggio'
 
 // I livelli dell'Athlon Health Score (richiesta del club, 20/10/2026): Legno, Bronzo, Argento, Oro,
@@ -30,12 +31,12 @@ export type IdLivello = 'legno' | 'bronzo' | 'argento' | 'oro' | 'platino' | 'di
 export type Livello = { id: IdLivello; nome: string; /** I punti da cui comincia. */ da: number; colori: readonly [string, string] }
 
 export const LIVELLI: readonly Livello[] = [
-  { id: 'legno', nome: 'Legno', da: 0, colori: ['#B98B5E', '#8A5A36'] },
-  { id: 'bronzo', nome: 'Bronzo', da: 150, colori: ['#EBAE7C', '#B0652A'] },
-  { id: 'argento', nome: 'Argento', da: 500, colori: ['#EEF0F5', '#9AA3B2'] },
-  { id: 'oro', nome: 'Oro', da: 1200, colori: ['#FFD966', '#E0A100'] },
-  { id: 'platino', nome: 'Platino', da: 2400, colori: ['#DDF4FF', '#7FB8D9'] },
-  { id: 'diamante', nome: 'Diamante', da: 4200, colori: ['#9EE7FF', '#7A6CFF'] },
+  { id: 'legno', nome: t('Legno', 'Wood'), da: 0, colori: ['#B98B5E', '#8A5A36'] },
+  { id: 'bronzo', nome: t('Bronzo', 'Bronze'), da: 150, colori: ['#EBAE7C', '#B0652A'] },
+  { id: 'argento', nome: t('Argento', 'Silver'), da: 500, colori: ['#EEF0F5', '#9AA3B2'] },
+  { id: 'oro', nome: t('Oro', 'Gold'), da: 1200, colori: ['#FFD966', '#E0A100'] },
+  { id: 'platino', nome: t('Platino', 'Platinum'), da: 2400, colori: ['#DDF4FF', '#7FB8D9'] },
+  { id: 'diamante', nome: t('Diamante', 'Diamond'), da: 4200, colori: ['#9EE7FF', '#7A6CFF'] },
 ]
 
 /** Quante settimane finite si registrano ogni volta: le stesse che guarda il punteggio. */

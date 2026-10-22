@@ -5,6 +5,7 @@ import { StyleSheet, Text, View } from 'react-native'
 import Svg, { Circle } from 'react-native-svg'
 
 import { aggiornaDispositivi, type AllenamentoDispositivo, type GiornoDispositivo } from '@/api/dispositivi'
+import { locale, t } from '@/lib/lingua'
 import { spazio } from '@/theme'
 
 import { oggiRoma } from '../alimentazione/conti'
@@ -33,9 +34,9 @@ import { CheckInSonno } from './CheckInSonno'
 const apriDispositivi = () => router.push('/allenamento/dispositivi')
 
 const cose = (collegabili: boolean): { icona: NomeIcona; testo: string }[] => [
-  { icona: 'foglia', testo: 'Il tuo sonno: lo scrivi in dieci secondi ogni mattina, e conta nel tuo Athlon Health Score.' },
-  ...(collegabili ? [{ icona: 'cronometro' as const, testo: 'Con un anello Oura o un orologio Polar il sonno, il recupero e gli allenamenti arrivano da soli.' }] : []),
-  { icona: 'lucchetto', testo: 'Li vedi solo tu, e togli il permesso quando vuoi.' },
+  { icona: 'foglia', testo: t('Il tuo sonno: lo scrivi in dieci secondi ogni mattina, e conta nel tuo Athlon Health Score.', 'Your sleep: log it in ten seconds each morning, and it counts toward your Athlon Health Score.') },
+  ...(collegabili ? [{ icona: 'cronometro' as const, testo: t('Con un anello Oura o un orologio Polar il sonno, il recupero e gli allenamenti arrivano da soli.', 'With an Oura ring or a Polar watch, your sleep, recovery and workouts come in by themselves.') }] : []),
+  { icona: 'lucchetto', testo: t('Li vedi solo tu, e togli il permesso quando vuoi.', 'Only you see them, and you can withdraw permission whenever you like.') },
 ]
 
 export function AreaRelax({ disp }: { disp: Dispositivi }) {
@@ -44,8 +45,8 @@ export function AreaRelax({ disp }: { disp: Dispositivi }) {
 
   if (disp.vista) {
     return (
-      <Messaggio tono="attenzione" titolo="Non visibile nella vista cliente">
-        Relax contiene dati sulla salute: lo vede solo il socio, dalla sua app.
+      <Messaggio tono="attenzione" titolo={t('Non visibile nella vista cliente', 'Not visible in client view')}>
+        {t('Relax contiene dati sulla salute: lo vede solo il socio, dalla sua app.', 'Relax contains health data: only the member can see it, from their own app.')}
       </Messaggio>
     )
   }
@@ -54,8 +55,8 @@ export function AreaRelax({ disp }: { disp: Dispositivi }) {
   if (!stato.maggiorenne) {
     return (
       <Carta style={{ gap: spazio.due }}>
-        <Text style={[stili.titoletto, { color: p.testo }]}>Relax è per i maggiorenni</Text>
-        <Text style={[stili.nota, { color: p.testoSecondario }]}>Se nella tua scheda del club manca la data di nascita, chiedi al desk di aggiungerla.</Text>
+        <Text style={[stili.titoletto, { color: p.testo }]}>{t('Relax è per i maggiorenni', 'Relax is for adults only')}</Text>
+        <Text style={[stili.nota, { color: p.testoSecondario }]}>{t('Se nella tua scheda del club manca la data di nascita, chiedi al desk di aggiungerla.', 'If your date of birth is missing from your club profile, ask the front desk to add it.')}</Text>
       </Carta>
     )
   }
@@ -63,10 +64,10 @@ export function AreaRelax({ disp }: { disp: Dispositivi }) {
   if (!stato.consenso) {
     return (
       <Entra indice={0}>
-        <Tocco onPress={apriDispositivi} etichetta="Attiva Relax" scala={0.985}>
+        <Tocco onPress={apriDispositivi} etichetta={t('Attiva Relax', 'Turn on Relax')} scala={0.985}>
           <LinearGradient colors={RELAX} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={stili.vetrina}>
-            <Text style={stili.vetrinaTitolo}>Recuperare fa parte dell’allenamento</Text>
-            <Text style={stili.vetrinaTesto}>Scrivi quanto dormi e vedi qui come stai recuperando:</Text>
+            <Text style={stili.vetrinaTitolo}>{t('Recuperare fa parte dell’allenamento', 'Recovery is part of training')}</Text>
+            <Text style={stili.vetrinaTesto}>{t('Scrivi quanto dormi e vedi qui come stai recuperando:', 'Log how much you sleep and see here how you’re recovering:')}</Text>
             <View style={{ gap: spazio.due }}>
               {cose(dispositiviCollegabili(stato)).map((c) => (
                 <View key={c.icona} style={stili.riga}>
@@ -77,9 +78,9 @@ export function AreaRelax({ disp }: { disp: Dispositivi }) {
                 </View>
               ))}
             </View>
-            <Text style={stili.vetrinaPiccola}>Prima di cominciare si legge e si accetta l’informativa: i dati sono tuoi, e li vedi solo tu.</Text>
+            <Text style={stili.vetrinaPiccola}>{t('Prima di cominciare si legge e si accetta l’informativa: i dati sono tuoi, e li vedi solo tu.', 'Before you start, you read and accept the privacy notice: the data is yours, and only you see it.')}</Text>
             <View style={stili.vetrinaPulsante}>
-              <Text style={stili.vetrinaPulsanteTesto}>Attiva Relax</Text>
+              <Text style={stili.vetrinaPulsanteTesto}>{t('Attiva Relax', 'Turn on Relax')}</Text>
               <Icona nome="avanti" size={16} colore={RELAX[2]} />
             </View>
           </LinearGradient>
@@ -145,11 +146,11 @@ function Dati({ disp }: { disp: Dispositivi }) {
   return (
     <View style={{ gap: spazio.tre }}>
       {riautorizza.map((c) => (
-        <Messaggio key={c.fornitore} tono="attenzione" titolo={`${c.fornitore === 'oura' ? 'Oura' : 'Polar'} va ricollegato`}>
-          {c.ultimo_errore ?? 'Il dispositivo ha tolto l’accesso: collegalo di nuovo.'}
+        <Messaggio key={c.fornitore} tono="attenzione" titolo={t(`${c.fornitore === 'oura' ? 'Oura' : 'Polar'} va ricollegato`, `${c.fornitore === 'oura' ? 'Oura' : 'Polar'} needs to be reconnected`)}>
+          {c.ultimo_errore ?? t('Il dispositivo ha tolto l’accesso: collegalo di nuovo.', 'The device removed access: connect it again.')}
         </Messaggio>
       ))}
-      {riautorizza.length ? <Pulsante testo="Ricollega" icona="avanti" variante="secondario" onPress={apriDispositivi} /> : null}
+      {riautorizza.length ? <Pulsante testo={t('Ricollega', 'Reconnect')} icona="avanti" variante="secondario" onPress={apriDispositivi} /> : null}
 
       <Entra indice={0}>
         <CheckInSonno disp={disp} giorni={dati.giorni} />
@@ -158,18 +159,18 @@ function Dati({ disp }: { disp: Dispositivi }) {
       {notte ? (
         <Entra indice={0}>
           <LinearGradient colors={RELAX} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={stili.notte}>
-            <Text style={stili.notteEtichetta}>{(notte.data === oggi ? 'Questa notte' : notte.data === ieri ? 'La notte scorsa' : `Notte del ${giornoBreve(notte.data)}`).toUpperCase()}</Text>
+            <Text style={stili.notteEtichetta}>{(notte.data === oggi ? t('Questa notte', 'Last night') : notte.data === ieri ? t('La notte scorsa', 'The night before') : t(`Notte del ${giornoBreve(notte.data)}`, `Night of ${giornoBreve(notte.data)}`)).toUpperCase()}</Text>
             <View style={stili.anelli}>
-              <Anello quota={(notte.sonno_minuti ?? 0) / 600} centro={durata(notte.sonno_minuti ?? 0)} sotto={notte.sonno_punteggio !== null ? `Sonno · punteggio ${notte.sonno_punteggio}` : 'Sonno'} colore="#fff" />
-              {rec ? <Anello quota={rec.quota} centro={rec.parole} sotto={`Recupero · ${rec.valore}`} colore="#FFD166" /> : null}
+              <Anello quota={(notte.sonno_minuti ?? 0) / 600} centro={durata(notte.sonno_minuti ?? 0)} sotto={notte.sonno_punteggio !== null ? t(`Sonno · punteggio ${notte.sonno_punteggio}`, `Sleep · score ${notte.sonno_punteggio}`) : t('Sonno', 'Sleep')} colore="#fff" />
+              {rec ? <Anello quota={rec.quota} centro={rec.parole} sotto={t(`Recupero · ${rec.valore}`, `Recovery · ${rec.valore}`)} colore="#FFD166" /> : null}
             </View>
             {particolari(notte) ? <Text style={stili.notteTesto}>{particolari(notte)}</Text> : null}
           </LinearGradient>
         </Entra>
       ) : collegati ? (
         <Carta style={{ gap: spazio.due }}>
-          <Text style={[stili.titoletto, { color: p.testo }]}>Ancora niente da mostrare</Text>
-          <Text style={[stili.nota, { color: p.testoSecondario }]}>I dati arrivano quando il dispositivo ha sincronizzato col telefono: di solito entro la mezz’ora.</Text>
+          <Text style={[stili.titoletto, { color: p.testo }]}>{t('Ancora niente da mostrare', 'Nothing to show yet')}</Text>
+          <Text style={[stili.nota, { color: p.testoSecondario }]}>{t('I dati arrivano quando il dispositivo ha sincronizzato col telefono: di solito entro la mezz’ora.', 'The data comes in once the device has synced with your phone: usually within half an hour.')}</Text>
         </Carta>
       ) : null}
 
@@ -178,20 +179,20 @@ function Dati({ disp }: { disp: Dispositivi }) {
           <View style={stili.riga}>
             <Bollino icona="orologio" tono="neutro" size={46} />
             <View style={{ flex: 1, gap: 2 }}>
-              <Text style={[stili.titoletto, { color: p.testo }]}>Hai un anello o un orologio?</Text>
-              <Text style={[stili.nota, { color: p.testoSecondario }]}>Oura o Polar: il sonno e il recupero arrivano da soli, senza scriverli.</Text>
+              <Text style={[stili.titoletto, { color: p.testo }]}>{t('Hai un anello o un orologio?', 'Do you have a ring or a watch?')}</Text>
+              <Text style={[stili.nota, { color: p.testoSecondario }]}>{t('Oura o Polar: il sonno e il recupero arrivano da soli, senza scriverli.', 'Oura or Polar: your sleep and recovery come in by themselves, no logging needed.')}</Text>
             </View>
           </View>
-          <Pulsante testo="Collega" icona="avanti" variante="secondario" onPress={apriDispositivi} />
+          <Pulsante testo={t('Collega', 'Connect')} icona="avanti" variante="secondario" onPress={apriDispositivi} />
         </Carta>
       ) : null}
 
       {giorni.length > 1 || notte ? (
         <Entra indice={1}>
-          <Sezione titolo="Gli ultimi sette giorni">
+          <Sezione titolo={t('Gli ultimi sette giorni', 'The last seven days')}>
             <Carta style={{ gap: spazio.tre }}>
               <Settimana giorni={giorni} oggi={oggi} />
-              <Text style={[stili.piccola, { color: p.testoTerzo }]}>Ore di sonno per notte. Il giorno è quello del risveglio.</Text>
+              <Text style={[stili.piccola, { color: p.testoTerzo }]}>{t('Ore di sonno per notte. Il giorno è quello del risveglio.', 'Hours of sleep per night. The day is the one you woke up.')}</Text>
             </Carta>
           </Sezione>
         </Entra>
@@ -201,7 +202,7 @@ function Dati({ disp }: { disp: Dispositivi }) {
 
       {collegati ? (
       <Entra indice={3}>
-        <Sezione titolo="Allenamenti dei dispositivi">
+        <Sezione titolo={t('Allenamenti dei dispositivi', 'Device workouts')}>
           {allenamenti.length ? (
             <Carta style={{ gap: spazio.tre }}>
               {allenamenti.map((a, i) => (
@@ -210,7 +211,7 @@ function Dati({ disp }: { disp: Dispositivi }) {
             </Carta>
           ) : (
             <Carta>
-              <Text style={[stili.nota, { color: p.testoSecondario }]}>Nessun allenamento registrato dal dispositivo negli ultimi giorni.</Text>
+              <Text style={[stili.nota, { color: p.testoSecondario }]}>{t('Nessun allenamento registrato dal dispositivo negli ultimi giorni.', 'No workouts recorded by your device in the last few days.')}</Text>
             </Carta>
           )}
         </Sezione>
@@ -219,16 +220,18 @@ function Dati({ disp }: { disp: Dispositivi }) {
 
       {errore ? <Messaggio>{errore}</Messaggio> : null}
       <Text style={[stili.piccola, { color: p.testoTerzo, paddingHorizontal: 2 }]}>
-        {collegati ? `Aggiornato ${dopo(ultimaLettura)}. Valori indicativi del tuo dispositivo: non sono un parere medico.` : 'Il sonno che hai scritto tu. Sono valori indicativi: non sono un parere medico.'}
+        {collegati
+          ? t(`Aggiornato ${dopo(ultimaLettura)}. Valori indicativi del tuo dispositivo: non sono un parere medico.`, `Updated ${dopo(ultimaLettura)}. Approximate values from your device: not medical advice.`)
+          : t('Il sonno che hai scritto tu. Sono valori indicativi: non sono un parere medico.', 'The sleep you logged yourself. These are approximate values: not medical advice.')}
       </Text>
       <View style={stili.azioni}>
         {collegati ? (
           <View style={{ flex: 1 }}>
-            <Pulsante testo="Aggiorna" icona="aggiorna" variante="secondario" piccolo inCorso={inCorso} onPress={aggiorna} />
+            <Pulsante testo={t('Aggiorna', 'Refresh')} icona="aggiorna" variante="secondario" piccolo inCorso={inCorso} onPress={aggiorna} />
           </View>
         ) : null}
         <View style={{ flex: 1 }}>
-          <Pulsante testo={collegati || collegabili ? 'I dispositivi' : 'Consenso e dati'} icona={collegati || collegabili ? 'orologio' : 'lucchetto'} variante="contorno" piccolo onPress={apriDispositivi} />
+          <Pulsante testo={collegati || collegabili ? t('I dispositivi', 'Devices') : t('Consenso e dati', 'Consent and data')} icona={collegati || collegabili ? 'orologio' : 'lucchetto'} variante="contorno" piccolo onPress={apriDispositivi} />
         </View>
       </View>
     </View>
@@ -238,10 +241,10 @@ function Dati({ disp }: { disp: Dispositivi }) {
 /** «A letto 23:30 · sveglio 07:00 · Profondo 1 h 20 · REM 1 h 40 · battito più basso 48 · HRV 62 ms», con solo quello che c'e'. */
 function particolari(g: GiornoDispositivo): string {
   const pezzi: string[] = []
-  if (g.sonno_a_letto && g.sonno_sveglia) pezzi.push(`A letto ${g.sonno_a_letto} · sveglio ${g.sonno_sveglia}`)
-  if (g.sonno_profondo_minuti !== null) pezzi.push(`Profondo ${durata(g.sonno_profondo_minuti)}`)
+  if (g.sonno_a_letto && g.sonno_sveglia) pezzi.push(t(`A letto ${g.sonno_a_letto} · sveglio ${g.sonno_sveglia}`, `In bed ${g.sonno_a_letto} · awake ${g.sonno_sveglia}`))
+  if (g.sonno_profondo_minuti !== null) pezzi.push(t(`Profondo ${durata(g.sonno_profondo_minuti)}`, `Deep ${durata(g.sonno_profondo_minuti)}`))
   if (g.sonno_rem_minuti !== null) pezzi.push(`REM ${durata(g.sonno_rem_minuti)}`)
-  if (g.fc_notte !== null) pezzi.push(`battito più basso ${g.fc_notte}`)
+  if (g.fc_notte !== null) pezzi.push(t(`battito più basso ${g.fc_notte}`, `lowest heart rate ${g.fc_notte}`))
   if (g.hrv_ms !== null) pezzi.push(`HRV ${Math.round(g.hrv_ms)} ms`)
   return pezzi.join(' · ')
 }
@@ -259,7 +262,7 @@ function Settimana({ giorni, oggi }: { giorni: GiornoDispositivo[]; oggi: string
         const h = m === null ? 4 : Math.max(6, Math.min(1, m / 600) * ALTEZZA * a)
         return (
           <View key={d} style={stili.colonna}>
-            <Text style={[stili.colonnaValore, { color: p.testoSecondario }]}>{m === null ? '' : (m / 60).toFixed(1).replace('.', ',')}</Text>
+            <Text style={[stili.colonnaValore, { color: p.testoSecondario }]}>{m === null ? '' : t((m / 60).toFixed(1).replace('.', ','), (m / 60).toFixed(1))}</Text>
             <View style={{ height: ALTEZZA, justifyContent: 'flex-end' }}>
               <View style={{ height: h, width: 22, borderRadius: 8, backgroundColor: m === null ? p.incavo : d === oggi ? RELAX[1] : `${RELAX[1]}99` }} />
             </View>
@@ -279,10 +282,10 @@ function Attivita({ giorni, oggi, ieri }: { giorni: GiornoDispositivo[]; oggi: s
   return (
     <Entra indice={2}>
       <Carta style={{ gap: spazio.due }}>
-        <Text style={[stili.sottoTitolo, { color: p.testo }]}>{g.data === oggi ? 'Oggi' : 'Ieri'}</Text>
+        <Text style={[stili.sottoTitolo, { color: p.testo }]}>{g.data === oggi ? t('Oggi', 'Today') : t('Ieri', 'Yesterday')}</Text>
         <View style={stili.azioni}>
-          {g.passi !== null ? <Cifra valore={g.passi.toLocaleString('it-IT')} etichetta="passi" /> : null}
-          {g.calorie_attive !== null ? <Cifra valore={g.calorie_attive.toLocaleString('it-IT')} etichetta="kcal di movimento" /> : null}
+          {g.passi !== null ? <Cifra valore={g.passi.toLocaleString(locale())} etichetta={t('passi', 'steps')} /> : null}
+          {g.calorie_attive !== null ? <Cifra valore={g.calorie_attive.toLocaleString(locale())} etichetta={t('kcal di movimento', 'active kcal')} /> : null}
         </View>
       </Carta>
     </Entra>
@@ -301,7 +304,7 @@ function Cifra({ valore, etichetta }: { valore: string; etichetta: string }) {
 
 function RigaAllenamento({ a, oggi, ieri, primo }: { a: AllenamentoDispositivo; oggi: string; ieri: string; primo: boolean }) {
   const p = usePalette()
-  const pezzi = [durata(a.durata_minuti), a.calorie !== null ? `${a.calorie} kcal` : null, a.fc_media !== null ? `battito medio ${a.fc_media}` : null].filter(Boolean)
+  const pezzi = [durata(a.durata_minuti), a.calorie !== null ? `${a.calorie} kcal` : null, a.fc_media !== null ? t(`battito medio ${a.fc_media}`, `average heart rate ${a.fc_media}`) : null].filter(Boolean)
   return (
     <View style={[stili.allenamento, !primo && { borderTopColor: p.linea, borderTopWidth: StyleSheet.hairlineWidth, paddingTop: spazio.tre }]}>
       <Bollino icona="cronometro" tono="accento" size={40} />

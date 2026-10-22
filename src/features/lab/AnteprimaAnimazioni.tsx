@@ -4,6 +4,7 @@ import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-nati
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { spazio } from '@/theme'
+import { t } from '@/lib/lingua'
 
 import { Animazione } from './ui/Animazione'
 import { Icona } from './ui/Icona'
@@ -23,20 +24,20 @@ const FONTI: { chiave: Fonte; nome: string; nota: string; credito: string | null
   {
     chiave: 'flow',
     nome: 'Flow',
-    nota: '1.257 esercizi animati · SVG · CC0 (anteprima, immagini generate con AI)',
+    nota: t('1.257 esercizi animati · SVG · CC0 (anteprima, immagini generate con AI)', '1,257 animated exercises · SVG · CC0 (preview, AI-generated images)'),
     credito: null,
   },
   {
     chiave: 'workout-guide',
     nome: 'Workout Guide',
-    nota: '302 esercizi · 3 fotogrammi SVG · CC BY-SA 4.0',
-    credito: 'Illustrazioni: Workout Guide di Bryl Lim, da Everkinetic · CC BY-SA 4.0',
+    nota: t('302 esercizi · 3 fotogrammi SVG · CC BY-SA 4.0', '302 exercises · 3 SVG frames · CC BY-SA 4.0'),
+    credito: t('Illustrazioni: Workout Guide di Bryl Lim, da Everkinetic · CC BY-SA 4.0', 'Illustrations: Workout Guide by Bryl Lim, from Everkinetic · CC BY-SA 4.0'),
   },
   {
     chiave: 'foto',
-    nome: 'Foto',
-    nota: '876 esercizi · 2 foto (inizio e fine) · pubblico dominio',
-    credito: 'Foto: free-exercise-db · Unlicense',
+    nome: t('Foto', 'Photos'),
+    nota: t('876 esercizi · 2 foto (inizio e fine) · pubblico dominio', '876 exercises · 2 photos (start and end) · public domain'),
+    credito: t('Foto: free-exercise-db · Unlicense', 'Photos: free-exercise-db · Unlicense'),
   },
 ]
 
@@ -57,58 +58,58 @@ const foto = (id: string) => ({ fotogrammi: [0, 1].map((n) => `/anteprima-eserci
 
 const GIORNO: Esercizio[] = [
   {
-    nome: 'Squat con bilanciere',
-    muscoli: 'Quadricipiti · glutei',
+    nome: t('Squat con bilanciere', 'Barbell squat'),
+    muscoli: t('Quadricipiti · glutei', 'Quads · glutes'),
     serie: 4,
     ripetizioni: '8',
     carico: '60 kg',
     recupero: 120,
     istruzioni: [
-      'Bilanciere appoggiato sui trapezi, piedi alla larghezza delle spalle.',
-      'Scendi spingendo indietro le anche, schiena dritta e ginocchia in linea con i piedi.',
-      'Arriva con le cosce almeno parallele al pavimento, poi risali spingendo coi talloni.',
+      t('Bilanciere appoggiato sui trapezi, piedi alla larghezza delle spalle.', 'Bar resting on your traps, feet shoulder-width apart.'),
+      t('Scendi spingendo indietro le anche, schiena dritta e ginocchia in linea con i piedi.', 'Lower by pushing your hips back, back straight and knees in line with your feet.'),
+      t('Arriva con le cosce almeno parallele al pavimento, poi risali spingendo coi talloni.', 'Go down until your thighs are at least parallel to the floor, then drive back up through your heels.'),
     ],
     media: { flow: flow('0043'), 'workout-guide': wg('squat'), foto: foto('Barbell_Squat') },
   },
   {
     nome: 'Chest press',
-    muscoli: 'Petto · tricipiti',
+    muscoli: t('Petto · tricipiti', 'Chest · triceps'),
     serie: 3,
     ripetizioni: '10',
     carico: '40 kg',
     recupero: 90,
     istruzioni: [
-      'Regola il sedile: le maniglie all’altezza del petto.',
-      'Spingi in avanti fino a distendere le braccia, senza bloccare i gomiti.',
-      'Torna indietro piano, fino a sentire il petto che si allunga.',
+      t('Regola il sedile: le maniglie all’altezza del petto.', 'Adjust the seat so the handles are at chest height.'),
+      t('Spingi in avanti fino a distendere le braccia, senza bloccare i gomiti.', 'Push forward until your arms are extended, without locking your elbows.'),
+      t('Torna indietro piano, fino a sentire il petto che si allunga.', 'Come back slowly, until you feel your chest stretch.'),
     ],
     media: { flow: flow('0577'), 'workout-guide': wg('machine-chest-press'), foto: foto('Leverage_Chest_Press') },
   },
   {
     nome: 'Lat machine',
-    muscoli: 'Dorsali · bicipiti',
+    muscoli: t('Dorsali · bicipiti', 'Lats · biceps'),
     serie: 3,
     ripetizioni: '10',
     carico: '45 kg',
     recupero: 90,
     istruzioni: [
-      'Seduto, cosce bloccate sotto i rulli, presa larga sulla barra.',
-      'Tira la barra verso la parte alta del petto portando i gomiti in basso e indietro.',
-      'Risali controllando, fino a distendere le braccia.',
+      t('Seduto, cosce bloccate sotto i rulli, presa larga sulla barra.', 'Seated, thighs locked under the pads, wide grip on the bar.'),
+      t('Tira la barra verso la parte alta del petto portando i gomiti in basso e indietro.', 'Pull the bar to your upper chest, bringing your elbows down and back.'),
+      t('Risali controllando, fino a distendere le braccia.', 'Return with control until your arms are extended.'),
     ],
     media: { flow: flow('2330'), 'workout-guide': wg('lat-pulldown'), foto: foto('Full_Range-Of-Motion_Lat_Pulldown') },
   },
   {
-    nome: 'Curl con manubri',
-    muscoli: 'Bicipiti',
+    nome: t('Curl con manubri', 'Dumbbell curl'),
+    muscoli: t('Bicipiti', 'Biceps'),
     serie: 3,
     ripetizioni: '12',
     carico: '10 kg',
     recupero: 60,
     istruzioni: [
-      'In piedi, un manubrio per mano, braccia distese lungo i fianchi.',
-      'Piega i gomiti e porta i manubri verso le spalle, gomiti fermi accanto al busto.',
-      'Scendi lentamente fino a distendere di nuovo le braccia.',
+      t('In piedi, un manubrio per mano, braccia distese lungo i fianchi.', 'Standing, a dumbbell in each hand, arms extended at your sides.'),
+      t('Piega i gomiti e porta i manubri verso le spalle, gomiti fermi accanto al busto.', 'Bend your elbows and bring the dumbbells toward your shoulders, elbows still by your sides.'),
+      t('Scendi lentamente fino a distendere di nuovo le braccia.', 'Lower slowly until your arms are extended again.'),
     ],
     media: { flow: flow('0294'), 'workout-guide': wg('bicep-curl'), foto: foto('Dumbbell_Bicep_Curl') },
   },
@@ -134,7 +135,7 @@ function Quadro({ e, fonte, grande = false }: { e: Esercizio; fonte: Fonte; gran
         durataMs={m.durataMs}
         dissolvenza={fonte === 'foto'}
         riempi={fonte === 'foto'}
-        etichetta={`${e.nome}, animazione`}
+        etichetta={t(`${e.nome}, animazione`, `${e.nome}, animation`)}
         style={fonte === 'foto' ? { aspectRatio: grande ? 1.5 : 1 } : { padding: grande ? 18 : 6 }}
       />
     </LinearGradient>
@@ -147,14 +148,14 @@ function Dettaglio({ e, fonte, onChiudi }: { e: Esercizio | null; fonte: Fonte; 
   return (
     <Modal visible={!!e} transparent animationType="slide" onRequestClose={onChiudi}>
       <View style={stili.velo}>
-        <Pressable style={StyleSheet.absoluteFill} onPress={onChiudi} accessibilityLabel="Chiudi" />
+        <Pressable style={StyleSheet.absoluteFill} onPress={onChiudi} accessibilityLabel={t('Chiudi', 'Close')} />
         <View style={[stili.foglio, { backgroundColor: p.carta, paddingBottom: ins.bottom + spazio.tre }]} accessibilityViewIsModal>
           <View style={[stili.maniglia, { backgroundColor: p.incavo }]} />
           {e ? (
             <ScrollView contentContainerStyle={{ gap: spazio.tre + 2, padding: spazio.tre + 4, paddingTop: spazio.due }} showsVerticalScrollIndicator={false}>
               <View>
                 <Quadro e={e} fonte={fonte} grande />
-                <Tocco onPress={onChiudi} etichetta="Chiudi" style={stili.chiudi}>
+                <Tocco onPress={onChiudi} etichetta={t('Chiudi', 'Close')} style={stili.chiudi}>
                   <Icona nome="chiudi" size={18} colore="#fff" />
                 </Tocco>
               </View>
@@ -164,10 +165,10 @@ function Dettaglio({ e, fonte, onChiudi }: { e: Esercizio | null; fonte: Fonte; 
               </View>
               <View style={[stili.cifre, { backgroundColor: p.incavo }]}>
                 {[
-                  { v: String(e.serie), l: 'Serie' },
-                  { v: e.ripetizioni, l: 'Ripetizioni' },
-                  { v: e.carico, l: 'Carico' },
-                  { v: recupero(e.recupero), l: 'Recupero' },
+                  { v: String(e.serie), l: t('Serie', 'Sets') },
+                  { v: e.ripetizioni, l: t('Ripetizioni', 'Reps') },
+                  { v: e.carico, l: t('Carico', 'Load') },
+                  { v: recupero(e.recupero), l: t('Recupero', 'Rest') },
                 ].map((c, i) => (
                   <View key={c.l} style={[stili.cifra, i > 0 && { borderLeftWidth: StyleSheet.hairlineWidth, borderLeftColor: p.linea }]}>
                     <Text style={[stili.cifraValore, { color: i === 3 ? p.blu : p.testo }]}>{c.v}</Text>
@@ -176,16 +177,16 @@ function Dettaglio({ e, fonte, onChiudi }: { e: Esercizio | null; fonte: Fonte; 
                 ))}
               </View>
               <View style={{ gap: spazio.due + 2 }}>
-                {e.istruzioni.map((t, i) => (
+                {e.istruzioni.map((riga, i) => (
                   <View key={i} style={{ flexDirection: 'row', gap: spazio.tre - 4 }}>
                     <View style={[stili.numero, { backgroundColor: p.accento }]}>
                       <Text style={stili.numeroTesto}>{i + 1}</Text>
                     </View>
-                    <Text style={[stili.istruzione, { color: p.testo }]}>{t}</Text>
+                    <Text style={[stili.istruzione, { color: p.testo }]}>{riga}</Text>
                   </View>
                 ))}
               </View>
-              <Pulsante testo="Chiudi" variante="secondario" onPress={onChiudi} />
+              <Pulsante testo={t('Chiudi', 'Close')} variante="secondario" onPress={onChiudi} />
             </ScrollView>
           ) : null}
         </View>
@@ -199,11 +200,11 @@ export function AnteprimaAnimazioni() {
   const [fonte, setFonte] = useState<Fonte>('flow')
   const [aperto, setAperto] = useState<Esercizio | null>(null)
   const scelta = FONTI.find((f) => f.chiave === fonte)!
-  const minuti = Math.round(GIORNO.reduce((t, e) => t + e.serie * (45 + e.recupero), 0) / 60)
+  const minuti = Math.round(GIORNO.reduce((tot, e) => tot + e.serie * (45 + e.recupero), 0) / 60)
 
   return (
-    <Schermata sopratitolo="Prova · animazioni degli esercizi" titolo="Giorno A · Forza" indietro="/" barra={false}>
-      <Sezione titolo="Quale libreria?">
+    <Schermata sopratitolo={t('Prova · animazioni degli esercizi', 'Test · exercise animations')} titolo={t('Giorno A · Forza', 'Day A · Strength')} indietro="/" barra={false}>
+      <Sezione titolo={t('Quale libreria?', 'Which library?')}>
         <View style={[stili.selettore, { backgroundColor: p.incavo }]}>
           {FONTI.map((f) => {
             const qui = f.chiave === fonte
@@ -225,9 +226,9 @@ export function AnteprimaAnimazioni() {
       </Sezione>
 
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spazio.due }}>
-        <Etichetta testo={`${GIORNO.length} esercizi`} tono="accento" icona="abbonamento" grande />
-        <Etichetta testo={`circa ${minuti} min`} tono="blu" icona="orologio" grande />
-        <Etichetta testo="recupero dopo ogni serie" tono="neutro" icona="clessidra" grande />
+        <Etichetta testo={t(`${GIORNO.length} esercizi`, `${GIORNO.length} exercises`)} tono="accento" icona="abbonamento" grande />
+        <Etichetta testo={t(`circa ${minuti} min`, `about ${minuti} min`)} tono="blu" icona="orologio" grande />
+        <Etichetta testo={t('recupero dopo ogni serie', 'rest after every set')} tono="neutro" icona="clessidra" grande />
       </View>
 
       <View style={{ gap: spazio.tre }}>
@@ -236,12 +237,12 @@ export function AnteprimaAnimazioni() {
             <Carta onPress={() => setAperto(e)} style={{ flexDirection: 'row', alignItems: 'center', gap: spazio.tre, padding: spazio.tre }}>
               <Quadro e={e} fonte={fonte} />
               <View style={{ flex: 1, gap: 6 }}>
-                <Text style={[stili.ordine, { color: p.accento }]}>{`ESERCIZIO ${i + 1}`}</Text>
+                <Text style={[stili.ordine, { color: p.accento }]}>{t(`ESERCIZIO ${i + 1}`, `EXERCISE ${i + 1}`)}</Text>
                 <Text style={[stili.nome, { color: p.testo }]}>{e.nome}</Text>
                 <Text style={[stili.nota, { color: p.testoSecondario }]}>{`${e.serie} × ${e.ripetizioni} · ${e.carico}`}</Text>
                 <View style={[stili.recupero, { backgroundColor: p.scuro ? 'rgba(91,140,255,0.16)' : 'rgba(47,107,255,0.10)' }]}>
                   <Icona nome="clessidra" size={13} colore={p.blu} />
-                  <Text style={{ color: p.blu, fontFamily: F.extra, fontSize: 12 }}>{`Recupero ${recupero(e.recupero)}`}</Text>
+                  <Text style={{ color: p.blu, fontFamily: F.extra, fontSize: 12 }}>{t(`Recupero ${recupero(e.recupero)}`, `Rest ${recupero(e.recupero)}`)}</Text>
                 </View>
               </View>
               <Icona nome="avanti" size={16} colore={p.testoTerzo} />

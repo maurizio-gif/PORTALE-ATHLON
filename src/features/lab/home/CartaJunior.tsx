@@ -5,6 +5,7 @@ import { StyleSheet, Text, View } from 'react-native'
 import { gruppiJunior } from '@/api/junior'
 import type { Area } from '@/api/lab'
 import { spazio } from '@/theme'
+import { t } from '@/lib/lingua'
 
 import { CHIAVE_GRUPPI_JUNIOR } from '../junior/Junior'
 import { precarica } from '../memoria'
@@ -35,8 +36,11 @@ export function CartaJunior({ area }: { area: Extract<Area, { trovato: true }> }
   }, [])
   const nome = figlio?.nome ? figlio.nome.charAt(0).toUpperCase() + figlio.nome.slice(1).toLowerCase() : null
   const sotto = figlio
-    ? `I gruppi dei corsi junior con i posti liberi: si apre sui nati nel ${figlio.anno}${nome ? `, come ${nome}` : ''}.`
-    : 'I gruppi dei corsi per bambini e ragazzi, per anno di nascita, con i posti ancora liberi.'
+    ? t(
+        `I gruppi dei corsi junior con i posti liberi: si apre sui nati nel ${figlio.anno}${nome ? `, come ${nome}` : ''}.`,
+        `Junior course groups with spots available: it opens on children born in ${figlio.anno}${nome ? `, like ${nome}` : ''}.`,
+      )
+    : t('I gruppi dei corsi per bambini e ragazzi, per anno di nascita, con i posti ancora liberi.', 'Course groups for children and teens, by year of birth, with the spots still available.')
   return (
     <Entra indice={2}>
       <Carta onPress={() => router.navigate(figlio ? { pathname: '/junior', params: { anno: String(figlio.anno) } } : '/junior')}>

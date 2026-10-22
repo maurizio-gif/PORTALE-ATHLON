@@ -1,6 +1,7 @@
 import { Image } from 'expo-image'
 import { StyleSheet, Text, View } from 'react-native'
 
+import { t, tv } from '@/lib/lingua'
 import { spazio } from '@/theme'
 
 import { CampoTesto, Scelte } from '../ui/Campi'
@@ -50,7 +51,7 @@ function RigaAllegato({ a, onTogli }: { a: Allegato; onTogli: () => void }) {
           {a.tipo === 'application/pdf' ? 'PDF' : a.tipo === 'image/png' ? 'PNG' : a.tipo === 'image/webp' ? 'WebP' : 'JPG'} · {pesoLeggibile(a.byte)}
         </Text>
       </View>
-      <Tocco onPress={onTogli} etichetta={`Togli l’allegato ${a.nome}`} style={[stili.togli, { backgroundColor: p.carta }]}>
+      <Tocco onPress={onTogli} etichetta={t(`Togli l’allegato ${a.nome}`, `Remove attachment ${a.nome}`)} style={[stili.togli, { backgroundColor: p.carta }]}>
         <Icona nome="cestino" size={17} colore={p.testoSecondario} />
       </Tocco>
     </View>
@@ -69,22 +70,22 @@ export function FoglioFeedback({ aperto, f, schermata, onChiudi }: { aperto: boo
   return (
     <Foglio
       aperto={aperto}
-      titolo={f.fatto ? 'Grazie!' : 'Come sta andando?'}
-      sottotitolo={f.fatto ? undefined : 'Sei fra i tester dell’app: il tuo parere ci aiuta a migliorarla.'}
+      titolo={f.fatto ? t('Grazie!', 'Thank you!') : t('Come sta andando?', 'How’s it going?')}
+      sottotitolo={f.fatto ? undefined : t('Sei fra i tester dell’app: il tuo parere ci aiuta a migliorarla.', 'You’re one of the app’s testers: your feedback helps us improve it.')}
       onChiudi={chiudi}
     >
       {f.fatto ? (
         <>
-          <Messaggio tono="ok" titolo="Il tuo messaggio ci è arrivato">
-            Lo leggeremo con attenzione. Se ti viene in mente altro, il pulsante «Feedback» è sempre lì.
+          <Messaggio tono="ok" titolo={t('Il tuo messaggio ci è arrivato', 'We got your message')}>
+            {t('Lo leggeremo con attenzione. Se ti viene in mente altro, il pulsante «Feedback» è sempre lì.', 'We’ll read it carefully. If you think of anything else, the “Feedback” button is always there.')}
           </Messaggio>
-          <Pulsante testo="Chiudi" onPress={chiudi} />
+          <Pulsante testo={t('Chiudi', 'Close')} onPress={chiudi} />
         </>
       ) : (
         <>
           <View style={[stili.guida, { backgroundColor: p.incavo }]}>
-            <Text style={[stili.forte, { color: p.testo }]}>Dicci tutto quello che ci aiuta a migliorare:</Text>
-            {['come ti sembra l’app, cosa ti piace e cosa no;', 'un’idea o un suggerimento;', 'un problema che hai avuto: cosa stavi facendo e cosa è successo.'].map((riga) => (
+            <Text style={[stili.forte, { color: p.testo }]}>{t('Dicci tutto quello che ci aiuta a migliorare:', 'Tell us anything that helps us improve:')}</Text>
+            {tv(['come ti sembra l’app, cosa ti piace e cosa no;', 'un’idea o un suggerimento;', 'un problema che hai avuto: cosa stavi facendo e cosa è successo.'], ['what you think of the app, what you like and what you don’t;', 'an idea or a suggestion;', 'a problem you had: what you were doing and what happened.']).map((riga) => (
               <View key={riga} style={stili.voce}>
                 <View style={[stili.punto, { backgroundColor: p.accento }]} />
                 <Text style={[stili.testo, { color: p.testoSecondario, flex: 1 }]}>{riga}</Text>
@@ -93,16 +94,16 @@ export function FoglioFeedback({ aperto, f, schermata, onChiudi }: { aperto: boo
           </View>
 
           <View style={{ gap: spazio.due }}>
-            <Text style={[stili.etichetta, { color: p.testoSecondario }]}>DI COSA SI TRATTA? (FACOLTATIVO)</Text>
-            <Scelte valori={TIPI_FEEDBACK.map((t) => ({ valore: t.valore, testo: t.testo }))} scelto={f.tipo} onScegli={(v) => f.setTipo(f.tipo === v ? null : v)} />
+            <Text style={[stili.etichetta, { color: p.testoSecondario }]}>{t('DI COSA SI TRATTA? (FACOLTATIVO)', 'WHAT IS IT ABOUT? (OPTIONAL)')}</Text>
+            <Scelte valori={TIPI_FEEDBACK.map((x) => ({ valore: x.valore, testo: x.testo }))} scelto={f.tipo} onScegli={(v) => f.setTipo(f.tipo === v ? null : v)} />
           </View>
 
           <View style={{ gap: spazio.due }}>
             <CampoTesto
-              etichetta="Il tuo messaggio"
+              etichetta={t('Il tuo messaggio', 'Your message')}
               value={f.testo}
               onChangeText={f.setTesto}
-              placeholder="Scrivi qui…"
+              placeholder={t('Scrivi qui…', 'Write here…')}
               multiline
               maxLength={TESTO_MAX}
               textAlignVertical="top"
@@ -123,7 +124,7 @@ export function FoglioFeedback({ aperto, f, schermata, onChiudi }: { aperto: boo
             </View>
           ) : null}
           <Pulsante
-            testo={f.inLettura ? 'Preparo il file…' : f.allegati.length ? 'Aggiungi un altro allegato' : 'Aggiungi uno screenshot o un PDF'}
+            testo={f.inLettura ? t('Preparo il file…', 'Preparing the file…') : f.allegati.length ? t('Aggiungi un altro allegato', 'Add another attachment') : t('Aggiungi uno screenshot o un PDF', 'Add a screenshot or a PDF')}
             variante="contorno"
             icona="galleria"
             inCorso={f.inLettura}
@@ -131,16 +132,14 @@ export function FoglioFeedback({ aperto, f, schermata, onChiudi }: { aperto: boo
             onPress={f.aggiungi}
           />
           <Text style={[stili.nota, { color: p.testoTerzo }]}>
-            Facoltativi: fino a {ALLEGATI_MAX} file ({FORMATI_ALLEGATI}), {ALLEGATO_BYTE_MAX / 1024 / 1024} MB ciascuno. Uno screenshot aiuta molto quando c’è un problema. Se mostra il
-            diario alimentare, il sonno o le misure del corpo, coprili prima: sono dati che il club non vede.
+            {t(`Facoltativi: fino a ${ALLEGATI_MAX} file (${FORMATI_ALLEGATI}), ${ALLEGATO_BYTE_MAX / 1024 / 1024} MB ciascuno. Uno screenshot aiuta molto quando c’è un problema. Se mostra il diario alimentare, il sonno o le misure del corpo, coprili prima: sono dati che il club non vede.`, `Optional: up to ${ALLEGATI_MAX} files (${FORMATI_ALLEGATI}), ${ALLEGATO_BYTE_MAX / 1024 / 1024} MB each. A screenshot helps a lot when there’s a problem. If it shows your food diary, sleep or body measurements, cover them first: that’s data the club doesn’t see.`)}
           </Text>
 
           {f.errore ? <Messaggio tono="errore">{f.errore}</Messaggio> : null}
 
-          <Pulsante testo="Invia il messaggio" icona="invia" inCorso={f.inCorso} disabilitato={!testoInviabile(f.testo) || f.inLettura} onPress={() => f.invia(schermata)} />
+          <Pulsante testo={t('Invia il messaggio', 'Send message')} icona="invia" inCorso={f.inCorso} disabilitato={!testoInviabile(f.testo) || f.inLettura} onPress={() => f.invia(schermata)} />
           <Text style={[stili.nota, { color: p.testoTerzo }]}>
-            Insieme al messaggio ci arrivano la schermata in cui sei e il dispositivo che usi, per capire meglio un problema. Lo leggono solo le persone del club
-            che seguono i tester.
+            {t('Insieme al messaggio ci arrivano la schermata in cui sei e il dispositivo che usi, per capire meglio un problema. Lo leggono solo le persone del club che seguono i tester.', 'Along with your message we receive the screen you’re on and the device you use, to better understand a problem. Only the club staff who follow the testers read it.')}
           </Text>
         </>
       )}

@@ -1,6 +1,7 @@
 import { Text, View } from 'react-native'
 
 import { MESSAGGIO_SCUOLA_NUOTO, saNuotareAbbastanza, type Continuo, type Stile } from '@/api/lab'
+import { t } from '@/lib/lingua'
 import { spazio } from '@/theme'
 
 import { Scelte, SceltePiu } from '../ui/Campi'
@@ -23,22 +24,27 @@ export function CampiNuoto({ stili, onStili, continuo, onContinuo }: { stili: St
   const p = usePalette()
   return (
     <>
-      <Sezione titolo="Che stili sai nuotare">
+      <Sezione titolo={t('Che stili sai nuotare', 'Which strokes you can swim')}>
         <SceltePiu valori={STILI_ELENCO} scelti={stili} onCambia={onStili} />
         {nonPuoFareNuotoLibero(stili) ? (
-          <Messaggio tono="attenzione" titolo="Si parte dalla Scuola Nuoto Adulti">
+          <Messaggio tono="attenzione" titolo={t('Si parte dalla Scuola Nuoto Adulti', 'Start with Scuola Nuoto Adulti')}>
             {MESSAGGIO_SCUOLA_NUOTO}
           </Messaggio>
         ) : (
-          <Text style={{ color: p.testoSecondario, fontFamily: F.medio, fontSize: 13.5, lineHeight: 19 }}>Segna solo quelli che sai fare davvero: il piano usa solo questi.</Text>
+          <Text style={{ color: p.testoSecondario, fontFamily: F.medio, fontSize: 13.5, lineHeight: 19 }}>
+            {t('Segna solo quelli che sai fare davvero: il piano usa solo questi.', 'Only tick the ones you can really do: the plan uses only these.')}
+          </Text>
         )}
       </Sezione>
 
-      <Sezione titolo="Quanto nuoti di fila">
+      <Sezione titolo={t('Quanto nuoti di fila', 'How far you swim without stopping')}>
         <Scelte valori={CONTINUO_ELENCO} scelto={continuo} onScegli={onContinuo} />
         <View style={{ gap: spazio.uno }}>
           <Text style={{ color: p.testoSecondario, fontFamily: F.medio, fontSize: 13.5, lineHeight: 19 }}>
-            {continuo ? NOME_CONTINUO[continuo].nota : 'Senza fermarti e senza appoggiarti al bordo. Serve a non scriverti una ripetuta più lunga di quella che reggi.'}
+            {continuo ? NOME_CONTINUO[continuo].nota : t(
+                  'Senza fermarti e senza appoggiarti al bordo. Serve a non scriverti una ripetuta più lunga di quella che reggi.',
+                  'Without stopping or holding the wall. It keeps us from giving you a repeat longer than you can manage.',
+                )}
           </Text>
         </View>
       </Sezione>

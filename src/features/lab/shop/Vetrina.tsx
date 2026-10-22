@@ -5,6 +5,7 @@ import { StyleSheet, Text, useWindowDimensions, View } from 'react-native'
 
 import type { ArticoloShop } from '@/api/shop'
 import { euro } from '@/lib/eventi'
+import { t } from '@/lib/lingua'
 import { spazio } from '@/theme'
 
 import { Carta, LinkSezione, Messaggio, Pulsante, SchedeInArrivo, Tag } from '../ui/kit'
@@ -37,7 +38,7 @@ function Scheda({ a, colonne }: { a: ArticoloShop; colonne: number }) {
           )}
           {a.esaurito ? (
             <View style={stili.esaurito}>
-              <Tag testo="Esaurito" colore={p.testo} fondo={p.carta} />
+              <Tag testo={t('Esaurito', 'Sold out')} colore={p.testo} fondo={p.carta} />
             </View>
           ) : null}
         </View>
@@ -66,30 +67,30 @@ export function Vetrina() {
     <Schermata
       sopratitolo="Athlon Club"
       titolo="Shop"
-      sottotitolo="Articoli e merchandising del club. Paghi online, ritiri in segreteria."
+      sottotitolo={t('Articoli e merchandising del club. Paghi online, ritiri in segreteria.', 'Club items and merchandise. Pay online, pick up at reception.')}
       indietro="/"
       barra={false}
       destra={inVista ? undefined : <BottoneCarrello />}
     >
-      {inVista ? <Messaggio tono="attenzione">Vista cliente: lo shop si guarda soltanto, non si compra.</Messaggio> : null}
+      {inVista ? <Messaggio tono="attenzione">{t('Vista cliente: lo shop si guarda soltanto, non si compra.', 'Client view: you can browse the shop, but not buy.')}</Messaggio> : null}
 
       {errore && !dati ? (
         <View style={{ gap: spazio.tre }}>
           <Messaggio>{errore}</Messaggio>
-          <Pulsante testo="Riprova" icona="aggiorna" variante="secondario" onPress={() => carica(true)} />
+          <Pulsante testo={t('Riprova', 'Try again')} icona="aggiorna" variante="secondario" onPress={() => carica(true)} />
         </View>
       ) : !dati ? (
         <SchedeInArrivo quante={4} />
       ) : !dati.articoli.length ? (
         <Carta piatta>
-          <Text style={{ color: p.testo, fontFamily: F.semi, fontSize: 15, lineHeight: 22 }}>Lo shop si sta preparando.</Text>
-          <Text style={{ color: p.testoSecondario, fontFamily: F.medio, fontSize: 13.5, lineHeight: 20, marginTop: 4 }}>Torna a trovarci fra poco: qui troverai gli articoli del club.</Text>
+          <Text style={{ color: p.testo, fontFamily: F.semi, fontSize: 15, lineHeight: 22 }}>{t('Lo shop si sta preparando.', 'The shop is getting ready.')}</Text>
+          <Text style={{ color: p.testoSecondario, fontFamily: F.medio, fontSize: 13.5, lineHeight: 20, marginTop: 4 }}>{t('Torna a trovarci fra poco: qui troverai gli articoli del club.', 'Check back soon: you’ll find the club’s items here.')}</Text>
         </Carta>
       ) : (
         <>
           {dati.categorie.length > 1 ? (
             <View style={stili.categorie} accessibilityRole="tablist">
-              {[{ id: null as number | null, nome: 'Tutto' }, ...dati.categorie].map((c) => {
+              {[{ id: null as number | null, nome: t('Tutto', 'All') }, ...dati.categorie].map((c) => {
                 const qui = categoria === c.id
                 return (
                   <Tocco
@@ -113,14 +114,14 @@ export function Vetrina() {
             ))}
           </View>
           <Text style={{ color: p.testoTerzo, fontFamily: F.medio, fontSize: 13, lineHeight: 19, paddingHorizontal: 4 }}>
-            Il ritiro è in segreteria, negli orari di apertura del club: non facciamo spedizioni.
+            {t('Il ritiro è in segreteria, negli orari di apertura del club: non facciamo spedizioni.', 'Pick up at reception during the club’s opening hours: we don’t ship.')}
           </Text>
         </>
       )}
 
       {inVista ? null : (
         <View style={{ alignItems: 'flex-start' }}>
-          <LinkSezione testo="I miei ordini" onPress={() => router.push('/shop/ordini')} />
+          <LinkSezione testo={t('I miei ordini', 'My orders')} onPress={() => router.push('/shop/ordini')} />
         </View>
       )}
     </Schermata>

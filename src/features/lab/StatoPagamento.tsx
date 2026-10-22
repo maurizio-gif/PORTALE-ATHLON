@@ -5,6 +5,7 @@ import { StyleSheet, Text, View } from 'react-native'
 import Animated, { useAnimatedStyle, useSharedValue, withRepeat, withTiming, ZoomIn } from 'react-native-reanimated'
 
 import { configurazioneAdyen, esitoPagamento, STATI_IN_CORSO, statoPagamento, type StatoDelPagamento } from '@/api/lab'
+import { t } from '@/lib/lingua'
 import { spazio } from '@/theme'
 
 import { riprendiDopoRedirect } from './adyen'
@@ -27,15 +28,15 @@ import { colpetto } from './ui/Tocco'
 type Parametri = { riferimento: string; sessionId?: string; sessionResult?: string; redirectResult?: string }
 
 const TITOLO: Record<string, { titolo: string; testo: string }> = {
-  autorizzato: { titolo: 'Pagamento confermato', testo: 'Adyen ha autorizzato il pagamento: la carta è salvata e le prossime rate partono da sole.' },
-  rifiutato: { titolo: 'Pagamento rifiutato', testo: 'La banca non ha autorizzato il pagamento. Non è stato addebitato nulla.' },
+  autorizzato: { titolo: t('Pagamento confermato', 'Payment confirmed'), testo: t('Adyen ha autorizzato il pagamento: la carta è salvata e le prossime rate partono da sole.', 'Adyen authorized the payment: your card is saved and the next installments will be charged automatically.') },
+  rifiutato: { titolo: t('Pagamento rifiutato', 'Payment declined'), testo: t('La banca non ha autorizzato il pagamento. Non è stato addebitato nulla.', 'Your bank did not authorize the payment. Nothing was charged.') },
   scaduto: {
-    titolo: 'Ancora in verifica',
-    testo: 'La banca non ha ancora risposto. Non è un rifiuto: se il pagamento va a buon fine l’abbonamento si attiva da solo.',
+    titolo: t('Ancora in verifica', 'Still being checked'),
+    testo: t('La banca non ha ancora risposto. Non è un rifiuto: se il pagamento va a buon fine l’abbonamento si attiva da solo.', 'Your bank hasn’t replied yet. It isn’t a decline: if the payment goes through, your membership activates automatically.'),
   },
-  abbandonato: { titolo: 'Pagamento non completato', testo: 'Il pagamento non è stato completato. Se risultasse addebitato qualcosa, questa pagina si aggiorna da sola.' },
-  annullato: { titolo: 'Pagamento annullato', testo: 'Il pagamento è stato annullato.' },
-  errore: { titolo: 'Errore tecnico', testo: 'C’è stato un errore tecnico nel pagamento: non risulta addebitato.' },
+  abbandonato: { titolo: t('Pagamento non completato', 'Payment not completed'), testo: t('Il pagamento non è stato completato. Se risultasse addebitato qualcosa, questa pagina si aggiorna da sola.', 'The payment was not completed. If anything turns out to be charged, this page updates by itself.') },
+  annullato: { titolo: t('Pagamento annullato', 'Payment canceled'), testo: t('Il pagamento è stato annullato.', 'The payment was canceled.') },
+  errore: { titolo: t('Errore tecnico', 'Technical error'), testo: t('C’è stato un errore tecnico nel pagamento: non risulta addebitato.', 'There was a technical error with the payment: nothing appears to have been charged.') },
 }
 
 /** Una volta sola per risultato: un ricaricamento non lo consegna due volte. */
@@ -102,7 +103,7 @@ export function StatoPagamento() {
             if (!cfg.ok) throw new Error(cfg.errore)
             risultato = await riprendiDopoRedirect({ clientKey: cfg.clientKey, environment: cfg.environment, sessionId, redirectResult })
           } catch (e) {
-            setNota(`Non siamo riusciti a riprendere il pagamento dal browser (${e instanceof Error ? e.message : String(e)}). Lo stato qui sotto segue comunque quello che dice Adyen.`)
+            setNota(t(`Non siamo riusciti a riprendere il pagamento dal browser (${e instanceof Error ? e.message : String(e)}). Lo stato qui sotto segue comunque quello che dice Adyen.`, `We couldn’t resume the payment from the browser (${e instanceof Error ? e.message : String(e)}). The status below still follows what Adyen says.`))
           }
         }
         if (risultato && primaVolta(`lab-esito-${risultato.slice(0, 40)}`)) {
@@ -136,15 +137,15 @@ export function StatoPagamento() {
 
   if (errore && !pag) {
     return (
-      <Schermata titolo="Pagamento" indietro={hrefSezione('pagamenti')} barra={false}>
+      <Schermata titolo={t('Pagamento', 'Payment')} indietro={hrefSezione('pagamenti')} barra={false}>
         <Messaggio>{errore}</Messaggio>
-        <Pulsante testo="Riprova" icona="aggiorna" onPress={leggi} />
+        <Pulsante testo={t('Riprova', 'Try again')} icona="aggiorna" onPress={leggi} />
       </Schermata>
     )
   }
   if (!pag) {
     return (
-      <Schermata titolo="Verifichiamo il pagamento…" indietro={hrefSezione('pagamenti')} barra={false}>
+      <Schermata titolo={t('Verifichiamo il pagamento…', 'Checking the payment…')} indietro={hrefSezione('pagamenti')} barra={false}>
         <SchedeInArrivo quante={1} />
       </Schermata>
     )
@@ -152,21 +153,21 @@ export function StatoPagamento() {
 
   const tit = inCorso
     ? {
-        titolo: 'Verifichiamo il pagamento…',
+        titolo: t('Verifichiamo il pagamento…', 'Checking the payment…'),
         testo:
           adyen === 'completed'
-            ? 'Adyen dice che il pagamento è andato a buon fine: aspettiamo la conferma ufficiale.'
-            : 'La pagina si aggiorna da sola. Puoi anche chiuderla e riaprire questo indirizzo più tardi.',
+            ? t('Adyen dice che il pagamento è andato a buon fine: aspettiamo la conferma ufficiale.', 'Adyen says the payment went through: we’re waiting for the official confirmation.')
+            : t('La pagina si aggiorna da sola. Puoi anche chiuderla e riaprire questo indirizzo più tardi.', 'This page updates by itself. You can also close it and reopen this address later.'),
       }
     : TITOLO[pag.stato]
   const tono = pag.stato === 'autorizzato' ? 'ok' : inCorso || pag.stato === 'scaduto' ? 'attenzione' : 'errore'
   const icona: NomeIcona = pag.stato === 'autorizzato' ? 'spunta' : tono === 'attenzione' ? 'clessidra' : 'chiudi'
   const righe: { icona: NomeIcona; titolo: string; valore: string }[] = [
-    { icona: 'ricevuta', titolo: 'Piano', valore: pag.piano },
-    { icona: 'calendario', titolo: 'Rata', valore: `${pag.numero_rata} di ${pag.rate_totali}${pag.tentativo > 1 ? ` · tentativo ${pag.tentativo}` : ''}` },
-    ...(pag.ultime_quattro ? [{ icona: 'carta' as const, titolo: 'Carta', valore: `${pag.metodo ? pag.metodo.toUpperCase() + ' ' : ''}•••• ${pag.ultime_quattro}` }] : []),
-    ...(pag.stato === 'autorizzato' && pag.prossima_il ? [{ icona: 'rinnovo' as const, titolo: 'Prossima rata', valore: quando(pag.prossima_il) }] : []),
-    { icona: 'documento', titolo: 'Riferimento', valore: pag.riferimento },
+    { icona: 'ricevuta', titolo: t('Piano', 'Plan'), valore: pag.piano },
+    { icona: 'calendario', titolo: t('Rata', 'Installment'), valore: t(`${pag.numero_rata} di ${pag.rate_totali}${pag.tentativo > 1 ? ` · tentativo ${pag.tentativo}` : ''}`, `${pag.numero_rata} of ${pag.rate_totali}${pag.tentativo > 1 ? ` · attempt ${pag.tentativo}` : ''}`) },
+    ...(pag.ultime_quattro ? [{ icona: 'carta' as const, titolo: t('Carta', 'Card'), valore: `${pag.metodo ? pag.metodo.toUpperCase() + ' ' : ''}•••• ${pag.ultime_quattro}` }] : []),
+    ...(pag.stato === 'autorizzato' && pag.prossima_il ? [{ icona: 'rinnovo' as const, titolo: t('Prossima rata', 'Next installment'), valore: quando(pag.prossima_il) }] : []),
+    { icona: 'documento', titolo: t('Riferimento', 'Reference'), valore: pag.riferimento },
   ]
 
   return (
@@ -179,7 +180,7 @@ export function StatoPagamento() {
         </Text>
         <Text style={[stili.testo, { color: p.testoSecondario }]}>{tit.testo}</Text>
       </View>
-      {pag.stato === 'rifiutato' && pag.motivo ? <Messaggio tono="errore" titolo="Motivo indicato dalla banca">{pag.motivo}</Messaggio> : null}
+      {pag.stato === 'rifiutato' && pag.motivo ? <Messaggio tono="errore" titolo={t('Motivo indicato dalla banca', 'Reason given by the bank')}>{pag.motivo}</Messaggio> : null}
       {nota ? <Messaggio tono="attenzione">{nota}</Messaggio> : null}
       <Carta style={{ paddingVertical: spazio.due }}>
         {righe.map((r, i) => (
@@ -194,7 +195,7 @@ export function StatoPagamento() {
           />
         ))}
       </Carta>
-      <Pulsante testo="Torna ai pagamenti" variante="scuro" icona="avanti" onPress={() => router.replace(hrefSezione('pagamenti'))} />
+      <Pulsante testo={t('Torna ai pagamenti', 'Back to payments')} variante="scuro" icona="avanti" onPress={() => router.replace(hrefSezione('pagamenti'))} />
     </Schermata>
   )
 }

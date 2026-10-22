@@ -2,6 +2,7 @@ import { createContext, useContext, useMemo, useState, type ReactNode } from 're
 import { StyleSheet, Text, View } from 'react-native'
 
 import type { Lezione, SchedaLezione } from '@/api/lab'
+import { locale, t, tv } from '@/lib/lingua'
 import { spazio } from '@/theme'
 
 import { altezzaAl } from '../dati/calcoli'
@@ -65,56 +66,89 @@ export function CorpoPerLezioni({ children }: { children: ReactNode }) {
   return <ContestoCorpo.Provider value={useStatoCorpo()}>{children}</ContestoCorpo.Provider>
 }
 
-const intero = (n: number) => Math.round(n).toLocaleString('it-IT')
-const decimale = (n: number, d = 1) => n.toLocaleString('it-IT', { maximumFractionDigits: d, minimumFractionDigits: 0 })
+const intero = (n: number) => Math.round(n).toLocaleString(locale())
+const decimale = (n: number, d = 1) => n.toLocaleString(locale(), { maximumFractionDigits: d, minimumFractionDigits: 0 })
+/** Il livello come si legge (il valore viene dal nome del tipo di lezione, in italiano). */
+const NOME_LIVELLO: Record<string, string> = { base: t('base', 'beginner'), intermedio: t('intermedio', 'intermediate'), avanzato: t('avanzato', 'advanced') }
 
 /** `fondo`: il colore sotto la spiegazione, diverso da quello del riquadro che la contiene. */
 function Spiegazione({ nome, s, corpo, fondo }: { nome: string; s: StimaLezione; corpo: Corpo; fondo: string }) {
   const p = usePalette()
   const alMinuto = metabolismoBasale(corpo) / 1440
-  const forte = (t: string) => <Text style={{ fontFamily: F.extra, color: p.testo }}>{t}</Text>
+  const forte = (x: string) => <Text style={{ fontFamily: F.extra, color: p.testo }}>{x}</Text>
   const { cardio, muscolare } = s.barre
 
   const chi =
     s.come === 'livello'
       ? s.livello
-        ? `«${nome}» è un corso di nuoto di livello ${s.livello}. Più il livello sale, più si nuota di continuo e meno si sta fermi a bordo vasca: per questo il consumo cresce con lui.`
-        : 'Di questo corso di nuoto non conosciamo il livello: usiamo quello di mezzo, con una forbice più larga.'
+        ? t(
+            `«${nome}» è un corso di nuoto di livello ${s.livello}. Più il livello sale, più si nuota di continuo e meno si sta fermi a bordo vasca: per questo il consumo cresce con lui.`,
+            `“${nome}” is a ${NOME_LIVELLO[s.livello] ?? s.livello} swimming course. The higher the level, the more you swim non-stop and the less you wait at the side: that’s why the burn goes up with it.`,
+          )
+        : t('Di questo corso di nuoto non conosciamo il livello: usiamo quello di mezzo, con una forbice più larga.', 'We don’t know the level of this swimming course: we use the middle one, with a wider range.')
       : s.tipo.id === 'nuoto-libero'
-        ? 'Nel nuoto libero stile e ritmo li decidi tu, e fra una vasca e l’altra ci si ferma: per questo è un consumo indicativo, con una forbice più larga.'
+        ? t(
+            'Nel nuoto libero stile e ritmo li decidi tu, e fra una vasca e l’altra ci si ferma: per questo è un consumo indicativo, con una forbice più larga.',
+            'In lap swimming you set the stroke and pace, and you stop between lengths: that’s why it’s an indicative burn, with a wider range.',
+          )
         : s.come === 'nome'
-          ? `Abbiamo riconosciuto «${nome}» come una lezione di tipo «${s.tipo.etichetta}».`
+          ? t(`Abbiamo riconosciuto «${nome}» come una lezione di tipo «${s.tipo.etichetta}».`, `We recognized “${nome}” as a “${s.tipo.etichetta}” class.`)
           : s.come === 'testo'
-            ? `Il nome non dice che lezione sia: dal testo della sua scheda l’abbiamo riconosciuta come «${s.tipo.etichetta}».`
-            : 'Non riconosciamo ancora questo tipo di lezione: la stimiamo solo dall’intensità che il club le dà.'
+            ? t(
+                `Il nome non dice che lezione sia: dal testo della sua scheda l’abbiamo riconosciuta come «${s.tipo.etichetta}».`,
+                `The name doesn’t say what class it is: from its description we recognized it as “${s.tipo.etichetta}”.`,
+              )
+            : t('Non riconosciamo ancora questo tipo di lezione: la stimiamo solo dall’intensità che il club le dà.', 'We don’t recognize this type of class yet: we estimate it only from the intensity the club gives it.')
 
   const intensita: ReactNode =
     s.tipo.id === 'nuoto-corso'
-      ? `Per questo livello usiamo ${decimale(s.met)} MET, calcolati sull’intera lezione, pause ed esercizi a bordo vasca compresi.`
+      ? t(
+          `Per questo livello usiamo ${decimale(s.met)} MET, calcolati sull’intera lezione, pause ed esercizi a bordo vasca compresi.`,
+          `For this level we use ${decimale(s.met)} MET, worked out over the whole class, breaks and poolside drills included.`,
+        )
       : s.tipo.id === 'nuoto-libero'
-        ? `Usiamo ${decimale(s.met)} MET, il valore di mezzo di un turno di nuoto.`
+        ? t(`Usiamo ${decimale(s.met)} MET, il valore di mezzo di un turno di nuoto.`, `We use ${decimale(s.met)} MET, the middle value for a swim slot.`)
         : s.intensita != null
           ? (
               // JSX e non una stringa: `forte()` e' un elemento, in un template finirebbe come «[object Object]».
-              <>
-                Dentro quel tipo, l’intensità che il club indica per la lezione ({[cardio != null ? `cardiovascolare ${cardio}` : '', muscolare != null ? `muscolare ${muscolare}` : ''].filter(Boolean).join(', ')}) la porta a{' '}
-                {forte(`${decimale(s.met)} MET`)}. Un MET dice quante volte si consuma più che a riposo.
-              </>
+              tv(
+                <>
+                  Dentro quel tipo, l’intensità che il club indica per la lezione ({[cardio != null ? `cardiovascolare ${cardio}` : '', muscolare != null ? `muscolare ${muscolare}` : ''].filter(Boolean).join(', ')}) la porta a{' '}
+                  {forte(`${decimale(s.met)} MET`)}. Un MET dice quante volte si consuma più che a riposo.
+                </>,
+                <>
+                  Within that type, the intensity the club gives the class ({[cardio != null ? `cardio ${cardio}` : '', muscolare != null ? `strength ${muscolare}` : ''].filter(Boolean).join(', ')}) brings it to{' '}
+                  {forte(`${decimale(s.met)} MET`)}. A MET says how many times more you burn than at rest.
+                </>,
+              )
             )
-          : `La scheda non indica l’intensità: usiamo il valore di mezzo del tipo, ${decimale(s.met)} MET.`
+          : t(`La scheda non indica l’intensità: usiamo il valore di mezzo del tipo, ${decimale(s.met)} MET.`, `The description doesn’t give an intensity: we use the middle value for the type, ${decimale(s.met)} MET.`)
 
   return (
     <View style={[stili.spiegazione, { backgroundColor: fondo }]}>
       <Text style={[stili.nota, { color: p.testoSecondario }]}>{chi}</Text>
       <Text style={[stili.nota, { color: p.testoSecondario }]}>{intensita}</Text>
       <Text style={[stili.nota, { color: p.testoSecondario }]}>
-        {s.minuti} minuti × {decimale(alMinuto, 2)} kcal al minuto (il tuo consumo a riposo) × {decimale(s.met)} MET = {forte(`circa ${intero(s.kcal.circa)} kcal`)}, da {intero(s.kcal.da)} a{' '}
-        {intero(s.kcal.a)}. Contano anche le calorie che avresti consumato comunque in quei minuti.
+        {tv(
+          <>
+            {s.minuti} minuti × {decimale(alMinuto, 2)} kcal al minuto (il tuo consumo a riposo) × {decimale(s.met)} MET = {forte(`circa ${intero(s.kcal.circa)} kcal`)}, da {intero(s.kcal.da)} a{' '}
+            {intero(s.kcal.a)}. Contano anche le calorie che avresti consumato comunque in quei minuti.
+          </>,
+          <>
+            {s.minuti} minutes × {decimale(alMinuto, 2)} kcal a minute (your resting burn) × {decimale(s.met)} MET = {forte(`about ${intero(s.kcal.circa)} kcal`)}, from {intero(s.kcal.da)} to{' '}
+            {intero(s.kcal.a)}. This includes the calories you’d have burned anyway in those minutes.
+          </>,
+        )}
       </Text>
       <Text style={[stili.piccola, { color: p.testoTerzo }]}>
-        {`Sono stime: possono sbagliare anche del 20–30%, perché dipendono da come fai la lezione e da come è fatto il tuo corpo. Non sono un’indicazione per la dieta. Su ${corpo.anni} anni, ${decimale(corpo.kg)} kg e ${decimale(corpo.cm)} cm, ${
-          corpo.sesso === 'f' ? 'come donna' : 'come uomo'
-        }.`}
+        {t(
+          `Sono stime: possono sbagliare anche del 20–30%, perché dipendono da come fai la lezione e da come è fatto il tuo corpo. Non sono un’indicazione per la dieta. Su ${corpo.anni} anni, ${decimale(corpo.kg)} kg e ${decimale(corpo.cm)} cm, ${
+            corpo.sesso === 'f' ? 'come donna' : 'come uomo'
+          }.`,
+          `These are estimates: they can be off by 20–30%, because they depend on how you do the class and how your body is built. They aren’t dietary advice. Based on ${corpo.anni} years, ${decimale(corpo.kg)} kg and ${decimale(corpo.cm)} cm, ${
+            corpo.sesso === 'f' ? 'as female' : 'as male'
+          }.`,
+        )}
       </Text>
     </View>
   )
@@ -156,14 +190,23 @@ export function CalorieLezione({
       <View style={[stili.riquadro, { backgroundColor: p.incavo }]}>
         <View style={stili.titolo}>
           <Icona nome="fiamma" size={18} colore={p.accento} />
-          <Text style={[stili.titoletto, { color: p.testo }]}>Calorie stimate</Text>
+          <Text style={[stili.titoletto, { color: p.testo }]}>{t('Calorie stimate', 'Estimated calories')}</Text>
         </View>
         <Text style={[stili.nota, { color: p.testoSecondario }]}>
           {ctx.motivo === 'misure'
-            ? 'Segna il tuo peso e la tua altezza in «Il tuo corpo», in cima all’Athlon Health System: con l’età della tua scheda del club e il sesso ti diciamo quante calorie consuma questa lezione.'
+            ? t(
+                'Segna il tuo peso e la tua altezza in «Il tuo corpo», in cima all’Athlon Health System: con l’età della tua scheda del club e il sesso ti diciamo quante calorie consuma questa lezione.',
+                'Add your weight and height in “Your body”, at the top of Athlon Health System: with the age on your club profile and your sex we’ll tell you how many calories this class burns.',
+              )
             : ctx.motivo === 'sesso'
-              ? 'Per stimare le calorie serve sapere se calcolare come uomo o come donna: lo scegli una volta, nel riquadro «Calorie stimate» di un piano di allenamento.'
-              : 'Nella tua scheda del club manca la data di nascita, e senza l’età la stima non si può fare. Chiedi al desk di aggiungerla.'}
+              ? t(
+                  'Per stimare le calorie serve sapere se calcolare come uomo o come donna: lo scegli una volta, nel riquadro «Calorie stimate» di un piano di allenamento.',
+                  'To estimate calories we need to know whether to calculate as male or female: you choose once, in the “Estimated calories” box of a workout plan.',
+                )
+              : t(
+                  'Nella tua scheda del club manca la data di nascita, e senza l’età la stima non si può fare. Chiedi al desk di aggiungerla.',
+                  'Your club profile is missing your date of birth, and without your age we can’t estimate. Ask the front desk to add it.',
+                )}
         </Text>
       </View>
     )
@@ -171,7 +214,7 @@ export function CalorieLezione({
 
   const { da, a, circa } = stima.kcal
   const interruttore = (
-    <Tocco onPress={() => setSpiega((x) => !x)} etichetta={spiega ? 'Nascondi come calcoliamo le calorie' : 'Come calcoliamo le calorie'} stato={{ selected: spiega }} style={stili.info}>
+    <Tocco onPress={() => setSpiega((x) => !x)} etichetta={spiega ? t('Nascondi come calcoliamo le calorie', 'Hide how we calculate calories') : t('Come calcoliamo le calorie', 'How we calculate calories')} stato={{ selected: spiega }} style={stili.info}>
       <Icona nome="info" size={16} colore={spiega ? p.accento : p.testoSecondario} />
     </Tocco>
   )
@@ -184,12 +227,13 @@ export function CalorieLezione({
           <Text style={[stili.testo, { color: p.testoSecondario }]} numberOfLines={2}>
             {stima.indicativo ? (
               <>
-                Consumo indicativo: <Text style={{ fontFamily: F.extra, color: p.testo }}>{`da ${intero(da)} a ${intero(a)} kcal`}</Text>
+                {t('Consumo indicativo: ', 'Indicative burn: ')}
+                <Text style={{ fontFamily: F.extra, color: p.testo }}>{t(`da ${intero(da)} a ${intero(a)} kcal`, `${intero(da)} to ${intero(a)} kcal`)}</Text>
               </>
             ) : (
               <>
-                <Text style={{ fontFamily: F.extra, color: p.testo }}>{`circa ${intero(circa)} kcal`}</Text>
-                {` · da ${intero(da)} a ${intero(a)}`}
+                <Text style={{ fontFamily: F.extra, color: p.testo }}>{t(`circa ${intero(circa)} kcal`, `about ${intero(circa)} kcal`)}</Text>
+                {t(` · da ${intero(da)} a ${intero(a)}`, ` · ${intero(da)} to ${intero(a)}`)}
               </>
             )}
           </Text>
@@ -204,18 +248,21 @@ export function CalorieLezione({
     <View style={[stili.riquadro, { backgroundColor: p.incavo }]}>
       <View style={stili.titolo}>
         <Icona nome="fiamma" size={18} colore={p.accento} />
-        <Text style={[stili.titoletto, { color: p.testo, flex: 1 }]}>{stima.indicativo ? 'Consumo indicativo' : 'Calorie stimate'}</Text>
+        <Text style={[stili.titoletto, { color: p.testo, flex: 1 }]}>{stima.indicativo ? t('Consumo indicativo', 'Indicative burn') : t('Calorie stimate', 'Estimated calories')}</Text>
       </View>
       <View style={{ gap: 2 }}>
         <Text style={[stili.grande, { color: p.testo }]}>
-          {stima.indicativo ? `da ${intero(da)} a ${intero(a)} ` : `circa ${intero(circa)} `}
+          {stima.indicativo ? t(`da ${intero(da)} a ${intero(a)} `, `${intero(da)} to ${intero(a)} `) : t(`circa ${intero(circa)} `, `about ${intero(circa)} `)}
           <Text style={[stili.unita, { color: p.testoTerzo }]}>kcal</Text>
         </Text>
         <Text style={[stili.piccola, { color: p.testoSecondario }]}>
-          {`${stima.indicativo ? '' : `da ${intero(da)} a ${intero(a)} kcal · `}${stima.minuti} minuti · ${stima.tipo.etichetta}${stima.livello ? `, livello ${stima.livello}` : ''}`}
+          {t(
+            `${stima.indicativo ? '' : `da ${intero(da)} a ${intero(a)} kcal · `}${stima.minuti} minuti · ${stima.tipo.etichetta}${stima.livello ? `, livello ${stima.livello}` : ''}`,
+            `${stima.indicativo ? '' : `${intero(da)} to ${intero(a)} kcal · `}${stima.minuti} minutes · ${stima.tipo.etichetta}${stima.livello ? `, ${NOME_LIVELLO[stima.livello] ?? stima.livello} level` : ''}`,
+          )}
         </Text>
       </View>
-      <LinkSezione testo={spiega ? 'Nascondi il calcolo' : 'Come le abbiamo calcolate'} onPress={() => setSpiega((x) => !x)} />
+      <LinkSezione testo={spiega ? t('Nascondi il calcolo', 'Hide the calculation') : t('Come le abbiamo calcolate', 'How we worked them out')} onPress={() => setSpiega((x) => !x)} />
       {spiega ? <Spiegazione nome={l.nome} s={stima} corpo={ctx.corpo} fondo={p.carta} /> : null}
     </View>
   )

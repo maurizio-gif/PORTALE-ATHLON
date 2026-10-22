@@ -1,4 +1,5 @@
 import type { Vetrina, VideoClub } from '@/api/lab'
+import { t } from '@/lib/lingua'
 
 // Quello che le tre schermate di Athlon TV si passano: gli showcase e i video
 // gia' letti restano in memoria, cosi' tornando indietro non si ricaricano e
@@ -15,4 +16,4 @@ export function durata(s: number): string {
 }
 
 /** «31 video», «1 video». */
-export const quanti = (n: number) => `${n} video`
+export const quanti = (n: number) => t(`${n} video`, `${n} ${n === 1 ? 'video' : 'videos'}`)

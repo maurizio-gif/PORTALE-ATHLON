@@ -1,4 +1,5 @@
 import type { PresenzaLezione, SchedaLezione, SedutaStorico } from '@/api/lab'
+import { t } from '../../../lib/lingua'
 
 import { dopoSeduta, kcal, MET_MEDIO, metabolismoBasale, type Sesso } from './stimaCalorie'
 import { stimaLezione } from './stimaCorso'
@@ -94,8 +95,8 @@ export function vociCalorie(sedute: SedutaStorico[], presenze: PresenzaLezione[]
       quando: s.inizio,
       giorno: giornoRoma(s.inizio),
       fonte: 'scheda',
-      nome: [s.titolo, s.giorno_nome].filter(Boolean).join(' · ') || 'Allenamento',
-      tipo: 'Piani di allenamento',
+      nome: [s.titolo, s.giorno_nome].filter(Boolean).join(' · ') || t('Allenamento', 'Workout'),
+      tipo: t('Piani di allenamento', 'Workout plans'),
       minuti: Math.round(minuti),
       kcal: Math.round(kcal(bmr, MET_MEDIO, minuti) + dopoSeduta(bmr, MET_MEDIO, minuti)),
     })

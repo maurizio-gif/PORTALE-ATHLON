@@ -1,3 +1,4 @@
+import { t } from './lingua'
 // Il controllo del codice fiscale nella pagina del link, per dirlo subito:
 // la stessa regola sta in APP-ATHLON (supabase/functions/_shared/registrazione.ts,
 // `codiceFiscaleValido` e `cfCoerente`), che alla conferma decide. Le due copie
@@ -39,16 +40,16 @@ function codiceNome(nome: string): string {
 export function cfCoerente(cf: string, nome: string, cognome: string, nascita: string): string | null {
   const c = cf.toUpperCase().replace(/\s/g, '')
   if (codiceCognome(cognome) !== c.slice(0, 3)) {
-    return 'Il codice fiscale non corrisponde al cognome: controlla l’uno e l’altro, il cognome scritto per intero come sul documento.'
+    return t('Il codice fiscale non corrisponde al cognome: controlla l’uno e l’altro, il cognome scritto per intero come sul documento.', 'The tax code doesn’t match the surname: check both, with the surname written in full as on your ID.')
   }
   if (codiceNome(nome) !== c.slice(3, 6)) {
-    return 'Il codice fiscale non corrisponde al nome: controlla l’uno e l’altro. Se hai più nomi, scrivili tutti, come sul documento.'
+    return t('Il codice fiscale non corrisponde al nome: controlla l’uno e l’altro. Se hai più nomi, scrivili tutti, come sul documento.', 'The tax code doesn’t match the first name: check both. If you have more than one name, write them all, as on your ID.')
   }
   const cifre = (t: string) => t.replace(/[LMNPQRSTUV]/g, (x) => OMOCODIA[x])
   const [anno, mese, giorno] = nascita.split('-').map(Number)
   const g = Number(cifre(c.slice(9, 11)))
   if (Number(cifre(c.slice(6, 8))) !== anno % 100 || MESI.indexOf(c[8]) + 1 !== mese || (g > 40 ? g - 40 : g) !== giorno) {
-    return 'Il codice fiscale non corrisponde alla data di nascita: controlla l’una e l’altro.'
+    return t('Il codice fiscale non corrisponde alla data di nascita: controlla l’una e l’altro.', 'The tax code doesn’t match the date of birth: check both.')
   }
   return null
 }
@@ -58,7 +59,7 @@ export function problemaCodiceFiscale(d: Record<string, string>): string | null 
   const cf = (d.codice_fiscale ?? '').toUpperCase().replace(/\s/g, '')
   if (!cf) return null
   if (cf.length < 16) return null
-  if (!codiceFiscaleValido(cf)) return 'Il codice fiscale non risulta valido: controllalo.'
+  if (!codiceFiscaleValido(cf)) return t('Il codice fiscale non risulta valido: controllalo.', 'The tax code doesn’t look valid: please check it.')
   if (!d.nome?.trim() || !d.cognome?.trim() || !/^\d{4}-\d{2}-\d{2}$/.test(d.nascita ?? '')) return null
   return cfCoerente(cf, d.nome, d.cognome, d.nascita)
 }

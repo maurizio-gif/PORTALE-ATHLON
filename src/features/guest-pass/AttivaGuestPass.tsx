@@ -33,6 +33,7 @@ import {
 } from '@/lib/guestPass'
 
 import { problemaCodiceFiscale } from '@/lib/codiceFiscale'
+import { t, tv } from '@/lib/lingua'
 import { capLiberoValido, pulisciCapLibero } from '@/lib/residenteEstero'
 import { spazio, tinta, useColori } from '@/theme'
 
@@ -77,7 +78,7 @@ function apriAccanto(url: string) {
  * Condizioni Generali e Regolamento (36) e Consenso Contratto con le condizioni
  * di pagamento (20). La privacy l'ha data sul sito.
  */
-const ACCETTO = 'Accetto i Termini e Condizioni Generali, il Regolamento del club e le Condizioni di pagamento.'
+const ACCETTO = t('Accetto i Termini e Condizioni Generali, il Regolamento del club e le Condizioni di pagamento.', 'I accept the General Terms and Conditions, the club Rules and the Payment Terms.')
 
 // Sopra questa larghezza (desktop) i dati vanno su due colonne; tablet e telefono una.
 const DUE_COLONNE = 1024
@@ -174,13 +175,13 @@ export function AttivaGuestPass({ token, nome, iniziale }: { token: string; nome
           const r = await chiamaLink(token, 'ripaga')
           setOccupato(null)
           if (r.ok && typeof r.dati.url === 'string') return apri(r.dati.url)
-          setAvviso({ testo: 'Carta salvata. Ora puoi pagare il Guest Pass.', tono: 'ok' })
+          setAvviso({ testo: t('Carta salvata. Ora puoi pagare il Guest Pass.', 'Card saved. You can now pay for the Guest Pass.'), tono: 'ok' })
           return void (await ricarica())
         }
         setOccupato(null)
-        if (ok && d.salvata) setAvviso({ testo: 'Carta salvata. Ora conferma per attivare il Guest Pass.', tono: 'ok' })
-        else if (ok && d.motivo) setAvviso({ testo: `La carta non è stata salvata. ${d.motivo}`, tono: 'errore' })
-        else setAvviso({ testo: 'Non vediamo ancora la carta: se hai completato la pagina, riprova fra un minuto, altrimenti inseriscila di nuovo.', tono: 'attenzione' })
+        if (ok && d.salvata) setAvviso({ testo: t('Carta salvata. Ora conferma per attivare il Guest Pass.', 'Card saved. Now confirm to activate the Guest Pass.'), tono: 'ok' })
+        else if (ok && d.motivo) setAvviso({ testo: t(`La carta non è stata salvata. ${d.motivo}`, `The card was not saved. ${d.motivo}`), tono: 'errore' })
+        else setAvviso({ testo: t('Non vediamo ancora la carta: se hai completato la pagina, riprova fra un minuto, altrimenti inseriscila di nuovo.', 'We can’t see the card yet: if you completed the page, try again in a minute, otherwise enter it again.'), tono: 'attenzione' })
         await ricarica()
       })()
     }
@@ -191,18 +192,18 @@ export function AttivaGuestPass({ token, nome, iniziale }: { token: string; nome
           const { ok, dati: d } = await chiamaLink(token, 'pagamento_esito')
           if (ok && d.pagato) {
             setOccupato(null)
-            setAvviso({ testo: 'Pagamento ricevuto: il tuo Guest Pass è attivo.', tono: 'ok' })
+            setAvviso({ testo: t('Pagamento ricevuto: il tuo Guest Pass è attivo.', 'Payment received: your Guest Pass is active.'), tono: 'ok' })
             return ricarica()
           }
           if (ok && d.fallito) {
             setOccupato(null)
-            setAvviso({ testo: `Il pagamento non è andato a buon fine. ${d.motivo ?? ''}`.trim(), tono: 'errore' })
+            setAvviso({ testo: t(`Il pagamento non è andato a buon fine. ${d.motivo ?? ''}`, `The payment didn’t go through. ${d.motivo ?? ''}`).trim(), tono: 'errore' })
             return ricarica()
           }
           await new Promise((r) => setTimeout(r, 4000))
         }
         setOccupato(null)
-        setAvviso({ testo: 'Non vediamo ancora il pagamento. Se l’hai completato, ricarica la pagina fra qualche minuto.', tono: 'attenzione' })
+        setAvviso({ testo: t('Non vediamo ancora il pagamento. Se l’hai completato, ricarica la pagina fra qualche minuto.', 'We can’t see the payment yet. If you completed it, reload the page in a few minutes.'), tono: 'attenzione' })
         await ricarica()
       })()
     }
@@ -275,8 +276,8 @@ export function AttivaGuestPass({ token, nome, iniziale }: { token: string; nome
     })
     if (!ok && d.campo === 'dati') {
       setConfermati(false)
-      setErroreDati(d.errore ?? 'Controlla i tuoi dati.')
-    } else if (!ok) setErrore(d.errore ?? 'Non siamo riusciti a salvare adesso.')
+      setErroreDati(d.errore ?? t('Controlla i tuoi dati.', 'Check your details.'))
+    } else if (!ok) setErrore(d.errore ?? t('Non siamo riusciti a salvare adesso.', 'We couldn’t save right now.'))
     return ok
   }
 
@@ -287,7 +288,7 @@ export function AttivaGuestPass({ token, nome, iniziale }: { token: string; nome
     setErroreDati(null)
     if (confermati) return setConfermati(false)
     if (erroreCf) return // l'avviso del codice fiscale e' gia' sotto i dati
-    if (!datiCompleti) return setErroreDati('Completa tutti i dati prima di confermarli.')
+    if (!datiCompleti) return setErroreDati(t('Completa tutti i dati prima di confermarli.', 'Fill in all your details before confirming them.'))
     setConfermati(true)
     setOccupato('dati')
     const { ok, dati: d } = await chiamaLink(token, 'salva', {
@@ -297,7 +298,7 @@ export function AttivaGuestPass({ token, nome, iniziale }: { token: string; nome
     setOccupato(null)
     if (!ok) {
       setConfermati(false)
-      setErroreDati(d.errore ?? 'Non siamo riusciti a controllare i dati adesso. Riprova fra qualche minuto.')
+      setErroreDati(d.errore ?? t('Non siamo riusciti a controllare i dati adesso. Riprova fra qualche minuto.', 'We couldn’t check your details right now. Try again in a few minutes.'))
       // Un'anagrafica simile apre la verifica della segreteria: la pagina lo dice in cima.
       return void (await ricarica())
     }
@@ -309,8 +310,8 @@ export function AttivaGuestPass({ token, nome, iniziale }: { token: string; nome
     if (p.stato === 'aperta' && !(await salva({ metodo: 'iban' }))) return setOccupato(null)
     const { ok, dati: d } = await chiamaLink(token, 'iban', conto)
     setOccupato(null)
-    if (!ok) return setErrore(d.errore ?? 'Non siamo riusciti a salvare il conto.')
-    setAvviso({ testo: d.addebito ? `Conto salvato: i ${p.prezzo} € li addebitiamo sul conto. Il tuo Guest Pass è attivo.` : 'Conto salvato. Ora conferma per attivare il Guest Pass.', tono: 'ok' })
+    if (!ok) return setErrore(d.errore ?? t('Non siamo riusciti a salvare il conto.', 'We couldn’t save the bank account.'))
+    setAvviso({ testo: d.addebito ? t(`Conto salvato: i ${p.prezzo} € li addebitiamo sul conto. Il tuo Guest Pass è attivo.`, `Bank account saved: we’ll charge the ${p.prezzo} € to your account. Your Guest Pass is active.`) : t('Conto salvato. Ora conferma per attivare il Guest Pass.', 'Bank account saved. Now confirm to activate the Guest Pass.'), tono: 'ok' })
     await ricarica()
   }
 
@@ -319,17 +320,23 @@ export function AttivaGuestPass({ token, nome, iniziale }: { token: string; nome
     if (!(await salva())) return setOccupato(null)
     const { ok, dati: d } = await chiamaLink(token, 'conferma', password.nuova ? { password: password.nuova } : {})
     setOccupato(null)
-    if (!ok) return setErrore(d.errore ?? 'Non siamo riusciti ad attivare il Guest Pass adesso.')
+    if (!ok) return setErrore(d.errore ?? t('Non siamo riusciti ad attivare il Guest Pass adesso.', 'We couldn’t activate the Guest Pass right now.'))
     if (d.pagamento === 'da_pagare' && typeof d.url === 'string') return apri(d.url)
     if (d.pagamento === 'link_non_aperto') {
-      setAvviso({ testo: 'Il Guest Pass è registrato, ma non riusciamo ad aprire il pagamento adesso: riprova da qui fra qualche minuto.', tono: 'attenzione' })
+      setAvviso({ testo: t('Il Guest Pass è registrato, ma non riusciamo ad aprire il pagamento adesso: riprova da qui fra qualche minuto.', 'The Guest Pass is registered, but we can’t open the payment right now: try again from here in a few minutes.'), tono: 'attenzione' })
       return void (await ricarica())
     }
     setAvviso({
       testo:
         d.pagamento === 'addebito'
-          ? `Fatto: ${perFiglio ? `il Guest Pass di ${primoFiglio ?? 'tuo figlio'}` : 'il tuo Guest Pass'} è attivo. I ${p.prezzo} € saranno addebitati sul conto.`
-          : `Fatto: ${perFiglio ? `il Guest Pass di ${primoFiglio ?? 'tuo figlio'}` : 'il tuo Guest Pass'} è attivo.`,
+          ? t(
+              `Fatto: ${perFiglio ? `il Guest Pass di ${primoFiglio ?? 'tuo figlio'}` : 'il tuo Guest Pass'} è attivo. I ${p.prezzo} € saranno addebitati sul conto.`,
+              `Done: ${perFiglio ? `${primoFiglio ? `${primoFiglio}’s` : 'your child’s'} Guest Pass` : 'your Guest Pass'} is active. The ${p.prezzo} € will be charged to your bank account.`,
+            )
+          : t(
+              `Fatto: ${perFiglio ? `il Guest Pass di ${primoFiglio ?? 'tuo figlio'}` : 'il tuo Guest Pass'} è attivo.`,
+              `Done: ${perFiglio ? `${primoFiglio ? `${primoFiglio}’s` : 'your child’s'} Guest Pass` : 'your Guest Pass'} is active.`,
+            ),
       tono: 'ok',
     })
     await ricarica()
@@ -342,10 +349,10 @@ export function AttivaGuestPass({ token, nome, iniziale }: { token: string; nome
     setOccupato(null)
     if (ok && typeof d.url === 'string') return apri(d.url)
     if (ok && d.pagamento === 'pagato') {
-      setAvviso({ testo: 'Pagamento ricevuto: il tuo Guest Pass è attivo.', tono: 'ok' })
+      setAvviso({ testo: t('Pagamento ricevuto: il tuo Guest Pass è attivo.', 'Payment received: your Guest Pass is active.'), tono: 'ok' })
       return void (await ricarica())
     }
-    setErrore(d.errore ?? 'Non riusciamo ad aprire il pagamento adesso. Riprova fra qualche minuto.')
+    setErrore(d.errore ?? t('Non riusciamo ad aprire il pagamento adesso. Riprova fra qualche minuto.', 'We can’t open the payment right now. Try again in a few minutes.'))
   }
 
   // «Attiva un altro Guest Pass»: un link nuovo dello stesso genitore, dove si sceglie per chi (anche per email).
@@ -355,24 +362,27 @@ export function AttivaGuestPass({ token, nome, iniziale }: { token: string; nome
     const { ok, dati: d } = await chiamaLink(token, 'anche_per')
     setOccupato(null)
     if (ok && typeof d.token === 'string') return router.replace(`/r/${d.token}`)
-    setErrore(d.errore ?? 'Non riusciamo ad aprire un altro Guest Pass adesso. Riprova fra qualche minuto.')
+    setErrore(d.errore ?? t('Non riusciamo ad aprire un altro Guest Pass adesso. Riprova fra qualche minuto.', 'We can’t open another Guest Pass right now. Try again in a few minutes.'))
   }
   const altri = p.anche_per ?? []
-  const nomiAltri = altri.map((x) => (x.chi === 'me' ? 'te' : (x.nome ?? '').split(/\s+/)[0] || 'un figlio'))
+  const nomiAltri = altri.map((x) => (x.chi === 'me' ? t('te', 'you') : (x.nome ?? '').split(/\s+/)[0] || t('un figlio', 'a child')))
   const unAltroGuestPass =
     p.stato === 'attivato' && altri.length ? (
       <View style={{ gap: spazio.due }}>
         <Testo>
-          {`Puoi attivare il Guest Pass anche per ${nomiAltri.length > 1 ? `${nomiAltri.slice(0, -1).join(', ')} e ${nomiAltri[nomiAltri.length - 1]}` : nomiAltri[0]}, o per un altro figlio dai 13 ai 17 anni: ognuno ha il suo.`}
+          {t(
+            `Puoi attivare il Guest Pass anche per ${nomiAltri.length > 1 ? `${nomiAltri.slice(0, -1).join(', ')} e ${nomiAltri[nomiAltri.length - 1]}` : nomiAltri[0]}, o per un altro figlio dai 13 ai 17 anni: ognuno ha il suo.`,
+            `You can also activate the Guest Pass for ${nomiAltri.length > 1 ? `${nomiAltri.slice(0, -1).join(', ')} and ${nomiAltri[nomiAltri.length - 1]}` : nomiAltri[0]}, or for another child aged 13 to 17: everyone gets their own.`,
+          )}
         </Testo>
-        <Bottone testo="Attiva un altro Guest Pass" variante="contorno" onPress={unAltro} inCorso={occupato === 'altro'} disabilitato={!!occupato} />
+        <Bottone testo={t('Attiva un altro Guest Pass', 'Activate another Guest Pass')} variante="contorno" onPress={unAltro} inCorso={occupato === 'altro'} disabilitato={!!occupato} />
         {errore ? <Avviso>{errore}</Avviso> : null}
       </View>
     ) : null
 
   if (p.stato === 'attivato') {
     const daPagare = p.pagamento_stato === 'da_pagare' || p.pagamento_stato === 'sconosciuto'
-    const periodo = p.inizio.scelto ? `dal ${giornoLungo(p.inizio.scelto)} al ${giornoLungo(fineSettimana(p.inizio.scelto))}` : null
+    const periodo = p.inizio.scelto ? t(`dal ${giornoLungo(p.inizio.scelto)} al ${giornoLungo(fineSettimana(p.inizio.scelto))}`, `from ${giornoLungo(p.inizio.scelto)} to ${giornoLungo(fineSettimana(p.inizio.scelto))}`) : null
     if (!daPagare) {
       return (
         <GuestPassAttivo
@@ -393,43 +403,46 @@ export function AttivaGuestPass({ token, nome, iniziale }: { token: string; nome
     }
     return (
       <Pagina
-        titolo="Manca il pagamento"
-        sottotitolo={`${perFiglio ? `Il Guest Pass di ${primoFiglio ?? 'tuo figlio'}` : 'Il tuo Guest Pass'} ${periodo ? `(${periodo}) ` : ''}è registrato: per usarlo manca il pagamento di ${p.resta ?? p.prezzo} €.`}
+        titolo={t('Manca il pagamento', 'Payment missing')}
+        sottotitolo={t(
+          `${perFiglio ? `Il Guest Pass di ${primoFiglio ?? 'tuo figlio'}` : 'Il tuo Guest Pass'} ${periodo ? `(${periodo}) ` : ''}è registrato: per usarlo manca il pagamento di ${p.resta ?? p.prezzo} €.`,
+          `${perFiglio ? `${primoFiglio ? `${primoFiglio}’s` : 'Your child’s'} Guest Pass` : 'Your Guest Pass'} ${periodo ? `(${periodo}) ` : ''}is registered: to use it, the payment of ${p.resta ?? p.prezzo} € is still missing.`,
+        )}
       >
         {avviso ? <Avviso tono={avviso.tono}>{avviso.testo}</Avviso> : null}
         {occupato === 'pagamento' ? (
           <View style={{ flexDirection: 'row', gap: spazio.due, alignItems: 'center' }}>
             <ActivityIndicator color={c.accento} />
-            <Testo>Aspettiamo l’esito del pagamento…</Testo>
+            <Testo>{t('Aspettiamo l’esito del pagamento…', 'Waiting for the payment result…')}</Testo>
           </View>
         ) : null}
         {cartaSalvata ? (
           <Bottone
-            testo={`Paga ${p.resta ?? p.prezzo} € con la ${nomeMetodo(cartaSalvata).replace(/^Carta/, 'carta')}`}
+            testo={t(`Paga ${p.resta ?? p.prezzo} € con la ${nomeMetodo(cartaSalvata).replace(/^Carta/, 'carta')}`, `Pay ${p.resta ?? p.prezzo} € with your ${nomeMetodo(cartaSalvata).replace(/^Card/, 'card')}`)}
             onPress={() => ripaga({ usa_salvato: cartaSalvata.id })}
             inCorso={occupato === 'ripaga'}
             disabilitato={!!occupato}
           />
         ) : null}
         <Bottone
-          testo={cartaSalvata ? 'Paga con un’altra carta' : `Paga ${p.resta ?? p.prezzo} € con la carta`}
+          testo={cartaSalvata ? t('Paga con un’altra carta', 'Pay with another card') : t(`Paga ${p.resta ?? p.prezzo} € con la carta`, `Pay ${p.resta ?? p.prezzo} € by card`)}
           variante={cartaSalvata ? 'contorno' : undefined}
           onPress={() => ripaga({ nuova: true })}
           inCorso={occupato === 'nuova'}
           disabilitato={!!occupato}
         />
         <ChiGestisceCarta salvaPagando={!cartaSalvata} />
-        <Blocco numero={1} titolo="Oppure: addebito su conto" fatto={false}>
-          <Testo variante="piccolo">Salva il conto e i {p.prezzo} € li addebitiamo noi: il Guest Pass resta com’è.</Testo>
+        <Blocco numero={1} titolo={t('Oppure: addebito su conto', 'Or: direct debit')} fatto={false}>
+          <Testo variante="piccolo">{t(`Salva il conto e i ${p.prezzo} € li addebitiamo noi: il Guest Pass resta com’è.`, `Save your bank account and we’ll charge the ${p.prezzo} € ourselves: the Guest Pass stays as it is.`)}</Testo>
           <ChiGestisceConto />
           <Campo etichetta="IBAN" value={conto.iban} onChangeText={(v) => setConto((x) => ({ ...x, iban: v }))} autoCapitalize="characters" />
-          <Campo etichetta="Intestatario del conto" value={conto.intestatario} onChangeText={(v) => setConto((x) => ({ ...x, intestatario: v }))} />
-          <Campo etichetta="Via e numero civico" value={conto.via} onChangeText={(v) => setConto((x) => ({ ...x, via: v }))} />
+          <Campo etichetta={t('Intestatario del conto', 'Account holder')} value={conto.intestatario} onChangeText={(v) => setConto((x) => ({ ...x, intestatario: v }))} />
+          <Campo etichetta={t('Via e numero civico', 'Street and number')} value={conto.via} onChangeText={(v) => setConto((x) => ({ ...x, via: v }))} />
           <View style={{ flexDirection: 'row', gap: spazio.due }}>
-            <Campo etichetta="CAP" value={conto.cap} onChangeText={(v) => setConto((x) => ({ ...x, cap: v }))} keyboardType={estero ? 'default' : 'number-pad'} maxLength={estero ? 12 : undefined} />
-            <Campo etichetta="Città" value={conto.citta} onChangeText={(v) => setConto((x) => ({ ...x, citta: v }))} />
+            <Campo etichetta={t('CAP', 'Postcode')} value={conto.cap} onChangeText={(v) => setConto((x) => ({ ...x, cap: v }))} keyboardType={estero ? 'default' : 'number-pad'} maxLength={estero ? 12 : undefined} />
+            <Campo etichetta={t('Città', 'City')} value={conto.citta} onChangeText={(v) => setConto((x) => ({ ...x, citta: v }))} />
           </View>
-          <Bottone testo="Salva il conto" variante="contorno" onPress={salvaConto} inCorso={occupato === 'iban'} disabilitato={!!occupato} />
+          <Bottone testo={t('Salva il conto', 'Save bank account')} variante="contorno" onPress={salvaConto} inCorso={occupato === 'iban'} disabilitato={!!occupato} />
         </Blocco>
         {errore ? <Avviso>{errore}</Avviso> : null}
       </Pagina>
@@ -441,51 +454,57 @@ export function AttivaGuestPass({ token, nome, iniziale }: { token: string; nome
   const pronto = !p.verifica && sceltoPerChi && datiCompleti && confermati && !errorePassword && tuttiIConsensi && !!inizio && metodoPronto
   const metodoLeggibile = salvatoScelto
     ? salvatoScelto.tipo === 'carta'
-      ? `${nomeMetodo(salvatoScelto)}, addebito alla conferma`
-      : `addebito su conto (SEPA), ${nomeMetodo(salvatoScelto).toLowerCase()}`
+      ? t(`${nomeMetodo(salvatoScelto)}, addebito alla conferma`, `${nomeMetodo(salvatoScelto)}, charged on confirmation`)
+      : t(`addebito su conto (SEPA), ${nomeMetodo(salvatoScelto).toLowerCase()}`, `direct debit (SEPA), ${nomeMetodo(salvatoScelto).toLowerCase()}`)
     : sceltaMetodo === 'carta'
-      ? 'carta, pagamento alla conferma sulla pagina protetta di Adyen'
+      ? t('carta, pagamento alla conferma sulla pagina protetta di Adyen', 'card, paid on confirmation on Adyen’s secure page')
       : sceltaMetodo === 'iban'
-        ? 'addebito su conto (SEPA)'
+        ? t('addebito su conto (SEPA)', 'direct debit (SEPA)')
         : null
   return (
     <Pagina
       titolo={
         perFiglio && primoFiglio
-          ? `Attiva il Guest Pass di ${primoFiglio}`
+          ? t(`Attiva il Guest Pass di ${primoFiglio}`, `Activate ${primoFiglio}’s Guest Pass`)
           : !sceltoPerChi
             ? nome
-              ? `Ciao ${nome}, per chi è il Guest Pass?`
-              : 'Per chi è il Guest Pass?'
+              ? t(`Ciao ${nome}, per chi è il Guest Pass?`, `Hi ${nome}, who is the Guest Pass for?`)
+              : t('Per chi è il Guest Pass?', 'Who is the Guest Pass for?')
             : nome
-              ? `Ciao ${nome}, attiva il tuo Guest Pass`
-              : 'Attiva il tuo Guest Pass'
+              ? t(`Ciao ${nome}, attiva il tuo Guest Pass`, `Hi ${nome}, activate your Guest Pass`)
+              : t('Attiva il tuo Guest Pass', 'Activate your Guest Pass')
       }
-      sottotitolo={`Una settimana al club a ${p.prezzo} €.`}
+      sottotitolo={t(`Una settimana al club a ${p.prezzo} €.`, `A week at the club for ${p.prezzo} €.`)}
     >
       {avviso ? <Avviso tono={avviso.tono}>{avviso.testo}</Avviso> : null}
       {/* Un'anagrafica simile: finche' la segreteria non risponde (per email) non si conferma. */}
       {p.verifica ? <Avviso tono={p.verifica.stato === 'bloccata' ? 'errore' : 'attenzione'}>{p.verifica.testo}</Avviso> : null}
 
       {scelta ? (
-        <Blocco numero={1} titolo="Per chi è il Guest Pass" fatto={!!scelta.per}>
+        <Blocco numero={1} titolo={t('Per chi è il Guest Pass', 'Who the Guest Pass is for')} fatto={!!scelta.per}>
           <PerChi token={token} scelta={scelta} onScelto={ricarica} />
         </Blocco>
       ) : null}
 
       {sceltoPerChi ? (
       <>
-      <Blocco numero={n0 + 1} titolo={perFiglio ? 'I tuoi dati, come genitore' : 'I tuoi dati'} fatto={datiCompleti && confermati}>
+      <Blocco numero={n0 + 1} titolo={perFiglio ? t('I tuoi dati, come genitore', 'Your details, as the parent') : t('I tuoi dati', 'Your details')} fatto={datiCompleti && confermati}>
         <Testo variante="piccolo">
           {perFiglio
-            ? `Sei tu a pagare e ad attivare il Guest Pass di ${primoFiglio ?? 'tuo figlio'} come genitore: servono i tuoi dati. Quelli che mancano — di solito codice fiscale, data di nascita e indirizzo — servono per registrarti al club.`
-            : 'Controlla i tuoi dati e correggili se serve. Quelli che mancano — di solito codice fiscale, data di nascita e indirizzo — servono per registrarti al club.'}
+            ? t(
+                `Sei tu a pagare e ad attivare il Guest Pass di ${primoFiglio ?? 'tuo figlio'} come genitore: servono i tuoi dati. Quelli che mancano — di solito codice fiscale, data di nascita e indirizzo — servono per registrarti al club.`,
+                `You pay for and activate ${primoFiglio ? `${primoFiglio}’s` : 'your child’s'} Guest Pass as the parent, so we need your details. The missing ones — usually tax code, date of birth and address — are needed to register you at the club.`,
+              )
+            : t(
+                'Controlla i tuoi dati e correggili se serve. Quelli che mancano — di solito codice fiscale, data di nascita e indirizzo — servono per registrarti al club.',
+                'Check your details and correct them if needed. The missing ones — usually tax code, date of birth and address — are needed to register you at the club.',
+              )}
         </Testo>
         {GRUPPI.map((g) => (
           <Gruppo key={g.titolo} titolo={g.titolo} due={dueColonne}>
             {[
               // Residente all'estero: il Paese apre il gruppo dell'indirizzo.
-              ...(g.titolo === 'Residenza' && estero
+              ...(g.campi.includes('via') && estero
                 ? [
                     <CampoPaese
                       key="paese"
@@ -541,26 +560,26 @@ export function AttivaGuestPass({ token, nome, iniziale }: { token: string; nome
           </Gruppo>
         ))}
         {erroreCf ? <Avviso>{erroreCf}</Avviso> : null}
-        <Casella spuntata={confermati} onCambia={confermaDati} etichetta="I miei dati sono corretti">
-          <Testo style={{ fontWeight: '700' }}>I miei dati sono corretti</Testo>
+        <Casella spuntata={confermati} onCambia={confermaDati} etichetta={t('I miei dati sono corretti', 'My details are correct')}>
+          <Testo style={{ fontWeight: '700' }}>{t('I miei dati sono corretti', 'My details are correct')}</Testo>
         </Casella>
         {occupato === 'dati' ? (
           <View style={{ flexDirection: 'row', gap: spazio.due, alignItems: 'center' }}>
             <ActivityIndicator color={c.accento} />
-            <Testo variante="piccolo">Controlliamo i tuoi dati…</Testo>
+            <Testo variante="piccolo">{t('Controlliamo i tuoi dati…', 'Checking your details…')}</Testo>
           </View>
         ) : null}
         {erroreDati ? <Avviso>{erroreDati}</Avviso> : null}
         {Object.keys(cambiati).length && !confermati ? (
-          <Testo variante="piccolo">Le correzioni vanno sulla tua scheda del club quando spunti «I miei dati sono corretti».</Testo>
+          <Testo variante="piccolo">{t('Le correzioni vanno sulla tua scheda del club quando spunti «I miei dati sono corretti».', 'Your corrections go onto your club profile when you tick “My details are correct”.')}</Testo>
         ) : null}
         {/* La password solo a chi sta creando l'account (14/10/2026): chi era gia'
             Guest o Member ce l'ha, e se non la ricorda la reimposta dalla pagina finale. */}
         {passwordObbligatoria ? (
           <>
-            <Gruppo titolo="La tua password" due={dueColonne}>
+            <Gruppo titolo={t('La tua password', 'Your password')} due={dueColonne}>
               <Campo
-                etichetta="Scegli la password"
+                etichetta={t('Scegli la password', 'Choose a password')}
                 value={password.nuova}
                 onChangeText={(v) => setPassword((x) => ({ ...x, nuova: v }))}
                 secureTextEntry
@@ -570,7 +589,7 @@ export function AttivaGuestPass({ token, nome, iniziale }: { token: string; nome
                 style={{ backgroundColor: c.sfondo }}
               />
               <Campo
-                etichetta="Ripeti la password"
+                etichetta={t('Ripeti la password', 'Repeat the password')}
                 value={password.conferma}
                 onChangeText={(v) => setPassword((x) => ({ ...x, conferma: v }))}
                 secureTextEntry
@@ -581,15 +600,17 @@ export function AttivaGuestPass({ token, nome, iniziale }: { token: string; nome
               />
             </Gruppo>
             <Testo variante="piccolo">
-              Con la tua email e questa password entri nell’app Athlon Club e nel portale, per prenotare le lezioni. Almeno 8 caratteri,
-              con lettere e numeri.
+              {t(
+                'Con la tua email e questa password entri nell’app Athlon Club e nel portale, per prenotare le lezioni. Almeno 8 caratteri, con lettere e numeri.',
+                'With your email and this password you sign in to the Athlon Club app and the portal to book classes. At least 8 characters, with letters and numbers.',
+              )}
             </Testo>
             {(password.nuova || password.conferma) && errorePassword ? <Avviso tono="attenzione">{errorePassword}</Avviso> : null}
           </>
         ) : null}
       </Blocco>
 
-      <Blocco numero={n0 + 2} titolo="Quando vuoi cominciare" fatto={!!inizio}>
+      <Blocco numero={n0 + 2} titolo={t('Quando vuoi cominciare', 'When do you want to start')} fatto={!!inizio}>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: spazio.due }}>
           {giorni.map((g) => {
             const b = giornoBreve(g)
@@ -604,18 +625,18 @@ export function AttivaGuestPass({ token, nome, iniziale }: { token: string; nome
             )
           })}
         </ScrollView>
-        {inizio ? <Testo variante="piccolo">{`Dal ${giornoLungo(inizio)} al ${giornoLungo(fineSettimana(inizio))}.`}</Testo> : null}
+        {inizio ? <Testo variante="piccolo">{t(`Dal ${giornoLungo(inizio)} al ${giornoLungo(fineSettimana(inizio))}.`, `From ${giornoLungo(inizio)} to ${giornoLungo(fineSettimana(inizio))}.`)}</Testo> : null}
         {perFiglio && giorni.length && giorni.length < 15 ? (
-          <Testo variante="piccolo">{`Il Guest Pass di ${primoFiglio ?? 'tuo figlio'} deve cominciare prima che compia 18 anni.`}</Testo>
+          <Testo variante="piccolo">{t(`Il Guest Pass di ${primoFiglio ?? 'tuo figlio'} deve cominciare prima che compia 18 anni.`, `${primoFiglio ? `${primoFiglio}’s` : 'Your child’s'} Guest Pass must start before they turn 18.`)}</Testo>
         ) : null}
       </Blocco>
 
-      <Blocco numero={n0 + 3} titolo="Come vuoi pagare" fatto={metodoPronto}>
-        {salvati.length ? <Testo variante="piccolo">Hai già un metodo salvato al club: puoi usare quello.</Testo> : null}
+      <Blocco numero={n0 + 3} titolo={t('Come vuoi pagare', 'How do you want to pay')} fatto={metodoPronto}>
+        {salvati.length ? <Testo variante="piccolo">{t('Hai già un metodo salvato al club: puoi usare quello.', 'You already have a payment method saved at the club: you can use that.')}</Testo> : null}
         {(
           [
-            { tipo: 'carta', titolo: 'Carte', nuovo: 'carta', altro: 'Usa un’altra carta', primo: 'Paga con la carta' },
-            { tipo: 'iban', titolo: 'Conto corrente', nuovo: 'iban', altro: 'Usa un altro conto', primo: 'Addebito su conto' },
+            { tipo: 'carta', titolo: t('Carte', 'Cards'), nuovo: 'carta', altro: t('Usa un’altra carta', 'Use another card'), primo: t('Paga con la carta', 'Pay by card') },
+            { tipo: 'iban', titolo: t('Conto corrente', 'Bank account'), nuovo: 'iban', altro: t('Usa un altro conto', 'Use another account'), primo: t('Addebito su conto', 'Direct debit') },
           ] as const
         ).map((g) => {
           const suoi = salvati.filter((m) => m.tipo === g.tipo)
@@ -650,20 +671,20 @@ export function AttivaGuestPass({ token, nome, iniziale }: { token: string; nome
         })}
         {salvatoScelto?.tipo === 'carta' ? (
           <>
-            <Testo variante="piccolo">Alla conferma addebitiamo i {p.prezzo} € su questa carta, senza riscriverla.</Testo>
+            <Testo variante="piccolo">{t(`Alla conferma addebitiamo i ${p.prezzo} € su questa carta, senza riscriverla.`, `On confirmation we charge the ${p.prezzo} € to this card, without re-entering it.`)}</Testo>
             <ChiGestisceCarta />
           </>
         ) : null}
         {salvatoScelto?.tipo === 'iban' ? (
           <>
-            <Testo variante="piccolo">I {p.prezzo} € li addebitiamo su questo conto, dopo la conferma.</Testo>
+            <Testo variante="piccolo">{t(`I ${p.prezzo} € li addebitiamo su questo conto, dopo la conferma.`, `We charge the ${p.prezzo} € to this account after confirmation.`)}</Testo>
             <ChiGestisceConto />
           </>
         ) : null}
         {sceltaMetodo === 'carta' ? (
           <>
             <Testo variante="piccolo">
-              Alla conferma si apre la pagina protetta di Adyen: scrivi la carta e paghi i {p.prezzo} € in un passo solo. Poi torni qui.
+              {t(`Alla conferma si apre la pagina protetta di Adyen: scrivi la carta e paghi i ${p.prezzo} € in un passo solo. Poi torni qui.`, `On confirmation, Adyen’s secure page opens: enter your card and pay the ${p.prezzo} € in a single step. Then you come back here.`)}
             </Testo>
             <ChiGestisceCarta salvaPagando />
           </>
@@ -671,59 +692,59 @@ export function AttivaGuestPass({ token, nome, iniziale }: { token: string; nome
         {sceltaMetodo === 'iban' ? (
           p.scelte.metodo === 'iban' && p.scelte.metodo_pronto ? (
             <>
-              <Avviso tono="ok">Conto salvato: i {p.prezzo} € saranno addebitati sul conto.</Avviso>
+              <Avviso tono="ok">{t(`Conto salvato: i ${p.prezzo} € saranno addebitati sul conto.`, `Bank account saved: the ${p.prezzo} € will be charged to your account.`)}</Avviso>
               <ChiGestisceConto />
             </>
           ) : (
             <>
               <View style={dueColonne ? { flexDirection: 'row', gap: spazio.tre } : { gap: spazio.tre }}>
                 <Campo etichetta="IBAN" value={conto.iban} onChangeText={(v) => setConto((x) => ({ ...x, iban: v.toUpperCase() }))} autoCapitalize="characters" placeholder="IT60 X054 2811 1010 0000 0123 456" style={{ backgroundColor: c.sfondo }} />
-                <Campo etichetta="Intestatario del conto" value={conto.intestatario} onChangeText={(v) => setConto((x) => ({ ...x, intestatario: v }))} style={{ backgroundColor: c.sfondo }} />
+                <Campo etichetta={t('Intestatario del conto', 'Account holder')} value={conto.intestatario} onChangeText={(v) => setConto((x) => ({ ...x, intestatario: v }))} style={{ backgroundColor: c.sfondo }} />
               </View>
               <View style={dueColonne ? { flexDirection: 'row', gap: spazio.tre } : { gap: spazio.tre }}>
-                <Campo etichetta="Via e numero civico" value={conto.via} onChangeText={(v) => setConto((x) => ({ ...x, via: v }))} style={{ backgroundColor: c.sfondo }} />
+                <Campo etichetta={t('Via e numero civico', 'Street and number')} value={conto.via} onChangeText={(v) => setConto((x) => ({ ...x, via: v }))} style={{ backgroundColor: c.sfondo }} />
                 <View style={{ flexDirection: 'row', gap: spazio.due, flex: 1 }}>
-                  <Campo etichetta="CAP" value={conto.cap} onChangeText={(v) => setConto((x) => ({ ...x, cap: v }))} keyboardType={estero ? 'default' : 'number-pad'} maxLength={estero ? 12 : 5} style={{ backgroundColor: c.sfondo }} />
-                  <Campo etichetta="Città" value={conto.citta} onChangeText={(v) => setConto((x) => ({ ...x, citta: v }))} style={{ backgroundColor: c.sfondo }} />
+                  <Campo etichetta={t('CAP', 'Postcode')} value={conto.cap} onChangeText={(v) => setConto((x) => ({ ...x, cap: v }))} keyboardType={estero ? 'default' : 'number-pad'} maxLength={estero ? 12 : 5} style={{ backgroundColor: c.sfondo }} />
+                  <Campo etichetta={t('Città', 'City')} value={conto.citta} onChangeText={(v) => setConto((x) => ({ ...x, citta: v }))} style={{ backgroundColor: c.sfondo }} />
                 </View>
               </View>
               <ChiGestisceConto />
-              <Bottone testo="Salva il conto" onPress={salvaConto} inCorso={occupato === 'iban'} disabilitato={!!occupato} />
+              <Bottone testo={t('Salva il conto', 'Save bank account')} onPress={salvaConto} inCorso={occupato === 'iban'} disabilitato={!!occupato} />
             </>
           )
         ) : null}
       </Blocco>
 
-      <Blocco numero={n0 + 4} titolo="Riepilogo e condizioni" fatto={tuttiIConsensi && !!inizio && metodoPronto}>
+      <Blocco numero={n0 + 4} titolo={t('Riepilogo e condizioni', 'Summary and terms')} fatto={tuttiIConsensi && !!inizio && metodoPronto}>
         <View style={[stili.contratto, { borderColor: c.bordo, backgroundColor: c.sfondo }]}>
-          <Text style={[stili.titoloContratto, { color: c.testo }]}>Guest Pass Athlon Club · 1 settimana</Text>
+          <Text style={[stili.titoloContratto, { color: c.testo }]}>{t('Guest Pass Athlon Club · 1 settimana', 'Guest Pass Athlon Club · 1 week')}</Text>
           {[
-            ['Intestatario', perFiglio ? nomeFiglio || 'tuo figlio' : [dati.nome, dati.cognome].filter(Boolean).join(' ')],
-            ...(perFiglio ? [['Genitore che paga', [dati.nome, dati.cognome].filter(Boolean).join(' ')]] : []),
-            ['Validità', inizio ? `dal ${giornoLungo(inizio)} al ${giornoLungo(fineSettimana(inizio))} compresi` : 'scegli il giorno d’inizio'],
-            ['Prezzo', `${p.prezzo} € una tantum`],
-            ['Rinnovo', 'nessuno: finisce da solo, senza impegno e senza altri addebiti'],
-            ['Pagamento', metodoLeggibile ?? 'scegli come pagare'],
+            [t('Intestatario', 'Holder'), perFiglio ? nomeFiglio || t('tuo figlio', 'your child') : [dati.nome, dati.cognome].filter(Boolean).join(' ')],
+            ...(perFiglio ? [[t('Genitore che paga', 'Paying parent'), [dati.nome, dati.cognome].filter(Boolean).join(' ')]] : []),
+            [t('Validità', 'Valid'), inizio ? t(`dal ${giornoLungo(inizio)} al ${giornoLungo(fineSettimana(inizio))} compresi`, `from ${giornoLungo(inizio)} to ${giornoLungo(fineSettimana(inizio))} inclusive`) : t('scegli il giorno d’inizio', 'choose the start day')],
+            [t('Prezzo', 'Price'), t(`${p.prezzo} € una tantum`, `${p.prezzo} € one-off`)],
+            [t('Rinnovo', 'Renewal'), t('nessuno: finisce da solo, senza impegno e senza altri addebiti', 'none: it ends by itself, with no commitment and no further charges')],
+            [t('Pagamento', 'Payment'), metodoLeggibile ?? t('scegli come pagare', 'choose how to pay')],
           ].map(([k, v]) => (
             <View key={k} style={[stili.riga, { borderTopColor: c.bordo }]}>
               <Text style={[stili.chiave, { color: c.testoSecondario }]}>{k}</Text>
               <Text style={[stili.valore, { color: c.testo }]}>{v}</Text>
             </View>
           ))}
-          <Text style={[stili.sezione, { color: c.testo }]}>Le condizioni in breve</Text>
+          <Text style={[stili.sezione, { color: c.testo }]}>{t('Le condizioni in breve', 'The terms in brief')}</Text>
           <View style={{ gap: spazio.uno + 2 }}>
-            {cosaComprende(p.prezzo).map((t) => (
-              <View key={t} style={{ flexDirection: 'row', gap: spazio.due }}>
+            {cosaComprende(p.prezzo).map((voce) => (
+              <View key={voce} style={{ flexDirection: 'row', gap: spazio.due }}>
                 <Text style={{ color: c.accento, fontWeight: '800' }}>✓</Text>
                 <Testo variante="piccolo" style={{ flex: 1, color: c.testo }}>
-                  {t}
+                  {voce}
                 </Testo>
               </View>
             ))}
           </View>
-          <Text style={[stili.sezione, { color: c.testo }]}>Regole di prenotazione</Text>
-          {REGOLE_PRENOTAZIONE.map((t) => (
-            <Testo key={t} variante="piccolo">{`• ${t}`}</Testo>
+          <Text style={[stili.sezione, { color: c.testo }]}>{t('Regole di prenotazione', 'Booking rules')}</Text>
+          {REGOLE_PRENOTAZIONE.map((regola) => (
+            <Testo key={regola} variante="piccolo">{`• ${regola}`}</Testo>
           ))}
           <Testo variante="piccolo">Società Sportiva Dilettantistica Point 2000 SSD, Via Ugo Ojetti 134, 00137 Roma.</Testo>
         </View>
@@ -743,7 +764,7 @@ export function AttivaGuestPass({ token, nome, iniziale }: { token: string; nome
               style={{ color: c.accento, fontSize: 13, textDecorationLine: 'underline', marginLeft: 34 }}
               onPress={() => apriAccanto(REGOLAMENTO_URL)}
             >
-              Leggi il Regolamento e i Termini e Condizioni ↗
+              {t('Leggi il Regolamento e i Termini e Condizioni ↗', 'Read the Rules and Terms and Conditions ↗')}
             </Text>
           </View>
         ) : null}
@@ -751,29 +772,29 @@ export function AttivaGuestPass({ token, nome, iniziale }: { token: string; nome
 
       {errore ? <Avviso>{errore}</Avviso> : null}
       {occupato === 'carta' && tornatoCarta ? <ActivityIndicator color={c.accento} /> : null}
-      <Bottone testo={metodo === 'carta' ? `Conferma e paga · ${p.prezzo} €` : `Conferma e attiva · ${p.prezzo} €`} onPress={conferma} inCorso={occupato === 'conferma'} disabilitato={!pronto || !!occupato} />
+      <Bottone testo={metodo === 'carta' ? t(`Conferma e paga · ${p.prezzo} €`, `Confirm and pay · ${p.prezzo} €`) : t(`Conferma e attiva · ${p.prezzo} €`, `Confirm and activate · ${p.prezzo} €`)} onPress={conferma} inCorso={occupato === 'conferma'} disabilitato={!pronto || !!occupato} />
       {!pronto ? (
         <Testo variante="piccolo">
           {errorePassword ? `${errorePassword} ` : ''}
           {erroreCf
-            ? 'Controlla il codice fiscale. '
+            ? t('Controlla il codice fiscale. ', 'Check your tax code. ')
             : senzaPaese
-              ? 'Scegli il Paese in cui risiedi. '
+              ? t('Scegli il Paese in cui risiedi. ', 'Choose the country you live in. ')
               : erroreCap
-                ? 'Controlla il CAP. '
+                ? t('Controlla il CAP. ', 'Check your postcode. ')
                 : !datiCompleti
-                  ? 'Completa i tuoi dati. '
+                  ? t('Completa i tuoi dati. ', 'Complete your details. ')
                   : !confermati
-                    ? 'Conferma che i tuoi dati sono corretti. '
+                    ? t('Conferma che i tuoi dati sono corretti. ', 'Confirm that your details are correct. ')
                     : ''}
-          {!inizio ? 'Scegli il giorno d’inizio. ' : ''}
-          {!metodoPronto ? 'Completa il metodo di pagamento. ' : ''}
-          {!tuttiIConsensi ? 'Accetta i Termini e Condizioni, il Regolamento e le Condizioni di pagamento.' : ''}
+          {!inizio ? t('Scegli il giorno d’inizio. ', 'Choose the start day. ') : ''}
+          {!metodoPronto ? t('Completa il metodo di pagamento. ', 'Complete the payment method. ') : ''}
+          {!tuttiIConsensi ? t('Accetta i Termini e Condizioni, il Regolamento e le Condizioni di pagamento.', 'Accept the Terms and Conditions, the Rules and the Payment Terms.') : ''}
         </Testo>
       ) : (
         <Testo variante="piccolo">
-          Confermando attivi il Guest Pass <Forte>dal {giornoLungo(inizio!)}</Forte>
-          {metodo === 'carta' ? ` e paghi subito i ${p.prezzo} € con la carta.` : ` con l’addebito dei ${p.prezzo} € sul conto.`}
+          {t('Confermando attivi il Guest Pass', 'By confirming you activate the Guest Pass')} <Forte>{t(`dal ${giornoLungo(inizio!)}`, `from ${giornoLungo(inizio!)}`)}</Forte>
+          {metodo === 'carta' ? t(` e paghi subito i ${p.prezzo} € con la carta.`, ` and pay the ${p.prezzo} € by card right away.`) : t(` con l’addebito dei ${p.prezzo} € sul conto.`, ` with the ${p.prezzo} € charged to your bank account.`)}
         </Testo>
       )}
       </>

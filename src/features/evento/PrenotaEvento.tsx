@@ -12,6 +12,7 @@ import { Forte, Testo } from '@/components/Testo'
 import { FinestraLezione, Fotina } from '@/features/lab/SchedaLezione'
 import { euro, giornoEsteso, nomeDi, ora, paginaEventoSito, type EsitoPrenotazione, type PaginaEvento, type Persona, type Prodotto, type Turno } from '@/lib/eventi'
 import { spazio, stileTono, useColori, type Tono } from '@/theme'
+import { t } from '@/lib/lingua'
 
 // La prenotazione di un evento dal link per email, come il calendario del
 // laboratorio: in alto per chi si prenota («Stai prenotando per …»), sotto le
@@ -29,12 +30,12 @@ import { spazio, stileTono, useColori, type Tono } from '@/theme'
 
 type Esito = { testo: string; tono: Tono; daPagare?: Prodotto | null }
 
-function minuti(t: Turno): number {
-  return Math.round((new Date(t.fine).getTime() - new Date(t.inizio).getTime()) / 60000)
+function minuti(turno: Turno): number {
+  return Math.round((new Date(turno.fine).getTime() - new Date(turno.inizio).getTime()) / 60000)
 }
 
 function RigaTurno({
-  t,
+  turno,
   nome,
   pagina,
   persona,
@@ -43,7 +44,7 @@ function RigaTurno({
   onPrenota,
   onAcquista,
 }: {
-  t: Turno
+  turno: Turno
   nome: string
   pagina: PaginaEvento
   persona: Persona | null
@@ -56,12 +57,12 @@ function RigaTurno({
   const [attesa, setAttesa] = useState(false)
   const [esito, setEsito] = useState<Esito | null>(null)
   const suo = persona?.prenotato ?? null
-  const qui = suo?.class_id === t.class_id
+  const qui = suo?.class_id === turno.class_id
   const altrove = suo && !qui ? pagina.turni.find((x) => x.class_id === suo.class_id) : null
   // Chi del nucleo e' gia' prenotato qui: si vede su ogni turno.
-  const loro = (pagina.persone ?? pagina.bambini).filter((p) => p.prenotato?.class_id === t.class_id)
+  const loro = (pagina.persone ?? pagina.bambini).filter((p) => p.prenotato?.class_id === turno.class_id)
 
-  const tono = t.liberi <= 0 ? ('errore' as const) : t.liberi < 5 ? ('attenzione' as const) : ('ok' as const)
+  const tono = turno.liberi <= 0 ? ('errore' as const) : turno.liberi < 5 ? ('attenzione' as const) : ('ok' as const)
 
   async function prenota() {
     setEsito(null)
@@ -83,21 +84,23 @@ function RigaTurno({
   useEffect(() => setEsito(null), [persona?.member_id])
 
   let azione: React.ReactNode
-  if (t.chiuso) azione = <Testo variante="piccolo">Già cominciato.</Testo>
+  if (turno.chiuso) azione = <Testo variante="piccolo">{t('Già cominciato.', 'Already started.')}</Testo>
   else if (!persona) azione = null
-  else if (qui) azione = <Avviso tono={suo!.attesa ? 'attenzione' : 'ok'}>{`${persona.nome ?? nomeDi(persona)} è ${suo!.attesa ? 'in lista d’attesa' : 'prenotato'} qui.`}</Avviso>
-  else if (altrove) azione = <Bottone testo={`Già prenotato alle ${ora(altrove.inizio)}`} variante="contorno" onPress={() => {}} disabilitato />
-  else if (t.liberi <= 0) azione = <Bottone testo="Completo" variante="contorno" onPress={() => {}} disabilitato />
+  else if (qui) azione = <Avviso tono={suo!.attesa ? 'attenzione' : 'ok'}>{suo!.attesa
+      ? t(`${persona.nome ?? nomeDi(persona)} è in lista d’attesa qui.`, `${persona.nome ?? nomeDi(persona)} is on the waiting list here.`)
+      : t(`${persona.nome ?? nomeDi(persona)} è prenotato qui.`, `${persona.nome ?? nomeDi(persona)} is booked here.`)}</Avviso>
+  else if (altrove) azione = <Bottone testo={t(`Già prenotato alle ${ora(altrove.inizio)}`, `Already booked at ${ora(altrove.inizio)}`)} variante="contorno" onPress={() => {}} disabilitato />
+  else if (turno.liberi <= 0) azione = <Bottone testo={t('Completo', 'Full')} variante="contorno" onPress={() => {}} disabilitato />
   else if (esito?.daPagare)
     azione = (
       <Bottone
-        testo={`Acquista e prenota${esito.daPagare.prezzo != null ? ` · ${euro(esito.daPagare.prezzo)}` : ''}`}
+        testo={`${t('Acquista e prenota', 'Buy and book')}${esito.daPagare.prezzo != null ? ` · ${euro(esito.daPagare.prezzo)}` : ''}`}
         onPress={acquista}
         inCorso={attesa}
         disabilitato={occupato}
       />
     )
-  else azione = <Bottone testo={`Prenota per ${persona.nome ?? nomeDi(persona)}`} onPress={prenota} inCorso={attesa} disabilitato={occupato} />
+  else azione = <Bottone testo={t(`Prenota per ${persona.nome ?? nomeDi(persona)}`, `Book for ${persona.nome ?? nomeDi(persona)}`)} onPress={prenota} inCorso={attesa} disabilitato={occupato} />
 
   return (
     <View style={[stili.lezione, { borderColor: c.bordo, backgroundColor: c.superficie }, qui ? stileTono(c, suo!.attesa ? 'attenzione' : 'ok') : null]}>
@@ -106,28 +109,28 @@ function RigaTurno({
         <View style={{ flex: 1, gap: 3 }}>
           <Text style={[stili.nome, { color: c.testo }]}>{nome}</Text>
           <Text style={[stili.ora, { color: c.testo }]}>
-            {ora(t.inizio)}–{ora(t.fine)}
-            <Text style={{ color: c.testoSecondario, fontWeight: '400' }}>{` · ${minuti(t)} min`}</Text>
+            {ora(turno.inizio)}–{ora(turno.fine)}
+            <Text style={{ color: c.testoSecondario, fontWeight: '400' }}>{` · ${minuti(turno)} min`}</Text>
           </Text>
-          {t.istruttore ? <Testo variante="piccolo">{t.istruttore}</Testo> : null}
+          {turno.istruttore ? <Testo variante="piccolo">{turno.istruttore}</Testo> : null}
         </View>
-        {t.chiuso ? null : (
-          <View style={[stili.posti, stileTono(c, tono)]} accessibilityLabel={t.liberi <= 0 ? 'Completo' : `${t.liberi} posti liberi`}>
-            {t.liberi <= 0 ? (
-              <Text style={[stili.completa, { color: c[tono] }]}>Completo</Text>
+        {turno.chiuso ? null : (
+          <View style={[stili.posti, stileTono(c, tono)]} accessibilityLabel={turno.liberi <= 0 ? t('Completo', 'Full') : t(`${turno.liberi} posti liberi`, `${turno.liberi} ${turno.liberi === 1 ? 'spot' : 'spots'} available`)}>
+            {turno.liberi <= 0 ? (
+              <Text style={[stili.completa, { color: c[tono] }]}>{t('Completo', 'Full')}</Text>
             ) : (
               <>
-                <Text style={[stili.numeroPosti, { color: c[tono] }]}>{t.liberi}</Text>
-                <Text style={[stili.etichettaPosti, { color: c.testoSecondario }]}>{t.liberi === 1 ? 'posto' : 'posti'}</Text>
+                <Text style={[stili.numeroPosti, { color: c[tono] }]}>{turno.liberi}</Text>
+                <Text style={[stili.etichettaPosti, { color: c.testoSecondario }]}>{turno.liberi === 1 ? t('posto', 'spot') : t('posti', 'spots')}</Text>
               </>
             )}
           </View>
         )}
       </View>
-      {prodotto?.prezzo != null && !t.chiuso ? (
-        <Testo variante="piccolo">{`Compresa negli abbonamenti che la includono; per gli altri ${euro(prodotto.prezzo)} a persona, da pagare online.`}</Testo>
+      {prodotto?.prezzo != null && !turno.chiuso ? (
+        <Testo variante="piccolo">{t(`Compresa negli abbonamenti che la includono; per gli altri ${euro(prodotto.prezzo)} a persona, da pagare online.`, `Included in memberships that include it; for everyone else ${euro(prodotto.prezzo)} per person, payable online.`)}</Testo>
       ) : null}
-      {loro.length ? <Testo variante="piccolo">{`Prenotati qui: ${loro.map((p) => p.nome ?? nomeDi(p)).join(', ')}`}</Testo> : null}
+      {loro.length ? <Testo variante="piccolo">{`${t('Prenotati qui', 'Booked here')}: ${loro.map((p) => p.nome ?? nomeDi(p)).join(', ')}`}</Testo> : null}
       {azione}
       {esito && !esito.daPagare ? <Avviso tono={esito.tono}>{esito.testo}</Avviso> : null}
       {esito?.daPagare ? <Testo variante="piccolo">{esito.testo}</Testo> : null}
@@ -152,11 +155,11 @@ export function PrenotaEvento({ token, nome, iniziale }: { token: string; nome: 
   const nomeLezione = evento.lezione ?? evento.titolo
   const fascia =
     evento.nati_dal != null && evento.nati_al != null
-      ? `nati dal ${evento.nati_dal} al ${evento.nati_al}`
+      ? t(`nati dal ${evento.nati_dal} al ${evento.nati_al}`, `born between ${evento.nati_dal} and ${evento.nati_al}`)
       : evento.nati_dal != null
-        ? `nati dal ${evento.nati_dal}`
+        ? t(`nati dal ${evento.nati_dal}`, `born from ${evento.nati_dal}`)
         : evento.nati_al != null
-          ? `nati fino al ${evento.nati_al}`
+          ? t(`nati fino al ${evento.nati_al}`, `born up to ${evento.nati_al}`)
           : null
 
   async function ricarica() {
@@ -164,32 +167,32 @@ export function PrenotaEvento({ token, nome, iniziale }: { token: string; nome: 
     if (ok) setPagina(dati as unknown as PaginaEvento)
   }
 
-  async function prenota(t: Turno): Promise<Esito | null> {
+  async function prenota(turno: Turno): Promise<Esito | null> {
     if (!persona) return null
     // Resta su chi si e' appena prenotato, anche se la scelta era quella di partenza.
     setSceltaId(persona.member_id)
     setOccupato(true)
-    const { ok, dati } = await chiamaLink(token, 'prenota', { class_id: t.class_id, membri: [persona.member_id] })
+    const { ok, dati } = await chiamaLink(token, 'prenota', { class_id: turno.class_id, membri: [persona.member_id] })
     await ricarica()
     setOccupato(false)
     const chi = persona.nome ?? nomeDi(persona)
-    if (!ok || !Array.isArray(dati.risultati)) return { testo: dati.errore ?? 'Non siamo riusciti a prenotare adesso. Riprova fra qualche minuto.', tono: 'errore' }
+    if (!ok || !Array.isArray(dati.risultati)) return { testo: dati.errore ?? t('Non siamo riusciti a prenotare adesso. Riprova fra qualche minuto.', 'We couldn’t book right now. Try again in a few minutes.'), tono: 'errore' }
     const r = (dati.risultati as EsitoPrenotazione[])[0]
-    if (r?.esito === 'prenotato') return { testo: `Fatto: ${chi} è prenotato ${giornoEsteso(evento.data)} alle ${ora(t.inizio)}. Lo trovi anche nell’app Athlon.`, tono: 'ok' }
-    if (r?.esito === 'attesa') return { testo: `${chi} è in lista d’attesa: i posti sono finiti mentre prenotavi.`, tono: 'attenzione' }
+    if (r?.esito === 'prenotato') return { testo: t(`Fatto: ${chi} è prenotato ${giornoEsteso(evento.data)} alle ${ora(turno.inizio)}. Lo trovi anche nell’app Athlon.`, `Done: ${chi} is booked on ${giornoEsteso(evento.data)} at ${ora(turno.inizio)}. You’ll also find it in the Athlon app.`), tono: 'ok' }
+    if (r?.esito === 'attesa') return { testo: t(`${chi} è in lista d’attesa: i posti sono finiti mentre prenotavi.`, `${chi} is on the waiting list: the spots ran out while you were booking.`), tono: 'attenzione' }
     if (r?.esito === 'da_pagare')
       return {
-        testo: `Per ${chi} questa lezione non è compresa nell’abbonamento: si acquista online e la prenotazione parte subito dopo il pagamento.`,
+        testo: t(`Per ${chi} questa lezione non è compresa nell’abbonamento: si acquista online e la prenotazione parte subito dopo il pagamento.`, `For ${chi} this class isn’t included in the membership: you buy it online and the booking goes through right after payment.`),
         tono: 'attenzione',
         daPagare: r.prodotto ?? pagina.pagamento?.prodotto ?? null,
       }
-    return { testo: r?.errore ?? 'PerfectGym non ha accettato la prenotazione.', tono: 'errore' }
+    return { testo: r?.errore ?? t('PerfectGym non ha accettato la prenotazione.', 'PerfectGym didn’t accept the booking.'), tono: 'errore' }
   }
 
-  async function acquista(t: Turno): Promise<string | null> {
+  async function acquista(turno: Turno): Promise<string | null> {
     if (!persona) return null
-    const { ok, dati } = await chiamaLink(token, 'acquista', { class_id: t.class_id, member_id: persona.member_id })
-    if (!ok || typeof dati.url !== 'string') return dati.errore ?? 'Non riusciamo ad aprire il pagamento adesso. Riprova fra qualche minuto.'
+    const { ok, dati } = await chiamaLink(token, 'acquista', { class_id: turno.class_id, member_id: persona.member_id })
+    if (!ok || typeof dati.url !== 'string') return dati.errore ?? t('Non riusciamo ad aprire il pagamento adesso. Riprova fra qualche minuto.', 'We can’t open the payment right now. Try again in a few minutes.')
     if (Platform.OS === 'web') window.location.assign(dati.url)
     else await Linking.openURL(dati.url)
     return null
@@ -225,56 +228,62 @@ export function PrenotaEvento({ token, nome, iniziale }: { token: string; nome: 
   }, [acquisto, token])
 
   const chiRitorno = ritorno?.member_id ? persone.find((p) => p.member_id === ritorno.member_id) : null
-  const turnoRitorno = ritorno?.class_id ? turni.find((t) => t.class_id === ritorno.class_id) : null
+  const turnoRitorno = ritorno?.class_id ? turni.find((turno) => turno.class_id === ritorno.class_id) : null
   const avvisoRitorno = !ritorno ? null : ritorno.stato === 'avviato' ? (
     <Avviso tono="attenzione">
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: spazio.due }}>
         <ActivityIndicator color={c.attenzione} />
-        <Testo>Aspettiamo da PerfectGym la conferma del pagamento, poi prenotiamo. Non chiudere la pagina.</Testo>
+        <Testo>{t('Aspettiamo da PerfectGym la conferma del pagamento, poi prenotiamo. Non chiudere la pagina.', 'We’re waiting for PerfectGym to confirm the payment, then we’ll book. Don’t close the page.')}</Testo>
       </View>
     </Avviso>
   ) : ritorno.stato === 'prenotato' ? (
     <Avviso tono="ok">
-      {`Pagamento ricevuto: ${chiRitorno ? chiRitorno.nome ?? nomeDi(chiRitorno) : 'la persona'} è prenotato${turnoRitorno ? ` ${giornoEsteso(evento.data)} alle ${ora(turnoRitorno.inizio)}` : ''}. Lo trovi anche nell’app Athlon.`}
+      {t(
+        `Pagamento ricevuto: ${chiRitorno ? chiRitorno.nome ?? nomeDi(chiRitorno) : 'la persona'} è prenotato${turnoRitorno ? ` ${giornoEsteso(evento.data)} alle ${ora(turnoRitorno.inizio)}` : ''}. Lo trovi anche nell’app Athlon.`,
+        `Payment received: ${chiRitorno ? chiRitorno.nome ?? nomeDi(chiRitorno) : 'the person'} is booked${turnoRitorno ? ` on ${giornoEsteso(evento.data)} at ${ora(turnoRitorno.inizio)}` : ''}. You’ll also find it in the Athlon app.`,
+      )}
     </Avviso>
   ) : ritorno.stato === 'attesa' ? (
     <Avviso tono="attenzione">
-      {`Pagamento ricevuto: sei in lista d’attesa. I posti${turnoRitorno ? ` delle ${ora(turnoRitorno.inizio)}` : ''} sono finiti mentre pagavi, quindi ti abbiamo messo in lista d’attesa: se si libera un posto subentri tu, e ti avvisiamo via email. Se non subentrerai, l’ingresso che hai acquistato resta valido per un’altra prenotazione ${evento.categoria ? `di ${evento.categoria}` : 'della stessa categoria'}.`}
+      {t(
+        `Pagamento ricevuto: sei in lista d’attesa. I posti${turnoRitorno ? ` delle ${ora(turnoRitorno.inizio)}` : ''} sono finiti mentre pagavi, quindi ti abbiamo messo in lista d’attesa: se si libera un posto subentri tu, e ti avvisiamo via email. Se non subentrerai, l’ingresso che hai acquistato resta valido per un’altra prenotazione ${evento.categoria ? `di ${evento.categoria}` : 'della stessa categoria'}.`,
+        `Payment received: you’re on the waiting list. The spots${turnoRitorno ? ` at ${ora(turnoRitorno.inizio)}` : ''} ran out while you were paying, so we’ve put you on the waiting list: if a spot opens up you’ll get it, and we’ll let you know by email. If you don’t get a spot, the entry you bought stays valid for another booking ${evento.categoria ? `in ${evento.categoria}` : 'in the same category'}.`,
+      )}
     </Avviso>
   ) : (
     <Avviso>
       {ritorno.errore ??
-        'Non vediamo ancora il pagamento. Se l’hai completato, ricarica la pagina fra qualche minuto.'}
+        t('Non vediamo ancora il pagamento. Se l’hai completato, ricarica la pagina fra qualche minuto.', 'We can’t see the payment yet. If you’ve completed it, reload the page in a few minutes.')}
     </Avviso>
   )
 
   const aggiungi = soloTu ? (
     <Testo variante="piccolo">
-      {'La prenotazione è personale: chi viene con te chiede il suo link dalla '}
+      {t('La prenotazione è personale: chi viene con te chiede il suo link dalla ', 'The booking is personal: whoever comes with you asks for their own link from the ')}
       <Text style={{ color: c.accento, textDecorationLine: 'underline' }} onPress={() => Linking.openURL(`${paginaEventoSito(evento.slug)}#prenota`)}>
-        pagina dell’evento
+        {t('pagina dell’evento', 'event page')}
       </Text>
-      , con la sua email.
+      {t(', con la sua email.', ', with their own email.')}
     </Testo>
   ) : famiglia ? null : (
     <Testo variante="piccolo">
-      {`Manca un bambino${fascia ? ` ${fascia}` : ''}? Aggiungilo dalla `}
+      {t(`Manca un bambino${fascia ? ` ${fascia}` : ''}? Aggiungilo dalla `, `Missing a child${fascia ? ` ${fascia}` : ''}? Add them from the `)}
       <Text style={{ color: c.accento, textDecorationLine: 'underline' }} onPress={() => Linking.openURL(`${paginaEventoSito(evento.slug)}#prenota`)}>
-        pagina dell’evento
+        {t('pagina dell’evento', 'event page')}
       </Text>
-      : inserisci di nuovo la tua email e i suoi dati, e ti mandiamo un link che lo comprende.
+      {t(': inserisci di nuovo la tua email e i suoi dati, e ti mandiamo un link che lo comprende.', ': enter your email again and their details, and we’ll send you a link that includes them.')}
     </Testo>
   )
 
   return (
-    <Pagina larga titolo={evento.titolo} sottotitolo={`${nome ? `Ciao ${nome} · ` : ''}${giornoEsteso(evento.data)}`}>
+    <Pagina larga titolo={evento.titolo} sottotitolo={`${nome ? `${t('Ciao', 'Hi')} ${nome} · ` : ''}${giornoEsteso(evento.data)}`}>
       {avvisoRitorno}
       {persone.length > 1 ? (
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={stili.fila}>
           {persone.map((p) => {
             const attivo = p.member_id === persona?.member_id
             return (
-              <Scelta key={p.member_id} scelta={attivo} onPress={() => setSceltaId(p.member_id)} etichetta={`Prenota per ${nomeDi(p)}`} stile={attivo ? stili.personaScelta : stili.persona}>
+              <Scelta key={p.member_id} scelta={attivo} onPress={() => setSceltaId(p.member_id)} etichetta={t(`Prenota per ${nomeDi(p)}`, `Book for ${nomeDi(p)}`)} stile={attivo ? stili.personaScelta : stili.persona}>
                 <Text style={[attivo ? stili.nomeScelto : stili.nomePersona, { color: attivo ? c.suAccento : c.testoSecondario }]}>
                   {nomeDi(p)}
                   {p.prenotato ? ' ✓' : ''}
@@ -286,25 +295,26 @@ export function PrenotaEvento({ token, nome, iniziale }: { token: string; nome: 
       ) : null}
       {persona ? (
         <Testo>
-          Stai prenotando per <Forte>{nomeDi(persona)}</Forte>
+          {t('Stai prenotando per ', 'You’re booking for ')}
+          <Forte>{nomeDi(persona)}</Forte>
         </Testo>
       ) : null}
 
       {turni.length === 0 ? (
-        <Testo variante="attenuato">Le lezioni di questo evento non sono ancora in calendario. Riprova più tardi.</Testo>
+        <Testo variante="attenuato">{t('Le lezioni di questo evento non sono ancora in calendario. Riprova più tardi.', 'The classes for this event aren’t on the calendar yet. Try again later.')}</Testo>
       ) : (
         <Griglia minima={400}>
-          {turni.map((t) => (
+          {turni.map((turno) => (
             <RigaTurno
-              key={t.class_id}
-              t={t}
+              key={turno.class_id}
+              turno={turno}
               nome={nomeLezione}
               pagina={pagina}
               persona={persona}
               occupato={occupato}
               onScheda={pagina.scheda ? () => setSchedaAperta(true) : null}
-              onPrenota={() => prenota(t)}
-              onAcquista={() => acquista(t)}
+              onPrenota={() => prenota(turno)}
+              onAcquista={() => acquista(turno)}
             />
           ))}
         </Griglia>
@@ -314,23 +324,26 @@ export function PrenotaEvento({ token, nome, iniziale }: { token: string; nome: 
         <>
           <Testo>
             {soloTu
-              ? `Per età non puoi partecipare a questo evento${fascia ? ` (${fascia})` : ''}.`
+              ? t(`Per età non puoi partecipare a questo evento${fascia ? ` (${fascia})` : ''}.`, `Because of your age you can’t take part in this event${fascia ? ` (${fascia})` : ''}.`)
               : famiglia
-              ? `Nella tua famiglia non troviamo nessuno che possa partecipare a questo evento${fascia ? ` (${fascia})` : ''}.`
-              : `Nel tuo account non troviamo bambini${fascia ? ` ${fascia}` : ''}, che è la fascia di questo evento.`}
+              ? t(`Nella tua famiglia non troviamo nessuno che possa partecipare a questo evento${fascia ? ` (${fascia})` : ''}.`, `We can’t find anyone in your family who can take part in this event${fascia ? ` (${fascia})` : ''}.`)
+              : t(`Nel tuo account non troviamo bambini${fascia ? ` ${fascia}` : ''}, che è la fascia di questo evento.`, `We can’t find any children${fascia ? ` ${fascia}` : ''} in your account, which is the age range for this event.`)}
           </Testo>
           {fuori_fascia.length ? (
-            <Testo variante="piccolo">Risultano: {fuori_fascia.map((p) => `${p.nome ?? 'senza nome'}${p.anno ? ` (${p.anno})` : ''}`).join(', ')}.</Testo>
+            <Testo variante="piccolo">{t('Risultano', 'We have')}: {fuori_fascia.map((p) => `${p.nome ?? t('senza nome', 'no name')}${p.anno ? ` (${p.anno})` : ''}`).join(', ')}.</Testo>
           ) : null}
         </>
       ) : null}
       {persone.length && fuori_fascia.length ? (
         <Testo variante="piccolo">
-          {`Per età non ${fuori_fascia.length === 1 ? 'può' : 'possono'} partecipare: ${fuori_fascia.map((p) => `${p.nome ?? 'senza nome'}${p.anno ? ` (${p.anno})` : ''}`).join(', ')}.`}
+          {t(
+            `Per età non ${fuori_fascia.length === 1 ? 'può' : 'possono'} partecipare: ${fuori_fascia.map((p) => `${p.nome ?? 'senza nome'}${p.anno ? ` (${p.anno})` : ''}`).join(', ')}.`,
+            `Because of age, ${fuori_fascia.map((p) => `${p.nome ?? 'no name'}${p.anno ? ` (${p.anno})` : ''}`).join(', ')} can’t take part.`,
+          )}
         </Testo>
       ) : null}
       {persone.length && persone.every((p) => p.prenotato) ? (
-        <Testo>{persone.length > 1 ? 'Siete tutti prenotati: vi aspettiamo!' : 'Sei prenotato: ti aspettiamo!'}</Testo>
+        <Testo>{persone.length > 1 ? t('Siete tutti prenotati: vi aspettiamo!', 'You’re all booked: we’ll see you there!') : t('Sei prenotato: ti aspettiamo!', 'You’re booked: we’ll see you there!')}</Testo>
       ) : null}
       {aggiungi}
 

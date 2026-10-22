@@ -1,6 +1,8 @@
 // Il Guest Pass dal link: cosa manda `guest-pass` (azione `pagina`) alla pagina
 // /r/<codice>, e le parole delle scelte.
 
+import { locale, t, tv } from './lingua'
+
 export type PersonaGuestPass = {
   trovata: boolean
   nome: string | null
@@ -25,8 +27,8 @@ export type MetodoSalvato = { id: number; tipo: 'carta' | 'iban'; finale: string
 
 /** «Carta •••• 1234 · scade 03/2028», «Conto •••• 5678». */
 export function nomeMetodo(m: MetodoSalvato): string {
-  const scade = m.scadenza && /^\d{4}-\d{2}/.test(m.scadenza) ? ` · scade ${m.scadenza.slice(5, 7)}/${m.scadenza.slice(0, 4)}` : ''
-  return `${m.tipo === 'carta' ? 'Carta' : 'Conto'}${m.finale ? ` •••• ${m.finale}` : ''}${m.tipo === 'carta' ? scade : ''}`
+  const scade = m.scadenza && /^\d{4}-\d{2}/.test(m.scadenza) ? ` · ${t('scade', 'expires')} ${m.scadenza.slice(5, 7)}/${m.scadenza.slice(0, 4)}` : ''
+  return `${m.tipo === 'carta' ? t('Carta', 'Card') : t('Conto', 'Account')}${m.finale ? ` •••• ${m.finale}` : ''}${m.tipo === 'carta' ? scade : ''}`
 }
 
 export type ConsensoGuestPass = { id: number; nome: string; testo: string; allegato: string | null }
@@ -89,22 +91,22 @@ export type PaginaGuestPass = {
 
 /** I dati del riepilogo, nell'ordine in cui si mostrano. */
 export const CAMPI: Record<string, string> = {
-  nome: 'Nome',
-  cognome: 'Cognome',
+  nome: t('Nome', 'First name'),
+  cognome: t('Cognome', 'Last name'),
   email: 'Email',
-  telefono: 'Cellulare',
-  nascita: 'Data di nascita',
-  codice_fiscale: 'Codice fiscale',
-  via: 'Via e numero civico',
-  cap: 'CAP',
-  citta: 'Città',
+  telefono: t('Cellulare', 'Mobile'),
+  nascita: t('Data di nascita', 'Date of birth'),
+  codice_fiscale: t('Codice fiscale', 'Tax code'),
+  via: t('Via e numero civico', 'Street and house number'),
+  cap: t('CAP', 'Postcode'),
+  citta: t('Città', 'City'),
 }
 
 /** I dati del primo passo, in tre gruppi: chi sei, come ti troviamo, dove abiti. */
 export const GRUPPI: { titolo: string; campi: string[] }[] = [
-  { titolo: 'Chi sei', campi: ['nome', 'cognome', 'nascita', 'codice_fiscale'] },
-  { titolo: 'Contatti', campi: ['email', 'telefono'] },
-  { titolo: 'Residenza', campi: ['via', 'cap', 'citta'] },
+  { titolo: t('Chi sei', 'About you'), campi: ['nome', 'cognome', 'nascita', 'codice_fiscale'] },
+  { titolo: t('Contatti', 'Contact details'), campi: ['email', 'telefono'] },
+  { titolo: t('Residenza', 'Home address'), campi: ['via', 'cap', 'citta'] },
 ]
 
 /** Le pagine del sito coi testi completi: si aprono in un'altra scheda. */
@@ -116,12 +118,20 @@ export const PRIVACY_URL = 'https://www.athlonroma.it/privacy/'
  * con l'invito di un socio: prima qui c'era scritto 19 anche per chi pagava 5).
  */
 export function cosaComprende(prezzo: number): string[] {
-  return [
-    '7 giorni dal giorno che scegli, con accesso a tutto il club agli stessi orari di un abbonamento Premium: sala pesi, corsi fitness, piscine, aqua fitness e nuoto libero.',
-    `Senza impegno: nessun rinnovo automatico e nessun addebito oltre i ${prezzo} € iniziali. Alla fine decidi tu se iscriverti.`,
-    `Paghi i ${prezzo} € con addebito su conto o con carta.`,
-    'Il certificato medico non agonistico non serve subito: hai 15 giorni dall’inizio per portarlo.',
-  ]
+  return tv(
+    [
+      '7 giorni dal giorno che scegli, con accesso a tutto il club agli stessi orari di un abbonamento Premium: sala pesi, corsi fitness, piscine, aqua fitness e nuoto libero.',
+      `Senza impegno: nessun rinnovo automatico e nessun addebito oltre i ${prezzo} € iniziali. Alla fine decidi tu se iscriverti.`,
+      `Paghi i ${prezzo} € con addebito su conto o con carta.`,
+      'Il certificato medico non agonistico non serve subito: hai 15 giorni dall’inizio per portarlo.',
+    ],
+    [
+      '7 days from the day you choose, with access to the whole club at the same hours as a Premium membership: gym floor, fitness classes, pools, aqua fitness and lap swimming.',
+      `No commitment: no auto-renewal and no charges beyond the initial €${prezzo}. At the end, you decide whether to join.`,
+      `You pay the €${prezzo} by direct debit or by card.`,
+      'You don’t need the non-competitive medical certificate right away: you have 15 days from the start to bring it.',
+    ],
+  )
 }
 
 /** I giorni fra `dal` e `al`, compresi: «2026-10-13», … */
@@ -139,14 +149,14 @@ export function giorniFra(dal: string, al: string): string[] {
 export function giornoBreve(g: string): { settimana: string; numero: string; mese: string } {
   const d = new Date(g + 'T12:00:00Z')
   return {
-    settimana: d.toLocaleDateString('it-IT', { weekday: 'short', timeZone: 'UTC' }),
+    settimana: d.toLocaleDateString(locale(), { weekday: 'short', timeZone: 'UTC' }),
     numero: String(d.getUTCDate()),
-    mese: d.toLocaleDateString('it-IT', { month: 'short', timeZone: 'UTC' }),
+    mese: d.toLocaleDateString(locale(), { month: 'short', timeZone: 'UTC' }),
   }
 }
 
 export function giornoLungo(g: string): string {
-  return new Date(g + 'T12:00:00Z').toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'UTC' })
+  return new Date(g + 'T12:00:00Z').toLocaleDateString(locale(), { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'UTC' })
 }
 
 /** L'ultimo giorno di una settimana che comincia `g`. */
@@ -157,19 +167,26 @@ export function fineSettimana(g: string): string {
 }
 
 /** Le regole di prenotazione, dal wiki del club (generali/prenotazioni). */
-export const REGOLE_PRENOTAZIONE = [
-  'Le lezioni si prenotano dall’app Athlon o dal portale: la prenotazione si apre 3 giorni (72 ore) prima e resta aperta fino all’inizio.',
-  'Si disdice fino a 1 ora prima dell’inizio, così subentra chi è in lista d’attesa.',
-  'Al massimo 3 prenotazioni attive per Corsi Fitness, Aqua Fitness e Scuola Nuoto Adulti; la lista d’attesa conta come una prenotazione.',
-]
+export const REGOLE_PRENOTAZIONE = tv(
+  [
+    'Le lezioni si prenotano dall’app Athlon o dal portale: la prenotazione si apre 3 giorni (72 ore) prima e resta aperta fino all’inizio.',
+    'Si disdice fino a 1 ora prima dell’inizio, così subentra chi è in lista d’attesa.',
+    'Al massimo 3 prenotazioni attive per Corsi Fitness, Aqua Fitness e Scuola Nuoto Adulti; la lista d’attesa conta come una prenotazione.',
+  ],
+  [
+    'You book classes from the Athlon app or the portal: booking opens 3 days (72 hours) before and stays open until the start.',
+    'You can cancel up to 1 hour before the start, so someone on the waiting list can take the spot.',
+    'At most 3 active bookings for Corsi Fitness, Aqua Fitness and Scuola Nuoto Adulti; the waiting list counts as a booking.',
+  ],
+)
 
 /** La password scelta dal link: null se va bene (o se e' facoltativa e vuota), altrimenti cosa correggere. */
 export function problemaPassword(password: string, conferma: string, obbligatoria: boolean): string | null {
-  if (!password && !conferma) return obbligatoria ? 'Scegli la password per entrare nell’app e nel portale.' : null
-  if (password.length < 8) return 'La password deve avere almeno 8 caratteri.'
-  if (password.length > 64) return 'La password è troppo lunga: al massimo 64 caratteri.'
-  if (!/[A-Za-z]/.test(password) || !/\d/.test(password)) return 'La password deve contenere lettere e numeri.'
-  if (password !== conferma) return 'Le due password non coincidono.'
+  if (!password && !conferma) return obbligatoria ? t('Scegli la password per entrare nell’app e nel portale.', 'Choose the password to sign in to the app and the portal.') : null
+  if (password.length < 8) return t('La password deve avere almeno 8 caratteri.', 'The password must have at least 8 characters.')
+  if (password.length > 64) return t('La password è troppo lunga: al massimo 64 caratteri.', 'The password is too long: 64 characters at most.')
+  if (!/[A-Za-z]/.test(password) || !/\d/.test(password)) return t('La password deve contenere lettere e numeri.', 'The password must contain letters and numbers.')
+  if (password !== conferma) return t('Le due password non coincidono.', 'The two passwords don’t match.')
   return null
 }
 

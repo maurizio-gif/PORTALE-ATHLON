@@ -2,6 +2,7 @@ import { useEffect, useId, useState } from 'react'
 import { Modal, Pressable, StyleSheet, Text, TextInput, View } from 'react-native'
 
 import { spazio, tinta, useColori } from '@/theme'
+import { locale, t, tv } from '@/lib/lingua'
 
 // Una data (di nascita) in formato italiano: si scrive gg/mm/aaaa, con le
 // barre messe da sole, oppure si sceglie dal calendario. Il calendario apre
@@ -9,8 +10,11 @@ import { spazio, tinta, useColori } from '@/theme'
 // poi il giorno. Il valore resta quello di PerfectGym: «AAAA-MM-GG», oppure
 // '' finche' la data non e' completa e valida.
 
-const MESI = ['gennaio', 'febbraio', 'marzo', 'aprile', 'maggio', 'giugno', 'luglio', 'agosto', 'settembre', 'ottobre', 'novembre', 'dicembre']
-const SETTIMANA = ['L', 'M', 'M', 'G', 'V', 'S', 'D']
+const MESI = tv(
+  ['gennaio', 'febbraio', 'marzo', 'aprile', 'maggio', 'giugno', 'luglio', 'agosto', 'settembre', 'ottobre', 'novembre', 'dicembre'],
+  ['january', 'february', 'march', 'april', 'may', 'june', 'july', 'august', 'september', 'october', 'november', 'december'],
+)
+const SETTIMANA = tv(['L', 'M', 'M', 'G', 'V', 'S', 'D'], ['M', 'T', 'W', 'T', 'F', 'S', 'S'])
 const ANNI_PER_PAGINA = 20
 
 const due = (n: number) => String(n).padStart(2, '0')
@@ -82,14 +86,14 @@ export function CampoData({
       <View style={[stili.riga, { borderColor: errore || sbagliata ? c.errore : c.bordo, backgroundColor: sfondo ?? c.superficie }]}>
         <TextInput
           accessibilityLabelledBy={id}
-          accessibilityLabel={`${etichetta}, giorno mese anno`}
+          accessibilityLabel={`${etichetta}, ${t('giorno mese anno', 'day month year')}`}
           value={testo}
           onChangeText={(t) => {
             const m = maschera(t)
             setTesto(m)
             onChange(daTesto(m, min, max))
           }}
-          placeholder="gg/mm/aaaa"
+          placeholder={t('gg/mm/aaaa', 'dd/mm/yyyy')}
           placeholderTextColor={c.testoSecondario}
           keyboardType="number-pad"
           inputMode="numeric"
@@ -99,14 +103,14 @@ export function CampoData({
         />
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel="Apri il calendario"
+          accessibilityLabel={t('Apri il calendario', 'Open the calendar')}
           onPress={() => setAperto(true)}
           style={({ pressed, hovered }: StatoTocco) => [stili.bottoneCalendario, { backgroundColor: pressed || hovered ? tinta(c.accento, 0.18) : 'transparent' }]}
         >
           <IconaCalendario colore={c.accento} />
         </Pressable>
       </View>
-      {sbagliata ? <Text style={{ color: c.errore, fontSize: 13 }}>Questa data non va: controlla giorno, mese e anno.</Text> : null}
+      {sbagliata ? <Text style={{ color: c.errore, fontSize: 13 }}>{t('Questa data non va: controlla giorno, mese e anno.', 'This date isn’t valid: check the day, month and year.')}</Text> : null}
       <Calendario
         aperto={aperto}
         valore={value}
@@ -189,8 +193,8 @@ function Calendario({
   const anni = Array.from({ length: Math.max(0, ultimoAnno - primoAnno + 1) }, (_, i) => primoAnno + i)
 
   const intestazione = valore
-    ? maiuscola(new Date(valore + 'T12:00:00Z').toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' }))
-    : 'Scegli la data'
+    ? maiuscola(new Date(valore + 'T12:00:00Z').toLocaleDateString(locale(), { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' }))
+    : t('Scegli la data', 'Choose the date')
 
   function sposta(verso: 1 | -1) {
     if (vista === 'anni') return setPagina((p) => Math.min(annoMax, Math.max(annoMin, p + verso * ANNI_PER_PAGINA)))
@@ -215,7 +219,7 @@ function Calendario({
 
   return (
     <Modal visible={aperto} transparent animationType="fade" onRequestClose={onChiudi}>
-      <Pressable accessibilityLabel="Chiudi il calendario" onPress={onChiudi} style={stili.velo}>
+      <Pressable accessibilityLabel={t('Chiudi il calendario', 'Close the calendar')} onPress={onChiudi} style={stili.velo}>
         {/* Il tocco sulla scheda non chiude: solo fuori. */}
         <Pressable onPress={() => {}} style={[stili.scheda, { backgroundColor: c.sfondo, borderColor: c.bordo }]} accessibilityViewIsModal>
           <View style={[stili.testa, { backgroundColor: c.accento }]}>
@@ -236,8 +240,8 @@ function Calendario({
               />
             </View>
             <View style={{ flexDirection: 'row', gap: spazio.uno + 2 }}>
-              <Freccia verso="‹" spenta={!puoIndietro} onPress={() => sposta(-1)} etichetta="Precedente" />
-              <Freccia verso="›" spenta={!puoAvanti} onPress={() => sposta(1)} etichetta="Successivo" />
+              <Freccia verso="‹" spenta={!puoIndietro} onPress={() => sposta(-1)} etichetta={t('Precedente', 'Previous')} />
+              <Freccia verso="›" spenta={!puoAvanti} onPress={() => sposta(1)} etichetta={t('Successivo', 'Next')} />
             </View>
           </View>
 
@@ -319,10 +323,10 @@ function Calendario({
 
           <View style={stili.piede}>
             <Text style={{ color: c.testoSecondario, fontSize: 13, flex: 1 }}>
-              {vista === 'anni' ? 'Scegli l’anno' : vista === 'mesi' ? 'Scegli il mese' : 'Scegli il giorno'}
+              {vista === 'anni' ? t('Scegli l’anno', 'Choose the year') : vista === 'mesi' ? t('Scegli il mese', 'Choose the month') : t('Scegli il giorno', 'Choose the day')}
             </Text>
             <Pressable accessibilityRole="button" onPress={onChiudi} style={stili.annulla}>
-              <Text style={{ color: c.accento, fontWeight: '700', fontSize: 15 }}>Annulla</Text>
+              <Text style={{ color: c.accento, fontWeight: '700', fontSize: 15 }}>{t('Annulla', 'Cancel')}</Text>
             </Pressable>
           </View>
         </Pressable>

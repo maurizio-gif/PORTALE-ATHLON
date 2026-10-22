@@ -3,6 +3,7 @@ import { StyleSheet, Text, View } from 'react-native'
 
 import { salvaQuestionario, type Profilo, type Questionario } from '@/api/alimentazione'
 import { spazio } from '@/theme'
+import { t } from '@/lib/lingua'
 
 import { Icona } from '../ui/Icona'
 import { Barra, Carta, Entra, Messaggio, Pulsante } from '../ui/kit'
@@ -46,15 +47,15 @@ export function QuestionarioAlimentazione({ prima, onFatto, onAnnulla }: { prima
       <Carta style={{ gap: spazio.tre }}>
         <View style={{ gap: spazio.due }}>
           <View style={stili.testa}>
-            <Text style={[stili.passo, { color: p.testoSecondario }]}>{`Domanda ${i + 1} di ${DOMANDE.length}`}</Text>
+            <Text style={[stili.passo, { color: p.testoSecondario }]}>{t(`Domanda ${i + 1} di ${DOMANDE.length}`, `Question ${i + 1} of ${DOMANDE.length}`)}</Text>
             {i > 0 ? (
-              <Tocco onPress={() => setI(i - 1)} etichetta="Domanda precedente" style={stili.indietro}>
+              <Tocco onPress={() => setI(i - 1)} etichetta={t('Domanda precedente', 'Previous question')} style={stili.indietro}>
                 <Icona nome="indietro" size={14} colore={p.testoSecondario} />
-                <Text style={[stili.passo, { color: p.testoSecondario }]}>Indietro</Text>
+                <Text style={[stili.passo, { color: p.testoSecondario }]}>{t('Indietro', 'Back')}</Text>
               </Tocco>
             ) : onAnnulla ? (
-              <Tocco onPress={onAnnulla} etichetta="Lascia com’era" style={stili.indietro}>
-                <Text style={[stili.passo, { color: p.testoSecondario }]}>Lascia com’era</Text>
+              <Tocco onPress={onAnnulla} etichetta={t('Lascia com’era', 'Leave it as it was')} style={stili.indietro}>
+                <Text style={[stili.passo, { color: p.testoSecondario }]}>{t('Lascia com’era', 'Leave it as it was')}</Text>
               </Tocco>
             ) : null}
           </View>
@@ -70,9 +71,9 @@ export function QuestionarioAlimentazione({ prima, onFatto, onAnnulla }: { prima
         {d.tipo === 'si-no' ? (
           <View style={stili.siNo}>
             {[true, false].map((v) => (
-              <Tocco key={String(v)} onPress={() => rispondi(v)} vibra="scelta" stato={{ selected: scelto(v) }} etichetta={v ? 'Sì' : 'No'} style={{ flex: 1 }}>
+              <Tocco key={String(v)} onPress={() => rispondi(v)} vibra="scelta" stato={{ selected: scelto(v) }} etichetta={v ? t('Sì', 'Yes') : 'No'} style={{ flex: 1 }}>
                 <View style={[stili.scelta, stili.sceltaCentro, { backgroundColor: scelto(v) ? ORTO[1] : p.incavo }]}>
-                  <Text style={[stili.sceltaTesto, { color: scelto(v) ? '#fff' : p.testo }]}>{v ? 'Sì' : 'No'}</Text>
+                  <Text style={[stili.sceltaTesto, { color: scelto(v) ? '#fff' : p.testo }]}>{v ? t('Sì', 'Yes') : 'No'}</Text>
                 </View>
               </Tocco>
             ))}
@@ -115,10 +116,10 @@ export function QuestionarioAlimentazione({ prima, onFatto, onAnnulla }: { prima
                 </Tocco>
               )
             })}
-            <Pulsante testo={(r.esclusioni ?? []).length ? 'Avanti' : 'Niente da evitare'} icona="avanti" onPress={() => rispondi(r.esclusioni ?? [])} />
+            <Pulsante testo={(r.esclusioni ?? []).length ? t('Avanti', 'Next') : t('Niente da evitare', 'Nothing to avoid')} icona="avanti" onPress={() => rispondi(r.esclusioni ?? [])} />
           </View>
         )}
-        {inCorso ? <Text style={[stili.sotto, { color: p.testoSecondario }]}>Salviamo le risposte…</Text> : null}
+        {inCorso ? <Text style={[stili.sotto, { color: p.testoSecondario }]}>{t('Salviamo le risposte…', 'Saving your answers…')}</Text> : null}
         {errore ? <Messaggio>{errore}</Messaggio> : null}
       </Carta>
     </Entra>

@@ -7,6 +7,7 @@ import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-na
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { tinta } from '@/theme'
+import { t } from '@/lib/lingua'
 
 import { clubLifeDaCapo } from '../clublife/daCapo'
 import { Icona, type NomeIcona } from './Icona'
@@ -26,7 +27,7 @@ import { Tocco } from './Tocco'
 const SCHEDE: { href: Href; percorso: string; titolo: string; icona: NomeIcona; /** L'icona e' la ruota di Train, Food e Relax (ui/IconaRuota.tsx), non un simbolo. */ ruota?: boolean; anche?: string[] }[] = [
   { href: '/', percorso: '/', titolo: 'Home', icona: 'casa' },
   // Il personal training e' l'altra faccia di Prenotazioni (SceltaPrenotazioni).
-  { href: '/calendario', percorso: '/calendario', titolo: 'Prenotazioni', icona: 'calendario', anche: ['/personal'] },
+  { href: '/calendario', percorso: '/calendario', titolo: t('Prenotazioni', 'Bookings'), icona: 'calendario', anche: ['/personal'] },
   { href: '/allenamento', percorso: '/allenamento', titolo: 'Athlon Health System', icona: 'peso', ruota: true },
   { href: '/tv', percorso: '/tv', titolo: 'TV', icona: 'play' },
   // News, eventi e Help Desk, coi dati del sito (clublife/ClubLife).

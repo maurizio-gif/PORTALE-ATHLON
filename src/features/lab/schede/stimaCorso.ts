@@ -1,4 +1,5 @@
 import type { SchedaLezione } from '@/api/lab'
+import { t } from '../../../lib/lingua'
 
 import { kcal, metabolismoBasale, type Sesso } from './stimaCalorie'
 
@@ -70,17 +71,17 @@ export type Tipo = {
 const MARGINE = 0.2
 
 export const TIPI: Record<IdTipo, Tipo> = {
-  mobilita: { id: 'mobilita', etichetta: 'Yoga e mobilità', met: [2, 5], margine: MARGINE },
-  controllo: { id: 'controllo', etichetta: 'Pilates e controllo del movimento', met: [2, 4.5], margine: MARGINE },
-  forza: { id: 'forza', etichetta: 'Tonificazione e forza', met: [3.5, 8], margine: MARGINE },
-  combattimento: { id: 'combattimento', etichetta: 'Combat e difesa personale', met: [4.5, 7.8], margine: MARGINE },
-  danza: { id: 'danza', etichetta: 'Danza e coreografia', met: [3.5, 7], margine: MARGINE },
-  acqua: { id: 'acqua', etichetta: 'Acqua fitness', met: [3, 7], margine: MARGINE },
-  acquabike: { id: 'acquabike', etichetta: 'Bicicletta in acqua', met: [4, 8], margine: MARGINE },
-  'nuoto-corso': { id: 'nuoto-corso', etichetta: 'Corso di nuoto', met: [5.5, 5.5], margine: MARGINE },
-  'nuoto-libero': { id: 'nuoto-libero', etichetta: 'Nuoto libero', met: [5.5, 5.5], margine: 0.35 },
+  mobilita: { id: 'mobilita', etichetta: t('Yoga e mobilità', 'Yoga and mobility'), met: [2, 5], margine: MARGINE },
+  controllo: { id: 'controllo', etichetta: t('Pilates e controllo del movimento', 'Pilates and movement control'), met: [2, 4.5], margine: MARGINE },
+  forza: { id: 'forza', etichetta: t('Tonificazione e forza', 'Toning and strength'), met: [3.5, 8], margine: MARGINE },
+  combattimento: { id: 'combattimento', etichetta: t('Combat e difesa personale', 'Combat and self-defense'), met: [4.5, 7.8], margine: MARGINE },
+  danza: { id: 'danza', etichetta: t('Danza e coreografia', 'Dance and choreography'), met: [3.5, 7], margine: MARGINE },
+  acqua: { id: 'acqua', etichetta: t('Acqua fitness', 'Aqua fitness'), met: [3, 7], margine: MARGINE },
+  acquabike: { id: 'acquabike', etichetta: t('Bicicletta in acqua', 'Aqua cycling'), met: [4, 8], margine: MARGINE },
+  'nuoto-corso': { id: 'nuoto-corso', etichetta: t('Corso di nuoto', 'Swimming course'), met: [5.5, 5.5], margine: MARGINE },
+  'nuoto-libero': { id: 'nuoto-libero', etichetta: t('Nuoto libero', 'Lap swimming'), met: [5.5, 5.5], margine: 0.35 },
   // Un tipo che non si riconosce, ma di cui il club ha scritto le barre.
-  generica: { id: 'generica', etichetta: 'Lezione di gruppo', met: [2.5, 7.5], margine: 0.3 },
+  generica: { id: 'generica', etichetta: t('Lezione di gruppo', 'Group class'), met: [2.5, 7.5], margine: 0.3 },
 }
 
 /**
@@ -94,8 +95,8 @@ export const MET_NUOTO_PER_LIVELLO: Record<Livello, number> = { base: 4, interme
 const CATEGORIE: ReadonlySet<string> = new Set(['Corsi Fitness', 'Group Reformer', 'Aqua Fitness', 'Nuoto Libero', 'Scuola Nuoto Adulti', 'Master Class'])
 
 /** Senza accenti e maiuscole, perche' «Yogassè» e «Yogasse» sono la stessa lezione. */
-function semplice(t: string): string {
-  return t
+function semplice(s: string): string {
+  return s
     .normalize('NFD')
     .replace(/[̀-ͯ]/g, '')
     .toLowerCase()

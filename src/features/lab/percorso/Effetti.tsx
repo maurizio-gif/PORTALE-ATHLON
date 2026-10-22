@@ -3,9 +3,11 @@ import { StyleSheet, Text, useWindowDimensions, View } from 'react-native'
 import Svg, { Circle, G, Line, Polygon, Text as TestoSvg } from 'react-native-svg'
 
 import { LARGO } from '@/components/Pagina'
+import { locale, t as tr } from '@/lib/lingua'
 import { spazio } from '@/theme'
 
 import { useProgresso, useVisibile } from '../schede/ContatoreCalorie'
+import { nomeObiettivo } from '../schede/questionario'
 import type { StatoCorpo } from '../schede/CalorieLezione'
 import { Icona, type NomeIcona } from '../ui/Icona'
 import { Barra, Carta, Messaggio, Numero, Sezione } from '../ui/kit'
@@ -29,7 +31,7 @@ import { verso, type Asse, type Effetti, type Riga, type Ultime } from './effett
 // Le animazioni (radar, barre) seguono `useProgresso` e partono quando il riquadro entra nello schermo, come il
 // contatore delle calorie; con «riduci movimento» vanno subito al valore finale.
 
-const intero = (n: number) => Math.round(n).toLocaleString('it-IT')
+const intero = (n: number) => Math.round(n).toLocaleString(locale())
 const ore = (min: number) => (min >= 90 ? `${Math.floor(min / 60)} h ${min % 60 ? `${min % 60} min` : ''}`.trim() : `${intero(min)} min`)
 
 function Titolo({ children }: { children: string }) {
@@ -52,7 +54,7 @@ function GiorniBarre({ e }: { e: Effetti }) {
   const massimo = Math.max(60, e.giorni.piuLungo)
   const ALTEZZA = 92
   return (
-    <View ref={rif} style={stili.barre} accessibilityLabel={`Minuti per giorno: ${e.giorni.perGiorno.map((g) => `${GIORNO_BREVE[g.giorno]} ${g.minuti}`).join(', ')}`}>
+    <View ref={rif} style={stili.barre} accessibilityLabel={`${tr('Minuti per giorno', 'Minutes per day')}: ${e.giorni.perGiorno.map((g) => `${GIORNO_BREVE[g.giorno]} ${g.minuti}`).join(', ')}`}>
       {e.giorni.perGiorno.map((g) => {
         const h = (m: number) => (m / massimo) * ALTEZZA * t
         return (
@@ -76,8 +78,8 @@ function Legenda() {
   return (
     <View style={stili.legenda}>
       {[
-        { c: p.blu, t: 'In sala' },
-        { c: p.accento, t: 'Lezioni' },
+        { c: p.blu, t: tr('In sala', 'Gym floor') },
+        { c: p.accento, t: tr('Lezioni', 'Classes') },
         { c: p.ok, t: 'Cardio' },
       ].map((x) => (
         <View key={x.t} style={stili.legendaVoce}>
@@ -110,9 +112,9 @@ function Radar({ assi }: { assi: Asse[] }) {
   const t = useProgresso(1300, 150, visibile)
   // Un asse senza dato sta al centro e non ha il suo vertice disegnato: non e' zero, e' assente.
   const forma = assi.map((a, i) => punto(i, ((a.valore ?? 0) / 100) * RAGGIO * t))
-  const testo = assi.map((a) => `${a.etichetta} ${a.valore ?? 'dato non disponibile'}`).join(', ')
+  const testo = assi.map((a) => `${a.etichetta} ${a.valore ?? tr('dato non disponibile', 'data not available')}`).join(', ')
   return (
-    <View ref={rif} style={{ alignItems: 'center' }} accessible accessibilityLabel={`Profilo delle lezioni: ${testo}`}>
+    <View ref={rif} style={{ alignItems: 'center' }} accessible accessibilityLabel={`${tr('Profilo delle lezioni', 'Class profile')}: ${testo}`}>
       <Svg width="100%" height="100%" viewBox={`0 0 ${LARGHEZZA} ${ALTEZZA}`} style={{ width: '100%', maxWidth: 360, aspectRatio: LARGHEZZA / ALTEZZA }}>
         {[25, 50, 75, 100].map((q) => (
           <Polygon
@@ -155,7 +157,7 @@ function Radar({ assi }: { assi: Asse[] }) {
 function ProfiloLezioni({ e }: { e: Effetti }) {
   const p = usePalette()
   const l = e.lezioni
-  if (l.minuti === 0) return <Nota>Il percorso non ha lezioni: il profilo riguarda solo le lezioni di gruppo.</Nota>
+  if (l.minuti === 0) return <Nota>{tr('Il percorso non ha lezioni: il profilo riguarda solo le lezioni di gruppo.', 'The program has no classes: the profile only covers group classes.')}</Nota>
   const copertura = Math.round((l.copertura ?? 0) * 100)
   return (
     <View style={{ gap: spazio.tre }}>
@@ -165,7 +167,7 @@ function ProfiloLezioni({ e }: { e: Effetti }) {
           <View key={a.id} style={stili.assiRiga}>
             <Text style={[stili.assiNome, { color: p.testo }]}>{a.etichetta}</Text>
             {a.valore == null ? (
-              <Text style={[stili.nota, { color: p.testoTerzo, flex: 1 }]}>dato non disponibile</Text>
+              <Text style={[stili.nota, { color: p.testoTerzo, flex: 1 }]}>{tr('dato non disponibile', 'data not available')}</Text>
             ) : (
               <>
                 <View style={{ flex: 1 }}>
@@ -177,10 +179,10 @@ function ProfiloLezioni({ e }: { e: Effetti }) {
           </View>
         ))}
       </View>
-      <Nota>{`L’intensità media delle lezioni, pesata sui minuti. Calcolata sul ${copertura}% dei minuti di lezione.`}</Nota>
-      {l.senzaDati.length ? <Nota piccola>{`Per ${l.senzaDati.join(', ')} il club non ha ancora indicato le barre: non contano nel profilo, e non le inventiamo.`}</Nota> : null}
+      <Nota>{tr(`L’intensità media delle lezioni, pesata sui minuti. Calcolata sul ${copertura}% dei minuti di lezione.`, `The average intensity of the classes, weighted by minutes. Calculated on ${copertura}% of class minutes.`)}</Nota>
+      {l.senzaDati.length ? <Nota piccola>{tr(`Per ${l.senzaDati.join(', ')} il club non ha ancora indicato le barre: non contano nel profilo, e non le inventiamo.`, `For ${l.senzaDati.join(', ')} the club hasn’t set the bars yet: they don’t count in the profile, and we don’t make them up.`)}</Nota> : null}
       {l.assi.some((a) => a.valore !== null && a.minutiConDato < l.minuti) ? (
-        <Nota piccola>Alcuni assi sono calcolati su meno lezioni degli altri: dove una lezione non ha quella barra (per esempio la flessibilità in acqua), non c’è.</Nota>
+        <Nota piccola>{tr('Alcuni assi sono calcolati su meno lezioni degli altri: dove una lezione non ha quella barra (per esempio la flessibilità in acqua), non c’è.', 'Some axes are calculated on fewer classes than others: where a class doesn’t have that bar (for example flexibility in the water), it’s left out.')}</Nota>
       ) : null}
     </View>
   )
@@ -192,12 +194,12 @@ function ProfiloLezioni({ e }: { e: Effetti }) {
 function Sala({ e }: { e: Effetti }) {
   const p = usePalette()
   const s = e.sala
-  if (s.sedute === 0) return <Nota>Il percorso non ha tappe di sala.</Nota>
+  if (s.sedute === 0) return <Nota>{tr('Il percorso non ha tappe di sala.', 'The program has no gym floor steps.')}</Nota>
   return (
     <View style={{ gap: spazio.tre }}>
-      <Text style={[stili.nota, { color: p.testo }]}>{`${s.sedute} ${s.sedute === 1 ? 'seduta' : 'sedute'} in sala, ${ore(s.minuti)} in tutto.`}</Text>
+      <Text style={[stili.nota, { color: p.testo }]}>{tr(`${s.sedute} ${s.sedute === 1 ? 'seduta' : 'sedute'} in sala, ${ore(s.minuti)} in tutto.`, `${s.sedute} gym floor ${s.sedute === 1 ? 'session' : 'sessions'}, ${ore(s.minuti)} in total.`)}</Text>
       {!s.conDati ? (
-        <Nota>Dei piani di queste tappe non conosciamo ancora i muscoli degli esercizi.</Nota>
+        <Nota>{tr('Dei piani di queste tappe non conosciamo ancora i muscoli degli esercizi.', 'We don’t know the exercise muscles of these steps’ plans yet.')}</Nota>
       ) : (
         <>
           <View style={stili.chip}>
@@ -208,8 +210,8 @@ function Sala({ e }: { e: Effetti }) {
               </View>
             ))}
           </View>
-          {s.scoperti.length ? <Nota>{`In sala non lavori: ${s.scoperti.join(', ').toLowerCase()}.`}</Nota> : <Nota>I gruppi principali sono tutti lavorati almeno una volta.</Nota>}
-          <Nota piccola>Contano i muscoli primari degli esercizi dei piani. Le lezioni non sono in questa mappa: le loro barre dicono quanto sono intense, non quali muscoli lavorano.</Nota>
+          {s.scoperti.length ? <Nota>{tr(`In sala non lavori: ${s.scoperti.join(', ').toLowerCase()}.`, `On the gym floor you don’t work: ${s.scoperti.join(', ').toLowerCase()}.`)}</Nota> : <Nota>{tr('I gruppi principali sono tutti lavorati almeno una volta.', 'All major muscle groups are worked at least once.')}</Nota>}
+          <Nota piccola>{tr('Contano i muscoli primari degli esercizi dei piani. Le lezioni non sono in questa mappa: le loro barre dicono quanto sono intense, non quali muscoli lavorano.', 'These are the primary muscles of the plans’ exercises. Classes aren’t on this map: their bars say how intense they are, not which muscles they work.')}</Nota>
         </>
       )}
     </View>
@@ -239,14 +241,17 @@ function Riferimenti({ e }: { e: Effetti }) {
   return (
     <View style={{ gap: spazio.tre }}>
       <Riferimento
-        etichetta="Attività aerobica"
+        etichetta={tr('Attività aerobica', 'Aerobic activity')}
         valore={r.equivalenti}
         riferimento={150}
         unita="min"
-        nota={`${intero(r.moderati)} min moderati${r.intensi ? ` e ${intero(r.intensi)} intensi (contano il doppio)` : ''}. ${r.cardioContatoModerato ? 'Il cardio lo contiamo come moderato. ' : ''}${r.nonClassificati ? `${intero(r.nonClassificati)} min di lezioni di cui non conosciamo l’intensità non sono contati. ` : ''}${r.leggeri ? `${intero(r.leggeri)} min di attività leggera (come lo yoga) non sono contati.` : ''}`.trim()}
+        nota={tr(
+          `${intero(r.moderati)} min moderati${r.intensi ? ` e ${intero(r.intensi)} intensi (contano il doppio)` : ''}. ${r.cardioContatoModerato ? 'Il cardio lo contiamo come moderato. ' : ''}${r.nonClassificati ? `${intero(r.nonClassificati)} min di lezioni di cui non conosciamo l’intensità non sono contati. ` : ''}${r.leggeri ? `${intero(r.leggeri)} min di attività leggera (come lo yoga) non sono contati.` : ''}`,
+          `${intero(r.moderati)} min moderate${r.intensi ? ` and ${intero(r.intensi)} vigorous (they count double)` : ''}. ${r.cardioContatoModerato ? 'We count cardio as moderate. ' : ''}${r.nonClassificati ? `${intero(r.nonClassificati)} min of classes whose intensity we don’t know aren’t counted. ` : ''}${r.leggeri ? `${intero(r.leggeri)} min of light activity (like yoga) aren’t counted.` : ''}`,
+        ).trim()}
       />
-      <Riferimento etichetta="Rinforzo muscolare" valore={r.giorniRinforzo} riferimento={2} unita="giorni" nota="Giorni con la sala o una lezione di forza." />
-      <Nota piccola>Sono i riferimenti dell’OMS per gli adulti (150–300 minuti a intensità moderata o la metà se intensa, e almeno due giorni di rinforzo): indicazioni, non traguardi.</Nota>
+      <Riferimento etichetta={tr('Rinforzo muscolare', 'Muscle strengthening')} valore={r.giorniRinforzo} riferimento={2} unita={tr('giorni', 'days')} nota={tr('Giorni con la sala o una lezione di forza.', 'Days with the gym floor or a strength class.')} />
+      <Nota piccola>{tr('Sono i riferimenti dell’OMS per gli adulti (150–300 minuti a intensità moderata o la metà se intensa, e almeno due giorni di rinforzo): indicazioni, non traguardi.', 'These are the WHO guidelines for adults (150–300 minutes at moderate intensity or half that if vigorous, and at least two strengthening days): guidance, not targets.')}</Nota>
     </View>
   )
 }
@@ -262,24 +267,27 @@ function Carico({ e }: { e: Effetti }) {
       <View style={stili.cifre}>
         <View style={stili.cifra}>
           <Numero valore={String(g.attivi)} size={30} />
-          <Text style={[stili.piccola, { color: p.testoSecondario }]}>{g.attivi === 1 ? 'giorno attivo' : 'giorni attivi'}</Text>
+          <Text style={[stili.piccola, { color: p.testoSecondario }]}>{g.attivi === 1 ? tr('giorno attivo', 'active day') : tr('giorni attivi', 'active days')}</Text>
         </View>
         <View style={stili.cifra}>
           <Numero valore={String(g.riposo)} size={30} />
-          <Text style={[stili.piccola, { color: p.testoSecondario }]}>{g.riposo === 1 ? 'giorno di riposo' : 'giorni di riposo'}</Text>
+          <Text style={[stili.piccola, { color: p.testoSecondario }]}>{g.riposo === 1 ? tr('giorno di riposo', 'rest day') : tr('giorni di riposo', 'rest days')}</Text>
         </View>
         <View style={stili.cifra}>
           <Numero valore={String(g.difila)} size={30} />
-          <Text style={[stili.piccola, { color: p.testoSecondario }]}>di fila al massimo</Text>
+          <Text style={[stili.piccola, { color: p.testoSecondario }]}>{tr('di fila al massimo', 'in a row at most')}</Text>
         </View>
       </View>
-      <Nota>{`Il giorno più pieno dura ${ore(g.piuLungo)}. La settimana si ripete: la domenica è di fila col lunedì.`}</Nota>
+      <Nota>{tr(`Il giorno più pieno dura ${ore(g.piuLungo)}. La settimana si ripete: la domenica è di fila col lunedì.`, `The busiest day lasts ${ore(g.piuLungo)}. The week repeats: Sunday runs straight into Monday.`)}</Nota>
       {e.sala.ravvicinati.length ? (
         <Messaggio tono="attenzione">
-          {`${e.sala.ravvicinati.map((x) => x.etichetta).join(', ')}: ${e.sala.ravvicinati.length === 1 ? 'lavorato forte' : 'lavorati forte'} in due giorni di fila. Se puoi, sposta una delle due sedute.`}
+          {tr(
+            `${e.sala.ravvicinati.map((x) => x.etichetta).join(', ')}: ${e.sala.ravvicinati.length === 1 ? 'lavorato forte' : 'lavorati forte'} in due giorni di fila. Se puoi, sposta una delle due sedute.`,
+            `${e.sala.ravvicinati.map((x) => x.etichetta).join(', ')}: worked hard two days in a row. If you can, move one of the two sessions.`,
+          )}
         </Messaggio>
       ) : e.sala.conDati ? (
-        <Nota>Nessun gruppo muscolare è lavorato forte in due giorni di fila.</Nota>
+        <Nota>{tr('Nessun gruppo muscolare è lavorato forte in due giorni di fila.', 'No muscle group is worked hard two days in a row.')}</Nota>
       ) : null}
     </View>
   )
@@ -306,7 +314,7 @@ function Obiettivo({ e }: { e: Effetti }) {
           </View>
         )
       })}
-      <Nota piccola>Dice se la settimana ha gli ingredienti che le linee guida indicano per questo tipo di lavoro, non se il risultato arriverà: dipende da come ti alleni, da come mangi e da come recuperi.</Nota>
+      <Nota piccola>{tr('Dice se la settimana ha gli ingredienti che le linee guida indicano per questo tipo di lavoro, non se il risultato arriverà: dipende da come ti alleni, da come mangi e da come recuperi.', 'It tells you whether the week has the ingredients the guidelines recommend for this kind of work, not whether you’ll get the result: that depends on how you train, eat and recover.')}</Nota>
     </View>
   )
 }
@@ -314,16 +322,16 @@ function Obiettivo({ e }: { e: Effetti }) {
 // ---------------------------------------------------------------------------
 // 7. Le ultime quattro settimane, e le calorie
 
-const PAROLE = { piu: 'più di', pari: 'in linea con', meno: 'meno di' } as const
+const PAROLE = { piu: tr('più di', 'more than'), pari: tr('in linea con', 'in line with'), meno: tr('meno di', 'less than') } as const
 
 function Confronto({ e, ultime, corpo }: { e: Effetti; ultime: Ultime | null; corpo: StatoCorpo }) {
   const p = usePalette()
   // Senza i dati del corpo le attivita' non si contano (il contatore le valuta in calorie): non e' che stiamo leggendo, manca altro.
-  if (corpo.stato === 'mancano-dati') return <Nota>Per confrontare il percorso con i tuoi ultimi allenamenti ci servono peso, altezza, età e sesso: li aggiungi nelle misure e nel profilo.</Nota>
+  if (corpo.stato === 'mancano-dati') return <Nota>{tr('Per confrontare il percorso con i tuoi ultimi allenamenti ci servono peso, altezza, età e sesso: li aggiungi nelle misure e nel profilo.', 'To compare the program with your recent workouts we need your weight, height, age and sex: you can add them in your measurements and profile.')}</Nota>
   if (corpo.stato === 'no') return null
-  if (!ultime) return <Nota>Sto leggendo i tuoi ultimi allenamenti…</Nota>
+  if (!ultime) return <Nota>{tr('Sto leggendo i tuoi ultimi allenamenti…', 'Reading your recent workouts…')}</Nota>
   if (ultime.attivita === 0) {
-    return <Nota>Nelle ultime quattro settimane non risultano allenamenti registrati: contiamo le sedute chiuse nell’app e le lezioni con la presenza segnata dalla reception.</Nota>
+    return <Nota>{tr('Nelle ultime quattro settimane non risultano allenamenti registrati: contiamo le sedute chiuse nell’app e le lezioni con la presenza segnata dalla reception.', 'No workouts are recorded in the last four weeks: we count sessions completed in the app and classes with attendance marked by reception.')}</Nota>
   }
   // Il cardio non e' nello storico (non si registra): il confronto e' sul resto.
   const nelPercorso = e.minuti.totale - e.minuti.cardio
@@ -333,15 +341,15 @@ function Confronto({ e, ultime, corpo }: { e: Effetti; ultime: Ultime | null; co
       <View style={stili.cifre}>
         <View style={stili.cifra}>
           <Numero valore={intero(ultime.minuti)} unita="min" size={26} />
-          <Text style={[stili.piccola, { color: p.testoSecondario }]}>a settimana, di solito</Text>
+          <Text style={[stili.piccola, { color: p.testoSecondario }]}>{tr('a settimana, di solito', 'a week, usually')}</Text>
         </View>
         <View style={stili.cifra}>
           <Numero valore={intero(nelPercorso)} unita="min" size={26} colore={p.accento} />
-          <Text style={[stili.piccola, { color: p.testoSecondario }]}>in questo percorso</Text>
+          <Text style={[stili.piccola, { color: p.testoSecondario }]}>{tr('in questo percorso', 'in this program')}</Text>
         </View>
       </View>
-      <Nota>{`In minuti il percorso è ${PAROLE[minuti]} quello che fai di solito (${ultime.attivita.toLocaleString('it-IT')} attività a settimana).`}</Nota>
-      <Nota piccola>La media è delle quattro settimane intere prima di questa, solo con quello che sappiamo: le sedute chiuse nell’app e le lezioni con la presenza segnata. Il cardio non è nel confronto: non lo registriamo.</Nota>
+      <Nota>{tr(`In minuti il percorso è ${PAROLE[minuti]} quello che fai di solito (${ultime.attivita.toLocaleString(locale())} attività a settimana).`, `In minutes the program is ${PAROLE[minuti]} what you usually do (${ultime.attivita.toLocaleString(locale())} activities a week).`)}</Nota>
+      <Nota piccola>{tr('La media è delle quattro settimane intere prima di questa, solo con quello che sappiamo: le sedute chiuse nell’app e le lezioni con la presenza segnata. Il cardio non è nel confronto: non lo registriamo.', 'The average covers the four full weeks before this one, using only what we know: sessions completed in the app and classes with attendance marked. Cardio isn’t in the comparison: we don’t record it.')}</Nota>
     </View>
   )
 }
@@ -349,26 +357,26 @@ function Confronto({ e, ultime, corpo }: { e: Effetti; ultime: Ultime | null; co
 function Calorie({ e, corpo }: { e: Effetti; corpo: StatoCorpo }) {
   const p = usePalette()
   if (corpo.stato === 'no') return null
-  if (corpo.stato === 'attesa') return <Nota>Sto leggendo i tuoi dati…</Nota>
+  if (corpo.stato === 'attesa') return <Nota>{tr('Sto leggendo i tuoi dati…', 'Reading your data…')}</Nota>
   if (corpo.stato === 'mancano-dati') {
-    const cosa = corpo.motivo === 'misure' ? 'il peso e l’altezza' : corpo.motivo === 'eta' ? 'la data di nascita' : 'il sesso'
-    return <Nota>{`Per stimare le calorie ci servono ${cosa}: li aggiungi nelle misure e nel profilo.`}</Nota>
+    const cosa = corpo.motivo === 'misure' ? tr('il peso e l’altezza', 'your weight and height') : corpo.motivo === 'eta' ? tr('la data di nascita', 'your date of birth') : tr('il sesso', 'your sex')
+    return <Nota>{tr(`Per stimare le calorie ci servono ${cosa}: li aggiungi nelle misure e nel profilo.`, `To estimate calories we need ${cosa}: you can add them in your measurements and profile.`)}</Nota>
   }
   const c = e.calorie
-  if (!c) return <Nota>Non riusciamo a stimare le calorie di queste tappe.</Nota>
+  if (!c) return <Nota>{tr('Non riusciamo a stimare le calorie di queste tappe.', 'We can’t estimate the calories for these steps.')}</Nota>
   return (
     <View style={{ gap: spazio.due }}>
-      <Numero valore={`circa ${intero(c.circa)}`} unita="kcal a settimana" size={30} />
-      <Text style={[stili.nota, { color: p.testoSecondario }]}>{`Da ${intero(c.da)} a ${intero(c.a)}. Contano anche quelle che consumeresti comunque in quei minuti.`}</Text>
-      {c.parziale ? <Nota piccola>Per qualche tappa non abbiamo una stima, quindi il totale è un po’ più basso.</Nota> : null}
-      <Nota piccola>È una stima, come nelle schede e nel calendario: può sbagliare anche del 20–30%. Il cardio vale come attività moderata, la sala come nella stima del piano. Non è un’indicazione per la dieta.</Nota>
+      <Numero valore={tr(`circa ${intero(c.circa)}`, `about ${intero(c.circa)}`)} unita={tr('kcal a settimana', 'kcal a week')} size={30} />
+      <Text style={[stili.nota, { color: p.testoSecondario }]}>{tr(`Da ${intero(c.da)} a ${intero(c.a)}. Contano anche quelle che consumeresti comunque in quei minuti.`, `From ${intero(c.da)} to ${intero(c.a)}. This includes what you’d burn anyway in those minutes.`)}</Text>
+      {c.parziale ? <Nota piccola>{tr('Per qualche tappa non abbiamo una stima, quindi il totale è un po’ più basso.', 'For some steps we have no estimate, so the total is a bit lower.')}</Nota> : null}
+      <Nota piccola>{tr('È una stima, come nelle schede e nel calendario: può sbagliare anche del 20–30%. Il cardio vale come attività moderata, la sala come nella stima del piano. Non è un’indicazione per la dieta.', 'It’s an estimate, as in the plans and the calendar: it can be off by 20–30%. Cardio counts as moderate activity, the gym floor as in the plan estimate. It’s not dietary advice.')}</Nota>
     </View>
   )
 }
 
 // ---------------------------------------------------------------------------
 
-export function PannelloEffetti({ effetti: e, ultime, corpo, titolo = 'Cosa fa questa settimana' }: { effetti: Effetti; ultime: Ultime | null; corpo: StatoCorpo; titolo?: string }) {
+export function PannelloEffetti({ effetti: e, ultime, corpo, titolo = tr('Cosa fa questa settimana', 'What this week does') }: { effetti: Effetti; ultime: Ultime | null; corpo: StatoCorpo; titolo?: string }) {
   const p = usePalette()
   const { width } = useWindowDimensions()
   // Su schermo largo i riquadri stanno su due colonne (come i giorni della settimana): il primo, la settimana, a tutta larghezza.
@@ -376,9 +384,9 @@ export function PannelloEffetti({ effetti: e, ultime, corpo, titolo = 'Cosa fa q
   const meta = largo ? ({ flexGrow: 1, flexBasis: '46%' } as const) : undefined
   const riepilogo = useMemo(() => {
     const parti = [
-      e.tappe.sala ? `${e.tappe.sala} ${e.tappe.sala === 1 ? 'volta' : 'volte'} in sala` : null,
-      e.tappe.lezioni ? `${e.tappe.lezioni} ${e.tappe.lezioni === 1 ? 'lezione' : 'lezioni'}` : null,
-      e.tappe.cardio ? `${e.tappe.cardio} di cardio` : null,
+      e.tappe.sala ? tr(`${e.tappe.sala} ${e.tappe.sala === 1 ? 'volta' : 'volte'} in sala`, `gym floor ${e.tappe.sala} ${e.tappe.sala === 1 ? 'time' : 'times'}`) : null,
+      e.tappe.lezioni ? tr(`${e.tappe.lezioni} ${e.tappe.lezioni === 1 ? 'lezione' : 'lezioni'}`, `${e.tappe.lezioni} ${e.tappe.lezioni === 1 ? 'class' : 'classes'}`) : null,
+      e.tappe.cardio ? tr(`${e.tappe.cardio} di cardio`, `${e.tappe.cardio} cardio`) : null,
     ].filter(Boolean)
     return parti.join(' · ')
   }, [e.tappe])
@@ -388,47 +396,47 @@ export function PannelloEffetti({ effetti: e, ultime, corpo, titolo = 'Cosa fa q
         <Carta style={[{ gap: spazio.tre }, largo ? { width: '100%' } : null]}>
           <View style={{ flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', gap: spazio.tre }}>
             <Numero valore={ore(e.minuti.totale)} size={34} />
-            <Text style={[stili.nota, { color: p.testoSecondario, flex: 1, textAlign: 'right' }]}>{riepilogo || 'Nessuna tappa'}</Text>
+            <Text style={[stili.nota, { color: p.testoSecondario, flex: 1, textAlign: 'right' }]}>{riepilogo || tr('Nessuna tappa', 'No steps')}</Text>
           </View>
           <GiorniBarre e={e} />
           <Legenda />
         </Carta>
 
         <Carta style={[{ gap: spazio.tre }, meta]}>
-          <Titolo>Il profilo delle lezioni</Titolo>
+          <Titolo>{tr('Il profilo delle lezioni', 'Class profile')}</Titolo>
           <ProfiloLezioni e={e} />
         </Carta>
 
         <Carta style={[{ gap: spazio.tre }, meta]}>
-          <Titolo>Il lavoro in sala</Titolo>
+          <Titolo>{tr('Il lavoro in sala', 'Gym floor work')}</Titolo>
           <Sala e={e} />
         </Carta>
 
         <Carta style={[{ gap: spazio.tre }, meta]}>
-          <Titolo>Rispetto a quello che indica l’OMS</Titolo>
+          <Titolo>{tr('Rispetto a quello che indica l’OMS', 'Compared with WHO guidelines')}</Titolo>
           <Riferimenti e={e} />
         </Carta>
 
         <Carta style={[{ gap: spazio.tre }, meta]}>
-          <Titolo>Carico e recupero</Titolo>
+          <Titolo>{tr('Carico e recupero', 'Load and recovery')}</Titolo>
           <Carico e={e} />
         </Carta>
 
         <Carta style={[{ gap: spazio.tre }, meta]}>
-          <Titolo>{`L’obiettivo: ${e.obiettivo.obiettivo.toLowerCase()}`}</Titolo>
+          <Titolo>{tr(`L’obiettivo: ${e.obiettivo.obiettivo.toLowerCase()}`, `Goal: ${nomeObiettivo(e.obiettivo.obiettivo).toLowerCase()}`)}</Titolo>
           <Obiettivo e={e} />
         </Carta>
 
         {corpo.stato === 'no' ? null : (
           <Carta style={[{ gap: spazio.tre }, meta]}>
-            <Titolo>Rispetto alle ultime quattro settimane</Titolo>
+            <Titolo>{tr('Rispetto alle ultime quattro settimane', 'Compared with the last four weeks')}</Titolo>
             <Confronto e={e} ultime={ultime} corpo={corpo} />
           </Carta>
         )}
 
         {corpo.stato === 'no' ? null : (
           <Carta style={[{ gap: spazio.tre }, meta]}>
-            <Titolo>Le calorie</Titolo>
+            <Titolo>{tr('Le calorie', 'Calories')}</Titolo>
             <Calorie e={e} corpo={corpo} />
           </Carta>
         )}

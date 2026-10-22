@@ -7,6 +7,7 @@ import { Pagina } from '@/components/Pagina'
 import { Forte, Testo } from '@/components/Testo'
 import { chiediResetPassword } from '@/api/guestPass'
 import { APP_ATHLON_URL, ATTIVITA_GUEST_PASS, LINK_CONFERMA } from '@/lib/guestPass'
+import { locale, t, tv } from '@/lib/lingua'
 import { spazio, tinta, useColori, type Tono } from '@/theme'
 
 // La pagina finale del Guest Pass (14/10/2026): il testo della lettera di
@@ -72,7 +73,7 @@ function Pillola({ testo, url }: { testo: string; url: string }) {
 
 /** «sabato 17 ottobre 2026». */
 function conAnno(g: string): string {
-  return new Date(g + 'T12:00:00Z').toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' })
+  return new Date(g + 'T12:00:00Z').toLocaleDateString(locale(), { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' })
 }
 
 /**
@@ -90,20 +91,28 @@ function Accesso({ email, nuovoAccount }: { email: string | null; nuovoAccount: 
     setReset((await chiediResetPassword(email)) ? 'inviata' : 'errore')
   }
   return (
-    <Scheda titolo="Entra nell’app">
+    <Scheda titolo={t('Entra nell’app', 'Sign in to the app')}>
       <Testo>
-        Scarica l’app <Forte>Athlon Club</Forte> e accedi con la tua email{email ? <> (<Forte>{email}</Forte>)</> : null} come ID
-        {nuovoAccount ? <> e la <Forte>password che hai scelto</Forte>.</> : <> e la password che usi già.</>}
+        {tv(
+          <>
+            Scarica l’app <Forte>Athlon Club</Forte> e accedi con la tua email{email ? <> (<Forte>{email}</Forte>)</> : null} come ID
+            {nuovoAccount ? <> e la <Forte>password che hai scelto</Forte>.</> : <> e la password che usi già.</>}
+          </>,
+          <>
+            Download the <Forte>Athlon Club</Forte> app and sign in with your email{email ? <> (<Forte>{email}</Forte>)</> : null} as your ID
+            {nuovoAccount ? <> and the <Forte>password you chose</Forte>.</> : <> and the password you already use.</>}
+          </>,
+        )}
       </Testo>
-      <Bottone testo="Scarica l’app Athlon Club" onPress={() => Linking.openURL(APP_ATHLON_URL)} />
+      <Bottone testo={t('Scarica l’app Athlon Club', 'Download the Athlon Club app')} onPress={() => Linking.openURL(APP_ATHLON_URL)} />
       {!nuovoAccount && email ? (
         reset === 'inviata' ? (
-          <Avviso tono="ok">{`Ti abbiamo mandato a ${email} il link per scegliere una nuova password. Controlla anche lo spam.`}</Avviso>
+          <Avviso tono="ok">{t(`Ti abbiamo mandato a ${email} il link per scegliere una nuova password. Controlla anche lo spam.`, `We sent ${email} a link to choose a new password. Check your spam folder too.`)}</Avviso>
         ) : (
           <>
-            <Testo variante="attenuato">Non ricordi la password? Puoi richiederne il reset: premi il pulsante e ti mandiamo per email il link per sceglierne una nuova.</Testo>
-            <Bottone testo="Richiedi il reset della password" variante="contorno" onPress={chiedi} inCorso={reset === 'invio'} />
-            {reset === 'errore' ? <Avviso tono="attenzione">Non siamo riusciti a mandare il link adesso. Riprova fra qualche minuto.</Avviso> : null}
+            <Testo variante="attenuato">{t('Non ricordi la password? Puoi richiederne il reset: premi il pulsante e ti mandiamo per email il link per sceglierne una nuova.', 'Forgot your password? You can reset it: press the button and we’ll email you a link to choose a new one.')}</Testo>
+            <Bottone testo={t('Richiedi il reset della password', 'Reset my password')} variante="contorno" onPress={chiedi} inCorso={reset === 'invio'} />
+            {reset === 'errore' ? <Avviso tono="attenzione">{t('Non siamo riusciti a mandare il link adesso. Riprova fra qualche minuto.', 'We couldn’t send the link right now. Try again in a few minutes.')}</Avviso> : null}
           </>
         )
       ) : null}
@@ -149,16 +158,19 @@ export function GuestPassAttivo({
   let i = 0
   return (
     <Pagina
-      titolo={figlio ? `Il Guest Pass di ${figlio.primo ?? 'tuo figlio'} è attivo` : 'Il tuo Guest Pass è attivo'}
-      sottotitolo={chi ? `${chi}, siamo lieti di confermarti l’attivazione del${diChi.slice(2)}.` : `Siamo lieti di confermarti l’attivazione del${diChi.slice(2)}.`}
+      titolo={figlio ? t(`Il Guest Pass di ${figlio.primo ?? 'tuo figlio'} è attivo`, `${figlio.primo ? `${figlio.primo}’s` : 'Your child’s'} Guest Pass is active`) : t('Il tuo Guest Pass è attivo', 'Your Guest Pass is active')}
+      sottotitolo={tv(
+        chi ? `${chi}, siamo lieti di confermarti l’attivazione del${diChi.slice(2)}.` : `Siamo lieti di confermarti l’attivazione del${diChi.slice(2)}.`,
+        `${chi ? `${chi}, we’re` : 'We’re'} happy to confirm that ${figlio ? `${figlio.primo ?? figlio.nome ?? 'your child'}’s Guest Pass` : 'your Guest Pass'} is now active.`,
+      )}
     >
       <View style={stili.testa}>
         <Spunta />
         <View style={{ flex: 1 }}>
-          <Text style={[stili.prodotto, { color: c.testo }]}>Guest Pass 1 settimana · {prezzo} €</Text>
+          <Text style={[stili.prodotto, { color: c.testo }]}>{t(`Guest Pass 1 settimana · ${prezzo} €`, `Guest Pass 1 week · ${prezzo} €`)}</Text>
           {inizio && fine ? (
             <Text style={[stili.periodo, { color: c.testoSecondario }]}>
-              Valido da {conAnno(inizio)} a {conAnno(fine)}
+              {t(`Valido da ${conAnno(inizio)} a ${conAnno(fine)}`, `Valid from ${conAnno(inizio)} to ${conAnno(fine)}`)}
             </Text>
           ) : null}
         </View>
@@ -171,7 +183,7 @@ export function GuestPassAttivo({
       ) : null}
       {addebito ? (
         <Entra indice={i++}>
-          <Testo variante="attenuato">I {prezzo} € saranno addebitati sul conto che hai indicato.</Testo>
+          <Testo variante="attenuato">{t(`I ${prezzo} € saranno addebitati sul conto che hai indicato.`, `The ${prezzo} € will be charged to the bank account you entered.`)}</Testo>
         </Entra>
       ) : null}
 
@@ -181,20 +193,36 @@ export function GuestPassAttivo({
 
       {figlio ? (
         <Entra indice={i++}>
-          <Scheda titolo={`Le lezioni di ${figlio.primo ?? 'tuo figlio'}`}>
+          <Scheda titolo={t(`Le lezioni di ${figlio.primo ?? 'tuo figlio'}`, `${figlio.primo ? `${figlio.primo}’s` : 'Your child’s'} classes`)}>
             <Testo>
-              {figlio.primo ?? 'Tuo figlio'} non ha un accesso suo: le sue lezioni le prenoti tu, dall’app Athlon Club, scegliendo{' '}
-              <Forte>{figlio.primo ?? 'tuo figlio'}</Forte> fra le persone della tua famiglia.
+              {tv(
+                <>
+                  {figlio.primo ?? 'Tuo figlio'} non ha un accesso suo: le sue lezioni le prenoti tu, dall’app Athlon Club, scegliendo{' '}
+                  <Forte>{figlio.primo ?? 'tuo figlio'}</Forte> fra le persone della tua famiglia.
+                </>,
+                <>
+                  {figlio.primo ?? 'Your child'} doesn’t have their own sign-in: you book their classes in the Athlon Club app, choosing{' '}
+                  <Forte>{figlio.primo ?? 'your child'}</Forte> among your family members.
+                </>,
+              )}
             </Testo>
           </Scheda>
         </Entra>
       ) : null}
 
       <Entra indice={i++}>
-        <Scheda titolo="Cosa comprende">
+        <Scheda titolo={t('Cosa comprende', 'What’s included')}>
           <Testo>
-            Hai accesso a <Forte>tutte le attività del Club</Forte>, in palestra, in piscina e online, e a tutti i vantaggi
-            dell’app <Forte>Athlon Club</Forte> per allenarti senza limiti.
+            {tv(
+              <>
+                Hai accesso a <Forte>tutte le attività del Club</Forte>, in palestra, in piscina e online, e a tutti i vantaggi
+                dell’app <Forte>Athlon Club</Forte> per allenarti senza limiti.
+              </>,
+              <>
+                You have access to <Forte>all the Club’s activities</Forte>, in the gym, in the pool and online, and to all the perks of
+                the <Forte>Athlon Club</Forte> app to train without limits.
+              </>,
+            )}
           </Testo>
           <View style={stili.pillole}>
             {ATTIVITA_GUEST_PASS.map((a) => (
@@ -205,44 +233,64 @@ export function GuestPassAttivo({
       </Entra>
 
       <Entra indice={i++}>
-        <Scheda titolo="Il primo accesso">
+        <Scheda titolo={t('Il primo accesso', 'Your first visit')}>
           <Testo>
             {figlio ? (
-              <>
-                Per entrare al Club il <Forte>badge</Forte> va abbinato all’anagrafica di {figlio.primo ?? 'tuo figlio'}: lo ritira
-                al desk al suo primo accesso.
-              </>
+              tv(
+                <>
+                  Per entrare al Club il <Forte>badge</Forte> va abbinato all’anagrafica di {figlio.primo ?? 'tuo figlio'}: lo ritira
+                  al desk al suo primo accesso.
+                </>,
+                <>
+                  To enter the Club, the <Forte>access card</Forte> must be linked to {figlio.primo ? `${figlio.primo}’s` : 'your child’s'} profile: they pick it up
+                  at the front desk on their first visit.
+                </>,
+              )
             ) : (
-              <>
-                Per entrare al Club il <Forte>badge</Forte> va abbinato alla tua anagrafica: lo ritiri al desk al tuo primo
-                accesso.
-              </>
+              tv(
+                <>
+                  Per entrare al Club il <Forte>badge</Forte> va abbinato alla tua anagrafica: lo ritiri al desk al tuo primo
+                  accesso.
+                </>,
+                <>
+                  To enter the Club, the <Forte>access card</Forte> must be linked to your profile: pick it up at the front desk on your first
+                  visit.
+                </>,
+              )
             )}
           </Testo>
         </Scheda>
       </Entra>
 
       <Entra indice={i++}>
-        <Scheda titolo="Prenota le attività">
+        <Scheda titolo={t('Prenota le attività', 'Book your activities')}>
           <Testo>
-            Tutte le attività in presenza <Forte>si prenotano</Forte>, dal tuo account nell’app Athlon Club: la
-            prenotazione si apre 3 giorni prima. Hai dubbi o richieste? Siamo a disposizione.
+            {tv(
+              <>
+                Tutte le attività in presenza <Forte>si prenotano</Forte>, dal tuo account nell’app Athlon Club: la
+                prenotazione si apre 3 giorni prima. Hai dubbi o richieste? Siamo a disposizione.
+              </>,
+              <>
+                All in-person activities <Forte>must be booked</Forte>, from your account in the Athlon Club app: booking opens 3 days
+                before. Any questions or requests? We’re here to help.
+              </>,
+            )}
           </Testo>
-          <Bottone testo="Come si prenota" variante="contorno" onPress={() => Linking.openURL(LINK_CONFERMA.prenotazioni)} />
+          <Bottone testo={t('Come si prenota', 'How to book')} variante="contorno" onPress={() => Linking.openURL(LINK_CONFERMA.prenotazioni)} />
         </Scheda>
       </Entra>
 
       <Entra indice={i++}>
-        <Scheda titolo="Hai un dubbio?">
-          <Testo>Fissa un appuntamento telefonico con il nostro team: ti richiamiamo noi nel giorno e all’ora che scegli.</Testo>
-          <Bottone testo="Prenota una chiamata" onPress={() => Linking.openURL(LINK_CONFERMA.chiamata)} />
+        <Scheda titolo={t('Hai un dubbio?', 'Any questions?')}>
+          <Testo>{t('Fissa un appuntamento telefonico con il nostro team: ti richiamiamo noi nel giorno e all’ora che scegli.', 'Book a phone call with our team: we’ll call you back on the day and at the time you choose.')}</Testo>
+          <Bottone testo={t('Prenota una chiamata', 'Book a call')} onPress={() => Linking.openURL(LINK_CONFERMA.chiamata)} />
         </Scheda>
       </Entra>
 
       {dopo ? <Entra indice={i++}>{dopo}</Entra> : null}
 
       <Entra indice={i++}>
-        <Text style={[stili.saluto, { color: c.testo }]}>Ti auguriamo un buon allenamento!</Text>
+        <Text style={[stili.saluto, { color: c.testo }]}>{t('Ti auguriamo un buon allenamento!', 'Enjoy your workout!')}</Text>
       </Entra>
     </Pagina>
   )

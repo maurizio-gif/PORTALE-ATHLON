@@ -6,6 +6,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { Platform, StyleSheet, Text, View } from 'react-native'
 
 import { apriVideo, leggiVetrina, type VideoDaGuardare } from '@/api/lab'
+import { t } from '@/lib/lingua'
 import { spazio } from '@/theme'
 
 import { Icona } from '../ui/Icona'
@@ -62,11 +63,11 @@ function Video({ uri }: { uri: string }) {
             if (!player.playing) player.play()
             setMuto(false)
           }}
-          etichetta="Attiva l’audio"
+          etichetta={t('Attiva l’audio', 'Turn on sound')}
           style={stili.audio}
         >
           <Icona nome="volume" size={18} colore="#141518" />
-          <Text style={stili.audioTesto}>Attiva l’audio</Text>
+          <Text style={stili.audioTesto}>{t('Attiva l’audio', 'Turn on sound')}</Text>
         </Tocco>
       ) : null}
     </View>
@@ -124,7 +125,7 @@ export function Lettore() {
       {errore ? (
         <>
           <Messaggio>{errore}</Messaggio>
-          <Pulsante testo="Riprova" icona="aggiorna" onPress={carica} />
+          <Pulsante testo={t('Riprova', 'Try again')} icona="aggiorna" onPress={carica} />
         </>
       ) : v ? (
         <View style={{ gap: spazio.due }}>
@@ -147,7 +148,7 @@ export function Lettore() {
       )}
 
       {prossimi.length ? (
-        <Sezione titolo="Prossimi video">
+        <Sezione titolo={t('Prossimi video', 'Up next')}>
           <Carta style={{ paddingVertical: spazio.due }}>
             {prossimi.map((x, i) => (
               <Riga

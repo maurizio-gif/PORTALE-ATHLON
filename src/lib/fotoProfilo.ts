@@ -2,6 +2,7 @@ import { Platform } from 'react-native'
 
 import { inDataUrl, pesoLeggibile, scattaFoto, type FileGrezzo } from './fileScheda'
 import { ritaglioQuadrato } from './ritaglio'
+import { t } from './lingua'
 
 // La foto del Profilo (20/10/2026): si scatta o si sceglie, la si porta a un quadrato e la si manda alla funzione
 // (`portale-lab-anagrafica`, azione `foto`), che la mette su PerfectGym come foto del profilo.
@@ -65,7 +66,7 @@ async function ritagliaWeb(blob: Blob): Promise<{ blob: Blob } | { errore: strin
     })
     if (!immagine) return null
     const { naturalWidth: l, naturalHeight: a } = immagine
-    if (Math.min(l, a) < LATO_MINIMO) return { errore: `La foto è troppo piccola: servono almeno ${LATO_MINIMO} pixel per lato.` }
+    if (Math.min(l, a) < LATO_MINIMO) return { errore: t(`La foto è troppo piccola: servono almeno ${LATO_MINIMO} pixel per lato.`, `The photo is too small: it needs at least ${LATO_MINIMO} pixels per side.`) }
     const { x, y, lato } = ritaglioQuadrato(l, a)
     const uscita = Math.min(lato, LATO_FOTO)
     const tela = document.createElement('canvas')
@@ -92,23 +93,23 @@ export async function preparaFotoProfilo(a: FileGrezzo): Promise<EsitoFotoProfil
   try {
     let blob: Blob = Platform.OS === 'web' && a.file ? a.file : await (await fetch(a.uri)).blob()
     const tipo = (a.mimeType || blob.type || tipoDaNome(a.name)).toLowerCase()
-    if (tipo && !tipo.startsWith('image/')) return { ok: false, errore: 'Scegli una foto.' }
+    if (tipo && !tipo.startsWith('image/')) return { ok: false, errore: t('Scegli una foto.', 'Choose a photo.') }
 
     if (Platform.OS === 'web') {
       const r = await ritagliaWeb(blob)
       if (r && 'errore' in r) return { ok: false, errore: r.errore }
       if (r) blob = r.blob
       // Una foto che il browser non sa aprire (per esempio HEIC su un computer) non si puo' ritagliare.
-      else if (!FORMATI.test(tipo)) return { ok: false, errore: 'Questo formato di foto non si apre qui: prova con una foto JPG o PNG.' }
+      else if (!FORMATI.test(tipo)) return { ok: false, errore: t('Questo formato di foto non si apre qui: prova con una foto JPG o PNG.', 'This photo format can’t be opened here: try a JPG or PNG photo.') }
     } else if (!FORMATI.test(tipo)) {
-      return { ok: false, errore: 'Questo formato di foto non si apre qui: scegli una foto JPG, PNG o WebP.' }
+      return { ok: false, errore: t('Questo formato di foto non si apre qui: scegli una foto JPG, PNG o WebP.', 'This photo format can’t be opened here: choose a JPG, PNG or WebP photo.') }
     }
 
-    if (blob.size === 0) return { ok: false, errore: 'La foto è vuota.' }
-    if (blob.size > MAX_BYTE) return { ok: false, errore: `La foto pesa troppo (${pesoLeggibile(blob.size)}): il limite è 4 MB.` }
+    if (blob.size === 0) return { ok: false, errore: t('La foto è vuota.', 'The photo is empty.') }
+    if (blob.size > MAX_BYTE) return { ok: false, errore: t(`La foto pesa troppo (${pesoLeggibile(blob.size)}): il limite è 4 MB.`, `The photo is too large (${pesoLeggibile(blob.size)}): the limit is 4 MB.`) }
     const dati = await inDataUrl(blob)
     return { ok: true, foto: { dati, anteprima: dati, byte: blob.size } }
   } catch {
-    return { ok: false, errore: 'Non riusciamo a leggere la foto. Riprova scegliendola di nuovo.' }
+    return { ok: false, errore: t('Non riusciamo a leggere la foto. Riprova scegliendola di nuovo.', 'We can’t read the photo. Try choosing it again.') }
   }
 }

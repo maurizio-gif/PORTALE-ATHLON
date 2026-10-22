@@ -3,6 +3,7 @@ import { router } from 'expo-router'
 import { StyleSheet, Text, View } from 'react-native'
 
 import { PASTI } from '@/api/alimentazione'
+import { locale, t } from '@/lib/lingua'
 import { spazio } from '@/theme'
 
 import { oggiRoma, somma } from '../alimentazione/conti'
@@ -21,9 +22,9 @@ const apriDiario = () => router.push('/allenamento/alimentazione')
 const apriFoto = () => router.push({ pathname: '/allenamento/alimentazione', params: { foto: '1' } })
 
 const COSE: { icona: NomeIcona; testo: string }[] = [
-  { icona: 'piatto', testo: 'Il diario dei pasti, da un catalogo di alimenti con le porzioni di casa.' },
-  { icona: 'fotocamera', testo: 'La foto del piatto: riconosce gli alimenti e stima i grammi, e tu confermi.' },
-  { icona: 'foglia', testo: 'Consigli scelti per te, dal tuo allenamento e da nove domande.' },
+  { icona: 'piatto', testo: t('Il diario dei pasti, da un catalogo di alimenti con le porzioni di casa.', 'The meal diary, from a food catalog with everyday portions.') },
+  { icona: 'fotocamera', testo: t('La foto del piatto: riconosce gli alimenti e stima i grammi, e tu confermi.', 'The photo of your plate: it recognizes the foods and estimates the grams, and you confirm.') },
+  { icona: 'foglia', testo: t('Consigli scelti per te, dal tuo allenamento e da nove domande.', 'Tips picked for you, based on your training and nine questions.') },
 ]
 
 export function AreaFood({ dati }: { dati: DatiFit }) {
@@ -32,8 +33,8 @@ export function AreaFood({ dati }: { dati: DatiFit }) {
 
   if (dati.vista) {
     return (
-      <Messaggio tono="attenzione" titolo="Non visibile nella vista cliente">
-        Food contiene dati sulla salute: lo vede solo il socio, dalla sua app.
+      <Messaggio tono="attenzione" titolo={t('Non visibile nella vista cliente', 'Not visible in client view')}>
+        {t('Food contiene dati sulla salute: lo vede solo il socio, dalla sua app.', 'Food contains health data: only the member can see it, from their own app.')}
       </Messaggio>
     )
   }
@@ -41,8 +42,8 @@ export function AreaFood({ dati }: { dati: DatiFit }) {
   if (!f.maggiorenne) {
     return (
       <Carta style={{ gap: spazio.due }}>
-        <Text style={[stili.titoletto, { color: p.testo }]}>Food è per i maggiorenni</Text>
-        <Text style={[stili.nota, { color: p.testoSecondario }]}>Se nella tua scheda del club manca la data di nascita, chiedi al desk di aggiungerla.</Text>
+        <Text style={[stili.titoletto, { color: p.testo }]}>{t('Food è per i maggiorenni', 'Food is for adults only')}</Text>
+        <Text style={[stili.nota, { color: p.testoSecondario }]}>{t('Se nella tua scheda del club manca la data di nascita, chiedi al desk di aggiungerla.', 'If your date of birth is missing from your club profile, ask the front desk to add it.')}</Text>
       </Carta>
     )
   }
@@ -50,9 +51,9 @@ export function AreaFood({ dati }: { dati: DatiFit }) {
   if (!f.consenso) {
     return (
       <Entra indice={0}>
-        <Tocco onPress={apriDiario} etichetta="Scopri Food" scala={0.985}>
+        <Tocco onPress={apriDiario} etichetta={t('Scopri Food', 'Discover Food')} scala={0.985}>
           <LinearGradient colors={ORTO} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={stili.vetrina}>
-            <Text style={stili.vetrinaTitolo}>Mangiare bene, per allenarti meglio</Text>
+            <Text style={stili.vetrinaTitolo}>{t('Mangiare bene, per allenarti meglio', 'Eat well, train better')}</Text>
             <View style={{ gap: spazio.due }}>
               {COSE.map((c) => (
                 <View key={c.icona} style={stili.riga}>
@@ -63,9 +64,9 @@ export function AreaFood({ dati }: { dati: DatiFit }) {
                 </View>
               ))}
             </View>
-            <Text style={stili.vetrinaPiccola}>Prima di cominciare si legge e si accetta l’informativa: quello che scrivi lo vedi solo tu.</Text>
+            <Text style={stili.vetrinaPiccola}>{t('Prima di cominciare si legge e si accetta l’informativa: quello che scrivi lo vedi solo tu.', 'Before you start, you read and accept the privacy notice: only you see what you write.')}</Text>
             <View style={stili.vetrinaPulsante}>
-              <Text style={stili.vetrinaPulsanteTesto}>Scopri Food</Text>
+              <Text style={stili.vetrinaPulsanteTesto}>{t('Scopri Food', 'Discover Food')}</Text>
               <Icona nome="avanti" size={16} colore={ORTO[2]} />
             </View>
           </LinearGradient>
@@ -77,9 +78,9 @@ export function AreaFood({ dati }: { dati: DatiFit }) {
   if (!f.profilo) {
     return (
       <Carta style={{ gap: spazio.due }}>
-        <Text style={[stili.titoletto, { color: p.testo }]}>Manca un minuto</Text>
-        <Text style={[stili.nota, { color: p.testoSecondario }]}>Nove domande sulle tue abitudini: servono a scegliere i consigli per te.</Text>
-        <Pulsante testo="Rispondi" icona="avanti" onPress={apriDiario} />
+        <Text style={[stili.titoletto, { color: p.testo }]}>{t('Manca un minuto', 'Just a minute more')}</Text>
+        <Text style={[stili.nota, { color: p.testoSecondario }]}>{t('Nove domande sulle tue abitudini: servono a scegliere i consigli per te.', 'Nine questions about your habits: they help us pick tips for you.')}</Text>
+        <Pulsante testo={t('Rispondi', 'Answer')} icona="avanti" onPress={apriDiario} />
       </Carta>
     )
   }
@@ -87,7 +88,7 @@ export function AreaFood({ dati }: { dati: DatiFit }) {
   const nascosti = f.profilo.nascondi_numeri
   const oggi = oggiRoma()
   const diOggi = (dati.diario ?? []).filter((v) => v.data === oggi)
-  const t = somma(diOggi)
+  const tot = somma(diOggi)
   const scritti = PASTI.filter((x) => diOggi.some((v) => v.pasto === x.id)).map((x) => x.nome.toLowerCase())
   return (
     <View style={{ gap: spazio.tre }}>
@@ -98,30 +99,30 @@ export function AreaFood({ dati }: { dati: DatiFit }) {
               <Icona nome="piatto" size={24} colore="#fff" />
             </LinearGradient>
             <View style={{ flex: 1, gap: 2 }}>
-              <Text style={[stili.titoletto, { color: p.testo }]}>Oggi</Text>
+              <Text style={[stili.titoletto, { color: p.testo }]}>{t('Oggi', 'Today')}</Text>
               <Text style={[stili.nota, { color: p.testoSecondario }]}>
                 {!dati.diario
-                  ? 'Leggiamo il diario…'
+                  ? t('Leggiamo il diario…', 'Loading your diary…')
                   : !diOggi.length
-                    ? 'Ancora niente nel diario.'
+                    ? t('Ancora niente nel diario.', 'Nothing in the diary yet.')
                     : nascosti
-                      ? `Hai scritto ${scritti.join(', ')}.`
-                      : `${Math.round(t.kcal).toLocaleString('it-IT')} kcal · ${scritti.join(', ')}`}
+                      ? t(`Hai scritto ${scritti.join(', ')}.`, `You logged ${scritti.join(', ')}.`)
+                      : `${Math.round(tot.kcal).toLocaleString(locale())} kcal · ${scritti.join(', ')}`}
               </Text>
             </View>
           </View>
           <View style={stili.azioni}>
             <View style={{ flex: 1 }}>
-              <Pulsante testo="Il diario" icona="piatto" onPress={apriDiario} />
+              <Pulsante testo={t('Il diario', 'Diary')} icona="piatto" onPress={apriDiario} />
             </View>
             <View style={{ flex: 1 }}>
-              <Pulsante testo="Fotografa" icona="fotocamera" variante="secondario" onPress={apriFoto} />
+              <Pulsante testo={t('Fotografa', 'Take a photo')} icona="fotocamera" variante="secondario" onPress={apriFoto} />
             </View>
           </View>
         </Carta>
       </Entra>
       <Text style={[stili.piccola, { color: p.testoTerzo, paddingHorizontal: 2 }]}>
-        Nel diario trovi anche i nutrienti del giorno, i consigli per te e le impostazioni: il questionario, i numeri nascosti e la revoca del consenso.
+        {t('Nel diario trovi anche i nutrienti del giorno, i consigli per te e le impostazioni: il questionario, i numeri nascosti e la revoca del consenso.', 'In the diary you’ll also find the day’s nutrients, your tips and the settings: the questionnaire, hidden numbers and withdrawing consent.')}
       </Text>
     </View>
   )

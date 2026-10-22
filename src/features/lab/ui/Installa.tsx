@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { Platform, StyleSheet, Text, View } from 'react-native'
 
 import { spazio } from '@/theme'
+import { lingua, t } from '@/lib/lingua'
 
 import { Icona, type NomeIcona } from './Icona'
 import { F, FUOCO, NOTTE } from './tema'
@@ -59,7 +60,7 @@ function rimandata(): boolean {
   }
 }
 
-function passi(c: Caso, dopoAccesso: boolean): { titolo: string; passi: Passo[] } {
+function passiIt(c: Caso, dopoAccesso: boolean): { titolo: string; passi: Passo[] } {
   const ultimo: Passo = dopoAccesso
     ? { icona: 'casa', testo: 'Apri ', forte: 'Athlon Club 4.0', poi: ' dall’icona sulla schermata Home ed entra con la tua email: l’app installata ha un accesso suo.' }
     : { icona: 'casa', testo: 'Apri ', forte: 'Athlon Club 4.0', poi: ' dall’icona sulla schermata Home, ed entra lì con la tua email.' }
@@ -125,6 +126,79 @@ function passi(c: Caso, dopoAccesso: boolean): { titolo: string; passi: Passo[] 
         ],
       }
   }
+}
+
+/** I passi in inglese, con le voci dei menu come le scrivono i browser in inglese. */
+function passiEn(c: Caso, dopoAccesso: boolean): { titolo: string; passi: Passo[] } {
+  const ultimo: Passo = dopoAccesso
+    ? { icona: 'casa', testo: 'Open ', forte: 'Athlon Club 4.0', poi: ' from the icon on your Home Screen and log in with your email: the installed app has its own login.' }
+    : { icona: 'casa', testo: 'Open ', forte: 'Athlon Club 4.0', poi: ' from the icon on your Home Screen, and log in there with your email.' }
+  switch (c) {
+    case 'ios-safari':
+      return {
+        titolo: 'On iPhone, with Safari',
+        passi: [
+          { icona: 'condividi', testo: 'Tap ', forte: 'Share', poi: ' (the square with the up arrow) in the Safari bar. If you don’t see it, tap “•••” first.' },
+          { icona: 'aggiungiQuadrato', testo: 'Scroll the list and tap ', forte: 'Add to Home Screen', poi: '. If it isn’t there, tap “Show More” at the bottom.' },
+          { icona: 'spunta', testo: 'Leave ', forte: 'Open as Web App', poi: ' on and tap “Add” at the top right.' },
+          ultimo,
+        ],
+      }
+    case 'ios-altro':
+      return {
+        titolo: 'On iPhone, with Chrome or another browser',
+        passi: [
+          { icona: 'condividi', testo: 'Tap ', forte: 'Share', poi: ' (the square with the up arrow) in the address bar, at the top right, or in the menu.' },
+          { icona: 'aggiungiQuadrato', testo: 'Choose ', forte: 'Add to Home Screen', poi: ' and confirm with “Add”.' },
+          ultimo,
+          { icona: 'apriFuori', testo: 'Can’t find it? Open this page in ', forte: 'Safari', poi: ': it always works there.' },
+        ],
+      }
+    case 'android-samsung':
+      return {
+        titolo: 'On Android, with Samsung Internet',
+        passi: [
+          { icona: 'menuRighe', testo: 'Tap the ', forte: '☰ menu', poi: ' at the bottom right.' },
+          { icona: 'aggiungiQuadrato', testo: 'Choose ', forte: 'Add page to', poi: ', then “Home screen”.' },
+          { icona: 'spunta', testo: 'Confirm with ', forte: 'Add', poi: '.' },
+          ultimo,
+        ],
+      }
+    case 'android-firefox':
+      return {
+        titolo: 'On Android, with Firefox',
+        passi: [
+          { icona: 'menuPunti', testo: 'Tap the ', forte: '⋮ menu', poi: ' next to the address bar.' },
+          { icona: 'scarica', testo: 'Choose ', forte: 'Install', poi: ' (or “Add to Home screen”) and confirm.' },
+          ultimo,
+        ],
+      }
+    case 'in-app':
+      return {
+        titolo: 'First open the page in your browser',
+        passi: [
+          { icona: 'menuPunti', testo: 'You’re inside another app (Instagram, Facebook, Gmail…): you can’t install from here. Tap ', forte: '••• or ⋮', poi: ' at the top.' },
+          { icona: 'apriFuori', testo: 'Choose ', forte: 'Open in browser', poi: ' (Safari on iPhone, Chrome on Android), or copy the link below and paste it there.' },
+          { icona: 'aggiungiQuadrato', testo: 'In the browser, come back to this page: we’ll show you the steps to ', forte: 'install it', poi: '.' },
+        ],
+      }
+    case 'computer':
+      return { titolo: 'On a computer', passi: [{ icona: 'scarica', testo: 'Use the ', forte: 'Install', poi: ' button above, or the install icon in the address bar.' }] }
+    default:
+      return {
+        titolo: 'On Android, with Chrome',
+        passi: [
+          { icona: 'menuPunti', testo: 'Tap the ', forte: '⋮ menu', poi: ' at the top right.' },
+          { icona: 'scarica', testo: 'Choose ', forte: 'Install app', poi: ' (or “Add to Home screen”).' },
+          { icona: 'spunta', testo: 'Confirm with ', forte: 'Install', poi: '.' },
+          ultimo,
+        ],
+      }
+  }
+}
+
+function passi(c: Caso, dopoAccesso: boolean): { titolo: string; passi: Passo[] } {
+  return lingua() === 'en' ? passiEn(c, dopoAccesso) : passiIt(c, dopoAccesso)
 }
 
 /** Il riquadro «Installa l'app». `dopoAccesso`: nella pagina di accesso, prima di entrare. */
@@ -193,19 +267,22 @@ export function Installa({ dopoAccesso = false }: { dopoAccesso?: boolean }) {
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: spazio.tre }}>
         <Image source={{ uri: '/apple-touch-icon.png' }} style={stili.icona} accessibilityIgnoresInvertColors />
         <View style={{ flex: 1, gap: 3 }}>
-          <Text style={stili.occhiello}>{dopoAccesso ? 'PRIMA DI ENTRARE' : 'CONSIGLIATO'}</Text>
-          <Text style={stili.titolo}>Installa l’app sul telefono</Text>
+          <Text style={stili.occhiello}>{dopoAccesso ? t('PRIMA DI ENTRARE', 'BEFORE YOU LOG IN') : t('CONSIGLIATO', 'RECOMMENDED')}</Text>
+          <Text style={stili.titolo}>{t('Installa l’app sul telefono', 'Install the app on your phone')}</Text>
         </View>
       </View>
       <Text style={stili.testo}>
-        Athlon Club 4.0 si salva sulla schermata Home come un’app: si apre a tutto schermo con un tocco, senza cercarla nel browser. Non serve passare dall’App Store o da Google Play.
+        {t(
+          'Athlon Club 4.0 si salva sulla schermata Home come un’app: si apre a tutto schermo con un tocco, senza cercarla nel browser. Non serve passare dall’App Store o da Google Play.',
+          'Athlon Club 4.0 saves to your Home Screen like an app: it opens full screen with one tap, without looking for it in the browser. No need to go through the App Store or Google Play.',
+        )}
       </Text>
 
       {stato.richiesta ? (
-        <Tocco onPress={installa} etichetta="Installa l’app" style={stili.pulsante}>
+        <Tocco onPress={installa} etichetta={t('Installa l’app', 'Install the app')} style={stili.pulsante}>
           <LinearGradient colors={FUOCO} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={stili.pulsanteFondo}>
             <Icona nome="scarica" size={18} colore="#fff" />
-            <Text style={stili.pulsanteTesto}>Installa</Text>
+            <Text style={stili.pulsanteTesto}>{t('Installa', 'Install')}</Text>
           </LinearGradient>
         </Tocco>
       ) : null}
@@ -227,20 +304,20 @@ export function Installa({ dopoAccesso = false }: { dopoAccesso?: boolean }) {
             </View>
           ))}
           {stato.caso === 'in-app' || stato.caso === 'ios-altro' ? (
-            <Tocco onPress={copiaLink} etichetta="Copia il link" style={stili.secondario}>
+            <Tocco onPress={copiaLink} etichetta={t('Copia il link', 'Copy the link')} style={stili.secondario}>
               <Icona nome={copiato ? 'spunta' : 'copia'} size={16} colore="#fff" />
-              <Text style={stili.secondarioTesto}>{copiato ? 'Link copiato' : 'Copia il link'}</Text>
+              <Text style={stili.secondarioTesto}>{copiato ? t('Link copiato', 'Link copied') : t('Copia il link', 'Copy the link')}</Text>
             </Tocco>
           ) : null}
         </View>
       ) : (
-        <Tocco onPress={() => setAperti(true)} etichetta="Mostra i passi" ruolo="link">
-          <Text style={stili.link}>Non si apre? Ecco i passi</Text>
+        <Tocco onPress={() => setAperti(true)} etichetta={t('Mostra i passi', 'Show the steps')} ruolo="link">
+          <Text style={stili.link}>{t('Non si apre? Ecco i passi', 'Doesn’t open? Here are the steps')}</Text>
         </Tocco>
       )}
 
-      <Tocco onPress={nonOra} etichetta="Non ora" style={{ alignSelf: 'center', padding: 6 }}>
-        <Text style={stili.nonOra}>Non ora</Text>
+      <Tocco onPress={nonOra} etichetta={t('Non ora', 'Not now')} style={{ alignSelf: 'center', padding: 6 }}>
+        <Text style={stili.nonOra}>{t('Non ora', 'Not now')}</Text>
       </Tocco>
     </LinearGradient>
   )

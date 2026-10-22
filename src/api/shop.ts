@@ -1,4 +1,5 @@
 import { funzione, type CartaSalvata } from '@/api/lab'
+import { t } from '@/lib/lingua'
 
 // Lo shop dell'app (18/10/2026): gli articoli e il merchandising del club, con foto e prezzi, comprati con Adyen
 // attraverso PerfectGym e ritirati in segreteria. Il lavoro lo fa `portale-lab-shop` (repo APP-ATHLON): il catalogo
@@ -46,7 +47,7 @@ export type EsitoVetrina = ({ ok: true } & Vetrina) | { ok: false; errore: strin
 export async function leggiVetrina(): Promise<EsitoVetrina> {
   const { ok, dati } = await shop({ azione: 'catalogo' })
   if (ok) return { ok: true, categorie: (dati.categorie ?? []) as CategoriaShop[], articoli: (dati.articoli ?? []) as ArticoloShop[], quantita_max: Number(dati.quantita_max) || 5 }
-  return { ok: false, errore: dati.errore ?? 'Non riusciamo a leggere lo shop adesso.' }
+  return { ok: false, errore: dati.errore ?? t('Non riusciamo a leggere lo shop adesso.', 'We can’t load the shop right now.') }
 }
 
 /** Cosa non va in un ordine che la funzione ha rifiutato: dice quale articolo e perche', per toglierlo dal carrello. */
@@ -62,7 +63,7 @@ export async function ordina(righe: RigaCarrello[]): Promise<OrdineAperto | Rifi
   }
   return {
     ok: false,
-    errore: dati.errore ?? 'Non riusciamo ad aprire il pagamento adesso.',
+    errore: dati.errore ?? t('Non riusciamo ad aprire il pagamento adesso.', 'We can’t open the payment right now.'),
     codice: typeof dati.codice === 'string' ? (dati.codice as RifiutoOrdine['codice']) : undefined,
     product_id: typeof dati.product_id === 'number' ? dati.product_id : undefined,
   }
@@ -72,19 +73,19 @@ export async function ordina(righe: RigaCarrello[]): Promise<OrdineAperto | Rifi
 export async function pagaOrdineConCarta(ordineId: string): Promise<{ ok: true } | { ok: false; errore: string }> {
   const { ok, dati } = await shop({ azione: 'paga_con_carta', ordine_id: ordineId })
   if (ok) return { ok: true }
-  return { ok: false, errore: dati.errore ?? 'La carta non è stata addebitata.' }
+  return { ok: false, errore: dati.errore ?? t('La carta non è stata addebitata.', 'The card wasn’t charged.') }
 }
 
 /** Com'e' andato un ordine: finche' e' `avviato` si richiede (il pagamento arriva a PerfectGym qualche secondo dopo). */
 export async function esitoOrdine(ordineId: string): Promise<{ ok: true; ordine: Ordine } | { ok: false; errore: string }> {
   const { ok, dati } = await shop({ azione: 'esito', ordine_id: ordineId })
   if (ok) return { ok: true, ordine: dati as unknown as Ordine }
-  return { ok: false, errore: dati.errore ?? 'Non riusciamo a verificare il pagamento adesso.' }
+  return { ok: false, errore: dati.errore ?? t('Non riusciamo a verificare il pagamento adesso.', 'We can’t check the payment right now.') }
 }
 
 /** I miei ordini: pagati (da ritirare o ritirati) e quello in corso. */
 export async function miOrdini(): Promise<{ ok: true; ordini: Ordine[] } | { ok: false; errore: string }> {
   const { ok, dati } = await shop({ azione: 'ordini' })
   if (ok) return { ok: true, ordini: (dati.ordini ?? []) as Ordine[] }
-  return { ok: false, errore: dati.errore ?? 'Non riusciamo a leggere i tuoi ordini adesso.' }
+  return { ok: false, errore: dati.errore ?? t('Non riusciamo a leggere i tuoi ordini adesso.', 'We can’t load your orders right now.') }
 }

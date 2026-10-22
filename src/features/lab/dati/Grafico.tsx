@@ -2,6 +2,8 @@ import { useState } from 'react'
 import { StyleSheet, Text, View } from 'react-native'
 import Svg, { Circle, Defs, Line, LinearGradient, Path, Stop } from 'react-native-svg'
 
+import { t } from '@/lib/lingua'
+
 import { F, usePalette } from '../ui/tema'
 import { dataMinima, numero, type Punto } from './calcoli'
 
@@ -38,7 +40,7 @@ export function Grafico({ punti, unita, colore }: { punti: Punto[]; unita: strin
   const ultimo = xy[xy.length - 1]
 
   return (
-    <View onLayout={(e) => setLarghezza(e.nativeEvent.layout.width)} style={{ height: ALTEZZA }} accessibilityLabel={`Andamento: da ${numero(valori[0])} a ${numero(valori[valori.length - 1])} ${unita}`}>
+    <View onLayout={(e) => setLarghezza(e.nativeEvent.layout.width)} style={{ height: ALTEZZA }} accessibilityLabel={t(`Andamento: da ${numero(valori[0])} a ${numero(valori[valori.length - 1])} ${unita}`, `Trend: from ${numero(valori[0])} to ${numero(valori[valori.length - 1])} ${unita}`)}>
       {larghezza > 0 && punti.length ? (
         <>
           <Svg width={larghezza} height={ALTEZZA}>

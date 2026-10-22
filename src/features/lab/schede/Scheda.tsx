@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { ScrollView, StyleSheet, Text, View } from 'react-native'
 
 import { eliminaSchedaMia, leggiSchedaLab, salvaSchedaMia, type EsercizioScheda, type Massimale, type Precedente, type SchedaLab } from '@/api/lab'
+import { t, tv } from '@/lib/lingua'
 import { spazio } from '@/theme'
 
 import { dimentica, inMemoria, prendi } from '../memoria'
@@ -16,7 +17,7 @@ import { CalorieScheda } from './Calorie'
 import { comeDaSalvare } from './copia'
 import { etichettaPiano, giornoTest, gruppo, indicazione, LIVELLI, muscoli, recupero, SPIEGA_STIMA, SPIEGA_TARATURA, testDaRifare } from './comune'
 import { MediaEsercizio } from './MediaEsercizio'
-import { COSA_FAI_IN_VASCA, eDiVasca, ETICHETTA_VASCA, inMetri, metriDelGiorno, parteDa, SPIEGA_SOLO_LETTURA } from './nuoto'
+import { COSA_FAI_IN_VASCA, eDiVasca, ETICHETTA_VASCA, inMetri, metriDelGiorno, nomeIntensita, nomeParte, parteDa, SPIEGA_SOLO_LETTURA } from './nuoto'
 
 // Un piano: la descrizione, i giorni come schede, e gli esercizi del giorno
 // scelto con serie, ripetizioni, carico, recupero e l'ultima volta che il
@@ -40,7 +41,7 @@ type Dati = { scheda: SchedaLab; precedenti: Precedente[]; massimali: Massimale[
 /** «10 × 40 kg, 10 × 40 kg, 8 × 42,5 kg». */
 export function serieInRiga(serie: { ripetizioni: number | null; kg: number | null; secondi: number | null }[]): string {
   return serie
-    .map((s) => (s.secondi != null ? `${s.secondi}″` : `${s.ripetizioni ?? '—'}${s.kg != null ? ` × ${String(s.kg).replace('.', ',')} kg` : ''}`))
+    .map((s) => (s.secondi != null ? `${s.secondi}″` : `${s.ripetizioni ?? '—'}${s.kg != null ? ` × ${String(s.kg).replace('.', t(',', '.'))} kg` : ''}`))
     .join(', ')
 }
 
@@ -67,14 +68,17 @@ function FoglioEsercizio({ e, precedente, massimali, onChiudi, vasca = false }: 
           <View style={[stili.cifre, { backgroundColor: p.incavo }]}>
             {(vasca
               ? [
-                  { v: `${e.serie} × ${e.ripetizioni}`, l: 'Ripetizioni × distanza' },
-                  { v: e.carico ? e.carico.charAt(0).toUpperCase() + e.carico.slice(1) : '—', l: 'Intensità' },
-                  { v: recupero(e.recupero_serie), l: 'Recupero' },
+                  { v: `${e.serie} × ${e.ripetizioni}`, l: t('Ripetizioni × distanza', 'Reps × distance') },
+                  { v: e.carico ? nomeIntensita(e.carico).charAt(0).toUpperCase() + nomeIntensita(e.carico).slice(1) : '—', l: t('Intensità', 'Intensity') },
+                  { v: recupero(e.recupero_serie), l: t('Recupero', 'Rest') },
                 ]
               : [
-                  { v: ind!.serieRip, l: 'Serie × ripetizioni' },
-                  { v: ind!.kg != null ? `${ind!.stimato ? '≈ ' : ''}${String(ind!.kg).replace('.', ',')} kg` : ind!.manca ? `${e.percentuale}%` : e.carico || '—', l: ind!.kg != null ? `${ind!.stimato ? 'Stimato' : 'Carico'} · ${e.percentuale}%` : ind!.manca ? 'Del massimale' : 'Carico' },
-                  { v: recupero(e.recupero_serie), l: 'Recupero' },
+                  { v: ind!.serieRip, l: t('Serie × ripetizioni', 'Sets × reps') },
+                  {
+                    v: ind!.kg != null ? `${ind!.stimato ? '≈ ' : ''}${String(ind!.kg).replace('.', t(',', '.'))} kg` : ind!.manca ? `${e.percentuale}%` : e.carico || '—',
+                    l: ind!.kg != null ? `${ind!.stimato ? t('Stimato', 'Estimated') : t('Carico', 'Load')} · ${e.percentuale}%` : ind!.manca ? t('Del massimale', 'Of 1RM') : t('Carico', 'Load'),
+                  },
+                  { v: recupero(e.recupero_serie), l: t('Recupero', 'Rest') },
                 ]
             ).map((c, i) => (
               <View key={c.l} style={[stili.cifra, i > 0 && { borderLeftWidth: StyleSheet.hairlineWidth, borderLeftColor: p.linea }]}>
@@ -87,33 +91,42 @@ function FoglioEsercizio({ e, precedente, massimali, onChiudi, vasca = false }: 
           </View>
           {ind?.stimato ? <Nota testo={SPIEGA_STIMA} /> : null}
           {ind?.manca ? (
-            <Nota testo={ind.daTest ? `Questo esercizio è nel test dei massimali: fai il test e qui vedrai i tuoi chili. Oppure: ${SPIEGA_TARATURA.charAt(0).toLowerCase()}${SPIEGA_TARATURA.slice(1)}` : SPIEGA_TARATURA} />
+            <Nota
+              testo={
+                ind.daTest
+                  ? t(
+                      `Questo esercizio è nel test dei massimali: fai il test e qui vedrai i tuoi chili. Oppure: ${SPIEGA_TARATURA.charAt(0).toLowerCase()}${SPIEGA_TARATURA.slice(1)}`,
+                      `This exercise is part of the 1RM test: take the test and you’ll see your weights here. Or: ${SPIEGA_TARATURA.charAt(0).toLowerCase()}${SPIEGA_TARATURA.slice(1)}`,
+                    )
+                  : SPIEGA_TARATURA
+              }
+            />
           ) : null}
           {e.note ? <Nota testo={e.note} /> : null}
           {precedente && !vasca ? (
             <Text style={[stili.nota, { color: p.testoSecondario }]}>
-              <Text style={{ fontFamily: F.bold, color: p.testo }}>L’ultima volta: </Text>
+              <Text style={{ fontFamily: F.bold, color: p.testo }}>{t('L’ultima volta: ', 'Last time: ')}</Text>
               {serieInRiga(precedente.serie)}
             </Text>
           ) : null}
           {e.istruzioni.filter(Boolean).length ? (
             <View style={{ gap: spazio.due }}>
-              <Text style={[stili.titoletto, { color: p.testo }]}>Come si fa</Text>
-              {e.istruzioni.filter(Boolean).map((t, i) => (
+              <Text style={[stili.titoletto, { color: p.testo }]}>{t('Come si fa', 'How to do it')}</Text>
+              {e.istruzioni.filter(Boolean).map((riga, i) => (
                 <View key={i} style={{ flexDirection: 'row', gap: spazio.due }}>
                   <Text style={[stili.passo, { color: p.accento }]}>{i + 1}</Text>
-                  <Text style={[stili.nota, { color: p.testo, flex: 1 }]}>{t}</Text>
+                  <Text style={[stili.nota, { color: p.testo, flex: 1 }]}>{riga}</Text>
                 </View>
               ))}
             </View>
           ) : null}
           {e.errori_comuni?.filter(Boolean).length ? (
             <View style={{ gap: spazio.due }}>
-              <Text style={[stili.titoletto, { color: p.testo }]}>Da evitare</Text>
-              {e.errori_comuni.filter(Boolean).map((t, i) => (
+              <Text style={[stili.titoletto, { color: p.testo }]}>{t('Da evitare', 'What to avoid')}</Text>
+              {e.errori_comuni.filter(Boolean).map((riga, i) => (
                 <View key={i} style={{ flexDirection: 'row', gap: spazio.due }}>
                   <Text style={[stili.passo, { color: p.testoSecondario }]}>×</Text>
-                  <Text style={[stili.nota, { color: p.testo, flex: 1 }]}>{t}</Text>
+                  <Text style={[stili.nota, { color: p.testo, flex: 1 }]}>{riga}</Text>
                 </View>
               ))}
             </View>
@@ -155,11 +168,11 @@ export function Scheda() {
 
   if (!dati) {
     return (
-      <Schermata sopratitolo="Train" titolo="Piano" indietro="/allenamento" barra={false}>
+      <Schermata sopratitolo="Train" titolo={t('Piano', 'Plan')} indietro="/allenamento" barra={false}>
         {errore ? (
           <>
             <Messaggio>{errore}</Messaggio>
-            <Pulsante testo="Riprova" icona="aggiorna" onPress={carica} />
+            <Pulsante testo={t('Riprova', 'Try again')} icona="aggiorna" onPress={carica} />
           </>
         ) : (
           <SchedeInArrivo quante={2} />
@@ -206,12 +219,21 @@ export function Scheda() {
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
           {s.obiettivo ? <Tag testo={s.obiettivo} colore={p.accento} /> : null}
           {s.livello ? <Tag testo={LIVELLI[s.livello] ?? s.livello} colore={p.blu} /> : null}
-          {s.giorni_settimana ? <Tag testo={`${s.giorni_settimana} ${vasca ? (s.giorni_settimana === 1 ? 'seduta' : 'sedute') : s.giorni_settimana === 1 ? 'giorno' : 'giorni'} a settimana`} colore={p.testoSecondario} /> : null}
+          {s.giorni_settimana ? <Tag
+              testo={t(
+                `${s.giorni_settimana} ${vasca ? (s.giorni_settimana === 1 ? 'seduta' : 'sedute') : s.giorni_settimana === 1 ? 'giorno' : 'giorni'} a settimana`,
+                `${s.giorni_settimana} ${vasca ? (s.giorni_settimana === 1 ? 'session' : 'sessions') : s.giorni_settimana === 1 ? 'day' : 'days'} a week`,
+              )}
+              colore={p.testoSecondario}
+            /> : null}
         </View>
         {s.descrizione ? <Text style={[stili.nota, { color: p.testoSecondario }]}>{s.descrizione}</Text> : null}
         {s.tipo === 'socio' ? (
           <Text style={[stili.piccola, { color: p.testoTerzo }]}>
-            È un piano tuo, ma i trainer del club lo possono vedere dal pannello, per verificarlo e aiutarti a seguirlo. Non sostituisce il parere di un istruttore: con dolori o infortuni chiedi {vasca ? 'al tecnico a bordo vasca' : 'in sala'}.
+            {tv(
+              <>È un piano tuo, ma i trainer del club lo possono vedere dal pannello, per verificarlo e aiutarti a seguirlo. Non sostituisce il parere di un istruttore: con dolori o infortuni chiedi {vasca ? 'al tecnico a bordo vasca' : 'in sala'}.</>,
+              <>It’s your plan, but the club’s trainers can see it from their panel, to check it and help you follow it. It doesn’t replace an instructor’s advice: if you have pain or injuries, ask {vasca ? 'the coach at the poolside' : 'on the gym floor'}.</>,
+            )}
           </Text>
         ) : null}
       </View>
@@ -219,23 +241,26 @@ export function Scheda() {
       {s.tipo !== 'socio' ? (
         <Carta style={{ gap: spazio.tre }}>
           <View style={{ gap: 3 }}>
-            <Text style={[stili.titoletto, { color: p.testo }]}>{s.tipo === 'standard' ? 'Fallo tuo' : 'Fanne una copia tua'}</Text>
+            <Text style={[stili.titoletto, { color: p.testo }]}>{s.tipo === 'standard' ? t('Fallo tuo', 'Make it yours') : t('Fanne una copia tua', 'Make your own copy')}</Text>
             <Text style={[stili.nota, { color: p.testoSecondario }]}>
               {s.tipo === 'standard'
-                ? 'Aggiungilo ai tuoi piani così com’è, oppure cambia quello che vuoi prima di confermare. L’originale resta quello del club.'
-                : 'Puoi copiarlo fra i tuoi piani e cambiare quello che vuoi: l’originale resta com’è.'}
+                ? t(
+                    'Aggiungilo ai tuoi piani così com’è, oppure cambia quello che vuoi prima di confermare. L’originale resta quello del club.',
+                    'Add it to your plans as it is, or change what you like before confirming. The original stays the club’s.',
+                  )
+                : t('Puoi copiarlo fra i tuoi piani e cambiare quello che vuoi: l’originale resta com’è.', 'You can copy it to your plans and change what you like: the original stays as it is.')}
             </Text>
           </View>
           {erroreAggiungi ? <Messaggio>{erroreAggiungi}</Messaggio> : null}
           <View style={stili.azioniTue}>
             {s.tipo === 'standard' ? (
               <View style={{ flex: 1, minWidth: 160 }}>
-                <Pulsante testo="Aggiungi ai tuoi piani" icona="piu" piccolo inCorso={aggiungendo} onPress={aggiungi} />
+                <Pulsante testo={t('Aggiungi ai tuoi piani', 'Add to your plans')} icona="piu" piccolo inCorso={aggiungendo} onPress={aggiungi} />
               </View>
             ) : null}
             <View style={{ flex: 1, minWidth: 160 }}>
               <Pulsante
-                testo={s.tipo === 'standard' ? 'Modifica e aggiungi' : 'Modifica una copia'}
+                testo={s.tipo === 'standard' ? t('Modifica e aggiungi', 'Edit and add') : t('Modifica una copia', 'Edit a copy')}
                 icona="modifica"
                 variante="secondario"
                 piccolo
@@ -252,24 +277,40 @@ export function Scheda() {
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: spazio.due }}>
             <Icona nome={mancano.length ? 'grafico' : 'ok'} size={20} colore={mancano.length ? p.blu : p.ok} />
             <Text style={[stili.titoletto, { color: p.testo, flex: 1 }]}>
-              {mancano.length === inPercentuale.length ? 'I carichi sono in percentuale' : mancano.length ? 'Quasi tutti i carichi sono in chili' : 'I carichi sono i tuoi chili'}
+              {mancano.length === inPercentuale.length
+                ? t('I carichi sono in percentuale', 'Loads are in percentages')
+                : mancano.length
+                  ? t('Quasi tutti i carichi sono in chili', 'Most loads are in kilos')
+                  : t('I carichi sono i tuoi chili', 'Loads are your own kilos')}
             </Text>
           </View>
           <Text style={[stili.nota, { color: p.testoSecondario }]}>
             {mancano.length === inPercentuale.length
-              ? 'La percentuale è del tuo massimale, il peso più alto che sollevi per una ripetizione. Fai il test dei massimali (una quindicina di minuti): basta un esercizio per gli arti superiori, uno per il core e uno per gli arti inferiori, e qui al posto di tutte le percentuali vedrai i tuoi chili, arrotondati ai pesi della macchina.'
+              ? t(
+                  'La percentuale è del tuo massimale, il peso più alto che sollevi per una ripetizione. Fai il test dei massimali (una quindicina di minuti): basta un esercizio per gli arti superiori, uno per il core e uno per gli arti inferiori, e qui al posto di tutte le percentuali vedrai i tuoi chili, arrotondati ai pesi della macchina.',
+                  'The percentage is of your one-rep max, the heaviest weight you can lift for one rep. Take the 1RM test (about fifteen minutes): one exercise for the upper body, one for the core and one for the lower body is enough, and here, in place of all the percentages, you’ll see your own weights, rounded to the machine’s steps.',
+                )
               : mancano.length
-                ? `Calcolati sui tuoi massimali${dati.ultimoTest ? ` (test del ${giornoTest(dati.ultimoTest)})` : ''} e arrotondati ai pesi della macchina. Dove vedi ancora la percentuale manca il test di quel distretto (arti superiori, core o arti inferiori): fallo, oppure ${SPIEGA_TARATURA.charAt(0).toLowerCase()}${SPIEGA_TARATURA.slice(1)}`
-                : `Calcolati sui tuoi massimali${dati.ultimoTest ? ` (test del ${giornoTest(dati.ultimoTest)})` : ''} e arrotondati per difetto ai pesi della macchina.`}
+                ? t(
+                    `Calcolati sui tuoi massimali${dati.ultimoTest ? ` (test del ${giornoTest(dati.ultimoTest)})` : ''} e arrotondati ai pesi della macchina. Dove vedi ancora la percentuale manca il test di quel distretto (arti superiori, core o arti inferiori): fallo, oppure ${SPIEGA_TARATURA.charAt(0).toLowerCase()}${SPIEGA_TARATURA.slice(1)}`,
+                    `Worked out from your 1RMs${dati.ultimoTest ? ` (test on ${giornoTest(dati.ultimoTest)})` : ''} and rounded to the machine’s weights. Where you still see the percentage, the test for that area (upper body, core or lower body) is missing: take it, or ${SPIEGA_TARATURA.charAt(0).toLowerCase()}${SPIEGA_TARATURA.slice(1)}`,
+                  )
+                : t(
+                    `Calcolati sui tuoi massimali${dati.ultimoTest ? ` (test del ${giornoTest(dati.ultimoTest)})` : ''} e arrotondati per difetto ai pesi della macchina.`,
+                    `Worked out from your 1RMs${dati.ultimoTest ? ` (test on ${giornoTest(dati.ultimoTest)})` : ''} and rounded down to the machine’s weights.`,
+                  )}
             {stimati.length ? ` ${SPIEGA_STIMA}` : ''}
           </Text>
           {rifare ? (
-            <Messaggio tono="attenzione" titolo="È ora di rifare il test">
-              Sono passate più di {Math.round((s.livello === 'principiante' ? Math.min(28, dati.giorniTest) : dati.giorniTest) / 7)} settimane: rifallo e i chili seguono i tuoi progressi.
+            <Messaggio tono="attenzione" titolo={t('È ora di rifare il test', 'Time to retake the test')}>
+              {t(
+                `Sono passate più di ${Math.round((s.livello === 'principiante' ? Math.min(28, dati.giorniTest) : dati.giorniTest) / 7)} settimane: rifallo e i chili seguono i tuoi progressi.`,
+                `More than ${Math.round((s.livello === 'principiante' ? Math.min(28, dati.giorniTest) : dati.giorniTest) / 7)} weeks have passed: retake it and your weights follow your progress.`,
+              )}
             </Messaggio>
           ) : null}
           {!dati.ultimoTest || rifare ? (
-            <Pulsante testo={rifare ? 'Rifai il test' : 'Fai il test dei massimali'} icona="grafico" variante="secondario" onPress={() => router.push('/allenamento/test')} />
+            <Pulsante testo={rifare ? t('Rifai il test', 'Retake the test') : t('Fai il test dei massimali', 'Take the 1RM test')} icona="grafico" variante="secondario" onPress={() => router.push('/allenamento/test')} />
           ) : null}
         </Carta>
       ) : null}
@@ -289,7 +330,12 @@ export function Scheda() {
               >
                 <Text style={{ color: attivo ? '#fff' : p.testo, fontFamily: attivo ? F.extra : F.semi, fontSize: 14 }}>{x.nome}</Text>
                 <Text style={{ color: attivo ? 'rgba(255,255,255,0.85)' : p.testoTerzo, fontFamily: F.semi, fontSize: 11.5 }}>
-                  {vasca && metriDelGiorno(x) > 0 ? inMetri(metriDelGiorno(x)) : `${x.esercizi.length} ${x.esercizi.length === 1 ? (vasca ? 'blocco' : 'esercizio') : vasca ? 'blocchi' : 'esercizi'}`}
+                  {vasca && metriDelGiorno(x) > 0
+                    ? inMetri(metriDelGiorno(x))
+                    : t(
+                        `${x.esercizi.length} ${x.esercizi.length === 1 ? (vasca ? 'blocco' : 'esercizio') : vasca ? 'blocchi' : 'esercizi'}`,
+                        `${x.esercizi.length} ${x.esercizi.length === 1 ? (vasca ? 'block' : 'exercise') : vasca ? 'blocks' : 'exercises'}`,
+                      )}
                 </Text>
               </Tocco>
             )
@@ -302,7 +348,7 @@ export function Scheda() {
       {vasca ? (
         <View style={{ gap: 2 }}>
           {giornoDelPercorso ? <Text style={[stili.titoletto, { color: p.accento }]}>{COSA_FAI_IN_VASCA}</Text> : null}
-          <Text style={[stili.nota, { color: p.testoSecondario }]}>{`${g.nome}${metriDelGiorno(g) > 0 ? ` · ${inMetri(metriDelGiorno(g))}` : ''} · ${g.esercizi.length} ${g.esercizi.length === 1 ? 'blocco' : 'blocchi'}`}</Text>
+          <Text style={[stili.nota, { color: p.testoSecondario }]}>{`${g.nome}${metriDelGiorno(g) > 0 ? ` · ${inMetri(metriDelGiorno(g))}` : ''} · ${g.esercizi.length} ${g.esercizi.length === 1 ? t('blocco', 'block') : t('blocchi', 'blocks')}`}</Text>
         </View>
       ) : null}
 
@@ -314,14 +360,14 @@ export function Scheda() {
           const parte = vasca ? parteDa(e.note) : null
           return (
             <Entra key={e.id} indice={i}>
-              <Tocco onPress={() => setAperto(e)} etichetta={`${e.nome}: come si fa`} scala={0.985}>
+              <Tocco onPress={() => setAperto(e)} etichetta={t(`${e.nome}: come si fa`, `${e.nome}: how to do it`)} scala={0.985}>
                 <Carta style={[stili.esercizio, e.superserie ? { borderLeftWidth: 4, borderLeftColor: p.accento } : null]}>
                   <MediaEsercizio immagini={e.immagini} video={e.video} style={stili.media} ferma />
                   <View style={{ flex: 1, gap: 4 }}>
                     {e.superserie ? (
-                      <Text style={[stili.superserie, { color: p.accento }]}>{`SUPERSERIE ${e.superserie}${gr.length > 1 ? ` · ${gr.indexOf(i) + 1} di ${gr.length}` : ''}`}</Text>
+                      <Text style={[stili.superserie, { color: p.accento }]}>{t(`SUPERSERIE ${e.superserie}${gr.length > 1 ? ` · ${gr.indexOf(i) + 1} di ${gr.length}` : ''}`, `SUPERSET ${e.superserie}${gr.length > 1 ? ` · ${gr.indexOf(i) + 1} of ${gr.length}` : ''}`)}</Text>
                     ) : null}
-                    {parte?.parte ? <Text style={[stili.parte, { color: p.accento }]}>{parte.parte.toUpperCase()}</Text> : null}
+                    {parte?.parte ? <Text style={[stili.parte, { color: p.accento }]}>{nomeParte(parte.parte).toUpperCase()}</Text> : null}
                     <Text style={[stili.nome, { color: p.testo }]} numberOfLines={2}>
                       {e.nome}
                     </Text>
@@ -332,12 +378,15 @@ export function Scheda() {
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
                       <Icona nome="cronometro" size={13} colore={p.testoSecondario} />
                       <Text style={[stili.piccola, { color: p.testoSecondario }]}>
-                        {`Recupero ${recupero(e.recupero_serie)}${e.recupero_dopo !== e.recupero_serie ? ` · poi ${recupero(e.recupero_dopo)}` : ''}`}
+                        {t(
+                          `Recupero ${recupero(e.recupero_serie)}${e.recupero_dopo !== e.recupero_serie ? ` · poi ${recupero(e.recupero_dopo)}` : ''}`,
+                          `Rest ${recupero(e.recupero_serie)}${e.recupero_dopo !== e.recupero_serie ? ` · then ${recupero(e.recupero_dopo)}` : ''}`,
+                        )}
                       </Text>
                     </View>
                     {prec ? (
                       <Text style={[stili.piccola, { color: p.testoTerzo }]} numberOfLines={1}>
-                        {`Ultima volta: ${serieInRiga(prec.serie)}`}
+                        {t(`Ultima volta: ${serieInRiga(prec.serie)}`, `Last time: ${serieInRiga(prec.serie)}`)}
                       </Text>
                     ) : null}
                     {parte?.resto ? (
@@ -360,7 +409,7 @@ export function Scheda() {
           <CalorieScheda scheda={s} giorno={Math.min(giorno, s.giorni.length - 1)} />
 
           <Pulsante
-            testo={`Inizia l’allenamento · ${g.nome}`}
+            testo={t(`Inizia l’allenamento · ${g.nome}`, `Start workout · ${g.nome}`)}
             icona="play"
             onPress={() => router.push({ pathname: '/allenamento/[scheda]/[giorno]', params: { scheda: s.id, giorno: g.id } })}
           />
@@ -370,10 +419,10 @@ export function Scheda() {
       {s.tipo === 'socio' ? (
         <View style={stili.azioniTue}>
           <View style={{ flex: 1, minWidth: 160 }}>
-            <Pulsante testo="Modifica il piano" icona="modifica" variante="secondario" piccolo onPress={() => router.push({ pathname: '/allenamento/nuova', params: { id: s.id } })} />
+            <Pulsante testo={t('Modifica il piano', 'Edit the plan')} icona="modifica" variante="secondario" piccolo onPress={() => router.push({ pathname: '/allenamento/nuova', params: { id: s.id } })} />
           </View>
           <View style={{ flex: 1, minWidth: 160 }}>
-            <Pulsante testo="Elimina il piano" icona="cestino" variante="pericolo" piccolo onPress={() => setConfermo(true)} />
+            <Pulsante testo={t('Elimina il piano', 'Delete the plan')} icona="cestino" variante="pericolo" piccolo onPress={() => setConfermo(true)} />
           </View>
         </View>
       ) : null}
@@ -381,19 +430,28 @@ export function Scheda() {
       {/* La postilla (20/10/2026): che il piano sia stato composto con un'intelligenza artificiale si dice qui, in fondo e in piccolo; non sul titolo né sulla carta. */}
       {s.origine === 'ai' || s.tipo === 'ai' ? (
         <Text style={[stili.piccola, { color: p.testoTerzo, textAlign: 'center' }]}>
-          Piano composto con il supporto di un’intelligenza artificiale sulle tue risposte
-          {s.tipo === 'ai' ? (s.rivista_il ? ' e rivisto da un trainer del club' : ': un trainer del club lo rivede nei prossimi giorni') : ''}. Può contenere imprecisioni e non sostituisce il parere di un istruttore: con
-          dolori o infortuni chiedi {vasca ? 'al tecnico a bordo vasca' : 'in sala'}.
+          {tv(
+            <>
+              Piano composto con il supporto di un’intelligenza artificiale sulle tue risposte
+              {s.tipo === 'ai' ? (s.rivista_il ? ' e rivisto da un trainer del club' : ': un trainer del club lo rivede nei prossimi giorni') : ''}. Può contenere imprecisioni e non sostituisce il parere di un istruttore: con
+              dolori o infortuni chiedi {vasca ? 'al tecnico a bordo vasca' : 'in sala'}.
+            </>,
+            <>
+              Plan built with the help of artificial intelligence from your answers
+              {s.tipo === 'ai' ? (s.rivista_il ? ' and reviewed by a club trainer' : ': a club trainer will review it in the coming days') : ''}. It may contain inaccuracies and doesn’t replace an instructor’s advice: if you
+              have pain or injuries, ask {vasca ? 'the coach at the poolside' : 'on the gym floor'}.
+            </>,
+          )}
         </Text>
       ) : null}
 
-      <Foglio aperto={confermo} titolo="Eliminare il piano?" onChiudi={() => !eliminando && setConfermo(false)}>
+      <Foglio aperto={confermo} titolo={t('Eliminare il piano?', 'Delete the plan?')} onChiudi={() => !eliminando && setConfermo(false)}>
         <Text style={[stili.nota, { color: p.testoSecondario }]}>
-          {`«${s.titolo}» sparisce dal tuo elenco. Gli allenamenti che hai già registrato restano nello storico.`}
+          {t(`«${s.titolo}» sparisce dal tuo elenco. Gli allenamenti che hai già registrato restano nello storico.`, `“${s.titolo}” will disappear from your list. The workouts you’ve already logged stay in your history.`)}
         </Text>
         {erroreElimina ? <Messaggio>{erroreElimina}</Messaggio> : null}
-        <Pulsante testo="Elimina il piano" icona="cestino" variante="pericolo" inCorso={eliminando} onPress={elimina} />
-        <Pulsante testo="Annulla" variante="secondario" disabilitato={eliminando} onPress={() => setConfermo(false)} />
+        <Pulsante testo={t('Elimina il piano', 'Delete the plan')} icona="cestino" variante="pericolo" inCorso={eliminando} onPress={elimina} />
+        <Pulsante testo={t('Annulla', 'Cancel')} variante="secondario" disabilitato={eliminando} onPress={() => setConfermo(false)} />
       </Foglio>
 
       <FoglioEsercizio e={aperto} precedente={aperto ? precedente(aperto.esercizio_id) : undefined} massimali={massimali} onChiudi={() => setAperto(null)} vasca={vasca} />

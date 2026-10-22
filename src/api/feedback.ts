@@ -2,6 +2,7 @@ import { Platform } from 'react-native'
 
 import { funzione } from '@/api/lab'
 import { schermataDa, type Allegato, type TipoFeedback } from '@/features/lab/feedback/comune'
+import { t } from '@/lib/lingua'
 
 // Il feedback dei tester (20/10/2026): il messaggio del pulsante «Feedback», con gli allegati, alla funzione
 // `portale-lab-feedback` (APP-ATHLON). Arriva nella sezione Tester del CRM; qui non si legge niente: l'app non
@@ -12,8 +13,8 @@ import { schermataDa, type Allegato, type TipoFeedback } from '@/features/lab/fe
 
 export type EsitoFeedback = { ok: true } | { ok: false; errore: string }
 
-const GUASTO = 'Non siamo riusciti a inviare il messaggio adesso. Riprova fra qualche minuto.'
-const NON_ATTIVO = 'Il feedback non è ancora attivo: riprova fra qualche giorno. Nel frattempo scrivi pure a chi ti ha invitato come tester.'
+const GUASTO = t('Non siamo riusciti a inviare il messaggio adesso. Riprova fra qualche minuto.', 'We couldn’t send the message right now. Try again in a few minutes.')
+const NON_ATTIVO = t('Il feedback non è ancora attivo: riprova fra qualche giorno. Nel frattempo scrivi pure a chi ti ha invitato come tester.', 'Feedback isn’t active yet: try again in a few days. In the meantime, feel free to write to whoever invited you as a tester.')
 
 function piattaforma(): 'web' | 'ios' | 'android' {
   return Platform.OS === 'ios' ? 'ios' : Platform.OS === 'android' ? 'android' : 'web'

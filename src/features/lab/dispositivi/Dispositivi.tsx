@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Linking, Platform, StyleSheet, Text, View } from 'react-native'
 
 import { aggiornaDispositivi, collega, completaCollegamento, revocaConsensoDispositivi, scollega, type Collegamento, type Fornitore, type IdFornitore } from '@/api/dispositivi'
+import { t } from '@/lib/lingua'
 import { spazio } from '@/theme'
 
 import { Icona } from '../ui/Icona'
@@ -50,7 +51,7 @@ export function Dispositivi() {
     // (un replace la rifarebbe da capo e l'avviso del risultato andrebbe perso).
     router.setParams({ code: undefined, state: undefined, error: undefined, error_description: undefined, scope: undefined })
     if (!code) {
-      setAvviso({ tono: 'attenzione', testo: 'Il collegamento è stato annullato: non abbiamo letto nessun dato.' })
+      setAvviso({ tono: 'attenzione', testo: t('Il collegamento è stato annullato: non abbiamo letto nessun dato.', 'The connection was canceled: we haven’t read any data.') })
       return
     }
     setCompletando(true)
@@ -58,7 +59,7 @@ export function Dispositivi() {
       setCompletando(false)
       if (r.ok) {
         d.imposta(r)
-        setAvviso({ tono: 'ok', testo: `${FORNITORI[r.fornitore].nome} collegato. I primi dati sono già qui.` })
+        setAvviso({ tono: 'ok', testo: t(`${FORNITORI[r.fornitore].nome} collegato. I primi dati sono già qui.`, `${FORNITORI[r.fornitore].nome} connected. The first data is already here.`) })
       } else {
         setAvviso({ tono: 'errore', testo: r.errore })
         d.rileggi()
@@ -68,14 +69,14 @@ export function Dispositivi() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [d.vista, params.code, params.state, params.error])
 
-  const testata = { sopratitolo: 'Relax', titolo: 'I tuoi dispositivi', indietro: '/allenamento?area=relax' as const, barra: false as const }
+  const testata = { sopratitolo: 'Relax', titolo: t('I tuoi dispositivi', 'Your devices'), indietro: '/allenamento?area=relax' as const, barra: false as const }
   const stato = d.stato
 
   if (d.vista) {
     return (
       <Schermata {...testata}>
-        <Messaggio tono="attenzione" titolo="Non visibile nella vista cliente">
-          I dispositivi contengono dati sulla salute: li vede solo il socio, dalla sua app.
+        <Messaggio tono="attenzione" titolo={t('Non visibile nella vista cliente', 'Not visible in client view')}>
+          {t('I dispositivi contengono dati sulla salute: li vede solo il socio, dalla sua app.', 'Devices contain health data: only the member can see it, from their own app.')}
         </Messaggio>
       </Schermata>
     )
@@ -83,7 +84,7 @@ export function Dispositivi() {
   if (!stato) {
     return (
       <Schermata {...testata}>
-        {completando ? <Messaggio tono="attenzione">Stiamo completando il collegamento…</Messaggio> : null}
+        {completando ? <Messaggio tono="attenzione">{t('Stiamo completando il collegamento…', 'Completing the connection…')}</Messaggio> : null}
         <SchedeInArrivo quante={2} />
       </Schermata>
     )
@@ -92,7 +93,7 @@ export function Dispositivi() {
     return (
       <Schermata {...testata}>
         <Messaggio>{stato.errore}</Messaggio>
-        <Pulsante testo="Riprova" variante="secondario" onPress={d.rileggi} />
+        <Pulsante testo={t('Riprova', 'Try again')} variante="secondario" onPress={d.rileggi} />
       </Schermata>
     )
   }
@@ -109,7 +110,7 @@ export function Dispositivi() {
   }
   return (
     <Schermata {...testata}>
-      {completando ? <Messaggio tono="attenzione">Stiamo completando il collegamento…</Messaggio> : null}
+      {completando ? <Messaggio tono="attenzione">{t('Stiamo completando il collegamento…', 'Completing the connection…')}</Messaggio> : null}
       {avviso ? <Messaggio tono={avviso.tono}>{avviso.testo}</Messaggio> : null}
       <Gestione d={d} fornitori={stato.fornitori} collegamenti={stato.collegamenti} onRevocato={() => setAvviso(null)} />
     </Schermata>
@@ -121,8 +122,8 @@ function Minorenni({ testata }: { testata: { sopratitolo: string; titolo: string
   return (
     <Schermata {...testata}>
       <Carta style={{ gap: spazio.due }}>
-        <Text style={[stili.titoletto, { color: p.testo }]}>Una sezione per i maggiorenni</Text>
-        <Text style={[stili.nota, { color: p.testoSecondario }]}>I dispositivi sono pensati per gli adulti. Se nella tua scheda del club manca la data di nascita, chiedi al desk di aggiungerla.</Text>
+        <Text style={[stili.titoletto, { color: p.testo }]}>{t('Una sezione per i maggiorenni', 'A section for adults')}</Text>
+        <Text style={[stili.nota, { color: p.testoSecondario }]}>{t('I dispositivi sono pensati per gli adulti. Se nella tua scheda del club manca la data di nascita, chiedi al desk di aggiungerla.', 'Devices are designed for adults. If your date of birth is missing from your club profile, ask the front desk to add it.')}</Text>
       </Carta>
     </Schermata>
   )
@@ -150,7 +151,10 @@ function Gestione({ d, fornitori, collegamenti, onRevocato }: { d: DatiDispositi
   return (
     <>
       <Text style={[stili.nota, { color: p.testoSecondario, paddingHorizontal: 2 }]}>
-        Collega il tuo anello o il tuo orologio: i dati compaiono in Relax, e si aggiornano da soli quando il dispositivo ha sincronizzato col telefono. Senza un dispositivo il sonno lo scrivi tu, da Relax.
+        {t(
+          'Collega il tuo anello o il tuo orologio: i dati compaiono in Relax, e si aggiornano da soli quando il dispositivo ha sincronizzato col telefono. Senza un dispositivo il sonno lo scrivi tu, da Relax.',
+          'Connect your ring or watch: the data shows up in Relax, and updates by itself when the device has synced with your phone. Without a device you log your sleep yourself, from Relax.',
+        )}
       </Text>
       {errore ? <Messaggio>{errore}</Messaggio> : null}
       <View style={{ gap: spazio.tre }}>
@@ -161,27 +165,33 @@ function Gestione({ d, fornitori, collegamenti, onRevocato }: { d: DatiDispositi
         ))}
       </View>
 
-      <Sezione titolo="I tuoi dati">
+      <Sezione titolo={t('I tuoi dati', 'Your data')}>
         <Carta style={{ gap: spazio.tre }}>
           <Text style={[stili.nota, { color: p.testoSecondario }]}>
-            Li vedi solo tu, nemmeno lo staff. Teniamo gli ultimi 90 giorni; se scolleghi un dispositivo cancelliamo subito i suoi dati. Il sonno che scrivi tu si cancella con la revoca.
+            {t(
+              'Li vedi solo tu, nemmeno lo staff. Teniamo gli ultimi 90 giorni; se scolleghi un dispositivo cancelliamo subito i suoi dati. Il sonno che scrivi tu si cancella con la revoca.',
+              'Only you see it, not even staff. We keep the last 90 days; if you disconnect a device we delete its data straight away. The sleep you log yourself is deleted when you withdraw consent.',
+            )}
           </Text>
-          <Tocco onPress={() => setInformativa(true)} etichetta="Leggi l’informativa" ruolo="link" style={{ alignSelf: 'flex-start' }}>
-            <Text style={[stili.link, { color: p.accento }]}>Leggi l’informativa</Text>
+          <Tocco onPress={() => setInformativa(true)} etichetta={t('Leggi l’informativa', 'Read the privacy notice')} ruolo="link" style={{ alignSelf: 'flex-start' }}>
+            <Text style={[stili.link, { color: p.accento }]}>{t('Leggi l’informativa', 'Read the privacy notice')}</Text>
           </Tocco>
           {revoca === 'no' ? (
-            <Pulsante testo="Revoca il consenso e cancella i dati" variante="pericolo" onPress={() => setRevoca('chiedi')} />
+            <Pulsante testo={t('Revoca il consenso e cancella i dati', 'Withdraw consent and delete data')} variante="pericolo" onPress={() => setRevoca('chiedi')} />
           ) : (
             <View style={{ gap: spazio.due }}>
               <Text style={[stili.nota, { color: p.testo }]}>
-                Scolleghiamo tutti i dispositivi e cancelliamo subito i loro dati, e la sezione si richiude. Resta solo la registrazione del consenso e della revoca.
+                {t(
+                  'Scolleghiamo tutti i dispositivi e cancelliamo subito i loro dati, e la sezione si richiude. Resta solo la registrazione del consenso e della revoca.',
+                  'We disconnect all devices and delete their data straight away, and the section closes again. Only the record of your consent and its withdrawal is kept.',
+                )}
               </Text>
               <View style={stili.azioni}>
                 <View style={{ flex: 1 }}>
-                  <Pulsante testo="Annulla" variante="secondario" piccolo onPress={() => setRevoca('no')} />
+                  <Pulsante testo={t('Annulla', 'Cancel')} variante="secondario" piccolo onPress={() => setRevoca('no')} />
                 </View>
                 <View style={{ flex: 1 }}>
-                  <Pulsante testo="Revoca e cancella" variante="pericolo" piccolo inCorso={revoca === 'in-corso'} onPress={revocaTutto} />
+                  <Pulsante testo={t('Revoca e cancella', 'Withdraw and delete')} variante="pericolo" piccolo inCorso={revoca === 'in-corso'} onPress={revocaTutto} />
                 </View>
               </View>
             </View>
@@ -243,48 +253,48 @@ function CartaFornitore({ f, collegamento, d, onErrore }: { f: Fornitore; colleg
           <Text style={[stili.nota, { color: p.testoSecondario }]}>{info.cosa}</Text>
         </View>
         {!f.disponibile ? (
-          <Etichetta testo="Non ancora attivo" />
+          <Etichetta testo={t('Non ancora attivo', 'Not available yet')} />
         ) : riautorizza ? (
-          <Etichetta testo="Da ricollegare" tono="attenzione" />
+          <Etichetta testo={t('Da ricollegare', 'To reconnect')} tono="attenzione" />
         ) : collegamento ? (
-          <Etichetta testo="Collegato" tono="ok" icona="ok" />
+          <Etichetta testo={t('Collegato', 'Connected')} tono="ok" icona="ok" />
         ) : (
-          <Etichetta testo="Non collegato" />
+          <Etichetta testo={t('Non collegato', 'Not connected')} />
         )}
       </View>
       <Text style={[stili.nota, { color: p.testoSecondario }]}>{info.testo}</Text>
 
       {collegamento && !riautorizza ? (
         <Text style={[stili.piccola, { color: p.testoTerzo }]}>
-          {collegamento.ultimo_sync_il ? `Ultima lettura ${dopo(collegamento.ultimo_sync_il)}.` : 'Non abbiamo ancora letto niente.'}
+          {collegamento.ultimo_sync_il ? t(`Ultima lettura ${dopo(collegamento.ultimo_sync_il)}.`, `Last read ${dopo(collegamento.ultimo_sync_il)}.`) : t('Non abbiamo ancora letto niente.', 'We haven’t read anything yet.')}
           {collegamento.ultimo_errore ? ` ${collegamento.ultimo_errore}` : ''}
         </Text>
       ) : null}
       {riautorizza ? (
-        <Messaggio tono="attenzione">{collegamento?.ultimo_errore ?? 'Il dispositivo ha tolto l’accesso: collegalo di nuovo.'}</Messaggio>
+        <Messaggio tono="attenzione">{collegamento?.ultimo_errore ?? t('Il dispositivo ha tolto l’accesso: collegalo di nuovo.', 'The device removed access: connect it again.')}</Messaggio>
       ) : null}
 
       {fase === 'chiedi' || fase === 'scollega' ? (
         <View style={{ gap: spazio.due }}>
-          <Text style={[stili.nota, { color: p.testo }]}>{`Togliamo il permesso a ${info.nome} e cancelliamo subito i dati letti da lì.`}</Text>
+          <Text style={[stili.nota, { color: p.testo }]}>{t(`Togliamo il permesso a ${info.nome} e cancelliamo subito i dati letti da lì.`, `We remove ${info.nome}’s permission and delete the data read from it straight away.`)}</Text>
           <View style={stili.azioni}>
             <View style={{ flex: 1 }}>
-              <Pulsante testo="Annulla" variante="secondario" piccolo onPress={() => setFase('no')} />
+              <Pulsante testo={t('Annulla', 'Cancel')} variante="secondario" piccolo onPress={() => setFase('no')} />
             </View>
             <View style={{ flex: 1 }}>
-              <Pulsante testo="Scollega" variante="pericolo" piccolo inCorso={fase === 'scollega'} onPress={scollegaOra} />
+              <Pulsante testo={t('Scollega', 'Disconnect')} variante="pericolo" piccolo inCorso={fase === 'scollega'} onPress={scollegaOra} />
             </View>
           </View>
         </View>
       ) : !collegamento || riautorizza ? (
-        <Pulsante testo={riautorizza ? `Ricollega ${info.nome}` : `Collega ${info.nome}`} icona="avanti" disabilitato={!f.disponibile} inCorso={fase === 'collega'} onPress={collegaOra} />
+        <Pulsante testo={riautorizza ? t(`Ricollega ${info.nome}`, `Reconnect ${info.nome}`) : t(`Collega ${info.nome}`, `Connect ${info.nome}`)} icona="avanti" disabilitato={!f.disponibile} inCorso={fase === 'collega'} onPress={collegaOra} />
       ) : (
         <View style={stili.azioni}>
           <View style={{ flex: 1 }}>
-            <Pulsante testo="Aggiorna ora" icona="aggiorna" variante="secondario" piccolo inCorso={fase === 'aggiorna'} onPress={aggiorna} />
+            <Pulsante testo={t('Aggiorna ora', 'Refresh now')} icona="aggiorna" variante="secondario" piccolo inCorso={fase === 'aggiorna'} onPress={aggiorna} />
           </View>
           <View style={{ flex: 1 }}>
-            <Pulsante testo="Scollega" variante="contorno" piccolo onPress={() => setFase('chiedi')} />
+            <Pulsante testo={t('Scollega', 'Disconnect')} variante="contorno" piccolo onPress={() => setFase('chiedi')} />
           </View>
         </View>
       )}

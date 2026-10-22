@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { StyleSheet, Text, View } from 'react-native'
 
 import { daiConsensoCorpo, revocaConsensoCorpo, type ConsensoCorpo as Consenso } from '@/api/lab'
+import { t } from '@/lib/lingua'
 import { spazio } from '@/theme'
 
 import { Foglio } from '../ui/Foglio'
@@ -21,22 +22,22 @@ import { CONSENSO_CORPO, INFORMATIVA_CORPO, VERSIONE_INFORMATIVA_CORPO } from '.
 // Il testo e la versione sono in informativaCorpo.ts; la versione e' la stessa della funzione.
 
 const GARANZIE: { icona: NomeIcona; testo: string }[] = [
-  { icona: 'lucchetto', testo: 'Le vedi solo tu: dall’app nemmeno lo staff del club.' },
-  { icona: 'scudo', testo: 'Servono solo alle stime e all’andamento: non entrano nel punteggio né nei livelli.' },
-  { icona: 'cestino', testo: 'Ritiri il consenso quando vuoi, e cancelliamo subito le misure che hai scritto.' },
+  { icona: 'lucchetto', testo: t('Le vedi solo tu: dall’app nemmeno lo staff del club.', 'Only you see them: not even club staff can from the app.') },
+  { icona: 'scudo', testo: t('Servono solo alle stime e all’andamento: non entrano nel punteggio né nei livelli.', 'They’re only used for estimates and trends: they don’t go into the score or the levels.') },
+  { icona: 'cestino', testo: t('Ritiri il consenso quando vuoi, e cancelliamo subito le misure che hai scritto.', 'Withdraw consent whenever you like, and we delete the measurements you wrote straight away.') },
 ]
 
 function TestoInformativa({ aperta, onChiudi }: { aperta: boolean; onChiudi: () => void }) {
   const p = usePalette()
   return (
-    <Foglio aperto={aperta} titolo="Informativa: Il tuo corpo" sottotitolo={`Versione del ${VERSIONE_INFORMATIVA_CORPO.split('-').reverse().join('/')}`} onChiudi={onChiudi}>
+    <Foglio aperto={aperta} titolo={t('Informativa: Il tuo corpo', 'Privacy notice: Your body')} sottotitolo={t(`Versione del ${VERSIONE_INFORMATIVA_CORPO.split('-').reverse().join('/')}`, `Version of ${VERSIONE_INFORMATIVA_CORPO.split('-').reverse().join('/')}`)} onChiudi={onChiudi}>
       {INFORMATIVA_CORPO.map((s) => (
         <View key={s.titolo} style={{ gap: 4 }}>
           <Text style={[stili.titoletto, { color: p.testo }]}>{s.titolo}</Text>
           <Text style={[stili.testo, { color: p.testoSecondario }]}>{s.testo}</Text>
         </View>
       ))}
-      <Pulsante testo="Ho letto" variante="secondario" onPress={onChiudi} />
+      <Pulsante testo={t('Ho letto', 'Got it')} variante="secondario" onPress={onChiudi} />
     </Foglio>
   )
 }
@@ -65,9 +66,12 @@ export function ConsensoCorpo({ onConsenso }: { onConsenso: () => void }) {
           <View style={[stili.bollo, { backgroundColor: velo(p, 'accento') }]}>
             <Icona nome="persona" size={30} colore={p.accento} />
           </View>
-          <Text style={[stili.titolo, { color: p.testo }]}>Il tuo corpo, con il tuo consenso</Text>
+          <Text style={[stili.titolo, { color: p.testo }]}>{t('Il tuo corpo, con il tuo consenso', 'Your body, with your consent')}</Text>
           <Text style={[stili.testo, { color: p.testoSecondario }]}>
-            Altezza, peso, BMI, circonferenze e massa grassa sono dati sulla salute: per segnarli e usarli ci serve il tuo consenso, che puoi ritirare quando vuoi. Senza, le stime delle calorie e dei carichi che dipendono da peso e altezza non sono disponibili; il resto dell’app funziona.
+            {t(
+              'Altezza, peso, BMI, circonferenze e massa grassa sono dati sulla salute: per segnarli e usarli ci serve il tuo consenso, che puoi ritirare quando vuoi. Senza, le stime delle calorie e dei carichi che dipendono da peso e altezza non sono disponibili; il resto dell’app funziona.',
+              'Height, weight, BMI, body measurements and body fat are health data: to log and use them we need your consent, which you can withdraw whenever you like. Without it, the calorie and load estimates based on weight and height aren’t available; the rest of the app works.',
+            )}
           </Text>
           <View style={{ gap: spazio.due }}>
             {GARANZIE.map((g) => (
@@ -77,8 +81,8 @@ export function ConsensoCorpo({ onConsenso }: { onConsenso: () => void }) {
               </View>
             ))}
           </View>
-          <Tocco onPress={() => setAperta(true)} etichetta="Leggi l’informativa completa" ruolo="link" style={{ alignSelf: 'flex-start' }}>
-            <Text style={[stili.link, { color: p.accento }]}>Leggi l’informativa completa</Text>
+          <Tocco onPress={() => setAperta(true)} etichetta={t('Leggi l’informativa completa', 'Read the full privacy notice')} ruolo="link" style={{ alignSelf: 'flex-start' }}>
+            <Text style={[stili.link, { color: p.accento }]}>{t('Leggi l’informativa completa', 'Read the full privacy notice')}</Text>
           </Tocco>
           <Tocco onPress={() => setSpunta((v) => !v)} vibra="scelta" ruolo="checkbox" stato={{ selected: spunta }} etichetta={CONSENSO_CORPO} scala={0.99}>
             <View style={[stili.spunta, { backgroundColor: p.incavo }]}>
@@ -89,7 +93,7 @@ export function ConsensoCorpo({ onConsenso }: { onConsenso: () => void }) {
             </View>
           </Tocco>
           {errore ? <Messaggio>{errore}</Messaggio> : null}
-          <Pulsante testo="Attiva «Il tuo corpo»" icona="avanti" onPress={attiva} disabilitato={!spunta} inCorso={inCorso} />
+          <Pulsante testo={t('Attiva «Il tuo corpo»', 'Turn on “Your body”')} icona="avanti" onPress={attiva} disabilitato={!spunta} inCorso={inCorso} />
         </Carta>
       </Entra>
       <TestoInformativa aperta={aperta} onChiudi={() => setAperta(false)} />
@@ -117,28 +121,34 @@ export function ImpostazioniCorpo({ consenso, onRevocato }: { consenso: Consenso
 
   return (
     <>
-      <Sezione titolo="Il tuo consenso">
+      <Sezione titolo={t('Il tuo consenso', 'Your consent')}>
         <Carta style={{ gap: spazio.due }}>
           <Text style={[stili.testo, { color: p.testoSecondario }]}>
-            {`Hai dato il consenso il ${dataCorta(consenso.accettato_il.slice(0, 10))}. Le misure e il sesso che hai scritto restano finché non li togli o non ritiri il consenso.`}
+            {t(
+              `Hai dato il consenso il ${dataCorta(consenso.accettato_il.slice(0, 10))}. Le misure e il sesso che hai scritto restano finché non li togli o non ritiri il consenso.`,
+              `You gave consent on ${dataCorta(consenso.accettato_il.slice(0, 10))}. The measurements and sex you wrote stay until you remove them or withdraw consent.`,
+            )}
           </Text>
-          <Tocco onPress={() => setAperta(true)} etichetta="Leggi l’informativa completa" ruolo="link" style={{ alignSelf: 'flex-start' }}>
-            <Text style={[stili.link, { color: p.accento }]}>Leggi l’informativa</Text>
+          <Tocco onPress={() => setAperta(true)} etichetta={t('Leggi l’informativa completa', 'Read the full privacy notice')} ruolo="link" style={{ alignSelf: 'flex-start' }}>
+            <Text style={[stili.link, { color: p.accento }]}>{t('Leggi l’informativa', 'Read the privacy notice')}</Text>
           </Tocco>
           {errore ? <Messaggio>{errore}</Messaggio> : null}
           {revoca === 'no' ? (
-            <Pulsante testo="Ritira il consenso e cancella le misure" variante="pericolo" onPress={() => setRevoca('chiedi')} />
+            <Pulsante testo={t('Ritira il consenso e cancella le misure', 'Withdraw consent and delete measurements')} variante="pericolo" onPress={() => setRevoca('chiedi')} />
           ) : (
             <View style={{ gap: spazio.due }}>
               <Text style={[stili.testo, { color: p.testo }]}>
-                Cancelliamo subito le misure e il sesso che hai scritto, e la pagina si richiude. Le stime che dipendono da peso e altezza non saranno più disponibili. Resta solo la registrazione del consenso e della revoca.
+                {t(
+                  'Cancelliamo subito le misure e il sesso che hai scritto, e la pagina si richiude. Le stime che dipendono da peso e altezza non saranno più disponibili. Resta solo la registrazione del consenso e della revoca.',
+                  'We delete the measurements and sex you wrote straight away, and the page closes again. Estimates based on weight and height will no longer be available. Only the record of your consent and its withdrawal is kept.',
+                )}
               </Text>
               <View style={stili.azioni}>
                 <View style={{ flex: 1 }}>
-                  <Pulsante testo="Annulla" variante="secondario" piccolo onPress={() => setRevoca('no')} disabilitato={revoca === 'in-corso'} />
+                  <Pulsante testo={t('Annulla', 'Cancel')} variante="secondario" piccolo onPress={() => setRevoca('no')} disabilitato={revoca === 'in-corso'} />
                 </View>
                 <View style={{ flex: 1 }}>
-                  <Pulsante testo="Ritira e cancella" variante="pericolo" piccolo inCorso={revoca === 'in-corso'} onPress={ritira} />
+                  <Pulsante testo={t('Ritira e cancella', 'Withdraw and delete')} variante="pericolo" piccolo inCorso={revoca === 'in-corso'} onPress={ritira} />
                 </View>
               </View>
             </View>

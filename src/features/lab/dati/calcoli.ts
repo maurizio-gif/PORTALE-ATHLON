@@ -1,5 +1,6 @@
 import type { Misura } from '@/api/lab'
 
+import { locale, t } from '../../../lib/lingua'
 import type { ToniTutti } from '../ui/tema'
 
 // I dati del corpo (16/10/2026): il BMI da peso e altezza, la composizione
@@ -9,20 +10,20 @@ import type { ToniTutti } from '../ui/tema'
 export type Metrica = 'peso' | 'bmi' | 'vita' | 'fianchi' | 'petto' | 'braccio' | 'coscia' | 'grassa' | 'magra'
 
 export const METRICHE: { chiave: Metrica; nome: string; unita: string }[] = [
-  { chiave: 'peso', nome: 'Peso', unita: 'kg' },
+  { chiave: 'peso', nome: t('Peso', 'Weight'), unita: 'kg' },
   { chiave: 'bmi', nome: 'BMI', unita: '' },
-  { chiave: 'grassa', nome: 'Massa grassa', unita: '%' },
-  { chiave: 'magra', nome: 'Massa magra', unita: 'kg' },
-  { chiave: 'vita', nome: 'Vita', unita: 'cm' },
-  { chiave: 'fianchi', nome: 'Fianchi', unita: 'cm' },
-  { chiave: 'petto', nome: 'Petto', unita: 'cm' },
-  { chiave: 'braccio', nome: 'Braccio', unita: 'cm' },
-  { chiave: 'coscia', nome: 'Coscia', unita: 'cm' },
+  { chiave: 'grassa', nome: t('Massa grassa', 'Body fat'), unita: '%' },
+  { chiave: 'magra', nome: t('Massa magra', 'Lean mass'), unita: 'kg' },
+  { chiave: 'vita', nome: t('Vita', 'Waist'), unita: 'cm' },
+  { chiave: 'fianchi', nome: t('Fianchi', 'Hips'), unita: 'cm' },
+  { chiave: 'petto', nome: t('Petto', 'Chest'), unita: 'cm' },
+  { chiave: 'braccio', nome: t('Braccio', 'Arm'), unita: 'cm' },
+  { chiave: 'coscia', nome: t('Coscia', 'Thigh'), unita: 'cm' },
 ]
 
 /** «72,4». */
 export function numero(n: number, decimali = 1): string {
-  return n.toLocaleString('it-IT', { maximumFractionDigits: decimali, minimumFractionDigits: 0 })
+  return n.toLocaleString(locale(), { maximumFractionDigits: decimali, minimumFractionDigits: 0 })
 }
 
 /** «+1,2», «−0,8», «0». */
@@ -45,10 +46,10 @@ export function bmi(pesoKg: number | null | undefined, altezzaCm: number | null 
  * SemiBold), o sui telefoni stretti si troncano.
  */
 export function fasciaBmi(v: number): { nome: string; tono: ToniTutti } {
-  if (v < 18.5) return { nome: 'Leggero', tono: 'blu' }
-  if (v < 25) return { nome: 'Equilibrio', tono: 'ok' }
-  if (v < 30) return { nome: 'Un po’ sopra', tono: 'attenzione' }
-  return { nome: 'Da bilanciare', tono: 'errore' }
+  if (v < 18.5) return { nome: t('Leggero', 'Light'), tono: 'blu' }
+  if (v < 25) return { nome: t('Equilibrio', 'Balanced'), tono: 'ok' }
+  if (v < 30) return { nome: t('Un po’ sopra', 'A bit above'), tono: 'attenzione' }
+  return { nome: t('Da bilanciare', 'To rebalance'), tono: 'errore' }
 }
 
 /** L'altezza piu' recente fino a quella misurazione (si scrive di rado). */
@@ -112,7 +113,7 @@ export function serie(misure: Misura[], metrica: Metrica): Punto[] {
 export function dataCorta(iso: string): string {
   const d = new Date(`${iso}T12:00:00`)
   const stessoAnno = d.getFullYear() === new Date().getFullYear()
-  return d.toLocaleDateString('it-IT', { day: 'numeric', month: 'short', ...(stessoAnno ? {} : { year: 'numeric' }) })
+  return d.toLocaleDateString(locale(), { day: 'numeric', month: 'short', ...(stessoAnno ? {} : { year: 'numeric' }) })
 }
 
 /** «12/10». */

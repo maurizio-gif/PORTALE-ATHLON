@@ -6,6 +6,7 @@ import { F, usePalette } from '@/features/lab/ui/tema'
 import { nomePaese, PAESI_CON_ITALIA } from '@/lib/residenteEstero'
 import { PAESI } from '@/lib/paesi'
 import { spazio } from '@/theme'
+import { t } from '@/lib/lingua'
 
 // La tendina del Paese, per chi e' residente all'estero (e per l'indirizzo del
 // profilo). Una tendina vera, non l'elenco nativo del browser: i Paesi sono
@@ -19,7 +20,7 @@ const minuscolo = (t: string) => t.normalize('NFD').replace(/\p{M}/gu, '').toLow
 export function CampoPaese({
   value,
   onChange,
-  etichetta = 'Paese',
+  etichetta = t('Paese', 'Country'),
   conItalia = false,
   errore = false,
   variante = 'base',
@@ -60,7 +61,7 @@ export function CampoPaese({
       </Text>
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel={`${etichetta}: ${nome ?? 'nessuno scelto'}`}
+        accessibilityLabel={`${etichetta}: ${nome ?? t('nessuno scelto', 'none selected')}`}
         accessibilityState={{ expanded: aperto }}
         onPress={() => setAperto(true)}
         style={[
@@ -71,27 +72,27 @@ export function CampoPaese({
         ]}
       >
         <Text numberOfLines={1} style={[lab ? stili.valoreLab : stili.valore, { color: nome ? p.testo : lab ? p.testoTerzo : p.testoSecondario }]}>
-          {nome ?? 'Scegli il Paese'}
+          {nome ?? t('Scegli il Paese', 'Choose the country')}
         </Text>
         <Text style={{ color: p.testoSecondario, fontSize: 14 }}>▾</Text>
       </Pressable>
 
       <Modal visible={aperto} transparent animationType="slide" onRequestClose={chiudi}>
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={stili.velo}>
-          <Pressable style={StyleSheet.absoluteFill} onPress={chiudi} accessibilityLabel="Chiudi" />
+          <Pressable style={StyleSheet.absoluteFill} onPress={chiudi} accessibilityLabel={t('Chiudi', 'Close')} />
           <View style={[stili.foglio, { backgroundColor: lab ? p.carta : p.sfondo, paddingBottom: ins.bottom + spazio.tre }]} accessibilityViewIsModal>
             <View style={[stili.maniglia, { backgroundColor: lab ? p.incavo : p.bordo }]} />
             <View style={stili.testa}>
               <Text style={[stili.titolo, { color: p.testo, fontFamily: lab ? F.extra : undefined }]} accessibilityRole="header">
                 {etichetta}
               </Text>
-              <Pressable accessibilityRole="button" accessibilityLabel="Chiudi" onPress={chiudi} hitSlop={8} style={[stili.chiudi, { backgroundColor: lab ? p.incavo : p.superficie }]}>
+              <Pressable accessibilityRole="button" accessibilityLabel={t('Chiudi', 'Close')} onPress={chiudi} hitSlop={8} style={[stili.chiudi, { backgroundColor: lab ? p.incavo : p.superficie }]}>
                 <Text style={{ color: p.testo, fontSize: 16, fontWeight: '700' }}>✕</Text>
               </Pressable>
             </View>
             <TextInput
-              accessibilityLabel="Cerca il Paese"
-              placeholder="Cerca il Paese"
+              accessibilityLabel={t('Cerca il Paese', 'Search for the country')}
+              placeholder={t('Cerca il Paese', 'Search for the country')}
               placeholderTextColor={p.testoSecondario}
               value={cerca}
               onChangeText={setCerca}
@@ -106,7 +107,7 @@ export function CampoPaese({
               keyboardShouldPersistTaps="handled"
               style={stili.elenco}
               initialNumToRender={20}
-              ListEmptyComponent={<Text style={{ color: p.testoSecondario, fontSize: 15, padding: spazio.tre }}>Nessun Paese trovato.</Text>}
+              ListEmptyComponent={<Text style={{ color: p.testoSecondario, fontSize: 15, padding: spazio.tre }}>{t('Nessun Paese trovato.', 'No country found.')}</Text>}
               renderItem={({ item: [codice, nomeVoce] }) => {
                 const scelto = codice === value
                 return (

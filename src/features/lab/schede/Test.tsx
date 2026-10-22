@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { StyleSheet, Text, TextInput, View } from 'react-native'
 
 import { salvaTestMassimale, testMassimali, type EsercizioTest } from '@/api/lab'
+import { t } from '@/lib/lingua'
 import { spazio } from '@/theme'
 
 import { dimentica } from '../memoria'
@@ -21,16 +22,16 @@ import { MediaEsercizio } from './MediaEsercizio'
 // massime. Da quel momento, nelle schede, le percentuali diventano chili.
 
 const GRUPPI: { chiave: EsercizioTest['test_gruppo']; titolo: string }[] = [
-  { chiave: 'superiore', titolo: 'Parte superiore del corpo' },
+  { chiave: 'superiore', titolo: t('Parte superiore del corpo', 'Upper body') },
   { chiave: 'core', titolo: 'Core' },
-  { chiave: 'inferiore', titolo: 'Parte inferiore del corpo' },
+  { chiave: 'inferiore', titolo: t('Parte inferiore del corpo', 'Lower body') },
 ]
 
 function risultato(e: EsercizioTest): string | null {
   if (!e.ultimo) return null
   return e.test === 'carico'
-    ? `Massimale ${formatoKg(e.ultimo.massimale)} kg (${e.ultimo.ripetizioni} × ${formatoKg(e.ultimo.kg ?? 0)} kg)`
-    : `${e.ultimo.ripetizioni} ripetizioni`
+    ? t(`Massimale ${formatoKg(e.ultimo.massimale)} kg (${e.ultimo.ripetizioni} × ${formatoKg(e.ultimo.kg ?? 0)} kg)`, `1RM ${formatoKg(e.ultimo.massimale)} kg (${e.ultimo.ripetizioni} × ${formatoKg(e.ultimo.kg ?? 0)} kg)`)
+    : t(`${e.ultimo.ripetizioni} ripetizioni`, `${e.ultimo.ripetizioni} reps`)
 }
 
 function FoglioTest({ e, onChiudi, onSalvato }: { e: EsercizioTest | null; onChiudi: () => void; onSalvato: () => void }) {
@@ -42,7 +43,7 @@ function FoglioTest({ e, onChiudi, onSalvato }: { e: EsercizioTest | null; onChi
   const [fatto, setFatto] = useState<number | null>(null)
 
   useEffect(() => {
-    setPeso(e?.ultimo?.kg ? String(e.ultimo.kg).replace('.', ',') : '')
+    setPeso(e?.ultimo?.kg ? String(e.ultimo.kg).replace('.', t(',', '.')) : '')
     setRip('')
     setErrore(null)
     setFatto(null)
@@ -70,21 +71,27 @@ function FoglioTest({ e, onChiudi, onSalvato }: { e: EsercizioTest | null; onChi
   }
 
   return (
-    <Foglio aperto={!!e} titolo={e.nome} sottotitolo={carico ? 'Test a carico: peso e ripetizioni' : 'Test a corpo libero: ripetizioni massime'} onChiudi={onChiudi}>
+    <Foglio aperto={!!e} titolo={e.nome} sottotitolo={carico ? t('Test a carico: peso e ripetizioni', 'Weighted test: weight and reps') : t('Test a corpo libero: ripetizioni massime', 'Bodyweight test: max reps')} onChiudi={onChiudi}>
       <View style={{ gap: spazio.tre }}>
         <MediaEsercizio immagini={e.immagini} video={e.video} style={stili.media} />
         <View style={[stili.istruzioni, { backgroundColor: p.incavo }]}>
           {(carico
             ? [
-                'Riscaldati con due serie leggere: una da 10 e una da 6 ripetizioni.',
-                'Poi scegli un peso con cui riesci a fare fra 4 e 10 ripetizioni pulite, e fanne quante puoi finché la tecnica regge.',
-                'Scrivi il peso e le ripetizioni: calcoliamo il tuo massimale.',
+                t('Riscaldati con due serie leggere: una da 10 e una da 6 ripetizioni.', 'Warm up with two light sets: one of 10 reps and one of 6.'),
+                t(
+                  'Poi scegli un peso con cui riesci a fare fra 4 e 10 ripetizioni pulite, e fanne quante puoi finché la tecnica regge.',
+                  'Then choose a weight you can lift for 4 to 10 clean reps, and do as many as you can while your form holds.',
+                ),
+                t('Scrivi il peso e le ripetizioni: calcoliamo il tuo massimale.', 'Enter the weight and reps: we’ll work out your 1RM.'),
               ]
-            : ['Fai più ripetizioni che puoi, in modo controllato e senza lunghe pause.', 'Fermati quando la tecnica non regge più, e scrivi quante ne hai fatte.']
-          ).map((t, i) => (
+            : [
+                t('Fai più ripetizioni che puoi, in modo controllato e senza lunghe pause.', 'Do as many reps as you can, under control and without long pauses.'),
+                t('Fermati quando la tecnica non regge più, e scrivi quante ne hai fatte.', 'Stop when your form breaks down, and enter how many you did.'),
+              ]
+          ).map((riga, i) => (
             <View key={i} style={{ flexDirection: 'row', gap: spazio.due }}>
               <Text style={[stili.passo, { color: p.accento }]}>{i + 1}</Text>
-              <Text style={[stili.nota, { color: p.testo, flex: 1 }]}>{t}</Text>
+              <Text style={[stili.nota, { color: p.testo, flex: 1 }]}>{riga}</Text>
             </View>
           ))}
         </View>
@@ -92,49 +99,51 @@ function FoglioTest({ e, onChiudi, onSalvato }: { e: EsercizioTest | null; onChi
         {fatto != null ? (
           <Carta style={{ alignItems: 'center', gap: spazio.due }}>
             <Icona nome="ok" size={30} colore={p.ok} />
-            <Text style={[stili.nota, { color: p.testoSecondario }]}>{carico ? 'Il tuo massimale stimato' : 'Le tue ripetizioni massime'}</Text>
-            <Numero valore={carico ? formatoKg(fatto) : String(fatto)} unita={carico ? 'kg' : 'ripetizioni'} size={40} colore={p.accento} />
-            <Pulsante testo="Fatto" variante="secondario" onPress={onChiudi} />
+            <Text style={[stili.nota, { color: p.testoSecondario }]}>{carico ? t('Il tuo massimale stimato', 'Your estimated 1RM') : t('Le tue ripetizioni massime', 'Your max reps')}</Text>
+            <Numero valore={carico ? formatoKg(fatto) : String(fatto)} unita={carico ? 'kg' : t('ripetizioni', 'reps')} size={40} colore={p.accento} />
+            <Pulsante testo={t('Fatto', 'Done')} variante="secondario" onPress={onChiudi} />
           </Carta>
         ) : (
           <>
             <View style={{ flexDirection: 'row', gap: spazio.due }}>
               {carico ? (
                 <View style={{ flex: 1, gap: 4 }}>
-                  <Text style={[stili.etichetta, { color: p.testoSecondario }]}>PESO (KG)</Text>
+                  <Text style={[stili.etichetta, { color: p.testoSecondario }]}>{t('PESO (KG)', 'WEIGHT (KG)')}</Text>
                   <TextInput
                     value={peso}
-                    onChangeText={(t) => setPeso(t.replace(/[^\d.,]/g, '').slice(0, 6))}
+                    onChangeText={(v) => setPeso(v.replace(/[^\d.,]/g, '').slice(0, 6))}
                     keyboardType="decimal-pad"
-                    placeholder="es. 40"
+                    placeholder={t('es. 40', 'e.g. 40')}
                     placeholderTextColor={p.testoTerzo}
                     style={[stili.input, { color: p.testo, backgroundColor: p.incavo }]}
-                    accessibilityLabel="Peso usato, in chili"
+                    accessibilityLabel={t('Peso usato, in chili', 'Weight used, in kilos')}
                   />
                 </View>
               ) : null}
               <View style={{ flex: 1, gap: 4 }}>
-                <Text style={[stili.etichetta, { color: p.testoSecondario }]}>RIPETIZIONI</Text>
+                <Text style={[stili.etichetta, { color: p.testoSecondario }]}>{t('RIPETIZIONI', 'REPS')}</Text>
                 <TextInput
                   value={rip}
-                  onChangeText={(t) => setRip(t.replace(/[^\d]/g, '').slice(0, 3))}
+                  onChangeText={(v) => setRip(v.replace(/[^\d]/g, '').slice(0, 3))}
                   keyboardType="number-pad"
-                  placeholder={carico ? 'da 4 a 10' : 'es. 20'}
+                  placeholder={carico ? t('da 4 a 10', '4 to 10') : t('es. 20', 'e.g. 20')}
                   placeholderTextColor={p.testoTerzo}
                   style={[stili.input, { color: p.testo, backgroundColor: p.incavo }]}
-                  accessibilityLabel="Ripetizioni fatte"
+                  accessibilityLabel={t('Ripetizioni fatte', 'Reps done')}
                 />
               </View>
             </View>
             {carico && r > 12 ? (
-              <Messaggio tono="attenzione">Oltre 12 ripetizioni la stima non è affidabile: aumenta il peso, recupera due minuti e rifai la serie.</Messaggio>
+              <Messaggio tono="attenzione">
+                {t('Oltre 12 ripetizioni la stima non è affidabile: aumenta il peso, recupera due minuti e rifai la serie.', 'Beyond 12 reps the estimate isn’t reliable: increase the weight, rest two minutes and redo the set.')}
+              </Messaggio>
             ) : anteprima ? (
               <Text style={[stili.nota, { color: p.testoSecondario, textAlign: 'center' }]}>
-                Massimale stimato: <Text style={{ fontFamily: F.extra, color: p.testo }}>{formatoKg(anteprima)} kg</Text>
+                {t('Massimale stimato: ', 'Estimated 1RM: ')}<Text style={{ fontFamily: F.extra, color: p.testo }}>{formatoKg(anteprima)} kg</Text>
               </Text>
             ) : null}
             {errore ? <Messaggio>{errore}</Messaggio> : null}
-            <Pulsante testo="Salva il risultato" icona="spunta" onPress={salva} inCorso={inCorso} disabilitato={!r || (carico && (!kg || r > 12))} />
+            <Pulsante testo={t('Salva il risultato', 'Save the result')} icona="spunta" onPress={salva} inCorso={inCorso} disabilitato={!r || (carico && (!kg || r > 12))} />
           </>
         )}
       </View>
@@ -162,11 +171,11 @@ export function Test() {
 
   if (!dati) {
     return (
-      <Schermata sopratitolo="Train" titolo="Test dei massimali" indietro="/allenamento" barra={false}>
+      <Schermata sopratitolo="Train" titolo={t('Test dei massimali', '1RM test')} indietro="/allenamento" barra={false}>
         {errore ? (
           <>
             <Messaggio>{errore}</Messaggio>
-            <Pulsante testo="Riprova" icona="aggiorna" onPress={carica} />
+            <Pulsante testo={t('Riprova', 'Try again')} icona="aggiorna" onPress={carica} />
           </>
         ) : (
           <SchedeInArrivo />
@@ -177,20 +186,28 @@ export function Test() {
 
   const fatti = dati.esercizi.filter((e) => e.ultimo).length
   return (
-    <Schermata sopratitolo="Train" titolo="Test dei massimali" indietro="/allenamento" barra={false}>
+    <Schermata sopratitolo="Train" titolo={t('Test dei massimali', '1RM test')} indietro="/allenamento" barra={false}>
       <View style={{ gap: spazio.tre }}>
         {[
-          'Per fare il test completa gli esercizi della parte superiore, del core e della parte inferiore del corpo.',
-          'Sugli esercizi a carico usa un peso con cui fai fra 4 e 10 ripetizioni pulite: da peso e ripetizioni calcoliamo il tuo massimale.',
-          `Dopo il test, nei piani le percentuali diventano i tuoi chili. Rifallo ogni ${Math.round(dati.giorni / 7)} settimane.`,
-        ].map((t, i) => (
+          t('Per fare il test completa gli esercizi della parte superiore, del core e della parte inferiore del corpo.', 'To take the test, complete the exercises for the upper body, core and lower body.'),
+          t(
+            'Sugli esercizi a carico usa un peso con cui fai fra 4 e 10 ripetizioni pulite: da peso e ripetizioni calcoliamo il tuo massimale.',
+            'For weighted exercises use a weight you can lift for 4 to 10 clean reps: from weight and reps we work out your 1RM.',
+          ),
+          t(
+            `Dopo il test, nei piani le percentuali diventano i tuoi chili. Rifallo ogni ${Math.round(dati.giorni / 7)} settimane.`,
+            `After the test, the percentages in your plans become your own weights. Retake it every ${Math.round(dati.giorni / 7)} weeks.`,
+          ),
+        ].map((riga, i) => (
           <View key={i} style={{ flexDirection: 'row', gap: spazio.due }}>
             <Icona nome="info" size={20} colore={p.blu} />
-            <Text style={[stili.consiglio, { color: p.testo, flex: 1 }]}>{t}</Text>
+            <Text style={[stili.consiglio, { color: p.testo, flex: 1 }]}>{riga}</Text>
           </View>
         ))}
         <Text style={[stili.piccola, { color: p.testoSecondario }]}>
-          {dati.ultimo ? `${fatti} di ${dati.esercizi.length} esercizi fatti · ultimo test ${giornoTest(dati.ultimo)}` : `${dati.esercizi.length} esercizi, una quindicina di minuti`}
+          {dati.ultimo
+            ? t(`${fatti} di ${dati.esercizi.length} esercizi fatti · ultimo test ${giornoTest(dati.ultimo)}`, `${fatti} of ${dati.esercizi.length} exercises done · last test ${giornoTest(dati.ultimo)}`)
+            : t(`${dati.esercizi.length} esercizi, una quindicina di minuti`, `${dati.esercizi.length} exercises, about fifteen minutes`)}
         </Text>
       </View>
 
@@ -209,12 +226,12 @@ export function Test() {
               <Carta style={{ paddingVertical: spazio.uno, paddingHorizontal: spazio.tre }}>
                 {qui.map((e, i) => (
                   <Entra key={e.id} indice={gi + i}>
-                    <Tocco onPress={() => setScelto(e)} etichetta={`Test: ${e.nome}`} scala={0.99} style={[stili.riga, i > 0 && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: p.linea }]}>
+                    <Tocco onPress={() => setScelto(e)} etichetta={t(`Test: ${e.nome}`, `Test: ${e.nome}`)} scala={0.99} style={[stili.riga, i > 0 && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: p.linea }]}>
                       <MediaEsercizio immagini={e.immagini} video={e.video} style={stili.miniatura} ferma />
                       <View style={{ flex: 1, gap: 3 }}>
                         <Text style={[stili.nome, { color: p.testo }]}>{e.nome}</Text>
-                        <Text style={[stili.etichettaTest, { color: e.ultimo ? p.ok : p.attenzione }]}>{e.ultimo ? '✓ Fatto' : 'Consigliato'}</Text>
-                        {risultato(e) ? <Text style={[stili.piccola, { color: p.testoSecondario }]}>{`Risultato precedente: ${risultato(e)}`}</Text> : null}
+                        <Text style={[stili.etichettaTest, { color: e.ultimo ? p.ok : p.attenzione }]}>{e.ultimo ? t('✓ Fatto', '✓ Done') : t('Consigliato', 'Recommended')}</Text>
+                        {risultato(e) ? <Text style={[stili.piccola, { color: p.testoSecondario }]}>{t(`Risultato precedente: ${risultato(e)}`, `Previous result: ${risultato(e)}`)}</Text> : null}
                       </View>
                       <Icona nome="avanti" size={16} colore={p.testoTerzo} />
                     </Tocco>

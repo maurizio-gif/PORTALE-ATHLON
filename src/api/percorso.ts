@@ -1,4 +1,5 @@
 import { funzione, type BozzaScheda, type Continuo, type SchedaLezione, type Stile } from './lab'
+import { t } from '@/lib/lingua'
 
 // Il Percorso Athlon (20/10/2026): la funzione portale-lab-percorso di APP-ATHLON. Il «tutor tecnico» compone
 // la settimana a tappe di un socio (sala, cardio, lezioni di gruppo); `genera` risponde con una **bozza** e
@@ -156,13 +157,13 @@ export async function statoPercorso(): Promise<Esito<StatoPercorso>> {
       idoneita: dati.idoneita ?? { categorie: null, incerta: true },
       piani: dati.piani ?? { suoi: 0, del_club: 0 },
     }
-  return errore(dati, stato, 'Non riusciamo a leggere il tuo percorso adesso.')
+  return errore(dati, stato, t('Non riusciamo a leggere il tuo percorso adesso.', 'We can’t load your path right now.'))
 }
 
 export async function leggiPercorso(): Promise<Esito<{ percorso: PercorsoSalvato | null; schede: SchedeLezioni }>> {
   const { ok, dati, stato } = await chiama({ azione: 'leggi' })
   if (ok) return { ok: true, percorso: dati.percorso ?? null, schede: dati.schede ?? {} }
-  return errore(dati, stato, 'Non riusciamo a leggere il tuo percorso adesso.')
+  return errore(dati, stato, t('Non riusciamo a leggere il tuo percorso adesso.', 'We can’t load your path right now.'))
 }
 
 // ---------------------------------------------------------------------------
@@ -230,7 +231,7 @@ export type Settimana = {
 export async function leggiSettimana(lunedi: string): Promise<Esito<{ settimana: Settimana }>> {
   const { ok, dati, stato } = await chiama({ azione: 'settimana', lunedi })
   if (ok) return { ok: true, settimana: dati as unknown as Settimana }
-  return errore(dati, stato, 'Non riusciamo a leggere la tua settimana adesso.')
+  return errore(dati, stato, t('Non riusciamo a leggere la tua settimana adesso.', 'We can’t load your week right now.'))
 }
 
 // ---------------------------------------------------------------------------
@@ -278,7 +279,7 @@ export async function leggiCatalogo(includiNonComprese: boolean): Promise<Esito<
       ok: true,
       catalogo: { slot: dati.slot ?? [], idoneita: dati.idoneita ?? { categorie: null, incerta: true }, piani: dati.piani ?? [], cardio: dati.cardio ?? [], schede: dati.schede ?? {} },
     }
-  return errore(dati, stato, 'Non riusciamo a leggere le lezioni adesso.')
+  return errore(dati, stato, t('Non riusciamo a leggere le lezioni adesso.', 'We can’t load the classes right now.'))
 }
 
 // ---------------------------------------------------------------------------
@@ -291,20 +292,20 @@ export type RispostaTutor = { bozza: PercorsoBozza; schede: SchedeLezioni; avvis
 export async function chiediAlTutor(q: Questionario): Promise<Esito<RispostaTutor>> {
   const { ok, dati, stato } = await chiama({ azione: 'genera', questionario: q })
   if (ok && dati.bozza) return { ok: true, bozza: dati.bozza, schede: dati.schede ?? {}, avvisi: dati.avvisi ?? [], scartate: Number(dati.scartate ?? 0) }
-  return errore(dati, stato, 'Il tutor non è riuscito a comporre il percorso adesso. Riprova fra qualche minuto.')
+  return errore(dati, stato, t('Il tutor non è riuscito a comporre il percorso adesso. Riprova fra qualche minuto.', 'The tutor couldn’t put together the path right now. Try again in a few minutes.'))
 }
 
 /** Conferma la bozza (quella del tutor, o rivista a mano): sostituisce il percorso attivo. Il server ricontrolla tutto. */
 export async function salvaPercorso(bozza: PercorsoBozza): Promise<Esito<{ id: string }>> {
   const { ok, dati, stato } = await chiama({ azione: 'salva', bozza })
   if (ok) return { ok: true, id: String(dati.id) }
-  return errore(dati, stato, 'Non siamo riusciti a salvare il percorso. Riprova.')
+  return errore(dati, stato, t('Non siamo riusciti a salvare il percorso. Riprova.', 'We couldn’t save the path. Try again.'))
 }
 
 export async function eliminaPercorso(): Promise<Esito<object>> {
   const { ok, dati, stato } = await chiama({ azione: 'elimina' })
   if (ok) return { ok: true }
-  return errore(dati, stato, 'Non siamo riusciti a togliere il percorso. Riprova.')
+  return errore(dati, stato, t('Non siamo riusciti a togliere il percorso. Riprova.', 'We couldn’t remove the path. Try again.'))
 }
 
 // ---------------------------------------------------------------------------
@@ -459,8 +460,8 @@ export async function statoConsigli(): Promise<Esito<StatoConsigli>> {
       idoneita: dati.idoneita ?? { categorie: null, incerta: true },
     }
   // Una funzione che non conosce ancora l'azione risponde «Azione sconosciuta.»: per il socio e' «non ancora attivo».
-  if (dati.errore === 'Azione sconosciuta.') return { ok: false, errore: 'I consigli non sono ancora attivi: riprova più avanti.', stato: 503 }
-  return errore(dati, stato, 'Non riusciamo ad aprire i consigli adesso.')
+  if (dati.errore === 'Azione sconosciuta.' || dati.errore === 'Unknown action.') return { ok: false, errore: t('I consigli non sono ancora attivi: riprova più avanti.', 'Recommendations aren’t active yet: try again later.'), stato: 503 }
+  return errore(dati, stato, t('Non riusciamo ad aprire i consigli adesso.', 'We can’t open the recommendations right now.'))
 }
 
 /** Il questionario va all'AI e non si conserva. Ci vogliono pochi secondi, a volte mezzo minuto. */
@@ -484,6 +485,6 @@ export async function chiediConsigli(q: QuestionarioConsigli): Promise<Esito<{ r
       },
     }
   }
-  if (dati.errore === 'Azione sconosciuta.') return { ok: false, errore: 'I consigli non sono ancora attivi: riprova più avanti.', stato: 503 }
-  return errore(dati, stato, 'L’assistente non è riuscito a dare i consigli adesso. Riprova fra qualche minuto.')
+  if (dati.errore === 'Azione sconosciuta.' || dati.errore === 'Unknown action.') return { ok: false, errore: t('I consigli non sono ancora attivi: riprova più avanti.', 'Recommendations aren’t active yet: try again later.'), stato: 503 }
+  return errore(dati, stato, t('L’assistente non è riuscito a dare i consigli adesso. Riprova fra qualche minuto.', 'The assistant couldn’t give recommendations right now. Try again in a few minutes.'))
 }

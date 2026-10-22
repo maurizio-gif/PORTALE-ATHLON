@@ -1,5 +1,6 @@
 import { documentoAbbonamento } from '@/api/abbonamento'
 import { funzione } from '@/api/lab'
+import { t } from '@/lib/lingua'
 
 // I documenti del socio e della sua famiglia (16/10/2026): i PDF che PerfectGym
 // conserva da sempre - moduli e contratti, ricevute - e i contratti firmati dal
@@ -26,7 +27,7 @@ export type EsitoDocumenti = { ok: true; documenti: Documento[] } | { ok: false;
 export async function elencoDocumenti(): Promise<EsitoDocumenti> {
   const { ok, dati } = await funzione('portale-lab-documenti', { azione: 'elenco' })
   if (ok) return { ok: true, documenti: (dati.documenti ?? []) as Documento[] }
-  return { ok: false, errore: dati.errore ?? 'Non riusciamo a leggere i tuoi documenti adesso.' }
+  return { ok: false, errore: dati.errore ?? t('Non riusciamo a leggere i tuoi documenti adesso.', 'We can’t load your documents right now.') }
 }
 
 /** Il link per aprire un documento: firmato da Supabase, vale un'ora, e si chiede quando serve. */
@@ -34,5 +35,5 @@ export async function apriDocumento(d: Documento): Promise<{ ok: true; url: stri
   if (d.origine === 'portale') return documentoAbbonamento(d.id)
   const { ok, dati } = await funzione('portale-lab-documenti', { azione: 'apri', id: d.id })
   if (ok && typeof dati.url === 'string') return { ok: true, url: dati.url }
-  return { ok: false, errore: dati.errore ?? 'Non riusciamo ad aprire il documento adesso.' }
+  return { ok: false, errore: dati.errore ?? t('Non riusciamo ad aprire il documento adesso.', 'We can’t open the document right now.') }
 }

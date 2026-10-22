@@ -8,6 +8,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { LARGO } from '@/components/Pagina'
 import { spazio } from '@/theme'
+import { t } from '@/lib/lingua'
 
 import { useSegnaAzioneInAlto } from '../feedback/posizione'
 import { ingombroBarra } from './BarraSchede'
@@ -101,7 +102,7 @@ export function Schermata({
   const freccia = indietro ? (
     <Tocco
       onPress={() => (router.canGoBack() ? router.back() : router.replace(indietro))}
-      etichetta="Indietro"
+      etichetta={t('Indietro', 'Back')}
       style={[stili.tondo, { backgroundColor: p.carta, borderColor: p.linea, boxShadow: p.ombra }]}
     >
       <Icona nome="indietro" size={18} colore={p.testo} />

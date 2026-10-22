@@ -1,4 +1,5 @@
 import { CRM_URL } from '@/config'
+import { t } from '@/lib/lingua'
 
 // Gli appuntamenti telefonici col desk e col Direttore Tecnico del nuoto, dal
 // link nell'email di conferma (`/r/<uuid>.<firma>`). Il token e' firmato dal
@@ -61,9 +62,9 @@ export async function spostaAppuntamento(calendario: Calendario, token: string, 
     })
     const corpo = (await r.json().catch(() => ({}))) as { errore?: string; slotOccupato?: boolean }
     if (r.ok) return { ok: true }
-    return { ok: false, errore: corpo.errore ?? 'Non riusciamo a spostare l’appuntamento. Riprova fra poco.', slotOccupato: corpo.slotOccupato }
+    return { ok: false, errore: corpo.errore ?? t('Non riusciamo a spostare l’appuntamento. Riprova fra poco.', 'We can’t move the appointment. Try again shortly.'), slotOccupato: corpo.slotOccupato }
   } catch {
-    return { ok: false, errore: 'Non riusciamo a spostare l’appuntamento. Riprova fra poco.' }
+    return { ok: false, errore: t('Non riusciamo a spostare l’appuntamento. Riprova fra poco.', 'We can’t move the appointment. Try again shortly.') }
   }
 }
 
@@ -74,5 +75,5 @@ export async function annullaAppuntamento(calendario: Calendario, token: string)
   } catch {
     // sotto
   }
-  return { ok: false, errore: 'Non riusciamo ad annullare adesso. Riprova fra poco o scrivici a desk@athlonroma.it.' }
+  return { ok: false, errore: t('Non riusciamo ad annullare adesso. Riprova fra poco o scrivici a desk@athlonroma.it.', 'We can’t cancel right now. Try again shortly or write to us at desk@athlonroma.it.') }
 }

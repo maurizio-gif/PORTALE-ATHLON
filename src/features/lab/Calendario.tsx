@@ -18,6 +18,7 @@ import {
 } from '@/api/lab'
 import { InfoAdyen } from '@/components/InfoAdyen'
 import { euro, giornoEsteso, ora } from '@/lib/eventi'
+import { locale, t, tv } from '@/lib/lingua'
 import { spazio } from '@/theme'
 
 import { inMemoria, prendi, ricorda } from './memoria'
@@ -40,11 +41,11 @@ import { usePrenotazioneLezione } from './usePrenotazioneLezione'
 
 /** Nome e cognome per esteso, come sulla scheda del club. */
 function nomeCompleto(p: Pick<PersonaCalendario, 'nome' | 'cognome'>): string {
-  return [p.nome, p.cognome].filter(Boolean).join(' ') || 'Senza nome'
+  return [p.nome, p.cognome].filter(Boolean).join(' ') || t('Senza nome', 'No name')
 }
 
-function maiuscola(t: string): string {
-  return t.charAt(0).toUpperCase() + t.slice(1)
+function maiuscola(s: string): string {
+  return s.charAt(0).toUpperCase() + s.slice(1)
 }
 
 function etichettaGiorno(data: string): { settimana: string; numero: string } {
@@ -55,7 +56,7 @@ function etichettaGiorno(data: string): { settimana: string; numero: string } {
 /** «gio 22 ott, 10:00», all'ora di Roma. */
 function apertura(iso: string): string {
   const d = new Date(iso)
-  const giorno = new Intl.DateTimeFormat('it-IT', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'Europe/Rome' }).format(d)
+  const giorno = new Intl.DateTimeFormat(locale(), { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'Europe/Rome' }).format(d)
   return `${giorno}, ${ora(iso)}`
 }
 
@@ -72,7 +73,7 @@ function minuti(inizio: string, fine: string): number {
 /** Chi aspetta un posto in una lezione completa: «3 in lista d'attesa». Senza il dato (funzione non ancora aggiornata) non dice niente. */
 function inAttesa(l: Lezione): string | null {
   if (l.liberi > 0 || l.in_attesa === undefined) return null
-  return l.in_attesa === 0 ? 'nessuno in lista d’attesa' : `${l.in_attesa} in lista d’attesa`
+  return l.in_attesa === 0 ? t('nessuno in lista d’attesa', 'no one on the waiting list') : `${l.in_attesa} ${t('in lista d’attesa', 'on the waiting list')}`
 }
 
 /** La copertina della lezione: la foto del sito, sfumata, col nome sopra. */
@@ -97,17 +98,17 @@ function Copertina({ l, scheda, onScheda }: { l: Lezione; scheda: SchedaLezione 
         {b ? (
           <View style={[stili.vetrino, { backgroundColor: b.attesa ? p.attenzione : p.ok }]}>
             <Icona nome={b.attesa ? 'clessidra' : 'spunta'} size={13} colore="#fff" />
-            <Text style={stili.vetrinoTesto}>{b.attesa ? 'In attesa' : 'Prenotata'}</Text>
+            <Text style={stili.vetrinoTesto}>{b.attesa ? t('In attesa', 'Waiting') : t('Prenotata', 'Booked')}</Text>
           </View>
         ) : l.iniziata ? (
           <View style={stili.vetrino}>
-            <Text style={stili.vetrinoTesto}>Già cominciata</Text>
+            <Text style={stili.vetrinoTesto}>{t('Già cominciata', 'Already started')}</Text>
           </View>
         ) : (
-          <View style={stili.vetrino} accessibilityLabel={l.liberi <= 0 ? `Lezione completa${inAttesa(l) ? `, ${inAttesa(l)}` : ''}` : `${l.liberi} ${l.liberi === 1 ? 'posto libero' : 'posti liberi'}`}>
+          <View style={stili.vetrino} accessibilityLabel={l.liberi <= 0 ? `${t('Lezione completa', 'Class full')}${inAttesa(l) ? `, ${inAttesa(l)}` : ''}` : `${l.liberi} ${l.liberi === 1 ? t('posto libero', 'spot available') : t('posti liberi', 'spots available')}`}>
             <View style={[stili.puntino, { backgroundColor: tono === 'ok' ? '#6DD58C' : tono === 'attenzione' ? '#F2B84B' : '#FF6B6B' }]} />
             <Text style={stili.vetrinoTesto}>
-              {l.liberi <= 0 ? (l.in_attesa ? `Completa · ${l.in_attesa} in attesa` : 'Completa') : `${l.liberi} ${l.liberi === 1 ? 'posto' : 'posti'}`}
+              {l.liberi <= 0 ? (l.in_attesa ? `${t('Completa', 'Full')} · ${l.in_attesa} ${t('in attesa', 'waiting')}` : t('Completa', 'Full')) : `${l.liberi} ${l.liberi === 1 ? t('posto', 'spot') : t('posti', 'spots')}`}
             </Text>
           </View>
         )}
@@ -116,7 +117,7 @@ function Copertina({ l, scheda, onScheda }: { l: Lezione; scheda: SchedaLezione 
         <Text style={stili.copertinaNome} numberOfLines={2}>
           {l.nome}
         </Text>
-        {l.istruttore ? <Text style={stili.copertinaIstruttore}>con {l.istruttore}</Text> : null}
+        {l.istruttore ? <Text style={stili.copertinaIstruttore}>{t('con', 'with')} {l.istruttore}</Text> : null}
       </View>
       {scheda ? (
         <View style={stili.info}>
@@ -126,7 +127,7 @@ function Copertina({ l, scheda, onScheda }: { l: Lezione; scheda: SchedaLezione 
     </View>
   )
   return scheda ? (
-    <Tocco onPress={onScheda} scala={0.99} etichetta={`Scheda di ${l.nome}: video e descrizione`}>
+    <Tocco onPress={onScheda} scala={0.99} etichetta={`${t('Scheda di', 'Details for')} ${l.nome}: ${t('video e descrizione', 'video and description')}`}>
       {corpo}
     </Tocco>
   ) : (
@@ -192,18 +193,18 @@ export function AzioniLezione({
       {l.iniziata ? null : b ? (
         conferma ? (
           <View style={stili.azioni}>
-            <Pulsante testo="Sì, disdici" variante="pericolo" onPress={() => esegui(onDisdici)} inCorso={attesa} />
-            <Pulsante testo="No" variante="secondario" onPress={() => setConferma(false)} disabilitato={attesa} />
+            <Pulsante testo={t('Sì, disdici', 'Yes, cancel')} variante="pericolo" onPress={() => esegui(onDisdici)} inCorso={attesa} />
+            <Pulsante testo={t('No', 'No')} variante="secondario" onPress={() => setConferma(false)} disabilitato={attesa} />
           </View>
         ) : (
-          <Pulsante testo="Disdici" variante="contorno" icona="chiudi" onPress={() => setConferma(true)} disabilitato={occupato} />
+          <Pulsante testo={t('Disdici', 'Cancel booking')} variante="contorno" icona="chiudi" onPress={() => setConferma(true)} disabilitato={occupato} />
         )
       ) : l.limite ? (
         <Messaggio tono="attenzione">{l.limite.messaggio}</Messaggio>
       ) : l.prenotabile_dal ? (
         <View style={[stili.apertura, { backgroundColor: p.incavo }]}>
           <Icona nome="lucchetto" size={16} colore={p.testoSecondario} />
-          <Text style={{ color: p.testoSecondario, fontFamily: F.semi, fontSize: 14 }}>Prenotabile da {apertura(l.prenotabile_dal)}</Text>
+          <Text style={{ color: p.testoSecondario, fontFamily: F.semi, fontSize: 14 }}>{t('Prenotabile da', 'Bookable from')} {apertura(l.prenotabile_dal)}</Text>
         </View>
       ) : daPagare ? (
         // Salva e paga: con la carta gia' salvata si paga con quella (o con
@@ -212,17 +213,17 @@ export function AzioniLezione({
           {daPagare.carta && daPagare.acquisto_id && daPagare.prodotto.prezzo != null ? (
             <>
               <Pulsante
-                testo={`Paga ${euro(daPagare.prodotto.prezzo)} con la carta${daPagare.carta.finale ? ` •••• ${daPagare.carta.finale}` : ''}`}
+                testo={`${t('Paga', 'Pay')} ${euro(daPagare.prodotto.prezzo)} ${t('con la carta', 'with your card')}${daPagare.carta.finale ? ` •••• ${daPagare.carta.finale}` : ''}`}
                 icona="carta"
                 onPress={() => esegui(() => onPagaCarta(daPagare.acquisto_id!))}
                 inCorso={attesa}
                 disabilitato={occupato}
               />
-              <Pulsante testo="Usa un’altra carta" variante="fantasma" piccolo onPress={() => esegui(() => onAcquista(daPagare.url))} />
+              <Pulsante testo={t('Usa un’altra carta', 'Use another card')} variante="fantasma" piccolo onPress={() => esegui(() => onAcquista(daPagare.url))} />
             </>
           ) : (
             <Pulsante
-              testo={`Acquista e prenota${daPagare.prodotto.prezzo != null ? ` · ${euro(daPagare.prodotto.prezzo)}` : ''}`}
+              testo={`${t('Acquista e prenota', 'Buy and book')}${daPagare.prodotto.prezzo != null ? ` · ${euro(daPagare.prodotto.prezzo)}` : ''}`}
               icona="carta"
               onPress={() => esegui(() => onAcquista(daPagare.url))}
               inCorso={attesa}
@@ -230,18 +231,18 @@ export function AzioniLezione({
             />
           )}
           <Text style={[stili.nota, { color: p.testoSecondario }]}>
-            {daPagare.carta ? 'La carta la custodisce ' : 'Paghi sulla pagina protetta di '}
+            {daPagare.carta ? t('La carta la custodisce ', 'Your card is held by ') : t('Paghi sulla pagina protetta di ', 'You pay on the secure page of ')}
             <InfoAdyen />
             {daPagare.carta
-              ? ': il club non vede mai il numero completo.'
-              : ', in un passo solo: la carta resta salvata per i prossimi acquisti e il club non ne vede mai il numero completo.'}
+              ? t(': il club non vede mai il numero completo.', ': the club never sees the full number.')
+              : t(', in un passo solo: la carta resta salvata per i prossimi acquisti e il club non ne vede mai il numero completo.', ', in one step: your card is saved for future purchases and the club never sees the full number.')}
           </Text>
         </View>
       ) : (
         <View style={stili.azioni}>
-          {scheda ? <Pulsante testo="Dettagli" variante="contorno" onPress={onScheda} /> : null}
+          {scheda ? <Pulsante testo={t('Dettagli', 'Details')} variante="contorno" onPress={onScheda} /> : null}
           <Pulsante
-            testo={`${l.liberi <= 0 ? 'Lista d’attesa' : 'Prenota'}${testoPrenota ? ` ${testoPrenota}` : ''}`}
+            testo={`${l.liberi <= 0 ? t('Lista d’attesa', 'Join waiting list') : t('Prenota', 'Book')}${testoPrenota ? ` ${testoPrenota}` : ''}`}
             icona={l.liberi <= 0 ? 'clessidra' : 'avanti'}
             variante={l.liberi <= 0 ? 'scuro' : 'primario'}
             onPress={async () => {
@@ -284,9 +285,9 @@ function RigaLezione(props: PropsLezione & { titolare: boolean }) {
   // gialli quando stanno finendo, rossi quando la lezione e' completa.
   const colorePosti = l.liberi <= 0 ? p.errore : l.liberi < 5 ? p.attenzione : p.ok
   const dettagli = [
-    { valore: ora(l.inizio), etichetta: 'Inizio' },
-    { valore: `${minuti(l.inizio, l.fine)}′`, etichetta: 'Durata' },
-    { valore: l.iniziata ? '—' : `${Math.max(0, l.liberi)}/${l.posti}`, etichetta: 'Posti liberi' },
+    { valore: ora(l.inizio), etichetta: t('Inizio', 'Start') },
+    { valore: `${minuti(l.inizio, l.fine)}′`, etichetta: t('Durata', 'Duration') },
+    { valore: l.iniziata ? '—' : `${Math.max(0, l.liberi)}/${l.posti}`, etichetta: t('Posti liberi', 'Open spots') },
   ]
 
   return (
@@ -351,9 +352,9 @@ function conAssistenza(istruttore: string | null): boolean | null {
 }
 
 const FASCE = [
-  { nome: 'Mattina', fino: 12 },
-  { nome: 'Pomeriggio', fino: 17 },
-  { nome: 'Sera', fino: 24 },
+  { nome: t('Mattina', 'Morning'), fino: 12 },
+  { nome: t('Pomeriggio', 'Afternoon'), fino: 17 },
+  { nome: t('Sera', 'Evening'), fino: 24 },
 ] as const
 
 /** Chi c'e' nel turno scelto: l'assistente in sala o no (Gym Floor), il suo nome (Nuoto Libero). */
@@ -365,7 +366,7 @@ function Assistente({ turno, come }: { turno: Lezione; come: 'in sala' | 'nome' 
       <View style={stili.assistente}>
         <Avatar nome={turno.istruttore.split(' ')[0]} cognome={turno.istruttore.split(' ').slice(1).join(' ')} size={30} />
         <Text style={[stili.nota, { color: p.testoSecondario, flexShrink: 1 }]}>
-          Assistente: <Text style={{ color: p.testo, fontFamily: F.bold }}>{turno.istruttore}</Text>
+          {t('Assistente:', 'Assistant:')} <Text style={{ color: p.testo, fontFamily: F.bold }}>{turno.istruttore}</Text>
         </Text>
       </View>
     )
@@ -379,10 +380,10 @@ function Assistente({ turno, come }: { turno: Lezione; come: 'in sala' | 'nome' 
       </View>
       <Text style={[stili.nota, { color: c ? p.testo : p.testoSecondario, flexShrink: 1 }]}>
         {c ? (
-          <Text style={{ fontFamily: F.bold }}>Con l’assistente in sala</Text>
+          <Text style={{ fontFamily: F.bold }}>{t('Con l’assistente in sala', 'With the floor assistant')}</Text>
         ) : (
           <>
-            <Text style={{ fontFamily: F.bold }}>Allenamento libero</Text>: senza assistente in sala
+            <Text style={{ fontFamily: F.bold }}>{t('Allenamento libero', 'Free training')}</Text>{t(': senza assistente in sala', ': no floor assistant')}
           </>
         )}
       </Text>
@@ -427,9 +428,9 @@ function TurniInGriglia({
   const p = usePalette()
   // Si parte dal turno gia' prenotato, se c'e', o dal primo con posti.
   const [sceltoId, setSceltoId] = useState(
-    () => (turni.find((t) => t.prenotazione) ?? turni.find((t) => !t.iniziata && t.liberi > 0) ?? turni[0]).class_id,
+    () => (turni.find((tu) => tu.prenotazione) ?? turni.find((tu) => !tu.iniziata && tu.liberi > 0) ?? turni[0]).class_id,
   )
-  const scelto = turni.find((t) => t.class_id === sceltoId) ?? turni[0]
+  const scelto = turni.find((tu) => tu.class_id === sceltoId) ?? turni[0]
   const riquadro = useRef<View>(null)
 
   /** Sceglie il turno e scende al suo «Prenota», dopo che il riquadro si e' ridisegnato. */
@@ -438,14 +439,14 @@ function TurniInGriglia({
     requestAnimationFrame(() => onMostra(riquadro.current))
   }
   const durata = minuti(turni[0].inizio, turni[0].fine)
-  const prenotati = (t: Lezione) => `${t.iscritti} ${t.iscritti === 1 ? 'prenotato' : 'prenotati'}`
-  const tonoPosti = (t: Lezione): 'errore' | 'attenzione' | 'ok' => (t.liberi <= 0 ? 'errore' : t.liberi < 5 ? 'attenzione' : 'ok')
-  const colorePosti = (t: Lezione) => p[tonoPosti(t)]
-  const posti = (t: Lezione) => (t.liberi <= 0 ? `completo${inAttesa(t) ? `, ${inAttesa(t)}` : ''}` : `${t.liberi} ${t.liberi === 1 ? 'posto libero' : 'posti liberi'}`)
+  const prenotati = (tu: Lezione) => `${tu.iscritti} ${t('prenotati', 'booked')}`
+  const tonoPosti = (tu: Lezione): 'errore' | 'attenzione' | 'ok' => (tu.liberi <= 0 ? 'errore' : tu.liberi < 5 ? 'attenzione' : 'ok')
+  const colorePosti = (tu: Lezione) => p[tonoPosti(tu)]
+  const posti = (tu: Lezione) => (tu.liberi <= 0 ? `${t('completo', 'full')}${inAttesa(tu) ? `, ${inAttesa(tu)}` : ''}` : `${tu.liberi} ${tu.liberi === 1 ? t('posto libero', 'spot available') : t('posti liberi', 'spots available')}`)
 
   return (
     <View style={[stili.lezione, { backgroundColor: p.carta, borderColor: p.linea, borderWidth: StyleSheet.hairlineWidth, boxShadow: p.ombra }]}>
-      <Tocco onPress={onScheda} scala={0.99} etichetta={`${nome}: video e descrizione`}>
+      <Tocco onPress={onScheda} scala={0.99} etichetta={`${nome}: ${t('video e descrizione', 'video and description')}`}>
         <View style={[stili.copertina, { height: 124 }]}>
           {scheda?.foto ? (
             <Image source={{ uri: scheda.foto }} style={StyleSheet.absoluteFill} contentFit="cover" contentPosition={posizione(scheda.fuoco)} transition={200} />
@@ -456,7 +457,7 @@ function TurniInGriglia({
           <Tag testo={nome} colore="#fff" fondo="rgba(0,0,0,0.25)" />
           <View style={{ gap: 2 }}>
             <Text style={stili.copertinaNome}>{nome}</Text>
-            <Text style={stili.copertinaIstruttore}>{`${turni.length} turni da ${durata} minuti · scegli l’orario`}</Text>
+            <Text style={stili.copertinaIstruttore}>{`${turni.length} ${t('turni da', 'sessions of')} ${durata} ${t('minuti · scegli l’orario', 'minutes · pick a time')}`}</Text>
           </View>
           {scheda ? (
             <View style={stili.info}>
@@ -474,14 +475,14 @@ function TurniInGriglia({
               <Icona nome="persona" size={9} colore="#fff" />
             </View>
             <Text style={[stili.nota, { color: p.testoSecondario, flexShrink: 1 }]}>
-              <Text style={{ color: p.testo, fontFamily: F.bold }}>Con l’assistente in sala</Text> · senza bollino: allenamento libero
+              <Text style={{ color: p.testo, fontFamily: F.bold }}>{t('Con l’assistente in sala', 'With the floor assistant')}</Text> {t('· senza bollino: allenamento libero', '· no badge: free training')}
             </Text>
           </View>
         ) : null}
         {FASCE.map((f, i) => {
           const da = i ? FASCE[i - 1].fino : 0
-          const qui = turni.filter((t) => {
-            const h = Number(ora(t.inizio).slice(0, 2))
+          const qui = turni.filter((tu) => {
+            const h = Number(ora(tu.inizio).slice(0, 2))
             return h >= da && h < f.fino
           })
           if (!qui.length) return null
@@ -489,39 +490,39 @@ function TurniInGriglia({
             <View key={f.nome} style={{ gap: spazio.due }}>
               <Text style={[stili.fascia, { color: p.testoSecondario }]}>{f.nome.toUpperCase()}</Text>
               <View style={stili.orari}>
-                {qui.map((t) => {
-                  const attivo = t.class_id === scelto.class_id
-                  const mio = !!t.prenotazione
-                  const assistito = assistente === 'in sala' && conAssistenza(t.istruttore) === true
+                {qui.map((tu) => {
+                  const attivo = tu.class_id === scelto.class_id
+                  const mio = !!tu.prenotazione
+                  const assistito = assistente === 'in sala' && conAssistenza(tu.istruttore) === true
                   return (
-                    <View key={t.class_id} style={stili.orarioCella}>
+                    <View key={tu.class_id} style={stili.orarioCella}>
                       <Tocco
                         vibra="scelta"
                         stato={{ selected: attivo }}
-                        onPress={() => scegli(t.class_id)}
-                        etichetta={`${ora(t.inizio)}${assistito ? ', con l’assistente in sala' : ''}, ${mio ? (t.prenotazione?.attesa ? 'sei in lista d’attesa' : 'ci sei anche tu') : conPosti ? posti(t) : prenotati(t)}`}
+                        onPress={() => scegli(tu.class_id)}
+                        etichetta={`${ora(tu.inizio)}${assistito ? t(', con l’assistente in sala', ', with the floor assistant') : ''}, ${mio ? (tu.prenotazione?.attesa ? t('sei in lista d’attesa', 'you are on the waiting list') : t('ci sei anche tu', 'you are booked too')) : conPosti ? posti(tu) : prenotati(tu)}`}
                         style={[
                           stili.turno,
                           mio
-                            ? { backgroundColor: t.prenotazione?.attesa ? p.attenzione : p.accento }
-                            : { backgroundColor: conPosti && !t.iniziata ? velo(p, tonoPosti(t), 0.13) : p.incavo },
+                            ? { backgroundColor: tu.prenotazione?.attesa ? p.attenzione : p.accento }
+                            : { backgroundColor: conPosti && !tu.iniziata ? velo(p, tonoPosti(tu), 0.13) : p.incavo },
                           attivo && { borderColor: mio ? '#fff' : p.testo, borderWidth: 2 },
                         ]}
                       >
-                        <Text style={[stili.turnoOra, { color: mio ? '#fff' : t.iniziata ? p.testoTerzo : p.testo }]}>{ora(t.inizio)}</Text>
-                        {mio || t.iniziata ? (
+                        <Text style={[stili.turnoOra, { color: mio ? '#fff' : tu.iniziata ? p.testoTerzo : p.testo }]}>{ora(tu.inizio)}</Text>
+                        {mio || tu.iniziata ? (
                           <Text style={[stili.turnoPosti, { color: mio ? 'rgba(255,255,255,0.9)' : p.testoTerzo }]} numberOfLines={1}>
-                            {mio ? (t.prenotazione?.attesa ? 'in attesa' : '✓ tuo') : 'iniziato'}
+                            {mio ? (tu.prenotazione?.attesa ? t('in attesa', 'waiting') : t('✓ tuo', '✓ yours')) : t('iniziato', 'started')}
                           </Text>
                         ) : conPosti ? (
-                          <Text style={[stili.turnoPosti, { color: colorePosti(t) }]} numberOfLines={1}>
-                            {t.liberi <= 0 ? 'pieno' : `${t.liberi} posti`}
+                          <Text style={[stili.turnoPosti, { color: colorePosti(tu) }]} numberOfLines={1}>
+                            {tu.liberi <= 0 ? t('pieno', 'full') : `${tu.liberi} ${t('posti', 'spots')}`}
                           </Text>
                         ) : (
                           // Quanti prenotati: l'omino e il numero.
                           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
                             <Icona nome="persona" size={11} colore={p.testoSecondario} />
-                            <Text style={[stili.turnoPosti, { color: p.testoSecondario }]}>{t.iscritti}</Text>
+                            <Text style={[stili.turnoPosti, { color: p.testoSecondario }]}>{tu.iscritti}</Text>
                           </View>
                         )}
                         {assistito ? (
@@ -544,7 +545,7 @@ function TurniInGriglia({
             {conPosti ? (
               !scelto.iniziata ? (
                 <Text style={{ color: colorePosti(scelto), fontFamily: F.extra, fontSize: 14 }}>
-                  {scelto.liberi <= 0 ? 'Completo' : `${scelto.liberi}/${scelto.posti} posti liberi`}
+                  {scelto.liberi <= 0 ? t('Completo', 'Full') : `${scelto.liberi}/${scelto.posti} ${t('posti liberi', 'spots available')}`}
                 </Text>
               ) : null
             ) : (
@@ -580,7 +581,7 @@ function TurniInGriglia({
   )
 }
 
-const SUBENTRO = 'Potrai ricevere una notifica via email in caso di subentro, entro massimo un’ora dal suo inizio.'
+const SUBENTRO = t('Potrai ricevere una notifica via email in caso di subentro, entro massimo un’ora dal suo inizio.', 'You may get an email notification if a spot opens up, up to one hour before the class starts.')
 
 /** La «i» della lista d'attesa: sul web al passaggio del mouse, sul telefono al tocco. */
 function InfoAttesa() {
@@ -623,7 +624,7 @@ function LezioniPrenotate({ lezioni, occupato, onAnnulla }: { lezioni: Lezione[]
   }
 
   return (
-    <Sezione titolo="Le tue prenotazioni" conteggio={lezioni.length}>
+    <Sezione titolo={t('Le tue prenotazioni', 'Your bookings')} conteggio={lezioni.length}>
       <Carta style={{ paddingVertical: spazio.due, zIndex: 2 }}>
         {lezioni.map((l, i) => {
           const attesa = !!l.prenotazione?.attesa
@@ -639,18 +640,18 @@ function LezioniPrenotate({ lezioni, occupato, onAnnulla }: { lezioni: Lezione[]
                 titolo={l.nome}
                 sotto={
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 2 }}>
-                    <Etichetta testo={attesa ? 'In lista d’attesa' : 'Prenotata'} tono={attesa ? 'attenzione' : 'ok'} />
+                    <Etichetta testo={attesa ? t('In lista d’attesa', 'On the waiting list') : t('Prenotata', 'Booked')} tono={attesa ? 'attenzione' : 'ok'} />
                     {attesa ? <InfoAttesa /> : null}
                   </View>
                 }
                 coda={
                   l.iniziata ? null : conferma === l.class_id ? (
                     <View style={{ flexDirection: 'row', gap: 6 }}>
-                      <Pulsante testo="Sì, annulla" variante="pericolo" piccolo pieno={false} onPress={() => annulla(l)} inCorso={inCorso === l.class_id} />
-                      <Pulsante testo="No" variante="secondario" piccolo pieno={false} onPress={() => setConferma(null)} disabilitato={inCorso !== null} />
+                      <Pulsante testo={t('Sì, annulla', 'Yes, cancel')} variante="pericolo" piccolo pieno={false} onPress={() => annulla(l)} inCorso={inCorso === l.class_id} />
+                      <Pulsante testo={t('No', 'No')} variante="secondario" piccolo pieno={false} onPress={() => setConferma(null)} disabilitato={inCorso !== null} />
                     </View>
                   ) : (
-                    <Pulsante testo="Annulla" variante="secondario" piccolo pieno={false} onPress={() => setConferma(l.class_id)} disabilitato={occupato || inCorso !== null} />
+                    <Pulsante testo={t('Annulla', 'Cancel')} variante="secondario" piccolo pieno={false} onPress={() => setConferma(l.class_id)} disabilitato={occupato || inCorso !== null} />
                   )
                 }
               />
@@ -809,16 +810,16 @@ function CalendarioGiorno() {
 
   if (errore && !giorno) {
     return (
-      <Schermata titolo="Prenotazioni">
+      <Schermata titolo={t('Prenotazioni', 'Bookings')}>
         <SceltaPrenotazioni attiva="lezioni" />
         <Messaggio>{errore}</Messaggio>
-        <Pulsante testo="Riprova" icona="aggiorna" onPress={() => leggi()} />
+        <Pulsante testo={t('Riprova', 'Try again')} icona="aggiorna" onPress={() => leggi()} />
       </Schermata>
     )
   }
   if (!giorno) {
     return (
-      <Schermata titolo="Prenotazioni">
+      <Schermata titolo={t('Prenotazioni', 'Bookings')}>
         <SceltaPrenotazioni attiva="lezioni" />
         <SchedeInArrivo />
       </Schermata>
@@ -832,7 +833,7 @@ function CalendarioGiorno() {
   const nascoste = giorno.lezioni.length - visibili.length
   const conteggi = new Map<string, number>()
   for (const l of visibili) conteggi.set(l.categoria, (conteggi.get(l.categoria) ?? 0) + 1)
-  const attivitaDelGiorno = [...conteggi.keys()].sort((x, y) => x.localeCompare(y, 'it'))
+  const attivitaDelGiorno = [...conteggi.keys()].sort((x, y) => x.localeCompare(y, locale()))
   const filtrate = attivita ? visibili.filter((l) => l.categoria === attivita) : visibili
   // Le attivita' a turni (Gym Floor, Nuoto Libero) vanno ognuna in una card
   // sola, a griglia (vedi TurniInGriglia), se quel giorno hanno piu' di un turno.
@@ -842,38 +843,45 @@ function CalendarioGiorno() {
   const titolare = !!perChi?.titolare
   const schedaAperta = aperta?.scheda ? giorno.schede?.[aperta.scheda] ?? null : null
   return (
-    <Schermata titolo="Prenotazioni" scorrimento={scorrimento}>
+    <Schermata titolo={t('Prenotazioni', 'Bookings')} scorrimento={scorrimento}>
       <SceltaPrenotazioni attiva="lezioni" />
 
       {ritorno ? (
         ritorno.stato === 'avviato' ? (
-          <Messaggio tono="attenzione" icona="clessidra" titolo="Aspettiamo la conferma">
+          <Messaggio tono="attenzione" icona="clessidra" titolo={t('Aspettiamo la conferma', 'Waiting for confirmation')}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: spazio.due }}>
               <ActivityIndicator color={p.attenzione} />
-              <Text style={[stili.nota, { color: p.testo, flex: 1 }]}>Aspettiamo da PerfectGym la conferma del pagamento, poi prenotiamo. Non chiudere la pagina.</Text>
+              <Text style={[stili.nota, { color: p.testo, flex: 1 }]}>{t('Aspettiamo da PerfectGym la conferma del pagamento, poi prenotiamo. Non chiudere la pagina.', 'We are waiting for PerfectGym to confirm the payment, then we will book. Do not close the page.')}</Text>
             </View>
           </Messaggio>
         ) : ritorno.stato === 'prenotato' ? (
-          <Messaggio tono="ok" titolo="Pagamento ricevuto">
-            La lezione è prenotata. La trovi qui sotto e nell’app Athlon.
+          <Messaggio tono="ok" titolo={t('Pagamento ricevuto', 'Payment received')}>
+            {t('La lezione è prenotata. La trovi qui sotto e nell’app Athlon.', 'The class is booked. You can find it below and in the Athlon app.')}
           </Messaggio>
         ) : ritorno.stato === 'attesa' ? (
-          <Messaggio tono="attenzione" titolo="Pagamento ricevuto: sei in lista d’attesa">
+          <Messaggio tono="attenzione" titolo={t('Pagamento ricevuto: sei in lista d’attesa', 'Payment received: you are on the waiting list')}>
             <View style={{ gap: spazio.due }}>
               <Text style={[stili.nota, { color: p.testoSecondario }]}>
-                {`I posti di ${'lezione' in ritorno && ritorno.lezione ? `«${ritorno.lezione}»` : 'questa lezione'}${
-                  'inizio' in ritorno && ritorno.inizio ? ` del ${giornoEsteso(ritorno.giorno ?? ritorno.inizio.slice(0, 10))} alle ${ora(ritorno.inizio)}` : ''
-                } sono finiti mentre pagavi, quindi ti abbiamo messo in lista d’attesa. Se si libera un posto subentri tu, e ti avvisiamo via email. Se non subentrerai, l’ingresso che hai acquistato resta valido per un’altra prenotazione ${
-                  'categoria' in ritorno && ritorno.categoria ? `di ${ritorno.categoria}` : 'della stessa categoria'
-                }.`}
+                {tv(
+                  `I posti di ${'lezione' in ritorno && ritorno.lezione ? `«${ritorno.lezione}»` : 'questa lezione'}${
+                    'inizio' in ritorno && ritorno.inizio ? ` del ${giornoEsteso(ritorno.giorno ?? ritorno.inizio.slice(0, 10))} alle ${ora(ritorno.inizio)}` : ''
+                  } sono finiti mentre pagavi, quindi ti abbiamo messo in lista d’attesa. Se si libera un posto subentri tu, e ti avvisiamo via email. Se non subentrerai, l’ingresso che hai acquistato resta valido per un’altra prenotazione ${
+                    'categoria' in ritorno && ritorno.categoria ? `di ${ritorno.categoria}` : 'della stessa categoria'
+                  }.`,
+                  `The spots for ${'lezione' in ritorno && ritorno.lezione ? `“${ritorno.lezione}”` : 'this class'}${
+                    'inizio' in ritorno && ritorno.inizio ? ` on ${giornoEsteso(ritorno.giorno ?? ritorno.inizio.slice(0, 10))} at ${ora(ritorno.inizio)}` : ''
+                  } ran out while you were paying, so we put you on the waiting list. If a spot opens up, it is yours and we will let you know by email. If you do not get a spot, the access you bought stays valid for another booking ${
+                    'categoria' in ritorno && ritorno.categoria ? `in ${ritorno.categoria}` : 'in the same category'
+                  }.`,
+                )}
               </Text>
               {'categoria' in ritorno && ritorno.categoria ? (
-                <Pulsante testo={`Vedi le altre lezioni di ${ritorno.categoria}`} variante="contorno" piccolo onPress={() => setAttivita(ritorno.categoria ?? null)} />
+                <Pulsante testo={`${t('Vedi le altre lezioni di', 'See other classes in')} ${ritorno.categoria}`} variante="contorno" piccolo onPress={() => setAttivita(ritorno.categoria ?? null)} />
               ) : null}
             </View>
           </Messaggio>
         ) : (
-          <Messaggio>{('errore' in ritorno && ritorno.errore) || 'Non vediamo ancora il pagamento. Se l’hai completato, ricarica la pagina fra qualche minuto.'}</Messaggio>
+          <Messaggio>{('errore' in ritorno && ritorno.errore) || t('Non vediamo ancora il pagamento. Se l’hai completato, ricarica la pagina fra qualche minuto.', 'We do not see the payment yet. If you completed it, reload the page in a few minutes.')}</Messaggio>
         )
       ) : null}
 
@@ -889,7 +897,7 @@ function CalendarioGiorno() {
                   vibra="scelta"
                   stato={{ selected: attivo }}
                   onPress={() => leggi(giorno.data, x.member_id)}
-                  etichetta={`Prenota per ${nomeCompleto(x)}`}
+                  etichetta={`${t('Prenota per', 'Book for')} ${nomeCompleto(x)}`}
                   style={[stili.persona, attivo ? { backgroundColor: p.accento, borderColor: p.accento, boxShadow: '0 8px 18px rgba(255,87,1,0.3)' } : { backgroundColor: p.carta, borderColor: p.linea }]}
                 >
                   <Avatar nome={x.nome} cognome={x.cognome} size={30} anello={attivo ? 'rgba(255,255,255,0.9)' : undefined} />
@@ -901,7 +909,7 @@ function CalendarioGiorno() {
         ) : null}
         {perChi ? (
           <Text style={[stili.nota, { color: p.testoSecondario, paddingHorizontal: 2 }]}>
-            Stai prenotando per <Text style={{ fontFamily: F.bold, color: p.testo }}>{nomeCompleto(perChi)}</Text>
+            {t('Stai prenotando per', 'You are booking for')} <Text style={{ fontFamily: F.bold, color: p.testo }}>{nomeCompleto(perChi)}</Text>
           </Text>
         ) : null}
 
@@ -933,13 +941,13 @@ function CalendarioGiorno() {
       <View style={{ gap: spazio.tre }}>
         <View style={{ flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', paddingHorizontal: 2 }}>
           <Text style={[stili.giornoTitolo, { color: p.testo }]}>{maiuscola(giornoEsteso(giorno.data))}</Text>
-          <Text style={{ color: p.testoTerzo, fontFamily: F.semi, fontSize: 13 }}>{`${visibili.length} ${visibili.length === 1 ? 'lezione' : 'lezioni'}`}</Text>
+          <Text style={{ color: p.testoTerzo, fontFamily: F.semi, fontSize: 13 }}>{`${visibili.length} ${visibili.length === 1 ? t('lezione', 'class') : t('lezioni', 'classes')}`}</Text>
         </View>
         {attivitaDelGiorno.length > 1 || attivita ? (
           // Tutte le attivita' del giorno in vista, a tessere (niente fila da scorrere). Una tessera sola attiva:
           // «Tutte» le toglie il filtro. Toccare quella attiva la toglie.
           <View style={{ gap: spazio.due }}>
-            <Text style={[stili.filtriTitolo, { color: p.testoSecondario }]} accessibilityRole="header">Cosa vuoi fare?</Text>
+            <Text style={[stili.filtriTitolo, { color: p.testoSecondario }]} accessibilityRole="header">{t('Cosa vuoi fare?', 'What would you like to do?')}</Text>
             <View style={stili.tessere}>
               {[null, ...attivitaDelGiorno].map((a) => {
                 const attivo = a === attivita
@@ -951,15 +959,15 @@ function CalendarioGiorno() {
                     vibra="scelta"
                     stato={{ selected: attivo }}
                     onPress={() => setAttivita(attivo && a ? null : a)}
-                    etichetta={`${a ?? 'Tutte le attività'}, ${n} ${n === 1 ? 'lezione' : 'lezioni'}`}
+                    etichetta={`${a ?? t('Tutte le attività', 'All activities')}, ${n} ${n === 1 ? t('lezione', 'class') : t('lezioni', 'classes')}`}
                     style={[
                       stili.tessera,
                       { backgroundColor: attivo ? velo(p, 'accento', p.scuro ? 0.16 : 0.1) : p.carta, borderColor: attivo ? p.accento : p.linea, borderWidth: attivo ? 1.5 : StyleSheet.hairlineWidth },
                     ]}
                   >
                     <Bollino icona={segno.icona} tono={attivo ? 'accento' : segno.tono} size={34} pieno={attivo} />
-                    <Text style={{ color: p.testo, fontFamily: attivo ? F.extra : F.semi, fontSize: 13.5, lineHeight: 17 }} numberOfLines={2}>{a ?? 'Tutte'}</Text>
-                    <Text style={{ color: attivo ? p.accento : p.testoTerzo, fontFamily: F.extra, fontSize: 11.5 }}>{`${n} ${n === 1 ? 'lezione' : 'lezioni'}`}</Text>
+                    <Text style={{ color: p.testo, fontFamily: attivo ? F.extra : F.semi, fontSize: 13.5, lineHeight: 17 }} numberOfLines={2}>{a ?? t('Tutte', 'All')}</Text>
+                    <Text style={{ color: attivo ? p.accento : p.testoTerzo, fontFamily: F.extra, fontSize: 11.5 }}>{`${n} ${n === 1 ? t('lezione', 'class') : t('lezioni', 'classes')}`}</Text>
                   </Tocco>
                 )
               })}
@@ -968,7 +976,7 @@ function CalendarioGiorno() {
         ) : null}
       </View>
 
-      {!giorno.prenotazioni_lette ? <Messaggio tono="attenzione">PerfectGym non risponde: le tue prenotazioni potrebbero non comparire.</Messaggio> : null}
+      {!giorno.prenotazioni_lette ? <Messaggio tono="attenzione">{t('PerfectGym non risponde: le tue prenotazioni potrebbero non comparire.', 'PerfectGym is not responding: your bookings may not show up.')}</Messaggio> : null}
       {mie.length ? <LezioniPrenotate lezioni={mie} occupato={occupato} onAnnulla={disdici} /> : null}
 
       {carica ? (
@@ -976,22 +984,22 @@ function CalendarioGiorno() {
       ) : visibili.length === 0 ? (
         <Carta style={{ alignItems: 'center', gap: spazio.due, paddingVertical: spazio.cinque }}>
           <Icona nome="calendario" size={34} colore={p.testoTerzo} />
-          <Text style={[stili.nota, { color: p.testoSecondario, textAlign: 'center' }]}>Nessuna lezione ancora da cominciare in questo giorno.</Text>
+          <Text style={[stili.nota, { color: p.testoSecondario, textAlign: 'center' }]}>{t('Nessuna lezione ancora da cominciare in questo giorno.', 'No classes left to start on this day.')}</Text>
         </Carta>
       ) : filtrate.length === 0 ? (
         <Carta style={{ alignItems: 'center', gap: spazio.tre, paddingVertical: spazio.cinque }}>
-          <Text style={[stili.nota, { color: p.testoSecondario, textAlign: 'center' }]}>Nessuna lezione di «{attivita}» ancora da cominciare in questo giorno.</Text>
-          <Pulsante testo="Mostra tutte le attività" variante="contorno" piccolo pieno={false} onPress={() => setAttivita(null)} />
+          <Text style={[stili.nota, { color: p.testoSecondario, textAlign: 'center' }]}>{tv(`Nessuna lezione di «${attivita}» ancora da cominciare in questo giorno.`, `No “${attivita}” classes left to start on this day.`)}</Text>
+          <Pulsante testo={t('Mostra tutte le attività', 'Show all activities')} variante="contorno" piccolo pieno={false} onPress={() => setAttivita(null)} />
         </Carta>
       ) : (
         <View style={{ gap: spazio.tre }}>
           {nascoste && !attivita ? (
-            <Text style={[stili.nota, { color: p.testoTerzo, paddingHorizontal: 2 }]}>{nascoste === 1 ? 'Una lezione è già cominciata.' : `${nascoste} lezioni sono già cominciate.`}</Text>
+            <Text style={[stili.nota, { color: p.testoTerzo, paddingHorizontal: 2 }]}>{nascoste === 1 ? t('Una lezione è già cominciata.', 'One class has already started.') : `${nascoste} ${t('lezioni sono già cominciate.', 'classes have already started.')}`}</Text>
           ) : null}
           {aTurni.length ? (
             // Due sezioni coi titoli: prima l'allenamento libero (le griglie), poi i corsi.
             <>
-              <Sezione titolo="Allenamento libero">
+              <Sezione titolo={t('Allenamento libero', 'Free training')}>
                 <View style={stili.griglia}>
                 {aTurni.map((a, n) => (
                   <Entra key={`${giorno.member_id}-${giorno.data}-${a.categoria}`} indice={n} style={stili.cella}>
@@ -1017,7 +1025,7 @@ function CalendarioGiorno() {
                 </View>
               </Sezione>
               {altre.length ? (
-                <Sezione titolo="Corsi" conteggio={altre.length} style={{ marginTop: spazio.due }}>
+                <Sezione titolo={t('Corsi', 'Classes')} conteggio={altre.length} style={{ marginTop: spazio.due }}>
                   <View style={stili.griglia}>
                     {altre.map((l, i) => (
                       <Entra
@@ -1076,12 +1084,12 @@ function CalendarioGiorno() {
         dettagli={
           aperta
             ? [
-                { valore: ora(aperta.inizio), etichetta: 'Inizio' },
-                { valore: `${minuti(aperta.inizio, aperta.fine)} min`, etichetta: 'Durata' },
+                { valore: ora(aperta.inizio), etichetta: t('Inizio', 'Start') },
+                { valore: `${minuti(aperta.inizio, aperta.fine)} min`, etichetta: t('Durata', 'Duration') },
                 // Nelle attivita' a turni l'istruttore cambia da un turno all'altro (e nella Gym Floor e' un nome finto): si contano i turni.
                 A_TURNI.some((a) => a.categoria === aperta.categoria)
-                  ? { valore: String(giorno.lezioni.filter((l) => l.categoria === aperta.categoria && !l.iniziata).length), etichetta: 'Turni' }
-                  : { valore: aperta.istruttore ? suDueRighe(aperta.istruttore) : '—', etichetta: 'Istruttore' },
+                  ? { valore: String(giorno.lezioni.filter((l) => l.categoria === aperta.categoria && !l.iniziata).length), etichetta: t('Turni', 'Sessions') }
+                  : { valore: aperta.istruttore ? suDueRighe(aperta.istruttore) : '—', etichetta: t('Istruttore', 'Instructor') },
               ]
             : undefined
         }

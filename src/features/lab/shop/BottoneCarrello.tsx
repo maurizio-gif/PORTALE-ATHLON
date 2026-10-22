@@ -1,6 +1,8 @@
 import { router } from 'expo-router'
 import { StyleSheet, Text, View } from 'react-native'
 
+import { t } from '@/lib/lingua'
+
 import { Icona } from '../ui/Icona'
 import { F, usePalette } from '../ui/tema'
 import { Tocco } from '../ui/Tocco'
@@ -13,7 +15,7 @@ export function BottoneCarrello() {
   return (
     <Tocco
       onPress={() => router.push('/shop/carrello')}
-      etichetta={pezzi ? `Carrello, ${pezzi} ${pezzi === 1 ? 'pezzo' : 'pezzi'}` : 'Carrello vuoto'}
+      etichetta={pezzi ? t(`Carrello, ${pezzi} ${pezzi === 1 ? 'pezzo' : 'pezzi'}`, `Cart, ${pezzi} ${pezzi === 1 ? 'item' : 'items'}`) : t('Carrello vuoto', 'Cart empty')}
       style={[stili.tondo, { backgroundColor: p.carta, borderColor: p.linea, boxShadow: p.ombra }]}
     >
       <Icona nome="carrello" size={18} colore={p.testo} />

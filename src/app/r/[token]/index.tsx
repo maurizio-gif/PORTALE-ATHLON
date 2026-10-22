@@ -13,6 +13,7 @@ import { GestioneNucleo } from '@/features/metodo-pagamento/GestioneNucleo'
 import type { PaginaEvento } from '@/lib/eventi'
 import type { PaginaGuestPass } from '@/lib/guestPass'
 import type { ContrattoNucleo } from '@/lib/metodoPagamento'
+import { t } from '@/lib/lingua'
 
 // L'arrivo di ogni link via email: `https://app.athlonroma.it/r/<token>`. Un
 // solo prefisso, cosi' i deep link dell'app si registrano una volta (app.json).
@@ -86,7 +87,7 @@ export default function ArrivoDaLink() {
     case 'appuntamento-scaduto':
       return <AppuntamentoNonTrovato />
     case 'guasto':
-      return <Guasto titolo="Non riusciamo ad aprire la pagina adesso" testo="Riprova fra qualche minuto. Se continua, scrivici a desk@athlonroma.it." onRiprova={apri} />
+      return <Guasto titolo={t('Non riusciamo ad aprire la pagina adesso', 'We can’t open the page right now')} testo={t('Riprova fra qualche minuto. Se continua, scrivici a desk@athlonroma.it.', 'Try again in a few minutes. If it keeps happening, write to us at desk@athlonroma.it.')} onRiprova={apri} />
     case 'metodo_pagamento':
       return (
         <GestioneNucleo token={token} nome={stato.nome} nomeTitolare={stato.nomeTitolare} iniziali={stato.contratti} evidenziato={stato.evidenziato} />

@@ -1,6 +1,7 @@
 import { SUPABASE_URL } from '@/config'
 import { vistaCorrente } from '@/features/lab/vista'
 import { supabase } from '@/lib/supabase'
+import { intestazioneLingua, t } from '@/lib/lingua'
 
 // Il laboratorio (binario B): login proprio, fuori da PerfectGym, solo per i
 // tester (tabella portale_lab_tester nel database).
@@ -13,14 +14,14 @@ export async function chiediCodice(email: string): Promise<{ ok: true } | { ok: 
   try {
     const r = await fetch(`${SUPABASE_URL}/functions/v1/portale-accesso`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...intestazioneLingua() },
       body: JSON.stringify({ email }),
     })
     const dati = (await r.json().catch(() => null)) as { ok?: boolean; errore?: string } | null
     if (r.ok && dati?.ok) return { ok: true }
-    return { ok: false, errore: dati?.errore || 'Non siamo riusciti a mandarti il codice. Riprova tra poco.' }
+    return { ok: false, errore: dati?.errore || t('Non siamo riusciti a mandarti il codice. Riprova tra poco.', 'We couldn’t send you the code. Try again shortly.') }
   } catch {
-    return { ok: false, errore: 'Connessione non riuscita. Controlla la rete e riprova.' }
+    return { ok: false, errore: t('Connessione non riuscita. Controlla la rete e riprova.', 'Connection failed. Check your network and try again.') }
   }
 }
 
@@ -28,8 +29,8 @@ export async function entra(email: string, codice: string): Promise<{ ok: true }
   const token = codice.replace(/\D/g, '')
   const { error } = await supabase.auth.verifyOtp({ email, token, type: 'email' })
   if (!error) return { ok: true }
-  if (/expired|invalid/i.test(error.message)) return { ok: false, errore: 'Codice sbagliato o scaduto. Controlla l’ultima email che ti abbiamo mandato.' }
-  return { ok: false, errore: 'Non siamo riusciti a farti entrare. Riprova tra poco.' }
+  if (/expired|invalid/i.test(error.message)) return { ok: false, errore: t('Codice sbagliato o scaduto. Controlla l’ultima email che ti abbiamo mandato.', 'Wrong or expired code. Check the latest email we sent you.') }
+  return { ok: false, errore: t('Non siamo riusciti a farti entrare. Riprova tra poco.', 'We couldn’t sign you in. Try again shortly.') }
 }
 
 export async function esci() {
@@ -115,9 +116,9 @@ export async function laMiaArea(): Promise<EsitoArea> {
     nonAmmesso,
     errore: nonAmmesso
       ? vista
-        ? 'Questo accesso non e’ abilitato alla vista cliente.'
-        : 'Questo indirizzo non ha ancora accesso al portale. Scrivi al club se pensi sia un errore.'
-      : 'Non riusciamo a leggere i tuoi dati adesso. Riprova tra poco.',
+        ? t('Questo accesso non e’ abilitato alla vista cliente.', 'This account isn’t enabled for the member view.')
+        : t('Questo indirizzo non ha ancora accesso al portale. Scrivi al club se pensi sia un errore.', 'This address doesn’t have access to the portal yet. Write to the club if you think this is a mistake.')
+      : t('Non riusciamo a leggere i tuoi dati adesso. Riprova tra poco.', 'We can’t load your details right now. Try again shortly.'),
   }
 }
 
@@ -185,18 +186,18 @@ export type Giorno = {
 export async function funzione(nome: string, corpo: Record<string, unknown>): Promise<{ ok: boolean; stato: number; dati: Record<string, any> }> {
   const { data } = await supabase.auth.getSession()
   const token = data.session?.access_token
-  if (!token) return { ok: false, stato: 401, dati: { errore: 'Sessione scaduta: entra di nuovo.' } }
+  if (!token) return { ok: false, stato: 401, dati: { errore: t('Sessione scaduta: entra di nuovo.', 'Session expired: sign in again.') } }
   const vista = vistaCorrente()
   try {
     const r = await fetch(`${SUPABASE_URL}/functions/v1/${nome}`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, ...(vista ? { 'X-Athlon-Come': vista } : {}) },
+      headers: { 'Content-Type': 'application/json', ...intestazioneLingua(), Authorization: `Bearer ${token}`, ...(vista ? { 'X-Athlon-Come': vista } : {}) },
       body: JSON.stringify(corpo),
     })
     const dati = ((await r.json().catch(() => null)) ?? {}) as Record<string, any>
     return { ok: r.ok && dati.ok === true, stato: r.status, dati }
   } catch {
-    return { ok: false, stato: 0, dati: { errore: 'Connessione non riuscita. Controlla la rete e riprova.' } }
+    return { ok: false, stato: 0, dati: { errore: t('Connessione non riuscita. Controlla la rete e riprova.', 'Connection failed. Check your network and try again.') } }
   }
 }
 
@@ -205,7 +206,7 @@ const calendario = (corpo: Record<string, unknown>) => funzione('portale-lab-cal
 export async function leggiGiorno(data?: string, memberId?: number): Promise<{ ok: true; giorno: Giorno } | { ok: false; errore: string }> {
   const { ok, dati } = await calendario({ azione: 'giorno', data, member_id: memberId })
   if (ok) return { ok: true, giorno: dati as unknown as Giorno }
-  return { ok: false, errore: dati.errore ?? 'Non riusciamo a leggere il calendario adesso.' }
+  return { ok: false, errore: dati.errore ?? t('Non riusciamo a leggere il calendario adesso.', 'We can’t load the calendar right now.') }
 }
 
 /** Una lezione a cui il titolare e' stato presente (segnata dalla reception), per il contatore delle calorie. */
@@ -215,7 +216,7 @@ export type PresenzaLezione = { inizio: string; fine: string; nome: string; cate
 export async function presenzeLezioni(): Promise<Esito<{ presenze: PresenzaLezione[]; schede: Record<string, SchedaLezione> }>> {
   const { ok, dati } = await calendario({ azione: 'presenze' })
   if (ok) return { ok: true, presenze: (dati.presenze ?? []) as PresenzaLezione[], schede: (dati.schede ?? {}) as Record<string, SchedaLezione> }
-  return { ok: false, errore: dati.errore ?? 'Non riusciamo a leggere le tue lezioni adesso.' }
+  return { ok: false, errore: dati.errore ?? t('Non riusciamo a leggere le tue lezioni adesso.', 'We can’t load your classes right now.') }
 }
 
 /** Il prodotto PerfectGym che apre la prenotazione di una lezione, per chi non ce l'ha compreso. */
@@ -240,28 +241,28 @@ export async function prenotaLezione(
   if (dati.da_pagare && dati.prodotto) {
     return {
       ok: false,
-      errore: dati.errore ?? 'Questa lezione non è compresa nel tuo abbonamento.',
+      errore: dati.errore ?? t('Questa lezione non è compresa nel tuo abbonamento.', 'This class isn’t included in your membership.'),
       prodotto: dati.prodotto,
       url: typeof dati.url === 'string' ? dati.url : undefined,
       acquisto_id: typeof dati.acquisto_id === 'string' ? dati.acquisto_id : undefined,
       carta: dati.carta ?? null,
     }
   }
-  return { ok: false, errore: dati.errore ?? 'Non siamo riusciti a prenotare adesso.' }
+  return { ok: false, errore: dati.errore ?? t('Non siamo riusciti a prenotare adesso.', 'We couldn’t book right now.') }
 }
 
 /** Il link di pagamento di PerfectGym per il prodotto della lezione; dopo il pagamento si torna al calendario con ?acquisto=<id>. */
 export async function acquistaLezione(classId: number, memberId: number): Promise<{ ok: true; url: string; acquisto_id: string } | { ok: false; errore: string }> {
   const { ok, dati } = await calendario({ azione: 'acquista', class_id: classId, member_id: memberId })
   if (ok && typeof dati.url === 'string') return { ok: true, url: dati.url, acquisto_id: String(dati.acquisto_id ?? '') }
-  return { ok: false, errore: dati.errore ?? 'Non riusciamo ad aprire il pagamento adesso.' }
+  return { ok: false, errore: dati.errore ?? t('Non riusciamo ad aprire il pagamento adesso.', 'We can’t open the payment right now.') }
 }
 
 /** L'ingresso addebitato sulla carta gia' salvata, senza uscire; l'esito come al ritorno dal pagamento. */
 export async function pagaLezioneConCarta(acquistoId: string): Promise<{ ok: true } | { ok: false; errore: string }> {
   const { ok, dati } = await calendario({ azione: 'paga_con_carta', acquisto_id: acquistoId })
   if (ok) return { ok: true }
-  return { ok: false, errore: dati.errore ?? 'La carta non è stata addebitata.' }
+  return { ok: false, errore: dati.errore ?? t('La carta non è stata addebitata.', 'The card wasn’t charged.') }
 }
 
 export type EsitoAcquisto = {
@@ -279,13 +280,13 @@ export type EsitoAcquisto = {
 export async function esitoAcquistoLezione(acquistoId: string): Promise<{ ok: true; esito: EsitoAcquisto } | { ok: false; errore: string }> {
   const { ok, dati } = await calendario({ azione: 'esito_acquisto', acquisto_id: acquistoId })
   if (ok) return { ok: true, esito: dati as unknown as EsitoAcquisto }
-  return { ok: false, errore: dati.errore ?? 'Non riusciamo a verificare il pagamento adesso.' }
+  return { ok: false, errore: dati.errore ?? t('Non riusciamo a verificare il pagamento adesso.', 'We can’t check the payment right now.') }
 }
 
 export async function disdiciLezione(classId: number, memberId: number): Promise<{ ok: true } | { ok: false; errore: string }> {
   const { ok, dati } = await calendario({ azione: 'disdici', class_id: classId, member_id: memberId })
   if (ok) return { ok: true }
-  return { ok: false, errore: dati.errore ?? 'Non siamo riusciti a disdire adesso.' }
+  return { ok: false, errore: dati.errore ?? t('Non siamo riusciti a disdire adesso.', 'We couldn’t cancel right now.') }
 }
 
 // ---------------------------------------------------------------------------
@@ -350,7 +351,7 @@ export type PacchettoPersonal = { piano_id: number; nome: string; sedute: number
 export async function statoPersonal(memberId?: number): Promise<Esito<{ stato: StatoPersonal }>> {
   const { ok, dati } = await personal({ azione: 'stato', member_id: memberId })
   if (ok) return { ok: true, stato: dati as unknown as StatoPersonal }
-  return { ok: false, errore: dati.errore ?? 'Non riusciamo a leggere il personal training adesso.' }
+  return { ok: false, errore: dati.errore ?? t('Non riusciamo a leggere il personal training adesso.', 'We can’t load personal training right now.') }
 }
 
 /** Un orario libero: l'istante, l'ora di Roma come la scrive PerfectGym (da rimandare), e il trainer. */
@@ -360,7 +361,7 @@ export type OrariPersonal = { definition_id: number; minuti: number; giorni: str
 export async function orariPersonal(memberId: number, definitionId: number): Promise<Esito<{ orari: OrariPersonal }>> {
   const { ok, dati } = await personal({ azione: 'orari', member_id: memberId, definition_id: definitionId })
   if (ok) return { ok: true, orari: dati as unknown as OrariPersonal }
-  return { ok: false, errore: dati.errore ?? 'Non riusciamo a leggere gli orari dei trainer adesso.' }
+  return { ok: false, errore: dati.errore ?? t('Non riusciamo a leggere gli orari dei trainer adesso.', 'We can’t load the trainers’ schedules right now.') }
 }
 
 export type ScelteSeduta = { member_id: number; definition_id: number; trainer_id: number; locale: string }
@@ -371,14 +372,14 @@ export async function prenotaPersonal(s: ScelteSeduta): Promise<{ ok: true; book
   if (dati.da_pagare && dati.prodotto) {
     return {
       ok: false,
-      errore: dati.errore ?? 'Non hai sedute da usare.',
+      errore: dati.errore ?? t('Non hai sedute da usare.', 'You have no sessions to use.'),
       prodotto: dati.prodotto,
       url: typeof dati.url === 'string' ? dati.url : undefined,
       acquisto_id: typeof dati.acquisto_id === 'string' ? dati.acquisto_id : undefined,
       carta: dati.carta ?? null,
     }
   }
-  return { ok: false, errore: dati.errore ?? 'Non siamo riusciti a prenotare adesso.' }
+  return { ok: false, errore: dati.errore ?? t('Non siamo riusciti a prenotare adesso.', 'We couldn’t book right now.') }
 }
 
 /** Il link di pagamento della seduta; dopo il pagamento si torna a /personal?acquisto=<id> (il backend manda ancora /lab/personal, che vercel.json reindirizza). */
@@ -389,13 +390,13 @@ export async function acquistaPersonal(
   if (ok && typeof dati.url === 'string') {
     return { ok: true, url: dati.url, acquisto_id: String(dati.acquisto_id ?? ''), prodotto: dati.prodotto ?? null, carta: dati.carta ?? null }
   }
-  return { ok: false, errore: dati.errore ?? 'Non riusciamo ad aprire il pagamento adesso.' }
+  return { ok: false, errore: dati.errore ?? t('Non riusciamo ad aprire il pagamento adesso.', 'We can’t open the payment right now.') }
 }
 
 export async function pagaPersonalConCarta(acquistoId: string): Promise<{ ok: true } | { ok: false; errore: string }> {
   const { ok, dati } = await personal({ azione: 'paga_con_carta', acquisto_id: acquistoId })
   if (ok) return { ok: true }
-  return { ok: false, errore: dati.errore ?? 'La carta non è stata addebitata.' }
+  return { ok: false, errore: dati.errore ?? t('La carta non è stata addebitata.', 'The card wasn’t charged.') }
 }
 
 export type EsitoAcquistoPersonal = { stato: 'avviato' | 'prenotato' | 'errore'; errore: string | null; member_id: number; inizio: string | null; trainer: string | null }
@@ -403,14 +404,14 @@ export type EsitoAcquistoPersonal = { stato: 'avviato' | 'prenotato' | 'errore';
 export async function esitoAcquistoPersonal(acquistoId: string): Promise<{ ok: true; esito: EsitoAcquistoPersonal } | { ok: false; errore: string }> {
   const { ok, dati } = await personal({ azione: 'esito_acquisto', acquisto_id: acquistoId })
   if (ok) return { ok: true, esito: dati as unknown as EsitoAcquistoPersonal }
-  return { ok: false, errore: dati.errore ?? 'Non riusciamo a verificare il pagamento adesso.' }
+  return { ok: false, errore: dati.errore ?? t('Non riusciamo a verificare il pagamento adesso.', 'We can’t check the payment right now.') }
 }
 
 /** La seduta singola senza orario: con la carta salvata si paga subito, senza si apre la pagina di pagamento. */
 export async function compraSedutaPersonal(memberId: number, conCarta: boolean): Promise<{ ok: true; url: string | null } | { ok: false; errore: string }> {
   const { ok, dati } = await personal({ azione: 'compra_seduta', member_id: memberId, con_carta: conCarta })
   if (ok) return { ok: true, url: typeof dati.url === 'string' ? dati.url : null }
-  return { ok: false, errore: dati.errore ?? 'Non riusciamo ad aprire il pagamento adesso.' }
+  return { ok: false, errore: dati.errore ?? t('Non riusciamo ad aprire il pagamento adesso.', 'We can’t open the payment right now.') }
 }
 
 /** L'abbonamento aggiuntivo PT: il contratto e la prima quota (con la carta), o il contratto sul conto (addebito SEPA). */
@@ -424,7 +425,7 @@ export async function attivaPacchettoPersonal(
     const stato = dati.stato === 'pagato' || dati.stato === 'addebito' ? dati.stato : 'avviato'
     return { ok: true, pacchetto_id: String(dati.pacchetto_id), url: typeof dati.url === 'string' ? dati.url : null, stato }
   }
-  return { ok: false, errore: dati.errore ?? 'Non riusciamo ad attivare l’abbonamento adesso.' }
+  return { ok: false, errore: dati.errore ?? t('Non riusciamo ad attivare l’abbonamento adesso.', 'We can’t activate the membership right now.') }
 }
 
 export type EsitoPacchettoPersonal = { stato: 'avviato' | 'pagato' | 'addebito' | 'errore'; errore: string | null; member_id: number; nome: string }
@@ -432,13 +433,13 @@ export type EsitoPacchettoPersonal = { stato: 'avviato' | 'pagato' | 'addebito' 
 export async function esitoPacchettoPersonal(pacchettoId: string): Promise<{ ok: true; esito: EsitoPacchettoPersonal } | { ok: false; errore: string }> {
   const { ok, dati } = await personal({ azione: 'esito_pacchetto', pacchetto_id: pacchettoId })
   if (ok) return { ok: true, esito: dati as unknown as EsitoPacchettoPersonal }
-  return { ok: false, errore: dati.errore ?? 'Non riusciamo a verificare il pagamento adesso.' }
+  return { ok: false, errore: dati.errore ?? t('Non riusciamo a verificare il pagamento adesso.', 'We can’t check the payment right now.') }
 }
 
 export async function disdiciPersonal(memberId: number, bookingId: number): Promise<{ ok: true } | { ok: false; errore: string }> {
   const { ok, dati } = await personal({ azione: 'disdici', member_id: memberId, booking_id: bookingId })
   if (ok) return { ok: true }
-  return { ok: false, errore: dati.errore ?? 'Non siamo riusciti a disdire adesso.' }
+  return { ok: false, errore: dati.errore ?? t('Non siamo riusciti a disdire adesso.', 'We couldn’t cancel right now.') }
 }
 
 // ---------------------------------------------------------------------------
@@ -515,44 +516,44 @@ const pagamenti = (corpo: Record<string, unknown>) => funzione('portale-lab-paga
 export async function elencoPagamenti(): Promise<Esito<{ piani: PianoLab[]; abbonamenti: AbbonamentoLab[] }>> {
   const { ok, dati } = await pagamenti({ azione: 'elenco' })
   if (ok) return { ok: true, piani: dati.piani, abbonamenti: dati.abbonamenti }
-  return { ok: false, errore: dati.errore ?? 'Non riusciamo a leggere i pagamenti adesso.' }
+  return { ok: false, errore: dati.errore ?? t('Non riusciamo a leggere i pagamenti adesso.', 'We can’t load the payments right now.') }
 }
 
 export async function avviaPagamento(pianoId: string): Promise<Esito<SessioneAdyen>> {
   const { ok, dati } = await pagamenti({ azione: 'checkout', piano_id: pianoId })
   if (ok) return { ok: true, riferimento: dati.riferimento, clientKey: dati.clientKey, environment: dati.environment, sessione: dati.sessione }
-  return { ok: false, errore: dati.errore ?? 'Non siamo riusciti ad aprire il pagamento adesso.' }
+  return { ok: false, errore: dati.errore ?? t('Non siamo riusciti ad aprire il pagamento adesso.', 'We couldn’t open the payment right now.') }
 }
 
 export async function statoPagamento(riferimento: string): Promise<Esito<{ pagamento: StatoDelPagamento }>> {
   const { ok, dati } = await pagamenti({ azione: 'stato', riferimento })
   if (ok) return { ok: true, pagamento: dati.pagamento }
-  return { ok: false, errore: dati.errore ?? 'Non riusciamo a leggere il pagamento adesso.' }
+  return { ok: false, errore: dati.errore ?? t('Non riusciamo a leggere il pagamento adesso.', 'We can’t load the payment right now.') }
 }
 
 /** Chiede ad Adyen, dal server, come e' andata la sessione: il browser non fa fede. */
 export async function esitoPagamento(riferimento: string, sessioneId: string, risultato: string): Promise<Esito<{ adyen_status: string | null }>> {
   const { ok, dati } = await pagamenti({ azione: 'esito', riferimento, sessione_id: sessioneId, risultato })
   if (ok) return { ok: true, adyen_status: dati.adyen_status ?? null }
-  return { ok: false, errore: dati.errore ?? 'Non riusciamo a verificare il pagamento adesso.' }
+  return { ok: false, errore: dati.errore ?? t('Non riusciamo a verificare il pagamento adesso.', 'We can’t check the payment right now.') }
 }
 
 export async function configurazioneAdyen(): Promise<Esito<{ clientKey: string; environment: string }>> {
   const { ok, dati } = await pagamenti({ azione: 'config' })
   if (ok) return { ok: true, clientKey: dati.clientKey, environment: dati.environment }
-  return { ok: false, errore: dati.errore ?? 'Configurazione di Adyen non disponibile.' }
+  return { ok: false, errore: dati.errore ?? t('Configurazione di Adyen non disponibile.', 'Adyen configuration not available.') }
 }
 
 export async function addebitaRata(abbonamentoId: string): Promise<Esito<{ rata: number; esito: string | null; motivo: string | null }>> {
   const { ok, dati } = await pagamenti({ azione: 'addebita', abbonamento_id: abbonamentoId })
   if (ok) return { ok: true, rata: dati.rata, esito: dati.esito ?? null, motivo: dati.motivo ?? null }
-  return { ok: false, errore: dati.errore ?? 'Addebito non riuscito.' }
+  return { ok: false, errore: dati.errore ?? t('Addebito non riuscito.', 'Charge failed.') }
 }
 
 export async function chiudiAbbonamento(abbonamentoId: string): Promise<Esito<object>> {
   const { ok, dati } = await pagamenti({ azione: 'chiudi', abbonamento_id: abbonamentoId })
   if (ok) return { ok: true }
-  return { ok: false, errore: dati.errore ?? 'Non siamo riusciti a chiuderlo adesso.' }
+  return { ok: false, errore: dati.errore ?? t('Non siamo riusciti a chiuderlo adesso.', 'We couldn’t settle it right now.') }
 }
 
 // ---------------------------------------------------------------------------
@@ -620,20 +621,20 @@ const anagrafica = (corpo: Record<string, unknown>) => funzione('portale-lab-ana
 
 function esitoAnagrafica(r: { ok: boolean; stato: number; dati: Record<string, any> }, predefinito: string): EsitoAnagrafica {
   if (r.ok && r.dati.anagrafica) return { ok: true, anagrafica: r.dati.anagrafica as Anagrafica }
-  if (r.stato === 404) return { ok: false, nonAttiva: true, errore: 'Al momento i dati non si possono modificare da qui.' }
+  if (r.stato === 404) return { ok: false, nonAttiva: true, errore: t('Al momento i dati non si possono modificare da qui.', 'For now, details can’t be changed from here.') }
   return { ok: false, nonAttiva: false, errore: r.dati.errore ?? predefinito }
 }
 
 export async function leggiAnagrafica(): Promise<EsitoAnagrafica> {
-  return esitoAnagrafica(await anagrafica({ azione: 'leggi' }), 'Non riusciamo a leggere i tuoi dati adesso.')
+  return esitoAnagrafica(await anagrafica({ azione: 'leggi' }), t('Non riusciamo a leggere i tuoi dati adesso.', 'We can’t load your details right now.'))
 }
 
 export async function salvaTelefono(telefono: string): Promise<EsitoAnagrafica> {
-  return esitoAnagrafica(await anagrafica({ azione: 'salva', telefono }), 'Non siamo riusciti a salvare il telefono.')
+  return esitoAnagrafica(await anagrafica({ azione: 'salva', telefono }), t('Non siamo riusciti a salvare il telefono.', 'We couldn’t save the phone number.'))
 }
 
 export async function salvaIndirizzo(indirizzo: Indirizzo): Promise<EsitoAnagrafica> {
-  return esitoAnagrafica(await anagrafica({ azione: 'salva', indirizzo }), 'Non siamo riusciti a salvare l’indirizzo.')
+  return esitoAnagrafica(await anagrafica({ azione: 'salva', indirizzo }), t('Non siamo riusciti a salvare l’indirizzo.', 'We couldn’t save the address.'))
 }
 
 export type EsitoFotoProfilo = { ok: true; anagrafica: Anagrafica; inArrivo: boolean } | { ok: false; errore: string }
@@ -643,19 +644,19 @@ export async function caricaFotoProfilo(immagine: string): Promise<EsitoFotoProf
   const r = await anagrafica({ azione: 'foto', immagine })
   if (r.ok && r.dati.anagrafica) return { ok: true, anagrafica: r.dati.anagrafica as Anagrafica, inArrivo: r.dati.in_arrivo === true }
   // Una funzione che non conosce ancora l'azione: «Azione sconosciuta.» (o 404 se non e' pubblicata).
-  if (r.stato === 404 || /sconosciuta/i.test(String(r.dati.errore ?? ''))) return { ok: false, errore: 'Il cambio foto non è ancora attivo.' }
-  return { ok: false, errore: r.dati.errore ?? 'Non siamo riusciti a salvare la foto.' }
+  if (r.stato === 404 || /sconosciuta|unknown action/i.test(String(r.dati.errore ?? ''))) return { ok: false, errore: t('Il cambio foto non è ancora attivo.', 'Changing your photo isn’t active yet.') }
+  return { ok: false, errore: r.dati.errore ?? t('Non siamo riusciti a salvare la foto.', 'We couldn’t save the photo.') }
 }
 
 export async function chiediCambioEmail(email: string): Promise<{ ok: true } | { ok: false; errore: string }> {
   const r = await anagrafica({ azione: 'email', email })
   if (r.ok) return { ok: true }
-  if (r.stato === 404) return { ok: false, errore: 'Al momento i dati non si possono modificare da qui.' }
-  return { ok: false, errore: r.dati.errore ?? 'Non siamo riusciti a mandare il codice al nuovo indirizzo.' }
+  if (r.stato === 404) return { ok: false, errore: t('Al momento i dati non si possono modificare da qui.', 'For now, details can’t be changed from here.') }
+  return { ok: false, errore: r.dati.errore ?? t('Non siamo riusciti a mandare il codice al nuovo indirizzo.', 'We couldn’t send the code to the new address.') }
 }
 
 export async function confermaCambioEmail(email: string, codice: string): Promise<EsitoAnagrafica> {
-  const esito = esitoAnagrafica(await anagrafica({ azione: 'conferma_email', email, codice: codice.replace(/\D/g, '') }), 'Codice sbagliato o scaduto.')
+  const esito = esitoAnagrafica(await anagrafica({ azione: 'conferma_email', email, codice: codice.replace(/\D/g, '') }), t('Codice sbagliato o scaduto.', 'Wrong or expired code.'))
   // La funzione ha cambiato l'email anche su Supabase Auth: la sessione si
   // rinnova, cosi' il token porta gia' quella nuova.
   if (esito.ok) await supabase.auth.refreshSession().catch(() => undefined)
@@ -689,19 +690,19 @@ const tv = (corpo: Record<string, unknown>) => funzione('portale-lab-video', cor
 export async function leggiVetrine(): Promise<Esito<{ vetrine: Vetrina[] }>> {
   const { ok, dati } = await tv({ azione: 'vetrine' })
   if (ok) return { ok: true, vetrine: dati.vetrine as Vetrina[] }
-  return { ok: false, errore: dati.errore ?? 'Non riusciamo a leggere i video adesso.' }
+  return { ok: false, errore: dati.errore ?? t('Non riusciamo a leggere i video adesso.', 'We can’t load the videos right now.') }
 }
 
 export async function leggiVetrina(id: string): Promise<Esito<{ vetrina: Vetrina; video: VideoClub[] }>> {
   const { ok, dati } = await tv({ azione: 'vetrina', id })
   if (ok) return { ok: true, vetrina: dati.vetrina as Vetrina, video: dati.video as VideoClub[] }
-  return { ok: false, errore: dati.errore ?? 'Non riusciamo a leggere i video adesso.' }
+  return { ok: false, errore: dati.errore ?? t('Non riusciamo a leggere i video adesso.', 'We can’t load the videos right now.') }
 }
 
 export async function apriVideo(id: string, vetrina: string): Promise<Esito<{ video: VideoDaGuardare }>> {
   const { ok, dati } = await tv({ azione: 'video', id, vetrina })
   if (ok) return { ok: true, video: dati.video as VideoDaGuardare }
-  return { ok: false, errore: dati.errore ?? 'Non riusciamo ad aprire il video adesso.' }
+  return { ok: false, errore: dati.errore ?? t('Non riusciamo ad aprire il video adesso.', 'We can’t open the video right now.') }
 }
 
 // ---------------------------------------------------------------------------
@@ -817,7 +818,7 @@ const schedeLab = (corpo: Record<string, unknown>) => funzione('portale-lab-sche
 export async function elencoSchede(): Promise<Esito<{ schede: RigaSchedaLab[]; ultimi: SedutaBreve[]; ai: { usate: number; massimo: number }; test: StatoTest }>> {
   const { ok, dati } = await schedeLab({ azione: 'elenco' })
   if (ok) return { ok: true, schede: dati.schede, ultimi: dati.ultimi, ai: dati.ai, test: dati.test ?? { ultimo: null, fatti: 0, totale: 0, giorni: 42 } }
-  return { ok: false, errore: dati.errore ?? 'Non riusciamo a leggere i tuoi piani adesso.' }
+  return { ok: false, errore: dati.errore ?? t('Non riusciamo a leggere i tuoi piani adesso.', 'We can’t load your plans right now.') }
 }
 
 export async function leggiSchedaLab(id: string): Promise<Esito<{ scheda: SchedaLab; precedenti: Precedente[]; massimali: Massimale[]; ultimoTest: string | null; giorniTest: number }>> {
@@ -832,31 +833,31 @@ export async function leggiSchedaLab(id: string): Promise<Esito<{ scheda: Scheda
       giorniTest: dati.giorni_test ?? 42,
     }
   }
-  return { ok: false, errore: dati.errore ?? 'Non riusciamo ad aprire il piano adesso.' }
+  return { ok: false, errore: dati.errore ?? t('Non riusciamo ad aprire il piano adesso.', 'We can’t open the plan right now.') }
 }
 
 export async function iniziaSeduta(schedaId: string, giornoId: string): Promise<Esito<{ allenamento: { id: string; inizio: string }; serie: SerieSeduta[] }>> {
   const { ok, dati } = await schedeLab({ azione: 'inizia', scheda_id: schedaId, giorno_id: giornoId })
   if (ok) return { ok: true, allenamento: dati.allenamento, serie: (dati.serie ?? []).map((s: any) => ({ ...s, kg: s.kg == null ? null : Number(s.kg) })) }
-  return { ok: false, errore: dati.errore ?? 'Non riusciamo a iniziare l’allenamento adesso.' }
+  return { ok: false, errore: dati.errore ?? t('Non riusciamo a iniziare l’allenamento adesso.', 'We can’t start the workout right now.') }
 }
 
 export async function segnaSerie(s: { allenamento_id: string; scheda_esercizio_id: string; esercizio_id: string; numero: number; ripetizioni: number | null; kg: number | null; secondi?: number | null }): Promise<Esito<object>> {
   const { ok, dati } = await schedeLab({ azione: 'serie', ...s })
   if (ok) return { ok: true }
-  return { ok: false, errore: dati.errore ?? 'La serie non è stata salvata.' }
+  return { ok: false, errore: dati.errore ?? t('La serie non è stata salvata.', 'The set wasn’t saved.') }
 }
 
 export async function togliSerie(allenamentoId: string, schedaEsercizioId: string, numero: number): Promise<Esito<object>> {
   const { ok, dati } = await schedeLab({ azione: 'togli_serie', allenamento_id: allenamentoId, scheda_esercizio_id: schedaEsercizioId, numero })
   if (ok) return { ok: true }
-  return { ok: false, errore: dati.errore ?? 'La serie non è stata tolta.' }
+  return { ok: false, errore: dati.errore ?? t('La serie non è stata tolta.', 'The set wasn’t removed.') }
 }
 
 export async function chiudiSeduta(allenamentoId: string, note?: string): Promise<Esito<{ vuota: boolean }>> {
   const { ok, dati } = await schedeLab({ azione: 'fine', allenamento_id: allenamentoId, note })
   if (ok) return { ok: true, vuota: dati.vuota === true }
-  return { ok: false, errore: dati.errore ?? 'Non riusciamo a chiudere l’allenamento adesso.' }
+  return { ok: false, errore: dati.errore ?? t('Non riusciamo a chiudere l’allenamento adesso.', 'We can’t finish the workout right now.') }
 }
 
 export type SedutaStorico = SedutaBreve & { note: string | null; esercizi: number; volume: number }
@@ -865,7 +866,7 @@ export type EsercizioFatto = { esercizio_id: string; nome: string; immagini: str
 export async function storicoAllenamenti(): Promise<Esito<{ allenamenti: SedutaStorico[]; esercizi: EsercizioFatto[] }>> {
   const { ok, dati } = await schedeLab({ azione: 'storico' })
   if (ok) return { ok: true, allenamenti: dati.allenamenti, esercizi: dati.esercizi }
-  return { ok: false, errore: dati.errore ?? 'Non riusciamo a leggere i tuoi allenamenti adesso.' }
+  return { ok: false, errore: dati.errore ?? t('Non riusciamo a leggere i tuoi allenamenti adesso.', 'We can’t load your workouts right now.') }
 }
 
 export type SedutaEsercizio = { inizio: string; kg_massimo: number | null; ripetizioni_massime: number | null; volume: number; serie: SerieFatta[] }
@@ -873,7 +874,7 @@ export type SedutaEsercizio = { inizio: string; kg_massimo: number | null; ripet
 export async function progressiEsercizio(esercizioId: string): Promise<Esito<{ esercizio: { id: string; nome: string; immagini: string[]; video: string | null; muscoli_primari: string[] }; sedute: SedutaEsercizio[] }>> {
   const { ok, dati } = await schedeLab({ azione: 'progressi', esercizio_id: esercizioId })
   if (ok) return { ok: true, esercizio: dati.esercizio, sedute: dati.sedute }
-  return { ok: false, errore: dati.errore ?? 'Non riusciamo a leggere i progressi adesso.' }
+  return { ok: false, errore: dati.errore ?? t('Non riusciamo a leggere i progressi adesso.', 'We can’t load your progress right now.') }
 }
 
 /**
@@ -884,7 +885,7 @@ export async function progressiEsercizio(esercizioId: string): Promise<Esito<{ e
 export async function chiediSchedaAi(questionario: Questionario): Promise<Esito<{ bozza: BozzaScheda }>> {
   const { ok, dati } = await schedeLab({ azione: 'chiedi_ai', questionario })
   if (ok) return { ok: true, bozza: { ...dati.bozza, origine: 'ai' } }
-  return { ok: false, errore: dati.errore ?? 'Non siamo riusciti a comporre il piano adesso. Riprova fra qualche minuto.' }
+  return { ok: false, errore: dati.errore ?? t('Non siamo riusciti a comporre il piano adesso. Riprova fra qualche minuto.', 'We couldn’t put together the plan right now. Try again in a few minutes.') }
 }
 
 // Il piano di nuoto (20/10/2026): per chi si allena in vasca, al Nuoto Libero. Un piano come gli altri, con gli esercizi di nuoto:
@@ -914,7 +915,7 @@ export const saNuotareAbbastanza = (stili: readonly Stile[]): boolean => stili.i
 
 /** Cosa si dice a chi non ha stile libero e dorso: dove si comincia, non un «no». Le stesse parole della funzione. */
 export const MESSAGGIO_SCUOLA_NUOTO =
-  'Il Nuoto Libero chiede di saper nuotare stile libero e dorso. Se non ci sei ancora si parte dalla Scuola Nuoto Adulti: sono gli istruttori a dirti quando passare al nuoto libero.'
+  t('Il Nuoto Libero chiede di saper nuotare stile libero e dorso. Se non ci sei ancora si parte dalla Scuola Nuoto Adulti: sono gli istruttori a dirti quando passare al nuoto libero.', 'Nuoto Libero requires being able to swim freestyle and backstroke. If you’re not there yet, you start with Scuola Nuoto Adulti: the instructors will tell you when to move on to lap swimming.')
 
 /**
  * Il piano di nuoto scritto dall'agente: ci mette qualche decina di secondi e **non salva niente** (come `chiediSchedaAi`):
@@ -925,8 +926,8 @@ export async function chiediPianoNuoto(questionario: QuestionarioNuoto): Promise
   if (ok) return { ok: true, bozza: { ...dati.bozza, origine: 'ai' } }
   // Le frasi della funzione sono scritte per il socio: il piano di nuoto non ancora attivo, la regola del Nuoto Libero, la quota.
   // Una funzione pubblicata prima del piano di nuoto non conosce l'azione: per il socio e' la stessa cosa del workflow spento.
-  if (dati.errore === 'Azione sconosciuta.') return { ok: false, errore: 'Il piano di nuoto non è ancora attivo: puoi scriverlo tu.' }
-  return { ok: false, errore: dati.errore ?? 'Non siamo riusciti a comporre il piano di nuoto adesso. Riprova fra qualche minuto.' }
+  if (dati.errore === 'Azione sconosciuta.' || dati.errore === 'Unknown action.') return { ok: false, errore: t('Il piano di nuoto non è ancora attivo: puoi scriverlo tu.', 'The swim plan isn’t active yet: you can write it yourself.') }
+  return { ok: false, errore: dati.errore ?? t('Non siamo riusciti a comporre il piano di nuoto adesso. Riprova fra qualche minuto.', 'We couldn’t put together the swim plan right now. Try again in a few minutes.') }
 }
 
 // I piani del socio (19/10/2026): quelli che ha scelto lui. Vengono da quattro strade (`origine`): li scrive a mano,
@@ -993,20 +994,20 @@ export type BozzaScheda = {
 export async function eserciziLibreria(): Promise<Esito<{ esercizi: EsercizioLibreria[] }>> {
   const { ok, dati } = await schedeLab({ azione: 'esercizi' })
   if (ok) return { ok: true, esercizi: dati.esercizi ?? [] }
-  return { ok: false, errore: dati.errore ?? 'Non riusciamo ad aprire gli esercizi adesso.' }
+  return { ok: false, errore: dati.errore ?? t('Non riusciamo ad aprire gli esercizi adesso.', 'We can’t open the exercises right now.') }
 }
 
 export async function salvaSchedaMia(scheda: SchedaDaSalvare): Promise<Esito<{ id: string }>> {
   const { ok, dati } = await schedeLab({ azione: 'salva_mia', ...scheda })
   if (ok) return { ok: true, id: dati.id }
-  return { ok: false, errore: dati.errore ?? 'Il piano non è stato salvato. Riprova fra qualche minuto.' }
+  return { ok: false, errore: dati.errore ?? t('Il piano non è stato salvato. Riprova fra qualche minuto.', 'The plan wasn’t saved. Try again in a few minutes.') }
 }
 
 /** Toglie un piano del socio dall'elenco (si ritira: lo storico degli allenamenti ne tiene il titolo). */
 export async function eliminaSchedaMia(id: string): Promise<Esito<{ eliminata: true }>> {
   const { ok, dati } = await schedeLab({ azione: 'elimina_mia', id })
   if (ok) return { ok: true, eliminata: true }
-  return { ok: false, errore: dati.errore ?? 'Non siamo riusciti a togliere il piano. Riprova fra qualche minuto.' }
+  return { ok: false, errore: dati.errore ?? t('Non siamo riusciti a togliere il piano. Riprova fra qualche minuto.', 'We couldn’t remove the plan. Try again in a few minutes.') }
 }
 
 /**
@@ -1016,7 +1017,7 @@ export async function eliminaSchedaMia(id: string): Promise<Esito<{ eliminata: t
 export async function importaScheda(files: string[]): Promise<Esito<{ bozza: BozzaScheda; daControllare: number }>> {
   const { ok, dati } = await schedeLab({ azione: 'importa', files })
   if (ok) return { ok: true, bozza: { ...dati.bozza, origine: 'importata' }, daControllare: Number(dati.da_controllare ?? 0) }
-  return { ok: false, errore: dati.errore ?? 'Non siamo riusciti a leggere il piano adesso. Riprova fra qualche minuto, o scrivilo a mano.' }
+  return { ok: false, errore: dati.errore ?? t('Non siamo riusciti a leggere il piano adesso. Riprova fra qualche minuto, o scrivilo a mano.', 'We couldn’t read the plan right now. Try again in a few minutes, or write it by hand.') }
 }
 
 /**
@@ -1055,13 +1056,13 @@ export type EsercizioTest = {
 export async function testMassimali(): Promise<Esito<{ esercizi: EsercizioTest[]; ultimo: string | null; giorni: number }>> {
   const { ok, dati } = await schedeLab({ azione: 'test' })
   if (ok) return { ok: true, esercizi: dati.esercizi, ultimo: dati.ultimo ?? null, giorni: dati.giorni ?? 42 }
-  return { ok: false, errore: dati.errore ?? 'Non riusciamo ad aprire il test adesso.' }
+  return { ok: false, errore: dati.errore ?? t('Non riusciamo ad aprire il test adesso.', 'We can’t open the test right now.') }
 }
 
 export async function salvaTestMassimale(esercizioId: string, kg: number | null, ripetizioni: number): Promise<Esito<{ massimale: number; tipo: 'carico' | 'ripetizioni' }>> {
   const { ok, dati } = await schedeLab({ azione: 'salva_test', esercizio_id: esercizioId, kg, ripetizioni })
   if (ok) return { ok: true, massimale: Number(dati.massimale), tipo: dati.tipo }
-  return { ok: false, errore: dati.errore ?? 'Il risultato non è stato salvato.' }
+  return { ok: false, errore: dati.errore ?? t('Il risultato non è stato salvato.', 'The result wasn’t saved.') }
 }
 
 // ---------------------------------------------------------------------------
@@ -1105,40 +1106,40 @@ export async function elencoMisure(): Promise<Esito<{ misure: Misura[]; sesso: S
     const consenso: ConsensoCorpo | null | undefined = dati.consenso === undefined ? undefined : dati.consenso && typeof dati.consenso.versione === 'string' ? dati.consenso : null
     return { ok: true, misure: dati.misure ?? [], sesso: dati.sesso === 'm' || dati.sesso === 'f' ? dati.sesso : null, consenso }
   }
-  return { ok: false, errore: dati.errore ?? 'Non riusciamo a leggere i tuoi dati adesso.' }
+  return { ok: false, errore: dati.errore ?? t('Non riusciamo a leggere i tuoi dati adesso.', 'We can’t load your details right now.') }
 }
 
 /** Il consenso alle misure del corpo: dati relativi alla salute, si usano solo dopo. */
 export async function daiConsensoCorpo(versione: string): Promise<Esito<{ consenso: ConsensoCorpo }>> {
   const { ok, dati } = await misureLab({ azione: 'consenso', versione })
   if (ok && dati.consenso) return { ok: true, consenso: dati.consenso }
-  return { ok: false, errore: dati.errore ?? 'Non siamo riusciti a registrare il consenso. Riprova.' }
+  return { ok: false, errore: dati.errore ?? t('Non siamo riusciti a registrare il consenso. Riprova.', 'We couldn’t record your consent. Try again.') }
 }
 
 /** Ritira il consenso: la funzione cancella le misure e il sesso scritti dal socio. */
 export async function revocaConsensoCorpo(): Promise<Esito<object>> {
   const { ok, dati } = await misureLab({ azione: 'revoca' })
   if (ok) return { ok: true }
-  return { ok: false, errore: dati.errore ?? 'Non siamo riusciti a ritirare il consenso. Riprova.' }
+  return { ok: false, errore: dati.errore ?? t('Non siamo riusciti a ritirare il consenso. Riprova.', 'We couldn’t withdraw your consent. Try again.') }
 }
 
 /** Una misurazione: quella dello stesso giorno si sostituisce. */
 export async function salvaMisura(m: NuovaMisura): Promise<Esito<{ misura: Misura }>> {
   const { ok, dati } = await misureLab({ azione: 'salva', ...m })
   if (ok) return { ok: true, misura: dati.misura }
-  return { ok: false, errore: dati.errore ?? 'I dati non sono stati salvati.' }
+  return { ok: false, errore: dati.errore ?? t('I dati non sono stati salvati.', 'The details weren’t saved.') }
 }
 
 export async function salvaSessoCalcolo(sesso: SessoCalcolo): Promise<Esito<{ sesso: SessoCalcolo }>> {
   const { ok, dati } = await misureLab({ azione: 'sesso', sesso })
   if (ok) return { ok: true, sesso: dati.sesso ?? null }
-  return { ok: false, errore: dati.errore ?? 'La scelta non è stata salvata.' }
+  return { ok: false, errore: dati.errore ?? t('La scelta non è stata salvata.', 'The choice wasn’t saved.') }
 }
 
 export async function eliminaMisura(id: string): Promise<Esito<object>> {
   const { ok, dati } = await misureLab({ azione: 'elimina', id })
   if (ok) return { ok: true }
-  return { ok: false, errore: dati.errore ?? 'La misurazione non è stata tolta.' }
+  return { ok: false, errore: dati.errore ?? t('La misurazione non è stata tolta.', 'The measurement wasn’t removed.') }
 }
 
 // ---------------------------------------------------------------------------
@@ -1149,7 +1150,7 @@ export async function eliminaMisura(id: string): Promise<Esito<object>> {
 export async function tokenMetodoPagamento(): Promise<Esito<{ token: string }>> {
   const { ok, dati } = await pagamenti({ azione: 'metodo_link' })
   if (ok && typeof dati.token === 'string') return { ok: true, token: dati.token }
-  return { ok: false, errore: dati.errore ?? 'Non riusciamo ad aprire il metodo di pagamento adesso.' }
+  return { ok: false, errore: dati.errore ?? t('Non riusciamo ad aprire il metodo di pagamento adesso.', 'We can’t open the payment method right now.') }
 }
 
 // ---------------------------------------------------------------------------
@@ -1188,5 +1189,5 @@ export type QuotaFutura = {
 export async function movimentiPagamenti(): Promise<Esito<{ storico: Movimento[]; daSaldare: Movimento[]; futuri: QuotaFutura[] }>> {
   const { ok, dati } = await pagamenti({ azione: 'movimenti' })
   if (ok) return { ok: true, storico: dati.storico ?? [], daSaldare: dati.da_saldare ?? [], futuri: dati.futuri ?? [] }
-  return { ok: false, errore: dati.errore ?? 'Non riusciamo a leggere i tuoi pagamenti adesso.' }
+  return { ok: false, errore: dati.errore ?? t('Non riusciamo a leggere i tuoi pagamenti adesso.', 'We can’t load your payments right now.') }
 }

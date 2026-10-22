@@ -29,6 +29,7 @@ import { InfoAdyen } from '@/components/InfoAdyen'
 import { ModuloIban, type DatiConto } from '@/features/metodo-pagamento/ModuloIban'
 import { ETA_MINIMA_PERSONAL, etaDa } from '@/lib/eta'
 import { euro, giornoEsteso, ora } from '@/lib/eventi'
+import { locale, t } from '@/lib/lingua'
 import { spazio } from '@/theme'
 
 import { inMemoria, prendi, ricorda } from './memoria'
@@ -62,20 +63,20 @@ import { colpetto, Tocco } from './ui/Tocco'
 
 /** Il nome di un tipo di seduta, detto come lo dice il club e senza prezzi dentro. */
 function nomeSeduta(nome: string): string {
-  if (/pacchetto/i.test(nome)) return 'Pacchetto PT'
-  if (/omaggio/i.test(nome)) return 'Seduta omaggio'
-  if (/coppia/i.test(nome)) return 'Seduta in coppia'
-  if (/seduta|non iscritt|€/i.test(nome)) return 'Seduta singola'
+  if (/pacchetto/i.test(nome)) return t('Pacchetto PT', 'PT package')
+  if (/omaggio/i.test(nome)) return t('Seduta omaggio', 'Complimentary session')
+  if (/coppia/i.test(nome)) return t('Seduta in coppia', 'Couples session')
+  if (/seduta|non iscritt|€/i.test(nome)) return t('Seduta singola', 'Single session')
   return nome
 }
 
-function maiuscola(t: string): string {
-  return t.charAt(0).toUpperCase() + t.slice(1)
+function maiuscola(s: string): string {
+  return s.charAt(0).toUpperCase() + s.slice(1)
 }
 
 /** «31 ottobre», a Roma. */
 function giornoMese(iso: string): string {
-  return new Intl.DateTimeFormat('it-IT', { day: 'numeric', month: 'long', timeZone: 'Europe/Rome' }).format(new Date(iso))
+  return new Intl.DateTimeFormat(locale(), { day: 'numeric', month: 'long', timeZone: 'Europe/Rome' }).format(new Date(iso))
 }
 
 /** Il giorno a Roma di un istante: «2026-10-19». */
@@ -97,9 +98,9 @@ function nomeProprio(nome: string): string {
 }
 
 const FASCE = [
-  { nome: 'Mattina', fino: 12 },
-  { nome: 'Pomeriggio', fino: 17 },
-  { nome: 'Sera', fino: 24 },
+  { nome: t('Mattina', 'Morning'), fino: 12 },
+  { nome: t('Pomeriggio', 'Afternoon'), fino: 17 },
+  { nome: t('Sera', 'Evening'), fino: 24 },
 ] as const
 
 /** Una delle sedute che si possono usare: un credito, o la seduta singola da comprare. */
@@ -109,14 +110,17 @@ function opzioniDi(s: StatoPersonal): Opzione[] {
   const out: Opzione[] = s.crediti.map((c) => ({
     definition_id: c.definition_id,
     titolo: nomeSeduta(c.nome),
-    sotto: `${c.quantita} ${c.quantita === 1 ? 'seduta da usare' : 'sedute da usare'}${c.scadenza ? ` · ${c.quantita === 1 ? 'scade' : 'scadono'} il ${giornoMese(c.scadenza)}` : ''}`,
+    sotto: t(
+      `${c.quantita} ${c.quantita === 1 ? 'seduta da usare' : 'sedute da usare'}${c.scadenza ? ` · ${c.quantita === 1 ? 'scade' : 'scadono'} il ${giornoMese(c.scadenza)}` : ''}`,
+      `${c.quantita} ${c.quantita === 1 ? 'session to use' : 'sessions to use'}${c.scadenza ? ` · expires on ${giornoMese(c.scadenza)}` : ''}`,
+    ),
     acquisto: false,
   }))
   if (s.acquisto && !out.some((o) => o.definition_id === s.acquisto?.definition_id)) {
     out.push({
       definition_id: s.acquisto.definition_id,
-      titolo: `Seduta singola${s.acquisto.prodotto.prezzo != null ? ` · ${euro(s.acquisto.prodotto.prezzo)}` : ''}`,
-      sotto: `${s.acquisto.minuti} minuti con un trainer, la paghi quando prenoti`,
+      titolo: `${t('Seduta singola', 'Single session')}${s.acquisto.prodotto.prezzo != null ? ` · ${euro(s.acquisto.prodotto.prezzo)}` : ''}`,
+      sotto: t(`${s.acquisto.minuti} minuti con un trainer, la paghi quando prenoti`, `${s.acquisto.minuti} minutes with a trainer, you pay when you book`),
       acquisto: true,
     })
   }
@@ -124,12 +128,12 @@ function opzioniDi(s: StatoPersonal): Opzione[] {
 }
 
 /** La foto del trainer (da PerfectGym, o dal sito); senza foto, o se non si carica, le iniziali. */
-function FotoTrainer({ t, nome, size, anello }: { t: TrainerPersonal | undefined; nome: string; size: number; anello?: string }) {
+function FotoTrainer({ trainer, nome, size, anello }: { trainer: TrainerPersonal | undefined; nome: string; size: number; anello?: string }) {
   const [rotta, setRotta] = useState(false)
-  if (!t?.foto || rotta) return <Avatar nome={nome} size={size} anello={anello} />
+  if (!trainer?.foto || rotta) return <Avatar nome={nome} size={size} anello={anello} />
   return (
     <Image
-      source={{ uri: t.foto }}
+      source={{ uri: trainer.foto }}
       onError={() => setRotta(true)}
       contentFit="cover"
       contentPosition="top"
@@ -144,26 +148,26 @@ function FotoTrainer({ t, nome, size, anello }: { t: TrainerPersonal | undefined
 function InfoTrainer({ nome, onPress }: { nome: string; onPress: () => void }) {
   const p = usePalette()
   return (
-    <Tocco onPress={onPress} ruolo="button" etichetta={`Chi è ${nome}`} style={[stili.info, { backgroundColor: p.incavo }]}>
+    <Tocco onPress={onPress} ruolo="button" etichetta={t(`Chi è ${nome}`, `Who is ${nome}`)} style={[stili.info, { backgroundColor: p.incavo }]}>
       <Icona nome="info" size={18} colore={p.testoSecondario} />
     </Tocco>
   )
 }
 
 /** La scheda del trainer: la foto grande e tutto il testo del sito (frase, studi, specializzazioni, servizi). */
-function FoglioTrainer({ t, onChiudi }: { t: TrainerPersonal | null; onChiudi: () => void }) {
+function FoglioTrainer({ trainer: tr, onChiudi }: { trainer: TrainerPersonal | null; onChiudi: () => void }) {
   const p = usePalette()
-  const gruppi = t?.gruppi ?? []
+  const gruppi = tr?.gruppi ?? []
   // La descrizione di PerfectGym solo se il sito non ha la scheda di questo trainer.
-  const righe = !gruppi.length ? (t?.descrizione ?? '').split('\n').map((r) => r.trim()).filter(Boolean) : []
+  const righe = !gruppi.length ? (tr?.descrizione ?? '').split('\n').map((r) => r.trim()).filter(Boolean) : []
   return (
-    <Foglio aperto={!!t} titolo={t?.nome ?? ''} sottotitolo="Personal trainer di Athlon Club" onChiudi={onChiudi}>
-      {t ? (
+    <Foglio aperto={!!tr} titolo={tr?.nome ?? ''} sottotitolo={t('Personal trainer di Athlon Club', 'Athlon Club personal trainer')} onChiudi={onChiudi}>
+      {tr ? (
         <View style={{ gap: spazio.tre }}>
-          {t.foto ? (
-            <Image source={{ uri: t.foto }} contentFit="cover" contentPosition="top" transition={200} style={[stili.fotoGrande, { backgroundColor: p.incavo }]} />
+          {tr.foto ? (
+            <Image source={{ uri: tr.foto }} contentFit="cover" contentPosition="top" transition={200} style={[stili.fotoGrande, { backgroundColor: p.incavo }]} />
           ) : null}
-          {t.frase ? <Text style={[stili.frase, { color: p.testo, borderLeftColor: p.accento }]}>{`«${t.frase}»`}</Text> : null}
+          {tr.frase ? <Text style={[stili.frase, { color: p.testo, borderLeftColor: p.accento }]}>{`«${tr.frase}»`}</Text> : null}
           {righe.length ? (
             <View style={{ gap: 6 }}>
               {righe.map((r, i) => (
@@ -185,8 +189,8 @@ function FoglioTrainer({ t, onChiudi }: { t: TrainerPersonal | null; onChiudi: (
               ))}
             </View>
           ))}
-          {!righe.length && !gruppi.length && !t.frase ? (
-            <Text style={[stili.nota, { color: p.testoSecondario }]}>La scheda di questo trainer non è ancora pronta.</Text>
+          {!righe.length && !gruppi.length && !tr.frase ? (
+            <Text style={[stili.nota, { color: p.testoSecondario }]}>{t('La scheda di questo trainer non è ancora pronta.', 'This trainer’s profile isn’t ready yet.')}</Text>
           ) : null}
         </View>
       ) : null}
@@ -240,7 +244,7 @@ function FoglioCompra({
   /** Sul conto: quello salvato, o un IBAN nuovo dal modulo. Restituisce l'errore da mostrare. */
   async function attivaSulConto(d: DatiConto | null): Promise<string | null> {
     if (cosa?.tipo !== 'pacchetto') return null
-    if (!accetto) return 'Per attivare l’abbonamento servono i consensi del contratto.'
+    if (!accetto) return t('Per attivare l’abbonamento servono i consensi del contratto.', 'To activate the membership you need to give the contract consents.')
     setErrore(null)
     setAttesa('conto')
     const r = await attivaPacchettoPersonal(
@@ -292,35 +296,35 @@ function FoglioCompra({
 
   const prezzo = cosa?.tipo === 'seduta' ? cosa.prezzo : cosa?.pacchetto.prezzo_mese ?? 0
   const bloccato = cosa?.tipo === 'pacchetto' && !accetto
-  const verbo = cosa?.tipo === 'pacchetto' ? 'Attiva e paga' : 'Paga'
+  const verbo = cosa?.tipo === 'pacchetto' ? t('Attiva e paga', 'Activate and pay') : t('Paga', 'Pay')
   const sulConto = cosa?.tipo === 'pacchetto' && metodo === 'conto'
   return (
     <Foglio
       aperto={!!cosa}
-      titolo={cosa?.tipo === 'pacchetto' ? 'Abbonamento PT' : 'Seduta singola'}
-      sottotitolo={cosa?.tipo === 'pacchetto' ? cosa.pacchetto.nome : '60 minuti con un trainer'}
+      titolo={cosa?.tipo === 'pacchetto' ? t('Abbonamento PT', 'PT membership') : t('Seduta singola', 'Single session')}
+      sottotitolo={cosa?.tipo === 'pacchetto' ? cosa.pacchetto.nome : t('60 minuti con un trainer', '60 minutes with a trainer')}
       onChiudi={onChiudi}
     >
       {cosa ? (
         <View style={{ gap: spazio.tre }}>
           <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 6 }}>
             <Text style={[stili.prezzo, { color: p.testo }]}>{euro(prezzo)}</Text>
-            {cosa.tipo === 'pacchetto' ? <Text style={[stili.nota, { color: p.testoSecondario }]}>al mese</Text> : null}
+            {cosa.tipo === 'pacchetto' ? <Text style={[stili.nota, { color: p.testoSecondario }]}>{t('al mese', 'a month')}</Text> : null}
           </View>
           {cosa.tipo === 'seduta' ? (
             <Text style={[stili.voceTesto, { color: p.testo }]}>
-              Una seduta di personal da 60 minuti: resta sul tuo conto e la prenoti quando vuoi, con il trainer e l’orario che preferisci.
+              {t('Una seduta di personal da 60 minuti: resta sul tuo conto e la prenoti quando vuoi, con il trainer e l’orario che preferisci.', 'A 60-minute personal training session: it stays on your account and you book it whenever you like, with the trainer and time you prefer.')}
             </Text>
           ) : (
             <View style={{ gap: 6 }}>
               {[
-                `${cosa.pacchetto.sedute ?? 'Le'} sedute di personal ogni mese, da prenotare quando vuoi con i trainer del club.`,
-                'Le sedute si caricano il giorno 1 di ogni mese e vanno usate entro la fine dello stesso mese solare: quelle non usate non passano al mese dopo.',
-                `Se lo attivi a mese iniziato, la quota del mese si paga per intero e le sedute si caricano tutte insieme subito: le usi entro il ${fineMeseRoma()}.`,
-                'Si aggiunge al tuo abbonamento e si rinnova ogni mese, con un impegno di un mese.',
+                t(`${cosa.pacchetto.sedute ?? 'Le'} sedute di personal ogni mese, da prenotare quando vuoi con i trainer del club.`, `${cosa.pacchetto.sedute ?? 'The'} personal training sessions every month, to book whenever you like with the club’s trainers.`),
+                t('Le sedute si caricano il giorno 1 di ogni mese e vanno usate entro la fine dello stesso mese solare: quelle non usate non passano al mese dopo.', 'Sessions are loaded on the 1st of every month and must be used by the end of that calendar month: unused ones don’t carry over to the next month.'),
+                t(`Se lo attivi a mese iniziato, la quota del mese si paga per intero e le sedute si caricano tutte insieme subito: le usi entro il ${fineMeseRoma()}.`, `If you activate it after the month has started, the month’s fee is paid in full and all the sessions are loaded at once: use them by ${fineMeseRoma()}.`),
+                t('Si aggiunge al tuo abbonamento e si rinnova ogni mese, con un impegno di un mese.', 'It’s added to your membership and renews every month, with a one-month minimum term.'),
                 sulConto
-                  ? 'Le quote, la prima compresa, si addebitano ogni mese sul conto corrente, con l’addebito diretto SEPA.'
-                  : 'La prima quota la paghi adesso; le altre si addebitano ogni mese sulla stessa carta.',
+                  ? t('Le quote, la prima compresa, si addebitano ogni mese sul conto corrente, con l’addebito diretto SEPA.', 'Payments, the first included, are charged every month to your bank account by SEPA direct debit.')
+                  : t('La prima quota la paghi adesso; le altre si addebitano ogni mese sulla stessa carta.', 'You pay the first installment now; the others are charged every month to the same card.'),
               ].map((r) => (
                 <View key={r} style={stili.voce}>
                   <View style={[stili.pallino, { backgroundColor: p.accento }]} />
@@ -332,9 +336,9 @@ function FoglioCompra({
 
           {cosa.tipo === 'pacchetto' ? (
             <View style={{ gap: spazio.due }}>
-              <Casella spuntata={accetto} onCambia={() => setAccetto((v) => !v)} etichetta="Accetto le condizioni del contratto">
+              <Casella spuntata={accetto} onCambia={() => setAccetto((v) => !v)} etichetta={t('Accetto le condizioni del contratto', 'I accept the contract terms')}>
                 <Text style={[stili.voceTesto, { color: p.testo }]}>
-                  {`Accetto ${stato.consensi_contratto.length ? stato.consensi_contratto.map((c) => `«${c.nome}»`).join(' e ') : 'le condizioni del contratto e del regolamento del club'}.`}
+                  {t(`Accetto ${stato.consensi_contratto.length ? stato.consensi_contratto.map((c) => `«${c.nome}»`).join(' e ') : 'le condizioni del contratto e del regolamento del club'}.`, `I accept ${stato.consensi_contratto.length ? stato.consensi_contratto.map((c) => `“${c.nome}”`).join(' and ') : 'the contract terms and the club rules'}.`)}
                 </Text>
               </Casella>
               <EstrattoTermini />
@@ -343,12 +347,12 @@ function FoglioCompra({
 
           {cosa.tipo === 'pacchetto' ? (
             <View style={{ gap: spazio.due }}>
-              <Text style={[stili.nota, { color: p.testoSecondario, fontFamily: F.bold }]}>Come vuoi pagarlo?</Text>
+              <Text style={[stili.nota, { color: p.testoSecondario, fontFamily: F.bold }]}>{t('Come vuoi pagarlo?', 'How do you want to pay?')}</Text>
               <View style={{ flexDirection: 'row', gap: spazio.due }}>
                 {(
                   [
-                    ['carta', 'Carta', 'carta'],
-                    ['conto', 'Conto corrente', 'banca'],
+                    ['carta', t('Carta', 'Card'), 'carta'],
+                    ['conto', t('Conto corrente', 'Bank account'), 'banca'],
                   ] as const
                 ).map(([chiave, nome, icona]) => {
                   const attivo = metodo === chiave
@@ -357,7 +361,7 @@ function FoglioCompra({
                       key={chiave}
                       vibra="scelta"
                       stato={{ selected: attivo }}
-                      etichetta={`Paga con ${nome.toLowerCase()}`}
+                      etichetta={t(`Paga con ${nome.toLowerCase()}`, `Pay by ${nome.toLowerCase()}`)}
                       spento={attesa != null}
                       onPress={() => {
                         setMetodo(chiave)
@@ -379,7 +383,7 @@ function FoglioCompra({
             stato.conto && !nuovoConto ? (
               <>
                 <Pulsante
-                  testo={`Attiva con il conto${stato.conto.finale ? ` •••• ${stato.conto.finale}` : ''}`}
+                  testo={t(`Attiva con il conto${stato.conto.finale ? ` •••• ${stato.conto.finale}` : ''}`, `Activate with account${stato.conto.finale ? ` •••• ${stato.conto.finale}` : ''}`)}
                   icona="banca"
                   onPress={async () => {
                     const e = await attivaSulConto(null)
@@ -388,9 +392,9 @@ function FoglioCompra({
                   inCorso={attesa === 'conto'}
                   disabilitato={bloccato || attesa != null}
                 />
-                <Pulsante testo="Usa un altro conto" variante="fantasma" piccolo onPress={() => setNuovoConto(true)} disabilitato={attesa != null} />
+                <Pulsante testo={t('Usa un altro conto', 'Use another account')} variante="fantasma" piccolo onPress={() => setNuovoConto(true)} disabilitato={attesa != null} />
                 <Text style={[stili.nota, { color: p.testoSecondario }]}>
-                  Usiamo il conto già salvato sulla tua scheda, con il mandato SEPA che hai già firmato. Adesso non paghi niente.
+                  {t('Usiamo il conto già salvato sulla tua scheda, con il mandato SEPA che hai già firmato. Adesso non paghi niente.', 'We’ll use the account already saved on your profile, with the SEPA mandate you’ve already signed. You don’t pay anything now.')}
                 </Text>
               </>
             ) : (
@@ -399,10 +403,10 @@ function FoglioCompra({
                   nomeCompleto={[persona?.nome, persona?.cognome].filter(Boolean).join(' ')}
                   introduzione={
                     <Text style={[stili.nota, { color: p.testoSecondario }]}>
-                      Scrivi l’IBAN su cui addebitare le quote dell’abbonamento PT. Adesso non paghi niente.
+                      {t('Scrivi l’IBAN su cui addebitare le quote dell’abbonamento PT. Adesso non paghi niente.', 'Enter the IBAN to charge the PT membership payments to. You don’t pay anything now.')}
                     </Text>
                   }
-                  etichettaInvio="Attiva l’abbonamento"
+                  etichettaInvio={t('Attiva l’abbonamento', 'Activate the membership')}
                   onInvia={(d) => attivaSulConto(d)}
                   onIndietro={() => (stato.conto ? setNuovoConto(false) : setMetodo('carta'))}
                 />
@@ -411,24 +415,24 @@ function FoglioCompra({
           ) : stato.carta ? (
             <>
               <Pulsante
-                testo={`${verbo} ${euro(prezzo)} con la carta${stato.carta.finale ? ` •••• ${stato.carta.finale}` : ''}`}
+                testo={t(`${verbo} ${euro(prezzo)} con la carta${stato.carta.finale ? ` •••• ${stato.carta.finale}` : ''}`, `${verbo} ${euro(prezzo)} with your card${stato.carta.finale ? ` •••• ${stato.carta.finale}` : ''}`)}
                 icona="carta"
                 onPress={() => paga(true)}
                 inCorso={attesa === 'carta'}
                 disabilitato={bloccato || attesa != null}
               />
-              <Pulsante testo="Usa un’altra carta" variante="fantasma" piccolo onPress={() => paga(false)} inCorso={attesa === 'altra'} disabilitato={bloccato || attesa != null} />
+              <Pulsante testo={t('Usa un’altra carta', 'Use another card')} variante="fantasma" piccolo onPress={() => paga(false)} inCorso={attesa === 'altra'} disabilitato={bloccato || attesa != null} />
             </>
           ) : (
             <Pulsante testo={`${verbo} ${euro(prezzo)}`} icona="carta" onPress={() => paga(false)} inCorso={attesa != null} disabilitato={bloccato} />
           )}
           {sulConto ? null : (
           <Text style={[stili.nota, { color: p.testoSecondario }]}>
-            {stato.carta ? 'La carta la custodisce ' : 'Paghi sulla pagina protetta di '}
+            {stato.carta ? t('La carta la custodisce ', 'Your card is stored by ') : t('Paghi sulla pagina protetta di ', 'You pay on the secure page of ')}
             <InfoAdyen />
             {stato.carta
-              ? ': il club non vede mai il numero completo.'
-              : ', e la carta resta salvata per i prossimi acquisti.'}
+              ? t(': il club non vede mai il numero completo.', ': the club never sees the full number.')
+              : t(', e la carta resta salvata per i prossimi acquisti.', ', and your card stays saved for future purchases.')}
           </Text>
           )}
         </View>
@@ -448,13 +452,13 @@ function EstrattoTermini() {
     <View style={[stili.estratto, { borderColor: p.linea, backgroundColor: p.carta }]}>
       <Tocco
         vibra="scelta"
-        etichetta={`${aperto ? 'Chiudi' : 'Leggi'} la sezione ${SEZIONE_9.numero} dei Termini e Condizioni`}
+        etichetta={aperto ? t(`Chiudi la sezione ${SEZIONE_9.numero} dei Termini e Condizioni`, `Close section ${SEZIONE_9.numero} of the Terms and Conditions`) : t(`Leggi la sezione ${SEZIONE_9.numero} dei Termini e Condizioni`, `Read section ${SEZIONE_9.numero} of the Terms and Conditions`)}
         stato={{ expanded: aperto }}
         onPress={() => setAperto((v) => !v)}
         style={stili.estrattoTesta}
       >
         <Text style={[stili.voceTesto, { color: p.testo, fontFamily: F.bold }]}>
-          {`Termini e Condizioni, sez. ${SEZIONE_9.numero}: ${SEZIONE_9.titolo}`}
+          {t(`Termini e Condizioni, sez. ${SEZIONE_9.numero}: ${SEZIONE_9.titolo}`, `Terms and Conditions, sec. ${SEZIONE_9.numero}: ${SEZIONE_9.titolo}`)}
         </Text>
         <Text style={{ color: p.accento, fontFamily: F.bold, fontSize: 18 }}>{aperto ? '−' : '+'}</Text>
       </Tocco>
@@ -466,7 +470,8 @@ function EstrattoTermini() {
               <Text style={[stili.nota, { color: p.testoSecondario }]}>{c.testo}</Text>
             </View>
           ))}
-          <Text style={[stili.nota, { color: p.testoSecondario }]}>{`Estratto dei Termini e Condizioni Generali, versione ${VERSIONE_TERMINI_PERSONAL}.`}</Text>
+          {locale() === 'en-GB' ? <Text style={[stili.nota, { color: p.testo, fontFamily: F.bold }]}>The terms are available in Italian only.</Text> : null}
+          <Text style={[stili.nota, { color: p.testoSecondario }]}>{t(`Estratto dei Termini e Condizioni Generali, versione ${VERSIONE_TERMINI_PERSONAL}.`, `Extract from the General Terms and Conditions, version ${VERSIONE_TERMINI_PERSONAL}.`)}</Text>
         </View>
       ) : null}
     </View>
@@ -479,7 +484,7 @@ function fineMeseRoma(): string {
     .format(new Date())
     .split('-')
     .map(Number)
-  return new Date(Date.UTC(a, m, 0)).toLocaleDateString('it-IT', { day: 'numeric', month: 'long', timeZone: 'UTC' })
+  return new Date(Date.UTC(a, m, 0)).toLocaleDateString(locale(), { day: 'numeric', month: 'long', timeZone: 'UTC' })
 }
 
 /** Le sedute gia' prenotate, con «Annulla» finche' mancano piu' delle ore della regola. */
@@ -502,7 +507,7 @@ function SedutePrenotate({ sedute, ore, onAnnulla }: { sedute: SedutaPersonal[];
   }
 
   return (
-    <Sezione titolo="Le tue sedute prenotate" conteggio={sedute.length}>
+    <Sezione titolo={t('Le tue sedute prenotate', 'Your booked sessions')} conteggio={sedute.length}>
       <Carta style={{ paddingVertical: spazio.due }}>
         {sedute.map((s, i) => {
           const disdicibile = new Date(s.inizio).getTime() - Date.now() >= ore * 3600_000
@@ -516,19 +521,19 @@ function SedutePrenotate({ sedute, ore, onAnnulla }: { sedute: SedutaPersonal[];
                 </LinearGradient>
               }
               titolo={`${maiuscola(giornoEsteso(giornoDi(s.inizio)))}`}
-              sotto={`${nomeSeduta(s.nome)}${s.trainer ? ` con ${s.trainer}` : ''}`}
+              sotto={`${nomeSeduta(s.nome)}${s.trainer ? t(` con ${s.trainer}`, ` with ${s.trainer}`) : ''}`}
               coda={
                 s.completata ? (
-                  <Etichetta testo="Fatta" tono="ok" />
+                  <Etichetta testo={t('Fatta', 'Done')} tono="ok" />
                 ) : !disdicibile ? (
-                  <Etichetta testo={`Meno di ${ore} ore`} tono="neutro" />
+                  <Etichetta testo={t(`Meno di ${ore} ore`, `Less than ${ore} hours`)} tono="neutro" />
                 ) : conferma === s.booking_id ? (
                   <View style={{ flexDirection: 'row', gap: 6 }}>
-                    <Pulsante testo="Sì, annulla" variante="pericolo" piccolo pieno={false} onPress={() => annulla(s)} inCorso={inCorso === s.booking_id} />
-                    <Pulsante testo="No" variante="secondario" piccolo pieno={false} onPress={() => setConferma(null)} disabilitato={inCorso !== null} />
+                    <Pulsante testo={t('Sì, annulla', 'Yes, cancel')} variante="pericolo" piccolo pieno={false} onPress={() => annulla(s)} inCorso={inCorso === s.booking_id} />
+                    <Pulsante testo={t('No', 'No')} variante="secondario" piccolo pieno={false} onPress={() => setConferma(null)} disabilitato={inCorso !== null} />
                   </View>
                 ) : (
-                  <Pulsante testo="Annulla" variante="secondario" piccolo pieno={false} onPress={() => setConferma(s.booking_id)} disabilitato={inCorso !== null} />
+                  <Pulsante testo={t('Annulla', 'Cancel')} variante="secondario" piccolo pieno={false} onPress={() => setConferma(s.booking_id)} disabilitato={inCorso !== null} />
                 )
               }
             />
@@ -536,7 +541,7 @@ function SedutePrenotate({ sedute, ore, onAnnulla }: { sedute: SedutaPersonal[];
         })}
         {errore ? <Messaggio>{errore}</Messaggio> : null}
         <Text style={[stili.nota, { color: p.testoTerzo, paddingTop: spazio.due }]}>
-          {`Una seduta si annulla fino a ${ore} ore prima, e torna sul tuo conto. Dopo, scrivi al club.`}
+          {t(`Una seduta si annulla fino a ${ore} ore prima, e torna sul tuo conto. Dopo, scrivi al club.`, `You can cancel a session up to ${ore} hours before, and it goes back to your account. After that, contact the club.`)}
         </Text>
       </Carta>
     </Sezione>
@@ -682,13 +687,13 @@ export function Personal() {
     const giro = async () => {
       const r = await esitoPacchettoPersonal(pacchetto)
       if (fermo) return
-      if (!r.ok) return setEsitoPacchetto({ stato: 'errore', errore: r.errore, member_id: 0, nome: 'Abbonamento PT' })
+      if (!r.ok) return setEsitoPacchetto({ stato: 'errore', errore: r.errore, member_id: 0, nome: t('Abbonamento PT', 'PT membership') })
       if (r.esito.stato === 'avviato' && ++giri < 30) {
         setEsitoPacchetto(r.esito)
         setTimeout(giro, 4000)
         return
       }
-      setEsitoPacchetto(r.esito.stato === 'avviato' ? { ...r.esito, stato: 'errore', errore: 'Non abbiamo ancora la conferma del pagamento: controlla fra qualche minuto in Pagamenti.' } : r.esito)
+      setEsitoPacchetto(r.esito.stato === 'avviato' ? { ...r.esito, stato: 'errore', errore: t('Non abbiamo ancora la conferma del pagamento: controlla fra qualche minuto in Pagamenti.', 'We don’t have the payment confirmation yet: check again in a few minutes in Payments.') } : r.esito)
       ricorda(`personal:stato:${r.esito.member_id || ''}`, undefined)
       leggi(r.esito.member_id || undefined)
     }
@@ -714,7 +719,7 @@ export function Personal() {
       if (fermo) return
       if (r.ok) {
         setStato(r.stato)
-        const ora = r.stato.crediti.reduce((t, c) => t + c.quantita, 0)
+        const ora = r.stato.crediti.reduce((tot, c) => tot + c.quantita, 0)
         if (quanteSedute.current == null) quanteSedute.current = seduta ? 0 : ora
         if (ora > (quanteSedute.current ?? 0)) return setSedutaInArrivo('arrivata')
       }
@@ -729,16 +734,16 @@ export function Personal() {
 
   if (errore && !stato) {
     return (
-      <Schermata titolo="Prenotazioni">
+      <Schermata titolo={t('Prenotazioni', 'Bookings')}>
         <SceltaPrenotazioni attiva="personal" />
         <Messaggio>{errore}</Messaggio>
-        <Pulsante testo="Riprova" icona="aggiorna" onPress={() => leggi()} />
+        <Pulsante testo={t('Riprova', 'Try again')} icona="aggiorna" onPress={() => leggi()} />
       </Schermata>
     )
   }
   if (!stato || daCambiare) {
     return (
-      <Schermata titolo="Prenotazioni">
+      <Schermata titolo={t('Prenotazioni', 'Bookings')}>
         <SceltaPrenotazioni attiva="personal" />
         <SchedeInArrivo />
       </Schermata>
@@ -747,9 +752,9 @@ export function Personal() {
   // Nessuno del nucleo ha l'eta': non c'e' niente da prenotare.
   if (!idonee.length && troppoPiccoli.length) {
     return (
-      <Schermata titolo="Prenotazioni">
+      <Schermata titolo={t('Prenotazioni', 'Bookings')}>
         <SceltaPrenotazioni attiva="personal" />
-        <Messaggio>{`Il personal training è dai ${ETA_MINIMA_PERSONAL} anni.`}</Messaggio>
+        <Messaggio>{t(`Il personal training è dai ${ETA_MINIMA_PERSONAL} anni.`, `Personal training starts from age ${ETA_MINIMA_PERSONAL}.`)}</Messaggio>
       </Schermata>
     )
   }
@@ -757,8 +762,8 @@ export function Personal() {
   const opzione = opzioni.find((o) => o.definition_id === definizione) ?? null
   // «Le tue sedute» mostra solo i prodotti personal attivi: la seduta da comprare sta in «Acquista».
   const usabili = opzioni.filter((o) => !o.acquisto)
-  const trainerDi = new Map((orari?.trainer ?? stato.trainer).map((t) => [t.id, t]))
-  const nomeTrainer = new Map([...trainerDi.values()].map((t) => [t.id, t.nome]))
+  const trainerDi = new Map((orari?.trainer ?? stato.trainer).map((x) => [x.id, x]))
+  const nomeTrainer = new Map([...trainerDi.values()].map((x) => [x.id, x.nome]))
   // Gli orari liberi del giorno scelto, col filtro del trainer, raccolti per ora.
   const delGiorno = (orari?.orari ?? []).filter((o) => giornoDi(o.inizio) === giorno && (filtro == null || o.trainer_id === filtro))
   const perOra = new Map<string, { locale: string; inizio: string; trainer: number[] }>()
@@ -774,10 +779,10 @@ export function Personal() {
     quantiPerGiorno.set(giornoDi(o.inizio), (quantiPerGiorno.get(giornoDi(o.inizio)) ?? 0) + 1)
   }
   // I trainer con almeno un orario libero nei 30 giorni.
-  const conOrari = [...new Set((orari?.orari ?? []).map((o) => o.trainer_id))].sort((a, b) => (nomeTrainer.get(a) ?? '').localeCompare(nomeTrainer.get(b) ?? '', 'it'))
+  const conOrari = [...new Set((orari?.orari ?? []).map((o) => o.trainer_id))].sort((a, b) => (nomeTrainer.get(a) ?? '').localeCompare(nomeTrainer.get(b) ?? '', locale()))
   // Si mostrano solo i trainer con disponibilita' reale a calendario: chi non ne ha
   // non e' detto che non lavori piu', ma da qui non si prenota, quindi non si mostra.
-  const disponibili = conOrari.map((id) => trainerDi.get(id)).filter((t): t is TrainerPersonal => !!t)
+  const disponibili = conOrari.map((id) => trainerDi.get(id)).filter((x): x is TrainerPersonal => !!x)
   const sceltoQui = scelto ? perOra.get(scelto.locale) ?? null : null
   const conChi = trainer ?? (sceltoQui?.trainer.length === 1 ? sceltoQui.trainer[0] : null)
 
@@ -800,7 +805,7 @@ export function Personal() {
     setAttesa(false)
     if (r.ok) {
       colpetto('ok')
-      setFatto(`Seduta prenotata: ${giornoEsteso(giornoDi(scelto.inizio))} alle ${ora(scelto.inizio)} con ${nomeTrainer.get(conChi) ?? 'il trainer'}.`)
+      setFatto(t(`Seduta prenotata: ${giornoEsteso(giornoDi(scelto.inizio))} alle ${ora(scelto.inizio)} con ${nomeTrainer.get(conChi) ?? 'il trainer'}.`, `Session booked: ${giornoEsteso(giornoDi(scelto.inizio))} at ${ora(scelto.inizio)} with ${nomeTrainer.get(conChi) ?? 'the trainer'}.`))
       setScelto(null)
       // Le sedute e gli orari sono cambiati: si rileggono.
       ricorda(`personal:orari:${stato.member_id}:${definizione}`, undefined)
@@ -882,65 +887,66 @@ export function Personal() {
   const perChi = stato.persone.find((x) => x.member_id === stato.member_id)
 
   return (
-    <Schermata titolo="Prenotazioni">
+    <Schermata titolo={t('Prenotazioni', 'Bookings')}>
       <SceltaPrenotazioni attiva="personal" />
 
       {esitoPacchetto ? (
         esitoPacchetto.stato === 'avviato' ? (
-          <Messaggio tono="attenzione" icona="clessidra" titolo="Aspettiamo la conferma">
+          <Messaggio tono="attenzione" icona="clessidra" titolo={t('Aspettiamo la conferma', 'Waiting for confirmation')}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: spazio.due }}>
               <ActivityIndicator color={p.attenzione} />
-              <Text style={[stili.nota, { color: p.testo, flex: 1 }]}>Aspettiamo da PerfectGym la conferma del pagamento dell’abbonamento PT. Non chiudere la pagina.</Text>
+              <Text style={[stili.nota, { color: p.testo, flex: 1 }]}>{t('Aspettiamo da PerfectGym la conferma del pagamento dell’abbonamento PT. Non chiudere la pagina.', 'We’re waiting for PerfectGym to confirm the PT membership payment. Don’t close the page.')}</Text>
             </View>
           </Messaggio>
         ) : esitoPacchetto.stato === 'pagato' ? (
-          <Messaggio tono="ok" titolo="Abbonamento PT attivo">
-            {`«${esitoPacchetto.nome}» è attivo. Le sedute del mese compaiono in «Le tue sedute» appena PerfectGym le carica.`}
+          <Messaggio tono="ok" titolo={t('Abbonamento PT attivo', 'PT membership active')}>
+            {t(`«${esitoPacchetto.nome}» è attivo. Le sedute del mese compaiono in «Le tue sedute» appena PerfectGym le carica.`, `“${esitoPacchetto.nome}” is active. This month’s sessions will appear in “Your sessions” as soon as PerfectGym loads them.`)}
           </Messaggio>
         ) : esitoPacchetto.stato === 'addebito' ? (
-          <Messaggio tono="ok" titolo="Abbonamento PT attivo">
-            {`«${esitoPacchetto.nome}» è attivo. Le quote si addebitano sul tuo conto corrente con l’addebito SEPA; le sedute del mese compaiono in «Le tue sedute» appena PerfectGym le carica.`}
+          <Messaggio tono="ok" titolo={t('Abbonamento PT attivo', 'PT membership active')}>
+            {t(`«${esitoPacchetto.nome}» è attivo. Le quote si addebitano sul tuo conto corrente con l’addebito SEPA; le sedute del mese compaiono in «Le tue sedute» appena PerfectGym le carica.`, `“${esitoPacchetto.nome}” is active. Payments are charged to your bank account by SEPA direct debit; this month’s sessions will appear in “Your sessions” as soon as PerfectGym loads them.`)}
           </Messaggio>
         ) : (
-          <Messaggio tono="attenzione" titolo="Il pagamento non è andato a buon fine">
-            {esitoPacchetto.errore ?? 'Non abbiamo la conferma del pagamento.'}
+          <Messaggio tono="attenzione" titolo={t('Il pagamento non è andato a buon fine', 'The payment didn’t go through')}>
+            {esitoPacchetto.errore ?? t('Non abbiamo la conferma del pagamento.', 'We don’t have the payment confirmation.')}
           </Messaggio>
         )
       ) : null}
 
       {sedutaInArrivo === 'attesa' ? (
-        <Messaggio tono="attenzione" icona="clessidra" titolo="Aspettiamo la conferma">
+        <Messaggio tono="attenzione" icona="clessidra" titolo={t('Aspettiamo la conferma', 'Waiting for confirmation')}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: spazio.due }}>
             <ActivityIndicator color={p.attenzione} />
-            <Text style={[stili.nota, { color: p.testo, flex: 1 }]}>La seduta arriva sul tuo conto appena PerfectGym conferma il pagamento.</Text>
+            <Text style={[stili.nota, { color: p.testo, flex: 1 }]}>{t('La seduta arriva sul tuo conto appena PerfectGym conferma il pagamento.', 'The session arrives on your account as soon as PerfectGym confirms the payment.')}</Text>
           </View>
         </Messaggio>
       ) : sedutaInArrivo === 'arrivata' ? (
-        <Messaggio tono="ok" titolo="Seduta acquistata">
-          La trovi in «Le tue sedute»: scegli giorno, orario e trainer qui sotto.
+        <Messaggio tono="ok" titolo={t('Seduta acquistata', 'Session purchased')}>
+          {t('La trovi in «Le tue sedute»: scegli giorno, orario e trainer qui sotto.', 'You’ll find it in “Your sessions”: choose day, time and trainer below.')}
         </Messaggio>
       ) : sedutaInArrivo === 'non_ancora' ? (
-        <Messaggio tono="attenzione" titolo="La seduta non è ancora arrivata">
-          Se il pagamento è andato a buon fine compare fra poco in «Le tue sedute»; altrimenti lo trovi in Pagamenti.
+        <Messaggio tono="attenzione" titolo={t('La seduta non è ancora arrivata', 'The session hasn’t arrived yet')}>
+          {t('Se il pagamento è andato a buon fine compare fra poco in «Le tue sedute»; altrimenti lo trovi in Pagamenti.', 'If the payment went through, it will appear shortly in “Your sessions”; otherwise you’ll find it in Payments.')}
         </Messaggio>
       ) : null}
 
       {ritorno ? (
         ritorno.stato === 'avviato' ? (
-          <Messaggio tono="attenzione" icona="clessidra" titolo="Aspettiamo la conferma">
+          <Messaggio tono="attenzione" icona="clessidra" titolo={t('Aspettiamo la conferma', 'Waiting for confirmation')}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: spazio.due }}>
               <ActivityIndicator color={p.attenzione} />
-              <Text style={[stili.nota, { color: p.testo, flex: 1 }]}>Aspettiamo da PerfectGym la conferma del pagamento, poi prenotiamo la seduta. Non chiudere la pagina.</Text>
+              <Text style={[stili.nota, { color: p.testo, flex: 1 }]}>{t('Aspettiamo da PerfectGym la conferma del pagamento, poi prenotiamo la seduta. Non chiudere la pagina.', 'We’re waiting for PerfectGym to confirm the payment, then we’ll book the session. Don’t close the page.')}</Text>
             </View>
           </Messaggio>
         ) : ritorno.stato === 'prenotato' ? (
-          <Messaggio tono="ok" titolo="Pagamento ricevuto">
-            {`La seduta è prenotata${'inizio' in ritorno && ritorno.inizio ? `: ${giornoEsteso(giornoDi(ritorno.inizio))} alle ${ora(ritorno.inizio)}` : ''}${
-              'trainer' in ritorno && ritorno.trainer ? ` con ${ritorno.trainer}` : ''
-            }. La trovi qui sotto e nell’app Athlon.`}
+          <Messaggio tono="ok" titolo={t('Pagamento ricevuto', 'Payment received')}>
+            {t(
+              `La seduta è prenotata${'inizio' in ritorno && ritorno.inizio ? `: ${giornoEsteso(giornoDi(ritorno.inizio))} alle ${ora(ritorno.inizio)}` : ''}${'trainer' in ritorno && ritorno.trainer ? ` con ${ritorno.trainer}` : ''}. La trovi qui sotto e nell’app Athlon.`,
+              `The session is booked${'inizio' in ritorno && ritorno.inizio ? `: ${giornoEsteso(giornoDi(ritorno.inizio))} at ${ora(ritorno.inizio)}` : ''}${'trainer' in ritorno && ritorno.trainer ? ` with ${ritorno.trainer}` : ''}. You’ll find it below and in the Athlon app.`,
+            )}
           </Messaggio>
         ) : (
-          <Messaggio>{('errore' in ritorno && ritorno.errore) || 'Non vediamo ancora il pagamento. Se l’hai completato, ricarica la pagina fra qualche minuto.'}</Messaggio>
+          <Messaggio>{('errore' in ritorno && ritorno.errore) || t('Non vediamo ancora il pagamento. Se l’hai completato, ricarica la pagina fra qualche minuto.', 'We can’t see the payment yet. If you completed it, reload the page in a few minutes.')}</Messaggio>
         )
       ) : null}
 
@@ -960,11 +966,11 @@ export function Personal() {
                     setOrari(null)
                     leggi(x.member_id)
                   }}
-                  etichetta={`Personal per ${[x.nome, x.cognome].filter(Boolean).join(' ')}`}
+                  etichetta={t(`Personal per ${[x.nome, x.cognome].filter(Boolean).join(' ')}`, `Personal training for ${[x.nome, x.cognome].filter(Boolean).join(' ')}`)}
                   style={[stili.persona, attivo ? { backgroundColor: p.accento, borderColor: p.accento } : { backgroundColor: p.carta, borderColor: p.linea }]}
                 >
                   <Avatar nome={x.nome} cognome={x.cognome} size={30} anello={attivo ? 'rgba(255,255,255,0.9)' : undefined} />
-                  <Text style={{ color: attivo ? '#fff' : p.testo, fontFamily: attivo ? F.extra : F.semi, fontSize: 14 }}>{x.nome || 'Senza nome'}</Text>
+                  <Text style={{ color: attivo ? '#fff' : p.testo, fontFamily: attivo ? F.extra : F.semi, fontSize: 14 }}>{x.nome || t('Senza nome', 'No name')}</Text>
                 </Tocco>
               )
             })}
@@ -972,20 +978,20 @@ export function Personal() {
           ) : null}
           {perChi && idonee.length > 1 ? (
             <Text style={[stili.nota, { color: p.testoSecondario, paddingHorizontal: 2 }]}>
-              Stai prenotando per <Text style={{ fontFamily: F.bold, color: p.testo }}>{[perChi.nome, perChi.cognome].filter(Boolean).join(' ')}</Text>
+              {t('Stai prenotando per', 'You’re booking for')} <Text style={{ fontFamily: F.bold, color: p.testo }}>{[perChi.nome, perChi.cognome].filter(Boolean).join(' ')}</Text>
             </Text>
           ) : null}
           {troppoPiccoli.length ? (
             <Text style={[stili.nota, { color: p.testoSecondario, paddingHorizontal: 2 }]}>
-              {`Il personal training è dai ${ETA_MINIMA_PERSONAL} anni: ${troppoPiccoli.map((x) => x.nome || 'un familiare').join(', ')} non si può prenotare.`}
+              {t(`Il personal training è dai ${ETA_MINIMA_PERSONAL} anni: ${troppoPiccoli.map((x) => x.nome || 'un familiare').join(', ')} non si può prenotare.`, `Personal training starts from age ${ETA_MINIMA_PERSONAL}: you can’t book for ${troppoPiccoli.map((x) => x.nome || 'a family member').join(', ')}.`)}
             </Text>
           ) : null}
         </View>
       ) : null}
 
-      {!stato.letti ? <Messaggio tono="attenzione">PerfectGym non risponde: le tue sedute potrebbero non comparire.</Messaggio> : null}
+      {!stato.letti ? <Messaggio tono="attenzione">{t('PerfectGym non risponde: le tue sedute potrebbero non comparire.', 'PerfectGym isn’t responding: your sessions might not show up.')}</Messaggio> : null}
       {fatto ? (
-        <Messaggio tono="ok" titolo="Fatto">
+        <Messaggio tono="ok" titolo={t('Fatto', 'Done')}>
           {fatto}
         </Messaggio>
       ) : null}
@@ -993,7 +999,7 @@ export function Personal() {
       {stato.prenotate.length ? <SedutePrenotate sedute={stato.prenotate} ore={stato.disdetta_ore} onAnnulla={annulla} /> : null}
 
       {usabili.length ? (
-        <Sezione titolo="Le tue sedute">
+        <Sezione titolo={t('Le tue sedute', 'Your sessions')}>
           <Carta style={{ paddingVertical: spazio.due }}>
             {usabili.map((o, i) => {
               const qui = o.definition_id === definizione
@@ -1021,15 +1027,15 @@ export function Personal() {
       ) : null}
 
       {stato.acquisto?.prodotto.prezzo != null || stato.pacchetti.length || stato.pacchetto_attivo ? (
-        <Sezione titolo="Acquista">
+        <Sezione titolo={t('Acquista', 'Buy')}>
           <Carta style={{ paddingVertical: spazio.due }}>
             {stato.acquisto?.prodotto.prezzo != null ? (
               <Riga
                 prima
                 icona="carta"
                 tono="neutro"
-                titolo={`Compra una seduta · ${euro(stato.acquisto.prodotto.prezzo)}`}
-                sotto="La tieni sul conto e la prenoti quando vuoi"
+                titolo={t(`Compra una seduta · ${euro(stato.acquisto.prodotto.prezzo)}`, `Buy a session · ${euro(stato.acquisto.prodotto.prezzo)}`)}
+                sotto={t('La tieni sul conto e la prenoti quando vuoi', 'It stays on your account and you book it whenever you like')}
                 onPress={() => setDaComprare({ tipo: 'seduta', prezzo: stato.acquisto!.prodotto.prezzo! })}
                 coda={<Icona nome="avanti" size={18} colore={p.testoTerzo} />}
               />
@@ -1040,19 +1046,19 @@ export function Personal() {
                 prima={i === 0 && stato.acquisto?.prodotto.prezzo == null}
                 icona="rinnovo"
                 tono="accento"
-                titolo={`Abbonamento PT · ${k.sedute ?? ''} sedute al mese`}
-                sotto={`${euro(k.prezzo_mese)} al mese, si aggiunge al tuo abbonamento`}
+                titolo={t(`Abbonamento PT · ${k.sedute ?? ''} sedute al mese`, `PT membership · ${k.sedute ?? ''} sessions a month`)}
+                sotto={t(`${euro(k.prezzo_mese)} al mese, si aggiunge al tuo abbonamento`, `${euro(k.prezzo_mese)} a month, added to your membership`)}
                 onPress={() => setDaComprare({ tipo: 'pacchetto', pacchetto: k })}
                 coda={<Icona nome="avanti" size={18} colore={p.testoTerzo} />}
               />
             ))}
             {stato.pacchetto_attivo ? (
               <Text style={[stili.nota, { color: p.testoSecondario, paddingTop: spazio.due }]}>
-                {`Hai già l’abbonamento PT «${stato.pacchetto_attivo}»: le sedute del mese le trovi qui sopra.`}
+                {t(`Hai già l’abbonamento PT «${stato.pacchetto_attivo}»: le sedute del mese le trovi qui sopra.`, `You already have the PT membership “${stato.pacchetto_attivo}”: you’ll find this month’s sessions above.`)}
               </Text>
             ) : !stato.pacchetti.length ? (
               <Text style={[stili.nota, { color: p.testoSecondario, paddingTop: spazio.due }]}>
-                L’abbonamento PT mensile si aggiunge a un abbonamento attivo.
+                {t('L’abbonamento PT mensile si aggiunge a un abbonamento attivo.', 'The monthly PT membership is added to an active membership.')}
               </Text>
             ) : null}
           </Carta>
@@ -1060,11 +1066,11 @@ export function Personal() {
       ) : null}
 
       {opzione ? (
-        <Sezione titolo="Scegli giorno e orario">
+        <Sezione titolo={t('Scegli giorno e orario', 'Choose day and time')}>
           {erroreOrari ? (
             <View style={{ gap: spazio.due }}>
               <Messaggio>{erroreOrari}</Messaggio>
-              <Pulsante testo="Riprova" icona="aggiorna" variante="contorno" onPress={() => definizione != null && caricaGliOrari(stato.member_id, definizione)} />
+              <Pulsante testo={t('Riprova', 'Try again')} icona="aggiorna" variante="contorno" onPress={() => definizione != null && caricaGliOrari(stato.member_id, definizione)} />
             </View>
           ) : !orari || caricaOrari ? (
             <SchedeInArrivo quante={1} />
@@ -1072,31 +1078,31 @@ export function Personal() {
             <Carta style={{ alignItems: 'center', gap: spazio.due, paddingVertical: spazio.cinque }}>
               <Icona nome="calendario" size={34} colore={p.testoTerzo} />
               <Text style={[stili.nota, { color: p.testoSecondario, textAlign: 'center' }]}>
-                Nei prossimi 30 giorni i trainer non hanno orari liberi. Riprova fra qualche giorno, o chiedi al club.
+                {t('Nei prossimi 30 giorni i trainer non hanno orari liberi. Riprova fra qualche giorno, o chiedi al club.', 'The trainers have no free slots in the next 30 days. Try again in a few days, or ask the club.')}
               </Text>
             </Carta>
           ) : (
             <View style={{ gap: spazio.tre }}>
-              {orari.incompleti ? <Messaggio tono="attenzione">Gli orari di qualche trainer non si leggono adesso: ne mancano alcuni.</Messaggio> : null}
+              {orari.incompleti ? <Messaggio tono="attenzione">{t('Gli orari di qualche trainer non si leggono adesso: ne mancano alcuni.', 'We can’t read some trainers’ schedules right now: a few are missing.')}</Messaggio> : null}
               {conOrari.length > 1 ? (
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={stili.fila} style={stili.fuori}>
-                  {[null, ...conOrari].map((t) => {
-                    const attivo = t === filtro
+                  {[null, ...conOrari].map((tid) => {
+                    const attivo = tid === filtro
                     return (
                       <Tocco
-                        key={t ?? 'tutti'}
+                        key={tid ?? 'tutti'}
                         vibra="scelta"
                         stato={{ selected: attivo }}
                         onPress={() => {
-                          setFiltro(t)
+                          setFiltro(tid)
                           setScelto(null)
                         }}
-                        etichetta={t == null ? 'Tutti i trainer' : `Solo ${nomeTrainer.get(t)}`}
+                        etichetta={tid == null ? t('Tutti i trainer', 'All trainers') : t(`Solo ${nomeTrainer.get(tid)}`, `Only ${nomeTrainer.get(tid)}`)}
                         style={[stili.filtro, { backgroundColor: attivo ? p.testo : p.carta, borderColor: attivo ? p.testo : p.linea }]}
                       >
-                        {t != null ? <FotoTrainer t={trainerDi.get(t)} nome={nomeTrainer.get(t) ?? ''} size={26} /> : null}
+                        {tid != null ? <FotoTrainer trainer={trainerDi.get(tid)} nome={nomeTrainer.get(tid) ?? ''} size={26} /> : null}
                         <Text style={{ color: attivo ? p.fondo : p.testo, fontFamily: attivo ? F.extra : F.semi, fontSize: 14 }}>
-                          {t == null ? 'Tutti i trainer' : nomeTrainer.get(t) ?? 'Trainer'}
+                          {tid == null ? t('Tutti i trainer', 'All trainers') : nomeTrainer.get(tid) ?? t('Trainer', 'Trainer')}
                         </Text>
                       </Tocco>
                     )
@@ -1127,7 +1133,7 @@ export function Personal() {
                         setGiorno(d)
                         setScelto(null)
                       }}
-                      etichetta={`${giornoEsteso(d)}, ${quanti ? `${quanti} orari liberi` : 'nessun orario libero'}`}
+                      etichetta={`${giornoEsteso(d)}, ${quanti ? t(`${quanti} orari liberi`, `${quanti} free slots`) : t('nessun orario libero', 'no free slots')}`}
                     >
                       {attivo ? (
                         <LinearGradient colors={FUOCO} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[stili.giorno, { boxShadow: '0 10px 20px rgba(255,87,1,0.3)' }]}>
@@ -1145,7 +1151,7 @@ export function Personal() {
                 <Text style={[stili.giornoTitolo, { color: p.testo }]}>{giorno ? maiuscola(giornoEsteso(giorno)) : ''}</Text>
                 {!ore.length ? (
                   <Text style={[stili.nota, { color: p.testoSecondario }]}>
-                    {filtro != null ? `${nomeTrainer.get(filtro)} non ha orari liberi in questo giorno.` : 'Nessun orario libero in questo giorno.'}
+                    {filtro != null ? t(`${nomeTrainer.get(filtro)} non ha orari liberi in questo giorno.`, `${nomeTrainer.get(filtro)} has no free slots on this day.`) : t('Nessun orario libero in questo giorno.', 'No free slots on this day.')}
                   </Text>
                 ) : (
                   FASCE.map((f, i) => {
@@ -1167,12 +1173,12 @@ export function Personal() {
                                   vibra="scelta"
                                   stato={{ selected: attivo }}
                                   onPress={() => scegliOra(o.locale, o.inizio, o.trainer)}
-                                  etichetta={`${ora(o.inizio)}, ${o.trainer.length === 1 ? `con ${nomeTrainer.get(o.trainer[0])}` : `${o.trainer.length} trainer liberi`}`}
+                                  etichetta={`${ora(o.inizio)}, ${o.trainer.length === 1 ? t(`con ${nomeTrainer.get(o.trainer[0])}`, `with ${nomeTrainer.get(o.trainer[0])}`) : t(`${o.trainer.length} trainer liberi`, `${o.trainer.length} trainers available`)}`}
                                   style={[stili.turno, { backgroundColor: attivo ? p.accento : velo(p, 'ok', 0.12) }]}
                                 >
                                   <Text style={[stili.turnoOra, { color: attivo ? '#fff' : p.testo }]}>{ora(o.inizio)}</Text>
                                   <Text style={[stili.turnoSotto, { color: attivo ? 'rgba(255,255,255,0.9)' : p.testoSecondario }]} numberOfLines={1}>
-                                    {o.trainer.length === 1 ? nomeProprio(nomeTrainer.get(o.trainer[0]) ?? '') : `${o.trainer.length} trainer`}
+                                    {o.trainer.length === 1 ? nomeProprio(nomeTrainer.get(o.trainer[0]) ?? '') : t(`${o.trainer.length} trainer`, `${o.trainer.length} trainers`)}
                                   </Text>
                                 </Tocco>
                               </View>
@@ -1191,30 +1197,30 @@ export function Personal() {
                     </Text>
                     {sceltoQui.trainer.length > 1 ? (
                       <View style={{ gap: spazio.due }}>
-                        <Text style={[stili.nota, { color: p.testoSecondario }]}>Con chi?</Text>
+                        <Text style={[stili.nota, { color: p.testoSecondario }]}>{t('Con chi?', 'With whom?')}</Text>
                         <View style={{ gap: spazio.due }}>
-                          {sceltoQui.trainer.map((t) => {
-                            const attivo = conChi === t
-                            const tr = trainerDi.get(t)
+                          {sceltoQui.trainer.map((tid) => {
+                            const attivo = conChi === tid
+                            const tr = trainerDi.get(tid)
                             return (
                               // La «i» sta accanto alla scelta e non dentro: un pulsante dentro un pulsante non e' valido.
-                              <View key={t} style={[stili.sceltaTrainer, { borderColor: attivo ? p.accento : p.linea, backgroundColor: attivo ? velo(p, 'accento', 0.1) : p.carta }]}>
+                              <View key={tid} style={[stili.sceltaTrainer, { borderColor: attivo ? p.accento : p.linea, backgroundColor: attivo ? velo(p, 'accento', 0.1) : p.carta }]}>
                                 <Tocco
                                   vibra="scelta"
                                   stato={{ selected: attivo }}
                                   onPress={() => {
-                                    setTrainer(t)
+                                    setTrainer(tid)
                                     setDaPagare(null)
                                     setErroreAzione(null)
                                   }}
-                                  etichetta={`Con ${nomeTrainer.get(t)}`}
+                                  etichetta={t(`Con ${nomeTrainer.get(tid)}`, `With ${nomeTrainer.get(tid)}`)}
                                   style={stili.sceltaTocco}
                                 >
                                   <View style={[stili.radio, { borderColor: attivo ? p.accento : p.linea, backgroundColor: attivo ? p.accento : 'transparent' }]}>
                                     {attivo ? <Icona nome="spunta" size={13} colore="#fff" /> : null}
                                   </View>
-                                  <FotoTrainer t={tr} nome={nomeTrainer.get(t) ?? ''} size={52} />
-                                  <Text style={{ flex: 1, color: p.testo, fontFamily: F.extra, fontSize: 15.5 }}>{nomeTrainer.get(t) ?? 'Trainer'}</Text>
+                                  <FotoTrainer trainer={tr} nome={nomeTrainer.get(tid) ?? ''} size={52} />
+                                  <Text style={{ flex: 1, color: p.testo, fontFamily: F.extra, fontSize: 15.5 }}>{nomeTrainer.get(tid) ?? t('Trainer', 'Trainer')}</Text>
                                 </Tocco>
                                 {tr ? <InfoTrainer onPress={() => setChiE(tr)} nome={tr.nome} /> : null}
                               </View>
@@ -1224,9 +1230,9 @@ export function Personal() {
                       </View>
                     ) : conChi != null ? (
                       <View style={stili.conChi}>
-                        <FotoTrainer t={trainerDi.get(conChi)} nome={nomeTrainer.get(conChi) ?? ''} size={52} />
+                        <FotoTrainer trainer={trainerDi.get(conChi)} nome={nomeTrainer.get(conChi) ?? ''} size={52} />
                         <Text style={[stili.nota, { flex: 1, color: p.testoSecondario }]}>
-                          Con <Text style={{ color: p.testo, fontFamily: F.extra, fontSize: 15.5 }}>{nomeTrainer.get(conChi)}</Text>
+                          {t('Con', 'With')} <Text style={{ color: p.testo, fontFamily: F.extra, fontSize: 15.5 }}>{nomeTrainer.get(conChi)}</Text>
                         </Text>
                         {trainerDi.get(conChi) ? <InfoTrainer onPress={() => setChiE(trainerDi.get(conChi) ?? null)} nome={nomeTrainer.get(conChi) ?? ''} /> : null}
                       </View>
@@ -1239,37 +1245,37 @@ export function Personal() {
                         {daPagare.carta && daPagare.acquisto_id && daPagare.prodotto.prezzo != null ? (
                           <>
                             <Pulsante
-                              testo={`Paga ${euro(daPagare.prodotto.prezzo)} con la carta${daPagare.carta.finale ? ` •••• ${daPagare.carta.finale}` : ''}`}
+                              testo={t(`Paga ${euro(daPagare.prodotto.prezzo)} con la carta${daPagare.carta.finale ? ` •••• ${daPagare.carta.finale}` : ''}`, `Pay ${euro(daPagare.prodotto.prezzo)} with your card${daPagare.carta.finale ? ` •••• ${daPagare.carta.finale}` : ''}`)}
                               icona="carta"
                               onPress={() => pagaConCarta(daPagare.acquisto_id!)}
                               inCorso={attesa}
                             />
-                            <Pulsante testo="Usa un’altra carta" variante="fantasma" piccolo onPress={() => vaiAlPagamento(daPagare.url)} disabilitato={attesa} />
+                            <Pulsante testo={t('Usa un’altra carta', 'Use another card')} variante="fantasma" piccolo onPress={() => vaiAlPagamento(daPagare.url)} disabilitato={attesa} />
                           </>
                         ) : (
                           <Pulsante
-                            testo={`Acquista e prenota${daPagare.prodotto.prezzo != null ? ` · ${euro(daPagare.prodotto.prezzo)}` : ''}`}
+                            testo={t(`Acquista e prenota${daPagare.prodotto.prezzo != null ? ` · ${euro(daPagare.prodotto.prezzo)}` : ''}`, `Buy and book${daPagare.prodotto.prezzo != null ? ` · ${euro(daPagare.prodotto.prezzo)}` : ''}`)}
                             icona="carta"
                             onPress={() => vaiAlPagamento(daPagare.url)}
                             inCorso={attesa}
                           />
                         )}
                         <Text style={[stili.nota, { color: p.testoSecondario }]}>
-                          {daPagare.carta ? 'La carta la custodisce ' : 'Paghi sulla pagina protetta di '}
+                          {daPagare.carta ? t('La carta la custodisce ', 'Your card is stored by ') : t('Paghi sulla pagina protetta di ', 'You pay on the secure page of ')}
                           <InfoAdyen />
                           {daPagare.carta
-                            ? ': il club non vede mai il numero completo. Pagata la seduta, la prenotiamo a questo orario.'
-                            : ', in un passo solo: la carta resta salvata per i prossimi acquisti, e pagata la seduta la prenotiamo a questo orario.'}
+                            ? t(': il club non vede mai il numero completo. Pagata la seduta, la prenotiamo a questo orario.', ': the club never sees the full number. Once the session is paid, we book it at this time.')
+                            : t(', in un passo solo: la carta resta salvata per i prossimi acquisti, e pagata la seduta la prenotiamo a questo orario.', ', in a single step: your card stays saved for future purchases, and once the session is paid we book it at this time.')}
                         </Text>
                       </View>
                     ) : (
                       <Pulsante
                         testo={
                           conChi == null
-                            ? 'Scegli il trainer'
+                            ? t('Scegli il trainer', 'Choose a trainer')
                             : opzione.acquisto
-                              ? `Acquista${stato.acquisto?.prodotto.prezzo != null ? ` · ${euro(stato.acquisto.prodotto.prezzo)}` : ''}`
-                              : 'Prenota'
+                              ? `${t('Acquista', 'Buy')}${stato.acquisto?.prodotto.prezzo != null ? ` · ${euro(stato.acquisto.prodotto.prezzo)}` : ''}`
+                              : t('Prenota', 'Book')
                         }
                         icona={opzione.acquisto ? 'carta' : 'avanti'}
                         onPress={opzione.acquisto ? acquista : prenota}
@@ -1278,7 +1284,7 @@ export function Personal() {
                       />
                     )}
                     {!daPagare && !opzione.acquisto ? (
-                      <Text style={[stili.nota, { color: p.testoTerzo }]}>{`Prenotando si scala una seduta da «${opzione.titolo}».`}</Text>
+                      <Text style={[stili.nota, { color: p.testoTerzo }]}>{t(`Prenotando si scala una seduta da «${opzione.titolo}».`, `Booking uses one session from “${opzione.titolo}”.`)}</Text>
                     ) : null}
                   </View>
                 ) : null}
@@ -1289,19 +1295,19 @@ export function Personal() {
       ) : null}
 
       {disponibili.length ? (
-        <Sezione titolo="I trainer" conteggio={disponibili.length}>
+        <Sezione titolo={t('I trainer', 'Trainers')} conteggio={disponibili.length}>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={stili.fila} style={stili.fuori}>
-            {disponibili.map((t) => (
-              <Tocco key={t.id} onPress={() => setChiE(t)} etichetta={`Chi è ${t.nome}`} scala={0.97} style={[stili.vetrina, { backgroundColor: p.carta, borderColor: p.linea }]}>
-                {t.foto ? (
-                  <Image source={{ uri: t.foto }} contentFit="cover" contentPosition="top" transition={150} style={[stili.vetrinaFoto, { backgroundColor: p.incavo }]} />
+            {disponibili.map((tr) => (
+              <Tocco key={tr.id} onPress={() => setChiE(tr)} etichetta={t(`Chi è ${tr.nome}`, `Who is ${tr.nome}`)} scala={0.97} style={[stili.vetrina, { backgroundColor: p.carta, borderColor: p.linea }]}>
+                {tr.foto ? (
+                  <Image source={{ uri: tr.foto }} contentFit="cover" contentPosition="top" transition={150} style={[stili.vetrinaFoto, { backgroundColor: p.incavo }]} />
                 ) : (
                   <View style={[stili.vetrinaFoto, { alignItems: 'center', justifyContent: 'center', backgroundColor: p.incavo }]}>
-                    <Avatar nome={t.nome} size={56} />
+                    <Avatar nome={tr.nome} size={56} />
                   </View>
                 )}
                 <Text style={{ color: p.testo, fontFamily: F.extra, fontSize: 14 }} numberOfLines={2}>
-                  {t.nome}
+                  {tr.nome}
                 </Text>
               </Tocco>
             ))}
@@ -1309,14 +1315,14 @@ export function Personal() {
         </Sezione>
       ) : null}
 
-      <FoglioTrainer t={chiE} onChiudi={() => setChiE(null)} />
+      <FoglioTrainer trainer={chiE} onChiudi={() => setChiE(null)} />
       <FoglioCompra
         cosa={daComprare}
         stato={stato}
         onChiudi={() => setDaComprare(null)}
         onSedutaPagata={() => {
           setDaComprare(null)
-          quanteSedute.current = stato.crediti.reduce((t, c) => t + c.quantita, 0)
+          quanteSedute.current = stato.crediti.reduce((tot, c) => tot + c.quantita, 0)
           setSedutaInArrivo('attesa')
         }}
       />
