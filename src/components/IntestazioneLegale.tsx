@@ -2,6 +2,7 @@ import { Linking, StyleSheet, Text, View } from 'react-native'
 
 import { CLUB_LEGALE } from '@/lib/club-legale'
 import { spazio, useColori } from '@/theme'
+import { t } from '@/lib/lingua'
 
 // Chi siamo, per esteso, in fondo a ogni pagina dell'app (14/10/2026, scelta
 // del club). La mette `Pagina`, quindi non c'e' da ricordarsene: le pagine che
@@ -13,10 +14,10 @@ export function IntestazioneLegale() {
   const l = CLUB_LEGALE
   const link = { color: c.testoSecondario, textDecorationLine: 'underline' as const }
   return (
-    <View style={[stili.riquadro, { borderColor: c.bordo, backgroundColor: c.superficie }]} accessibilityLabel={`${l.ragione}, ${l.indirizzo}, partita IVA ${l.piva}`}>
+    <View style={[stili.riquadro, { borderColor: c.bordo, backgroundColor: c.superficie }]} accessibilityLabel={t(`${l.ragione}, ${l.indirizzo}, partita IVA ${l.piva}`, `${l.ragione}, ${l.indirizzo}, VAT number ${l.piva}`)}>
       <Text style={[stili.ragione, { color: c.testo }]}>{l.ragione}</Text>
       <Text style={[stili.riga, { color: c.testoSecondario }]}>
-        {l.marchio} · {l.indirizzo} · P.IVA {l.piva}
+        {l.marchio} · {l.indirizzo} · {t('P.IVA', 'VAT no.')} {l.piva}
         {'\n'}PEC{' '}
         <Text style={link} onPress={() => Linking.openURL(`mailto:${l.pec}`)}>
           {l.pec}
@@ -29,7 +30,7 @@ export function IntestazioneLegale() {
         <Text style={link} onPress={() => Linking.openURL(l.sito)}>
           athlonroma.it
         </Text>{' '}
-        · Affiliazioni {l.affiliazioni}
+        · {t('Affiliazioni', 'Affiliations')} {l.affiliazioni}
       </Text>
     </View>
   )

@@ -1,4 +1,5 @@
 import type { Questionario } from '@/api/alimentazione'
+import { t } from '@/lib/lingua'
 
 import type { NomeIcona } from '../ui/Icona'
 import { LARN, type Totali } from './conti'
@@ -51,8 +52,8 @@ const scritti = (c: Contesto) => c.giorniScritti >= 3 && !!c.media
 const REGOLE: Regola[] = [
   {
     id: 'frutta-verdura',
-    titolo: 'Cinque porzioni di frutta e verdura',
-    testo: 'Le linee guida suggeriscono almeno cinque porzioni al giorno, fra frutta e verdura, di colori diversi: una a ogni pasto e una negli spuntini ci arriva da sola.',
+    titolo: t('Cinque porzioni di frutta e verdura', 'Five servings of fruit and vegetables'),
+    testo: t('Le linee guida suggeriscono almeno cinque porzioni al giorno, fra frutta e verdura, di colori diversi: una a ogni pasto e una negli spuntini ci arriva da sola.', 'The guidelines suggest at least five servings a day of fruit and vegetables, in different colors: one with every meal and one in your snacks gets you there on its own.'),
     fonte: CREA,
     icona: 'foglia',
     tono: 'ok',
@@ -60,8 +61,8 @@ const REGOLE: Regola[] = [
   },
   {
     id: 'acqua',
-    titolo: 'Bevi prima di avere sete',
-    testo: 'Un litro e mezzo, due litri d’acqua al giorno, di più nei giorni di allenamento e quando fa caldo. Una borraccia in borsa aiuta più di ogni promemoria.',
+    titolo: t('Bevi prima di avere sete', 'Drink before you’re thirsty'),
+    testo: t('Un litro e mezzo, due litri d’acqua al giorno, di più nei giorni di allenamento e quando fa caldo. Una borraccia in borsa aiuta più di ogni promemoria.', 'One and a half to two liters of water a day, more on training days and when it’s hot. A water bottle in your bag helps more than any reminder.'),
     fonte: `${CREA}; ${LARN_FONTE}`,
     icona: 'goccia',
     tono: 'blu',
@@ -69,8 +70,8 @@ const REGOLE: Regola[] = [
   },
   {
     id: 'acqua-piscina',
-    titolo: 'In vasca si suda senza accorgersene',
-    testo: 'Nuoto e acqua fitness fanno sudare come gli altri allenamenti, ma l’acqua intorno lo nasconde. Bevi prima e dopo, anche se non hai sete.',
+    titolo: t('In vasca si suda senza accorgersene', 'In the pool you sweat without noticing'),
+    testo: t('Nuoto e acqua fitness fanno sudare come gli altri allenamenti, ma l’acqua intorno lo nasconde. Bevi prima e dopo, anche se non hai sete.', 'Swimming and aqua fitness make you sweat like any other workout, but the water around you hides it. Drink before and after, even if you’re not thirsty.'),
     fonte: ACSM,
     icona: 'goccia',
     tono: 'blu',
@@ -78,8 +79,8 @@ const REGOLE: Regola[] = [
   },
   {
     id: 'proteine-pesi',
-    titolo: 'Le proteine, distribuite nella giornata',
-    testo: 'Chi si allena con i pesi trae beneficio da un po’ di proteine a ogni pasto, e in quello dopo l’allenamento: per chi si allena con regolarità i riferimenti vanno da 1,2 a 2 g per kg di peso al giorno, contro gli 0,9 di chi è sedentario.',
+    titolo: t('Le proteine, distribuite nella giornata', 'Protein, spread through the day'),
+    testo: t('Chi si allena con i pesi trae beneficio da un po’ di proteine a ogni pasto, e in quello dopo l’allenamento: per chi si allena con regolarità i riferimenti vanno da 1,2 a 2 g per kg di peso al giorno, contro gli 0,9 di chi è sedentario.', 'If you train with weights, a little protein at every meal helps, and in the one after your workout: for people who train regularly the references range from 1.2 to 2 g per kg of body weight a day, against 0.9 for people who are sedentary.'),
     fonte: `${ACSM}; ${LARN_FONTE}`,
     icona: 'peso',
     tono: 'accento',
@@ -87,8 +88,8 @@ const REGOLE: Regola[] = [
   },
   {
     id: 'proteine-vegetali',
-    titolo: 'Proteine anche dalle piante',
-    testo: 'Legumi, soia e derivati, cereali integrali e frutta a guscio: abbinare legumi e cereali nello stesso giorno dà proteine complete anche senza carne.',
+    titolo: t('Proteine anche dalle piante', 'Protein from plants too'),
+    testo: t('Legumi, soia e derivati, cereali integrali e frutta a guscio: abbinare legumi e cereali nello stesso giorno dà proteine complete anche senza carne.', 'Legumes, soy and soy products, whole grains and nuts: combining legumes and grains on the same day gives you complete protein even without meat.'),
     fonte: CREA,
     icona: 'foglia',
     tono: 'ok',
@@ -96,8 +97,8 @@ const REGOLE: Regola[] = [
   },
   {
     id: 'b12',
-    titolo: 'La vitamina B12 si integra',
-    testo: 'In un’alimentazione vegana la vitamina B12 non arriva dal cibo e va integrata: chiedi al medico quale integratore e quanto.',
+    titolo: t('La vitamina B12 si integra', 'Vitamin B12 needs a supplement'),
+    testo: t('In un’alimentazione vegana la vitamina B12 non arriva dal cibo e va integrata: chiedi al medico quale integratore e quanto.', 'On a vegan diet vitamin B12 doesn’t come from food and needs to be supplemented: ask your doctor which supplement and how much.'),
     fonte: LARN_FONTE,
     icona: 'info',
     tono: 'neutro',
@@ -105,8 +106,8 @@ const REGOLE: Regola[] = [
   },
   {
     id: 'carboidrati',
-    titolo: 'I carboidrati sono il carburante',
-    testo: 'Nei giorni di allenamento lungo o intenso pasta, riso, pane, patate e frutta danno l’energia che serve: meglio integrali, e non saltarli proprio nei giorni in cui ti alleni.',
+    titolo: t('I carboidrati sono il carburante', 'Carbs are your fuel'),
+    testo: t('Nei giorni di allenamento lungo o intenso pasta, riso, pane, patate e frutta danno l’energia che serve: meglio integrali, e non saltarli proprio nei giorni in cui ti alleni.', 'On days with a long or intense workout, pasta, rice, bread, potatoes and fruit give you the energy you need: whole grain is better, and don’t skip them on the very days you train.'),
     fonte: ACSM,
     icona: 'fulmine',
     tono: 'accento',
@@ -114,8 +115,8 @@ const REGOLE: Regola[] = [
   },
   {
     id: 'peso-costanza',
-    titolo: 'Il peso si muove con la costanza',
-    testo: 'Le diete fai-da-te molto basse non durano. Funzionano di più piatti pieni di verdura, legumi e cereali integrali, meno bevande zuccherate e alcol, e un allenamento regolare. Per un percorso su misura serve un professionista.',
+    titolo: t('Il peso si muove con la costanza', 'Weight changes with consistency'),
+    testo: t('Le diete fai-da-te molto basse non durano. Funzionano di più piatti pieni di verdura, legumi e cereali integrali, meno bevande zuccherate e alcol, e un allenamento regolare. Per un percorso su misura serve un professionista.', 'Very low DIY diets don’t last. What works better: plates full of vegetables, legumes and whole grains, fewer sugary drinks and less alcohol, and regular training. For a plan tailored to you, you need a professional.'),
     fonte: CREA,
     icona: 'grafico',
     tono: 'neutro',
@@ -123,8 +124,8 @@ const REGOLE: Regola[] = [
   },
   {
     id: 'prima-allenamento',
-    titolo: 'Se ti alleni senza colazione',
-    testo: 'Uno spuntino leggero un’ora o due prima dell’allenamento (una banana, uno yogurt, due fette biscottate) dà energia senza appesantire.',
+    titolo: t('Se ti alleni senza colazione', 'If you train without breakfast'),
+    testo: t('Uno spuntino leggero un’ora o due prima dell’allenamento (una banana, uno yogurt, due fette biscottate) dà energia senza appesantire.', 'A light snack an hour or two before your workout (a banana, a yogurt, a couple of crackers) gives you energy without weighing you down.'),
     fonte: ACSM,
     icona: 'orologio',
     tono: 'neutro',
@@ -132,8 +133,8 @@ const REGOLE: Regola[] = [
   },
   {
     id: 'pesce',
-    titolo: 'Il pesce due o tre volte a settimana',
-    testo: 'Pesce, anche quello azzurro e il surgelato, due o tre volte a settimana, alternato a legumi, uova e carni bianche.',
+    titolo: t('Il pesce due o tre volte a settimana', 'Fish two or three times a week'),
+    testo: t('Pesce, anche quello azzurro e il surgelato, due o tre volte a settimana, alternato a legumi, uova e carni bianche.', 'Fish, including oily fish and frozen fish, two or three times a week, alternating with legumes, eggs and white meat.'),
     fonte: CREA,
     icona: 'piatto',
     tono: 'blu',
@@ -141,8 +142,8 @@ const REGOLE: Regola[] = [
   },
   {
     id: 'calcio',
-    titolo: 'Il calcio senza latte',
-    testo: 'Se eviti il lattosio, il calcio arriva anche dai latticini senza lattosio, dalle bevande vegetali arricchite, dai legumi, dalle verdure a foglia verde e da molte acque minerali.',
+    titolo: t('Il calcio senza latte', 'Calcium without milk'),
+    testo: t('Se eviti il lattosio, il calcio arriva anche dai latticini senza lattosio, dalle bevande vegetali arricchite, dai legumi, dalle verdure a foglia verde e da molte acque minerali.', 'If you avoid lactose, you can still get calcium from lactose-free dairy, fortified plant drinks, legumes, leafy greens and many mineral waters.'),
     fonte: LARN_FONTE,
     icona: 'info',
     tono: 'neutro',
@@ -150,8 +151,11 @@ const REGOLE: Regola[] = [
   },
   {
     id: 'proteine-diario',
-    titolo: 'Dal diario: poche proteine',
-    testo: `Negli ultimi giorni che hai scritto, le proteine stanno sotto il riferimento per gli adulti (${String(LARN.proteineGKg).replace('.', ',')} g per kg di peso). Un uovo, uno yogurt greco o una porzione di legumi in più fanno la differenza.`,
+    titolo: t('Dal diario: poche proteine', 'From your diary: little protein'),
+    testo: t(
+      `Negli ultimi giorni che hai scritto, le proteine stanno sotto il riferimento per gli adulti (${String(LARN.proteineGKg).replace('.', ',')} g per kg di peso). Un uovo, uno yogurt greco o una porzione di legumi in più fanno la differenza.`,
+      `On the recent days you logged, your protein is below the reference for adults (${LARN.proteineGKg} g per kg of body weight). An egg, a Greek yogurt or an extra serving of legumes makes a difference.`,
+    ),
     fonte: LARN_FONTE,
     icona: 'grafico',
     tono: 'accento',
@@ -159,8 +163,11 @@ const REGOLE: Regola[] = [
   },
   {
     id: 'grassi-diario',
-    titolo: 'Dal diario: tanti grassi',
-    testo: `I grassi stanno sopra il ${LARN.grassi[1]}% dell’energia, il limite di riferimento. Preferisci l’olio extravergine e misuralo col cucchiaio: un cucchiaio sono circa 90 kcal.`,
+    titolo: t('Dal diario: tanti grassi', 'From your diary: a lot of fat'),
+    testo: t(
+      `I grassi stanno sopra il ${LARN.grassi[1]}% dell’energia, il limite di riferimento. Preferisci l’olio extravergine e misuralo col cucchiaio: un cucchiaio sono circa 90 kcal.`,
+      `Fat is above ${LARN.grassi[1]}% of your energy, the reference limit. Choose extra virgin olive oil and measure it with a spoon: a tablespoon is about 90 kcal.`,
+    ),
     fonte: LARN_FONTE,
     icona: 'grafico',
     tono: 'accento',
@@ -173,8 +180,8 @@ const REGOLE: Regola[] = [
   },
   {
     id: 'fibre-diario',
-    titolo: 'Dal diario: poche fibre',
-    testo: 'Per gli adulti il riferimento è di almeno 25 g di fibre al giorno: cereali integrali, legumi, verdura e frutta con la buccia.',
+    titolo: t('Dal diario: poche fibre', 'From your diary: little fiber'),
+    testo: t('Per gli adulti il riferimento è di almeno 25 g di fibre al giorno: cereali integrali, legumi, verdura e frutta con la buccia.', 'For adults the reference is at least 25 g of fiber a day: whole grains, legumes, vegetables and fruit with the skin on.'),
     fonte: LARN_FONTE,
     icona: 'grafico',
     tono: 'ok',
@@ -182,18 +189,18 @@ const REGOLE: Regola[] = [
   },
   {
     id: 'sale',
-    titolo: 'Meno di un cucchiaino di sale',
-    testo: 'L’OMS indica meno di 5 g di sale al giorno, un cucchiaino raso, compreso quello già nel pane, nei salumi e nei formaggi. Spezie ed erbe aiutano a non sentirne la mancanza.',
-    fonte: 'OMS (2012)',
+    titolo: t('Meno di un cucchiaino di sale', 'Less than a teaspoon of salt'),
+    testo: t('L’OMS indica meno di 5 g di sale al giorno, un cucchiaino raso, compreso quello già nel pane, nei salumi e nei formaggi. Spezie ed erbe aiutano a non sentirne la mancanza.', 'The WHO recommends less than 5 g of salt a day, a level teaspoon, including what’s already in bread, cured meats and cheese. Spices and herbs help you not miss it.'),
+    fonte: t('OMS (2012)', 'WHO (2012)'),
     icona: 'info',
     tono: 'neutro',
     peso: () => 1,
   },
   {
     id: 'zuccheri',
-    titolo: 'Gli zuccheri aggiunti, con misura',
-    testo: 'L’OMS raccomanda che gli zuccheri aggiunti stiano sotto il 10% dell’energia della giornata: le bevande zuccherate ne sono la fonte più facile da togliere.',
-    fonte: 'OMS (2015)',
+    titolo: t('Gli zuccheri aggiunti, con misura', 'Added sugars, in moderation'),
+    testo: t('L’OMS raccomanda che gli zuccheri aggiunti stiano sotto il 10% dell’energia della giornata: le bevande zuccherate ne sono la fonte più facile da togliere.', 'The WHO recommends keeping added sugars below 10% of the day’s energy: sugary drinks are the easiest source to cut.'),
+    fonte: t('OMS (2015)', 'WHO (2015)'),
     icona: 'info',
     tono: 'neutro',
     peso: () => 1,
@@ -206,10 +213,10 @@ export function consigliPer(c: Contesto, quanti = 4): Consiglio[] {
     return [
       {
         id: 'medico',
-        titolo: 'Per te, prima il medico',
+        titolo: t('Per te, prima il medico', 'For you, your doctor comes first'),
         testo: c.q.gravidanza
-          ? 'In gravidanza e in allattamento le indicazioni sull’alimentazione le dà il medico o l’ostetrica: qui puoi tenere il diario, ma i consigli generali non sono pensati per questo periodo.'
-          : 'Con una condizione per cui il medico ti ha dato indicazioni sull’alimentazione, valgono le sue: qui puoi tenere il diario e mostrarglielo, ma i consigli generali potrebbero non essere giusti per te.',
+          ? t('In gravidanza e in allattamento le indicazioni sull’alimentazione le dà il medico o l’ostetrica: qui puoi tenere il diario, ma i consigli generali non sono pensati per questo periodo.', 'During pregnancy and breastfeeding, nutrition advice comes from your doctor or midwife: you can keep the diary here, but the general tips aren’t meant for this time.')
+          : t('Con una condizione per cui il medico ti ha dato indicazioni sull’alimentazione, valgono le sue: qui puoi tenere il diario e mostrarglielo, ma i consigli generali potrebbero non essere giusti per te.', 'If you have a condition for which your doctor has given you diet instructions, theirs are the ones that count: you can keep the diary here and show it to them, but the general tips might not be right for you.'),
         fonte: 'Athlon Club',
         icona: 'certificato',
         tono: 'neutro',

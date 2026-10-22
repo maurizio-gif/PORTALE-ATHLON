@@ -6,6 +6,7 @@ import type Animated from 'react-native-reanimated'
 
 import type { AreaHelpDesk, EventoClub, NewsClub, SchedaHelpDesk } from '@/api/clubLife'
 import { LARGO } from '@/components/Pagina'
+import { t } from '@/lib/lingua'
 import { spazio } from '@/theme'
 
 import { CampoTesto } from '../ui/Campi'
@@ -44,7 +45,7 @@ function CartaEvento({ e }: { e: EventoClub }) {
         </View>
         {e.gratuito ? (
           <View style={[stili.pillola, { backgroundColor: p.accento }]}>
-            <Text style={stili.pillolaTesto}>GRATUITO</Text>
+            <Text style={stili.pillolaTesto}>{t('GRATUITO', 'FREE')}</Text>
           </View>
         ) : null}
       </View>
@@ -114,11 +115,11 @@ function HelpDesk({ aree, schede }: { aree: AreaHelpDesk[]; schede: SchedaHelpDe
   const cercando = domanda.trim().length > 1
   return (
     <Sezione titolo="Help Desk" conteggio={schede.length}>
-      <Text style={[stili.intro, { color: p.testoSecondario }]}>Le risposte su iscrizioni, prenotazioni, pagamenti e regole del club.</Text>
+      <Text style={[stili.intro, { color: p.testoSecondario }]}>{t('Le risposte su iscrizioni, prenotazioni, pagamenti e regole del club.', 'Answers about enrollment, bookings, payments and club rules.')}</Text>
       <CampoTesto
-        etichetta="Cerca una risposta"
+        etichetta={t('Cerca una risposta', 'Search for an answer')}
         icona="cerca"
-        placeholder="Certificato, sospensione, recuperi…"
+        placeholder={t('Certificato, sospensione, recuperi…', 'Certificate, freeze, make-up classes…')}
         value={domanda}
         onChangeText={setDomanda}
         autoCorrect={false}
@@ -130,7 +131,7 @@ function HelpDesk({ aree, schede }: { aree: AreaHelpDesk[]; schede: SchedaHelpDe
         trovate.length ? (
           <ElencoSchede schede={trovate.slice(0, 12)} />
         ) : (
-          <Text style={[stili.intro, { color: p.testoSecondario }]}>Nessuna scheda risponde a «{domanda.trim()}». Prova con un'altra parola.</Text>
+          <Text style={[stili.intro, { color: p.testoSecondario }]}>{t(`Nessuna scheda risponde a «${domanda.trim()}». Prova con un'altra parola.`, `No article matches “${domanda.trim()}”. Try another word.`)}</Text>
         )
       ) : (
         aree.map((a) => {
@@ -160,12 +161,12 @@ export function ClubLife() {
   useEffect(() => ascoltaClubLifeDaCapo(() => scorrimento.current?.scrollTo({ y: 0, animated: true })), [])
 
   return (
-    <Schermata sopratitolo="La vita del club" titolo="Club Life" sottotitolo="News, eventi e le risposte dell'Help Desk." scorrimento={scorrimento}>
+    <Schermata sopratitolo={t('La vita del club', 'Club life')} titolo="Club Life" sottotitolo={t("News, eventi e le risposte dell'Help Desk.", 'News, events and answers from the Help Desk.')} scorrimento={scorrimento}>
       {!dati ? (
         errore ? (
           <View style={{ gap: spazio.tre }}>
             <Messaggio>{errore}</Messaggio>
-            <Pulsante testo="Riprova" icona="aggiorna" onPress={riprova} inCorso={inCorso} />
+            <Pulsante testo={t('Riprova', 'Try again')} icona="aggiorna" onPress={riprova} inCorso={inCorso} />
           </View>
         ) : (
           <SchedeInArrivo />
@@ -173,7 +174,7 @@ export function ClubLife() {
       ) : (
         <>
           {dati.eventi.length ? (
-            <Sezione titolo="Eventi" conteggio={dati.eventi.length}>
+            <Sezione titolo={t('Eventi', 'Events')} conteggio={dati.eventi.length}>
               <Griglia voci={dati.eventi} disegna={(e) => <CartaEvento e={e} />} />
             </Sezione>
           ) : null}
@@ -185,7 +186,7 @@ export function ClubLife() {
           {!dati.eventi.length && !dati.news.length ? (
             <Carta piatta style={{ flexDirection: 'row', gap: spazio.tre, alignItems: 'center' }}>
               <Icona nome="giornale" size={22} colore={p.testoTerzo} />
-              <Text style={[stili.intro, { color: p.testoSecondario, flex: 1 }]}>Per ora nessuna news e nessun evento in arrivo.</Text>
+              <Text style={[stili.intro, { color: p.testoSecondario, flex: 1 }]}>{t('Per ora nessuna news e nessun evento in arrivo.', 'No news or upcoming events for now.')}</Text>
             </Carta>
           ) : null}
           <HelpDesk aree={dati.aree} schede={dati.schede} />

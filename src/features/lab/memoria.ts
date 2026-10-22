@@ -47,6 +47,11 @@ export function precarica<T>(chiave: string, carica: () => Promise<T>) {
   if (!valori.has(chiave) && !inVolo.has(chiave)) prendi(chiave, carica).catch(() => undefined)
 }
 
+/** Toglie un valore: alla prossima apertura si rilegge (il nucleo e' cambiato, per esempio). */
+export function scorda(chiave: string) {
+  valori.delete(chiave)
+}
+
 /** All'uscita dal laboratorio non deve restare niente dell'utente di prima. */
 export function dimentica() {
   valori.clear()

@@ -1,6 +1,7 @@
 import { useCallback, useRef, useState } from 'react'
 
 import { inviaFeedback } from '@/api/feedback'
+import { t } from '@/lib/lingua'
 
 import { preparaAllegato, scegliAllegati } from './allegati'
 import { ALLEGATI_MAX, postiLiberi, testoInviabile, type Allegato, type TipoFeedback } from './comune'
@@ -25,14 +26,14 @@ export function useFeedback() {
   const aggiungi = useCallback(async () => {
     setErrore(null)
     if (postiLiberi(attuali.current.length) === 0) {
-      setErrore(`Puoi allegare al massimo ${ALLEGATI_MAX} file.`)
+      setErrore(t(`Puoi allegare al massimo ${ALLEGATI_MAX} file.`, `You can attach up to ${ALLEGATI_MAX} files.`))
       return
     }
     let scelti
     try {
       scelti = await scegliAllegati()
     } catch {
-      setErrore('Non riusciamo ad aprire la scelta dei file. Riprova.')
+      setErrore(t('Non riusciamo ad aprire la scelta dei file. Riprova.', 'We can’t open the file picker. Try again.'))
       return
     }
     if (!scelti.length) return
@@ -46,7 +47,7 @@ export function useFeedback() {
       if (r.ok) nuovi.push(r.allegato)
       else problemi.push(r.errore)
     }
-    if (scelti.length > posti) problemi.push(`Si possono allegare al massimo ${ALLEGATI_MAX} file: ne ho presi ${posti}.`)
+    if (scelti.length > posti) problemi.push(t(`Si possono allegare al massimo ${ALLEGATI_MAX} file: ne ho presi ${posti}.`, `You can attach up to ${ALLEGATI_MAX} files: I took ${posti}.`))
     setAllegati((prima) => [...prima, ...nuovi])
     setInLettura(false)
     setErrore(problemi.length ? problemi.join(' ') : null)

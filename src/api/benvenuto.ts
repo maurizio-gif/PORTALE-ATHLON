@@ -1,4 +1,5 @@
 import { funzione } from './lab'
+import { t } from '@/lib/lingua'
 
 // Il messaggio di benvenuto della Home: la funzione portale-lab-benvenuto di APP-ATHLON scrive, a ogni ritorno nell'app, un
 // messaggio personale che spinge il socio verso il suo prossimo passo. **Il passo lo decide il server** (a che punto e' il socio,
@@ -41,8 +42,8 @@ function leggi(m: unknown): MessaggioBenvenuto | null {
 export async function messaggioDiBenvenuto(motivo: 'apertura' | 'ritorno'): Promise<EsitoBenvenuto> {
   const attesa = new Promise<null>((ok) => setTimeout(() => ok(null), ATTESA_MS))
   const r = await Promise.race([funzione('portale-lab-benvenuto', { azione: 'messaggio', motivo }), attesa])
-  if (!r) return { ok: false, errore: 'Il messaggio non e’ arrivato in tempo.' }
-  if (!r.ok) return { ok: false, errore: String(r.dati.errore ?? 'Non riusciamo a leggere il messaggio adesso.') }
+  if (!r) return { ok: false, errore: t('Il messaggio non e’ arrivato in tempo.', 'The message didn’t arrive in time.') }
+  if (!r.ok) return { ok: false, errore: String(r.dati.errore ?? t('Non riusciamo a leggere il messaggio adesso.', 'We can’t load the message right now.')) }
   return { ok: true, messaggio: leggi(r.dati.messaggio) }
 }
 

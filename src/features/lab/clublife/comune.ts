@@ -1,4 +1,5 @@
 import type { Blocco, SchedaHelpDesk } from '@/api/clubLife'
+import { locale } from '@/lib/lingua'
 
 // Quello che le schermate di Club Life si dividono: le date e la ricerca nelle
 // schede dell'Help Desk.
@@ -8,10 +9,10 @@ import type { Blocco, SchedaHelpDesk } from '@/api/clubLife'
  * mezzanotte UTC di quel giorno. Si scrivono quindi in UTC, o a Roma la sera
  * prima diventerebbe il giorno giusto e a New York quello sbagliato.
  */
-const GIORNO = new Intl.DateTimeFormat('it-IT', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'UTC' })
-const BREVE = new Intl.DateTimeFormat('it-IT', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' })
-const GIORNO_NUMERO = new Intl.DateTimeFormat('it-IT', { day: 'numeric', timeZone: 'UTC' })
-const MESE_CORTO = new Intl.DateTimeFormat('it-IT', { month: 'short', timeZone: 'UTC' })
+const GIORNO = new Intl.DateTimeFormat(locale(), { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'UTC' })
+const BREVE = new Intl.DateTimeFormat(locale(), { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' })
+const GIORNO_NUMERO = new Intl.DateTimeFormat(locale(), { day: 'numeric', timeZone: 'UTC' })
+const MESE_CORTO = new Intl.DateTimeFormat(locale(), { month: 'short', timeZone: 'UTC' })
 
 const maiuscola = (s: string) => s.charAt(0).toUpperCase() + s.slice(1)
 

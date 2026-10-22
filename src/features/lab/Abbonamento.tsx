@@ -25,6 +25,7 @@ import {
 import { Casella } from '@/components/Casella'
 import { ModuloIban, type DatiConto } from '@/features/metodo-pagamento/ModuloIban'
 import { euro } from '@/lib/eventi'
+import { locale, t } from '@/lib/lingua'
 import { CODICE_FISCALE_NON_ATTRIBUITO, ITALIA, nomePaese } from '@/lib/residenteEstero'
 import { spazio } from '@/theme'
 
@@ -53,9 +54,9 @@ import { colpetto, Tocco } from './ui/Tocco'
 // Il contratto che si firma e' quello che si e' letto: il server ricompone il
 // documento e ne confronta l'impronta con quella dell'anteprima.
 
-function giornoBreve(iso: string): string {
+export function giornoBreve(iso: string): string {
   const [a, m, g] = iso.split('-').map(Number)
-  return new Intl.DateTimeFormat('it-IT', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' }).format(new Date(Date.UTC(a, m - 1, g)))
+  return new Intl.DateTimeFormat(locale(), { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' }).format(new Date(Date.UTC(a, m - 1, g)))
 }
 
 function giorniFra(da: string, a: string): string[] {
@@ -74,7 +75,7 @@ function Testo({ testo, stile }: { testo: string; stile: object }) {
   const parti = testo.split(/\*\*(.+?)\*\*/g)
   return (
     <Text style={stile}>
-      {parti.map((t, i) => (i % 2 ? <Text key={i} style={{ fontFamily: F.extra }}>{t}</Text> : t))}
+      {parti.map((parte, i) => (i % 2 ? <Text key={i} style={{ fontFamily: F.extra }}>{parte}</Text> : parte))}
     </Text>
   )
 }
@@ -129,13 +130,13 @@ function BloccoDocumento({ b }: { b: Blocco }) {
  * il server accoda dopo il blocco `salto`) sta chiuso e si apre al tocco. E' una
  * scelta di lettura: il documento che si firma e quello archiviato restano interi.
  */
-function DocumentoContratto({ blocchi }: { blocchi: Blocco[] }) {
+export function DocumentoContratto({ blocchi }: { blocchi: Blocco[] }) {
   const p = usePalette()
   const [aperto, setAperto] = useState(false)
   const i = blocchi.findIndex((b) => b.t === 'salto')
   const corpo = i === -1 ? blocchi : blocchi.slice(0, i)
   const allegato = i === -1 ? [] : blocchi.slice(i + 1)
-  const titolo = allegato[0]?.t === 'titolo' ? allegato[0].testo : 'Allegato A'
+  const titolo = allegato[0]?.t === 'titolo' ? allegato[0].testo : t('Allegato A', 'Annex A')
   const resto = allegato[0]?.t === 'titolo' ? allegato.slice(1) : allegato
   return (
     <>
@@ -144,11 +145,11 @@ function DocumentoContratto({ blocchi }: { blocchi: Blocco[] }) {
       ))}
       {allegato.length ? (
         <View style={{ borderWidth: 1, borderColor: p.linea, borderRadius: 14, overflow: 'hidden', marginTop: spazio.tre }}>
-          <Tocco onPress={() => setAperto((v) => !v)} ruolo="button" etichetta={`${titolo}: ${aperto ? 'chiudi' : 'apri'}`} scala={0.99} vibra="scelta">
+          <Tocco onPress={() => setAperto((v) => !v)} ruolo="button" etichetta={`${titolo}: ${aperto ? t('chiudi', 'close') : t('apri', 'open')}`} scala={0.99} vibra="scelta">
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: spazio.tre, padding: spazio.tre }}>
               <View style={{ flex: 1, gap: 2 }}>
                 <Text style={{ color: p.testo, fontFamily: F.extra, fontSize: 15, lineHeight: 21 }}>{titolo}</Text>
-                <Text style={{ color: p.testoSecondario, fontFamily: F.medio, fontSize: 12.5 }}>{aperto ? 'Tocca per chiuderlo' : 'Tocca per leggerlo: fa parte del contratto'}</Text>
+                <Text style={{ color: p.testoSecondario, fontFamily: F.medio, fontSize: 12.5 }}>{aperto ? t('Tocca per chiuderlo', 'Tap to close it') : t('Tocca per leggerlo: fa parte del contratto', 'Tap to read it: it’s part of the contract')}</Text>
               </View>
               <Icona nome="giu" size={18} colore={p.testoTerzo} style={{ transform: [{ rotate: aperto ? '180deg' : '0deg' }] }} />
             </View>
@@ -167,18 +168,18 @@ function DocumentoContratto({ blocchi }: { blocchi: Blocco[] }) {
 }
 
 /** Un dato del contratto, con la sua etichetta: «Nato/a il · 3 marzo 1990». */
-function RigaDato({ nome, valore }: { nome: string; valore: string | null | undefined }) {
+export function RigaDato({ nome, valore }: { nome: string; valore: string | null | undefined }) {
   const p = usePalette()
   return (
     <View style={{ flexDirection: 'row', gap: spazio.due }}>
       <Text style={[stili.nota, { color: p.testoSecondario, width: 112 }]}>{nome}</Text>
-      <Text style={{ color: valore ? p.testo : p.errore, fontFamily: F.bold, fontSize: 14, flex: 1, lineHeight: 20 }}>{valore || 'Manca'}</Text>
+      <Text style={{ color: valore ? p.testo : p.errore, fontFamily: F.bold, fontSize: 14, flex: 1, lineHeight: 20 }}>{valore || t('Manca', 'Missing')}</Text>
     </View>
   )
 }
 
 /** «Via Ugo Ojetti 134, 00137 Roma»; per chi risiede all'estero, con il Paese in fondo (se la riga non lo dice gia'). */
-function residenzaConPaese(c: DatiContraente): string | null {
+export function residenzaConPaese(c: DatiContraente): string | null {
   const paese = c.senza_codice_fiscale && c.paese && c.paese !== ITALIA ? nomePaese(c.paese) : null
   if (!c.residenza || !paese) return c.residenza
   return c.residenza.toLowerCase().includes(paese.toLowerCase()) ? c.residenza : `${c.residenza}, ${paese}`
@@ -263,7 +264,7 @@ export function Abbonamento() {
     }
     const giro = ++giroCosti.current
     setCostiInCorso(true)
-    const t = setTimeout(async () => {
+    const timer = setTimeout(async () => {
       const r = await riepilogoAbbonamento(s)
       if (giro !== giroCosti.current) return
       setCostiInCorso(false)
@@ -273,7 +274,7 @@ export function Abbonamento() {
         setErrore(r.errore)
       }
     }, 250)
-    return () => clearTimeout(t)
+    return () => clearTimeout(timer)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [chiaveScelta, numero, firmato])
 
@@ -377,15 +378,15 @@ export function Abbonamento() {
   }
 
   if (numero) return <EsitoContrattoVista numero={numero} onFine={() => router.replace(hrefSezione('abbonamenti'))} onRiprova={() => setNumero(null)} />
-  if (!stato && !errore) return <SchermataInArrivo titolo="Abbonamento" />
+  if (!stato && !errore) return <SchermataInArrivo titolo={t('Abbonamento', 'Membership')} />
 
   const pronto = !!scelta()
-  const NOMI_PASSI = ['Abbonamento', 'Data', 'Dati e firma', 'Pagamento']
+  const NOMI_PASSI = [t('Abbonamento', 'Membership'), t('Data', 'Date'), t('Dati e firma', 'Details and signature'), t('Pagamento', 'Payment')]
   const SOTTOTITOLI = [
-    'Scegli l’abbonamento e la formula: qui sotto trovi cosa comprende e le condizioni.',
-    'Scegli quando parte: vedi subito quanto e quando paghi.',
-    'Conferma i tuoi dati, leggi il contratto e firma.',
-    'Il contratto è firmato. Ultimo passo: scegli come pagare.',
+    t('Scegli l’abbonamento e la formula: qui sotto trovi cosa comprende e le condizioni.', 'Choose your membership and payment plan: below you’ll find what’s included and the terms.'),
+    t('Scegli quando parte: vedi subito quanto e quando paghi.', 'Choose when it starts: you’ll see right away how much you pay and when.'),
+    t('Conferma i tuoi dati, leggi il contratto e firma.', 'Confirm your details, read the contract and sign.'),
+    t('Il contratto è firmato. Ultimo passo: scegli come pagare.', 'The contract is signed. Last step: choose how to pay.'),
   ]
   const nomePersona = persona ? `${persona.nome ?? ''} ${persona.cognome ?? ''}`.trim() : ''
   const formula = piano ? FORMULE[piano.formula] : null
@@ -398,7 +399,7 @@ export function Abbonamento() {
   }
 
   return (
-    <Schermata titolo="Abbonamento" sottotitolo={SOTTOTITOLI[passo - 1]} indietro={hrefSezione('abbonamenti')} scorrimento={scorrimento}>
+    <Schermata titolo={t('Abbonamento', 'Membership')} sottotitolo={SOTTOTITOLI[passo - 1]} indietro={hrefSezione('abbonamenti')} scorrimento={scorrimento}>
       <View style={{ gap: spazio.quattro }}>
         <Indicatore passo={passo} nomi={NOMI_PASSI} />
         {errore ? <Messaggio>{errore}</Messaggio> : null}
@@ -406,7 +407,7 @@ export function Abbonamento() {
         {passo === 1 && stato ? (
           <>
             {stato.persone.length > 1 ? (
-              <Sezione titolo="Per chi">
+              <Sezione titolo={t('Per chi', 'Who for')}>
                 <View style={{ gap: spazio.due }}>
                   {stato.persone.map((x) => {
                     const attivo = x.member_id === membro
@@ -414,11 +415,11 @@ export function Abbonamento() {
                       <SchedaScelta
                         key={x.member_id}
                         attiva={attivo}
-                        etichetta={`Per ${x.nome ?? ''} ${x.cognome ?? ''}`}
+                        etichetta={t(`Per ${x.nome ?? ''} ${x.cognome ?? ''}`, `For ${x.nome ?? ''} ${x.cognome ?? ''}`)}
                         onPress={() => setMembro(x.member_id)}
                         titolo={`${x.nome ?? ''} ${x.cognome ?? ''}`.trim()}
-                        sotto={x.puo_comprare ? (x.firmatario === 'genitore' ? 'Firma il genitore' : x.titolare ? 'Firmi tu' : 'Firma lui') : (x.motivo ?? undefined)}
-                        destra={x.puo_comprare ? undefined : <Etichetta testo="Non disponibile" tono="neutro" />}
+                        sotto={x.puo_comprare ? (x.firmatario === 'genitore' ? t('Firma il genitore', 'The parent signs') : x.titolare ? t('Firmi tu', 'You sign') : t('Firma lui', 'They sign')) : (x.motivo ?? undefined)}
+                        destra={x.puo_comprare ? undefined : <Etichetta testo={t('Non disponibile', 'Not available')} tono="neutro" />}
                       />
                     )
                   })}
@@ -427,7 +428,7 @@ export function Abbonamento() {
             ) : null}
 
             {persona && !persona.puo_comprare ? (
-              <Messaggio tono="attenzione" titolo="Non è possibile acquistare">
+              <Messaggio tono="attenzione" titolo={t('Non è possibile acquistare', 'Purchase not possible')}>
                 {persona.motivo}
               </Messaggio>
             ) : null}
@@ -437,12 +438,12 @@ export function Abbonamento() {
                 <Listino piani={stato.piani} pianoId={pianoId} onScegli={setPianoId} />
                 <Text style={[stili.nota, { color: p.testoSecondario }]}>
                   {stato.quota_attivazione > 0
-                    ? `A ogni abbonamento si aggiunge la quota di attivazione di ${euro(stato.quota_attivazione)}, che non si paga se il nuovo abbonamento parte il giorno dopo la scadenza del precedente. `
+                    ? t(`A ogni abbonamento si aggiunge la quota di attivazione di ${euro(stato.quota_attivazione)}, che non si paga se il nuovo abbonamento parte il giorno dopo la scadenza del precedente. `, `A joining fee of ${euro(stato.quota_attivazione)} is added to every membership; it isn’t charged if the new membership starts the day after the previous one ends. `)
                     : ''}
-                  Tutto quello che scegli lo rivedi prima di firmare.
+                  {t('Tutto quello che scegli lo rivedi prima di firmare.', 'You’ll review everything you choose before signing.')}
                 </Text>
-                <Pulsante testo="Continua" icona="avanti" onPress={() => vai(2)} disabilitato={!pianoId} />
-                <Pulsante testo="I miei abbonamenti" variante="fantasma" piccolo pieno={false} onPress={() => router.navigate(hrefSezione('abbonamenti'))} />
+                <Pulsante testo={t('Continua', 'Continue')} icona="avanti" onPress={() => vai(2)} disabilitato={!pianoId} />
+                <Pulsante testo={t('I miei abbonamenti', 'My memberships')} variante="fantasma" piccolo pieno={false} onPress={() => router.navigate(hrefSezione('abbonamenti'))} />
               </>
             ) : null}
           </>
@@ -451,14 +452,14 @@ export function Abbonamento() {
         {passo === 2 && stato && persona && piano ? (
           <>
             <Carta piatta>
-              <Text style={{ color: p.testoSecondario, fontFamily: F.medio, fontSize: 12 }}>La tua scelta</Text>
+              <Text style={{ color: p.testoSecondario, fontFamily: F.medio, fontSize: 12 }}>{t('La tua scelta', 'Your choice')}</Text>
               <Text style={{ color: p.testo, fontFamily: F.extra, fontSize: 18, letterSpacing: -0.3 }}>{`${piano.abbonamento} · ${formula?.titolo ?? ''}`}</Text>
               <Text style={{ color: p.testoSecondario, fontFamily: F.medio, fontSize: 13 }}>
-                {`${euro(piano.importo)} ${piano.periodo.includes('anno') ? 'all’anno' : 'al mese'}${stato.persone.length > 1 ? ` · per ${nomePersona}` : ''}`}
+                {t(`${euro(piano.importo)} ${piano.periodo.includes('anno') ? 'all’anno' : 'al mese'}${stato.persone.length > 1 ? ` · per ${nomePersona}` : ''}`, `${euro(piano.importo)} ${piano.periodo.includes('anno') ? 'a year' : 'a month'}${stato.persone.length > 1 ? ` · for ${nomePersona}` : ''}`)}
               </Text>
             </Carta>
 
-            <Sezione titolo="Quando parte">
+            <Sezione titolo={t('Quando parte', 'When it starts')}>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: spazio.due }}>
                 {giorni.map((g) => {
                   const attivo = g === inizio
@@ -467,7 +468,7 @@ export function Abbonamento() {
                       key={g}
                       vibra="scelta"
                       stato={{ selected: attivo }}
-                      etichetta={`Parte il ${giornoBreve(g)}`}
+                      etichetta={t(`Parte il ${giornoBreve(g)}`, `Starts ${giornoBreve(g)}`)}
                       onPress={() => setInizio(g)}
                       style={[stili.giorno, attivo ? { backgroundColor: p.accento, borderColor: p.accento } : { backgroundColor: p.carta, borderColor: p.linea }]}
                     >
@@ -477,58 +478,58 @@ export function Abbonamento() {
                 })}
               </ScrollView>
               <Text style={[stili.nota, { color: p.testoSecondario }]}>
-                Puoi farlo partire oggi o fino a due settimane dopo. Si paga alla firma, ma la data decide cosa copre la prima quota.
+                {t('Puoi farlo partire oggi o fino a due settimane dopo. Si paga alla firma, ma la data decide cosa copre la prima quota.', 'You can start it today or up to two weeks later. You pay when you sign, but the start date decides what the first payment covers.')}
               </Text>
             </Sezione>
 
-            <Sezione titolo="Il tuo piano di pagamento">
+            <Sezione titolo={t('Il tuo piano di pagamento', 'Your payment plan')}>
               {costi ? (
                 <RiepilogoCosti importi={costi} />
               ) : costiInCorso ? (
-                <Text style={[stili.nota, { color: p.testoSecondario }]}>Calcoliamo i costi…</Text>
+                <Text style={[stili.nota, { color: p.testoSecondario }]}>{t('Calcoliamo i costi…', 'Calculating the costs…')}</Text>
               ) : (
-                <Text style={[stili.nota, { color: p.testoSecondario }]}>Scegli la data di partenza per vedere i costi.</Text>
+                <Text style={[stili.nota, { color: p.testoSecondario }]}>{t('Scegli la data di partenza per vedere i costi.', 'Choose the start date to see the costs.')}</Text>
               )}
             </Sezione>
 
-            <Pulsante testo="Continua" icona="avanti" onPress={() => vai(3)} disabilitato={!pronto || !costi} />
-            <Pulsante testo="Indietro" variante="fantasma" piccolo pieno={false} onPress={() => vai(1)} />
+            <Pulsante testo={t('Continua', 'Continue')} icona="avanti" onPress={() => vai(3)} disabilitato={!pronto || !costi} />
+            <Pulsante testo={t('Indietro', 'Back')} variante="fantasma" piccolo pieno={false} onPress={() => vai(1)} />
           </>
         ) : null}
 
         {passo === 3 && stato && persona && piano ? (
           <>
-            <Sezione titolo={anteprima?.genitore ? 'I dati del contratto' : 'I tuoi dati'}>
+            <Sezione titolo={anteprima?.genitore ? t('I dati del contratto', 'Contract details') : t('I tuoi dati', 'Your details')}>
               {apertura && !anteprima ? (
-                <Text style={[stili.nota, { color: p.testoSecondario }]}>Prepariamo il contratto…</Text>
+                <Text style={[stili.nota, { color: p.testoSecondario }]}>{t('Prepariamo il contratto…', 'Preparing the contract…')}</Text>
               ) : anteprima ? (
                 <>
                   <Carta piatta>
                     <View style={{ gap: spazio.due }}>
-                      <RigaDato nome="Nome e cognome" valore={`${anteprima.contraente.nome} ${anteprima.contraente.cognome}`.trim()} />
-                      <RigaDato nome="Nato/a il" valore={anteprima.contraente.data_nascita ? dataLunga(anteprima.contraente.data_nascita) : null} />
-                      <RigaDato nome="Codice fiscale" valore={anteprima.contraente.codice_fiscale?.toUpperCase() ?? (anteprima.contraente.senza_codice_fiscale ? CODICE_FISCALE_NON_ATTRIBUITO : null)} />
-                      <RigaDato nome="Residenza" valore={residenzaConPaese(anteprima.contraente)} />
-                      <RigaDato nome="Email" valore={anteprima.contraente.email} />
-                      <RigaDato nome="Telefono" valore={anteprima.contraente.telefono} />
-                      {anteprima.genitore ? <RigaDato nome="Firma il genitore" valore={`${anteprima.genitore.nome} ${anteprima.genitore.cognome}`.trim()} /> : null}
+                      <RigaDato nome={t('Nome e cognome', 'Full name')} valore={`${anteprima.contraente.nome} ${anteprima.contraente.cognome}`.trim()} />
+                      <RigaDato nome={t('Nato/a il', 'Born on')} valore={anteprima.contraente.data_nascita ? dataLunga(anteprima.contraente.data_nascita) : null} />
+                      <RigaDato nome={t('Codice fiscale', 'Tax code')} valore={anteprima.contraente.codice_fiscale?.toUpperCase() ?? (anteprima.contraente.senza_codice_fiscale ? CODICE_FISCALE_NON_ATTRIBUITO : null)} />
+                      <RigaDato nome={t('Residenza', 'Address')} valore={residenzaConPaese(anteprima.contraente)} />
+                      <RigaDato nome={t('Email', 'Email')} valore={anteprima.contraente.email} />
+                      <RigaDato nome={t('Telefono', 'Phone')} valore={anteprima.contraente.telefono} />
+                      {anteprima.genitore ? <RigaDato nome={t('Firma il genitore', 'Parent signing')} valore={`${anteprima.genitore.nome} ${anteprima.genitore.cognome}`.trim()} /> : null}
                     </View>
                   </Carta>
                   {personeDati.map((d) => (
-                    <CorreggiDati key={`${d.member_id}-${d.codice_fiscale}-${d.paese}-${d.telefono}-${d.indirizzo?.via}-${d.indirizzo?.cap}-${d.indirizzo?.paese}`} persona={d} titolo={d.ruolo === 'genitore' ? 'Dati del genitore che firma' : 'Correggi i tuoi dati'} onSalvato={caricaContratto} />
+                    <CorreggiDati key={`${d.member_id}-${d.codice_fiscale}-${d.paese}-${d.telefono}-${d.indirizzo?.via}-${d.indirizzo?.cap}-${d.indirizzo?.paese}`} persona={d} titolo={d.ruolo === 'genitore' ? t('Dati del genitore che firma', 'Details of the signing parent') : t('Correggi i tuoi dati', 'Correct your details')} onSalvato={caricaContratto} />
                   ))}
-                  <Casella spuntata={datiOk} onCambia={() => setDatiOk((v) => !v)} etichetta="Confermo che i dati sono corretti">
-                    <Text style={{ color: p.testo, fontFamily: F.medio, fontSize: 14, lineHeight: 20 }}>Confermo che questi dati sono corretti.</Text>
+                  <Casella spuntata={datiOk} onCambia={() => setDatiOk((v) => !v)} etichetta={t('Confermo che i dati sono corretti', 'I confirm my details are correct')}>
+                    <Text style={{ color: p.testo, fontFamily: F.medio, fontSize: 14, lineHeight: 20 }}>{t('Confermo che questi dati sono corretti.', 'I confirm these details are correct.')}</Text>
                   </Casella>
                 </>
               ) : mancanti?.length ? (
                 <>
-                  <Text style={[stili.nota, { color: p.testoSecondario }]}>Per il contratto servono dati corretti: completali qui sotto, poi si va avanti.</Text>
+                  <Text style={[stili.nota, { color: p.testoSecondario }]}>{t('Per il contratto servono dati corretti: completali qui sotto, poi si va avanti.', 'The contract needs correct details: complete them below, then you can continue.')}</Text>
                   {personeDati.map((d) => (
                     <CorreggiDati
                       key={`${d.member_id}-m`}
                       persona={d}
-                      titolo={d.ruolo === 'genitore' ? 'Dati del genitore che firma' : 'I tuoi dati'}
+                      titolo={d.ruolo === 'genitore' ? t('Dati del genitore che firma', 'Details of the signing parent') : t('I tuoi dati', 'Your details')}
                       apertoDa
                       mancanti={mancanti}
                       onSalvato={caricaContratto}
@@ -538,36 +539,36 @@ export function Abbonamento() {
               ) : null}
             </Sezione>
 
-            <Messaggio tono="attenzione" titolo="Adesso il contratto" icona="documento">
+            <Messaggio tono="attenzione" titolo={t('Adesso il contratto', 'Now the contract')} icona="documento">
               {persona.firmatario === 'genitore'
-                ? 'Lo leggi, spunti le dichiarazioni e firma il genitore, con il dito o con il mouse. Il pagamento viene dopo: carta o conto corrente, lo scegli allora.'
-                : 'Lo leggi, spunti le dichiarazioni e firmi con il dito o con il mouse. Il pagamento viene dopo: carta o conto corrente, lo scegli allora.'}
+                ? t('Lo leggi, spunti le dichiarazioni e firma il genitore, con il dito o con il mouse. Il pagamento viene dopo: carta o conto corrente, lo scegli allora.', 'You read it, tick the declarations and the parent signs, with a finger or a mouse. Payment comes next: you choose card or bank account then.')
+                : t('Lo leggi, spunti le dichiarazioni e firmi con il dito o con il mouse. Il pagamento viene dopo: carta o conto corrente, lo scegli allora.', 'You read it, tick the declarations and sign with a finger or a mouse. Payment comes next: you choose card or bank account then.')}
             </Messaggio>
 
-            <Pulsante testo="Leggi il contratto e firma" icona="documento" onPress={apriFoglio} disabilitato={!anteprima || !datiOk} />
-            {anteprima && !datiOk ? <Text style={[stili.nota, { color: p.testoSecondario }]}>Conferma i tuoi dati per continuare.</Text> : null}
-            <Pulsante testo="Indietro" variante="fantasma" piccolo pieno={false} onPress={() => vai(2)} />
+            <Pulsante testo={t('Leggi il contratto e firma', 'Read the contract and sign')} icona="documento" onPress={apriFoglio} disabilitato={!anteprima || !datiOk} />
+            {anteprima && !datiOk ? <Text style={[stili.nota, { color: p.testoSecondario }]}>{t('Conferma i tuoi dati per continuare.', 'Confirm your details to continue.')}</Text> : null}
+            <Pulsante testo={t('Indietro', 'Back')} variante="fantasma" piccolo pieno={false} onPress={() => vai(2)} />
           </>
         ) : null}
 
         {passo === 4 && stato && firmato ? (
           <>
-            <Messaggio tono="ok" titolo="Contratto firmato" icona="ok">
-              {`${firmato.piano}${firmato.nome ? ` · ${firmato.nome}` : ''}. Il contratto non vincola il metodo di pagamento: scegli ora come pagare, e lo potrai cambiare.`}
+            <Messaggio tono="ok" titolo={t('Contratto firmato', 'Contract signed')} icona="ok">
+              {t(`${firmato.piano}${firmato.nome ? ` · ${firmato.nome}` : ''}. Il contratto non vincola il metodo di pagamento: scegli ora come pagare, e lo potrai cambiare.`, `${firmato.piano}${firmato.nome ? ` · ${firmato.nome}` : ''}. The contract doesn’t tie you to a payment method: choose how to pay now, and you can change it later.`)}
             </Messaggio>
             {firmato.errore ? <Messaggio tono="errore">{firmato.errore}</Messaggio> : null}
 
-            <Sezione titolo="Come paghi">
+            <Sezione titolo={t('Come paghi', 'How you pay')}>
               <View style={{ gap: spazio.due }} accessibilityRole="radiogroup">
                 <SchedaScelta
                   attiva={metodo === 'carta'}
-                  etichetta="Paga con carta"
+                  etichetta={t('Paga con carta', 'Pay by card')}
                   icona="carta"
-                  titolo="Carta"
+                  titolo={t('Carta', 'Card')}
                   sotto={
                     stato.metodi.carta
-                      ? `Usiamo la carta salvata${stato.metodi.carta.finale ? ` •••• ${stato.metodi.carta.finale}` : ''}: la prima quota subito, le altre quando scadono, sulla stessa carta.`
-                      : 'La prima quota la paghi sulla pagina sicura della banca, che salva la carta: le quote dopo si addebitano da sole.'
+                      ? t(`Usiamo la carta salvata${stato.metodi.carta.finale ? ` •••• ${stato.metodi.carta.finale}` : ''}: la prima quota subito, le altre quando scadono, sulla stessa carta.`, `We’ll use your saved card${stato.metodi.carta.finale ? ` •••• ${stato.metodi.carta.finale}` : ''}: the first payment now, the others when they’re due, on the same card.`)
+                      : t('La prima quota la paghi sulla pagina sicura della banca, che salva la carta: le quote dopo si addebitano da sole.', 'You pay the first installment on the bank’s secure page, which saves your card: later payments are charged automatically.')
                   }
                   onPress={() => {
                     setMetodo('carta')
@@ -576,10 +577,10 @@ export function Abbonamento() {
                 />
                 <SchedaScelta
                   attiva={metodo === 'conto'}
-                  etichetta="Paga con conto corrente"
+                  etichetta={t('Paga con conto corrente', 'Pay by bank account')}
                   icona="banca"
-                  titolo="Conto corrente (addebito SEPA)"
-                  sotto="Le quote, la prima compresa, si addebitano sul tuo conto con il mandato SEPA. Non devi pagare altro adesso."
+                  titolo={t('Conto corrente (addebito SEPA)', 'Bank account (SEPA direct debit)')}
+                  sotto={t('Le quote, la prima compresa, si addebitano sul tuo conto con il mandato SEPA. Non devi pagare altro adesso.', 'All payments, the first included, are charged to your account under the SEPA mandate. You don’t have to pay anything else now.')}
                   onPress={() => {
                     setMetodo('conto')
                     setErrorePagamento(null)
@@ -590,20 +591,20 @@ export function Abbonamento() {
                 stato.metodi.conto && usaContoSalvato && !contoNuovo ? (
                   <View style={{ gap: spazio.due }}>
                     <Text style={[stili.nota, { color: p.testoSecondario }]}>
-                      {`Usiamo il conto salvato${stato.metodi.conto.finale ? ` •••• ${stato.metodi.conto.finale}` : ''}, con il mandato SEPA già firmato.`}
+                      {t(`Usiamo il conto salvato${stato.metodi.conto.finale ? ` •••• ${stato.metodi.conto.finale}` : ''}, con il mandato SEPA già firmato.`, `We’ll use your saved account${stato.metodi.conto.finale ? ` •••• ${stato.metodi.conto.finale}` : ''}, with the SEPA mandate already signed.`)}
                     </Text>
-                    <Pulsante testo="Usa un altro conto" variante="fantasma" piccolo pieno={false} onPress={() => setUsaContoSalvato(false)} />
+                    <Pulsante testo={t('Usa un altro conto', 'Use another account')} variante="fantasma" piccolo pieno={false} onPress={() => setUsaContoSalvato(false)} />
                   </View>
                 ) : contoNuovo ? (
                   <View style={{ gap: spazio.due }}>
-                    <Text style={[stili.nota, { color: p.testoSecondario }]}>{`Conto •••• ${contoNuovo.iban.slice(-4)}, intestato a ${contoNuovo.intestatario}.`}</Text>
-                    <Pulsante testo="Cambia conto" variante="fantasma" piccolo pieno={false} onPress={() => setContoNuovo(null)} />
+                    <Text style={[stili.nota, { color: p.testoSecondario }]}>{t(`Conto •••• ${contoNuovo.iban.slice(-4)}, intestato a ${contoNuovo.intestatario}.`, `Account •••• ${contoNuovo.iban.slice(-4)}, in the name of ${contoNuovo.intestatario}.`)}</Text>
+                    <Pulsante testo={t('Cambia conto', 'Change account')} variante="fantasma" piccolo pieno={false} onPress={() => setContoNuovo(null)} />
                   </View>
                 ) : (
                   <ModuloIban
                     nomeCompleto={firmato.nome ?? nomePersona}
-                    introduzione={<Text style={[stili.nota, { color: p.testoSecondario }]}>Scrivi l’IBAN su cui addebitare le quote.</Text>}
-                    etichettaInvio="Usa questo conto"
+                    introduzione={<Text style={[stili.nota, { color: p.testoSecondario }]}>{t('Scrivi l’IBAN su cui addebitare le quote.', 'Enter the IBAN to charge the installments to.')}</Text>}
+                    etichettaInvio={t('Usa questo conto', 'Use this account')}
                     onInvia={async (d) => {
                       setContoNuovo(d)
                       return null
@@ -614,27 +615,27 @@ export function Abbonamento() {
               ) : null}
             </Sezione>
 
-            <Sezione titolo="Il tuo piano di pagamento">
+            <Sezione titolo={t('Il tuo piano di pagamento', 'Your payment plan')}>
               <RiepilogoCosti importi={firmato.importi} metodo={metodo} />
             </Sezione>
 
             {errorePagamento ? <Messaggio>{errorePagamento}</Messaggio> : null}
             <Pulsante
-              testo={metodo === 'conto' ? 'Conferma e attiva' : stato.metodi.carta ? `Paga ${euro(firmato.importi.calendario.totale_oggi)}` : 'Vai al pagamento sicuro'}
+              testo={metodo === 'conto' ? t('Conferma e attiva', 'Confirm and activate') : stato.metodi.carta ? t(`Paga ${euro(firmato.importi.calendario.totale_oggi)}`, `Pay ${euro(firmato.importi.calendario.totale_oggi)}`) : t('Vai al pagamento sicuro', 'Go to secure payment')}
               icona="carta"
               onPress={paga}
               inCorso={pagando}
               disabilitato={!metodoScelto()}
             />
-            <Text style={[stili.nota, { color: p.testoSecondario }]}>{`Contratto n. ${firmato.numero}. Se non completi ora, torna qui: il contratto resta firmato e riprendi dal pagamento.`}</Text>
+            <Text style={[stili.nota, { color: p.testoSecondario }]}>{t(`Contratto n. ${firmato.numero}. Se non completi ora, torna qui: il contratto resta firmato e riprendi dal pagamento.`, `Contract no. ${firmato.numero}. If you don’t finish now, come back here: the contract stays signed and you pick up from the payment.`)}</Text>
           </>
         ) : null}
       </View>
 
       <Foglio
         aperto={foglio && !!anteprima}
-        titolo="Il tuo contratto"
-        sottotitolo="Leggilo, oppure vai subito alle dichiarazioni e alla firma."
+        titolo={t('Il tuo contratto', 'Your contract')}
+        sottotitolo={t('Leggilo, oppure vai subito alle dichiarazioni e alla firma.', 'Read it, or go straight to the declarations and the signature.')}
         onChiudi={() => !firmando && setFoglio(false)}
         scorrimento={scorrimentoFoglio}
         onScorri={scorriFoglio}
@@ -642,11 +643,11 @@ export function Abbonamento() {
           anteprima && !firmaVicina ? (
             <Tocco
               onPress={vaiAllaFirma}
-              etichetta="Firma ora: vai alle dichiarazioni e alla firma"
+              etichetta={t('Firma ora: vai alle dichiarazioni e alla firma', 'Sign now: go to the declarations and the signature')}
               scala={0.96}
               style={[stili.firmaOra, { backgroundColor: p.accento }]}
             >
-              <Text style={{ color: '#fff', fontFamily: F.extra, fontSize: 15 }}>Firma ora</Text>
+              <Text style={{ color: '#fff', fontFamily: F.extra, fontSize: 15 }}>{t('Firma ora', 'Sign now')}</Text>
               <Icona nome="giu" size={18} colore="#fff" />
             </Tocco>
           ) : null
@@ -658,32 +659,32 @@ export function Abbonamento() {
             <DocumentoContratto blocchi={anteprima.documento.blocchi} />
 
             <Text style={{ color: p.testo, fontFamily: F.extra, fontSize: 18, marginTop: spazio.tre }} onLayout={(e) => (posti.current.firma = e.nativeEvent.layout.y)}>
-              Dichiarazioni
+              {t('Dichiarazioni', 'Declarations')}
             </Text>
             {anteprima.consensi.some((c) => !c.obbligatorio) ? (
               <Text style={{ color: p.testoSecondario, fontFamily: F.medio, fontSize: 13, lineHeight: 18 }}>
-                Le dichiarazioni del contratto sono già spuntate. Puoi togliere solo quella facoltativa, per le comunicazioni.
+                {t('Le dichiarazioni del contratto sono già spuntate. Puoi togliere solo quella facoltativa, per le comunicazioni.', 'The contract declarations are already ticked. You can only untick the optional one, for communications.')}
               </Text>
             ) : null}
             {anteprima.consensi.map((c) => (
               <Casella key={c.chiave} spuntata={!!consensi[c.chiave]} bloccata={c.obbligatorio} onCambia={() => setConsensi((x) => ({ ...x, [c.chiave]: !x[c.chiave] }))} etichetta={c.testo}>
                 <Text style={{ color: p.testo, fontFamily: F.normale, fontSize: 13, lineHeight: 19 }}>
                   {c.testo}
-                  {c.obbligatorio ? '' : ' (facoltativo)'}
+                  {c.obbligatorio ? '' : t(' (facoltativo)', ' (optional)')}
                 </Text>
               </Casella>
             ))}
 
             <Text style={{ color: p.testo, fontFamily: F.extra, fontSize: 18, marginTop: spazio.tre }}>
-              {anteprima.firmatario === 'genitore' ? 'Firma del genitore' : 'La tua firma'}
+              {anteprima.firmatario === 'genitore' ? t('Firma del genitore', 'Parent’s signature') : t('La tua firma', 'Your signature')}
             </Text>
             <FirmaPad onCambia={setFirmaPng} />
             <Text style={{ color: p.testoSecondario, fontFamily: F.medio, fontSize: 12, lineHeight: 17 }}>
-              Firmando confermi di aver letto il contratto. Conserviamo la firma insieme a data, ora, indirizzo IP e dispositivo, come prova della sottoscrizione.
+              {t('Firmando confermi di aver letto il contratto. Conserviamo la firma insieme a data, ora, indirizzo IP e dispositivo, come prova della sottoscrizione.', 'By signing you confirm you’ve read the contract. We keep the signature together with the date, time, IP address and device, as proof of signing.')}
             </Text>
             {errorefirma ? <Messaggio>{errorefirma}</Messaggio> : null}
-            <Pulsante testo="Firma il contratto" icona="impronta" onPress={firma} inCorso={firmando} disabilitato={!obbligatoriOk || !firmaPng} />
-            {!obbligatoriOk ? <Text style={[stili.nota, { color: p.testoSecondario }]}>Spunta tutte le dichiarazioni obbligatorie per firmare.</Text> : null}
+            <Pulsante testo={t('Firma il contratto', 'Sign the contract')} icona="impronta" onPress={firma} inCorso={firmando} disabilitato={!obbligatoriOk || !firmaPng} />
+            {!obbligatoriOk ? <Text style={[stili.nota, { color: p.testoSecondario }]}>{t('Spunta tutte le dichiarazioni obbligatorie per firmare.', 'Tick all the required declarations to sign.')}</Text> : null}
           </View>
         ) : null}
       </Foglio>
@@ -723,25 +724,25 @@ function EsitoContrattoVista({ numero, onFine, onRiprova }: { numero: string; on
   const fatto = esito?.stato === 'completato'
   const guasto = esito?.stato === 'errore' || !!esito?.pagamento?.errore
   return (
-    <Schermata titolo={fatto ? 'Abbonamento attivo' : 'Stiamo finendo'} sopratitolo="Abbonamento" barra>
+    <Schermata titolo={fatto ? t('Abbonamento attivo', 'Membership active') : t('Stiamo finendo', 'Almost there')} sopratitolo={t('Abbonamento', 'Membership')} barra>
       <View style={{ gap: spazio.tre }}>
         {errore ? <Messaggio>{errore}</Messaggio> : null}
         {fatto ? (
-          <Messaggio tono="ok" titolo="Tutto a posto" icona="ok">
-            Il contratto è firmato e l’abbonamento è attivo. Il documento firmato è nella tua area riservata sul club.
+          <Messaggio tono="ok" titolo={t('Tutto a posto', 'All set')} icona="ok">
+            {t('Il contratto è firmato e l’abbonamento è attivo. Il documento firmato è nella tua area riservata sul club.', 'The contract is signed and your membership is active. The signed document is in your member area.')}
           </Messaggio>
         ) : guasto ? (
-          <Messaggio tono="errore" titolo="Serve un controllo">
-            {esito?.errore ?? esito?.pagamento?.errore ?? 'Qualcosa non è andato a buon fine.'} Il contratto è firmato e conservato: puoi riprovare a pagare, anche con un altro metodo.
+          <Messaggio tono="errore" titolo={t('Serve un controllo', 'A check is needed')}>
+            {esito?.errore ?? esito?.pagamento?.errore ?? t('Qualcosa non è andato a buon fine.', 'Something went wrong.')} {t('Il contratto è firmato e conservato: puoi riprovare a pagare, anche con un altro metodo.', 'The contract is signed and stored: you can try paying again, even with a different method.')}
           </Messaggio>
         ) : (
-          <Messaggio tono="attenzione" titolo="Un attimo" icona="clessidra">
-            Stiamo verificando il pagamento e preparando il documento firmato. Non chiudere la pagina.
+          <Messaggio tono="attenzione" titolo={t('Un attimo', 'One moment')} icona="clessidra">
+            {t('Stiamo verificando il pagamento e preparando il documento firmato. Non chiudere la pagina.', 'We’re verifying the payment and preparing the signed document. Don’t close the page.')}
           </Messaggio>
         )}
-        <Text style={{ color: p.testoSecondario, fontFamily: F.medio, fontSize: 12 }}>{`Contratto n. ${numero}`}</Text>
-        {guasto ? <Pulsante testo="Riprova il pagamento" onPress={onRiprova} /> : null}
-        <Pulsante testo="Torna alla home" onPress={onFine} variante={fatto ? 'primario' : guasto ? 'fantasma' : 'secondario'} />
+        <Text style={{ color: p.testoSecondario, fontFamily: F.medio, fontSize: 12 }}>{t(`Contratto n. ${numero}`, `Contract no. ${numero}`)}</Text>
+        {guasto ? <Pulsante testo={t('Riprova il pagamento', 'Try the payment again')} onPress={onRiprova} /> : null}
+        <Pulsante testo={t('Torna alla home', 'Back to home')} onPress={onFine} variante={fatto ? 'primario' : guasto ? 'fantasma' : 'secondario'} />
       </View>
     </Schermata>
   )

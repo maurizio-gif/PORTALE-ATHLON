@@ -5,6 +5,7 @@ import { emailValida, inviaRichiesta } from '@/api/richieste'
 import { Bottone } from '@/components/Bottone'
 import { Pagina } from '@/components/Pagina'
 import { spazio, useColori } from '@/theme'
+import { t } from '@/lib/lingua'
 
 // Il primo flusso del binario A, sopra la rotta che il CRM ha gia'
 // (`/api/metodo-pagamento/richiesta`, la stessa del modulo del sito). Il link
@@ -18,7 +19,7 @@ export default function RichiestaMetodoPagamento() {
   async function invia() {
     setErrore(null)
     if (!emailValida(email)) {
-      setErrore('Scrivi un indirizzo email valido.')
+      setErrore(t('Scrivi un indirizzo email valido.', 'Enter a valid email address.'))
       return
     }
     setStato('invio')
@@ -32,17 +33,17 @@ export default function RichiestaMetodoPagamento() {
 
   if (stato === 'inviata') {
     return (
-      <Pagina titolo="Controlla la tua email" sottotitolo={`Se ${email.trim()} è l’indirizzo registrato al club, tra pochi minuti ti arriva un link valido 3 giorni.`}>
+      <Pagina titolo={t('Controlla la tua email', 'Check your email')} sottotitolo={t(`Se ${email.trim()} è l’indirizzo registrato al club, tra pochi minuti ti arriva un link valido 3 giorni.`, `If ${email.trim()} is the address registered with the club, in a few minutes you’ll get a link valid for 3 days.`)}>
         <Text style={[stili.nota, { color: c.testoSecondario }]}>
-          Dal link vedi i tuoi abbonamenti e quelli dei tuoi figli, e scegli conto corrente o carta. Non trovi l’email? Guarda nella posta indesiderata.
+          {t('Dal link vedi i tuoi abbonamenti e quelli dei tuoi figli, e scegli conto corrente o carta. Non trovi l’email? Guarda nella posta indesiderata.', 'From the link you’ll see your memberships and your children’s, and choose bank account or card. Can’t find the email? Check your spam folder.')}
         </Text>
-        <Bottone testo="Usa un’altra email" variante="contorno" onPress={() => setStato('modulo')} />
+        <Bottone testo={t('Usa un’altra email', 'Use another email')} variante="contorno" onPress={() => setStato('modulo')} />
       </Pagina>
     )
   }
 
   return (
-    <Pagina titolo="Metodo di pagamento" sottotitolo="Scrivi l’email con cui sei iscritto: ti mandiamo il link per salvare IBAN o carta.">
+    <Pagina titolo={t('Metodo di pagamento', 'Payment method')} sottotitolo={t('Scrivi l’email con cui sei iscritto: ti mandiamo il link per salvare IBAN o carta.', 'Enter the email you’re registered with: we’ll send you the link to save your IBAN or card.')}>
       <View style={stili.campo}>
         <Text style={[stili.etichetta, { color: c.testo }]} nativeID="etichetta-email">
           Email
@@ -57,7 +58,7 @@ export default function RichiestaMetodoPagamento() {
           autoCorrect={false}
           inputMode="email"
           keyboardType="email-address"
-          placeholder="nome@esempio.it"
+          placeholder={t('nome@esempio.it', 'name@example.com')}
           placeholderTextColor={c.testoSecondario}
           returnKeyType="send"
           style={[stili.input, { color: c.testo, borderColor: errore ? c.errore : c.bordo, backgroundColor: c.superficie }]}
@@ -68,7 +69,7 @@ export default function RichiestaMetodoPagamento() {
           </Text>
         ) : null}
       </View>
-      <Bottone testo="Mandami il link" onPress={invia} inCorso={stato === 'invio'} />
+      <Bottone testo={t('Mandami il link', 'Send me the link')} onPress={invia} inCorso={stato === 'invio'} />
     </Pagina>
   )
 }

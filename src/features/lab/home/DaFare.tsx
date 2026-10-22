@@ -3,6 +3,7 @@ import { StyleSheet, Text, View } from 'react-native'
 
 import type { Area } from '@/api/lab'
 import { spazio } from '@/theme'
+import { locale, t } from '@/lib/lingua'
 
 import { Carta, Entra, Pulsante, Riga, Sezione } from '../ui/kit'
 import { F, usePalette } from '../ui/tema'
@@ -21,7 +22,7 @@ import type { SezioneHome } from './sezioni'
 type AreaTrovata = Extract<Area, { trovato: true }>
 
 function soldi(n: number): string {
-  return n.toLocaleString('it-IT', { style: 'currency', currency: 'EUR' })
+  return n.toLocaleString(locale(), { style: 'currency', currency: 'EUR' })
 }
 
 type Voce = { chiave: string; icona: 'attenzione' | 'certificato'; tono: 'errore' | 'attenzione'; titolo: string; sotto: string; /** Di chi si parla: in neretto sopra la riga di dettaglio. */ chi?: string; sezione: SezioneHome; urgenza: number }
@@ -31,31 +32,31 @@ export function vociDaFare(area: AreaTrovata): Voce[] {
   const voci: Voce[] = []
   const conDebito = area.persone.filter((x) => x.debito)
   if (conDebito.length) {
-    const chi = conDebito.map((x) => (x.titolare ? 'Tu' : x.nome || 'Un familiare'))
+    const chi = conDebito.map((x) => (x.titolare ? t('Tu', 'You') : x.nome || t('Un familiare', 'A family member')))
     const totale = conDebito.reduce((t, x) => t + (x.debito?.importo ?? 0), 0)
     voci.push({
       chiave: 'debito',
       icona: 'attenzione',
       tono: 'errore',
-      titolo: 'Pagamento in sospeso',
-      sotto: `${soldi(totale)} da saldare${conDebito.length === 1 && conDebito[0].titolare ? '' : ` · ${chi.join(', ')}`}`,
+      titolo: t('Pagamento in sospeso', 'Outstanding payment'),
+      sotto: `${t(`${soldi(totale)} da saldare`, `${soldi(totale)} to pay`)}${conDebito.length === 1 && conDebito[0].titolare ? '' : ` · ${chi.join(', ')}`}`,
       sezione: 'pagamenti',
       urgenza: 9,
     })
   }
   // Il metodo di pagamento: manca, o la carta e' scaduta. Una voce per tipo, con chi riguarda.
   const METODO: { chiave: Extract<ChiaveMotivo, 'metodo' | 'carta'>; titolo: string; sotto: string }[] = [
-    { chiave: 'metodo', titolo: 'Manca il metodo di pagamento', sotto: 'Aggiungi una carta o un conto corrente per gli addebiti.' },
-    { chiave: 'carta', titolo: 'Carta scaduta', sotto: 'Sostituiscila per gli addebiti.' },
+    { chiave: 'metodo', titolo: t('Manca il metodo di pagamento', 'Payment method missing'), sotto: t('Aggiungi una carta o un conto corrente per gli addebiti.', 'Add a card or a bank account for the charges.') },
+    { chiave: 'carta', titolo: t('Carta scaduta', 'Card expired'), sotto: t('Sostituiscila per gli addebiti.', 'Replace it for the charges.') },
   ]
-  for (const t of METODO) {
+  for (const mt of METODO) {
     const chi = new Set<string>()
     for (const k of area.contratti) {
       const persona = area.persone.find((x) => x.member_id === k.member_id)
-      if (regolaritaContratto(k, persona).motivi.some((m) => m.chiave === t.chiave)) chi.add(!persona || persona.titolare ? 'Tu' : nome(persona))
+      if (regolaritaContratto(k, persona).motivi.some((m) => m.chiave === mt.chiave)) chi.add(!persona || persona.titolare ? t('Tu', 'You') : nome(persona))
     }
     if (!chi.size) continue
-    voci.push({ chiave: `metodo-${t.chiave}`, icona: 'attenzione', tono: 'attenzione', titolo: t.titolo, chi: [...chi].join(', '), sotto: t.sotto, sezione: 'abbonamenti', urgenza: 6 })
+    voci.push({ chiave: `metodo-${mt.chiave}`, icona: 'attenzione', tono: 'attenzione', titolo: mt.titolo, chi: [...chi].join(', '), sotto: mt.sotto, sezione: 'abbonamenti', urgenza: 6 })
   }
   // Il certificato si chiede solo a chi ha un abbonamento in vigore (richiesta di Maurizio, 20/10/2026): in corso, non
   // ancora iniziato o sospeso, cioe' un contratto dell'area che sia un abbonamento. Un ex socio, una prova, un
@@ -71,8 +72,8 @@ export function vociDaFare(area: AreaTrovata): Voce[] {
       chiave: `cert-${persona.member_id}`,
       icona: 'certificato',
       tono: s.tono === 'errore' ? 'errore' : 'attenzione',
-      titolo: `Certificato ${s.testo.toLowerCase()}`,
-      chi: persona.titolare ? 'Tu' : nome(persona),
+      titolo: t(`Certificato ${s.testo.toLowerCase()}`, `Certificate ${s.testo.toLowerCase()}`),
+      chi: persona.titolare ? t('Tu', 'You') : nome(persona),
       sotto: s.dettaglio,
       sezione: 'certificato',
       urgenza: urgenzaCertificato(s),
@@ -89,7 +90,7 @@ export function DaFare({ area, onSezione }: { area: AreaTrovata; onSezione: (s: 
   const senzaMetodo = voci.some((v) => v.chiave.startsWith('metodo-'))
   return (
     <Entra indice={1}>
-      <Sezione titolo="Da fare" conteggio={voci.length}>
+      <Sezione titolo={t('Da fare', 'To do')} conteggio={voci.length}>
         <Carta style={[{ paddingVertical: spazio.due }, inSospeso && { borderWidth: 1.5, borderColor: p.errore }]}>
           {voci.map((v, i) => (
             <Riga
@@ -115,11 +116,11 @@ export function DaFare({ area, onSezione }: { area: AreaTrovata; onSezione: (s: 
             <View style={stili.azioni}>
               {inSospeso ? (
                 <View style={{ flexGrow: 1, flexBasis: 160 }}>
-                  <Pulsante testo="Vedi i pagamenti" icona="carta" onPress={() => onSezione('pagamenti')} />
+                  <Pulsante testo={t('Vedi i pagamenti', 'View payments')} icona="carta" onPress={() => onSezione('pagamenti')} />
                 </View>
               ) : null}
               <View style={{ flexGrow: 1, flexBasis: 160 }}>
-                <Pulsante testo="Aggiorna il metodo" variante={inSospeso ? 'secondario' : 'primario'} onPress={() => router.push('/metodo-pagamento')} />
+                <Pulsante testo={t('Aggiorna il metodo', 'Update the method')} variante={inSospeso ? 'secondario' : 'primario'} onPress={() => router.push('/metodo-pagamento')} />
               </View>
             </View>
           ) : null}

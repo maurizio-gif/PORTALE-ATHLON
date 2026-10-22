@@ -10,6 +10,7 @@ import { CartaNonSalvata } from '@/features/metodo-pagamento/CartaNonSalvata'
 import type { Cornice } from '@/features/metodo-pagamento/GestioneNucleo'
 import { ElencoEsiti } from '@/features/metodo-pagamento/Metodo'
 import { esitoRitornoCarta, type ContrattoNucleo, type EsitoContratto } from '@/lib/metodoPagamento'
+import { t } from '@/lib/lingua'
 
 // Il ritorno dalla pagina della carta (`thankYouPageUrl` = `/r/<token>/fatto`,
 // o `/metodo-pagamento/fatto/<token>` per le richieste aperte dall'app):
@@ -78,7 +79,7 @@ export function RitornoCarta({
       const { stato: http, dati } = await chiamaLink(token, 'conferma', { ritorno })
       if (fermo) return
       if (http === 404 || dati.scaduto) {
-        setErrore('Il link è scaduto mentre eri sulla pagina della carta.')
+        setErrore(t('Il link è scaduto mentre eri sulla pagina della carta.', 'The link expired while you were on the card page.'))
         return setStato('errore')
       }
       if (dati.ok) {
@@ -111,18 +112,18 @@ export function RitornoCarta({
 
   if (stato === 'attesa') {
     return (
-      <Cornice titolo="Un attimo…" indietro={false}>
-        <Testo variante="attenuato">Stiamo collegando la carta agli abbonamenti che hai scelto. Non chiudere questa pagina.</Testo>
+      <Cornice titolo={t('Un attimo…', 'Just a moment…')} indietro={false}>
+        <Testo variante="attenuato">{t('Stiamo collegando la carta agli abbonamenti che hai scelto. Non chiudere questa pagina.', 'We’re linking the card to the memberships you chose. Don’t close this page.')}</Testo>
       </Cornice>
     )
   }
 
   if (stato === 'fatto') {
     return (
-      <Cornice titolo={tutti ? 'Fatto, grazie!' : 'Ecco com’è andata'}>
-        <Testo>La carta è stata collegata così:</Testo>
+      <Cornice titolo={tutti ? t('Fatto, grazie!', 'Done, thank you!') : t('Ecco com’è andata', 'Here’s how it went')}>
+        <Testo>{t('La carta è stata collegata così:', 'The card was linked like this:')}</Testo>
         <ElencoEsiti contratti={contratti} risultati={risultati} />
-        <Bottone testo="Torna ai tuoi abbonamenti" variante="contorno" onPress={indietro} />
+        <Bottone testo={t('Torna ai tuoi abbonamenti', 'Back to your memberships')} variante="contorno" onPress={indietro} />
       </Cornice>
     )
   }
@@ -131,30 +132,30 @@ export function RitornoCarta({
   // collegata: non c'e' niente in sospeso, e l'elenco dice com'e' adesso.
   if (stato === 'nessuna') {
     return (
-      <Cornice titolo="Niente in sospeso">
+      <Cornice titolo={t('Niente in sospeso', 'Nothing pending')}>
         <Testo variante="attenuato">
-          Non c’è nessuna carta in attesa di essere collegata. Controlla i tuoi abbonamenti per vedere il metodo di ciascuno.
+          {t('Non c’è nessuna carta in attesa di essere collegata. Controlla i tuoi abbonamenti per vedere il metodo di ciascuno.', 'There’s no card waiting to be linked. Check your memberships to see each one’s payment method.')}
         </Testo>
-        <Bottone testo="Vai ai tuoi abbonamenti" onPress={indietro} />
+        <Bottone testo={t('Vai ai tuoi abbonamenti', 'Go to your memberships')} onPress={indietro} />
       </Cornice>
     )
   }
 
   if (stato === 'non-trovata') {
     return (
-      <Cornice titolo="Metodo di pagamento">
+      <Cornice titolo={t('Metodo di pagamento', 'Payment method')}>
         <CartaNonSalvata motivo={motivo} onRiprova={indietro} />
       </Cornice>
     )
   }
 
   return (
-    <Cornice titolo="Non siamo riusciti a completare">
+    <Cornice titolo={t('Non siamo riusciti a completare', 'We couldn’t complete this')}>
       <Testo variante="attenuato">
-        {errore || 'La carta potrebbe essere salvata ma non ancora collegata ai tuoi abbonamenti.'} Riprova fra qualche minuto dai tuoi
-        abbonamenti.
+        {errore || t('La carta potrebbe essere salvata ma non ancora collegata ai tuoi abbonamenti.', 'The card may be saved but not yet linked to your memberships.')}{' '}
+        {t('Riprova fra qualche minuto dai tuoi abbonamenti.', 'Try again in a few minutes from your memberships.')}
       </Testo>
-      <Bottone testo="Torna ai tuoi abbonamenti" variante="contorno" onPress={indietro} />
+      <Bottone testo={t('Torna ai tuoi abbonamenti', 'Back to your memberships')} variante="contorno" onPress={indietro} />
     </Cornice>
   )
 }

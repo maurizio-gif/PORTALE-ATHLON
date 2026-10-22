@@ -5,6 +5,7 @@ import { leggiInvito } from '@/api/referral'
 import { Pagina } from '@/components/Pagina'
 import { Testo } from '@/components/Testo'
 import { RichiestaGuestPass, type Invito } from '@/features/guest-pass/RichiestaGuestPass'
+import { t } from '@/lib/lingua'
 
 // La pagina pubblica dell'invito di un amico (21/10/2026): `https://app.athlonroma.it/invito/<codice>`, il link che un
 // socio manda dall'app (Invita un amico). Senza accesso e senza la cornice dell'app, come /richiesta/guest-pass: e' la
@@ -27,13 +28,13 @@ export default function PaginaInvito() {
 
   if (invito === undefined) {
     return (
-      <Pagina titolo="Un attimo…">
-        <Testo variante="attenuato">Stiamo aprendo il tuo invito.</Testo>
+      <Pagina titolo={t('Un attimo…', 'Just a moment…')}>
+        <Testo variante="attenuato">{t('Stiamo aprendo il tuo invito.', 'We’re opening your invitation.')}</Testo>
       </Pagina>
     )
   }
   if (invito === null) {
-    return <RichiestaGuestPass avviso="Questo invito non è più valido, ma puoi chiedere lo stesso il Guest Pass: una settimana al club a 19 €." />
+    return <RichiestaGuestPass avviso={t('Questo invito non è più valido, ma puoi chiedere lo stesso il Guest Pass: una settimana al club a 19 €.', 'This invitation is no longer valid, but you can still request the Guest Pass: one week at the club for €19.')} />
   }
   return <RichiestaGuestPass invito={invito} />
 }

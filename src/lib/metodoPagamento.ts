@@ -7,6 +7,8 @@
 // ricontrolla comunque. Duplicazione dichiarata: se una regola cambia, va
 // cambiata in tutti e tre i posti.
 
+import { t } from './lingua'
+
 /** L'IBAN come lo vuole PerfectGym: maiuscolo, senza spazi. */
 export function normalizzaIban(grezzo: string): string {
   return String(grezzo ?? '').replace(/[\s-]+/g, '').toUpperCase()
@@ -29,18 +31,18 @@ const LUNGHEZZE: Record<string, number> = {
  */
 export function controllaIban(grezzo: string): { ok: true; iban: string } | { ok: false; errore: string } {
   const iban = normalizzaIban(grezzo)
-  if (!iban) return { ok: false, errore: 'Scrivi l’IBAN del conto.' }
+  if (!iban) return { ok: false, errore: t('Scrivi l’IBAN del conto.', 'Enter the account’s IBAN.') }
   if (!/^[A-Z]{2}\d{2}[A-Z0-9]+$/.test(iban)) {
-    return { ok: false, errore: 'Un IBAN comincia con due lettere e due cifre, come IT60…' }
+    return { ok: false, errore: t('Un IBAN comincia con due lettere e due cifre, come IT60…', 'An IBAN starts with two letters and two digits, like IT60…') }
   }
   const attesa = LUNGHEZZE[iban.slice(0, 2)]
   if (attesa && iban.length !== attesa) {
     return {
       ok: false,
-      errore: `Un IBAN ${iban.slice(0, 2)} ha ${attesa} caratteri: questo ne ha ${iban.length}. Controlla di averlo copiato tutto.`,
+      errore: t(`Un IBAN ${iban.slice(0, 2)} ha ${attesa} caratteri: questo ne ha ${iban.length}. Controlla di averlo copiato tutto.`, `A ${iban.slice(0, 2)} IBAN has ${attesa} characters: this one has ${iban.length}. Check you copied all of it.`),
     }
   }
-  if (iban.length < 15 || iban.length > 34) return { ok: false, errore: 'La lunghezza di questo IBAN non torna.' }
+  if (iban.length < 15 || iban.length > 34) return { ok: false, errore: t('La lunghezza di questo IBAN non torna.', 'The length of this IBAN doesn’t add up.') }
 
   // Il codice di controllo: si spostano i primi quattro caratteri in fondo, le
   // lettere diventano numeri (A=10 … Z=35) e il resto della divisione per 97
@@ -51,7 +53,7 @@ export function controllaIban(grezzo: string): { ok: true; iban: string } | { ok
     const valore = /[A-Z]/.test(ch) ? String(ch.charCodeAt(0) - 55) : ch
     for (const cifra of valore) resto = (resto * 10 + Number(cifra)) % 97
   }
-  if (resto !== 1) return { ok: false, errore: 'Questo IBAN non è valido: c’è probabilmente un carattere sbagliato.' }
+  if (resto !== 1) return { ok: false, errore: t('Questo IBAN non è valido: c’è probabilmente un carattere sbagliato.', 'This IBAN isn’t valid: there’s probably a wrong character.') }
   return { ok: true, iban }
 }
 
@@ -79,11 +81,11 @@ export function controllaIndirizzo(dati: {
   const via = pulito(dati.via)
   const cap = pulito(dati.cap).toUpperCase()
   const citta = pulito(dati.citta)
-  if (via.length < 3) return { ok: false, errore: 'Scrivi via e numero civico dell’intestatario del conto.' }
-  if (via.length > 100) return { ok: false, errore: 'L’indirizzo è troppo lungo.' }
-  if (!/^[A-Z0-9][A-Z0-9 -]{2,9}$/.test(cap)) return { ok: false, errore: 'Scrivi il CAP dell’intestatario del conto.' }
-  if (citta.length < 2) return { ok: false, errore: 'Scrivi la città dell’intestatario del conto.' }
-  if (citta.length > 60) return { ok: false, errore: 'Il nome della città è troppo lungo.' }
+  if (via.length < 3) return { ok: false, errore: t('Scrivi via e numero civico dell’intestatario del conto.', 'Enter the street and house number of the account holder.') }
+  if (via.length > 100) return { ok: false, errore: t('L’indirizzo è troppo lungo.', 'The address is too long.') }
+  if (!/^[A-Z0-9][A-Z0-9 -]{2,9}$/.test(cap)) return { ok: false, errore: t('Scrivi il CAP dell’intestatario del conto.', 'Enter the postcode of the account holder.') }
+  if (citta.length < 2) return { ok: false, errore: t('Scrivi la città dell’intestatario del conto.', 'Enter the city of the account holder.') }
+  if (citta.length > 60) return { ok: false, errore: t('Il nome della città è troppo lungo.', 'The city name is too long.') }
   return { ok: true, valori: { via, cap, citta } }
 }
 

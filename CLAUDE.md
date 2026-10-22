@@ -1081,3 +1081,75 @@ Decisione di Maurizio. Funzione, regole e controlli: `CLAUDE.md` di APP-ATHLON, 
 - **Il cellulare ha la tendina del prefisso** (`components/CampoTelefono.tsx`, prefissi in `lib/prefissi.ts`; richiesta di Maurizio, 21/10/2026): a sinistra il prefisso internazionale, già su +39, che si apre come la tendina del Paese e si cerca per nome o per numero; a destra il numero. Parte un valore solo, «+<prefisso><numero>» senza spazi, come lo legge `telefonoDa`; un numero già scritto si divide da sé (senza «+» è italiano; «+1», «+7», «+44» condivisi valgono Stati Uniti, Russia, Regno Unito), e chi incolla «+44…» nel numero sposta il prefisso nella tendina. **Il prezzo del riepilogo non dice più «IVA inclusa»** (richiesta di Maurizio). Provato nel browser con la funzione simulata: +39 di partenza, la ricerca, +41 scelto che fa partire `+413401234567`.
 
 Per verificare: `npx tsc --noEmit` con i soli 41 errori di base. **Provato in un browser vero** (Expo web, Supabase simulato da un piccolo server locale, 375 px e schermo largo): il primo passo (senza consenso non parte niente; poi parte solo `{ azione, email, privacy, marketing }`), la scelta con un genitore socio (per me spento col perché, Valentina 16 anni, Luca 10 anni spento), la dichiarazione, i dati del genitore, il riepilogo con intestataria e genitore, la conferma e la pagina finale del figlio, «Attiva un altro Guest Pass» (link nuovo, Valentina «ha già il Guest Pass»), il figlio nuovo con un codice fiscale già registrato (fermo) e con un caso da verificare (avviso, conferma spenta), chi il club non conosce («Per te» e la password). **Non provato**: le funzioni vere, PerfectGym vero, un telefono.
+
+## La sezione Junior: i gruppi dei corsi per bambini e ragazzi, per anno di nascita, con i posti liberi (21/10/2026)
+
+Richiesta di Maurizio. Cartella `src/features/lab/junior/` (`Junior.tsx`, `comune.ts` puro), rotta `(portale)/junior.tsx`, API `src/api/junior.ts`, carta `home/CartaJunior.tsx` (in Home dopo lo Shop). Dati: funzione
+`portale-lab-junior` di APP-ATHLON, che legge `public.gruppi_junior()` dal mirror (anni di nascita dal nome del gruppo, posti da PerfectGym): `CLAUDE.md` di APP-ATHLON.
+
+- **Si legge e basta**: tessere degli anni di nascita (dal piu' giovane; un anno senza posti e' piu' chiaro), «Solo i gruppi con posti liberi», poi i gruppi divisi per corso (Scuola Nuoto mono, bi, poi gli altri) in
+  ordine di settimana e di ora, con «N posti liberi» / «Ultimo posto» / «Completo». Un gruppo di piu' anni («(2015-14-13)») compare sotto ognuno. **Da qui non ci si iscrive** (primo passo).
+- **L'anno si apre sul figlio**: la carta in Home, se nel nucleo c'e' un figlio fra i 3 e i 17 anni, apre `/junior?anno=<il suo anno>` e lo nomina; altrimenti il piu' giovane. In vista cliente si vede (nessun dato di persona).
+- **Filtro per giorno della settimana** (21/10/2026): sotto gli anni, pillole «Tutti · Lun … Dom» a selezione multipla (`giorniDelAnno`, `giorniDelGruppo` in `comune.ts`): si offrono solo i giorni che l'anno scelto ha davvero, e un gruppo passa se ha **almeno uno** dei giorni scelti (un bisettimanale «Lunedì, Giovedì» compare sotto Lun e sotto Gio). Si combina con l'anno e con «Solo i gruppi con posti liberi». I gruppi **senza giorni** nel nome (4 su 146 il 21/10) escono appena un giorno è scelto e tornano con «Tutti». `tsc` pulito e logica provata con `npx tsx`; **non guardato renderizzato né su un telefono**.
+- La nota in fondo dice che i posti sono quelli del gestionale e che la conferma e' della segreteria.
+- **In cima, «La tua famiglia»** (stesso giorno, seconda richiesta): chi del nucleo puo' fare le attivita' junior, con «Classe 2015» e i gruppi a cui e' iscritto (o «nessun gruppo per ora»); i minorenni non ancora
+  idonei (un neonato sotto i 3 mesi) si vedono con il perche' e «Non ancora», gli adulti no. Chi e' idoneo lo dice il database (`nucleo` di `portale-lab-junior`: dai 3 mesi ai nati nell'anno piu' vecchio dei gruppi
+  del Nuoto Agonistico). Toccando una persona si apre il suo anno, e senza `?anno=` la schermata parte dall'anno del piu' giovane idoneo (`annoDalNucleo`). Con una funzione che non da' `nucleo` il blocco non c'e'.
+- **«Aggiungi un componente»** (`FoglioComponente`, mai in vista cliente): nome, cognome, data di nascita, codice fiscale, tutti obbligatori, e la casella «Dichiaro di esserne il genitore o il tutore legale». L'app
+  ferma prima il codice fiscale non valido o non coerente (`problemaCodiceFiscale`, lo stesso del Guest Pass) e il maggiorenne; il resto lo controlla la funzione, compreso che la persona **non ci sia gia'** (nel nucleo:
+  «è già nel tuo nucleo familiare»; al club: «ha già una scheda… passa in segreteria», senza dire di chi). A scheda creata il nucleo si aggiorna dalla risposta e la memoria dell'area della Home si butta (`scorda('area')`).
+  `CampoData` sta dentro una `View` perche' ha `flex: 1` e in una colonna che scorre si schiacciava sul campo dopo (visto nel browser).
+
+Per verificare: `npx tsc --noEmit` pulito; `comune.ts` con `npx tsx`. **Guardato in Chromium** (bundle web esportato, funzione simulata con `page.route`, 390 px chiaro e scuro, 1280 px): tessere degli anni, filtro, gruppi
+di piu' anni, «Ultimo posto» e «Completo», il nucleo (l'anno del figlio aperto da solo, «Non ancora» per il neonato), il foglio (pulsante spento senza la dichiarazione, quello che parte: azione, nome, cognome, data
+`AAAA-MM-GG`, codice maiuscolo, `tutore: true`), il nucleo aggiornato dopo l'aggiunta, l'errore «già al club» nel foglio, nessuno scorrimento orizzontale, nessun errore di pagina. **Non provato**: la funzione vera con una
+sessione vera (e quindi la creazione su PerfectGym), un telefono, la carta in Home renderizzata.
+
+**Stato (21/10/2026): in produzione**, su richiesta di Maurizio: migrazione `20261021d` e `portale-lab-junior` (v1) pubblicate prima, poi questa app su `main` (vedi APP-ATHLON).
+
+## L'app in due lingue: italiano e inglese, con le parole di PerfectGym (21/10/2026)
+
+Richiesta di Maurizio. Il socio sceglie la lingua nel **Profilo** (Account → Lingua) o in fondo alla **pagina d'accesso**; la prima volta vale
+quella del dispositivo (italiano se il dispositivo è in italiano, altrimenti inglese). La scelta si ricorda sul dispositivo (`localStorage`,
+`athlon_lingua`). Il lato server: `CLAUDE.md` di APP-ATHLON, «Le lingue del portale».
+
+- **I testi stanno accanto all'originale**: `t('Prenota', 'Book')` (`src/lib/lingua.ts`), non una chiave in un dizionario. Un testo nuovo si
+  scrive sempre con i due argomenti; `tv(it, en)` per elenchi ed elementi, `locale()` per date e numeri (`it-IT` / `en-GB`), mai `'it-IT'` scritto.
+  `lingua.ts` è un modulo puro (lo importano anche i calcoli provati con `npx tsx`); il gancio per i componenti è `useLingua` in `lingua-react.ts`.
+- **Cambiare lingua ricarica l'app sul web**: costanti di modulo, formattatori e risposte già in memoria si rifanno nella lingua nuova, quindi
+  un `t()` a livello di modulo va bene. Sull'app nativa il layout radice ha `key={lingua}` e ridisegna le schermate; le costanti di modulo si
+  aggiornano alla prossima apertura.
+- **Le parole inglesi sono quelle di PerfectGym** (`docs/glossario-inglese.md`, ricavato dal manuale inglese di PerfectGym e dallo swagger):
+  membership, payment plan, freeze, booking, waiting list, joining fee, payment method, front desk… Ortografia americana come PerfectGym, date
+  all'europea. **I nomi propri del club** (attività, abbonamenti, prodotti) e i marchi dell'app (Athlon Health System, Train, Food, Relax,
+  Club Life, Gym Floor, Guest Pass…) non si traducono nel codice: i nomi inglesi delle attività, dei piani e dei prodotti li scrive il club su
+  PerfectGym e arrivano dal mirror. **Il glossario va riletto dal club** accanto al Client Portal in inglese.
+- **Le funzioni rispondono nella lingua dell'app**: `intestazioneLingua()` manda `Accept-Language: en-x-athlon` (o `it-x-athlon`) da
+  `funzione()` di `api/lab.ts` e dalle altre chiamate alle funzioni (`link`, `guestPass`, `referral`). È un'intestazione che non passa dal
+  CORS, quindi un'app nuova con funzioni vecchie non si rompe (riceve l'italiano), e il segno `x-athlon` fa sì che un browser in inglese con
+  un'app di prima riceva ancora l'italiano.
+- **Cosa resta in italiano**: i contenuti del sito (news, eventi, schede dell'Help Desk, le schede delle lezioni), le notifiche scritte dallo
+  staff, il testo dei contratti e dei Termini e Condizioni (in inglese c'è una riga che lo dice: fa fede l'italiano), e i nomi da PerfectGym
+  che il club non ha tradotto. Le **informative privacy** sono tradotte con «Courtesy translation: the Italian text is the binding version»;
+  le versioni dei consensi non sono cambiate (stesso testo, due lingue): **la traduzione va fatta rileggere al consulente privacy**.
+
+## Iscriversi a un gruppo Junior dall'app (21/10/2026)
+
+Dalla sezione Junior, toccando un gruppo con posti si sceglie chi del nucleo iscrivere (`chiPuoIscriversi` in `junior/comune.ts`: idoneo, anno di nascita nel gruppo, minorenne o titolare, non già dentro, gruppo non completo) e si apre `/iscrizione?group=&membro=` (`junior/Iscrizione.tsx`). Due passi: **Costi** (parte sempre subito, nessuna scelta della data; riepilogo col pro-rata di PerfectGym) e **Dati e firma** (dati, contratto, consensi, firma). Funzione: `portale-abbonamento`, azioni `junior_anteprima` e `junior_firma` (APP-ATHLON). Dopo la firma si torna a `/abbonamento`, che riprende dal pagamento (stesso percorso degli adulti).
+
+- **Solo abbonamento mensile**: i piani «con Preiscrizione» e «Stagionale» sono fuori. Tutti i gruppi sono aperti (anche Agonistico e Pallanuoto: la prova di inserimento non viene chiesta da qui, scelta di Maurizio).
+- **Consensi: 20, 29, 32, 23, 1** (il 29 con il testo degli adulti, non il 28; niente 37 e 36). Le voci arrivano dal catalogo del sito (`junior` in `/contratto-abbonamento.json`).
+- **Vista cliente**: si vede, non si firma.
+- **Minorenne**: indirizzo e cellulare sono quelli del genitore (la carta del bambino chiede solo il codice fiscale: `senzaRecapiti` di `CorreggiDati`), l'email non si chiede.
+- **Non provato**: `EnrollMemberToGroup` vero, nomi dei parametri di `GetEnrollmentOptions`/`CalculateProrata`, primo addebito su PerfectGym. Il browser è stato provato con funzioni simulate (390 e 1280 px). **Pubblicare in ordine**: sito, `portale-abbonamento`, app.
+
+## Junior: i corsi della persona scelta (22/10/2026)
+
+Sotto «La tua famiglia» della sezione Junior si sceglie una persona (tocco su «Vedi i corsi»; di partenza la prima in età) e sotto compaiono i suoi corsi (`junior/Corsi.tsx`, `CorsiPersona`). Funzioni e regole del database: `CLAUDE.md` di APP-ATHLON, «I corsi di una persona».
+
+- **Iscritta a un gruppo**: «L'abbonamento di <nome>» (piano, quota, stato, dal, rinnovo, pagato fino al), i conteggi **Disdette / Recuperate / Da recuperare** (dai prodotti «Recupero» del profilo su PerfectGym, con la scadenza e gli eventuali recuperi scaduti), «Le prossime lezioni del corso» con **Disdici** (conferma, regole di PerfectGym) e «Prenota un recupero» col calendario dei recuperi. **Le lezioni si vedono fino alla fine del contratto**; il rinnovo di metà mese (20-21) porta quelle del mese dopo, e la schermata lo dice. Disdire e recuperare solo per la Scuola Nuoto.
+- **In età Baby Nuoto** (3-36 mesi, `eBaby`): l'abbonamento mensile se c'è; se no le due strade con i prezzi (lezione singola, che si compra prenotando dal calendario; mensile + quota). **L'iscrizione al mensile da qui non c'è ancora**: il testo dice di passare in segreteria. Sotto, il calendario Baby Nuoto.
+- **I gruppi per anno di nascita** restano per chi non è iscritto e non è in età Baby Nuoto; per gli iscritti dietro «Vedi tutti i gruppi».
+- **In vista cliente** si legge soltanto (niente Disdici né calendari: `periodo` non è fra le letture).
+- Provato: `comune.ts` con `node --experimental-strip-types`; browser (Chromium, 390 e 1280 px, chiaro e scuro, funzioni simulate): 46 controlli, nessun errore di pagina. **Non provato**: funzioni vere, `CancelSingleBooking` su una prenotazione di gruppo, un telefono.
+- **Da pubblicare**: migrazione `20261022a`, poi `portale-lab-junior` e `portale-lab-calendario`, poi l'app.

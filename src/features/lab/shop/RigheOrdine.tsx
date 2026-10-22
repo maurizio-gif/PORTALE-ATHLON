@@ -3,6 +3,7 @@ import { StyleSheet, Text, View } from 'react-native'
 
 import type { Ordine } from '@/api/shop'
 import { euro } from '@/lib/eventi'
+import { t } from '@/lib/lingua'
 import { spazio } from '@/theme'
 
 import { F, usePalette } from '../ui/tema'
@@ -24,7 +25,7 @@ export function RigheOrdine({ ordine }: { ordine: Ordine }) {
         </View>
       ))}
       <View style={[stili.riga, { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: p.linea, justifyContent: 'space-between' }]}>
-        <Text style={{ color: p.testoSecondario, fontFamily: F.bold, fontSize: 15 }}>Totale</Text>
+        <Text style={{ color: p.testoSecondario, fontFamily: F.bold, fontSize: 15 }}>{t('Totale', 'Total')}</Text>
         <Text style={[stili.totale, { color: p.testo }]}>{euro(ordine.totale)}</Text>
       </View>
     </View>

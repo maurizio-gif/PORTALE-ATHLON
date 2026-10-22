@@ -1,6 +1,7 @@
 import { funzione } from '@/api/lab'
 import { chiamaLink } from '@/api/link'
 import type { FileScelto } from '@/lib/fileCertificato'
+import { t } from '@/lib/lingua'
 
 // Il certificato medico caricato dal cliente (17/10/2026), da due porte:
 //   - l'area riservata, con la sessione: `portale-lab-certificati` (APP-ATHLON);
@@ -10,7 +11,7 @@ import type { FileScelto } from '@/lib/fileCertificato'
 
 export type EsitoCarica = { ok: true } | { ok: false; errore: string }
 
-const GUASTO = 'Non siamo riusciti a inviare il certificato adesso. Riprova fra qualche minuto.'
+const GUASTO = t('Non siamo riusciti a inviare il certificato adesso. Riprova fra qualche minuto.', 'We couldn’t send the certificate right now. Try again in a few minutes.')
 
 /** Dall'area riservata: `memberId` e' la persona del nucleo di cui si carica il certificato. */
 export async function caricaCertificato(memberId: number, f: FileScelto): Promise<EsitoCarica> {

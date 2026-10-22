@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { StyleSheet, Text, View } from 'react-native'
 
 import { prenotaLezione } from '@/api/lab'
+import { t } from '@/lib/lingua'
 import { spazio } from '@/theme'
 import type { Alternativa, TappaSettimana } from '@/api/percorso'
 
@@ -69,11 +70,11 @@ function Opzione({ attiva, spenta, titolo, nota, onPress }: { attiva: boolean; s
   )
 }
 
-const postiDi = (n: number) => `${n} ${n === 1 ? 'posto libero' : 'posti liberi'}`
+const postiDi = (n: number) => t(`${n} ${n === 1 ? 'posto libero' : 'posti liberi'}`, `${n} ${n === 1 ? 'spot available' : 'spots available'}`)
 
 /** Cosa dice una alternativa, in una riga: quando, i posti, e se e' un altro tipo di lezione. */
 function descrizione(a: Alternativa, comeLa: string): string {
-  return `${giornoOra(a.inizio)} · ${postiDi(a.liberi)}${a.nome !== comeLa ? ` · ${a.tipo === 'simile' ? 'lezione simile' : a.nome}` : ''}`
+  return `${giornoOra(a.inizio)} · ${postiDi(a.liberi)}${a.nome !== comeLa ? ` · ${a.tipo === 'simile' ? t('lezione simile', 'similar class') : a.nome}` : ''}`
 }
 
 function SezioneComplete({ complete, scelte, onScegli }: { complete: Completa[]; scelte: Record<number, Scelta | undefined>; onScegli: (classId: number, s: Scelta) => void }) {
@@ -82,28 +83,28 @@ function SezioneComplete({ complete, scelte, onScegli }: { complete: Completa[];
   const scelteAlt = (escludi: number) => new Set(Object.entries(scelte).flatMap(([id, s]) => (typeof s === 'number' && Number(id) !== escludi ? [s] : [])))
   return (
     <View style={{ gap: spazio.tre }}>
-      <Text style={[stili.sezione, { color: p.testo }]}>{`Al completo (${complete.length})`}</Text>
-      <Text style={[stili.nota, { color: p.testoSecondario }]}>Questa settimana non c’è più posto: scegli cosa fare. Se non tocchi niente ti metto in lista d’attesa.</Text>
+      <Text style={[stili.sezione, { color: p.testo }]}>{t(`Al completo (${complete.length})`, `Full (${complete.length})`)}</Text>
+      <Text style={[stili.nota, { color: p.testoSecondario }]}>{t('Questa settimana non c’è più posto: scegli cosa fare. Se non tocchi niente ti metto in lista d’attesa.', 'There are no spots left this week: choose what to do. If you don’t pick anything, I’ll put you on the waiting list.')}</Text>
       {complete.map((c) => {
         const scelta = scelte[c.d.class_id] ?? 'attesa'
         const prese = scelteAlt(c.d.class_id)
         return (
           <View key={c.d.class_id} style={{ gap: spazio.due }}>
-            <Riga titolo={titoloVoce(c)} quando={giornoOra(c.d.inizio)} nota={c.d.in_attesa > 0 ? `${c.d.in_attesa} in lista d’attesa` : undefined} />
+            <Riga titolo={titoloVoce(c)} quando={giornoOra(c.d.inizio)} nota={c.d.in_attesa > 0 ? t(`${c.d.in_attesa} in lista d’attesa`, `${c.d.in_attesa} on the waiting list`) : undefined} />
             <View style={{ gap: spazio.due, paddingLeft: spazio.tre }}>
-              <Opzione attiva={scelta === 'attesa'} titolo="Lista d’attesa" nota="Se si libera un posto puoi subentrare." onPress={() => onScegli(c.d.class_id, 'attesa')} />
+              <Opzione attiva={scelta === 'attesa'} titolo={t('Lista d’attesa', 'Waiting list')} nota={t('Se si libera un posto puoi subentrare.', 'If a spot opens up, you can take it.')} onPress={() => onScegli(c.d.class_id, 'attesa')} />
               {c.alternative.map((a) => (
                 <Opzione
                   key={a.class_id}
                   attiva={scelta === a.class_id}
                   spenta={prese.has(a.class_id)}
-                  titolo={`${a.nome}${a.tipo === 'stessa' ? '' : ' (simile)'}`}
-                  nota={prese.has(a.class_id) ? 'L’hai già scelta per un’altra lezione.' : descrizione(a, titoloVoce(c))}
+                  titolo={`${a.nome}${a.tipo === 'stessa' ? '' : t(' (simile)', ' (similar)')}`}
+                  nota={prese.has(a.class_id) ? t('L’hai già scelta per un’altra lezione.', 'You’ve already chosen it for another class.') : descrizione(a, titoloVoce(c))}
                   onPress={() => onScegli(c.d.class_id, a.class_id)}
                 />
               ))}
-              {!c.alternative.length ? <Text style={[stili.nota, { color: p.testoSecondario }]}>Non ci sono alternative da prenotare adesso: dalla sua tappa vedi quelle che si aprono più avanti.</Text> : null}
-              <Opzione attiva={scelta === 'salta'} titolo="Lascia stare" nota="Non prenoto niente per questa lezione." onPress={() => onScegli(c.d.class_id, 'salta')} />
+              {!c.alternative.length ? <Text style={[stili.nota, { color: p.testoSecondario }]}>{t('Non ci sono alternative da prenotare adesso: dalla sua tappa vedi quelle che si aprono più avanti.', 'There are no alternatives to book right now: from its step you can see the ones that open later.')}</Text> : null}
+              <Opzione attiva={scelta === 'salta'} titolo={t('Lascia stare', 'Skip it')} nota={t('Non prenoto niente per questa lezione.', 'I won’t book anything for this class.')} onPress={() => onScegli(c.d.class_id, 'salta')} />
             </View>
           </View>
         )
@@ -153,7 +154,7 @@ export function PrenotaSettimana({
         risultati.push({ voce, esito: attesa ? 'attesa' : 'prenotata' })
       } else {
         // Una non compresa che il percorso non sapeva (la stima dei piani e' una stima): si prenota dalla tappa.
-        risultati.push({ voce, esito: 'no', errore: r.prodotto ? 'Non è compresa nel tuo abbonamento: prenotala dalla sua tappa, come lezione singola.' : r.errore })
+        risultati.push({ voce, esito: 'no', errore: r.prodotto ? t('Non è compresa nel tuo abbonamento: prenotala dalla sua tappa, come lezione singola.', 'It’s not included in your membership: book it from its step, as a single class.') : r.errore })
       }
       setFatte((n) => n + 1)
       setEsiti([...risultati])
@@ -176,34 +177,34 @@ export function PrenotaSettimana({
   const rigaDi = (d: DaPrenotare) => ({
     titolo: d.alternativa ? d.alternativa.nome : titoloVoce(d.voce),
     quando: giornoOra(d.alternativa?.inizio ?? d.voce.d.inizio),
-    nota: d.alternativa ? `Al posto di ${titoloVoce(d.voce)} · ${giornoOra(d.voce.d.inizio)}, che è al completo.` : undefined,
+    nota: d.alternativa ? t(`Al posto di ${titoloVoce(d.voce)} · ${giornoOra(d.voce.d.inizio)}, che è al completo.`, `Instead of ${titoloVoce(d.voce)} · ${giornoOra(d.voce.d.inizio)}, which is full.`) : undefined,
   })
 
   return (
     <Foglio
       aperto={aperto}
-      titolo="Prenota la settimana"
-      sottotitolo={fase === 'riepilogo' ? 'Guarda cosa stai per prenotare: niente parte finché non confermi.' : fase === 'invio' ? 'Sto prenotando, un attimo…' : 'Ecco com’è andata.'}
+      titolo={t('Prenota la settimana', 'Book the week')}
+      sottotitolo={fase === 'riepilogo' ? t('Guarda cosa stai per prenotare: niente parte finché non confermi.', 'Check what you’re about to book: nothing goes ahead until you confirm.') : fase === 'invio' ? t('Sto prenotando, un attimo…', 'Booking, one moment…') : t('Ecco com’è andata.', 'Here’s how it went.')}
       onChiudi={fase === 'invio' ? () => undefined : chiudi}
     >
       {fase === 'riepilogo' ? (
         <View style={{ gap: spazio.quattro - 2 }}>
           {g.adesso.length ? (
             <View style={{ gap: spazio.due }}>
-              <Text style={[stili.sezione, { color: p.testo }]}>{`Prenoti adesso (${g.adesso.length})`}</Text>
+              <Text style={[stili.sezione, { color: p.testo }]}>{t(`Prenoti adesso (${g.adesso.length})`, `Booking now (${g.adesso.length})`)}</Text>
               {g.adesso.map((v) => (
                 <Riga key={v.d.class_id} titolo={titoloVoce(v)} quando={giornoOra(v.d.inizio)} />
               ))}
             </View>
           ) : g.complete.length ? null : (
-            <Messaggio tono="attenzione">Non c’è niente da prenotare adesso: guarda qui sotto cosa si apre più avanti.</Messaggio>
+            <Messaggio tono="attenzione">{t('Non c’è niente da prenotare adesso: guarda qui sotto cosa si apre più avanti.', 'There’s nothing to book right now: see below what opens later.')}</Messaggio>
           )}
 
           {g.complete.length ? <SezioneComplete complete={g.complete} scelte={scelte} onScegli={(id, s) => setScelte((x) => ({ ...x, [id]: s }))} /> : null}
 
           {g.piuAvanti.length ? (
             <View style={{ gap: spazio.due }}>
-              <Text style={[stili.sezione, { color: p.testo }]}>{`Più avanti (${g.piuAvanti.length})`}</Text>
+              <Text style={[stili.sezione, { color: p.testo }]}>{t(`Più avanti (${g.piuAvanti.length})`, `Later (${g.piuAvanti.length})`)}</Text>
               {g.piuAvanti.map((v) => (
                 <Riga key={v.d.class_id} titolo={titoloVoce(v)} quando={giornoOra(v.d.inizio)} nota={v.perche} icona="clessidra" />
               ))}
@@ -212,21 +213,21 @@ export function PrenotaSettimana({
 
           {g.daAcquistare.length ? (
             <View style={{ gap: spazio.due }}>
-              <Text style={[stili.sezione, { color: p.testo }]}>{`Da acquistare (${g.daAcquistare.length})`}</Text>
+              <Text style={[stili.sezione, { color: p.testo }]}>{t(`Da acquistare (${g.daAcquistare.length})`, `To purchase (${g.daAcquistare.length})`)}</Text>
               {g.daAcquistare.map((v) => (
                 <Riga key={v.d.class_id} titolo={titoloVoce(v)} quando={giornoOra(v.d.inizio)} />
               ))}
-              <Text style={[stili.nota, { color: p.testoSecondario }]}>Non sono comprese nel tuo abbonamento: si prenotano una per una dalla loro tappa, pagando la lezione singola.</Text>
+              <Text style={[stili.nota, { color: p.testoSecondario }]}>{t('Non sono comprese nel tuo abbonamento: si prenotano una per una dalla loro tappa, pagando la lezione singola.', 'They’re not included in your membership: book them one by one from their step, paying for a single class.')}</Text>
             </View>
           ) : null}
 
           {g.nonInProgramma.length ? (
             <View style={{ gap: spazio.due }}>
-              <Text style={[stili.sezione, { color: p.testo }]}>{`Non in programma (${g.nonInProgramma.length})`}</Text>
-              {g.nonInProgramma.map((t) => (
-                <View key={`${t.giorno}-${t.ordine}`} style={stili.riga}>
+              <Text style={[stili.sezione, { color: p.testo }]}>{t(`Non in programma (${g.nonInProgramma.length})`, `Not scheduled (${g.nonInProgramma.length})`)}</Text>
+              {g.nonInProgramma.map((tp) => (
+                <View key={`${tp.giorno}-${tp.ordine}`} style={stili.riga}>
                   <View style={[stili.punto, { backgroundColor: p.testoTerzo }]} />
-                  <Text style={[stili.nota, { color: p.testoSecondario, flex: 1 }]}>{`${t.lezione?.nome ?? 'Lezione'}: questa settimana non c’è. Dalla sua tappa vedi le più vicine.`}</Text>
+                  <Text style={[stili.nota, { color: p.testoSecondario, flex: 1 }]}>{t(`${tp.lezione?.nome ?? 'Lezione'}: questa settimana non c’è. Dalla sua tappa vedi le più vicine.`, `${tp.lezione?.nome ?? 'Class'}: not on this week. From its step you can see the nearest ones.`)}</Text>
                 </View>
               ))}
             </View>
@@ -234,45 +235,45 @@ export function PrenotaSettimana({
 
           {g.gia.length ? (
             <View style={{ gap: spazio.due }}>
-              <Text style={[stili.sezione, { color: p.testo }]}>{`Già prenotate (${g.gia.length})`}</Text>
+              <Text style={[stili.sezione, { color: p.testo }]}>{t(`Già prenotate (${g.gia.length})`, `Already booked (${g.gia.length})`)}</Text>
               {g.gia.map((v) => (
                 <Riga
                   key={v.d.class_id}
                   titolo={titoloVoce(v)}
                   quando={giornoOra(v.d.inizio)}
                   icona="ok"
-                  nota={v.alternativa ? `Al posto di ${v.t.lezione?.nome ?? 'una lezione'}, che è al completo.` : v.d.prenotazione?.attesa ? 'In lista d’attesa' : undefined}
+                  nota={v.alternativa ? t(`Al posto di ${v.t.lezione?.nome ?? 'una lezione'}, che è al completo.`, `Instead of ${v.t.lezione?.nome ?? 'a class'}, which is full.`) : v.d.prenotazione?.attesa ? t('In lista d’attesa', 'On the waiting list') : undefined}
                 />
               ))}
             </View>
           ) : null}
 
           {sala ? (
-            <Text style={[stili.nota, { color: p.testoSecondario }]}>{`La sala (${sala} ${sala === 1 ? 'tappa' : 'tappe'}) si prenota dalla sua tappa: scegli tu se con l’assistente di sala o in allenamento libero.`}</Text>
+            <Text style={[stili.nota, { color: p.testoSecondario }]}>{t(`La sala (${sala} ${sala === 1 ? 'tappa' : 'tappe'}) si prenota dalla sua tappa: scegli tu se con l’assistente di sala o in allenamento libero.`, `The gym floor (${sala} ${sala === 1 ? 'step' : 'steps'}) is booked from its step: you choose whether with the floor assistant or as a free workout.`)}</Text>
           ) : null}
-          {senzaNiente ? <Text style={[stili.nota, { color: p.testoSecondario }]}>Questo percorso non ha lezioni da prenotare.</Text> : null}
+          {senzaNiente ? <Text style={[stili.nota, { color: p.testoSecondario }]}>{t('Questo percorso non ha lezioni da prenotare.', 'This program has no classes to book.')}</Text> : null}
 
-          <Pulsante testo={quante ? `Prenota ${quante} ${quante === 1 ? 'lezione' : 'lezioni'}` : 'Niente da prenotare'} icona="avanti" onPress={prenota} disabilitato={!quante} />
+          <Pulsante testo={quante ? t(`Prenota ${quante} ${quante === 1 ? 'lezione' : 'lezioni'}`, `Book ${quante} ${quante === 1 ? 'class' : 'classes'}`) : t('Niente da prenotare', 'Nothing to book')} icona="avanti" onPress={prenota} disabilitato={!quante} />
         </View>
       ) : (
         <View style={{ gap: spazio.tre }}>
-          {fase === 'invio' ? <Text style={[stili.sezione, { color: p.testo }]}>{`Prenoto ${Math.min(fatte + 1, inviate.length)} di ${inviate.length}…`}</Text> : null}
+          {fase === 'invio' ? <Text style={[stili.sezione, { color: p.testo }]}>{t(`Prenoto ${Math.min(fatte + 1, inviate.length)} di ${inviate.length}…`, `Booking ${Math.min(fatte + 1, inviate.length)} of ${inviate.length}…`)}</Text> : null}
           {esiti.map((e) => (
             <Riga
               key={e.voce.classId}
               {...rigaDi(e.voce)}
               icona={e.esito === 'no' ? 'no' : 'ok'}
-              nota={e.esito === 'prenotata' ? ['Prenotata', rigaDi(e.voce).nota].filter(Boolean).join(' · ') : e.esito === 'attesa' ? 'In lista d’attesa' : e.errore}
+              nota={e.esito === 'prenotata' ? [t('Prenotata', 'Booked'), rigaDi(e.voce).nota].filter(Boolean).join(' · ') : e.esito === 'attesa' ? t('In lista d’attesa', 'On the waiting list') : e.errore}
             />
           ))}
           {fase === 'fine' ? (
             <>
               {esiti.some((e) => e.esito === 'no') ? (
-                <Messaggio tono="attenzione">Quelle che non sono andate le trovi nella settimana: riprova dalla loro tappa o guarda il motivo.</Messaggio>
+                <Messaggio tono="attenzione">{t('Quelle che non sono andate le trovi nella settimana: riprova dalla loro tappa o guarda il motivo.', 'You’ll find the ones that didn’t go through in the week: try again from their step or check the reason.')}</Messaggio>
               ) : (
-                <Messaggio tono="ok">Fatto: la tua settimana è prenotata.</Messaggio>
+                <Messaggio tono="ok">{t('Fatto: la tua settimana è prenotata.', 'Done: your week is booked.')}</Messaggio>
               )}
-              <Pulsante testo="Chiudi" onPress={chiudi} />
+              <Pulsante testo={t('Chiudi', 'Close')} onPress={chiudi} />
             </>
           ) : null}
         </View>

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Modal, Platform, StyleSheet, Text, Vibration, View } from 'react-native'
 import Svg, { Circle } from 'react-native-svg'
 
+import { t } from '@/lib/lingua'
 import { spazio } from '@/theme'
 
 import { Icona } from '../ui/Icona'
@@ -25,16 +26,16 @@ function suona() {
     const Ctx = (globalThis as any).AudioContext ?? (globalThis as any).webkitAudioContext
     if (!Ctx) return
     const ctx = new Ctx()
-    ;[0, 0.22, 0.44].forEach((t, i) => {
+    ;[0, 0.22, 0.44].forEach((ritardo, i) => {
       const o = ctx.createOscillator()
       const g = ctx.createGain()
       o.frequency.value = i === 2 ? 1320 : 880
-      g.gain.setValueAtTime(0.0001, ctx.currentTime + t)
-      g.gain.exponentialRampToValueAtTime(0.35, ctx.currentTime + t + 0.02)
-      g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + t + 0.18)
+      g.gain.setValueAtTime(0.0001, ctx.currentTime + ritardo)
+      g.gain.exponentialRampToValueAtTime(0.35, ctx.currentTime + ritardo + 0.02)
+      g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + ritardo + 0.18)
       o.connect(g).connect(ctx.destination)
-      o.start(ctx.currentTime + t)
-      o.stop(ctx.currentTime + t + 0.2)
+      o.start(ctx.currentTime + ritardo)
+      o.stop(ctx.currentTime + ritardo + 0.2)
     })
     setTimeout(() => ctx.close?.(), 1200)
   } catch {
@@ -72,8 +73,8 @@ export function TimerRecupero({
 
   useEffect(() => {
     if (!fine) return
-    const t = setInterval(() => setOra(Date.now()), 200)
-    return () => clearInterval(t)
+    const id = setInterval(() => setOra(Date.now()), 200)
+    return () => clearInterval(id)
   }, [fine])
 
   const resta = fine ? Math.max(0, fine - ora) : 0
@@ -87,8 +88,8 @@ export function TimerRecupero({
     if (Platform.OS !== 'web') Vibration.vibrate([0, 300, 150, 300])
     else if (typeof navigator !== 'undefined' && 'vibrate' in navigator) navigator.vibrate?.([300, 150, 300])
     suona()
-    const t = setTimeout(onChiudi, 2500)
-    return () => clearTimeout(t)
+    const id = setTimeout(onChiudi, 2500)
+    return () => clearTimeout(id)
   }, [finito, fine, onChiudi])
 
   const frazione = totale > 0 ? Math.min(1, resta / (totale * 1000)) : 0
@@ -101,7 +102,7 @@ export function TimerRecupero({
   return (
     <Modal visible={!!fine} transparent animationType="fade" onRequestClose={onChiudi}>
       <View style={[stili.velo, { backgroundColor: p.scuro ? 'rgba(0,0,0,0.88)' : 'rgba(10,11,13,0.86)' }]}>
-        <Text style={stili.titolo}>{finito ? 'Via!' : 'Recupero'}</Text>
+        <Text style={stili.titolo}>{finito ? t('Via!', 'Go!') : t('Recupero', 'Rest')}</Text>
         <View style={stili.cerchio}>
           <Svg width={RAGGIO * 2 + 24} height={RAGGIO * 2 + 24} viewBox={`0 0 ${RAGGIO * 2 + 24} ${RAGGIO * 2 + 24}`}>
             <Circle cx={RAGGIO + 12} cy={RAGGIO + 12} r={RAGGIO} stroke="rgba(255,255,255,0.12)" strokeWidth={14} fill="none" />
@@ -126,24 +127,24 @@ export function TimerRecupero({
         </View>
 
         <View style={stili.comandi}>
-          <Tocco onPress={() => cambia(-15)} etichetta="Togli 15 secondi" style={stili.tondo} spento={finito}>
+          <Tocco onPress={() => cambia(-15)} etichetta={t('Togli 15 secondi', 'Remove 15 seconds')} style={stili.tondo} spento={finito}>
             <Icona nome="meno" size={18} colore="#fff" />
             <Text style={stili.tondoTesto}>15</Text>
           </Tocco>
-          <Tocco onPress={() => cambia(15)} etichetta="Aggiungi 15 secondi" style={stili.tondo} spento={finito}>
+          <Tocco onPress={() => cambia(15)} etichetta={t('Aggiungi 15 secondi', 'Add 15 seconds')} style={stili.tondo} spento={finito}>
             <Icona nome="piu" size={18} colore="#fff" />
             <Text style={stili.tondoTesto}>15</Text>
           </Tocco>
         </View>
 
         <View style={stili.dopo}>
-          <Text style={stili.dopoEtichetta}>{finito ? 'ORA' : 'DOPO'}</Text>
+          <Text style={stili.dopoEtichetta}>{finito ? t('ORA', 'NOW') : t('DOPO', 'NEXT')}</Text>
           <Text style={stili.dopoTesto}>{prossimo}</Text>
           {dettaglio ? <Text style={stili.dopoDettaglio}>{dettaglio}</Text> : null}
         </View>
 
         <View style={{ width: '100%', maxWidth: 360 }}>
-          <Pulsante testo={finito ? 'Vai' : 'Salta il recupero'} icona="avanti" variante={finito ? 'primario' : 'secondario'} onPress={onChiudi} />
+          <Pulsante testo={finito ? t('Vai', 'Go') : t('Salta il recupero', 'Skip rest')} icona="avanti" variante={finito ? 'primario' : 'secondario'} onPress={onChiudi} />
         </View>
       </View>
     </Modal>

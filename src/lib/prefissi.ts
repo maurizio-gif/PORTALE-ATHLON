@@ -5,6 +5,7 @@
 // scritto vale il primo di `PREFERITO`.
 
 import { PAESI } from './paesi'
+import { t } from './lingua'
 
 export const PREFISSO: Readonly<Record<string, string>> = {
   IT: '39', AF: '93', AL: '355', DZ: '213', AD: '376', AO: '244', AI: '1', AG: '1', SA: '966', AR: '54', AM: '374', AW: '297',
@@ -37,7 +38,7 @@ const PREFERITO: Readonly<Record<string, string>> = { '1': 'US', '7': 'RU', '44'
 
 /** L'elenco della tendina: l'Italia in cima, poi gli altri in ordine alfabetico. */
 export const VOCI_PREFISSO: readonly (readonly [codice: string, nome: string, prefisso: string])[] = [
-  ['IT', 'Italia', '39'],
+  ['IT', t('Italia', 'Italy'), '39'],
   ...PAESI.filter(([c]) => PREFISSO[c]).map(([c, n]) => [c, n, PREFISSO[c]] as const),
 ]
 

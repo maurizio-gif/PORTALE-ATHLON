@@ -5,6 +5,7 @@ import Animated, { FadeIn } from 'react-native-reanimated'
 
 import { messaggioToccato, type DestinazioneBenvenuto, type MessaggioBenvenuto as MessaggioDato } from '@/api/benvenuto'
 import { spazio } from '@/theme'
+import { t } from '@/lib/lingua'
 import { vistaCorrente } from '../vista'
 
 import { Icona } from '../ui/Icona'
@@ -47,7 +48,7 @@ function Attesa() {
   return (
     <Entra indice={1}>
       <Carta style={{ gap: spazio.tre }} piatta>
-        <View accessibilityLabel="Sto scrivendo il tuo messaggio" accessibilityRole="progressbar" style={{ gap: spazio.tre }}>
+        <View accessibilityLabel={t('Sto scrivendo il tuo messaggio', 'Writing your message')} accessibilityRole="progressbar" style={{ gap: spazio.tre }}>
           <View style={stili.testata}>
             <Scheletro altezza={36} larghezza={36} tondo={13} />
             <Scheletro altezza={12} larghezza={90} />
@@ -82,10 +83,10 @@ function CartaMessaggio({ m, onSezione, onNascondi }: { m: MessaggioDato; onSezi
             <Icona nome="stella" size={18} colore="#fff" />
           </LinearGradient>
           <Text style={[stili.etichetta, { color: p.testoTerzo }]} numberOfLines={1}>
-            PER TE
+            {t('PER TE', 'FOR YOU')}
           </Text>
           <View style={{ flex: 1 }} />
-          <Tocco onPress={onNascondi} etichetta="Nascondi il messaggio" scala={0.9} vibra={null}>
+          <Tocco onPress={onNascondi} etichetta={t('Nascondi il messaggio', 'Hide the message')} scala={0.9} vibra={null}>
             <View style={stili.chiudi}>
               <Icona nome="chiudi" size={15} colore={p.testoTerzo} />
             </View>

@@ -18,6 +18,8 @@ import {
 } from '@/api/alimentazione'
 import { presenzeLezioni, storicoAllenamenti, type SedutaStorico } from '@/api/lab'
 import { spazio } from '@/theme'
+// `t` qui sono i totali del giorno: la traduzione si chiama `tx`.
+import { locale, t as tx } from '@/lib/lingua'
 
 import { inMemoria, prendi, ricorda } from '../memoria'
 import { useStatoCorpo } from '../schede/CalorieLezione'
@@ -50,8 +52,8 @@ import { Vetrina } from './Vetrina'
 
 const GIORNI = GIORNI_DIARIO
 
-const intero = (n: number) => Math.round(n).toLocaleString('it-IT')
-const giornoLungo = new Intl.DateTimeFormat('it-IT', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'UTC' })
+const intero = (n: number) => Math.round(n).toLocaleString(locale())
+const giornoLungo = new Intl.DateTimeFormat(locale(), { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'UTC' })
 
 function spostaGiorno(giorno: string, n: number): string {
   const d = new Date(`${giorno}T12:00:00Z`)
@@ -66,8 +68,8 @@ function pastoDellOra(): Pasto {
 }
 
 function nomeGiorno(g: string, oggi: string): string {
-  if (g === oggi) return 'Oggi'
-  if (g === spostaGiorno(oggi, -1)) return 'Ieri'
+  if (g === oggi) return tx('Oggi', 'Today')
+  if (g === spostaGiorno(oggi, -1)) return tx('Ieri', 'Yesterday')
   const s = giornoLungo.format(new Date(`${g}T12:00:00Z`))
   return s.charAt(0).toUpperCase() + s.slice(1)
 }
@@ -112,7 +114,7 @@ function Bilancio({ t, consumo, nascondi, mancaCorpo }: { t: Totali; consumo: { 
             ) : (
               <>
                 <Text style={stili.anelloNumero}>{intero(t.kcal * a)}</Text>
-                <Text style={stili.anelloSotto}>kcal mangiate</Text>
+                <Text style={stili.anelloSotto}>{tx('kcal mangiate', 'kcal eaten')}</Text>
               </>
             )}
           </View>
@@ -120,19 +122,19 @@ function Bilancio({ t, consumo, nascondi, mancaCorpo }: { t: Totali; consumo: { 
         <View style={{ flex: 1, gap: spazio.due }}>
           {nascondi ? (
             <>
-              <Text style={stili.bilancioTitolo}>{t.voci ? `${t.voci} ${t.voci === 1 ? 'cosa scritta' : 'cose scritte'}` : 'Ancora niente'}</Text>
-              <Text style={stili.bilancioTesto}>I numeri sono nascosti: li riaccendi dalle impostazioni, in fondo.</Text>
+              <Text style={stili.bilancioTitolo}>{t.voci ? tx(`${t.voci} ${t.voci === 1 ? 'cosa scritta' : 'cose scritte'}`, `${t.voci} ${t.voci === 1 ? 'item logged' : 'items logged'}`) : tx('Ancora niente', 'Nothing yet')}</Text>
+              <Text style={stili.bilancioTesto}>{tx('I numeri sono nascosti: li riaccendi dalle impostazioni, in fondo.', 'The numbers are hidden: you can turn them back on in the settings, at the bottom.')}</Text>
             </>
           ) : consumo ? (
             <>
               <View>
-                <Text style={stili.bilancioEtichetta}>CONSUMO STIMATO</Text>
+                <Text style={stili.bilancioEtichetta}>{tx('CONSUMO STIMATO', 'ESTIMATED BURN')}</Text>
                 <Text style={stili.bilancioTitolo}>{`${intero(consumo.totale)} kcal`}</Text>
               </View>
-              <Text style={stili.bilancioTesto}>{`Riposo e vita di tutti i giorni ${intero(consumo.riposo)}, allenamento ${intero(consumo.attivita)}.`}</Text>
+              <Text style={stili.bilancioTesto}>{tx(`Riposo e vita di tutti i giorni ${intero(consumo.riposo)}, allenamento ${intero(consumo.attivita)}.`, `Rest and everyday life ${intero(consumo.riposo)}, training ${intero(consumo.attivita)}.`)}</Text>
             </>
           ) : (
-            <Text style={stili.bilancioTesto}>{mancaCorpo ?? 'Calcoliamo il consumo…'}</Text>
+            <Text style={stili.bilancioTesto}>{mancaCorpo ?? tx('Calcoliamo il consumo…', 'Calculating your burn…')}</Text>
           )}
         </View>
       </View>
@@ -146,9 +148,9 @@ function Nutrienti({ t, kg }: { t: Totali; kg: number | null }) {
   const q = ripartizione(t)
   if (!q) return null
   const righe = [
-    { nome: 'Carboidrati', g: t.carboidrati, pct: q.carboidrati, rif: `${LARN.carboidrati[0]}–${LARN.carboidrati[1]}%`, colore: '#F2B84B' },
-    { nome: 'Grassi', g: t.grassi, pct: q.grassi, rif: `${LARN.grassi[0]}–${LARN.grassi[1]}%`, colore: '#FF8A5B' },
-    { nome: 'Proteine', g: t.proteine, pct: q.proteine, rif: kg ? `${(t.proteine / kg).toFixed(1).replace('.', ',')} g/kg` : null, colore: ORTO[1] },
+    { nome: tx('Carboidrati', 'Carbs'), g: t.carboidrati, pct: q.carboidrati, rif: `${LARN.carboidrati[0]}–${LARN.carboidrati[1]}%`, colore: '#F2B84B' },
+    { nome: tx('Grassi', 'Fat'), g: t.grassi, pct: q.grassi, rif: `${LARN.grassi[0]}–${LARN.grassi[1]}%`, colore: '#FF8A5B' },
+    { nome: tx('Proteine', 'Protein'), g: t.proteine, pct: q.proteine, rif: kg ? tx(`${(t.proteine / kg).toFixed(1).replace('.', ',')} g/kg`, `${(t.proteine / kg).toFixed(1)} g/kg`) : null, colore: ORTO[1] },
   ]
   return (
     <Carta style={{ gap: spazio.tre }}>
@@ -159,10 +161,12 @@ function Nutrienti({ t, kg }: { t: Totali; kg: number | null }) {
             <Text style={[stili.nota, { color: p.testoSecondario }]}>{`${intero(r.g)} g · ${intero(r.pct)}%`}</Text>
           </View>
           <Barra valore={r.pct / 100} colore={r.colore} altezza={8} animata ritardo={200 + i * 120} />
-          {r.rif ? <Text style={[stili.piccola, { color: p.testoTerzo }]}>{r.nome === 'Proteine' ? `Oggi ${r.rif} di peso: il riferimento per gli adulti è 0,9, per chi si allena con regolarità 1,2–2.` : `Riferimento per gli adulti: ${r.rif} dell’energia.`}</Text> : null}
+          {r.rif ? <Text style={[stili.piccola, { color: p.testoTerzo }]}>{r.nome === tx('Proteine', 'Protein')
+                ? tx(`Oggi ${r.rif} di peso: il riferimento per gli adulti è 0,9, per chi si allena con regolarità 1,2–2.`, `Today ${r.rif} of body weight: the reference for adults is 0.9, for people who train regularly 1.2–2.`)
+                : tx(`Riferimento per gli adulti: ${r.rif} dell’energia.`, `Reference for adults: ${r.rif} of energy.`)}</Text> : null}
         </View>
       ))}
-      <Text style={[stili.piccola, { color: p.testoTerzo }]}>{`Fibre ${intero(t.fibre)} g (riferimento: almeno 25 g al giorno). Riferimenti: SINU, LARN 2014; ACSM 2016.`}</Text>
+      <Text style={[stili.piccola, { color: p.testoTerzo }]}>{tx(`Fibre ${intero(t.fibre)} g (riferimento: almeno 25 g al giorno). Riferimenti: SINU, LARN 2014; ACSM 2016.`, `Fiber ${intero(t.fibre)} g (reference: at least 25 g a day). References: SINU, LARN 2014; ACSM 2016.`)}</Text>
     </Carta>
   )
 }
@@ -182,21 +186,21 @@ function CartaPasto({ nome, voci, nascondi, onAggiungi, onFoto, onTogli }: { nom
             <Text style={[stili.nome, { color: p.testo }]}>{v.nome}</Text>
             {nascondi && v.origine !== 'foto' ? null : (
               <Text style={[stili.nota, { color: p.testoSecondario }]}>
-                {[nascondi ? null : `${intero(v.grammi)} g · ${intero(v.kcal)} kcal`, v.origine === 'foto' ? 'dalla foto' : null].filter(Boolean).join(' · ')}
+                {[nascondi ? null : `${intero(v.grammi)} g · ${intero(v.kcal)} kcal`, v.origine === 'foto' ? tx('dalla foto', 'from photo') : null].filter(Boolean).join(' · ')}
               </Text>
             )}
           </View>
-          <Tocco onPress={() => onTogli(v)} etichetta={`Togli ${v.nome}`} style={[stili.tondo, { backgroundColor: p.incavo }]}>
+          <Tocco onPress={() => onTogli(v)} etichetta={tx(`Togli ${v.nome}`, `Remove ${v.nome}`)} style={[stili.tondo, { backgroundColor: p.incavo }]}>
             <Icona nome="cestino" size={16} colore={p.testoSecondario} />
           </Tocco>
         </View>
       ))}
       <View style={stili.azioni}>
         <View style={{ flex: 1 }}>
-          <Pulsante testo="Aggiungi" icona="piu" variante="secondario" piccolo onPress={onAggiungi} />
+          <Pulsante testo={tx('Aggiungi', 'Add')} icona="piu" variante="secondario" piccolo onPress={onAggiungi} />
         </View>
         <View style={{ flex: 1 }}>
-          <Pulsante testo="Foto" icona="fotocamera" variante="secondario" piccolo onPress={onFoto} />
+          <Pulsante testo={tx('Foto', 'Photo')} icona="fotocamera" variante="secondario" piccolo onPress={onFoto} />
         </View>
       </View>
     </Carta>
@@ -276,12 +280,12 @@ function Diario({ profilo, onProfilo, onRevocato }: { profilo: Profilo; onProfil
   const mancaCorpo =
     corpo.stato === 'mancano-dati'
       ? corpo.motivo === 'misure'
-        ? 'Per il consumo stimato servono peso e altezza: li aggiungi in «Il tuo corpo».'
+        ? tx('Per il consumo stimato servono peso e altezza: li aggiungi in «Il tuo corpo».', 'For the estimated burn we need your weight and height: add them in “Your body”.')
         : corpo.motivo === 'sesso'
-          ? 'Per il consumo stimato serve sapere se calcolare come uomo o come donna: lo scegli in un piano di allenamento.'
-          : 'Per il consumo stimato manca la data di nascita nella tua scheda del club.'
+          ? tx('Per il consumo stimato serve sapere se calcolare come uomo o come donna: lo scegli in un piano di allenamento.', 'For the estimated burn we need to know whether to calculate as a man or a woman: you choose it in a workout plan.')
+          : tx('Per il consumo stimato manca la data di nascita nella tua scheda del club.', 'For the estimated burn, your date of birth is missing from your club account.')
       : corpo.stato === 'no'
-        ? 'Il consumo stimato usa una formula per gli adulti.'
+        ? tx('Il consumo stimato usa una formula per gli adulti.', 'The estimated burn uses a formula for adults.')
         : null
 
   // I consigli: la media dei giorni scritti nell'ultima settimana, e le attivita' delle ultime quattro.
@@ -331,11 +335,11 @@ function Diario({ profilo, onProfilo, onRevocato }: { profilo: Profilo; onProfil
     <>
       <Entra indice={0}>
         <View style={stili.giorni}>
-          <Tocco onPress={() => setGiorno(spostaGiorno(giorno, -1))} spento={giorno <= spostaGiorno(oggi, -(GIORNI - 1))} etichetta="Giorno prima" style={[stili.tondo, { backgroundColor: p.carta }]}>
+          <Tocco onPress={() => setGiorno(spostaGiorno(giorno, -1))} spento={giorno <= spostaGiorno(oggi, -(GIORNI - 1))} etichetta={tx('Giorno prima', 'Previous day')} style={[stili.tondo, { backgroundColor: p.carta }]}>
             <Icona nome="indietro" size={18} colore={p.testo} />
           </Tocco>
           <Text style={[stili.titoletto, { color: p.testo }]}>{nomeGiorno(giorno, oggi)}</Text>
-          <Tocco onPress={() => setGiorno(spostaGiorno(giorno, 1))} spento={giorno >= oggi} etichetta="Giorno dopo" style={[stili.tondo, { backgroundColor: p.carta, opacity: giorno >= oggi ? 0.3 : 1 }]}>
+          <Tocco onPress={() => setGiorno(spostaGiorno(giorno, 1))} spento={giorno >= oggi} etichetta={tx('Giorno dopo', 'Next day')} style={[stili.tondo, { backgroundColor: p.carta, opacity: giorno >= oggi ? 0.3 : 1 }]}>
             <Icona nome="avanti" size={18} colore={p.testo} />
           </Tocco>
         </View>
@@ -353,14 +357,14 @@ function Diario({ profilo, onProfilo, onRevocato }: { profilo: Profilo; onProfil
         <>
           {!nascondi && totali.voci ? (
             <Entra indice={2}>
-              <Sezione titolo="I nutrienti">
+              <Sezione titolo={tx('I nutrienti', 'Nutrients')}>
                 <Nutrienti key={giorno} t={totali} kg={corpo.stato === 'ok' ? corpo.corpo.kg : null} />
               </Sezione>
             </Entra>
           ) : null}
 
           <Entra indice={3}>
-            <Sezione titolo="I pasti">
+            <Sezione titolo={tx('I pasti', 'Meals')}>
               <View style={{ gap: spazio.tre }}>
                 {PASTI.map((x) => (
                   <CartaPasto key={x.id} nome={x.nome} voci={pasti[x.id]} nascondi={nascondi} onAggiungi={() => setAggiungi(x.id)} onFoto={() => setFoto(x.id)} onTogli={togli} />
@@ -373,7 +377,7 @@ function Diario({ profilo, onProfilo, onRevocato }: { profilo: Profilo; onProfil
 
       {consigli.length ? (
         <Entra indice={4}>
-          <Sezione titolo="Per te">
+          <Sezione titolo={tx('Per te', 'For you')}>
             <View style={{ gap: spazio.tre }}>
               {consigli.map((c) => (
                 <Carta key={c.id} style={stili.consiglio}>
@@ -391,21 +395,21 @@ function Diario({ profilo, onProfilo, onRevocato }: { profilo: Profilo; onProfil
       ) : null}
 
       <Entra indice={5}>
-        <Sezione titolo="Impostazioni">
+        <Sezione titolo={tx('Impostazioni', 'Settings')}>
           <Carta style={{ gap: spazio.due }}>
-            <Pulsante testo="Rifai il questionario" variante="secondario" icona="aggiorna" onPress={() => setQuestionario(true)} />
-            <Pulsante testo={nascondi ? 'Mostra calorie e grammi' : 'Nascondi calorie e grammi'} variante="secondario" onPress={cambiaNumeri} inCorso={inCorsoNumeri} />
+            <Pulsante testo={tx('Rifai il questionario', 'Retake the questionnaire')} variante="secondario" icona="aggiorna" onPress={() => setQuestionario(true)} />
+            <Pulsante testo={nascondi ? tx('Mostra calorie e grammi', 'Show calories and grams') : tx('Nascondi calorie e grammi', 'Hide calories and grams')} variante="secondario" onPress={cambiaNumeri} inCorso={inCorsoNumeri} />
             {revoca === 'no' ? (
-              <Pulsante testo="Revoca il consenso e cancella i dati" variante="pericolo" onPress={() => setRevoca('chiedi')} />
+              <Pulsante testo={tx('Revoca il consenso e cancella i dati', 'Withdraw consent and delete the data')} variante="pericolo" onPress={() => setRevoca('chiedi')} />
             ) : (
               <View style={{ gap: spazio.due }}>
-                <Text style={[stili.nota, { color: p.testo }]}>Cancelliamo subito il diario, il questionario e il registro delle foto, e la sezione si richiude. Resta solo la registrazione del consenso e della revoca.</Text>
+                <Text style={[stili.nota, { color: p.testo }]}>{tx('Cancelliamo subito il diario, il questionario e il registro delle foto, e la sezione si richiude. Resta solo la registrazione del consenso e della revoca.', 'We’ll immediately delete the diary, the questionnaire and the photo log, and the section closes. Only the record of your consent and withdrawal remains.')}</Text>
                 <View style={stili.azioni}>
                   <View style={{ flex: 1 }}>
-                    <Pulsante testo="Annulla" variante="secondario" piccolo onPress={() => setRevoca('no')} />
+                    <Pulsante testo={tx('Annulla', 'Cancel')} variante="secondario" piccolo onPress={() => setRevoca('no')} />
                   </View>
                   <View style={{ flex: 1 }}>
-                    <Pulsante testo="Revoca e cancella" variante="pericolo" piccolo inCorso={revoca === 'in-corso'} onPress={revocaTutto} />
+                    <Pulsante testo={tx('Revoca e cancella', 'Withdraw and delete')} variante="pericolo" piccolo inCorso={revoca === 'in-corso'} onPress={revocaTutto} />
                   </View>
                 </View>
               </View>
@@ -415,7 +419,10 @@ function Diario({ profilo, onProfilo, onRevocato }: { profilo: Profilo; onProfil
       </Entra>
 
       <Text style={[stili.piccola, { color: p.testoTerzo, paddingHorizontal: 2 }]}>
-        Sono stime: i valori degli alimenti sono medi, la foto può sbagliare le quantità e il consumo è calcolato con le stesse formule del contatore delle calorie. È educazione alimentare, non una dieta né un parere medico: per un piano su misura serve un professionista.
+        {tx(
+          'Sono stime: i valori degli alimenti sono medi, la foto può sbagliare le quantità e il consumo è calcolato con le stesse formule del contatore delle calorie. È educazione alimentare, non una dieta né un parere medico: per un piano su misura serve un professionista.',
+          'These are estimates: food values are averages, the photo can get the amounts wrong, and the burn is calculated with the same formulas as the calorie counter. This is nutrition education, not a diet or medical advice: for a plan tailored to you, you need a professional.',
+        )}
       </Text>
 
       <AggiungiAlimento aperto={!!aggiungi} data={giorno} pasto={aggiungi ?? 'pranzo'} catalogo={catalogo} nascondiNumeri={nascondi} onChiudi={() => setAggiungi(null)} onAggiunte={aggiorna} />
@@ -452,13 +459,13 @@ export function Alimentazione() {
     })
   }
 
-  const testata = { sopratitolo: 'Food', titolo: 'Il diario', indietro: '/allenamento?area=food' as const, barra: false }
+  const testata = { sopratitolo: 'Food', titolo: tx('Il diario', 'Your diary'), indietro: '/allenamento?area=food' as const, barra: false }
 
   if (vista) {
     return (
       <Schermata {...testata}>
-        <Messaggio tono="attenzione" titolo="Non visibile nella vista cliente">
-          L’alimentazione contiene dati sulla salute: la vede solo il socio, dalla sua app.
+        <Messaggio tono="attenzione" titolo={tx('Non visibile nella vista cliente', 'Not visible in client view')}>
+          {tx('L’alimentazione contiene dati sulla salute: la vede solo il socio, dalla sua app.', 'Nutrition contains health data: only the member can see it, from their own app.')}
         </Messaggio>
       </Schermata>
     )
@@ -474,7 +481,7 @@ export function Alimentazione() {
     return (
       <Schermata {...testata}>
         <Messaggio>{stato.errore}</Messaggio>
-        <Pulsante testo="Riprova" variante="secondario" onPress={() => statoAlimentazione().then(setStato)} />
+        <Pulsante testo={tx('Riprova', 'Try again')} variante="secondario" onPress={() => statoAlimentazione().then(setStato)} />
       </Schermata>
     )
   }
@@ -482,9 +489,9 @@ export function Alimentazione() {
     return (
       <Schermata {...testata}>
         <Carta style={{ gap: spazio.due }}>
-          <Text style={[stili.titoletto, { color: p.testo }]}>Una sezione per i maggiorenni</Text>
+          <Text style={[stili.titoletto, { color: p.testo }]}>{tx('Una sezione per i maggiorenni', 'A section for adults')}</Text>
           <Text style={[stili.nota, { color: p.testoSecondario }]}>
-            L’alimentazione è pensata per gli adulti. Se nella tua scheda del club manca la data di nascita, chiedi al desk di aggiungerla.
+            {tx('L’alimentazione è pensata per gli adulti. Se nella tua scheda del club manca la data di nascita, chiedi al desk di aggiungerla.', 'Nutrition is designed for adults. If your date of birth is missing from your club account, ask the front desk to add it.')}
           </Text>
         </Carta>
       </Schermata>
@@ -507,7 +514,7 @@ export function Alimentazione() {
   if (!stato.profilo) {
     return (
       <Schermata {...testata}>
-        <Text style={[stili.nota, { color: p.testoSecondario, paddingHorizontal: 2 }]}>Nove domande, un minuto: servono a scegliere i consigli per te.</Text>
+        <Text style={[stili.nota, { color: p.testoSecondario, paddingHorizontal: 2 }]}>{tx('Nove domande, un minuto: servono a scegliere i consigli per te.', 'Nine questions, one minute: they help us choose the tips for you.')}</Text>
         <QuestionarioAlimentazione onFatto={(profilo) => aggiornaStato((s) => ({ ...s, profilo }))} />
       </Schermata>
     )

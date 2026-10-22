@@ -3,6 +3,7 @@ import { router } from 'expo-router'
 import { StyleSheet, Text, View } from 'react-native'
 
 import { spazio } from '@/theme'
+import { t } from '@/lib/lingua'
 
 import { Icona } from '../ui/Icona'
 import { Carta, Entra } from '../ui/kit'
@@ -18,13 +19,13 @@ export function CartaShop() {
   return (
     <Entra indice={2}>
       <Carta onPress={() => router.navigate('/shop')}>
-        <View style={stili.riga} accessibilityRole="link" accessibilityLabel="Shop. Articoli e merchandising del club: paghi online, ritiri in segreteria.">
+        <View style={stili.riga} accessibilityRole="link" accessibilityLabel={t('Shop. Articoli e merchandising del club: paghi online, ritiri in segreteria.', 'Shop. Club items and merchandise: pay online, pick up at the front desk.')}>
           <LinearGradient colors={FUOCO} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={stili.bollino}>
             <Icona nome="sacchetto" size={24} colore="#fff" />
           </LinearGradient>
           <View style={stili.testi}>
             <Text style={[stili.titolo, { color: p.testo }]}>Shop</Text>
-            <Text style={[stili.sotto, { color: p.testoSecondario }]}>Articoli e merchandising del club. Paghi online, ritiri in segreteria.</Text>
+            <Text style={[stili.sotto, { color: p.testoSecondario }]}>{t('Articoli e merchandising del club. Paghi online, ritiri in segreteria.', 'Club items and merchandise. Pay online, pick up at the front desk.')}</Text>
           </View>
           <Icona nome="avanti" size={18} colore={p.testoTerzo} />
         </View>

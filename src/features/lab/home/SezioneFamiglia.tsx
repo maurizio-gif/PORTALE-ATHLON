@@ -3,6 +3,7 @@ import { Text, View } from 'react-native'
 import type { Area } from '@/api/lab'
 import { dataBreve } from '@/lib/metodoPagamento'
 import { spazio } from '@/theme'
+import { t } from '@/lib/lingua'
 
 import { Avatar, Carta, Etichetta, Riga } from '../ui/kit'
 import { BollinoDebito } from '../ui/Irregolarita'
@@ -31,10 +32,10 @@ export function SezioneFamiglia({ area }: { area: AreaTrovata }) {
               sotto={
                 <View style={{ gap: 6, alignItems: 'flex-start' }}>
                   <Text style={{ color: p.testoSecondario, fontFamily: F.medio, fontSize: 13.5 }}>
-                    {[x.titolare ? 'Tu, titolare' : 'Familiare', dataBreve(x.data_nascita) ? `nato/a il ${dataBreve(x.data_nascita)}` : null].filter(Boolean).join(' · ')}
+                    {[x.titolare ? t('Tu, titolare', 'You, account holder') : t('Familiare', 'Family member'), dataBreve(x.data_nascita) ? t(`nato/a il ${dataBreve(x.data_nascita)}`, `born ${dataBreve(x.data_nascita)}`) : null].filter(Boolean).join(' · ')}
                   </Text>
                   <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
-                    <Etichetta testo={`Certificato: ${s.testo.toLowerCase()}`} tono={s.tono} />
+                    <Etichetta testo={t(`Certificato: ${s.testo.toLowerCase()}`, `Certificate: ${s.testo.toLowerCase()}`)} tono={s.tono} />
                     <BollinoDebito debito={x.debito} />
                   </View>
                 </View>
@@ -45,7 +46,7 @@ export function SezioneFamiglia({ area }: { area: AreaTrovata }) {
       </Carta>
       {area.persone.length === 1 ? (
         <Text style={{ color: p.testoTerzo, fontFamily: F.medio, fontSize: 13, lineHeight: 19, paddingHorizontal: 4 }}>
-          Sulla tua scheda non ci sono altre persone: i familiari iscritti al club compaiono qui.
+          {t('Sulla tua scheda non ci sono altre persone: i familiari iscritti al club compaiono qui.', 'There is no one else on your account: family members registered with the club show up here.')}
         </Text>
       ) : null}
     </View>

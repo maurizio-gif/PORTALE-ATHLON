@@ -1,6 +1,7 @@
 import { CRM_URL, SUPABASE_URL } from '@/config'
 
 import type { Calendario, GiornoPrenotabile } from './appuntamenti'
+import { t } from '@/lib/lingua'
 
 // I moduli di Club Life nell'app: chi e' dentro scrive il suo, e l'app manda la
 // stessa richiesta che manda il sito. Le rotte sono le stesse (il CRM per gli
@@ -14,7 +15,7 @@ import type { Calendario, GiornoPrenotabile } from './appuntamenti'
 
 export type Esito<T = unknown> = ({ ok: true } & T) | { ok: false; errore: string; slotOccupato?: boolean }
 
-const ERRORE_RETE = 'Connessione non riuscita. Controlla la rete e riprova.'
+const ERRORE_RETE = t('Connessione non riuscita. Controlla la rete e riprova.', 'Connection failed. Check your network and try again.')
 
 async function chiama(url: string, init: RequestInit): Promise<{ ok: boolean; stato: number; dati: Record<string, any> }> {
   try {
@@ -42,7 +43,7 @@ const RADICE: Record<Calendario, string> = {
 export async function orariLiberi(calendario: Calendario): Promise<Esito<{ durataMinuti: number; giorni: GiornoPrenotabile[] }>> {
   const r = await chiama(`${CRM_URL}${RADICE[calendario]}/slot`, { headers: { Accept: 'application/json' }, cache: 'no-store' })
   if (r.ok && Array.isArray(r.dati.giorni)) return { ok: true, durataMinuti: Number(r.dati.durataMinuti ?? 10), giorni: r.dati.giorni }
-  return { ok: false, errore: r.dati.errore ?? 'Non riusciamo a leggere gli orari disponibili. Riprova fra poco.' }
+  return { ok: false, errore: r.dati.errore ?? t('Non riusciamo a leggere gli orari disponibili. Riprova fra poco.', 'We can’t load the available times. Try again shortly.') }
 }
 
 export type DatiChiamata = {
@@ -58,7 +59,7 @@ export type DatiChiamata = {
 export async function prenotaDesk(d: DatiChiamata & { oggetto: string }): Promise<Esito<{ data: string; ora: string }>> {
   const r = await postJson(`${CRM_URL}${RADICE.desk}`, { ...d, pagina: '/club-life', origine: 'app', cta: 'club-life-modulo' })
   if (r.ok && r.dati.ok) return { ok: true, data: String(r.dati.data ?? d.data), ora: String(r.dati.ora ?? d.ora) }
-  return { ok: false, errore: r.dati.errore ?? 'Non riusciamo a registrare l’appuntamento. Riprova fra poco.', slotOccupato: r.dati.slotOccupato === true }
+  return { ok: false, errore: r.dati.errore ?? t('Non riusciamo a registrare l’appuntamento. Riprova fra poco.', 'We can’t register the appointment. Try again shortly.'), slotOccupato: r.dati.slotOccupato === true }
 }
 
 /** L'appuntamento col Direttore Tecnico: il bambino di cui si parla e il motivo, in due parole. */
@@ -67,7 +68,7 @@ export async function prenotaNuoto(
 ): Promise<Esito<{ data: string; ora: string }>> {
   const r = await postJson(`${CRM_URL}${RADICE.nuoto}`, { ...d, pagina: '/club-life', origine: 'app', cta: 'club-life-modulo' })
   if (r.ok && r.dati.ok) return { ok: true, data: String(r.dati.data ?? d.data), ora: String(r.dati.ora ?? d.ora) }
-  return { ok: false, errore: r.dati.errore ?? 'Non riusciamo a registrare l’appuntamento. Riprova fra poco.', slotOccupato: r.dati.slotOccupato === true }
+  return { ok: false, errore: r.dati.errore ?? t('Non riusciamo a registrare l’appuntamento. Riprova fra poco.', 'We can’t register the appointment. Try again shortly.'), slotOccupato: r.dati.slotOccupato === true }
 }
 
 // ---------------------------------------------------------------------------
@@ -93,7 +94,7 @@ export async function scriviAlClub(d: {
     origine: 'app-club-life',
   })
   if (r.ok) return { ok: true }
-  return { ok: false, errore: r.dati.errore ?? r.dati.message ?? 'Non siamo riusciti a inviare il messaggio. Riprova fra qualche minuto.' }
+  return { ok: false, errore: r.dati.errore ?? r.dati.message ?? t('Non siamo riusciti a inviare il messaggio. Riprova fra qualche minuto.', 'We couldn’t send the message. Try again in a few minutes.') }
 }
 
 // ---------------------------------------------------------------------------
@@ -103,7 +104,7 @@ export async function scriviAlClub(d: {
 export async function richiediCambioAbbonamento(d: { email: string; decorrenza: string; abbonamento: string; richiesteExtra: string }): Promise<Esito> {
   const r = await postJson(`${SUPABASE_URL}/functions/v1/sito-cambio-abbonamento`, { ...d, pagina: '/club-life' })
   if (r.ok && r.dati.ok) return { ok: true }
-  return { ok: false, errore: r.dati.errore ?? 'Non siamo riusciti a inviare la richiesta. Riprova fra qualche minuto.' }
+  return { ok: false, errore: r.dati.errore ?? t('Non siamo riusciti a inviare la richiesta. Riprova fra qualche minuto.', 'We couldn’t send the request. Try again in a few minutes.') }
 }
 
 // ---------------------------------------------------------------------------
@@ -113,5 +114,5 @@ export async function richiediCambioAbbonamento(d: { email: string; decorrenza: 
 export async function richiediLinkEvento(slug: string, email: string): Promise<Esito> {
   const r = await postJson(`${CRM_URL}/api/eventi/richiesta`, { email, evento: slug })
   if (r.ok && r.dati.ok) return { ok: true }
-  return { ok: false, errore: r.dati.errore ?? 'Non siamo riusciti a inviare il link. Riprova fra qualche minuto.' }
+  return { ok: false, errore: r.dati.errore ?? t('Non siamo riusciti a inviare il link. Riprova fra qualche minuto.', 'We couldn’t send the link. Try again in a few minutes.') }
 }

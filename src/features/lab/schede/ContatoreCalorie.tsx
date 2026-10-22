@@ -6,6 +6,7 @@ import Animated, { Easing, useAnimatedStyle, useReducedMotion, useSharedValue, w
 import Svg, { Circle, Defs, Line, Path, RadialGradient, Stop, LinearGradient as SvgGradient } from 'react-native-svg'
 
 import { presenzeLezioni, storicoAllenamenti, type PresenzaLezione, type SchedaLezione, type SedutaStorico } from '@/api/lab'
+import { locale, t, tv } from '@/lib/lingua'
 import { spazio } from '@/theme'
 
 import { inMemoria, prendi } from '../memoria'
@@ -40,10 +41,10 @@ import { CHIAVE_STORICO } from './Storico'
 export const CHIAVE_PRESENZE = 'calorie:presenze'
 export type Presenze = { ok: true; presenze: PresenzaLezione[]; schede: Record<string, SchedaLezione> }
 
-const intero = (n: number) => Math.round(n).toLocaleString('it-IT')
+const intero = (n: number) => Math.round(n).toLocaleString(locale())
 const COLORI_TIPI = ['#FF5701', '#2F6BFF', '#34C38F', '#8B5CF6', '#F2B84B', '#F06292', '#14B8A6', '#94A3B8']
-const giornoCorto = new Intl.DateTimeFormat('it-IT', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' })
-const dataCorta = new Intl.DateTimeFormat('it-IT', { day: 'numeric', month: 'short', timeZone: 'UTC' })
+const giornoCorto = new Intl.DateTimeFormat(locale(), { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' })
+const dataCorta = new Intl.DateTimeFormat(locale(), { day: 'numeric', month: 'short', timeZone: 'UTC' })
 const quando = (giorno: string) => giornoCorto.format(new Date(`${giorno}T12:00:00Z`))
 const dataBreve = (giorno: string) => dataCorta.format(new Date(`${giorno}T12:00:00Z`))
 
@@ -141,7 +142,7 @@ function Scintilla({ indice }: { indice: number }) {
 }
 
 function Anelli({ c }: { c: Contatore }) {
-  const t = useProgresso(1700, 250)
+  const avanz = useProgresso(1700, 250)
   const D = 228
   const fuori = { r: 98, w: 18 }
   const dentro = { r: 72, w: 14 }
@@ -150,14 +151,14 @@ function Anelli({ c }: { c: Contatore }) {
   const quotaOggi = Math.min(1, c.oggi.totale / giornoMedio)
   const arco = (r: number, quota: number) => {
     const l = 2 * Math.PI * r
-    return { strokeDasharray: `${l} ${l}`, strokeDashoffset: l * (1 - Math.max(0.001, quota * t)) }
+    return { strokeDasharray: `${l} ${l}`, strokeDashoffset: l * (1 - Math.max(0.001, quota * avanz)) }
   }
   return (
     <View style={{ width: D, height: D, alignItems: 'center', justifyContent: 'center' }}>
       <Svg width={D} height={D} style={StyleSheet.absoluteFill}>
         <Defs>
           <RadialGradient id="alone" cx="50%" cy="50%" r="50%">
-            <Stop offset="0" stopColor="#FF5701" stopOpacity={0.35 * t} />
+            <Stop offset="0" stopColor="#FF5701" stopOpacity={0.35 * avanz} />
             <Stop offset="1" stopColor="#FF5701" stopOpacity={0} />
           </RadialGradient>
           <SvgGradient id="fuoco" x1="0" y1="0" x2="1" y2="1">
@@ -196,10 +197,10 @@ function Anelli({ c }: { c: Contatore }) {
           {...arco(dentro.r, quotaOggi)}
         />
       </Svg>
-      <Text style={stili.numeroGrande} accessibilityLabel={`${intero(c.settimana.totale)} chilocalorie questa settimana`}>
-        {intero(c.settimana.totale * t)}
+      <Text style={stili.numeroGrande} accessibilityLabel={t(`${intero(c.settimana.totale)} chilocalorie questa settimana`, `${intero(c.settimana.totale)} kilocalories this week`)}>
+        {intero(c.settimana.totale * avanz)}
       </Text>
-      <Text style={stili.numeroUnita}>kcal questa settimana</Text>
+      <Text style={stili.numeroUnita}>{t('kcal questa settimana', 'kcal this week')}</Text>
     </View>
   )
 }
@@ -212,19 +213,19 @@ function Variazione({ ora, prima }: { ora: number; prima: number }) {
 }
 
 function Testata({ c }: { c: Contatore }) {
-  const t = useProgresso(1200, 900)
+  const avanz = useProgresso(1200, 900)
   return (
     <LinearGradient colors={NOTTE} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={stili.testata}>
       <View style={stili.testataRiga}>
         <Fiamma />
         <View style={{ flex: 1 }}>
-          <Text style={stili.testataTitolo}>Il tuo contatore</Text>
-          <Text style={stili.testataSotto}>Allenamenti chiusi e lezioni con la presenza</Text>
+          <Text style={stili.testataTitolo}>{t('Il tuo contatore', 'Your counter')}</Text>
+          <Text style={stili.testataSotto}>{t('Allenamenti chiusi e lezioni con la presenza', 'Finished workouts and attended classes')}</Text>
         </View>
         {c.recordOra ? (
           <View style={stili.record}>
             <Icona nome="stella" size={13} colore="#fff" />
-            <Text style={stili.recordTesto}>Record</Text>
+            <Text style={stili.recordTesto}>{t('Record', 'Record')}</Text>
           </View>
         ) : null}
       </View>
@@ -233,22 +234,22 @@ function Testata({ c }: { c: Contatore }) {
       </View>
       <View style={stili.legendaAnelli}>
         <View style={[stili.puntino, { backgroundColor: '#FF5701' }]} />
-        <Text style={stili.legendaTesto}>{c.record > 0 ? `${Math.round((c.settimana.totale / c.record) * 100)}% della tua settimana migliore` : 'La settimana'}</Text>
+        <Text style={stili.legendaTesto}>{c.record > 0 ? t(`${Math.round((c.settimana.totale / c.record) * 100)}% della tua settimana migliore`, `${Math.round((c.settimana.totale / c.record) * 100)}% of your best week`) : t('La settimana', 'The week')}</Text>
         <View style={[stili.puntino, { backgroundColor: '#2F6BFF', marginLeft: spazio.due }]} />
-        <Text style={stili.legendaTesto}>oggi</Text>
+        <Text style={stili.legendaTesto}>{t('oggi', 'today')}</Text>
       </View>
-      <View style={[stili.chip3, { opacity: t, transform: [{ translateY: (1 - t) * 12 }] }]}>
+      <View style={[stili.chip3, { opacity: avanz, transform: [{ translateY: (1 - avanz) * 12 }] }]}>
         <View style={stili.chip}>
           <Text style={stili.chipValore}>{intero(c.oggi.totale)}</Text>
-          <Text style={stili.chipEtichetta}>kcal oggi</Text>
+          <Text style={stili.chipEtichetta}>{t('kcal oggi', 'kcal today')}</Text>
         </View>
         <View style={stili.chip}>
           <Variazione ora={c.settimana.totale} prima={c.scorsaAllaPari} />
-          <Text style={stili.chipEtichetta}>sulla settimana scorsa</Text>
+          <Text style={stili.chipEtichetta}>{t('sulla settimana scorsa', 'vs last week')}</Text>
         </View>
         <View style={stili.chip}>
           <Text style={stili.chipValore}>{c.settimana.voci}</Text>
-          <Text style={stili.chipEtichetta}>attività in settimana</Text>
+          <Text style={stili.chipEtichetta}>{t('attività in settimana', c.settimana.voci === 1 ? 'activity this week' : 'activities this week')}</Text>
         </View>
       </View>
     </LinearGradient>
@@ -258,12 +259,12 @@ function Testata({ c }: { c: Contatore }) {
 // ---------------------------------------------------------------------------
 // I sette giorni
 
-const SIGLE = ['L', 'M', 'M', 'G', 'V', 'S', 'D']
+const SIGLE = tv(['L', 'M', 'M', 'G', 'V', 'S', 'D'], ['M', 'T', 'W', 'T', 'F', 'S', 'S'])
 
 function Settimana({ c }: { c: Contatore }) {
   const p = usePalette()
   const [ref, visibile] = useVisibile()
-  const t = useProgresso(1300, 150, visibile)
+  const avanz = useProgresso(1300, 150, visibile)
   const ALTO = 150
   const massimo = Math.max(1, ...c.settimanaGiorni.map((g) => g.totale))
   return (
@@ -271,7 +272,7 @@ function Settimana({ c }: { c: Contatore }) {
       <Carta style={{ gap: spazio.tre }}>
         <View style={stili.barre}>
           {c.settimanaGiorni.map((g, i) => {
-            const k = scalino(t, i, 7)
+            const k = scalino(avanz, i, 7)
             const oggi = g.giorno === c.oggi.giorno
             const hSchede = (g.schede / massimo) * ALTO * k
             const hLezioni = (g.lezioni / massimo) * ALTO * k
@@ -293,9 +294,9 @@ function Settimana({ c }: { c: Contatore }) {
         </View>
         <View style={stili.legenda}>
           <View style={[stili.puntino, { backgroundColor: p.accento }]} />
-          <Text style={[stili.piccola, { color: p.testoSecondario }]}>Allenamenti</Text>
+          <Text style={[stili.piccola, { color: p.testoSecondario }]}>{t('Allenamenti', 'Workouts')}</Text>
           <View style={[stili.puntino, { backgroundColor: p.blu, marginLeft: spazio.due }]} />
-          <Text style={[stili.piccola, { color: p.testoSecondario }]}>Lezioni</Text>
+          <Text style={[stili.piccola, { color: p.testoSecondario }]}>{t('Lezioni', 'Classes')}</Text>
         </View>
       </Carta>
     </View>
@@ -308,7 +309,7 @@ function Settimana({ c }: { c: Contatore }) {
 function Andamento({ c }: { c: Contatore }) {
   const p = usePalette()
   const [ref, visibile] = useVisibile()
-  const t = useProgresso(1800, 150, visibile)
+  const avanz = useProgresso(1800, 150, visibile)
   const [larghezza, setLarghezza] = useState(0)
   const ALTO = 170
   const M = { sopra: 20, sotto: 24, lati: 18 }
@@ -343,26 +344,26 @@ function Andamento({ c }: { c: Contatore }) {
             <Svg width={larghezza} height={ALTO}>
               <Defs>
                 <SvgGradient id="sotto" x1="0" y1="0" x2="0" y2="1">
-                  <Stop offset="0" stopColor="#FF5701" stopOpacity={0.32 * t} />
+                  <Stop offset="0" stopColor="#FF5701" stopOpacity={0.32 * avanz} />
                   <Stop offset="1" stopColor="#FF5701" stopOpacity={0} />
                 </SvgGradient>
               </Defs>
-              {media > 0 ? <Line x1={M.lati} x2={larghezza - M.lati} y1={yMedia} y2={yMedia} stroke={p.testoTerzo} strokeWidth={1} strokeDasharray="4 6" opacity={t} /> : null}
+              {media > 0 ? <Line x1={M.lati} x2={larghezza - M.lati} y1={yMedia} y2={yMedia} stroke={p.testoTerzo} strokeWidth={1} strokeDasharray="4 6" opacity={avanz} /> : null}
               {area ? <Path d={area} fill="url(#sotto)" /> : null}
-              <Path d={linea} stroke="#FF5701" strokeWidth={3.5} fill="none" strokeLinecap="round" strokeLinejoin="round" strokeDasharray={`${lunghezza} ${lunghezza}`} strokeDashoffset={lunghezza * (1 - t)} />
+              <Path d={linea} stroke="#FF5701" strokeWidth={3.5} fill="none" strokeLinecap="round" strokeLinejoin="round" strokeDasharray={`${lunghezza} ${lunghezza}`} strokeDashoffset={lunghezza * (1 - avanz)} />
               {xy.map(([x, y], i) => {
-                const k = Math.min(1, Math.max(0, (t - i / xy.length) * xy.length * 0.6))
+                const k = Math.min(1, Math.max(0, (avanz - i / xy.length) * xy.length * 0.6))
                 const corrente = i === xy.length - 1
                 return <Circle key={i} cx={x} cy={y} r={(corrente ? 6 : 3.5) * k} fill={corrente ? '#FF5701' : p.carta} stroke="#FF5701" strokeWidth={2.5} />
               })}
-              {ultimo ? <Circle cx={ultimo[0]} cy={ultimo[1]} r={14 * t} fill="#FF5701" opacity={0.16} /> : null}
+              {ultimo ? <Circle cx={ultimo[0]} cy={ultimo[1]} r={14 * avanz} fill="#FF5701" opacity={0.16} /> : null}
             </Svg>
           ) : null}
         </View>
         <View style={stili.assi}>
-          <Text style={[stili.piccola, { color: p.testoTerzo }]}>{`dal ${dataBreve(c.settimane[0].lunedi)}`}</Text>
-          {media > 0 ? <Text style={[stili.piccola, { color: p.testoTerzo }]}>{`- - media ${intero(media)} kcal`}</Text> : null}
-          <Text style={[stili.piccola, { color: p.accento, fontFamily: F.extra }]}>questa</Text>
+          <Text style={[stili.piccola, { color: p.testoTerzo }]}>{t(`dal ${dataBreve(c.settimane[0].lunedi)}`, `from ${dataBreve(c.settimane[0].lunedi)}`)}</Text>
+          {media > 0 ? <Text style={[stili.piccola, { color: p.testoTerzo }]}>{t(`- - media ${intero(media)} kcal`, `- - average ${intero(media)} kcal`)}</Text> : null}
+          <Text style={[stili.piccola, { color: p.accento, fontFamily: F.extra }]}>{t('questa', 'this week')}</Text>
         </View>
       </Carta>
     </View>
@@ -375,19 +376,19 @@ function Andamento({ c }: { c: Contatore }) {
 function Confronto({ c }: { c: Contatore }) {
   const p = usePalette()
   const [ref, visibile] = useVisibile()
-  const t = useProgresso(1300, 150, visibile)
+  const avanz = useProgresso(1300, 150, visibile)
   const righe = [
-    { nome: 'Questa settimana, fino a oggi', valore: c.settimana.totale, colore: FUOCO },
-    { nome: 'La settimana scorsa, allo stesso giorno', valore: c.scorsaAllaPari, colore: ['#7FB0FF', '#2F6BFF'] as const },
-    { nome: 'La settimana scorsa, intera', valore: c.scorsa, colore: ['#B8BBC4', '#8A8D96'] as const },
-    { nome: 'Media delle 4 settimane prima', valore: c.media4, colore: ['#8FE3BC', '#34C38F'] as const },
+    { nome: t('Questa settimana, fino a oggi', 'This week, so far'), valore: c.settimana.totale, colore: FUOCO },
+    { nome: t('La settimana scorsa, allo stesso giorno', 'Last week, up to the same day'), valore: c.scorsaAllaPari, colore: ['#7FB0FF', '#2F6BFF'] as const },
+    { nome: t('La settimana scorsa, intera', 'All of last week'), valore: c.scorsa, colore: ['#B8BBC4', '#8A8D96'] as const },
+    { nome: t('Media delle 4 settimane prima', 'Average of the 4 weeks before'), valore: c.media4, colore: ['#8FE3BC', '#34C38F'] as const },
   ]
   const massimo = Math.max(1, ...righe.map((r) => r.valore))
   return (
     <View ref={ref} collapsable={false}>
       <Carta style={{ gap: spazio.tre }}>
         {righe.map((r, i) => {
-          const k = scalino(t, i, righe.length)
+          const k = scalino(avanz, i, righe.length)
           return (
             <View key={r.nome} style={{ gap: 6 }}>
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: spazio.due }}>
@@ -411,7 +412,7 @@ function Confronto({ c }: { c: Contatore }) {
 function Provenienza({ c }: { c: Contatore }) {
   const p = usePalette()
   const [ref, visibile] = useVisibile()
-  const t = useProgresso(1500, 150, visibile)
+  const avanz = useProgresso(1500, 150, visibile)
   const totale = c.perTipo.reduce((a, x) => a + x.kcal, 0)
   const D = 150
   const r = 58
@@ -427,7 +428,7 @@ function Provenienza({ c }: { c: Contatore }) {
               const quota = totale ? x.kcal / totale : 0
               const da = gia
               gia += quota
-              const visibile = Math.max(0, Math.min(quota, t - da))
+              const visibile = Math.max(0, Math.min(quota, avanz - da))
               return visibile > 0 ? (
                 <Circle
                   key={x.tipo}
@@ -443,12 +444,12 @@ function Provenienza({ c }: { c: Contatore }) {
               ) : null
             })}
           </Svg>
-          <Text style={[stili.ciambellaNumero, { color: p.testo }]}>{intero(totale * t)}</Text>
-          <Text style={[stili.ciambellaUnita, { color: p.testoSecondario }]}>{'kcal in\n4 settimane'}</Text>
+          <Text style={[stili.ciambellaNumero, { color: p.testo }]}>{intero(totale * avanz)}</Text>
+          <Text style={[stili.ciambellaUnita, { color: p.testoSecondario }]}>{t('kcal in\n4 settimane', 'kcal in\n4 weeks')}</Text>
         </View>
         <View style={{ flex: 1, minWidth: 170, gap: spazio.due }}>
           {c.perTipo.map((x, i) => (
-            <View key={x.tipo} style={{ flexDirection: 'row', alignItems: 'center', gap: spazio.due, opacity: scalino(t, i, c.perTipo.length) }}>
+            <View key={x.tipo} style={{ flexDirection: 'row', alignItems: 'center', gap: spazio.due, opacity: scalino(avanz, i, c.perTipo.length) }}>
               <View style={[stili.puntino, { backgroundColor: COLORI_TIPI[i % COLORI_TIPI.length] }]} />
               <Text style={[stili.nota, { color: p.testo, flex: 1 }]} numberOfLines={1}>
                 {x.tipo}
@@ -478,7 +479,7 @@ function Ultime({ voci }: { voci: Voce[] }) {
             <Text style={[stili.nota, { color: p.testo, fontFamily: F.bold }]} numberOfLines={1}>
               {v.nome}
             </Text>
-            <Text style={[stili.piccola, { color: p.testoSecondario }]}>{`${quando(v.giorno)} · ${v.minuti} minuti`}</Text>
+            <Text style={[stili.piccola, { color: p.testoSecondario }]}>{t(`${quando(v.giorno)} · ${v.minuti} minuti`, `${quando(v.giorno)} · ${v.minuti} minutes`)}</Text>
           </View>
           <Text style={[stili.nota, { color: p.testo, fontFamily: F.extra }]}>{`${intero(v.kcal)} kcal`}</Text>
         </View>
@@ -525,7 +526,7 @@ export function ContatoreCalorie() {
     return contaCalorie(vociCalorie(sedute, presenze.presenze, presenze.schede, corpo.corpo), corpo.corpo)
   }, [corpo, sedute, presenze])
 
-  const testata = { sopratitolo: 'Train', titolo: 'Le tue calorie', indietro: '/allenamento' as const, barra: false }
+  const testata = { sopratitolo: 'Train', titolo: t('Le tue calorie', 'Your calories'), indietro: '/allenamento' as const, barra: false }
 
   if (corpo.stato === 'mancano-dati' || corpo.stato === 'no') {
     return (
@@ -533,19 +534,28 @@ export function ContatoreCalorie() {
         <Carta style={{ gap: spazio.tre }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: spazio.due }}>
             <Icona nome="fiamma" size={20} colore={p.accento} />
-            <Text style={[stili.titoletto, { color: p.testo }]}>Mancano dei dati</Text>
+            <Text style={[stili.titoletto, { color: p.testo }]}>{t('Mancano dei dati', 'Some details are missing')}</Text>
           </View>
           <Text style={[stili.nota, { color: p.testoSecondario }]}>
             {corpo.stato === 'no'
-              ? 'Il contatore usa una formula pensata per gli adulti.'
+              ? t('Il contatore usa una formula pensata per gli adulti.', 'The counter uses a formula designed for adults.')
               : corpo.motivo === 'misure'
-                ? 'Per contare le calorie servono il tuo peso e la tua altezza, insieme all’età della tua scheda del club e al sesso.'
+                ? t(
+                    'Per contare le calorie servono il tuo peso e la tua altezza, insieme all’età della tua scheda del club e al sesso.',
+                    'To count calories we need your weight and height, along with the age on your club profile and your sex.',
+                  )
                 : corpo.motivo === 'sesso'
-                  ? 'Per contare le calorie serve sapere se calcolare come uomo o come donna: lo scegli una volta, nel riquadro «Calorie stimate» di un piano di allenamento.'
-                  : 'Nella tua scheda del club manca la data di nascita, e senza l’età il conto non si può fare. Chiedi al desk di aggiungerla.'}
+                  ? t(
+                      'Per contare le calorie serve sapere se calcolare come uomo o come donna: lo scegli una volta, nel riquadro «Calorie stimate» di un piano di allenamento.',
+                      'To count calories we need to know whether to calculate as male or female: you choose once, in the “Estimated calories” box of a workout plan.',
+                    )
+                  : t(
+                      'Nella tua scheda del club manca la data di nascita, e senza l’età il conto non si può fare. Chiedi al desk di aggiungerla.',
+                      'Your club profile is missing your date of birth, and without your age we can’t count. Ask the front desk to add it.',
+                    )}
           </Text>
           {corpo.stato === 'mancano-dati' && corpo.motivo === 'misure' ? (
-            <Pulsante testo="Aggiungi i tuoi dati" icona="piu" variante="secondario" onPress={() => router.push('/allenamento/misure')} />
+            <Pulsante testo={t('Aggiungi i tuoi dati', 'Add your details')} icona="piu" variante="secondario" onPress={() => router.push('/allenamento/misure')} />
           ) : null}
         </Carta>
       </Schermata>
@@ -566,47 +576,55 @@ export function ContatoreCalorie() {
       <Entra indice={0}>
         <Testata c={contatore} />
       </Entra>
-      {senzaLezioni ? <Messaggio tono="attenzione">Adesso non riusciamo a leggere le tue lezioni: qui contiamo solo gli allenamenti. Riprova fra poco.</Messaggio> : null}
+      {senzaLezioni ? <Messaggio tono="attenzione">
+          {t('Adesso non riusciamo a leggere le tue lezioni: qui contiamo solo gli allenamenti. Riprova fra poco.', 'We can’t read your classes right now: here we’re only counting workouts. Try again shortly.')}
+        </Messaggio> : null}
       {vuoto ? (
         <Carta style={{ gap: spazio.due }}>
-          <Text style={[stili.titoletto, { color: p.testo }]}>Ancora niente da contare</Text>
+          <Text style={[stili.titoletto, { color: p.testo }]}>{t('Ancora niente da contare', 'Nothing to count yet')}</Text>
           <Text style={[stili.nota, { color: p.testoSecondario }]}>
-            Chiudi una seduta di un tuo piano, o vieni a una lezione: quando la reception segna la tua presenza, le calorie compaiono qui.
+            {t(
+              'Chiudi una seduta di un tuo piano, o vieni a una lezione: quando la reception segna la tua presenza, le calorie compaiono qui.',
+              'Finish a workout from one of your plans, or come to a class: once reception records your attendance, the calories show up here.',
+            )}
           </Text>
         </Carta>
       ) : (
         <>
           <Entra indice={1}>
-            <Sezione titolo="Questa settimana">
+            <Sezione titolo={t('Questa settimana', 'This week')}>
               <Settimana c={contatore} />
             </Sezione>
           </Entra>
           <Entra indice={2}>
-            <Sezione titolo="Le ultime 12 settimane">
+            <Sezione titolo={t('Le ultime 12 settimane', 'The last 12 weeks')}>
               <Andamento c={contatore} />
             </Sezione>
           </Entra>
           <Entra indice={3}>
-            <Sezione titolo="Il confronto">
+            <Sezione titolo={t('Il confronto', 'Comparison')}>
               <Confronto c={contatore} />
             </Sezione>
           </Entra>
           {contatore.perTipo.length ? (
             <Entra indice={4}>
-              <Sezione titolo="Da dove vengono">
+              <Sezione titolo={t('Da dove vengono', 'Where they come from')}>
                 <Provenienza c={contatore} />
               </Sezione>
             </Entra>
           ) : null}
           <Entra indice={5}>
-            <Sezione titolo="Le ultime attività" conteggio={contatore.voci.length}>
+            <Sezione titolo={t('Le ultime attività', 'Recent activity')} conteggio={contatore.voci.length}>
               <Ultime voci={contatore.voci} />
             </Sezione>
           </Entra>
         </>
       )}
       <Text style={[stili.piccola, { color: p.testoTerzo, paddingHorizontal: 2 }]}>
-        {`Sono stime, come quelle dei piani e delle lezioni: possono sbagliare anche del 20–30%, e contano anche le calorie che avresti consumato comunque in quei minuti. Contiamo le sedute chiuse nell’app e le lezioni con la presenza segnata dalla reception dal ${dataBreve(contatore.settimane[0].lunedi)}; la sala pesi conta solo con un piano. Non sono un’indicazione per la dieta.`}
+        {t(
+          `Sono stime, come quelle dei piani e delle lezioni: possono sbagliare anche del 20–30%, e contano anche le calorie che avresti consumato comunque in quei minuti. Contiamo le sedute chiuse nell’app e le lezioni con la presenza segnata dalla reception dal ${dataBreve(contatore.settimane[0].lunedi)}; la sala pesi conta solo con un piano. Non sono un’indicazione per la dieta.`,
+          `These are estimates, like those for plans and classes: they can be off by 20–30%, and they include the calories you’d have burned anyway in those minutes. We count workouts finished in the app and classes with attendance recorded by reception since ${dataBreve(contatore.settimane[0].lunedi)}; the gym floor only counts with a plan. They aren’t dietary advice.`,
+        )}
       </Text>
     </Schermata>
   )

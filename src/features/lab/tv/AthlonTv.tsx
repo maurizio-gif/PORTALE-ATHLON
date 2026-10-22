@@ -6,6 +6,7 @@ import { StyleSheet, Text, useWindowDimensions, View } from 'react-native'
 
 import { leggiVetrine, type Vetrina } from '@/api/lab'
 import { LARGO } from '@/components/Pagina'
+import { t } from '@/lib/lingua'
 import { spazio } from '@/theme'
 
 import { posizione } from '../SchedaLezione'
@@ -71,11 +72,11 @@ export function AthlonTv() {
   const totale = vetrine?.reduce((t, v) => t + v.totale, 0) ?? 0
 
   return (
-    <Schermata sopratitolo="I video del club" titolo="Athlon TV" sottotitolo={vetrine ? `${vetrine.length} raccolte · ${quanti(totale)}` : undefined}>
+    <Schermata sopratitolo={t('I video del club', 'The club’s videos')} titolo="Athlon TV" sottotitolo={vetrine ? t(`${vetrine.length} raccolte · ${quanti(totale)}`, `${vetrine.length} ${vetrine.length === 1 ? 'collection' : 'collections'} · ${quanti(totale)}`) : undefined}>
       {errore && !vetrine ? (
         <>
           <Messaggio>{errore}</Messaggio>
-          <Pulsante testo="Riprova" icona="aggiorna" onPress={carica} />
+          <Pulsante testo={t('Riprova', 'Try again')} icona="aggiorna" onPress={carica} />
         </>
       ) : !vetrine ? (
         <View style={stili.griglia}>
@@ -88,7 +89,7 @@ export function AthlonTv() {
       ) : vetrine.length === 0 ? (
         <View style={{ alignItems: 'center', gap: spazio.due, paddingVertical: spazio.cinque }}>
           <Icona nome="play" size={36} colore={p.testoTerzo} />
-          <Text style={{ color: p.testoSecondario, fontFamily: F.medio, fontSize: 14 }}>Ancora nessun video del club.</Text>
+          <Text style={{ color: p.testoSecondario, fontFamily: F.medio, fontSize: 14 }}>{t('Ancora nessun video del club.', 'No club videos yet.')}</Text>
         </View>
       ) : (
         <View style={stili.griglia}>

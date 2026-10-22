@@ -3,6 +3,7 @@ import { StyleSheet, Text, View } from 'react-native'
 
 import { elencoProdotti, type Prodotto, type StatoProdotto } from '@/api/prodotti'
 import { spazio } from '@/theme'
+import { locale, t } from '@/lib/lingua'
 
 import { inMemoria, prendi } from '../memoria'
 import { Carta, LinkSezione, Messaggio, Pulsante, Riga, SchedeInArrivo, Sezione } from '../ui/kit'
@@ -25,9 +26,9 @@ export const CHIAVE_PRODOTTI = 'prodotti:elenco'
 const PRIMI = 8
 
 const STATI: Record<StatoProdotto, { testo: string; tono: ToniTutti }> = {
-  valido: { testo: 'Valido', tono: 'ok' },
-  consumato: { testo: 'Consumato', tono: 'neutro' },
-  scaduto: { testo: 'Scaduto', tono: 'attenzione' },
+  valido: { testo: t('Valido', 'Valid'), tono: 'ok' },
+  consumato: { testo: t('Consumato', 'Used'), tono: 'neutro' },
+  scaduto: { testo: t('Scaduto', 'Expired'), tono: 'attenzione' },
 }
 
 export function useProdotti() {
@@ -46,17 +47,17 @@ export function useProdotti() {
 }
 
 function giorno(iso: string): string {
-  return new Date(iso.length === 10 ? `${iso}T12:00:00` : iso).toLocaleDateString('it-IT', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Europe/Rome' })
+  return new Date(iso.length === 10 ? `${iso}T12:00:00` : iso).toLocaleDateString(locale(), { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Europe/Rome' })
 }
 
 function soldi(n: number): string {
-  return n.toLocaleString('it-IT', { style: 'currency', currency: 'EUR' })
+  return n.toLocaleString(locale(), { style: 'currency', currency: 'EUR' })
 }
 
 /** «2 su 5» quando il prodotto e' un pacchetto; per un pezzo solo lo stato basta. */
 function resto(p: Prodotto): string | null {
   const { quantita_iniziale: i, quantita_residua: r } = p
-  return i != null && r != null && i > 1 ? `${r} su ${i} rimasti` : null
+  return i != null && r != null && i > 1 ? t(`${r} su ${i} rimasti`, `${r} of ${i} left`) : null
 }
 
 function Pillola({ stato }: { stato: StatoProdotto }) {
@@ -73,8 +74,8 @@ function RigaProdotto({ p, prima }: { p: Prodotto; prima: boolean }) {
   const sotto = [
     p.per,
     resto(p),
-    p.acquistato_il ? `acquistato il ${giorno(p.acquistato_il)}` : null,
-    p.scade_il && p.stato !== 'consumato' ? `${p.stato === 'scaduto' ? 'scaduto il' : 'entro il'} ${giorno(p.scade_il)}` : null,
+    p.acquistato_il ? t(`acquistato il ${giorno(p.acquistato_il)}`, `purchased ${giorno(p.acquistato_il)}`) : null,
+    p.scade_il && p.stato !== 'consumato' ? t(`${p.stato === 'scaduto' ? 'scaduto il' : 'entro il'} ${giorno(p.scade_il)}`, `${p.stato === 'scaduto' ? 'expired' : 'use by'} ${giorno(p.scade_il)}`) : null,
     p.prezzo ? soldi(p.prezzo) : null,
   ]
     .filter((x): x is string => typeof x === 'string' && x.length > 0)
@@ -96,7 +97,7 @@ function Gruppo({ titolo, elenco }: { titolo: string; elenco: Prodotto[] }) {
   if (!elenco.length) return null
   const visibili = tutti ? elenco : elenco.slice(0, PRIMI)
   return (
-    <Sezione titolo={titolo} conteggio={elenco.length} destra={elenco.length > PRIMI ? <LinkSezione testo={tutti ? 'Mostra meno' : 'Mostra tutti'} onPress={() => setTutti(!tutti)} /> : undefined}>
+    <Sezione titolo={titolo} conteggio={elenco.length} destra={elenco.length > PRIMI ? <LinkSezione testo={tutti ? t('Mostra meno', 'Show less') : t('Mostra tutti', 'Show all')} onPress={() => setTutti(!tutti)} /> : undefined}>
       <Carta style={{ paddingVertical: spazio.due }}>
         {visibili.map((p, i) => (
           <RigaProdotto key={p.id} p={p} prima={i === 0} />
@@ -114,7 +115,7 @@ export function SezioneProdotti() {
     return (
       <View style={{ gap: spazio.tre }}>
         <Messaggio>{errore}</Messaggio>
-        <Pulsante testo="Riprova" icona="aggiorna" variante="secondario" onPress={carica} />
+        <Pulsante testo={t('Riprova', 'Try again')} icona="aggiorna" variante="secondario" onPress={carica} />
       </View>
     )
   }
@@ -123,9 +124,9 @@ export function SezioneProdotti() {
   if (!dati.length) {
     return (
       <Carta piatta>
-        <Text style={{ color: pal.testo, fontFamily: F.semi, fontSize: 15, lineHeight: 22 }}>Non hai ancora acquistato prodotti.</Text>
+        <Text style={{ color: pal.testo, fontFamily: F.semi, fontSize: 15, lineHeight: 22 }}>{t('Non hai ancora acquistato prodotti.', 'You haven’t purchased any products yet.')}</Text>
         <Text style={{ color: pal.testoSecondario, fontFamily: F.medio, fontSize: 13.5, lineHeight: 20, marginTop: 4 }}>
-          Le lezioni singole, gli accessi, i recuperi e le sedute di personal training compaiono qui appena li acquisti.
+          {t('Le lezioni singole, gli accessi, i recuperi e le sedute di personal training compaiono qui appena li acquisti.', 'Single classes, visits, make-up classes and personal training sessions show up here as soon as you buy them.')}
         </Text>
       </Carta>
     )
@@ -137,15 +138,15 @@ export function SezioneProdotti() {
   return (
     <View style={{ gap: spazio.quattro }}>
       {validi.length ? (
-        <Gruppo titolo="Validi" elenco={validi} />
+        <Gruppo titolo={t('Validi', 'Valid')} elenco={validi} />
       ) : (
         <Carta piatta>
-          <Text style={{ color: pal.testo, fontFamily: F.semi, fontSize: 15, lineHeight: 22 }}>Non hai prodotti validi in questo momento.</Text>
+          <Text style={{ color: pal.testo, fontFamily: F.semi, fontSize: 15, lineHeight: 22 }}>{t('Non hai prodotti validi in questo momento.', 'You have no valid products right now.')}</Text>
         </Carta>
       )}
-      <Gruppo titolo="Consumati e scaduti" elenco={altri} />
+      <Gruppo titolo={t('Consumati e scaduti', 'Used and expired')} elenco={altri} />
       <Text style={{ color: pal.testoTerzo, fontFamily: F.medio, fontSize: 13, lineHeight: 19, paddingHorizontal: 4 }}>
-        Un recupero o una lezione singola si consuma quando la prenoti; se la disdici in tempo torna valido.
+        {t('Un recupero o una lezione singola si consuma quando la prenoti; se la disdici in tempo torna valido.', 'A make-up class or a single class is used when you book it; if you cancel the booking in time it becomes valid again.')}
       </Text>
     </View>
   )

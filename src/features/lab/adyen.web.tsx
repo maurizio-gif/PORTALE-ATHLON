@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react'
 
 import type { SessioneAdyen } from '@/api/lab'
+import { locale, t } from '@/lib/lingua'
 
 // Il modulo di pagamento di Adyen (Drop-in) sul web, dal CDN con controllo di
 // integrita': la stessa versione fissa del CRM (app/dashboard/laboratorio-
@@ -36,8 +37,8 @@ function caricaSdk(): Promise<AdyenWeb> {
     js.src = `${CDN}/adyen.js`
     js.integrity = HASH_JS
     js.crossOrigin = 'anonymous'
-    js.onload = () => (w.AdyenWeb ? risolvi(w.AdyenWeb) : rifiuta(new Error('Il modulo di pagamento non si è caricato.')))
-    js.onerror = () => rifiuta(new Error('Non riusciamo a scaricare il modulo di pagamento. Controlla la rete e riprova.'))
+    js.onload = () => (w.AdyenWeb ? risolvi(w.AdyenWeb) : rifiuta(new Error(t('Il modulo di pagamento non si è caricato.', 'The payment form did not load.'))))
+    js.onerror = () => rifiuta(new Error(t('Non riusciamo a scaricare il modulo di pagamento. Controlla la rete e riprova.', 'We can’t download the payment form. Check your connection and try again.')))
     document.head.appendChild(js)
   })
 }
@@ -75,13 +76,13 @@ export function DropIn({
           environment: sessione.environment,
           clientKey: sessione.clientKey,
           countryCode: 'IT',
-          locale: 'it-IT',
+          locale: locale(),
           session: { id: sessione.sessione.id, sessionData: sessione.sessione.sessionData },
           analytics: { enabled: false },
           onPaymentCompleted: fine,
           onPaymentFailed: fine,
           onError: (e: { message?: string }) => {
-            if (attivo) richiami.current.onErrore(e?.message ?? 'Errore del modulo di pagamento.')
+            if (attivo) richiami.current.onErrore(e?.message ?? t('Errore del modulo di pagamento.', 'Payment form error.'))
           },
         })
         if (!attivo) return
@@ -122,12 +123,12 @@ export async function riprendiDopoRedirect(cfg: { clientKey: string; environment
       environment: cfg.environment,
       clientKey: cfg.clientKey,
       countryCode: 'IT',
-      locale: 'it-IT',
+      locale: locale(),
       session: { id: cfg.sessionId },
       analytics: { enabled: false },
       onPaymentCompleted: fine,
       onPaymentFailed: fine,
-      onError: (e: { message?: string }) => rifiuta(new Error(e?.message ?? 'Errore nel riprendere il pagamento.')),
+      onError: (e: { message?: string }) => rifiuta(new Error(e?.message ?? t('Errore nel riprendere il pagamento.', 'Error resuming the payment.'))),
     })
       .then((checkout) => checkout.submitDetails({ details: { redirectResult: cfg.redirectResult } }))
       .catch(rifiuta)

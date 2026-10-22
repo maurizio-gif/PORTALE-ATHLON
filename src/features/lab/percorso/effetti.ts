@@ -1,5 +1,6 @@
 import type { SchedaLezione } from '@/api/lab'
 import type { Barre, GiornoSettimana, Obiettivo, Tappa } from '@/api/percorso'
+import { locale, t as tr } from '@/lib/lingua'
 
 import { MUSCOLI } from '../schede/comune'
 import { giornoRoma, lunediDi, spostaGiorno, type Voce } from '../schede/contatoreCalorie'
@@ -37,10 +38,10 @@ export type Corpo = { kg: number; cm: number; anni: number; sesso: NonNullable<S
 
 export type IdAsse = 'muscolare' | 'cardio' | 'coordinazione' | 'flessibilita'
 export const ASSI: { id: IdAsse; etichetta: string }[] = [
-  { id: 'muscolare', etichetta: 'Muscolare' },
+  { id: 'muscolare', etichetta: tr('Muscolare', 'Strength') },
   { id: 'cardio', etichetta: 'Cardio' },
-  { id: 'coordinazione', etichetta: 'Coordinazione' },
-  { id: 'flessibilita', etichetta: 'Flessibilità' },
+  { id: 'coordinazione', etichetta: tr('Coordinazione', 'Coordination') },
+  { id: 'flessibilita', etichetta: tr('Flessibilità', 'Flexibility') },
 ]
 
 /** La barra di un asse e quanti minuti di lezione la hanno: il resto e' «dato non disponibile». */
@@ -198,7 +199,7 @@ function muscoliDellaSala(sala: Valutata[]) {
   }
   const muscoli: Muscolo[] = [...per.entries()]
     .map(([chiave, x]) => ({ chiave, etichetta: etichettaMuscolo(chiave), sedute: x.sedute, esercizi: x.esercizi }))
-    .sort((a, b) => b.esercizi - a.esercizi || a.etichetta.localeCompare(b.etichetta, 'it'))
+    .sort((a, b) => b.esercizi - a.esercizi || a.etichetta.localeCompare(b.etichetta, locale()))
   const scoperti = conDati ? GRUPPI_PRINCIPALI.filter((g) => !per.has(g)).map(etichettaMuscolo) : []
   // La settimana si ripete: la domenica e il lunedi' sono giorni di fila.
   const ravvicinati: Effetti['sala']['ravvicinati'] = []
@@ -267,7 +268,7 @@ export function calcolaEffetti(
     return { id, etichetta, valore: peso > 0 ? Math.round(totale / peso) : null, minutiConDato: peso }
   })
   const conAlmenoUnaBarra = lezioni.filter((v) => v.barre && ASSI.some((a) => v.barre![a.id] != null))
-  const senzaDati = [...new Set(lezioni.filter((v) => !conAlmenoUnaBarra.includes(v)).map((v) => v.t.lezione?.nome ?? 'Lezione'))]
+  const senzaDati = [...new Set(lezioni.filter((v) => !conAlmenoUnaBarra.includes(v)).map((v) => v.t.lezione?.nome ?? tr('Lezione', 'Class')))]
 
   // Riferimenti OMS.
   let moderati = 0
@@ -332,43 +333,49 @@ const FLESSIBILITA_ALTA = 50
 
 const OMS_MINUTI = 150
 
+const giorniN = (n: number) => tr(`${n} ${n === 1 ? 'giorno' : 'giorni'}`, `${n} ${n === 1 ? 'day' : 'days'}`)
+
 function righeObiettivo(o: Obiettivo, e: Omit<Effetti, 'obiettivo'>): Riga[] {
   const r = e.riferimenti
   const aerobica: Riga = {
     ok: r.equivalenti >= OMS_MINUTI,
-    testo: 'Attività aerobica: almeno 150 minuti a intensità moderata (o la metà, se intensa)',
-    dettaglio: `${r.equivalenti} minuti equivalenti${r.nonClassificati ? `, senza contare ${r.nonClassificati} di lezioni di cui non conosciamo l’intensità` : ''}`,
+    testo: tr('Attività aerobica: almeno 150 minuti a intensità moderata (o la metà, se intensa)', 'Aerobic activity: at least 150 minutes at moderate intensity (or half that, if vigorous)'),
+    dettaglio: tr(
+      `${r.equivalenti} minuti equivalenti${r.nonClassificati ? `, senza contare ${r.nonClassificati} di lezioni di cui non conosciamo l’intensità` : ''}`,
+      `${r.equivalenti} equivalent minutes${r.nonClassificati ? `, not counting ${r.nonClassificati} of classes whose intensity we don’t know` : ''}`,
+    ),
   }
-  const distribuita: Riga = { ok: r.giorniAerobici >= 3, testo: 'Attività aerobica distribuita su almeno tre giorni', dettaglio: `${r.giorniAerobici} ${r.giorniAerobici === 1 ? 'giorno' : 'giorni'}` }
+  const distribuita: Riga = { ok: r.giorniAerobici >= 3, testo: tr('Attività aerobica distribuita su almeno tre giorni', 'Aerobic activity spread over at least three days'), dettaglio: giorniN(r.giorniAerobici) }
   const rinforzo: Riga = {
     ok: r.giorniRinforzo >= 2,
-    testo: 'Rinforzo muscolare in almeno due giorni',
-    dettaglio: `${r.giorniRinforzo} ${r.giorniRinforzo === 1 ? 'giorno' : 'giorni'}`,
+    testo: tr('Rinforzo muscolare in almeno due giorni', 'Muscle strengthening on at least two days'),
+    dettaglio: giorniN(r.giorniRinforzo),
   }
-  const riposo: Riga = { ok: e.giorni.riposo >= 1, testo: 'Almeno un giorno di riposo', dettaglio: `${e.giorni.riposo} ${e.giorni.riposo === 1 ? 'giorno' : 'giorni'}` }
+  const riposo: Riga = { ok: e.giorni.riposo >= 1, testo: tr('Almeno un giorno di riposo', 'At least one rest day'), dettaglio: giorniN(e.giorni.riposo) }
   const recupero: Riga | null = e.sala.conDati
     ? {
         ok: e.sala.ravvicinati.length === 0,
-        testo: 'Lo stesso gruppo muscolare non viene lavorato forte in due giorni di fila',
+        testo: tr('Lo stesso gruppo muscolare non viene lavorato forte in due giorni di fila', 'No muscle group is worked hard two days in a row'),
         dettaglio: e.sala.ravvicinati.length ? e.sala.ravvicinati.map((x) => x.etichetta).join(', ') : undefined,
       }
     : null
   const duePerGruppo: Riga | null = e.sala.conDati
     ? {
         ok: e.sala.muscoli.length > 0 && GRUPPI_PRINCIPALI.every((g) => (e.sala.muscoli.find((m) => m.chiave === g)?.sedute ?? 0) >= 2),
-        testo: 'Ogni gruppo principale lavorato in sala almeno due volte',
-        dettaglio: e.sala.scoperti.length ? `Non lavori in sala: ${e.sala.scoperti.join(', ').toLowerCase()}` : undefined,
+        testo: tr('Ogni gruppo principale lavorato in sala almeno due volte', 'Every major muscle group worked on the gym floor at least twice'),
+        dettaglio: e.sala.scoperti.length ? tr(`Non lavori in sala: ${e.sala.scoperti.join(', ').toLowerCase()}`, `Not worked on the gym floor: ${e.sala.scoperti.join(', ').toLowerCase()}`) : undefined,
       }
     : null
   const tuttiAlmenoUna: Riga | null = e.sala.conDati
-    ? { ok: e.sala.scoperti.length === 0, testo: 'Tutti i gruppi principali lavorati in sala almeno una volta', dettaglio: e.sala.scoperti.length ? `Non lavori in sala: ${e.sala.scoperti.join(', ').toLowerCase()}` : undefined }
+    ? { ok: e.sala.scoperti.length === 0, testo: tr('Tutti i gruppi principali lavorati in sala almeno una volta', 'All major muscle groups worked on the gym floor at least once'), dettaglio: e.sala.scoperti.length ? tr(`Non lavori in sala: ${e.sala.scoperti.join(', ').toLowerCase()}`, `Not worked on the gym floor: ${e.sala.scoperti.join(', ').toLowerCase()}`) : undefined }
     : null
-  const sedute = (n: number): Riga => ({ ok: e.sala.sedute >= n, testo: `Almeno ${n === 2 ? 'due' : 'tre'} sedute in sala`, dettaglio: `${e.sala.sedute}` })
+  const sedute = (n: number): Riga => ({ ok: e.sala.sedute >= n, testo: tr(`Almeno ${n === 2 ? 'due' : 'tre'} sedute in sala`, `At least ${n === 2 ? 'two' : 'three'} gym floor sessions`), dettaglio: `${e.sala.sedute}` })
   const flessibili = (): Riga => {
     // Dove la barra manca (le lezioni in acqua, il nuoto) non si puo' dire: ok e' null, non falso.
     const asse = e.lezioni.assi.find((a) => a.id === 'flessibilita')!
-    if (asse.minutiConDato === 0) return { ok: null, testo: 'Almeno due lezioni con molta flessibilità', dettaglio: 'dato non disponibile: le lezioni scelte non hanno la barra della flessibilità' }
-    return { ok: e.lezioni.flessibili >= 2, testo: 'Almeno due lezioni con molta flessibilità', dettaglio: `${e.lezioni.flessibili}` }
+    const testo = tr('Almeno due lezioni con molta flessibilità', 'At least two classes with lots of flexibility')
+    if (asse.minutiConDato === 0) return { ok: null, testo, dettaglio: tr('dato non disponibile: le lezioni scelte non hanno la barra della flessibilità', 'data not available: the chosen classes have no flexibility bar') }
+    return { ok: e.lezioni.flessibili >= 2, testo, dettaglio: `${e.lezioni.flessibili}` }
   }
 
   const poiTolgoNull = (x: (Riga | null)[]) => x.filter((v): v is Riga => v !== null)

@@ -4,6 +4,7 @@ import { StyleSheet, Text, View } from 'react-native'
 
 import { caricaFotoProfilo, type Anagrafica } from '@/api/lab'
 import { fotocameraDisponibile, preparaFotoProfilo, scegliFotoProfilo, type FotoProfiloPronta, type OrigineFoto } from '@/lib/fotoProfilo'
+import { t } from '@/lib/lingua'
 import { spazio } from '@/theme'
 
 import { Foglio } from '../ui/Foglio'
@@ -28,7 +29,7 @@ import { Richiamo } from './Richiamo'
 const LATO_FOTO = 112
 const forma = (lato: number) => ({ width: lato, height: lato, borderRadius: lato * 0.36 })
 
-export const TESTO_DOVE_SI_VEDE = 'Si vede nel tuo Profilo, in cima alla Home e sulla tua scheda in segreteria.'
+export const TESTO_DOVE_SI_VEDE = t('Si vede nel tuo Profilo, in cima alla Home e sulla tua scheda in segreteria.', 'It appears in your Profile, at the top of Home and on your record at the front desk.')
 
 /**
  * La foto del profilo, al centro in cima alla sezione. Il link e' firmato e dura un'ora: se non si carica - scaduto,
@@ -58,7 +59,7 @@ export function FotoProfilo({ url, puoCambiare, indice, onCambia }: { url: strin
             // Le facce stanno sopra il centro: ritagliando una foto non quadrata si perde prima il fondo.
             contentPosition={{ left: '50%', top: '30%' }}
             transition={150}
-            accessibilityLabel="La tua foto del profilo"
+            accessibilityLabel={t('La tua foto del profilo', 'Your profile photo')}
             accessibilityIgnoresInvertColors
             style={[forma(LATO_FOTO), { backgroundColor: p.incavo }]}
           />
@@ -81,7 +82,7 @@ export function FotoProfilo({ url, puoCambiare, indice, onCambia }: { url: strin
       <View style={stili.blocco}>
         {/* Un comando solo dove c'e' qualcosa da fare: per chi non puo' cambiare la foto e' soltanto la foto. */}
         {puoCambiare ? (
-          <Tocco onPress={onCambia} etichetta={invito ? 'Aggiungi la tua foto' : 'Cambia la tua foto'} scala={0.96}>
+          <Tocco onPress={onCambia} etichetta={invito ? t('Aggiungi la tua foto', 'Add your photo') : t('Cambia la tua foto', 'Change your photo')} scala={0.96}>
             {immagine}
           </Tocco>
         ) : (
@@ -90,13 +91,13 @@ export function FotoProfilo({ url, puoCambiare, indice, onCambia }: { url: strin
 
         {invito ? (
           <View style={stili.testi}>
-            <Text style={[stili.titolo, { color: p.testo }]}>Aggiungi la tua foto</Text>
+            <Text style={[stili.titolo, { color: p.testo }]}>{t('Aggiungi la tua foto', 'Add your photo')}</Text>
             <Text style={[stili.sotto, { color: p.testoSecondario }]}>{TESTO_DOVE_SI_VEDE}</Text>
           </View>
         ) : puoCambiare ? (
           // Un pulsante non pieno si allinea a inizio riga: qui sta al centro, sotto la foto.
           <View style={stili.cambia}>
-            <Pulsante testo="Cambia foto" variante="fantasma" piccolo pieno={false} onPress={onCambia} />
+            <Pulsante testo={t('Cambia foto', 'Change photo')} variante="fantasma" piccolo pieno={false} onPress={onCambia} />
           </View>
         ) : null}
       </View>
@@ -152,30 +153,30 @@ export function FoglioFoto({
   return (
     <Foglio
       aperto
-      titolo="La tua foto"
-      sottotitolo="Una foto del tuo viso, ben illuminata. La vede solo il club: gli altri soci no."
+      titolo={t('La tua foto', 'Your photo')}
+      sottotitolo={t('Una foto del tuo viso, ben illuminata. La vede solo il club: gli altri soci no.', 'A well-lit photo of your face. Only the club sees it, not other members.')}
       // Chiudere a metà invio lascerebbe la schermata ferma alla foto di prima, con la nuova già partita.
       onChiudi={attesa === 'invio' ? () => undefined : onChiudi}
     >
       <View style={stili.anteprima}>
         <View style={[forma(ANTEPRIMA), { boxShadow: p.ombra }]}>
           {mostra ? (
-            <Image source={{ uri: mostra }} contentFit="cover" contentPosition={{ left: '50%', top: '30%' }} accessibilityLabel={pronta ? 'Anteprima della nuova foto' : 'La tua foto di adesso'} accessibilityIgnoresInvertColors style={[forma(ANTEPRIMA), { backgroundColor: p.incavo }]} />
+            <Image source={{ uri: mostra }} contentFit="cover" contentPosition={{ left: '50%', top: '30%' }} accessibilityLabel={pronta ? t('Anteprima della nuova foto', 'Preview of the new photo') : t('La tua foto di adesso', 'Your current photo')} accessibilityIgnoresInvertColors style={[forma(ANTEPRIMA), { backgroundColor: p.incavo }]} />
           ) : (
             <View style={[forma(ANTEPRIMA), stili.vuota, { backgroundColor: p.incavo, borderColor: p.linea }]}>
               <Icona nome="fotocamera" size={48} colore={p.testoTerzo} />
             </View>
           )}
         </View>
-        {pronta ? <Text style={[stili.sotto, { color: p.testoSecondario }]}>Così ti vedranno.</Text> : null}
+        {pronta ? <Text style={[stili.sotto, { color: p.testoSecondario }]}>{t('Così ti vedranno.', 'This is how you’ll look.')}</Text> : null}
       </View>
 
       {errore ? <Messaggio>{errore}</Messaggio> : null}
 
-      {pronta ? <Pulsante testo="Usa questa foto" icona="spunta" onPress={salva} inCorso={attesa === 'invio'} disabilitato={occupato} /> : null}
+      {pronta ? <Pulsante testo={t('Usa questa foto', 'Use this photo')} icona="spunta" onPress={salva} inCorso={attesa === 'invio'} disabilitato={occupato} /> : null}
       {conCamera ? (
         <Pulsante
-          testo={pronta ? 'Scatta di nuovo' : 'Scatta una foto'}
+          testo={pronta ? t('Scatta di nuovo', 'Take another') : t('Scatta una foto', 'Take a photo')}
           icona="fotocamera"
           variante={pronta ? 'secondario' : 'primario'}
           onPress={() => scegli('fotocamera')}
@@ -184,7 +185,7 @@ export function FoglioFoto({
         />
       ) : null}
       <Pulsante
-        testo={pronta ? 'Scegli un’altra foto' : conCamera ? 'Scegli dalla galleria' : 'Scegli una foto'}
+        testo={pronta ? t('Scegli un’altra foto', 'Choose another photo') : conCamera ? t('Scegli dalla galleria', 'Choose from gallery') : t('Scegli una foto', 'Choose a photo')}
         icona="galleria"
         variante={pronta || conCamera ? 'secondario' : 'primario'}
         onPress={() => scegli('galleria')}

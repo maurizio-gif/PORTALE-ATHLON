@@ -3,6 +3,7 @@ import { StyleSheet, Text, View } from 'react-native'
 
 import type { PianoAbbonamento } from '@/api/abbonamento'
 import { euro } from '@/lib/eventi'
+import { t, tv } from '@/lib/lingua'
 import { spazio } from '@/theme'
 
 import { Icona } from '../ui/Icona'
@@ -16,11 +17,18 @@ import { SchedaScelta } from './Passi'
 // comprende, le tre formule con il prezzo e, per quella scelta, le condizioni
 // del contratto. Prima di arrivare alla firma si sa gia' tutto.
 
-export const FORMULE: Record<string, { titolo: string; sotto: string }> = {
+/** Le formule in italiano: e' il testo che i moduli mandano al desk (cambio abbonamento), qualunque sia la lingua dell'app. */
+export const FORMULE_IT: Record<string, { titolo: string; sotto: string }> = {
   'annuale-rate': { titolo: 'Annuale, a rate', sotto: '12 mesi, pagati ogni mese' },
   'annuale-unico': { titolo: 'Annuale, in un’unica soluzione', sotto: '12 mesi, pagati subito' },
   flex: { titolo: 'Mensile Flex', sotto: 'Si rinnova di mese in mese, senza vincoli' },
 }
+
+export const FORMULE: Record<string, { titolo: string; sotto: string }> = tv(FORMULE_IT, {
+  'annuale-rate': { titolo: 'Annual, monthly installments', sotto: '12 months, paid every month' },
+  'annuale-unico': { titolo: 'Annual, paid in full', sotto: '12 months, paid upfront' },
+  flex: { titolo: 'Mensile Flex', sotto: 'Renews month to month, no commitment' },
+})
 
 function Attivita({ nome, testo }: { nome: string; testo: string }) {
   const p = usePalette()
@@ -29,7 +37,7 @@ function Attivita({ nome, testo }: { nome: string; testo: string }) {
     <View style={{ gap: 4 }}>
       <Tocco
         ruolo="button"
-        etichetta={aperta ? `Nascondi il dettaglio di ${nome}` : `Mostra il dettaglio di ${nome}`}
+        etichetta={aperta ? t(`Nascondi il dettaglio di ${nome}`, `Hide details for ${nome}`) : t(`Mostra il dettaglio di ${nome}`, `Show details for ${nome}`)}
         stato={{ selected: aperta }}
         vibra={null}
         scala={0.99}
@@ -50,7 +58,7 @@ function Condizioni({ piano }: { piano: PianoAbbonamento }) {
   if (!piano.condizioni.length) return null
   return (
     <View style={[stili.condizioni, { borderColor: p.linea, backgroundColor: p.incavo }]}>
-      <Text style={{ color: p.testo, fontFamily: F.extra, fontSize: 15 }}>{`Condizioni · ${FORMULE[piano.formula]?.titolo ?? piano.etichetta}`}</Text>
+      <Text style={{ color: p.testo, fontFamily: F.extra, fontSize: 15 }}>{`${t('Condizioni', 'Terms')} · ${FORMULE[piano.formula]?.titolo ?? piano.etichetta}`}</Text>
       {piano.condizioni.map((c) => (
         <View key={c.titolo} style={{ gap: 1 }}>
           <Text style={{ color: p.testo, fontFamily: F.bold, fontSize: 13 }}>{c.titolo}</Text>
@@ -58,7 +66,7 @@ function Condizioni({ piano }: { piano: PianoAbbonamento }) {
         </View>
       ))}
       <Text style={{ color: p.testoTerzo, fontFamily: F.medio, fontSize: 12, lineHeight: 17 }}>
-        Il contratto completo, con i Termini e Condizioni, lo leggi per intero prima di firmare.
+        {t('Il contratto completo, con i Termini e Condizioni, lo leggi per intero prima di firmare.', 'You’ll read the full contract, including the Terms and Conditions, before you sign.')}
       </Text>
     </View>
   )
@@ -96,22 +104,22 @@ export function Listino({
             </View>
 
             <View style={{ gap: 2 }}>
-              <Text style={[stili.titoletto, { color: p.testoSecondario }]}>COMPRENDE</Text>
+              <Text style={[stili.titoletto, { color: p.testoSecondario }]}>{t('COMPRENDE', 'INCLUDES')}</Text>
               {dettaglio.map((a) => (
                 <Attivita key={a.nome} nome={a.nome} testo={a.testo} />
               ))}
               {base.non_comprende.length ? (
                 <View style={{ gap: 4, marginTop: spazio.due }}>
-                  <Text style={[stili.titoletto, { color: p.testoSecondario }]}>NON COMPRENDE</Text>
+                  <Text style={[stili.titoletto, { color: p.testoSecondario }]}>{t('NON COMPRENDE', 'DOES NOT INCLUDE')}</Text>
                   <Text style={{ color: p.testoSecondario, fontFamily: F.medio, fontSize: 13, lineHeight: 19 }}>
-                    {`${base.non_comprende.join(', ')}: sono nel Premium.`}
+                    {t(`${base.non_comprende.join(', ')}: sono nel Premium.`, `${base.non_comprende.join(', ')}: included in Premium.`)}
                   </Text>
                 </View>
               ) : null}
             </View>
 
             <View style={{ gap: spazio.due }}>
-              <Text style={[stili.titoletto, { color: p.testoSecondario }]}>SCEGLI LA FORMULA</Text>
+              <Text style={[stili.titoletto, { color: p.testoSecondario }]}>{t('SCEGLI LA FORMULA', 'CHOOSE A PAYMENT PLAN')}</Text>
               {formule.map((x) => {
                 const f = FORMULE[x.formula]
                 const attiva = x.piano_id === pianoId
@@ -119,18 +127,18 @@ export function Listino({
                   <SchedaScelta
                     key={x.piano_id}
                     attiva={attiva}
-                    etichetta={`${nome}, ${f.titolo}, ${euro(x.importo)} ${x.periodo.includes('anno') ? 'all’anno' : 'al mese'}`}
+                    etichetta={`${nome}, ${f.titolo}, ${euro(x.importo)} ${x.periodo.includes('anno') ? t('all’anno', 'per year') : t('al mese', 'per month')}`}
                     onPress={() => onScegli(x.piano_id)}
                     titolo={f.titolo}
                     sotto={f.sotto}
                     destra={
                       <View style={{ alignItems: 'flex-end' }}>
                         <Text style={{ color: p.testo, fontFamily: F.extra, fontSize: 20, letterSpacing: -0.5 }}>{euro(x.importo)}</Text>
-                        <Text style={{ color: p.testoSecondario, fontFamily: F.medio, fontSize: 12 }}>{x.periodo.includes('anno') ? 'all’anno' : 'al mese'}</Text>
+                        <Text style={{ color: p.testoSecondario, fontFamily: F.medio, fontSize: 12 }}>{x.periodo.includes('anno') ? t('all’anno', 'per year') : t('al mese', 'per month')}</Text>
                       </View>
                     }
                   >
-                    {x.risparmio_vs_flex ? <Etichetta testo={`Risparmi ${euro(x.risparmio_vs_flex)} rispetto al Flex`} tono="ok" /> : null}
+                    {x.risparmio_vs_flex ? <Etichetta testo={t(`Risparmi ${euro(x.risparmio_vs_flex)} rispetto al Flex`, `Save ${euro(x.risparmio_vs_flex)} compared to Flex`)} tono="ok" /> : null}
                   </SchedaScelta>
                 )
               })}

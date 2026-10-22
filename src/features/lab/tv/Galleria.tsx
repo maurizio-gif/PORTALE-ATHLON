@@ -6,6 +6,7 @@ import { StyleSheet, Text, useWindowDimensions, View } from 'react-native'
 
 import { leggiVetrina, type VideoClub } from '@/api/lab'
 import { LARGO } from '@/components/Pagina'
+import { t } from '@/lib/lingua'
 import { spazio } from '@/theme'
 
 import { posizione } from '../SchedaLezione'
@@ -28,7 +29,7 @@ export function apriVideo(raccolta: string, v: VideoClub) {
 function Locandina({ raccolta, v }: { raccolta: string; v: VideoClub }) {
   const p = usePalette()
   return (
-    <Tocco onPress={() => apriVideo(raccolta, v)} ruolo="link" etichetta={`Guarda ${v.titolo}, ${durata(v.durata)}`} scala={0.97} style={{ gap: spazio.due }}>
+    <Tocco onPress={() => apriVideo(raccolta, v)} ruolo="link" etichetta={t(`Guarda ${v.titolo}, ${durata(v.durata)}`, `Watch ${v.titolo}, ${durata(v.durata)}`)} scala={0.97} style={{ gap: spazio.due }}>
       <View style={[stili.locandina, { backgroundColor: p.incavo }]}>
         {v.miniatura ? <Image source={{ uri: v.miniatura }} style={StyleSheet.absoluteFill} contentFit="cover" transition={200} /> : null}
         <View style={stili.durata}>
@@ -71,7 +72,7 @@ export function Galleria() {
   return (
     <Schermata
       sopratitolo="Athlon TV"
-      titolo={vetrina?.titolo ?? 'Raccolta'}
+      titolo={vetrina?.titolo ?? t('Raccolta', 'Collection')}
       sottotitolo={vetrina ? [quanti(vetrina.totale), vetrina.descrizione].filter(Boolean).join(' · ') : undefined}
       indietro="/tv"
       barra={false}
@@ -79,11 +80,11 @@ export function Galleria() {
       {errore && !video ? (
         <>
           <Messaggio>{errore}</Messaggio>
-          <Pulsante testo="Riprova" icona="aggiorna" onPress={carica} />
+          <Pulsante testo={t('Riprova', 'Try again')} icona="aggiorna" onPress={carica} />
         </>
       ) : (
         <>
-          <Tocco onPress={() => primo && apriVideo(String(raccolta), primo)} spento={!primo} ruolo="link" etichetta="Guarda dall’inizio" scala={0.985}>
+          <Tocco onPress={() => primo && apriVideo(String(raccolta), primo)} spento={!primo} ruolo="link" etichetta={t('Guarda dall’inizio', 'Watch from the start')} scala={0.985}>
             <View style={[stili.testata, { backgroundColor: p.incavo }]}>
               {vetrina?.copertina || primo?.copertina ? (
                 <Image source={{ uri: (vetrina?.copertina ?? primo?.copertina)! }} style={StyleSheet.absoluteFill} contentFit="cover" contentPosition={posizione(vetrina?.copertina ? vetrina.fuoco ?? null : null)} transition={250} />
@@ -92,7 +93,7 @@ export function Galleria() {
               <View style={stili.testataTesto}>
                 <View style={stili.guarda}>
                   <Icona nome="play" size={18} colore="#141518" />
-                  <Text style={stili.guardaTesto}>Guarda dall’inizio</Text>
+                  <Text style={stili.guardaTesto}>{t('Guarda dall’inizio', 'Watch from the start')}</Text>
                 </View>
                 {primo ? (
                   <Text style={stili.testataPrimo} numberOfLines={1}>

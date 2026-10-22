@@ -3,6 +3,7 @@ import { StyleSheet, Text, View } from 'react-native'
 
 import type { ImportiContratto } from '@/api/abbonamento'
 import { euro } from '@/lib/eventi'
+import { locale, t } from '@/lib/lingua'
 import { spazio } from '@/theme'
 
 import { Carta } from './ui/kit'
@@ -16,7 +17,7 @@ import { Tocco } from './ui/Tocco'
 /** «1 novembre 2026». */
 export function dataLunga(iso: string): string {
   const [a, m, g] = iso.split('-').map(Number)
-  return new Intl.DateTimeFormat('it-IT', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' }).format(new Date(Date.UTC(a, m - 1, g)))
+  return new Intl.DateTimeFormat(locale(), { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' }).format(new Date(Date.UTC(a, m - 1, g)))
 }
 
 const MOSTRA = 3
@@ -31,14 +32,14 @@ export function RiepilogoCosti({ importi, metodo }: { importi: ImportiContratto;
     <Carta piatta>
       <View style={{ gap: spazio.tre }}>
         <View style={{ gap: 2 }}>
-          <Text style={[stili.sopra, { color: p.testoSecondario }]}>Oggi paghi</Text>
+          <Text style={[stili.sopra, { color: p.testoSecondario }]}>{t('Oggi paghi', 'You pay today')}</Text>
           <Text style={{ color: p.testo, fontFamily: F.extra, fontSize: 34, letterSpacing: -1 }}>{euro(c.totale_oggi)}</Text>
           <Text style={[stili.nota, { color: p.testoSecondario }]}>
             {metodo === 'conto'
-              ? 'Si addebitano sul conto corrente, con l’addebito diretto SEPA.'
+              ? t('Si addebitano sul conto corrente, con l’addebito diretto SEPA.', 'Charged to your bank account by SEPA direct debit.')
               : metodo === 'carta'
-                ? 'Si addebitano sulla carta.'
-                : 'Il metodo di pagamento lo scegli dopo la firma: carta o conto corrente.'}
+                ? t('Si addebitano sulla carta.', 'Charged to your card.')
+                : t('Il metodo di pagamento lo scegli dopo la firma: carta o conto corrente.', 'You choose the payment method after signing: card or bank account.')}
           </Text>
         </View>
 
@@ -46,14 +47,14 @@ export function RiepilogoCosti({ importi, metodo }: { importi: ImportiContratto;
           {c.oggi.map((v) => (
             <View key={v.label} style={riga}>
               <Text style={[stili.voce, { color: p.testo, flex: 1 }]}>{v.label}</Text>
-              <Text style={[stili.importo, { color: v.nota ? p.ok : p.testo }]}>{v.nota ? 'non dovuta' : euro(v.importo)}</Text>
+              <Text style={[stili.importo, { color: v.nota ? p.ok : p.testo }]}>{v.nota ? t('non dovuta', 'not due') : euro(v.importo)}</Text>
             </View>
           ))}
         </View>
 
         {c.prossimi.length || c.ricorrenza ? (
           <View style={{ gap: 6, borderTopWidth: 1, borderTopColor: p.linea, paddingTop: spazio.tre }}>
-            <Text style={[stili.sopra, { color: p.testoSecondario }]}>Poi</Text>
+            <Text style={[stili.sopra, { color: p.testoSecondario }]}>{t('Poi', 'Then')}</Text>
             {elenco.map((q) => (
               <View key={q.data} style={riga}>
                 <Text style={[stili.voce, { color: p.testo, flex: 1 }]}>{dataLunga(q.data)}</Text>
@@ -61,15 +62,15 @@ export function RiepilogoCosti({ importi, metodo }: { importi: ImportiContratto;
               </View>
             ))}
             {c.prossimi.length > MOSTRA ? (
-              <Tocco ruolo="button" etichetta={tutte ? 'Mostra meno quote' : `Vedi tutte le ${c.prossimi.length} quote`} onPress={() => setTutte((v) => !v)} style={{ alignSelf: 'flex-start', paddingVertical: 6 }}>
+              <Tocco ruolo="button" etichetta={tutte ? t('Mostra meno quote', 'Show fewer payments') : t(`Vedi tutte le ${c.prossimi.length} quote`, `See all ${c.prossimi.length} payments`)} onPress={() => setTutte((v) => !v)} style={{ alignSelf: 'flex-start', paddingVertical: 6 }}>
                 <Text style={{ color: p.accento, fontFamily: F.bold, fontSize: 13 }}>
-                  {tutte ? 'Mostra meno' : `Vedi tutte le ${c.prossimi.length} quote ›`}
+                  {tutte ? t('Mostra meno', 'Show less') : t(`Vedi tutte le ${c.prossimi.length} quote ›`, `See all ${c.prossimi.length} payments ›`)}
                 </Text>
               </Tocco>
             ) : null}
             {c.ricorrenza ? (
               <Text style={[stili.nota, { color: p.testoSecondario }]}>
-                {`Dal ${dataLunga(c.ricorrenza.dal)}: ${euro(c.ricorrenza.importo)} ${c.ricorrenza.ogni === 'anno' ? 'all’anno' : 'al mese'}, ${c.ricorrenza.nota}.`}
+                {t(`Dal ${dataLunga(c.ricorrenza.dal)}: ${euro(c.ricorrenza.importo)} ${c.ricorrenza.ogni === 'anno' ? 'all’anno' : 'al mese'}, ${c.ricorrenza.nota}.`, `From ${dataLunga(c.ricorrenza.dal)}: ${euro(c.ricorrenza.importo)} ${c.ricorrenza.ogni === 'anno' ? 'a year' : 'a month'}, ${c.ricorrenza.nota}.`)}
               </Text>
             ) : null}
           </View>
@@ -77,7 +78,7 @@ export function RiepilogoCosti({ importi, metodo }: { importi: ImportiContratto;
 
         <View style={[riga, { borderTopWidth: 1, borderTopColor: p.linea, paddingTop: spazio.tre }]}>
           <Text style={[stili.voce, { color: p.testo, fontFamily: F.bold, flex: 1 }]}>
-            {importi.formula === 'flex' ? 'Totale fino alla fine dell’impegno minimo' : 'Totale dell’impegno'}
+            {importi.formula === 'flex' ? t('Totale fino alla fine dell’impegno minimo', 'Total until the end of the minimum term') : t('Totale dell’impegno', 'Total commitment')}
           </Text>
           <Text style={{ color: p.testo, fontFamily: F.extra, fontSize: 18 }}>{euro(c.totale_impegno)}</Text>
         </View>

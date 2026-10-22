@@ -8,12 +8,14 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { chiediCodice, entra } from '@/api/lab'
 import { emailValida } from '@/api/richieste'
 import { PRIVACY_URL } from '@/lib/guestPass'
+import { t } from '@/lib/lingua'
 import { spazio } from '@/theme'
 
 import { CampoCodice, CampoTesto, CIFRE, IncollaCodice } from './ui/Campi'
 import { Icona } from './ui/Icona'
 import { Installa } from './ui/Installa'
 import { Carta, Messaggio, Pulsante } from './ui/kit'
+import { SceltaLingua } from './ui/SceltaLingua'
 import { Schermata } from './ui/Schermata'
 import { F, FUOCO, NOTTE, usePalette } from './ui/tema'
 import { colpetto, Tocco } from './ui/Tocco'
@@ -46,16 +48,16 @@ function Testata({ fase }: { fase: 'email' | 'codice' }) {
         </View>
         <View style={stili.chip}>
           <Icona nome="tessera" size={13} colore={FUOCO[0]} />
-          <Text style={stili.chipTesto}>LA TUA AREA ATHLON CLUB</Text>
+          <Text style={stili.chipTesto}>{t('LA TUA AREA ATHLON CLUB', 'YOUR ATHLON CLUB AREA')}</Text>
         </View>
         <Text style={stili.titolo} accessibilityRole="header">
-          {fase === 'email' ? 'Il tuo club,\nsempre con te' : 'Controlla\nla posta'}
+          {fase === 'email' ? t('Il tuo club,\nsempre con te', 'Your club,\nalways with you') : t('Controlla\nla posta', 'Check\nyour email')}
           <Text style={{ color: FUOCO[1] }}>.</Text>
         </Text>
         <Text style={stili.sotto}>
           {fase === 'email'
-            ? 'Prenotazioni, workout, abbonamenti e pagamenti in un posto solo. Entri con la tua email, senza password.'
-            : `Ti abbiamo mandato un codice di ${CIFRE} cifre: scrivilo o incollalo qui sotto.`}
+            ? t('Prenotazioni, workout, abbonamenti e pagamenti in un posto solo. Entri con la tua email, senza password.', 'Bookings, workouts, memberships and payments all in one place. Sign in with your email, no password.')
+            : t(`Ti abbiamo mandato un codice di ${CIFRE} cifre: scrivilo o incollalo qui sotto.`, `We sent you a ${CIFRE}-digit code: type or paste it below.`)}
         </Text>
       </View>
     </LinearGradient>
@@ -66,7 +68,7 @@ function Testata({ fase }: { fase: 'email' | 'codice' }) {
 function Passi({ fase }: { fase: 'email' | 'codice' }) {
   const p = usePalette()
   return (
-    <View style={{ flexDirection: 'row', gap: 6, alignItems: 'center' }} accessibilityLabel={fase === 'email' ? 'Passo 1 di 2' : 'Passo 2 di 2'}>
+    <View style={{ flexDirection: 'row', gap: 6, alignItems: 'center' }} accessibilityLabel={fase === 'email' ? t('Passo 1 di 2', 'Step 1 of 2') : t('Passo 2 di 2', 'Step 2 of 2')}>
       <View style={[stili.passo, { width: 28, backgroundColor: p.accento }]} />
       <View style={[stili.passo, { width: fase === 'codice' ? 28 : 12, backgroundColor: fase === 'codice' ? p.accento : p.incavo }]} />
       <Text style={{ color: p.testoTerzo, fontSize: 12, fontFamily: F.extra, marginLeft: 4 }}>{fase === 'email' ? '1 / 2' : '2 / 2'}</Text>
@@ -84,7 +86,7 @@ export function Accesso() {
 
   async function mandaCodice() {
     setErrore(null)
-    if (!emailValida(email)) return setErrore('Scrivi un indirizzo email valido.')
+    if (!emailValida(email)) return setErrore(t('Scrivi un indirizzo email valido.', 'Enter a valid email address.'))
     setAttesa(true)
     const esito = await chiediCodice(email.trim().toLowerCase())
     setAttesa(false)
@@ -97,7 +99,7 @@ export function Accesso() {
   async function verifica(scritto = codice) {
     if (attesa) return
     setErrore(null)
-    if (scritto.replace(/\D/g, '').length < CIFRE) return setErrore(`Il codice ha ${CIFRE} cifre.`)
+    if (scritto.replace(/\D/g, '').length < CIFRE) return setErrore(t(`Il codice ha ${CIFRE} cifre.`, `The code has ${CIFRE} digits.`))
     setAttesa(true)
     const esito = await entra(email.trim().toLowerCase(), scritto)
     setAttesa(false)
@@ -123,7 +125,7 @@ export function Accesso() {
   }
 
   return (
-    <Schermata titolo="Accesso" nascondiTitolo barra={false} sopra={<Testata fase={fase} />}>
+    <Schermata titolo={t('Accesso', 'Sign in')} nascondiTitolo barra={false} sopra={<Testata fase={fase} />}>
       <Carta style={stili.modulo}>
         <Animated.View key={fase} entering={FadeInRight.duration(320)} style={{ gap: spazio.tre + 4 }}>
           <Passi fase={fase} />
@@ -140,27 +142,28 @@ export function Accesso() {
                 autoCorrect={false}
                 inputMode="email"
                 keyboardType="email-address"
-                placeholder="nome@esempio.it"
+                placeholder={t('nome@esempio.it', 'name@example.com')}
                 errore={!!errore}
               />
               {errore ? <Messaggio>{errore}</Messaggio> : null}
-              <Pulsante testo="Mandami il codice" icona="avanti" onPress={mandaCodice} inCorso={attesa} />
+              <Pulsante testo={t('Mandami il codice', 'Send me the code')} icona="avanti" onPress={mandaCodice} inCorso={attesa} />
               <Text style={[stili.nota, { color: p.testoSecondario }]}>
-                Usa l’email con cui sei iscritto al club: è da lì che troviamo{' '}
-                <Text style={{ fontFamily: F.bold, color: p.testo }}>i tuoi abbonamenti e la tua famiglia</Text>.
+                {t('Usa l’email con cui sei iscritto al club: è da lì che troviamo', 'Use the email you registered with at the club: that’s how we find')}{' '}
+                <Text style={{ fontFamily: F.bold, color: p.testo }}>{t('i tuoi abbonamenti e la tua famiglia', 'your memberships and your family')}</Text>.
               </Text>
             </>
           ) : (
             <>
               <Text style={[stili.nota, { color: p.testoSecondario, fontSize: 14.5 }]}>
-                Se <Text style={{ fontFamily: F.bold, color: p.testo }}>{email.trim()}</Text> è l’email con cui sei iscritto, ti abbiamo mandato un codice di {CIFRE} cifre.
+                {t('Se', 'If')} <Text style={{ fontFamily: F.bold, color: p.testo }}>{email.trim()}</Text>{' '}
+                {t(`è l’email con cui sei iscritto, ti abbiamo mandato un codice di ${CIFRE} cifre.`, `is the email you registered with, we’ve sent you a ${CIFRE}-digit code.`)}
               </Text>
               <CampoCodice value={codice} onChange={cambiaCodice} onInvio={() => verifica()} errore={!!errore} />
               <IncollaCodice onCodice={usaCodice} disabilitato={attesa} />
               {errore ? <Messaggio>{errore}</Messaggio> : null}
-              <Pulsante testo="Entra" icona="avanti" onPress={() => verifica()} inCorso={attesa} />
-              <Pulsante testo="Usa un’altra email o chiedi un nuovo codice" variante="fantasma" piccolo onPress={() => setFase('email')} disabilitato={attesa} />
-              <Text style={[stili.nota, { color: p.testoTerzo, textAlign: 'center' }]}>Il codice vale un’ora. Non trovi l’email? Guarda nella posta indesiderata.</Text>
+              <Pulsante testo={t('Entra', 'Sign in')} icona="avanti" onPress={() => verifica()} inCorso={attesa} />
+              <Pulsante testo={t('Usa un’altra email o chiedi un nuovo codice', 'Use another email or request a new code')} variante="fantasma" piccolo onPress={() => setFase('email')} disabilitato={attesa} />
+              <Text style={[stili.nota, { color: p.testoTerzo, textAlign: 'center' }]}>{t('Il codice vale un’ora. Non trovi l’email? Guarda nella posta indesiderata.', 'The code is valid for one hour. Can’t find the email? Check your spam folder.')}</Text>
             </>
           )}
         </Animated.View>
@@ -170,9 +173,9 @@ export function Accesso() {
       <View style={stili.garanzie}>
         {(
           [
-            ['lucchetto', 'Niente password'],
-            ['scudo', 'Accesso sicuro'],
-            ['tessera', 'Per i soci del club'],
+            ['lucchetto', t('Niente password', 'No password')],
+            ['scudo', t('Accesso sicuro', 'Secure sign-in')],
+            ['tessera', t('Per i soci del club', 'For club members')],
           ] as const
         ).map(([icona, testo]) => (
           <View key={testo} style={stili.garanzia}>
@@ -181,11 +184,14 @@ export function Accesso() {
           </View>
         ))}
       </View>
-      <Tocco onPress={() => Linking.openURL(PRIVACY_URL)} ruolo="link" etichetta="Informativa privacy del club" vibra={null} scala={0.99} style={{ alignSelf: 'center' }}>
+      <Tocco onPress={() => Linking.openURL(PRIVACY_URL)} ruolo="link" etichetta={t('Informativa privacy del club', 'Club privacy notice')} vibra={null} scala={0.99} style={{ alignSelf: 'center' }}>
         <Text style={[stili.nota, { color: p.testoTerzo, textAlign: 'center', fontSize: 12.5 }]}>
-          Come trattiamo i tuoi dati: <Text style={{ fontFamily: F.bold, color: p.accento, textDecorationLine: 'underline' }}>informativa privacy</Text>
+          {t('Come trattiamo i tuoi dati:', 'How we handle your data:')}{' '}
+          <Text style={{ fontFamily: F.bold, color: p.accento, textDecorationLine: 'underline' }}>{t('informativa privacy', 'privacy notice')}</Text>
         </Text>
       </Tocco>
+      {/* La lingua, anche prima di entrare (lib/lingua.ts). */}
+      <SceltaLingua centrata />
     </Schermata>
   )
 }

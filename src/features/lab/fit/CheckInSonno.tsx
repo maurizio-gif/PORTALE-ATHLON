@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Pressable, StyleSheet, Text, View } from 'react-native'
 
 import { salvaSonno, type GiornoDispositivo } from '@/api/dispositivi'
+import { t } from '@/lib/lingua'
 import { spazio } from '@/theme'
 
 import { oggiRoma } from '../alimentazione/conti'
@@ -30,7 +31,7 @@ const DI_PARTENZA = { letto: '23:00', sveglia: '07:00' }
 const MIN = 120
 const MAX = 960
 
-const nomeGiorno = (g: string, oggi: string) => (g === oggi ? 'Oggi' : g === spostaGiorno(oggi, -1) ? 'Ieri' : giornoBreve(g).split(' ').slice(0, 2).join(' '))
+const nomeGiorno = (g: string, oggi: string) => (g === oggi ? t('Oggi', 'Today') : g === spostaGiorno(oggi, -1) ? t('Ieri', 'Yesterday') : giornoBreve(g).split(' ').slice(0, 2).join(' '))
 
 const ora = (minuti: number) => {
   const m = ((minuti % 1440) + 1440) % 1440
@@ -86,11 +87,11 @@ function SceltaOra({ titolo, valore, onSposta }: { titolo: string; valore: strin
     <View style={{ gap: 6 }}>
       <Text style={[stili.etichetta, { color: p.testoSecondario }]}>{titolo}</Text>
       <View style={stili.stepper}>
-        <TastoOra verso={-1} etichetta={`${titolo}: un quarto d’ora prima`} onPasso={onSposta} />
+        <TastoOra verso={-1} etichetta={t(`${titolo}: un quarto d’ora prima`, `${titolo}: 15 minutes earlier`)} onPasso={onSposta} />
         <View style={{ alignItems: 'center', flex: 1 }} accessibilityLiveRegion="polite" accessibilityLabel={`${titolo} ${valore}`}>
           <Text style={[stili.grande, { color: p.testo }]}>{valore}</Text>
         </View>
-        <TastoOra verso={1} etichetta={`${titolo}: un quarto d’ora dopo`} onPasso={onSposta} />
+        <TastoOra verso={1} etichetta={t(`${titolo}: un quarto d’ora dopo`, `${titolo}: 15 minutes later`)} onPasso={onSposta} />
       </View>
     </View>
   )
@@ -136,10 +137,10 @@ export function CheckInSonno({ disp, giorni }: { disp: Dispositivi; giorni: Gior
     if (!r.ok) return setErrore(r.errore)
     disp.imposta(r)
     setModifica(false)
-    setFatto(ore === null ? 'Notte tolta.' : 'Salvato.')
+    setFatto(ore === null ? t('Notte tolta.', 'Night removed.') : t('Salvato.', 'Saved.'))
   }
 
-  const domanda = giorno === oggi ? 'Come hai dormito questa notte?' : `Come hai dormito la notte del ${giornoBreve(giorno)}?`
+  const domanda = giorno === oggi ? t('Come hai dormito questa notte?', 'How did you sleep last night?') : t(`Come hai dormito la notte del ${giornoBreve(giorno)}?`, `How did you sleep on the night of ${giornoBreve(giorno)}?`)
   const vedi = !dispositivo && (!scritta || modifica)
 
   return (
@@ -150,7 +151,7 @@ export function CheckInSonno({ disp, giorni }: { disp: Dispositivi; giorni: Gior
         </View>
         <View style={{ flex: 1, gap: 1 }}>
           <Text style={[stili.titolo, { color: p.testo }]}>{domanda}</Text>
-          <Text style={[stili.piccola, { color: p.testoSecondario }]}>A che ora sei andato a dormire e a che ora ti sei svegliato. Conta nel tuo Athlon Health Score.</Text>
+          <Text style={[stili.piccola, { color: p.testoSecondario }]}>{t('A che ora sei andato a dormire e a che ora ti sei svegliato. Conta nel tuo Athlon Health Score.', 'What time you went to bed and what time you woke up. It counts toward your Athlon Health Score.')}</Text>
         </View>
       </View>
 
@@ -159,7 +160,7 @@ export function CheckInSonno({ disp, giorni }: { disp: Dispositivi; giorni: Gior
           const scelto = g === giorno
           const haDato = giorni.some((x) => x.data === g && x.sonno_minuti !== null)
           return (
-            <Tocco key={g} onPress={() => setGiorno(g)} vibra="scelta" ruolo="radio" stato={{ selected: scelto }} etichetta={`${nomeGiorno(g, oggi)}${haDato ? ', già scritta' : ''}`} style={[stili.giorno, { backgroundColor: scelto ? RELAX[2] : p.incavo }]}>
+            <Tocco key={g} onPress={() => setGiorno(g)} vibra="scelta" ruolo="radio" stato={{ selected: scelto }} etichetta={`${nomeGiorno(g, oggi)}${haDato ? t(', già scritta', ', already logged') : ''}`} style={[stili.giorno, { backgroundColor: scelto ? RELAX[2] : p.incavo }]}>
               <Text style={[stili.giornoTesto, { color: scelto ? '#fff' : p.testo }]}>{nomeGiorno(g, oggi)}</Text>
               {haDato ? <View style={[stili.punto, { backgroundColor: scelto ? '#fff' : RELAX[1] }]} /> : null}
             </Tocco>
@@ -168,19 +169,19 @@ export function CheckInSonno({ disp, giorni }: { disp: Dispositivi; giorni: Gior
       </View>
 
       {dispositivo ? (
-        <Text style={[stili.nota, { color: p.testoSecondario }]}>{`Per questa notte c’è il dato del tuo dispositivo: ${durata(dispositivo.sonno_minuti ?? 0)}.`}</Text>
+        <Text style={[stili.nota, { color: p.testoSecondario }]}>{t(`Per questa notte c’è il dato del tuo dispositivo: ${durata(dispositivo.sonno_minuti ?? 0)}.`, `Your device already has this night: ${durata(dispositivo.sonno_minuti ?? 0)}.`)}</Text>
       ) : scritta && !modifica ? (
         <View style={{ gap: spazio.due }}>
           <Text style={[stili.grande, { color: p.testo }]}>{durata(scritta.sonno_minuti ?? 0)}</Text>
           {scritta.sonno_a_letto && scritta.sonno_sveglia ? (
-            <Text style={[stili.nota, { color: p.testoSecondario }]}>{`A letto alle ${scritta.sonno_a_letto}, sveglio alle ${scritta.sonno_sveglia}.`}</Text>
+            <Text style={[stili.nota, { color: p.testoSecondario }]}>{t(`A letto alle ${scritta.sonno_a_letto}, sveglio alle ${scritta.sonno_sveglia}.`, `In bed at ${scritta.sonno_a_letto}, awake at ${scritta.sonno_sveglia}.`)}</Text>
           ) : null}
           <View style={stili.azioni}>
             <View style={{ flex: 1 }}>
-              <Pulsante testo="Cambia" icona="modifica" variante="secondario" piccolo onPress={() => setModifica(true)} />
+              <Pulsante testo={t('Cambia', 'Change')} icona="modifica" variante="secondario" piccolo onPress={() => setModifica(true)} />
             </View>
             <View style={{ flex: 1 }}>
-              <Pulsante testo="Togli" variante="contorno" piccolo inCorso={inCorso === 'togli'} onPress={() => invia(null)} />
+              <Pulsante testo={t('Togli', 'Remove')} variante="contorno" piccolo inCorso={inCorso === 'togli'} onPress={() => invia(null)} />
             </View>
           </View>
         </View>
@@ -188,19 +189,19 @@ export function CheckInSonno({ disp, giorni }: { disp: Dispositivi; giorni: Gior
 
       {vedi ? (
         <View style={{ gap: spazio.tre }}>
-          <SceltaOra titolo="Sono andato a dormire alle" valore={letto} onSposta={(d) => setLetto((v) => ora(minutiDelGiorno(v) + d))} />
-          <SceltaOra titolo="Mi sono svegliato alle" valore={sveglia} onSposta={(d) => setSveglia((v) => ora(minutiDelGiorno(v) + d))} />
+          <SceltaOra titolo={t('Sono andato a dormire alle', 'I went to bed at')} valore={letto} onSposta={(d) => setLetto((v) => ora(minutiDelGiorno(v) + d))} />
+          <SceltaOra titolo={t('Mi sono svegliato alle', 'I woke up at')} valore={sveglia} onSposta={(d) => setSveglia((v) => ora(minutiDelGiorno(v) + d))} />
           <Text style={[stili.nota, { color: valida ? RELAX[2] : p.testoSecondario }]} accessibilityLiveRegion="polite">
-            {valida ? `Hai dormito ${durata(minuti)}.` : minuti === 0 ? 'Le due ore sono uguali.' : 'Fra le due ore devono passare da 2 a 16 ore.'}
+            {valida ? t(`Hai dormito ${durata(minuti)}.`, `You slept ${durata(minuti)}.`) : minuti === 0 ? t('Le due ore sono uguali.', 'The two times are the same.') : t('Fra le due ore devono passare da 2 a 16 ore.', 'The two times must be 2 to 16 hours apart.')}
           </Text>
           <View style={stili.azioni}>
             {scritta ? (
               <View style={{ flex: 1 }}>
-                <Pulsante testo="Annulla" variante="secondario" onPress={() => setModifica(false)} />
+                <Pulsante testo={t('Annulla', 'Cancel')} variante="secondario" onPress={() => setModifica(false)} />
               </View>
             ) : null}
             <View style={{ flex: 1 }}>
-              <Pulsante testo="Salva" icona="spunta" disabilitato={!valida} inCorso={inCorso === 'salva'} onPress={() => invia({ letto, sveglia })} />
+              <Pulsante testo={t('Salva', 'Save')} icona="spunta" disabilitato={!valida} inCorso={inCorso === 'salva'} onPress={() => invia({ letto, sveglia })} />
             </View>
           </View>
         </View>

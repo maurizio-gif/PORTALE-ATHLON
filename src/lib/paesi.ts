@@ -7,7 +7,10 @@
 // ISO ufficiale e PerfectGym potrebbe rifiutare. Un Paese che manca o sbaglia
 // si corregge qui, e in tutte le copie: stessa lista in APP-ATHLON, PORTALE-ATHLON
 // e SITO-ATHLON.
-export const PAESI: readonly (readonly [codice: string, nome: string])[] = [
+
+import { lingua } from './lingua'
+
+const PAESI_IT: readonly (readonly [codice: string, nome: string])[] = [
   ["AF", "Afghanistan"],
   ["AL", "Albania"],
   ["DZ", "Algeria"],
@@ -257,5 +260,18 @@ export const PAESI: readonly (readonly [codice: string, nome: string])[] = [
   ["ZM", "Zambia"],
   ["ZW", "Zimbabwe"],
 ]
+
+// In inglese i nomi vengono da Intl.DisplayNames('en'), nell'ordine alfabetico inglese; dove Intl non li sa
+// resta il nome italiano.
+function inInglese(): readonly (readonly [codice: string, nome: string])[] {
+  try {
+    const nomi = new Intl.DisplayNames(['en'], { type: 'region' })
+    return PAESI_IT.map(([c, n]) => [c, nomi.of(c) ?? n] as const).sort((a, b) => a[1].localeCompare(b[1], 'en'))
+  } catch {
+    return PAESI_IT
+  }
+}
+
+export const PAESI: readonly (readonly [codice: string, nome: string])[] = lingua() === 'en' ? inInglese() : PAESI_IT
 
 export const NOME_PAESE: Record<string, string> = Object.fromEntries(PAESI)

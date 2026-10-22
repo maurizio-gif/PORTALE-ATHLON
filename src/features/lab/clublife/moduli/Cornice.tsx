@@ -2,6 +2,7 @@ import { router } from 'expo-router'
 import type { ReactNode } from 'react'
 import { StyleSheet, Text, View } from 'react-native'
 
+import { t } from '@/lib/lingua'
 import { spazio } from '@/theme'
 
 import { Bollino, Carta, Messaggio, Pulsante } from '../../ui/kit'
@@ -17,7 +18,7 @@ import { inVista } from './identita'
 export function Cornice({ sopratitolo, titolo, sottotitolo, children }: { sopratitolo: string; titolo: string; sottotitolo?: string; children: ReactNode }) {
   return (
     <Schermata indietro="/club-life" barra={false} sopratitolo={sopratitolo} titolo={titolo} sottotitolo={sottotitolo}>
-      {inVista() ? <Messaggio tono="attenzione">Sei in vista cliente: i moduli non si possono inviare da qui.</Messaggio> : null}
+      {inVista() ? <Messaggio tono="attenzione">{t('Sei in vista cliente: i moduli non si possono inviare da qui.', 'You’re in client view: forms can’t be sent from here.')}</Messaggio> : null}
       {children}
     </Schermata>
   )
@@ -70,7 +71,7 @@ export function Fatto({ titolo, children }: { titolo: string; children: ReactNod
         </Text>
         {typeof children === 'string' ? <Text style={[stili.fattoTesto, { color: p.testoSecondario }]}>{children}</Text> : children}
       </Carta>
-      <Pulsante testo="Torna a Club Life" onPress={() => router.navigate('/club-life')} />
+      <Pulsante testo={t('Torna a Club Life', 'Back to Club Life')} onPress={() => router.navigate('/club-life')} />
     </View>
   )
 }
@@ -81,7 +82,7 @@ export function DaDoveParti({ email }: { email: string }) {
   return (
     <View style={[stili.riga, { backgroundColor: p.incavo }]}>
       <Text style={[stili.rigaTesto, { color: p.testoSecondario }]}>
-        Ti scriviamo a <Text style={{ color: p.testo, fontFamily: F.bold }}>{email || 'l’indirizzo del tuo accesso'}</Text>
+        {t('Ti scriviamo a ', 'We’ll write to ')}<Text style={{ color: p.testo, fontFamily: F.bold }}>{email || t('l’indirizzo del tuo accesso', 'the email you sign in with')}</Text>
       </Text>
     </View>
   )

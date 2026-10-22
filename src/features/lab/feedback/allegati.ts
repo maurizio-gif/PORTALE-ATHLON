@@ -1,6 +1,8 @@
 import * as DocumentPicker from 'expo-document-picker'
 import { Platform } from 'react-native'
 
+import { t } from '@/lib/lingua'
+
 import { ALLEGATO_BYTE_MAX, FORMATI_ALLEGATI, pesoLeggibile, tipoAllegatoDa, type Allegato, type TipoAllegato } from './comune'
 
 // Gli allegati del feedback: si scelgono (anche piu' d'uno insieme), si controllano e si portano in base64, che e'
@@ -64,7 +66,7 @@ export type EsitoAllegato = { ok: true; allegato: Allegato } | { ok: false; erro
 export async function preparaAllegato(a: DocumentPicker.DocumentPickerAsset): Promise<EsitoAllegato> {
   const tipo = tipoAllegatoDa({ name: a.name, mimeType: a.mimeType })
   const nomeOrigine = a.name || 'allegato'
-  if (!tipo) return { ok: false, errore: `«${nomeOrigine}» non si può allegare: servono ${FORMATI_ALLEGATI}.` }
+  if (!tipo) return { ok: false, errore: t(`«${nomeOrigine}» non si può allegare: servono ${FORMATI_ALLEGATI}.`, `“${nomeOrigine}” can’t be attached: use ${FORMATI_ALLEGATI}.`) }
   try {
     let blob: Blob = Platform.OS === 'web' && a.file ? a.file : await (await fetch(a.uri)).blob()
     let nome = nomeOrigine
@@ -77,15 +79,15 @@ export async function preparaAllegato(a: DocumentPicker.DocumentPickerAsset): Pr
         nome = nome.replace(/\.[A-Za-z0-9]{1,5}$/, '') + '.jpg'
       }
     }
-    if (blob.size === 0) return { ok: false, errore: `«${nomeOrigine}» è vuoto.` }
+    if (blob.size === 0) return { ok: false, errore: t(`«${nomeOrigine}» è vuoto.`, `“${nomeOrigine}” is empty.`) }
     if (blob.size > ALLEGATO_BYTE_MAX) {
-      return { ok: false, errore: `«${nomeOrigine}» pesa troppo (${pesoLeggibile(blob.size)}): il limite è ${ALLEGATO_BYTE_MAX / 1024 / 1024} MB per file.` }
+      return { ok: false, errore: t(`«${nomeOrigine}» pesa troppo (${pesoLeggibile(blob.size)}): il limite è ${ALLEGATO_BYTE_MAX / 1024 / 1024} MB per file.`, `“${nomeOrigine}” is too large (${pesoLeggibile(blob.size)}): the limit is ${ALLEGATO_BYTE_MAX / 1024 / 1024} MB per file.`) }
     }
     return {
       ok: true,
       allegato: { nome, tipo: tipoFinale, byte: blob.size, base64: await inBase64(blob), anteprima: tipoFinale === 'application/pdf' ? null : a.uri },
     }
   } catch {
-    return { ok: false, errore: `Non riusciamo a leggere «${nomeOrigine}». Riprova scegliendolo di nuovo.` }
+    return { ok: false, errore: t(`Non riusciamo a leggere «${nomeOrigine}». Riprova scegliendolo di nuovo.`, `We can’t read “${nomeOrigine}”. Try choosing it again.`) }
   }
 }

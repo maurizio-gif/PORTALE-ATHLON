@@ -1,5 +1,6 @@
 import { StyleSheet, Text, View } from 'react-native'
 
+import { t } from '@/lib/lingua'
 import { spazio } from '@/theme'
 
 import { Icona } from '../ui/Icona'
@@ -13,15 +14,15 @@ export function PianoOPercorso() {
       <View style={stili.differenzaRiga}>
         <Icona nome="peso" size={18} colore={p.blu} />
         <Text style={[stili.nota, { color: p.testo, flex: 1 }]}>
-          <Text style={{ fontFamily: F.extra }}>Il piano di allenamento </Text>
-          sono gli esercizi di un allenamento in sala, o le sedute da fare in vasca: serie, ripetizioni, carichi, distanze.
+          <Text style={{ fontFamily: F.extra }}>{t('Il piano di allenamento ', 'The workout plan ')}</Text>
+          {t('sono gli esercizi di un allenamento in sala, o le sedute da fare in vasca: serie, ripetizioni, carichi, distanze.', 'is the exercises of a gym floor workout, or the sessions to do in the pool: sets, reps, loads, distances.')}
         </Text>
       </View>
       <View style={stili.differenzaRiga}>
         <Icona nome="calendario" size={18} colore={p.accento} />
         <Text style={[stili.nota, { color: p.testo, flex: 1 }]}>
-          <Text style={{ fontFamily: F.extra }}>Il percorso </Text>
-          è la tua settimana intera: sala, cardio, lezioni e acqua, insieme. Usa i tuoi piani come tappe di sala e di vasca.
+          <Text style={{ fontFamily: F.extra }}>{t('Il percorso ', 'The program ')}</Text>
+          {t('è la tua settimana intera: sala, cardio, lezioni e acqua, insieme. Usa i tuoi piani come tappe di sala e di vasca.', 'is your whole week: gym floor, cardio, classes and water, together. It uses your plans as gym floor and pool steps.')}
         </Text>
       </View>
     </View>

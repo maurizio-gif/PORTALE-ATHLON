@@ -6,6 +6,8 @@
 // ciascuno, 3000 caratteri, JPG, PNG, WebP o PDF): i due repository non si importano. Servono a dirlo subito e con
 // parole chiare; l'ultima parola e' della funzione, che guarda i primi byte del file e non il nome.
 
+import { t } from '../../../lib/lingua'
+
 export const ALLEGATI_MAX = 3
 export const ALLEGATO_BYTE_MAX = 5 * 1024 * 1024
 export const TESTO_MAX = 3000
@@ -14,10 +16,10 @@ export const TESTO_AVVISO = 2500
 
 /** I tipi di messaggio (facoltativi): come sta andando, un suggerimento, un problema, altro. Le stesse quattro chiavi della funzione. */
 export const TIPI_FEEDBACK = [
-  { valore: 'andamento', testo: 'Come sta andando' },
-  { valore: 'suggerimento', testo: 'Un suggerimento' },
-  { valore: 'problema', testo: 'Un problema' },
-  { valore: 'altro', testo: 'Altro' },
+  { valore: 'andamento', testo: t('Come sta andando', 'How it’s going') },
+  { valore: 'suggerimento', testo: t('Un suggerimento', 'A suggestion') },
+  { valore: 'problema', testo: t('Un problema', 'A problem') },
+  { valore: 'altro', testo: t('Altro', 'Other') },
 ] as const
 
 export type TipoFeedback = (typeof TIPI_FEEDBACK)[number]['valore']
@@ -45,7 +47,7 @@ export function tipoAllegatoDa(a: { name: string; mimeType?: string | null }): T
   return null
 }
 
-export const FORMATI_ALLEGATI = 'foto JPG, PNG o WebP, oppure PDF'
+export const FORMATI_ALLEGATI = t('foto JPG, PNG o WebP, oppure PDF', 'JPG, PNG or WebP photos, or PDF')
 
 /** Quanti allegati se ne possono ancora aggiungere. */
 export function postiLiberi(attuali: number): number {
@@ -60,7 +62,7 @@ export function testoInviabile(testo: string): boolean {
 
 /** Il peso come lo si legge: «2,4 MB», «380 kB». */
 export function pesoLeggibile(byte: number): string {
-  return byte >= 1024 * 1024 ? `${(byte / 1024 / 1024).toFixed(1).replace('.', ',')} MB` : `${Math.max(1, Math.round(byte / 1024))} kB`
+  return byte >= 1024 * 1024 ? `${(byte / 1024 / 1024).toFixed(1).replace('.', t(',', '.'))} MB` : `${Math.max(1, Math.round(byte / 1024))} kB`
 }
 
 /**

@@ -4,6 +4,7 @@ import { ActivityIndicator, StyleSheet, Text, View, type StyleProp, type TextSty
 import Animated, { Easing, FadeInDown, useAnimatedStyle, useSharedValue, withDelay, withRepeat, withTiming } from 'react-native-reanimated'
 
 import { spazio, type Tono } from '@/theme'
+import { t } from '@/lib/lingua'
 
 import { Icona, type NomeIcona } from './Icona'
 import { coloreTono, F, FUOCO, raggio, usePalette, velo, type ToniTutti } from './tema'
@@ -318,7 +319,7 @@ export function Scheletro({ altezza = 16, larghezza = '100%', tondo = 8, style }
 /** Il caricamento di una schermata: qualche scheda vuota che pulsa. */
 export function SchedeInArrivo({ quante = 3 }: { quante?: number }) {
   return (
-    <View style={{ gap: spazio.tre }} accessibilityLabel="Caricamento" accessibilityRole="progressbar">
+    <View style={{ gap: spazio.tre }} accessibilityLabel={t('Caricamento', 'Loading')} accessibilityRole="progressbar">
       <Scheletro altezza={150} tondo={raggio.grande} />
       {Array.from({ length: quante }, (_, i) => (
         <Carta key={i} style={{ gap: spazio.tre }} piatta>

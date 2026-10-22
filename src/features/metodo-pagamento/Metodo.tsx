@@ -3,6 +3,7 @@ import { StyleSheet, Text, View } from 'react-native'
 import { Avviso } from '@/components/Avviso'
 import { dataBreve, meseAnno, type ContrattoNucleo, type EsitoContratto, type MetodoAttuale } from '@/lib/metodoPagamento'
 import { spazio, stileTono, useColori, type Tono } from '@/theme'
+import { t } from '@/lib/lingua'
 
 // I pezzi che l'elenco e il ritorno dalla carta disegnano uguali: chi e'
 // l'abbonamento, che metodo ha, com'e' andato il salvataggio. Ripresi dalla
@@ -23,48 +24,49 @@ function Etichetta({ tono, children }: { tono: Tono; children: React.ReactNode }
 
 export function MetodoAttualeBadge({ metodo }: { metodo: MetodoAttuale | null }) {
   const tipo = (metodo?.tipo ?? '').toLowerCase()
-  if (!metodo || tipo === 'cash') return <Etichetta tono="attenzione">Nessun metodo salvato</Etichetta>
+  if (!metodo || tipo === 'cash') return <Etichetta tono="attenzione">{t('Nessun metodo salvato', 'No method saved')}</Etichetta>
   if (tipo === 'creditcard') {
     const quando = meseAnno(metodo.scadenza)
     const cifre = metodo.finale ? ` •••• ${metodo.finale}` : ''
     if (metodo.scaduta) {
       return (
         <Etichetta tono="errore">
-          <Text style={{ fontWeight: '700' }}>Carta{cifre} scaduta</Text>
+          <Text style={{ fontWeight: '700' }}>{t(`Carta${cifre} scaduta`, `Card${cifre} expired`)}</Text>
           {quando ? ` (${quando})` : ''}
         </Etichetta>
       )
     }
     return (
       <Etichetta tono="ok">
-        Carta{cifre}
-        {quando ? ` · scade ${quando}` : ''}
+        {t('Carta', 'Card')}
+        {cifre}
+        {quando ? ` · ${t('scade', 'expires')} ${quando}` : ''}
       </Etichetta>
     )
   }
-  if (tipo === 'directdebit') return <Etichetta tono="ok">Conto corrente{metodo.finale ? ` •••• ${metodo.finale}` : ''}</Etichetta>
-  return <Etichetta tono="attenzione">Altro metodo ({metodo.tipo})</Etichetta>
+  if (tipo === 'directdebit') return <Etichetta tono="ok">{t('Conto corrente', 'Bank account')}{metodo.finale ? ` •••• ${metodo.finale}` : ''}</Etichetta>
+  return <Etichetta tono="attenzione">{t('Altro metodo', 'Other method')} ({metodo.tipo})</Etichetta>
 }
 
 export function chi(c: Pick<ContrattoNucleo, 'nome' | 'cognome'>): string {
-  return [c.nome, c.cognome].filter(Boolean).join(' ') || 'Abbonamento'
+  return [c.nome, c.cognome].filter(Boolean).join(' ') || t('Abbonamento', 'Membership')
 }
 
 export function statoLeggibile(c: Pick<ContrattoNucleo, 'stato' | 'data_inizio'>): string {
-  if (c.stato === 'Freezed') return 'Sospeso'
+  if (c.stato === 'Freezed') return t('Sospeso', 'Frozen')
   if (c.stato === 'NotStarted') {
     const d = dataBreve(c.data_inizio)
-    return d ? `Parte il ${d}` : 'Non ancora partito'
+    return d ? t(`Parte il ${d}`, `Starts on ${d}`) : t('Non ancora partito', 'Not started yet')
   }
-  return 'Attivo'
+  return t('Attivo', 'Active')
 }
 
 /** Sottoscrizione, inizio e — se c'e' — fine, nell'ordine in cui accadono. */
 export function dateContratto(c: Pick<ContrattoNucleo, 'data_firma' | 'data_inizio' | 'data_fine'>): string {
   return [
-    dataBreve(c.data_firma) && `Sottoscritto il ${dataBreve(c.data_firma)}`,
-    dataBreve(c.data_inizio) && `inizio ${dataBreve(c.data_inizio)}`,
-    dataBreve(c.data_fine) && `fine ${dataBreve(c.data_fine)}`,
+    dataBreve(c.data_firma) && t(`Sottoscritto il ${dataBreve(c.data_firma)}`, `Signed on ${dataBreve(c.data_firma)}`),
+    dataBreve(c.data_inizio) && t(`inizio ${dataBreve(c.data_inizio)}`, `start ${dataBreve(c.data_inizio)}`),
+    dataBreve(c.data_fine) && t(`fine ${dataBreve(c.data_fine)}`, `end ${dataBreve(c.data_fine)}`),
   ]
     .filter(Boolean)
     .join(' · ')
@@ -81,11 +83,11 @@ export function ElencoEsiti({ contratti, risultati }: { contratti: ContrattoNucl
           <Avviso key={r.contract_id} tono={r.ok ? 'ok' : 'errore'}>
             <Text style={[stili.testoEsito, { color: c.testo }]}>
               <Text style={{ fontWeight: '700' }}>
-                {r.ok ? '✓' : '✕'} {x ? chi(x) : `Abbonamento ${r.contract_id}`}
+                {r.ok ? '✓' : '✕'} {x ? chi(x) : t(`Abbonamento ${r.contract_id}`, `Membership ${r.contract_id}`)}
               </Text>
               {x?.piano ? ` · ${x.piano}` : ''}
               {'\n'}
-              {r.ok ? 'Salvato.' : r.errore || 'Non salvato.'}
+              {r.ok ? t('Salvato.', 'Saved.') : r.errore || t('Non salvato.', 'Not saved.')}
             </Text>
           </Avviso>
         )

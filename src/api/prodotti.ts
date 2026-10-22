@@ -1,4 +1,5 @@
 import { funzione } from '@/api/lab'
+import { t } from '@/lib/lingua'
 
 // I prodotti acquistati dal socio e dalla sua famiglia (18/10/2026): lezioni singole, accessi,
 // recuperi, sedute di personal training, badge. Il lavoro lo fa `portale-lab-pagamenti`
@@ -28,5 +29,5 @@ export type EsitoProdotti = { ok: true; prodotti: Prodotto[] } | { ok: false; er
 export async function elencoProdotti(): Promise<EsitoProdotti> {
   const { ok, dati } = await funzione('portale-lab-pagamenti', { azione: 'prodotti' })
   if (ok) return { ok: true, prodotti: (dati.prodotti ?? []) as Prodotto[] }
-  return { ok: false, errore: dati.errore ?? 'Non riusciamo a leggere i tuoi prodotti adesso.' }
+  return { ok: false, errore: dati.errore ?? t('Non riusciamo a leggere i tuoi prodotti adesso.', 'We can’t load your products right now.') }
 }
