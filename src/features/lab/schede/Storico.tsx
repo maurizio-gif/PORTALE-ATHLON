@@ -3,6 +3,7 @@ import { StyleSheet, Text, View } from 'react-native'
 import Animated, { Easing, useAnimatedStyle, useSharedValue, withDelay, withTiming } from 'react-native-reanimated'
 
 import { progressiEsercizio, storicoAllenamenti, urlEsercizio, type EsercizioFatto, type SedutaEsercizio, type SedutaStorico } from '@/api/lab'
+import { locale, t } from '@/lib/lingua'
 import { spazio } from '@/theme'
 import { Image } from 'expo-image'
 
@@ -34,7 +35,7 @@ function Colonna({ valore, massimo, etichetta, indice, colore }: { valore: numbe
   const stile = useAnimatedStyle(() => ({ height: h.value }))
   return (
     <View style={stili.colonna}>
-      <Text style={[stili.colonnaValore, { color: p.testo }]}>{valore ? String(valore).replace('.', ',') : '—'}</Text>
+      <Text style={[stili.colonnaValore, { color: p.testo }]}>{valore ? String(valore).replace('.', t(',', '.')) : '—'}</Text>
       <Animated.View style={[stili.colonnaBarra, { backgroundColor: colore }, stile]} />
       <Text style={[stili.colonnaEtichetta, { color: p.testoTerzo }]} numberOfLines={1}>
         {etichetta}
@@ -60,7 +61,7 @@ function Progressi({ esercizioId, onChiudi }: { esercizioId: string | null; onCh
   const massimo = Math.max(0, ...ultime.map((s) => s.kg_massimo ?? 0))
   const record = Math.max(0, ...(dati?.sedute ?? []).map((s) => s.kg_massimo ?? 0))
   return (
-    <Foglio aperto={!!esercizioId} titolo={dati?.nome ?? 'Progressi'} sottotitolo="Il carico più alto di ogni seduta" onChiudi={onChiudi}>
+    <Foglio aperto={!!esercizioId} titolo={dati?.nome ?? t('Progressi', 'Progress')} sottotitolo={t('Il carico più alto di ogni seduta', 'The heaviest load of each workout')} onChiudi={onChiudi}>
       {errore ? <Messaggio>{errore}</Messaggio> : null}
       {dati ? (
         <View style={{ gap: spazio.tre }}>
@@ -68,12 +69,12 @@ function Progressi({ esercizioId, onChiudi }: { esercizioId: string | null; onCh
           <View style={{ flexDirection: 'row', gap: spazio.cinque }}>
             <View>
               <Numero valore={String(dati.sedute.length)} size={30} />
-              <Text style={[stili.piccola, { color: p.testoSecondario }]}>sedute</Text>
+              <Text style={[stili.piccola, { color: p.testoSecondario }]}>{t('sedute', 'workouts')}</Text>
             </View>
             {record ? (
               <View>
-                <Numero valore={String(record).replace('.', ',')} unita="kg" size={30} colore={p.accento} />
-                <Text style={[stili.piccola, { color: p.testoSecondario }]}>il massimo</Text>
+                <Numero valore={String(record).replace('.', t(',', '.'))} unita="kg" size={30} colore={p.accento} />
+                <Text style={[stili.piccola, { color: p.testoSecondario }]}>{t('il massimo', 'the max')}</Text>
               </View>
             ) : null}
           </View>
@@ -84,7 +85,7 @@ function Progressi({ esercizioId, onChiudi }: { esercizioId: string | null; onCh
                   key={s.inizio}
                   valore={s.kg_massimo ?? 0}
                   massimo={massimo}
-                  etichetta={new Date(s.inizio).toLocaleDateString('it-IT', { day: 'numeric', month: 'short', timeZone: 'Europe/Rome' })}
+                  etichetta={new Date(s.inizio).toLocaleDateString(locale(), { day: 'numeric', month: 'short', timeZone: 'Europe/Rome' })}
                   indice={i}
                   colore={s.kg_massimo === record ? p.accento : p.blu}
                 />
@@ -126,11 +127,11 @@ export function Storico() {
 
   if (!dati) {
     return (
-      <Schermata sopratitolo="Train" titolo="Storico e progressi" indietro="/allenamento" barra={false}>
+      <Schermata sopratitolo="Train" titolo={t('Storico e progressi', 'History and progress')} indietro="/allenamento" barra={false}>
         {errore ? (
           <>
             <Messaggio>{errore}</Messaggio>
-            <Pulsante testo="Riprova" icona="aggiorna" onPress={carica} />
+            <Pulsante testo={t('Riprova', 'Try again')} icona="aggiorna" onPress={carica} />
           </>
         ) : (
           <SchedeInArrivo />
@@ -142,26 +143,26 @@ export function Storico() {
   const chiusi = dati.allenamenti.filter((a) => a.fine)
   const volume = dati.allenamenti.reduce((n, a) => n + (a.volume ?? 0), 0)
   return (
-    <Schermata sopratitolo="Train" titolo="Storico e progressi" indietro="/allenamento" barra={false}>
+    <Schermata sopratitolo="Train" titolo={t('Storico e progressi', 'History and progress')} indietro="/allenamento" barra={false}>
       <Carta style={{ flexDirection: 'row', justifyContent: 'space-around', paddingVertical: spazio.quattro }}>
         <View style={{ alignItems: 'center' }}>
           <Numero valore={String(chiusi.length)} size={32} />
-          <Text style={[stili.piccola, { color: p.testoSecondario }]}>allenamenti</Text>
+          <Text style={[stili.piccola, { color: p.testoSecondario }]}>{t('allenamenti', 'workouts')}</Text>
         </View>
         <View style={{ alignItems: 'center' }}>
           <Numero valore={String(dati.allenamenti.reduce((n, a) => n + a.serie, 0))} size={32} />
-          <Text style={[stili.piccola, { color: p.testoSecondario }]}>serie</Text>
+          <Text style={[stili.piccola, { color: p.testoSecondario }]}>{t('serie', 'sets')}</Text>
         </View>
         {volume ? (
           <View style={{ alignItems: 'center' }}>
-            <Numero valore={`${Math.round(volume / 1000).toLocaleString('it-IT')}`} unita="t" size={32} colore={p.accento} />
-            <Text style={[stili.piccola, { color: p.testoSecondario }]}>sollevate</Text>
+            <Numero valore={`${Math.round(volume / 1000).toLocaleString(locale())}`} unita="t" size={32} colore={p.accento} />
+            <Text style={[stili.piccola, { color: p.testoSecondario }]}>{t('sollevate', 'lifted')}</Text>
           </View>
         ) : null}
       </Carta>
 
       {dati.esercizi.length ? (
-        <Sezione titolo="I tuoi esercizi" conteggio={dati.esercizi.length}>
+        <Sezione titolo={t('I tuoi esercizi', 'Your exercises')} conteggio={dati.esercizi.length}>
           <Carta style={{ paddingVertical: spazio.due }}>
             {dati.esercizi.map((e, i) => (
               <Riga
@@ -173,7 +174,10 @@ export function Storico() {
                   </View>
                 }
                 titolo={e.nome}
-                sotto={`${e.sedute} ${e.sedute === 1 ? 'seduta' : 'sedute'}${e.kg_massimo ? ` · massimo ${String(e.kg_massimo).replace('.', ',')} kg` : ''}`}
+                sotto={t(
+                  `${e.sedute} ${e.sedute === 1 ? 'seduta' : 'sedute'}${e.kg_massimo ? ` · massimo ${String(e.kg_massimo).replace('.', ',')} kg` : ''}`,
+                  `${e.sedute} ${e.sedute === 1 ? 'workout' : 'workouts'}${e.kg_massimo ? ` · max ${String(e.kg_massimo)} kg` : ''}`,
+                )}
                 onPress={() => setEsercizio(e.esercizio_id)}
               />
             ))}
@@ -181,7 +185,7 @@ export function Storico() {
         </Sezione>
       ) : null}
 
-      <Sezione titolo="Le sedute" conteggio={dati.allenamenti.length}>
+      <Sezione titolo={t('Le sedute', 'Workouts')} conteggio={dati.allenamenti.length}>
         <Carta style={{ paddingVertical: spazio.due }}>
           {dati.allenamenti.length ? (
             dati.allenamenti.map((a, i) => (
@@ -190,12 +194,15 @@ export function Storico() {
                 prima={i === 0}
                 icona={a.fine ? 'bandiera' : 'cronometro'}
                 tono={a.fine ? 'ok' : 'attenzione'}
-                titolo={[a.titolo, a.giorno_nome].filter(Boolean).join(' · ') || 'Allenamento'}
-                sotto={`${quando(a.inizio)} · ${a.serie} serie · ${a.esercizi} esercizi${a.volume ? ` · ${Math.round(a.volume).toLocaleString('it-IT')} kg` : ''}${a.fine ? '' : ' · non chiuso'}`}
+                titolo={[a.titolo, a.giorno_nome].filter(Boolean).join(' · ') || t('Allenamento', 'Workout')}
+                sotto={t(
+                  `${quando(a.inizio)} · ${a.serie} serie · ${a.esercizi} esercizi${a.volume ? ` · ${Math.round(a.volume).toLocaleString(locale())} kg` : ''}${a.fine ? '' : ' · non chiuso'}`,
+                  `${quando(a.inizio)} · ${a.serie} ${a.serie === 1 ? 'set' : 'sets'} · ${a.esercizi} ${a.esercizi === 1 ? 'exercise' : 'exercises'}${a.volume ? ` · ${Math.round(a.volume).toLocaleString(locale())} kg` : ''}${a.fine ? '' : ' · not finished'}`,
+                )}
               />
             ))
           ) : (
-            <Riga prima icona="cronometro" tono="neutro" titolo="Nessun allenamento ancora" sotto="Apri un piano e premi «Inizia l’allenamento»: le serie che segni finiscono qui." />
+            <Riga prima icona="cronometro" tono="neutro" titolo={t('Nessun allenamento ancora', 'No workouts yet')} sotto={t('Apri un piano e premi «Inizia l’allenamento»: le serie che segni finiscono qui.', 'Open a plan and tap “Start workout”: the sets you log end up here.')} />
           )}
         </Carta>
       </Sezione>

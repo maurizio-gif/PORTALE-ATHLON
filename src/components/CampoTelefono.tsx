@@ -4,6 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { dividiTelefono, PREFISSO, unisciTelefono, VOCI_PREFISSO } from '@/lib/prefissi'
 import { spazio, useColori } from '@/theme'
+import { t } from '@/lib/lingua'
 
 // Il cellulare in due pezzi (richiesta di Maurizio, 21/10/2026): a sinistra la tendina del
 // prefisso internazionale, gia' su +39, e a destra il numero. Il valore che esce e' uno solo,
@@ -15,7 +16,7 @@ const minuscolo = (t: string) => t.normalize('NFD').replace(/\p{M}/gu, '').toLow
 export function CampoTelefono({
   value,
   onChange,
-  etichetta = 'Cellulare',
+  etichetta = t('Cellulare', 'Mobile'),
   errore = false,
   sfondo,
 }: {
@@ -64,7 +65,7 @@ export function CampoTelefono({
       <View style={stili.riga}>
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel={`Prefisso: +${PREFISSO[paese] ?? '39'}`}
+          accessibilityLabel={`${t('Prefisso', 'Country code')}: +${PREFISSO[paese] ?? '39'}`}
           accessibilityState={{ expanded: aperto }}
           onPress={() => setAperto(true)}
           style={[stili.riquadro, stili.prefisso, { borderColor: errore ? c.errore : c.bordo, backgroundColor: sfondo ?? c.superficie }]}
@@ -91,7 +92,7 @@ export function CampoTelefono({
           }}
           keyboardType="phone-pad"
           autoComplete="tel-national"
-          placeholder={paese === 'IT' ? '340 123 4567' : 'Numero'}
+          placeholder={paese === 'IT' ? '340 123 4567' : t('Numero', 'Number')}
           placeholderTextColor={c.testoSecondario}
           style={[stili.riquadro, stili.numero, { color: c.testo, borderColor: errore ? c.errore : c.bordo, backgroundColor: sfondo ?? c.superficie }]}
         />
@@ -99,20 +100,20 @@ export function CampoTelefono({
 
       <Modal visible={aperto} transparent animationType="slide" onRequestClose={chiudi}>
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={stili.velo}>
-          <Pressable style={StyleSheet.absoluteFill} onPress={chiudi} accessibilityLabel="Chiudi" />
+          <Pressable style={StyleSheet.absoluteFill} onPress={chiudi} accessibilityLabel={t('Chiudi', 'Close')} />
           <View style={[stili.foglio, { backgroundColor: c.sfondo, paddingBottom: ins.bottom + spazio.tre }]} accessibilityViewIsModal>
             <View style={[stili.maniglia, { backgroundColor: c.bordo }]} />
             <View style={stili.testa}>
               <Text style={[stili.titolo, { color: c.testo }]} accessibilityRole="header">
-                Prefisso
+                {t('Prefisso', 'Country code')}
               </Text>
-              <Pressable accessibilityRole="button" accessibilityLabel="Chiudi" onPress={chiudi} hitSlop={8} style={[stili.chiudi, { backgroundColor: c.superficie }]}>
+              <Pressable accessibilityRole="button" accessibilityLabel={t('Chiudi', 'Close')} onPress={chiudi} hitSlop={8} style={[stili.chiudi, { backgroundColor: c.superficie }]}>
                 <Text style={{ color: c.testo, fontSize: 16, fontWeight: '700' }}>✕</Text>
               </Pressable>
             </View>
             <TextInput
-              accessibilityLabel="Cerca il Paese o il prefisso"
-              placeholder="Cerca il Paese o il prefisso"
+              accessibilityLabel={t('Cerca il Paese o il prefisso', 'Search for the country or code')}
+              placeholder={t('Cerca il Paese o il prefisso', 'Search for the country or code')}
               placeholderTextColor={c.testoSecondario}
               value={cerca}
               onChangeText={setCerca}
@@ -127,7 +128,7 @@ export function CampoTelefono({
               keyboardShouldPersistTaps="handled"
               style={stili.elenco}
               initialNumToRender={20}
-              ListEmptyComponent={<Text style={{ color: c.testoSecondario, fontSize: 15, padding: spazio.tre }}>Nessun prefisso trovato.</Text>}
+              ListEmptyComponent={<Text style={{ color: c.testoSecondario, fontSize: 15, padding: spazio.tre }}>{t('Nessun prefisso trovato.', 'No country code found.')}</Text>}
               renderItem={({ item: [codice, nome, pref] }) => {
                 const scelto = codice === paese
                 return (

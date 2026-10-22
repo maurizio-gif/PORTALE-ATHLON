@@ -4,6 +4,7 @@ import { StyleSheet, Text, View } from 'react-native'
 import type { Lezione, SchedaLezione } from '@/api/lab'
 import type { Alternativa, DatiLezione, FasciaSala, SlotSala, TappaSettimana } from '@/api/percorso'
 import { ora } from '@/lib/eventi'
+import { locale, t as tr } from '@/lib/lingua'
 import { spazio } from '@/theme'
 
 import { AzioniLezione } from '../Calendario'
@@ -37,7 +38,7 @@ export type AzioniPrenotazione = ReturnType<typeof usePrenotazioneLezione>
 const TONO_TIPO: Record<TappaSettimana['tipo'], ToniTutti> = { lezione: 'accento', sala: 'blu', cardio: 'ok' }
 const ICONA_TIPO = { lezione: 'calendario', sala: 'peso', cardio: 'cronometro' } as const
 
-export const FASCIA_SALA: Record<NonNullable<FasciaSala>, string> = { con_assistenza: 'Con assistente di sala', libero: 'Allenamento libero' }
+export const FASCIA_SALA: Record<NonNullable<FasciaSala>, string> = { con_assistenza: tr('Con assistente di sala', 'With floor assistant'), libero: tr('Allenamento libero', 'Free workout') }
 
 /** Una lezione nella forma che si aspettano i pulsanti del Calendario. */
 export function comeLezione(d: DatiLezione, categoria: string, scheda: string | null): Lezione {
@@ -61,11 +62,11 @@ export function comeLezione(d: DatiLezione, categoria: string, scheda: string | 
 }
 
 export const giornoOra = (iso: string) =>
-  `${new Date(iso).toLocaleDateString('it-IT', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'Europe/Rome' })} · ${ora(iso)}`
+  `${new Date(iso).toLocaleDateString(locale(), { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'Europe/Rome' })} · ${ora(iso)}`
 
 export function postiDi(d: DatiLezione): string {
-  if (d.liberi > 0) return `${d.liberi} ${d.liberi === 1 ? 'posto libero' : 'posti liberi'}`
-  return d.in_attesa > 0 ? `Completa · ${d.in_attesa} in attesa` : 'Completa · lista d’attesa'
+  if (d.liberi > 0) return tr(`${d.liberi} ${d.liberi === 1 ? 'posto libero' : 'posti liberi'}`, `${d.liberi} ${d.liberi === 1 ? 'spot available' : 'spots available'}`)
+  return d.in_attesa > 0 ? tr(`Completa · ${d.in_attesa} in attesa`, `Full · ${d.in_attesa} waiting`) : tr('Completa · lista d’attesa', 'Full · waiting list')
 }
 
 /** I pulsanti di una lezione, o il perche' non si prenota ancora. */
@@ -138,12 +139,12 @@ export function TappaCarta({
           <Text style={[stili.quando, { color: p.testoSecondario }]}>{`${fasciaOraria(t.ora, t.minuti)} · ${ETICHETTA_TIPO[t.tipo]}`}</Text>
           <Text style={[stili.titolo, { color: p.testo }]}>{titoloTappa(t)}</Text>
         </View>
-        {t.tipo === 'lezione' && t.lezione?.compresa === false ? <Etichetta testo="Da acquistare" tono="attenzione" /> : null}
-        {t.lezione_vera?.prenotazione ? <Etichetta testo={t.lezione_vera.prenotazione.attesa ? 'In attesa' : 'Prenotata'} tono="ok" icona="spunta" /> : null}
+        {t.tipo === 'lezione' && t.lezione?.compresa === false ? <Etichetta testo={tr('Da acquistare', 'To purchase')} tono="attenzione" /> : null}
+        {t.lezione_vera?.prenotazione ? <Etichetta testo={t.lezione_vera.prenotazione.attesa ? tr('In attesa', 'Waiting') : tr('Prenotata', 'Booked')} tono="ok" icona="spunta" /> : null}
       </View>
 
       {t.tipo === 'cardio' && ancora && prima ? (
-        <Text style={[stili.nota, { color: p.testoSecondario }]}>{`${prima === 'prima' ? 'Prima' : 'Dopo'} di ${titoloTappa(ancora)}${ancora.ora ? ` (${ancora.ora})` : ''}.`}</Text>
+        <Text style={[stili.nota, { color: p.testoSecondario }]}>{tr(`${prima === 'prima' ? 'Prima' : 'Dopo'} di ${titoloTappa(ancora)}${ancora.ora ? ` (${ancora.ora})` : ''}.`, `${prima === 'prima' ? 'Before' : 'After'} ${titoloTappa(ancora)}${ancora.ora ? ` (${ancora.ora})` : ''}.`)}</Text>
       ) : null}
       {t.perche ? <Text style={[stili.perche, { color: p.testoSecondario }]}>{t.perche}</Text> : null}
 
@@ -178,12 +179,12 @@ function ElencoAlternative({
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
             <View style={{ flex: 1, gap: 1 }}>
               <Text style={[stili.slotOra, { color: p.testo }]}>{giornoOra(a.inizio)}</Text>
-              <Text style={[stili.nota, { color: p.testoSecondario }]}>{a.tipo === 'simile' ? `${a.nome} · lezione simile` : a.nome}</Text>
+              <Text style={[stili.nota, { color: p.testoSecondario }]}>{a.tipo === 'simile' ? tr(`${a.nome} · lezione simile`, `${a.nome} · similar class`) : a.nome}</Text>
             </View>
             <Text style={[stili.nota, { color: p.testoSecondario }]}>{postiDi(a)}</Text>
           </View>
           {a.compresa === false || (a.compresa === null && a.categoria !== categoriaTappa) ? (
-            <Etichetta testo={a.compresa === false ? 'Da acquistare' : 'Verifica alla prenotazione'} tono="attenzione" />
+            <Etichetta testo={a.compresa === false ? tr('Da acquistare', 'To purchase') : tr('Verifica alla prenotazione', 'Check when booking')} tono="attenzione" />
           ) : null}
           <Prenotazione d={a} categoria={a.categoria} scheda={a.scheda} schedaSito={a.scheda ? (schede[a.scheda] ?? null) : null} vista={vista} azioni={azioni} onScheda={onScheda} />
         </View>
@@ -201,8 +202,9 @@ function TappaLezione({ t, schede, vista, azioni, onScheda }: { t: TappaSettiman
   if (t.stato === 'non_c_e') {
     return (
       <View style={{ gap: spazio.due }}>
-        <Messaggio tono="attenzione" titolo="Questa settimana non c’è">
-          Il palinsesto è cambiato: la lezione di questo giorno e di quest’ora non è in programma.{alternative.length ? ' Le più vicine, prima quelle con posti liberi:' : ' Non ce ne sono altre dello stesso tipo questa settimana.'}
+        <Messaggio tono="attenzione" titolo={tr('Questa settimana non c’è', 'Not on this week')}>
+          {tr('Il palinsesto è cambiato: la lezione di questo giorno e di quest’ora non è in programma.', 'The timetable has changed: the class on this day at this time isn’t scheduled.')}
+          {alternative.length ? tr(' Le più vicine, prima quelle con posti liberi:', ' The nearest ones, those with spots available first:') : tr(' Non ce ne sono altre dello stesso tipo questa settimana.', ' There are no others of the same type this week.')}
         </Messaggio>
         <ElencoAlternative elenco={alternative} categoriaTappa={categoria} schede={schede} vista={vista} azioni={azioni} onScheda={onScheda} />
       </View>
@@ -218,21 +220,27 @@ function TappaLezione({ t, schede, vista, azioni, onScheda }: { t: TappaSettiman
   const presa = completa ? alternative.find((a) => a.prenotazione && !a.prenotazione.attesa) : undefined
   return (
     <View style={{ gap: spazio.due }}>
-      <Text style={[stili.nota, { color: p.testoSecondario }]}>{[v.istruttore, v.iniziata ? 'Già iniziata' : postiDi(v)].filter(Boolean).join(' · ')}</Text>
+      <Text style={[stili.nota, { color: p.testoSecondario }]}>{[v.istruttore, v.iniziata ? tr('Già iniziata', 'Already started') : postiDi(v)].filter(Boolean).join(' · ')}</Text>
       {presa ? (
-        <Messaggio tono="ok" titolo="Hai prenotato un’alternativa">
-          {`${presa.tipo === 'simile' ? `${presa.nome}, ` : ''}${giornoOra(presa.inizio)}: al posto di questa lezione, che è al completo.`}
+        <Messaggio tono="ok" titolo={tr('Hai prenotato un’alternativa', 'You booked an alternative')}>
+          {tr(
+            `${presa.tipo === 'simile' ? `${presa.nome}, ` : ''}${giornoOra(presa.inizio)}: al posto di questa lezione, che è al completo.`,
+            `${presa.tipo === 'simile' ? `${presa.nome}, ` : ''}${giornoOra(presa.inizio)}: instead of this class, which is full.`,
+          )}
         </Messaggio>
       ) : null}
       {completa && !vista && !presa ? (
-        <Messaggio tono="attenzione" titolo="Questa settimana è al completo">
-          {`Non c’è più posto${v.in_attesa > 0 ? ` e ${v.in_attesa} ${v.in_attesa === 1 ? 'persona aspetta' : 'persone aspettano'} già in lista d’attesa` : ''}. Puoi metterti in lista d’attesa, oppure ${alternative.length ? 'scegliere un’alternativa con posti liberi qui sotto.' : 'guardare cosa si apre più avanti: per questa settimana non ci sono alternative con posti liberi.'}`}
+        <Messaggio tono="attenzione" titolo={tr('Questa settimana è al completo', 'Full this week')}>
+          {tr(
+            `Non c’è più posto${v.in_attesa > 0 ? ` e ${v.in_attesa} ${v.in_attesa === 1 ? 'persona aspetta' : 'persone aspettano'} già in lista d’attesa` : ''}. Puoi metterti in lista d’attesa, oppure ${alternative.length ? 'scegliere un’alternativa con posti liberi qui sotto.' : 'guardare cosa si apre più avanti: per questa settimana non ci sono alternative con posti liberi.'}`,
+            `There are no spots left${v.in_attesa > 0 ? ` and ${v.in_attesa} ${v.in_attesa === 1 ? 'person is' : 'people are'} already on the waiting list` : ''}. You can join the waiting list, or ${alternative.length ? 'choose an alternative with spots available below.' : 'see what opens later: there are no alternatives with spots available this week.'}`,
+          )}
         </Messaggio>
       ) : null}
       {presa ? null : <Prenotazione d={v} categoria={categoria} scheda={chiave} schedaSito={scheda} vista={vista} azioni={azioni} onScheda={onScheda} />}
       {completa && alternative.length ? (
         <View style={{ gap: spazio.due }}>
-          <Text style={[stili.sottoTitolo, { color: p.testo }]}>{presa ? 'Alternative' : alternative.some((a) => a.tipo === 'stessa') ? 'Con posti liberi' : 'Con posti liberi, lezioni simili'}</Text>
+          <Text style={[stili.sottoTitolo, { color: p.testo }]}>{presa ? tr('Alternative', 'Alternatives') : alternative.some((a) => a.tipo === 'stessa') ? tr('Con posti liberi', 'With spots available') : tr('Con posti liberi, lezioni simili', 'With spots available, similar classes')}</Text>
           <ElencoAlternative elenco={alternative} categoriaTappa={categoria} schede={schede} vista={vista} azioni={azioni} onScheda={onScheda} />
         </View>
       ) : null}
@@ -244,7 +252,7 @@ function TappaLezione({ t, schede, vista, azioni, onScheda }: { t: TappaSettiman
 function TappaVasca({ piano }: { piano: NonNullable<TappaSettimana['piano']> }) {
   const p = usePalette()
   if (piano.disponibile === false || !piano.scheda_id) {
-    return <Messaggio tono="attenzione">Il piano di nuoto di questa tappa non c’è più: puoi chiederne uno nuovo dai piani di allenamento.</Messaggio>
+    return <Messaggio tono="attenzione">{tr('Il piano di nuoto di questa tappa non c’è più: puoi chiederne uno nuovo dai piani di allenamento.', 'The swim plan for this step is no longer there: you can ask for a new one from your workout plans.')}</Messaggio>
   }
   return (
     <View style={[stili.vasca, { backgroundColor: p.incavo }]}>
@@ -252,10 +260,10 @@ function TappaVasca({ piano }: { piano: NonNullable<TappaSettimana['piano']> }) 
         <Icona nome="goccia" size={16} colore={p.blu} />
         <Text style={[stili.sottoTitolo, { color: p.testo, flex: 1 }]}>{COSA_FAI_IN_VASCA}</Text>
       </View>
-      <Text style={[stili.nota, { color: p.testoSecondario }]}>{`${piano.giorno_nome ?? 'Una seduta'}${piano.metri ? ` · ${inMetri(piano.metri)}` : ''} · ${piano.scheda_titolo}`}</Text>
+      <Text style={[stili.nota, { color: p.testoSecondario }]}>{`${piano.giorno_nome ?? tr('Una seduta', 'A session')}${piano.metri ? ` · ${inMetri(piano.metri)}` : ''} · ${piano.scheda_titolo}`}</Text>
       <View style={stili.azioni}>
         <Pulsante
-          testo="Apri il piano"
+          testo={tr('Apri il piano', 'Open the plan')}
           variante="contorno"
           piccolo
           onPress={() => router.push({ pathname: '/allenamento/[scheda]', params: { scheda: piano.scheda_id!, giorno: String(piano.giorno_posizione) } })}
@@ -272,41 +280,44 @@ function TappaSala({ t, vista, azioni, onScheda }: { t: TappaSettimana; vista: b
   return (
     <View style={{ gap: spazio.tre }}>
       {s.disponibile === false ? (
-        <Messaggio tono="attenzione">Il piano di allenamento di questa tappa non c’è più: scegline un altro dal percorso.</Messaggio>
+        <Messaggio tono="attenzione">{tr('Il piano di allenamento di questa tappa non c’è più: scegline un altro dal percorso.', 'The workout plan for this step is no longer there: choose another one from the program.')}</Messaggio>
       ) : (
         <>
-          {s.esercizi != null ? <Text style={[stili.nota, { color: p.testoSecondario }]}>{`${s.esercizi} ${s.esercizi === 1 ? 'esercizio' : 'esercizi'}`}</Text> : null}
+          {s.esercizi != null ? <Text style={[stili.nota, { color: p.testoSecondario }]}>{tr(`${s.esercizi} ${s.esercizi === 1 ? 'esercizio' : 'esercizi'}`, `${s.esercizi} ${s.esercizi === 1 ? 'exercise' : 'exercises'}`)}</Text> : null}
           <View style={stili.azioni}>
             <Pulsante
-              testo="Apri il piano"
+              testo={tr('Apri il piano', 'Open the plan')}
               variante="contorno"
               piccolo
               onPress={() => router.push({ pathname: '/allenamento/[scheda]', params: { scheda: s.scheda_id, giorno: String(s.giorno_posizione) } })}
             />
             {!vista && s.giorno_id ? (
-              <Pulsante testo="Inizia" icona="avanti" piccolo onPress={() => router.push({ pathname: '/allenamento/[scheda]/[giorno]', params: { scheda: s.scheda_id, giorno: s.giorno_id! } })} />
+              <Pulsante testo={tr('Inizia', 'Start')} icona="avanti" piccolo onPress={() => router.push({ pathname: '/allenamento/[scheda]/[giorno]', params: { scheda: s.scheda_id, giorno: s.giorno_id! } })} />
             ) : null}
           </View>
         </>
       )}
 
       <View style={{ gap: spazio.due }}>
-        <Text style={[stili.sottoTitolo, { color: p.testo }]}>Prenota la sala</Text>
+        <Text style={[stili.sottoTitolo, { color: p.testo }]}>{tr('Prenota la sala', 'Book the gym floor')}</Text>
         {t.sala_slot?.length ? (
           t.sala_slot.map((d: SlotSala) => (
             <View key={d.class_id} style={[stili.slot, { backgroundColor: p.incavo }]}>
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 8 }}>
-                <Text style={[stili.slotOra, { color: p.testo }]}>{`${ora(d.inizio)} · ${d.fascia ? FASCIA_SALA[d.fascia] : 'Turno in sala'}`}</Text>
+                <Text style={[stili.slotOra, { color: p.testo }]}>{`${ora(d.inizio)} · ${d.fascia ? FASCIA_SALA[d.fascia] : tr('Turno in sala', 'Gym floor slot')}`}</Text>
                 <Text style={[stili.nota, { color: p.testoSecondario }]}>{postiDi(d)}</Text>
               </View>
               <Prenotazione d={d} categoria="Gym Floor" scheda={null} schedaSito={null} vista={vista} azioni={azioni} onScheda={onScheda} testoPrenota={ora(d.inizio)} />
             </View>
           ))
         ) : (
-          <Text style={[stili.nota, { color: p.testoSecondario }]}>Per questo giorno non ci sono turni di sala da prenotare.</Text>
+          <Text style={[stili.nota, { color: p.testoSecondario }]}>{tr('Per questo giorno non ci sono turni di sala da prenotare.', 'There are no gym floor slots to book on this day.')}</Text>
         )}
         <Text style={[stili.piccola, { color: p.testoTerzo }]}>
-          Con l’assistente di sala c’è chi supervisiona le attività in sala e risponde ai tuoi dubbi; in allenamento libero ti alleni per conto tuo. L’orario è quello del turno.
+          {tr(
+            'Con l’assistente di sala c’è chi supervisiona le attività in sala e risponde ai tuoi dubbi; in allenamento libero ti alleni per conto tuo. L’orario è quello del turno.',
+            'With the floor assistant there’s someone supervising the gym floor and answering your questions; in a free workout you train on your own. The time is the slot’s time.',
+          )}
         </Text>
       </View>
     </View>

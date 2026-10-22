@@ -11,6 +11,7 @@ import { contrattiAbbonamento } from '@/api/abbonamento'
 import { elencoDocumenti } from '@/api/documenti'
 import { laMiaArea, leggiAnagrafica, leggiGiorno, leggiVetrine, type Anagrafica, type Area, type EsitoAnagrafica, type PersonaArea } from '@/api/lab'
 import type { Tessera } from '@/api/tesseramenti'
+import { locale, t } from '@/lib/lingua'
 import { spazio } from '@/theme'
 
 import { CHIAVE_CONTRATTI, ElencoAbbonamenti } from './AbbonamentiMiei'
@@ -91,17 +92,17 @@ function Benvenuto({
       <AvatarFoto nome={titolare?.nome ?? email} cognome={titolare?.cognome} foto={foto} size={AVATAR_TESTATA} anello="rgba(255,255,255,0.18)" invito={invitoFoto} />
       <View style={{ gap: 3, flexShrink: 1 }}>
         {conData ? <Text style={stili.dataTesto} numberOfLines={2}>{oggi().toUpperCase()}</Text> : null}
-        {invitoFoto ? <Text style={stili.invitoFoto}>Aggiungi la tua foto</Text> : null}
+        {invitoFoto ? <Text style={stili.invitoFoto}>{t('Aggiungi la tua foto', 'Add your photo')}</Text> : null}
       </View>
     </View>
   )
   return (
-    <Tocco onPress={onProfilo} ruolo="link" etichetta="Il mio profilo: anagrafica e contatti" scala={0.985}>
+    <Tocco onPress={onProfilo} ruolo="link" etichetta={t('Il mio profilo: anagrafica e contatti', 'My profile: personal and contact details')} scala={0.985}>
     <LinearGradient colors={NOTTE} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={stili.benvenuto}>
       <View style={stili.bagliore} />
       <View style={[stili.data, { justifyContent: 'space-between', gap: 8 }]}>
         {invitoFoto ? (
-          <Tocco onPress={onFoto} etichetta="Aggiungi la tua foto" scala={0.96} style={{ flexShrink: 1 }}>
+          <Tocco onPress={onFoto} etichetta={t('Aggiungi la tua foto', 'Add your photo')} scala={0.96} style={{ flexShrink: 1 }}>
             {avatar}
           </Tocco>
         ) : (
@@ -113,7 +114,7 @@ function Benvenuto({
           <Campanello />
           <View style={stili.profilo}>
             <Icona nome="persona" size={14} colore="#fff" />
-            <Text style={stili.profiloTesto}>Profilo</Text>
+            <Text style={stili.profiloTesto}>{t('Profilo', 'Profile')}</Text>
             <Icona nome="avanti" size={13} colore="rgba(255,255,255,0.7)" />
           </View>
         </View>
@@ -121,23 +122,23 @@ function Benvenuto({
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: spazio.tre }}>
         <View style={{ flex: 1, gap: 6 }}>
           <Text style={stili.ciao} numberOfLines={2}>
-            {titolare?.nome ? `Ciao, ${titolare.nome}!` : 'Ciao!'}
+            {titolare?.nome ? t(`Ciao, ${titolare.nome}!`, `Hi, ${titolare.nome}!`) : t('Ciao!', 'Hi!')}
           </Text>
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 10 }}>
             <View style={stili.pillola}>
               <View style={[stili.puntino, { backgroundColor: FUOCO[0] }]} />
-              <Text style={stili.pillolaTesto}>{titolare?.numero ? `Numero Utente ${titolare.numero}` : 'Socio'}</Text>
+              <Text style={stili.pillolaTesto}>{titolare?.numero ? t(`Numero Utente ${titolare.numero}`, `Member number ${titolare.numero}`) : t('Socio', 'Member')}</Text>
             </View>
             {famiglia || titolare?.numero ? (
               <View style={stili.pillola}>
                 <View style={[stili.puntino, { backgroundColor: MARE[0] }]} />
-                <Text style={stili.pillolaTesto}>{famiglia ? `Famiglia di ${famiglia + 1}` : 'Socio'}</Text>
+                <Text style={stili.pillolaTesto}>{famiglia ? t(`Famiglia di ${famiglia + 1}`, `Family of ${famiglia + 1}`) : t('Socio', 'Member')}</Text>
               </View>
             ) : null}
             {titolare?.debito ? (
               <View style={[stili.pillola, { backgroundColor: 'rgba(255,69,58,0.28)' }]}>
                 <View style={[stili.puntino, { backgroundColor: '#FF453A' }]} />
-                <Text style={stili.pillolaTesto}>Pagamento in sospeso</Text>
+                <Text style={stili.pillolaTesto}>{t('Pagamento in sospeso', 'Outstanding payment')}</Text>
               </View>
             ) : null}
           </View>
@@ -157,12 +158,12 @@ function Benvenuto({
 // ---------------------------------------------------------------------------
 
 function soldi(n: number): string {
-  return n.toLocaleString('it-IT', { style: 'currency', currency: 'EUR' })
+  return n.toLocaleString(locale(), { style: 'currency', currency: 'EUR' })
 }
 
 /** «15 nov», all'ora di Roma. */
 function dataCorta(iso: string): string {
-  return new Date(`${iso.slice(0, 10)}T12:00:00`).toLocaleDateString('it-IT', { day: 'numeric', month: 'short', timeZone: 'Europe/Rome' })
+  return new Date(`${iso.slice(0, 10)}T12:00:00`).toLocaleDateString(locale(), { day: 'numeric', month: 'short', timeZone: 'Europe/Rome' })
 }
 
 type AreaTrovata = Extract<Area, { trovato: true }>
@@ -172,8 +173,8 @@ function riquadroCertificato(area: AreaTrovata): VoceRiquadro {
   const righe = area.persone.map((persona) => ({ persona, s: statoCertificato(area.certificati.find((c) => c.member_id === persona.member_id), persona.data_nascita) }))
   // A pari urgenza resta il primo del nucleo, cioe' il titolare.
   const { persona, s } = righe.reduce((a, b) => (urgenzaCertificato(b.s) > urgenzaCertificato(a.s) ? b : a))
-  const chi = persona.titolare ? 'Tu' : persona.nome || nome(persona)
-  const quando = s.giorni != null ? (s.giorni < 0 ? `scaduto da ${giorni(-s.giorni)}` : s.giorni === 0 ? 'scade oggi' : `ancora ${giorni(s.giorni)}`) : s.breve
+  const chi = persona.titolare ? t('Tu', 'You') : persona.nome || nome(persona)
+  const quando = s.giorni != null ? (s.giorni < 0 ? t(`scaduto da ${giorni(-s.giorni)}`, `expired ${giorni(-s.giorni)} ago`) : s.giorni === 0 ? t('scade oggi', 'expires today') : t(`ancora ${giorni(s.giorni)}`, `${giorni(s.giorni)} left`)) : s.breve
   return {
     valore: s.testo,
     nota: [chi, quando].filter(Boolean).join(' · '),
@@ -188,16 +189,16 @@ function riquadroCertificato(area: AreaTrovata): VoceRiquadro {
  */
 function riquadroAbbonamenti(area: AreaTrovata): VoceRiquadro {
   const r = riepilogoAbbonamenti(area)
-  if (!r.totale) return { valore: '0', nota: 'attivi' }
+  if (!r.totale) return { valore: '0', nota: t('attivi', 'active') }
   if (r.tono) {
-    const motivo = r.motivi.length <= 2 ? r.motivi.map((m) => m.breve).join(' · ') : `${r.motivi.length} cose da sistemare`
-    return { valore: String(r.totale), nota: motivo.charAt(0).toUpperCase() + motivo.slice(1), tag: { testo: 'Irregolare', tono: r.tono } }
+    const motivo = r.motivi.length <= 2 ? r.motivi.map((m) => m.breve).join(' · ') : t(`${r.motivi.length} cose da sistemare`, `${r.motivi.length} things to fix`)
+    return { valore: String(r.totale), nota: motivo.charAt(0).toUpperCase() + motivo.slice(1), tag: { testo: t('Irregolare', 'Irregular'), tono: r.tono } }
   }
-  if (r.attivi === r.totale) return { valore: String(r.totale), nota: r.totale === 1 ? 'attivo' : 'attivi' }
+  if (r.attivi === r.totale) return { valore: String(r.totale), nota: r.totale === 1 ? t('attivo', 'active') : t('attivi', 'active') }
   const parti = [
-    r.attivi ? `${r.attivi} attiv${r.attivi === 1 ? 'o' : 'i'}` : null,
-    r.inPartenza ? (r.partenza ? `parte il ${dataCorta(r.partenza).replace(' ', '\u00a0')}` : `${r.inPartenza} in partenza`) : null,
-    r.sospesi ? `${r.sospesi} sospes${r.sospesi === 1 ? 'o' : 'i'}` : null,
+    r.attivi ? t(`${r.attivi} attiv${r.attivi === 1 ? 'o' : 'i'}`, `${r.attivi} active`) : null,
+    r.inPartenza ? (r.partenza ? t(`parte il ${dataCorta(r.partenza).replace(' ', '\u00a0')}`, `starts ${dataCorta(r.partenza).replace(' ', '\u00a0')}`) : t(`${r.inPartenza} in partenza`, `${r.inPartenza} starting soon`)) : null,
+    r.sospesi ? t(`${r.sospesi} sospes${r.sospesi === 1 ? 'o' : 'i'}`, `${r.sospesi} frozen`) : null,
   ].filter(Boolean)
   return { valore: String(r.totale), nota: parti.join(' · ') }
 }
@@ -206,9 +207,9 @@ function riquadroAbbonamenti(area: AreaTrovata): VoceRiquadro {
 function riquadroTesseramento(tessere: Tessera[]): VoceRiquadro {
   if (tessere.length === 1) {
     const al = tessere[0].al
-    return { valore: 'Attiva', nota: al ? `fino al ${dataCorta(al).replace(' ', '\u00a0')}` : 'tessera ASI' }
+    return { valore: t('Attiva', 'Active'), nota: al ? t(`fino al ${dataCorta(al).replace(' ', '\u00a0')}`, `until ${dataCorta(al).replace(' ', '\u00a0')}`) : t('tessera ASI', 'ASI card') }
   }
-  return { valore: String(tessere.length), nota: 'tessere attive' }
+  return { valore: String(tessere.length), nota: t('tessere attive', 'active cards') }
 }
 
 /**
@@ -253,8 +254,8 @@ export function AreaRiservata({ email }: { email: string }) {
   // L'avviso «foto aggiornata» resta qualche secondo, poi se ne va (come nel Profilo).
   useEffect(() => {
     if (!fotoFatta) return
-    const t = setTimeout(() => setFotoFatta(null), 4000)
-    return () => clearTimeout(t)
+    const timer = setTimeout(() => setFotoFatta(null), 4000)
+    return () => clearTimeout(timer)
   }, [fotoFatta])
 
   // La foto scelta dal foglio della testata: se le misure non sono ancora pronte su PerfectGym (`inArrivo`) si tiene quella
@@ -266,7 +267,7 @@ export function AreaRiservata({ email }: { email: string }) {
     ricorda('anagrafica', { ok: true, anagrafica: conFoto })
     setAnagrafica(conFoto)
     setFoglioFoto(false)
-    setFotoFatta(esito.inArrivo ? 'Foto salvata. Per la segreteria sarà pronta fra qualche minuto.' : 'Foto aggiornata.')
+    setFotoFatta(esito.inArrivo ? t('Foto salvata. Per la segreteria sarà pronta fra qualche minuto.', 'Photo saved. It’ll be ready for the front desk in a few minutes.') : t('Foto aggiornata.', 'Photo updated.'))
   }
 
   const carica = useCallback(async () => {
@@ -327,13 +328,13 @@ export function AreaRiservata({ email }: { email: string }) {
   }
 
   // Nelle schermate d'errore si esce subito.
-  const uscita = <PulsanteEsci testo="Esci" conferma={false} />
+  const uscita = <PulsanteEsci testo={t('Esci', 'Sign out')} conferma={false} />
 
   if (errore) {
     return (
-      <Schermata titolo={errore.nonAmmesso ? 'Accesso non disponibile' : 'Qualcosa non va'}>
+      <Schermata titolo={errore.nonAmmesso ? t('Accesso non disponibile', 'Access not available') : t('Qualcosa non va', 'Something went wrong')}>
         <Messaggio tono={errore.nonAmmesso ? 'attenzione' : 'errore'}>{errore.testo}</Messaggio>
-        {!errore.nonAmmesso ? <Pulsante testo="Riprova" icona="aggiorna" onPress={carica} /> : null}
+        {!errore.nonAmmesso ? <Pulsante testo={t('Riprova', 'Try again')} icona="aggiorna" onPress={carica} /> : null}
         {uscita}
       </Schermata>
     )
@@ -341,7 +342,7 @@ export function AreaRiservata({ email }: { email: string }) {
 
   if (!area) {
     return (
-      <Schermata titolo="La mia area">
+      <Schermata titolo={t('La mia area', 'My area')}>
         <SchedeInArrivo />
       </Schermata>
     )
@@ -349,9 +350,9 @@ export function AreaRiservata({ email }: { email: string }) {
 
   if (!area.trovato) {
     return (
-      <Schermata titolo="La mia area">
-        <Messaggio tono="attenzione" titolo="Non troviamo la tua scheda">
-          {`Non c’è una scheda del club con l’indirizzo ${email}. Entra con l’email con cui sei iscritto.`}
+      <Schermata titolo={t('La mia area', 'My area')}>
+        <Messaggio tono="attenzione" titolo={t('Non troviamo la tua scheda', 'We can’t find your profile')}>
+          {t(`Non c’è una scheda del club con l’indirizzo ${email}. Entra con l’email con cui sei iscritto.`, `There’s no club profile with the address ${email}. Sign in with the email you registered with.`)}
         </Messaggio>
         {uscita}
       </Schermata>
@@ -362,19 +363,19 @@ export function AreaRiservata({ email }: { email: string }) {
   const famiglia = area.persone.filter((x) => !x.titolare)
 
   // Il dato vivo di ogni riquadro: dall'area, e per i pagamenti dai movimenti.
-  const debito = area.persone.reduce((t, x) => t + (x.debito?.importo ?? 0), 0)
-  const daSaldare = movimenti.dati?.daSaldare.reduce((t, m) => t + m.importo, 0) ?? 0
+  const debito = area.persone.reduce((tot, x) => tot + (x.debito?.importo ?? 0), 0)
+  const daSaldare = movimenti.dati?.daSaldare.reduce((tot, m) => tot + m.importo, 0) ?? 0
   const prossimo = movimenti.dati?.futuri[0]
   const pagamenti: VoceRiquadro =
     debito > 0 || daSaldare > 0
-      ? { valore: 'In sospeso', nota: `${soldi(Math.max(debito, daSaldare))} da saldare`, allerta: 'errore' }
+      ? { valore: t('In sospeso', 'Outstanding'), nota: t(`${soldi(Math.max(debito, daSaldare))} da saldare`, `${soldi(Math.max(debito, daSaldare))} to pay`), allerta: 'errore' }
       : prossimo
-        ? { valore: dataCorta(prossimo.scadenza), nota: `prossimo addebito · ${soldi(prossimo.importo)}` }
+        ? { valore: dataCorta(prossimo.scadenza), nota: t(`prossimo addebito · ${soldi(prossimo.importo)}`, `next charge · ${soldi(prossimo.importo)}`) }
         : movimenti.dati
-          ? { valore: 'In regola', nota: 'nessun addebito in vista' }
+          ? { valore: t('In regola', 'Up to date'), nota: t('nessun addebito in vista', 'no upcoming charges') }
           : movimenti.errore
-            ? { valore: 'Apri', nota: 'prossimi pagamenti' }
-            : { valore: '…', nota: 'un attimo' }
+            ? { valore: t('Apri', 'Open'), nota: t('prossimi pagamenti', 'upcoming payments') }
+            : { valore: '…', nota: t('un attimo', 'one moment') }
   const nDocumenti = documenti.dati?.documenti.length
   const validi = prodotti.dati?.filter((x) => x.stato === 'valido').length
   const voci: Record<SezioneHome, VoceRiquadro> = {
@@ -382,24 +383,24 @@ export function AreaRiservata({ email }: { email: string }) {
     pagamenti,
     prodotti:
       validi != null && prodotti.dati
-        ? { valore: String(validi), nota: `${validi === 1 ? 'valido' : 'validi'} · ${prodotti.dati.length - validi} ${prodotti.dati.length - validi === 1 ? 'consumato' : 'consumati'}` }
+        ? { valore: String(validi), nota: t(`${validi === 1 ? 'valido' : 'validi'} · ${prodotti.dati.length - validi} ${prodotti.dati.length - validi === 1 ? 'consumato' : 'consumati'}`, `valid · ${prodotti.dati.length - validi} used`) }
         : prodotti.errore
-          ? { valore: 'Apri', nota: 'lezioni, accessi, recuperi' }
-          : { valore: '…', nota: 'un attimo' },
+          ? { valore: t('Apri', 'Open'), nota: t('lezioni, accessi, recuperi', 'classes, visits, make-up classes') }
+          : { valore: '…', nota: t('un attimo', 'one moment') },
     documenti:
       nDocumenti != null
-        ? { valore: String(nDocumenti), nota: nDocumenti === 1 ? 'documento' : 'documenti' }
+        ? { valore: String(nDocumenti), nota: nDocumenti === 1 ? t('documento', 'document') : t('documenti', 'documents') }
         : documenti.errore
-          ? { valore: 'Apri', nota: 'contratti e ricevute' }
-          : { valore: '…', nota: 'un attimo' },
+          ? { valore: t('Apri', 'Open'), nota: t('contratti e ricevute', 'contracts and receipts') }
+          : { valore: '…', nota: t('un attimo', 'one moment') },
     certificato: riquadroCertificato(area),
-    famiglia: { valore: String(area.persone.length), nota: area.persone.length === 1 ? 'persona' : 'persone' },
-    profilo: { valore: titolare?.nome || 'Profilo', nota: invitoFoto ? 'Aggiungi la tua foto' : titolare?.email || email },
+    famiglia: { valore: String(area.persone.length), nota: area.persone.length === 1 ? t('persona', 'person') : t('persone', 'people') },
+    profilo: { valore: titolare?.nome || t('Profilo', 'Profile'), nota: invitoFoto ? t('Aggiungi la tua foto', 'Add your photo') : titolare?.email || email },
     tesseramento: riquadroTesseramento(tesseramenti ?? []),
   }
 
   return (
-    <Schermata titolo={titolare?.nome ? `Ciao, ${titolare.nome}` : 'La mia area'} nascondiTitolo scorrimento={scorrimento}>
+    <Schermata titolo={titolare?.nome ? t(`Ciao, ${titolare.nome}`, `Hi, ${titolare.nome}`) : t('La mia area', 'My area')} nascondiTitolo scorrimento={scorrimento}>
       <Entra indice={0}>
         <Benvenuto titolare={titolare} email={email} famiglia={famiglia.length} foto={anagrafica?.foto ?? null} invitoFoto={invitoFoto && sezione !== 'profilo'} onProfilo={() => vai('profilo', true)} onFoto={() => setFoglioFoto(true)} />
       </Entra>

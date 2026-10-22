@@ -84,7 +84,7 @@ export function alternativePerTappa(t: Tappa, catalogo: SlotRicorrente[], altre:
     if (conCardio && s.giorno !== t.giorno) continue
     // La tappa nuova prende il posto della vecchia: stesso `ordine` nello stesso giorno, cosi' le ancore la seguono.
     const nuova = tappaDaSlot(s, s.giorno === t.giorno ? t.ordine : 9999)
-    if (controllaTappe(ricalcolaAncorate([...altre, nuova])).some((p) => !prima.has(p) && !/il cardio da solo/.test(p))) continue
+    if (controllaTappe(ricalcolaAncorate([...altre, nuova])).some((p) => !prima.has(p) && !/il cardio da solo|cardio alone/.test(p))) continue
     trovate.push({ slot: s, tipo, ordine: [tipo === 'stessa' ? 0 : 1, quanto(s), distanza(s, mio)] })
   }
   trovate.sort((a, b) => a.ordine[0] - b.ordine[0] || a.ordine[1] - b.ordine[1] || a.ordine[2] - b.ordine[2])

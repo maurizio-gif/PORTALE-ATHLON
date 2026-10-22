@@ -2,6 +2,7 @@ import { router } from 'expo-router'
 import { View } from 'react-native'
 
 import { spazio } from '@/theme'
+import { t } from '@/lib/lingua'
 
 import { RiepilogoPagamenti } from '../pagamenti/Movimenti'
 import { Carta, Entra, Riga } from '../ui/kit'
@@ -19,8 +20,8 @@ export function SezionePagamenti() {
             prima
             icona="carta"
             tono="accento"
-            titolo="Aggiorna il metodo di pagamento"
-            sotto="Conto corrente (IBAN) o carta, per te e per la tua famiglia"
+            titolo={t('Aggiorna il metodo di pagamento', 'Update your payment method')}
+            sotto={t('Conto corrente (IBAN) o carta, per te e per la tua famiglia', 'Bank account (IBAN) or card, for you and your family')}
             onPress={() => router.push('/metodo-pagamento')}
           />
         </Carta>

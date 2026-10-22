@@ -1,4 +1,5 @@
 import type { SchedaLezione } from '@/api/lab'
+import { locale, t } from '@/lib/lingua'
 
 // La prenotazione di un evento dal link per email (Open Day): i tipi e le
 // parole della pagina. Ripresi da lib/eventi.ts del CRM; i dati li danno
@@ -57,24 +58,25 @@ export type Prodotto = { product_id: number; nome: string; prezzo: number | null
 
 /** «10 €», «7,50 €». */
 export function euro(prezzo: number): string {
-  return `${prezzo.toLocaleString('it-IT', { minimumFractionDigits: Number.isInteger(prezzo) ? 0 : 2, maximumFractionDigits: 2 })} €`
+  const n = prezzo.toLocaleString(locale(), { minimumFractionDigits: Number.isInteger(prezzo) ? 0 : 2, maximumFractionDigits: 2 })
+  return t(`${n} €`, `€${n}`)
 }
 
 export type EsitoPrenotazione = { member_id: number; esito: 'prenotato' | 'attesa' | 'errore' | 'da_pagare'; errore?: string; prodotto?: Prodotto | null }
 
 /** L'ora di un turno, a Roma: «16:30». */
 export function ora(iso: string): string {
-  return new Date(iso).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Rome' })
+  return new Date(iso).toLocaleTimeString(locale(), { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Rome' })
 }
 
 /** «domenica 11 ottobre». Il giorno com'e' scritto, senza fusi. */
 export function giornoEsteso(data: string): string {
   const [a, m, g] = data.split('-').map(Number)
-  return new Date(Date.UTC(a, m - 1, g, 12)).toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'Europe/Rome' })
+  return new Date(Date.UTC(a, m - 1, g, 12)).toLocaleDateString(locale(), { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'Europe/Rome' })
 }
 
 export function nomeDi(b: { nome: string | null; cognome: string | null }): string {
-  return [b.nome, b.cognome].filter(Boolean).join(' ') || 'Senza nome'
+  return [b.nome, b.cognome].filter(Boolean).join(' ') || t('Senza nome', 'No name')
 }
 
 /** La pagina del sito dove si chiede il link, per chi ne ha uno scaduto o deve aggiungere un bambino. */

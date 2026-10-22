@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { StyleSheet, Text, View } from 'react-native'
 
 import { movimentiPagamenti, type Movimento, type QuotaFutura } from '@/api/lab'
+import { locale, t } from '@/lib/lingua'
 import { spazio } from '@/theme'
 
 import { hrefSezione } from '../home/sezioni'
@@ -24,27 +25,27 @@ export const CHIAVE_MOVIMENTI = 'pagamenti:movimenti'
 type Dati = { storico: Movimento[]; daSaldare: Movimento[]; futuri: QuotaFutura[] }
 
 export function soldi(n: number): string {
-  return n.toLocaleString('it-IT', { style: 'currency', currency: 'EUR' })
+  return n.toLocaleString(locale(), { style: 'currency', currency: 'EUR' })
 }
 
 function giorno(iso: string | null, conAnno = false): string {
   if (!iso) return ''
   const d = new Date(iso.length === 10 ? `${iso}T12:00:00` : iso)
-  return d.toLocaleDateString('it-IT', { day: 'numeric', month: 'short', ...(conAnno ? { year: 'numeric' } : {}), timeZone: 'Europe/Rome' })
+  return d.toLocaleDateString(locale(), { day: 'numeric', month: 'short', ...(conAnno ? { year: 'numeric' } : {}), timeZone: 'Europe/Rome' })
 }
 
 function mese(iso: string | null): string {
-  if (!iso) return 'Senza data'
+  if (!iso) return t('Senza data', 'No date')
   const d = new Date(iso.length === 10 ? `${iso}T12:00:00` : iso)
-  const t = d.toLocaleDateString('it-IT', { month: 'long', year: 'numeric', timeZone: 'Europe/Rome' })
-  return t.charAt(0).toUpperCase() + t.slice(1)
+  const s = d.toLocaleDateString(locale(), { month: 'long', year: 'numeric', timeZone: 'Europe/Rome' })
+  return s.charAt(0).toUpperCase() + s.slice(1)
 }
 
 const ESITI: Record<Movimento['esito'], { testo: string; tono: ToniTutti; icona: NomeIcona }> = {
-  riuscito: { testo: 'Pagato', tono: 'ok', icona: 'spunta' },
-  rimborso: { testo: 'Rimborso', tono: 'blu', icona: 'rinnovo' },
-  in_corso: { testo: 'In corso', tono: 'attenzione', icona: 'clessidra' },
-  da_pagare: { testo: 'Da saldare', tono: 'errore', icona: 'attenzione' },
+  riuscito: { testo: t('Pagato', 'Paid'), tono: 'ok', icona: 'spunta' },
+  rimborso: { testo: t('Rimborso', 'Refund'), tono: 'blu', icona: 'rinnovo' },
+  in_corso: { testo: t('In corso', 'In progress'), tono: 'attenzione', icona: 'clessidra' },
+  da_pagare: { testo: t('Da saldare', 'Outstanding'), tono: 'errore', icona: 'attenzione' },
 }
 
 export function useMovimenti() {
@@ -66,13 +67,13 @@ export function useMovimenti() {
 function RigaMovimento({ m, prima, onPress }: { m: Movimento; prima: boolean; onPress: () => void }) {
   const p = usePalette()
   const e = ESITI[m.esito]
-  const sotto = [m.per ? `per ${m.per}` : null, m.voci[0]?.dettaglio, m.metodo].filter(Boolean).join(' · ')
+  const sotto = [m.per ? t(`per ${m.per}`, `for ${m.per}`) : null, m.voci[0]?.dettaglio, m.metodo].filter(Boolean).join(' · ')
   return (
     <Riga
       prima={prima}
       icona={e.icona}
       tono={e.tono}
-      titolo={m.voci.length > 1 ? `${m.titolo} + ${m.voci.length - 1} ${m.voci.length === 2 ? 'altro' : 'altri'}` : m.titolo}
+      titolo={m.voci.length > 1 ? `${m.titolo} + ${m.voci.length - 1} ${m.voci.length === 2 ? t('altro', 'other') : t('altri', 'others')}` : m.titolo}
       sotto={sotto || e.testo}
       onPress={onPress}
       coda={
@@ -87,13 +88,13 @@ function RigaMovimento({ m, prima, onPress }: { m: Movimento; prima: boolean; on
 
 function RigaFutura({ q, prima, onPress }: { q: QuotaFutura; prima: boolean; onPress: () => void }) {
   const p = usePalette()
-  const sotto = [q.per ? `per ${q.per}` : null, q.dettaglio, q.metodo].filter(Boolean).join(' · ')
+  const sotto = [q.per ? t(`per ${q.per}`, `for ${q.per}`) : null, q.dettaglio, q.metodo].filter(Boolean).join(' · ')
   return (
     <Riga
       prima={prima}
       testa={
         <View style={[stili.calendario, { backgroundColor: p.incavo }]}>
-          <Text style={[stili.calMese, { color: p.accento }]}>{new Date(`${q.scadenza}T12:00:00`).toLocaleDateString('it-IT', { month: 'short' }).toUpperCase()}</Text>
+          <Text style={[stili.calMese, { color: p.accento }]}>{new Date(`${q.scadenza}T12:00:00`).toLocaleDateString(locale(), { month: 'short' }).toUpperCase()}</Text>
           <Text style={[stili.calGiorno, { color: p.testo }]}>{Number(q.scadenza.slice(8, 10))}</Text>
         </View>
       }
@@ -115,25 +116,25 @@ function FoglioDettaglio({ scelto, onChiudi }: { scelto: Scelto; onChiudi: () =>
   const titolo = futuro ? scelto.q.titolo : scelto.m.titolo
   const righe: [string, string][] = futuro
     ? [
-        ['Scadenza', giorno(scelto.q.scadenza, true)],
-        ['Che cosa', scelto.q.dettaglio ?? 'Quota'],
-        ...(scelto.q.per ? ([['Per', scelto.q.per]] as [string, string][]) : []),
-        ['Metodo', scelto.q.metodo ?? 'Non registrato'],
-        ...(scelto.q.carta_scade ? ([['Carta valida fino a', `${scelto.q.carta_scade.slice(5, 7)}/${scelto.q.carta_scade.slice(0, 4)}`]] as [string, string][]) : []),
-        ...(scelto.q.totale !== scelto.q.importo ? ([['Già pagato', soldi(scelto.q.totale - scelto.q.importo)]] as [string, string][]) : []),
+        [t('Scadenza', 'Due date'), giorno(scelto.q.scadenza, true)],
+        [t('Che cosa', 'What'), scelto.q.dettaglio ?? t('Quota', 'Fee')],
+        ...(scelto.q.per ? ([[t('Per', 'For'), scelto.q.per]] as [string, string][]) : []),
+        [t('Metodo', 'Method'), scelto.q.metodo ?? t('Non registrato', 'Not on file')],
+        ...(scelto.q.carta_scade ? ([[t('Carta valida fino a', 'Card valid until'), `${scelto.q.carta_scade.slice(5, 7)}/${scelto.q.carta_scade.slice(0, 4)}`]] as [string, string][]) : []),
+        ...(scelto.q.totale !== scelto.q.importo ? ([[t('Già pagato', 'Already paid'), soldi(scelto.q.totale - scelto.q.importo)]] as [string, string][]) : []),
       ]
     : [
-        [scelto.m.esito === 'da_pagare' ? 'Scadenza' : 'Data', giorno(scelto.m.esito === 'da_pagare' ? scelto.m.scadenza : scelto.m.data, true)],
-        ['Stato', ESITI[scelto.m.esito].testo],
-        ...(scelto.m.per ? ([['Per', scelto.m.per]] as [string, string][]) : []),
-        ['Metodo', scelto.m.metodo ?? '—'],
+        [scelto.m.esito === 'da_pagare' ? t('Scadenza', 'Due date') : t('Data', 'Date'), giorno(scelto.m.esito === 'da_pagare' ? scelto.m.scadenza : scelto.m.data, true)],
+        [t('Stato', 'Status'), ESITI[scelto.m.esito].testo],
+        ...(scelto.m.per ? ([[t('Per', 'For'), scelto.m.per]] as [string, string][]) : []),
+        [t('Metodo', 'Method'), scelto.m.metodo ?? '—'],
       ]
   const importo = futuro ? scelto.q.importo : scelto.m.importo
   return (
-    <Foglio aperto titolo={titolo} sottotitolo={futuro ? 'Prossimo pagamento' : ESITI[scelto.m.esito].testo} onChiudi={onChiudi}>
+    <Foglio aperto titolo={titolo} sottotitolo={futuro ? t('Prossimo pagamento', 'Next payment') : ESITI[scelto.m.esito].testo} onChiudi={onChiudi}>
       <View style={{ gap: spazio.tre }}>
         <View style={{ alignItems: 'center', paddingVertical: spazio.due }}>
-          <Numero valore={importo.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} unita="€" size={44} colore={!futuro && scelto.m.esito === 'da_pagare' ? p.errore : p.testo} />
+          <Numero valore={importo.toLocaleString(locale(), { minimumFractionDigits: 2, maximumFractionDigits: 2 })} unita="€" size={44} colore={!futuro && scelto.m.esito === 'da_pagare' ? p.errore : p.testo} />
         </View>
         <Carta piatta style={{ paddingVertical: spazio.uno, backgroundColor: p.incavo }}>
           {righe.map(([k, v], i) => (
@@ -145,7 +146,7 @@ function FoglioDettaglio({ scelto, onChiudi }: { scelto: Scelto; onChiudi: () =>
         </Carta>
         {!futuro && scelto.m.voci.length ? (
           <View style={{ gap: spazio.due }}>
-            <Text style={[stili.titoletto, { color: p.testo }]}>A cosa corrisponde</Text>
+            <Text style={[stili.titoletto, { color: p.testo }]}>{t('A cosa corrisponde', 'What it covers')}</Text>
             {scelto.m.voci.map((v, i) => (
               <View key={i} style={{ flexDirection: 'row', gap: spazio.due, alignItems: 'baseline' }}>
                 <Text style={[stili.valore, { color: p.testo, flex: 1, textAlign: 'left' }]}>{[v.cosa, v.dettaglio].filter(Boolean).join(' · ')}</Text>
@@ -157,7 +158,7 @@ function FoglioDettaglio({ scelto, onChiudi }: { scelto: Scelto; onChiudi: () =>
         {!futuro && scelto.m.nota ? <Messaggio tono="attenzione">{scelto.m.nota}</Messaggio> : null}
         {(!futuro && scelto.m.esito === 'da_pagare') || (futuro && !scelto.q.metodo) ? (
           <Pulsante
-            testo="Aggiorna il metodo di pagamento"
+            testo={t('Aggiorna il metodo di pagamento', 'Update payment method')}
             icona="carta"
             onPress={() => {
               onChiudi()
@@ -178,18 +179,18 @@ function DaSaldare({ elenco, onApri }: { elenco: Movimento[]; onApri: (m: Movime
     <Carta style={{ gap: spazio.due, borderWidth: 1.5, borderColor: p.errore }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: spazio.due }}>
         <Icona nome="attenzione" size={20} colore={p.errore} />
-        <Text style={[stili.titoletto, { color: p.testo, flex: 1 }]}>{`Da saldare: ${soldi(totale)}`}</Text>
+        <Text style={[stili.titoletto, { color: p.testo, flex: 1 }]}>{t(`Da saldare: ${soldi(totale)}`, `Outstanding: ${soldi(totale)}`)}</Text>
       </View>
       <Text style={[stili.nota, { color: p.testoSecondario }]}>
-        {elenco.length === 1 ? 'Questo pagamento non è andato a buon fine.' : 'Questi pagamenti non sono andati a buon fine.'} Controlla il metodo di pagamento: il club
-        riprova l’addebito con quello registrato.
+        {elenco.length === 1 ? t('Questo pagamento non è andato a buon fine.', 'This payment didn’t go through.') : t('Questi pagamenti non sono andati a buon fine.', 'These payments didn’t go through.')}{' '}
+        {t('Controlla il metodo di pagamento: il club riprova l’addebito con quello registrato.', 'Check your payment method: the club will retry the charge with the one on file.')}
       </Text>
       <View>
         {elenco.map((m, i) => (
           <RigaMovimento key={m.id} m={m} prima={i === 0} onPress={() => onApri(m)} />
         ))}
       </View>
-      <Pulsante testo="Aggiorna il metodo di pagamento" icona="carta" onPress={() => router.push('/metodo-pagamento')} />
+      <Pulsante testo={t('Aggiorna il metodo di pagamento', 'Update payment method')} icona="carta" onPress={() => router.push('/metodo-pagamento')} />
     </Carta>
   )
 }
@@ -204,7 +205,7 @@ export function RiepilogoPagamenti() {
     return errore ? (
       <View style={{ gap: spazio.due }}>
         <Messaggio>{errore}</Messaggio>
-        <Pulsante testo="Riprova" icona="aggiorna" variante="secondario" onPress={carica} />
+        <Pulsante testo={t('Riprova', 'Try again')} icona="aggiorna" variante="secondario" onPress={carica} />
       </View>
     ) : (
       <SchedeInArrivo quante={2} />
@@ -216,7 +217,7 @@ export function RiepilogoPagamenti() {
     <View style={{ gap: spazio.quattro }}>
       {dati.daSaldare.length ? <DaSaldare elenco={dati.daSaldare} onApri={(m) => setScelto({ tipo: 'movimento', m })} /> : null}
 
-      <Sezione titolo="Prossimi pagamenti" destra={dati.futuri.length > 3 ? <LinkSezione testo="Tutti" onPress={() => router.push({ pathname: '/pagamenti/storico', params: { vista: 'futuri' } })} /> : undefined}>
+      <Sezione titolo={t('Prossimi pagamenti', 'Upcoming payments')} destra={dati.futuri.length > 3 ? <LinkSezione testo={t('Tutti', 'All')} onPress={() => router.push({ pathname: '/pagamenti/storico', params: { vista: 'futuri' } })} /> : undefined}>
         {prossimo ? (
           <Carta style={{ paddingVertical: spazio.uno }}>
             {dati.futuri.slice(0, 3).map((q, i) => (
@@ -226,12 +227,12 @@ export function RiepilogoPagamenti() {
         ) : (
           <Carta style={{ flexDirection: 'row', alignItems: 'center', gap: spazio.tre }}>
             <Icona nome="calendario" size={22} colore={p.testoTerzo} />
-            <Text style={[stili.nota, { color: p.testoSecondario, flex: 1 }]}>Nessun pagamento in programma.</Text>
+            <Text style={[stili.nota, { color: p.testoSecondario, flex: 1 }]}>{t('Nessun pagamento in programma.', 'No payments scheduled.')}</Text>
           </Carta>
         )}
       </Sezione>
 
-      <Sezione titolo="Pagamenti effettuati" destra={dati.storico.length ? <LinkSezione testo="Storico completo" onPress={() => router.push('/pagamenti/storico')} /> : undefined}>
+      <Sezione titolo={t('Pagamenti effettuati', 'Payments made')} destra={dati.storico.length ? <LinkSezione testo={t('Storico completo', 'Full history')} onPress={() => router.push('/pagamenti/storico')} /> : undefined}>
         {dati.storico.length ? (
           <Carta style={{ paddingVertical: spazio.uno }}>
             {dati.storico.slice(0, 4).map((m, i) => (
@@ -241,7 +242,7 @@ export function RiepilogoPagamenti() {
         ) : (
           <Carta style={{ flexDirection: 'row', alignItems: 'center', gap: spazio.tre }}>
             <Icona nome="ricevuta" size={22} colore={p.testoTerzo} />
-            <Text style={[stili.nota, { color: p.testoSecondario, flex: 1 }]}>Non ci sono ancora pagamenti registrati.</Text>
+            <Text style={[stili.nota, { color: p.testoSecondario, flex: 1 }]}>{t('Non ci sono ancora pagamenti registrati.', 'No payments recorded yet.')}</Text>
           </Carta>
         )}
       </Sezione>
@@ -268,10 +269,10 @@ export function StoricoPagamenti({ vistaIniziale }: { vistaIniziale: 'effettuati
             vibra="scelta"
             stato={{ selected: attivo }}
             onPress={() => setVista(v)}
-            etichetta={v === 'effettuati' ? 'Pagamenti effettuati' : 'Pagamenti futuri'}
+            etichetta={v === 'effettuati' ? t('Pagamenti effettuati', 'Payments made') : t('Pagamenti futuri', 'Upcoming payments')}
             style={[stili.scheda, attivo && { backgroundColor: p.carta, boxShadow: p.ombra }]}
           >
-            <Text style={{ color: attivo ? p.testo : p.testoSecondario, fontFamily: attivo ? F.extra : F.semi, fontSize: 14 }}>{v === 'effettuati' ? 'Effettuati' : 'Futuri'}</Text>
+            <Text style={{ color: attivo ? p.testo : p.testoSecondario, fontFamily: attivo ? F.extra : F.semi, fontSize: 14 }}>{v === 'effettuati' ? t('Effettuati', 'Made') : t('Futuri', 'Upcoming')}</Text>
           </Tocco>
         )
       })}
@@ -280,11 +281,11 @@ export function StoricoPagamenti({ vistaIniziale }: { vistaIniziale: 'effettuati
 
   if (!dati) {
     return (
-      <Schermata sopratitolo="Pagamenti" titolo="I tuoi pagamenti" indietro={hrefSezione('pagamenti')} barra={false}>
+      <Schermata sopratitolo={t('Pagamenti', 'Payments')} titolo={t('I tuoi pagamenti', 'Your payments')} indietro={hrefSezione('pagamenti')} barra={false}>
         {errore ? (
           <>
             <Messaggio>{errore}</Messaggio>
-            <Pulsante testo="Riprova" icona="aggiorna" onPress={carica} />
+            <Pulsante testo={t('Riprova', 'Try again')} icona="aggiorna" onPress={carica} />
           </>
         ) : (
           <SchedeInArrivo />
@@ -305,7 +306,7 @@ export function StoricoPagamenti({ vistaIniziale }: { vistaIniziale: 'effettuati
   }
 
   return (
-    <Schermata sopratitolo="Pagamenti" titolo="I tuoi pagamenti" sottotitolo="Tuoi e della tua famiglia, da PerfectGym." indietro={hrefSezione('pagamenti')} barra={false}>
+    <Schermata sopratitolo={t('Pagamenti', 'Payments')} titolo={t('I tuoi pagamenti', 'Your payments')} sottotitolo={t('Tuoi e della tua famiglia, da PerfectGym.', 'Yours and your family’s, from PerfectGym.')} indietro={hrefSezione('pagamenti')} barra={false}>
       {intestazione}
       {dati.daSaldare.length && vista === 'effettuati' ? <DaSaldare elenco={dati.daSaldare} onApri={(m) => setScelto({ tipo: 'movimento', m })} /> : null}
       {gruppi.length ? (
@@ -330,7 +331,7 @@ export function StoricoPagamenti({ vistaIniziale }: { vistaIniziale: 'effettuati
         <Carta style={{ alignItems: 'center', gap: spazio.due, paddingVertical: spazio.cinque }}>
           <Icona nome={vista === 'futuri' ? 'calendario' : 'ricevuta'} size={30} colore={p.testoTerzo} />
           <Text style={[stili.nota, { color: p.testoSecondario, textAlign: 'center' }]}>
-            {vista === 'futuri' ? 'Nessun pagamento in programma.' : 'Non ci sono ancora pagamenti registrati.'}
+            {vista === 'futuri' ? t('Nessun pagamento in programma.', 'No payments scheduled.') : t('Non ci sono ancora pagamenti registrati.', 'No payments recorded yet.')}
           </Text>
         </Carta>
       )}

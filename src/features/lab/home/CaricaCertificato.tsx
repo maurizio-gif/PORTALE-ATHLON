@@ -7,6 +7,7 @@ import { useCarica } from '@/features/certificato/useCarica'
 import { CERTIFICATO_ISTRUZIONI, FORMATI_CERTIFICATO } from '@/lib/certificatoIstruzioni'
 import { MAX_BYTE, pesoLeggibile, type FileScelto } from '@/lib/fileCertificato'
 import { spazio } from '@/theme'
+import { t } from '@/lib/lingua'
 
 import { Foglio } from '../ui/Foglio'
 import { Icona } from '../ui/Icona'
@@ -61,7 +62,7 @@ function FileInviato({ file, onCambia }: { file: FileScelto; onCambia: () => voi
           {file.tipo === 'application/pdf' ? 'PDF' : file.tipo === 'image/png' ? 'PNG' : 'JPG'} · {pesoLeggibile(file.byte)}
         </Text>
       </View>
-      <Pulsante testo="Cambia" variante="fantasma" piccolo pieno={false} onPress={onCambia} />
+      <Pulsante testo={t('Cambia', 'Change')} variante="fantasma" piccolo pieno={false} onPress={onCambia} />
     </View>
   )
 }
@@ -82,7 +83,7 @@ export function FoglioCertificato({
   const memberId = persona?.member_id ?? null
   const invia = useCallback(
     async (f: FileScelto) => {
-      if (memberId == null) return { ok: false as const, errore: 'Non troviamo la persona a cui carichi il certificato.' }
+      if (memberId == null) return { ok: false as const, errore: t('Non troviamo la persona a cui carichi il certificato.', 'We can’t find the person you’re uploading the certificate for.') }
       const esito = await caricaCertificato(memberId, f)
       if (esito.ok) onCaricato()
       return esito
@@ -99,16 +100,16 @@ export function FoglioCertificato({
   return (
     <Foglio
       aperto={aperto}
-      titolo={c.fatto ? 'Certificato ricevuto' : 'Carica il certificato'}
-      sottotitolo={persona ? (persona.titolare ? 'Per te' : `Per ${nome(persona)}`) : undefined}
+      titolo={c.fatto ? t('Certificato ricevuto', 'Certificate received') : t('Carica il certificato', 'Upload certificate')}
+      sottotitolo={persona ? (persona.titolare ? t('Per te', 'For you') : t(`Per ${nome(persona)}`, `For ${nome(persona)}`)) : undefined}
       onChiudi={chiudi}
     >
       {c.fatto ? (
         <>
-          <Messaggio tono="ok" titolo="Lo stiamo controllando">
-            Appena la segreteria l’avrà verificato lo vedrai valido in questa sezione. Se qualcosa non va, ti scriviamo il motivo per email.
+          <Messaggio tono="ok" titolo={t('Lo stiamo controllando', 'We’re checking it')}>
+            {t('Appena la segreteria l’avrà verificato lo vedrai valido in questa sezione. Se qualcosa non va, ti scriviamo il motivo per email.', 'As soon as the front desk has checked it, you’ll see it as valid in this section. If something is wrong, we’ll email you the reason.')}
           </Messaggio>
-          <Pulsante testo="Chiudi" onPress={chiudi} />
+          <Pulsante testo={t('Chiudi', 'Close')} onPress={chiudi} />
         </>
       ) : (
         <>
@@ -118,7 +119,7 @@ export function FoglioCertificato({
             <FileInviato file={c.file} onCambia={c.scegli} />
           ) : (
             <Pulsante
-              testo={c.inLettura ? 'Preparo il file…' : `Scegli la foto o il PDF`}
+              testo={c.inLettura ? t('Preparo il file…', 'Preparing the file…') : t(`Scegli la foto o il PDF`, `Choose the photo or PDF`)}
               variante="contorno"
               icona="condividi"
               inCorso={c.inLettura}
@@ -126,13 +127,16 @@ export function FoglioCertificato({
             />
           )}
           <Text style={[stili.nota, { color: p.testoTerzo }]}>
-            {FORMATI_CERTIFICATO}, fino a {MAX_BYTE / 1024 / 1024} MB. Se scatti una foto, controlla che si legga tutta la pagina. Il file lo vede solo la
-            segreteria.
+            {FORMATI_CERTIFICATO}
+            {t(
+              `, fino a ${MAX_BYTE / 1024 / 1024} MB. Se scatti una foto, controlla che si legga tutta la pagina. Il file lo vede solo la segreteria.`,
+              `, up to ${MAX_BYTE / 1024 / 1024} MB. If you take a photo, check that the whole page is readable. Only the front desk sees the file.`,
+            )}
           </Text>
 
           {c.errore ? <Messaggio tono="errore">{c.errore}</Messaggio> : null}
 
-          <Pulsante testo="Invia il certificato" icona="invia" inCorso={c.inCorso} disabilitato={!c.file || c.inLettura} onPress={c.spedisci} />
+          <Pulsante testo={t('Invia il certificato', 'Send the certificate')} icona="invia" inCorso={c.inCorso} disabilitato={!c.file || c.inLettura} onPress={c.spedisci} />
         </>
       )}
     </Foglio>

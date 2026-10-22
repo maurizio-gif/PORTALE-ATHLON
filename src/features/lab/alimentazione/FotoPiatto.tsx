@@ -5,6 +5,7 @@ import Animated, { Easing, useAnimatedStyle, useReducedMotion, useSharedValue, w
 import { aggiungiAlDiario, analizzaFoto, PASTI, type Pasto, type Proposta, type VoceDiario } from '@/api/alimentazione'
 import { preparaFoto, scegliFoto } from '@/lib/fotoPiatto'
 import { spazio } from '@/theme'
+import { locale, t } from '@/lib/lingua'
 
 import { Foglio } from '../ui/Foglio'
 import { Icona } from '../ui/Icona'
@@ -19,7 +20,7 @@ import { perGrammi } from './conti'
 // c'e', si correggono i grammi, e solo allora si aggiunge. La foto resta solo qui,
 // in memoria, il tempo di guardarla.
 
-const intero = (n: number) => Math.round(n).toLocaleString('it-IT')
+const intero = (n: number) => Math.round(n).toLocaleString(locale())
 
 /** La linea che scorre sulla foto mentre il modello la guarda. */
 function Scansione({ altezza }: { altezza: number }) {
@@ -110,7 +111,7 @@ export function FotoPiatto({
   }
 
   return (
-    <Foglio aperto={aperto} titolo="Fotografa il piatto" sottotitolo="Riconosciamo gli alimenti e stimiamo i grammi: tu controlli prima di aggiungerli." onChiudi={onChiudi}>
+    <Foglio aperto={aperto} titolo={t('Fotografa il piatto', 'Photograph your meal')} sottotitolo={t('Riconosciamo gli alimenti e stimiamo i grammi: tu controlli prima di aggiungerli.', 'We recognize the foods and estimate the grams: you check them before adding them.')} onChiudi={onChiudi}>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: spazio.due }}>
         {PASTI.map((x) => (
           <Tocco key={x.id} onPress={() => setPasto(x.id)} vibra="scelta" stato={{ selected: pasto === x.id }} etichetta={x.nome}>
@@ -123,20 +124,20 @@ export function FotoPiatto({
 
       {foto ? (
         <View style={stili.cornice}>
-          <Image source={{ uri: foto }} style={stili.foto} resizeMode="cover" accessibilityLabel="La foto del piatto" />
+          <Image source={{ uri: foto }} style={stili.foto} resizeMode="cover" accessibilityLabel={t('La foto del piatto', 'The photo of your meal')} />
           {analisi ? <Scansione altezza={220} /> : null}
         </View>
       ) : (
-        <Tocco onPress={scegli} etichetta="Scegli o scatta una foto" scala={0.985}>
+        <Tocco onPress={scegli} etichetta={t('Scegli o scatta una foto', 'Choose or take a photo')} scala={0.985}>
           <View style={[stili.vuoto, { borderColor: ORTO[1], backgroundColor: p.incavo }]}>
             <Icona nome="fotocamera" size={34} colore={ORTO[1]} />
-            <Text style={[stili.nome, { color: p.testo }]}>Scegli o scatta una foto</Text>
-            <Text style={[stili.nota, { color: p.testoSecondario, textAlign: 'center' }]}>Dall’alto, con tutto il piatto nell’inquadratura. Solo il cibo, senza persone.</Text>
+            <Text style={[stili.nome, { color: p.testo }]}>{t('Scegli o scatta una foto', 'Choose or take a photo')}</Text>
+            <Text style={[stili.nota, { color: p.testoSecondario, textAlign: 'center' }]}>{t('Dall’alto, con tutto il piatto nell’inquadratura. Solo il cibo, senza persone.', 'From above, with the whole plate in the frame. Just the food, no people.')}</Text>
           </View>
         </Tocco>
       )}
 
-      {analisi ? <Text style={[stili.nota, { color: p.testoSecondario, textAlign: 'center' }]}>Riconosciamo il piatto…</Text> : null}
+      {analisi ? <Text style={[stili.nota, { color: p.testoSecondario, textAlign: 'center' }]}>{t('Riconosciamo il piatto…', 'Recognizing your meal…')}</Text> : null}
       {errore ? <Messaggio>{errore}</Messaggio> : null}
 
       {righe ? (
@@ -149,23 +150,23 @@ export function FotoPiatto({
                   <Text style={[stili.nome, { color: p.testo }]}>{x.nome}</Text>
                   {!nascondiNumeri ? (
                     <Text style={[stili.nota, { color: p.testoSecondario }]}>
-                      {`${x.grammi} g · ${intero((x.kcal100 * x.grammi) / 100)} kcal${x.dal_catalogo ? '' : ' · stima'}`}
+                      {`${x.grammi} g · ${intero((x.kcal100 * x.grammi) / 100)} kcal${x.dal_catalogo ? '' : t(' · stima', ' · estimate')}`}
                     </Text>
                   ) : null}
                 </View>
                 {x.tieni && !nascondiNumeri ? (
                   <View style={stili.passi}>
-                    <Tocco onPress={() => cambia(i, -10)} etichetta={`Meno ${x.nome}`} style={[stili.passo, { backgroundColor: p.carta }]}>
+                    <Tocco onPress={() => cambia(i, -10)} etichetta={t(`Meno ${x.nome}`, `Less ${x.nome}`)} style={[stili.passo, { backgroundColor: p.carta }]}>
                       <Icona nome="meno" size={16} colore={p.testo} />
                     </Tocco>
-                    <Tocco onPress={() => cambia(i, 10)} etichetta={`Più ${x.nome}`} style={[stili.passo, { backgroundColor: p.carta }]}>
+                    <Tocco onPress={() => cambia(i, 10)} etichetta={t(`Più ${x.nome}`, `More ${x.nome}`)} style={[stili.passo, { backgroundColor: p.carta }]}>
                       <Icona nome="piu" size={16} colore={p.testo} />
                     </Tocco>
                   </View>
                 ) : null}
                 <Tocco
                   onPress={() => setRighe((rr) => rr && rr.map((y, j) => (j === i ? { ...y, tieni: !y.tieni } : y)))}
-                  etichetta={x.tieni ? `Togli ${x.nome}` : `Rimetti ${x.nome}`}
+                  etichetta={x.tieni ? t(`Togli ${x.nome}`, `Remove ${x.nome}`) : t(`Rimetti ${x.nome}`, `Put back ${x.nome}`)}
                   style={[stili.passo, { backgroundColor: p.carta }]}
                 >
                   <Icona nome={x.tieni ? 'chiudi' : 'aggiorna'} size={16} colore={p.testoSecondario} />
@@ -175,16 +176,19 @@ export function FotoPiatto({
             {!nascondiNumeri && tenute.length ? (
               <View style={[stili.totale, { backgroundColor: p.carbone }]}>
                 <Text style={stili.totaleNumero}>{`${intero(totale)} kcal`}</Text>
-                <Text style={stili.totaleSotto}>{`Fra ${intero(minimo)} e ${intero(massimo)} kcal, secondo quanto c’è davvero nel piatto. Olio e condimenti che non si vedono non sono contati.`}</Text>
+                <Text style={stili.totaleSotto}>{t(
+                    `Fra ${intero(minimo)} e ${intero(massimo)} kcal, secondo quanto c’è davvero nel piatto. Olio e condimenti che non si vedono non sono contati.`,
+                    `Between ${intero(minimo)} and ${intero(massimo)} kcal, depending on what’s really on the plate. Oil and dressings you can’t see aren’t counted.`,
+                  )}</Text>
               </View>
             ) : null}
-            <Pulsante testo={`Aggiungi a ${PASTI.find((x) => x.id === pasto)!.nome.toLowerCase()}`} icona="piu" onPress={conferma} inCorso={inCorso} disabilitato={!tenute.length} />
-            <Pulsante testo="Prova con un’altra foto" variante="fantasma" onPress={scegli} />
+            <Pulsante testo={t(`Aggiungi a ${PASTI.find((x) => x.id === pasto)!.nome.toLowerCase()}`, `Add to ${PASTI.find((x) => x.id === pasto)!.nome.toLowerCase()}`)} icona="piu" onPress={conferma} inCorso={inCorso} disabilitato={!tenute.length} />
+            <Pulsante testo={t('Prova con un’altra foto', 'Try another photo')} variante="fantasma" onPress={scegli} />
           </View>
         ) : (
           <View style={{ gap: spazio.due }}>
-            <Messaggio tono="attenzione">Non abbiamo riconosciuto del cibo in questa foto. Prova con un’altra, dall’alto e con più luce, o cerca gli alimenti nell’elenco.</Messaggio>
-            <Pulsante testo="Prova con un’altra foto" variante="secondario" onPress={scegli} />
+            <Messaggio tono="attenzione">{t('Non abbiamo riconosciuto del cibo in questa foto. Prova con un’altra, dall’alto e con più luce, o cerca gli alimenti nell’elenco.', 'We didn’t recognize any food in this photo. Try another one, from above and with more light, or search for the foods in the list.')}</Messaggio>
+            <Pulsante testo={t('Prova con un’altra foto', 'Try another photo')} variante="secondario" onPress={scegli} />
           </View>
         )
       ) : null}

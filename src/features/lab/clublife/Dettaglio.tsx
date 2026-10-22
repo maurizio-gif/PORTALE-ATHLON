@@ -4,6 +4,7 @@ import { useState, type ReactNode } from 'react'
 import { StyleSheet, Text, View } from 'react-native'
 
 import type { ClubLife, Comando } from '@/api/clubLife'
+import { t } from '@/lib/lingua'
 import { spazio } from '@/theme'
 
 import { Icona, type NomeIcona } from '../ui/Icona'
@@ -25,9 +26,9 @@ function Stato({ dati, errore, riprova, cosa }: { dati: ClubLife | null; errore:
   if (!dati && !errore) return <SchedeInArrivo quante={1} />
   return (
     <View style={{ gap: spazio.tre }}>
-      <Messaggio tono={dati ? 'attenzione' : 'errore'}>{dati ? `Questa ${cosa} non è più in Club Life.` : errore}</Messaggio>
-      {dati ? null : <Pulsante testo="Riprova" icona="aggiorna" onPress={riprova} />}
-      <Pulsante testo="Torna a Club Life" variante="contorno" onPress={() => router.replace('/club-life')} />
+      <Messaggio tono={dati ? 'attenzione' : 'errore'}>{dati ? t(`Questa ${cosa} non è più in Club Life.`, `This ${cosa} is no longer in Club Life.`) : errore}</Messaggio>
+      {dati ? null : <Pulsante testo={t('Riprova', 'Try again')} icona="aggiorna" onPress={riprova} />}
+      <Pulsante testo={t('Torna a Club Life', 'Back to Club Life')} variante="contorno" onPress={() => router.replace('/club-life')} />
     </View>
   )
 }
@@ -58,7 +59,7 @@ function Cta({ cta, dati }: { cta: Comando; dati: ClubLife | null }) {
   const d = destinazione(cta.url, dati, cta.etichetta)
   if (d.tipo === 'nascondi') return null
   const alCalendario = d.tipo === 'app' && d.href === '/calendario' && /registr|portale/i.test(cta.etichetta)
-  return <Pulsante testo={alCalendario ? 'Prenota dal calendario' : cta.etichetta} icona={d.tipo === 'fuori' ? 'apriFuori' : 'avanti'} onPress={() => apriLink(cta.url, dati, cta.etichetta)} />
+  return <Pulsante testo={alCalendario ? t('Prenota dal calendario', 'Book from the calendar') : cta.etichetta} icona={d.tipo === 'fuori' ? 'apriFuori' : 'avanti'} onPress={() => apriLink(cta.url, dati, cta.etichetta)} />
 }
 
 /** Oggi a Roma, «2026-10-21». */
@@ -80,11 +81,11 @@ function PrenotaDalCalendario({ data, categoria }: { data: string; categoria: st
   if (fra < 0) return null
   if (fra > GIORNI_CALENDARIO) {
     const apre = new Date(Date.parse(giorno) - GIORNI_CALENDARIO * MS_GIORNO).toISOString()
-    return <Messaggio tono="attenzione" icona="calendario" titolo="Le prenotazioni non sono ancora aperte">{`Si prenota dalle Prenotazioni dell'app, a partire da ${giornoEvento(apre).toLowerCase()}.`}</Messaggio>
+    return <Messaggio tono="attenzione" icona="calendario" titolo={t('Le prenotazioni non sono ancora aperte', 'Bookings are not open yet')}>{t(`Si prenota dalle Prenotazioni dell'app, a partire da ${giornoEvento(apre).toLowerCase()}.`, `You can book it from Bookings in the app, starting ${giornoEvento(apre)}.`)}</Messaggio>
   }
   return (
     <Pulsante
-      testo="Prenota nel calendario"
+      testo={t('Prenota nel calendario', 'Book in the calendar')}
       icona="calendario"
       onPress={() => router.push({ pathname: '/calendario', params: categoria ? { giorno, attivita: categoria } : { giorno } })}
     />
@@ -101,9 +102,9 @@ function CondividiEvento({ e }: { e: { titolo: string; data: string; ora: string
   }
   return (
     <View style={{ gap: spazio.due }}>
-      <Pulsante testo="Condividi con un amico" icona="condividi" variante="contorno" onPress={condividi} />
-      {esito === 'copiato' ? <Messaggio tono="ok">Link copiato: incollalo in un messaggio per il tuo amico.</Messaggio> : null}
-      {esito === 'errore' ? <Messaggio>Da questo dispositivo non si può condividere direttamente. Apri la pagina dell’evento sul sito e copia il link.</Messaggio> : null}
+      <Pulsante testo={t('Condividi con un amico', 'Share with a friend')} icona="condividi" variante="contorno" onPress={condividi} />
+      {esito === 'copiato' ? <Messaggio tono="ok">{t('Link copiato: incollalo in un messaggio per il tuo amico.', 'Link copied: paste it into a message to your friend.')}</Messaggio> : null}
+      {esito === 'errore' ? <Messaggio>{t('Da questo dispositivo non si può condividere direttamente. Apri la pagina dell’evento sul sito e copia il link.', 'You can’t share directly from this device. Open the event page on the website and copy the link.')}</Messaggio> : null}
     </View>
   )
 }
@@ -115,7 +116,7 @@ export function NewsDettaglio() {
   return (
     <Schermata indietro="/club-life" barra={false} sopratitolo={n?.categoria ?? 'News'} titolo={n?.titolo ?? 'News'} sottotitolo={n ? dataNews(n.data) : undefined}>
       {!n ? (
-        <Stato dati={dati} errore={errore} riprova={riprova} cosa="news" />
+        <Stato dati={dati} errore={errore} riprova={riprova} cosa={t('news', 'news item')} />
       ) : (
         <>
           <Foto src={n.immagine} alt={n.alt} />
@@ -133,16 +134,16 @@ export function EventoDettaglio() {
   const { dati, errore, riprova } = useClubLife()
   const e = dati?.eventi.find((x) => x.id === id)
   return (
-    <Schermata indietro="/club-life" barra={false} sopratitolo={e?.etichetta ?? 'Evento'} titolo={e?.titolo ?? 'Evento'} sottotitolo={e?.sommario}>
+    <Schermata indietro="/club-life" barra={false} sopratitolo={e?.etichetta ?? t('Evento', 'Event')} titolo={e?.titolo ?? t('Evento', 'Event')} sottotitolo={e?.sommario}>
       {!e ? (
-        <Stato dati={dati} errore={errore} riprova={riprova} cosa="pagina" />
+        <Stato dati={dati} errore={errore} riprova={riprova} cosa={t('pagina', 'page')} />
       ) : (
         <>
           <Foto src={e.immagine} alt={e.alt} />
           <Carta style={{ gap: spazio.tre }}>
             <Info icona="calendario">{giornoEvento(e.data)}</Info>
             {e.ora ? <Info icona="orologio">{e.ora}</Info> : null}
-            {e.gratuito ? <Info icona="regalo">Gratuito</Info> : e.prezzo ? <Info icona="carta">{e.prezzo}</Info> : null}
+            {e.gratuito ? <Info icona="regalo">{t('Gratuito', 'Free')}</Info> : e.prezzo ? <Info icona="carta">{e.prezzo}</Info> : null}
             {e.note.map((x, i) => (
               <Info key={i} icona="info">
                 {x}
@@ -184,11 +185,11 @@ export function SchedaDettaglio() {
   return (
     <Schermata indietro="/club-life" barra={false} sopratitolo={area ? `Help Desk · ${area.etichetta}` : 'Help Desk'} titolo={s?.titolo ?? 'Help Desk'} sottotitolo={s?.descrizione}>
       {!s ? (
-        <Stato dati={dati} errore={errore} riprova={riprova} cosa="scheda" />
+        <Stato dati={dati} errore={errore} riprova={riprova} cosa={t('scheda', 'article')} />
       ) : (
         <>
           <View style={stili.tag}>
-            {s.attivita.length ? s.attivita.map((a) => <Tag key={a} testo={a.toUpperCase()} colore={p.testoSecondario} />) : <Tag testo="TUTTE LE ATTIVITÀ" colore={p.testoSecondario} />}
+            {s.attivita.length ? s.attivita.map((a) => <Tag key={a} testo={a.toUpperCase()} colore={p.testoSecondario} />) : <Tag testo={t('TUTTE LE ATTIVITÀ', 'ALL ACTIVITIES')} colore={p.testoSecondario} />}
           </View>
           <Contenuto blocchi={s.blocchi} dati={dati} />
         </>

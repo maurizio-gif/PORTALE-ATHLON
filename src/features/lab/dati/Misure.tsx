@@ -3,6 +3,7 @@ import { ScrollView, StyleSheet, Text, TextInput, View } from 'react-native'
 
 import { eliminaMisura, elencoMisure, salvaMisura, type ConsensoCorpo, type Misura, type NuovaMisura } from '@/api/lab'
 import { CampoData } from '@/components/CampoData'
+import { t } from '@/lib/lingua'
 import { spazio } from '@/theme'
 
 import { dimentica, inMemoria, prendi } from '../memoria'
@@ -36,11 +37,11 @@ export const CHIAVE_MISURE = 'misure:elenco'
 type Campo = keyof Omit<NuovaMisura, 'data' | 'note'>
 
 const CIRCONFERENZE: { chiave: Campo; nome: string }[] = [
-  { chiave: 'vita_cm', nome: 'Vita' },
-  { chiave: 'fianchi_cm', nome: 'Fianchi' },
-  { chiave: 'petto_cm', nome: 'Petto' },
-  { chiave: 'braccio_cm', nome: 'Braccio' },
-  { chiave: 'coscia_cm', nome: 'Coscia' },
+  { chiave: 'vita_cm', nome: t('Vita', 'Waist') },
+  { chiave: 'fianchi_cm', nome: t('Fianchi', 'Hips') },
+  { chiave: 'petto_cm', nome: t('Petto', 'Chest') },
+  { chiave: 'braccio_cm', nome: t('Braccio', 'Arm') },
+  { chiave: 'coscia_cm', nome: t('Coscia', 'Thigh') },
 ]
 
 type Bozza = { id: string | null; data: string } & Record<Campo, string>
@@ -85,7 +86,7 @@ function CampoNumero({ etichetta, unita, value, onChange, placeholder }: { etich
           placeholder={placeholder ?? '—'}
           placeholderTextColor={p.testoTerzo}
           style={[stili.input, { color: p.testo }]}
-          accessibilityLabel={`${etichetta} in ${unita}`}
+          accessibilityLabel={`${etichetta} (${unita})`}
         />
         <Text style={[stili.unita, { color: p.testoTerzo }]}>{unita}</Text>
       </View>
@@ -126,9 +127,9 @@ function FoglioMisura({
   async function salva() {
     if (!b) return
     setErrore(null)
-    if (!b.data) return setErrore('Scrivi la data della misurazione.')
-    if (!altezza && !daTesto(b.altezza_cm)) return setErrore('Scrivi la tua altezza: la segni solo questa volta.')
-    if (!daTesto(b.peso_kg)) return setErrore('Scrivi il peso.')
+    if (!b.data) return setErrore(t('Scrivi la data della misurazione.', 'Enter the date of the measurement.'))
+    if (!altezza && !daTesto(b.altezza_cm)) return setErrore(t('Scrivi la tua altezza: la segni solo questa volta.', 'Enter your height: you only log it this once.'))
+    if (!daTesto(b.peso_kg)) return setErrore(t('Scrivi il peso.', 'Enter your weight.'))
     setInCorso(true)
     const corpo: NuovaMisura = { data: b.data }
     // Con l'altezza gia' segnata non la si manda: resta quella della prima volta.
@@ -156,33 +157,39 @@ function FoglioMisura({
   return (
     <Foglio
       aperto
-      titolo={esiste ? 'Modifica la misurazione' : altezza ? 'Nuovo peso' : 'Le tue misure'}
-      sottotitolo={esiste ? 'Una al giorno: se la riscrivi, sostituisce quella dello stesso giorno.' : altezza ? 'Uno al giorno: se lo riscrivi, sostituisce quello dello stesso giorno.' : 'L’altezza la segni solo adesso, la prima volta. Poi registri il peso.'}
+      titolo={esiste ? t('Modifica la misurazione', 'Edit the measurement') : altezza ? t('Nuovo peso', 'New weight') : t('Le tue misure', 'Your measurements')}
+      sottotitolo={
+        esiste
+          ? t('Una al giorno: se la riscrivi, sostituisce quella dello stesso giorno.', 'One per day: if you enter it again, it replaces the one from the same day.')
+          : altezza
+            ? t('Uno al giorno: se lo riscrivi, sostituisce quello dello stesso giorno.', 'One per day: if you enter it again, it replaces the one from the same day.')
+            : t('L’altezza la segni solo adesso, la prima volta. Poi registri il peso.', 'You log your height only now, the first time. After that you log your weight.')
+      }
       onChiudi={onChiudi}
     >
       <View style={{ gap: spazio.tre }}>
         {/* In riga: in colonna il flex del campo lo schiaccerebbe sopra i campi sotto. */}
         <View style={{ flexDirection: 'row' }}>
-          <CampoData etichetta="Data" value={b.data} onChange={(v) => cambia('data', v)} min="2000-01-01" max={oggi()} annoIniziale={new Date().getFullYear()} sfondo={p.incavo} />
+          <CampoData etichetta={t('Data', 'Date')} value={b.data} onChange={(v) => cambia('data', v)} min="2000-01-01" max={oggi()} annoIniziale={new Date().getFullYear()} sfondo={p.incavo} />
         </View>
         {altezza ? (
           <>
             <View style={stili.griglia}>
-              <CampoNumero etichetta="Peso" unita="kg" value={b.peso_kg} onChange={(t) => cambia('peso_kg', t)} placeholder="es. 72,5" />
+              <CampoNumero etichetta={t('Peso', 'Weight')} unita="kg" value={b.peso_kg} onChange={(v) => cambia('peso_kg', v)} placeholder={t('es. 72,5', 'e.g. 72.5')} />
             </View>
             <View style={[stili.fissa, { borderColor: p.linea }]}>
               <Icona nome="lucchetto" size={15} colore={p.testoTerzo} />
               <Text style={[stili.piccola, { color: p.testoSecondario, flex: 1 }]}>
-                {'Altezza '}
+                {t('Altezza ', 'Height ')}
                 <Text style={{ fontFamily: F.extra, color: p.testo }}>{`${numero(altezza.cm)} cm`}</Text>
-                {`, segnata il ${dataCorta(altezza.data)}: non si modifica.`}
+                {t(`, segnata il ${dataCorta(altezza.data)}: non si modifica.`, `, logged on ${dataCorta(altezza.data)}: it can’t be changed.`)}
               </Text>
             </View>
           </>
         ) : (
           <View style={stili.griglia}>
-            <CampoNumero etichetta="Altezza" unita="cm" value={b.altezza_cm} onChange={(t) => cambia('altezza_cm', t)} placeholder="es. 175" />
-            <CampoNumero etichetta="Peso" unita="kg" value={b.peso_kg} onChange={(t) => cambia('peso_kg', t)} placeholder="es. 72,5" />
+            <CampoNumero etichetta={t('Altezza', 'Height')} unita="cm" value={b.altezza_cm} onChange={(v) => cambia('altezza_cm', v)} placeholder={t('es. 175', 'e.g. 175')} />
+            <CampoNumero etichetta={t('Peso', 'Weight')} unita="kg" value={b.peso_kg} onChange={(v) => cambia('peso_kg', v)} placeholder={t('es. 72,5', 'e.g. 72.5')} />
           </View>
         )}
         {anteprima ? (
@@ -191,34 +198,37 @@ function FoglioMisura({
           </Text>
         ) : null}
 
-        <Tocco onPress={() => setAltri((x) => !x)} etichetta="Circonferenze e composizione" stato={{ selected: altri }} style={[stili.apri, { borderColor: p.linea }]}>
+        <Tocco onPress={() => setAltri((x) => !x)} etichetta={t('Circonferenze e composizione', 'Measurements and composition')} stato={{ selected: altri }} style={[stili.apri, { borderColor: p.linea }]}>
           <View style={{ flex: 1, gap: 2 }}>
-            <Text style={[stili.apriTitolo, { color: p.testo }]}>Circonferenze e composizione</Text>
-            <Text style={[stili.piccola, { color: p.testoSecondario }]}>Facoltative: vita, fianchi, petto, braccio, coscia, massa grassa e magra</Text>
+            <Text style={[stili.apriTitolo, { color: p.testo }]}>{t('Circonferenze e composizione', 'Measurements and composition')}</Text>
+            <Text style={[stili.piccola, { color: p.testoSecondario }]}>{t('Facoltative: vita, fianchi, petto, braccio, coscia, massa grassa e magra', 'Optional: waist, hips, chest, arm, thigh, body fat and lean mass')}</Text>
           </View>
           <Icona nome={altri ? 'meno' : 'piu'} size={18} colore={p.testoSecondario} />
         </Tocco>
         {altri ? (
           <View style={{ gap: spazio.tre }}>
-            <Text style={[stili.nota, { color: p.testoSecondario }]}>Misura col metro da sarta, sulla pelle, sempre nello stesso punto: la vita all’altezza dell’ombelico, braccio e coscia nel punto più largo.</Text>
+            <Text style={[stili.nota, { color: p.testoSecondario }]}>{t('Misura col metro da sarta, sulla pelle, sempre nello stesso punto: la vita all’altezza dell’ombelico, braccio e coscia nel punto più largo.', 'Measure with a tailor’s tape, on bare skin, always at the same spot: waist at navel level, arm and thigh at the widest point.')}</Text>
             <View style={stili.griglia}>
               {CIRCONFERENZE.map((c) => (
-                <CampoNumero key={c.chiave} etichetta={c.nome} unita="cm" value={b[c.chiave]} onChange={(t) => cambia(c.chiave, t)} />
+                <CampoNumero key={c.chiave} etichetta={c.nome} unita="cm" value={b[c.chiave]} onChange={(v) => cambia(c.chiave, v)} />
               ))}
             </View>
             <Text style={[stili.nota, { color: p.testoSecondario }]}>
-              La composizione la dà una bilancia impedenziometrica o la plicometria di un istruttore. Basta uno dei due valori: l’altro lo calcoliamo dal peso.
+              {t(
+                'La composizione la dà una bilancia impedenziometrica o la plicometria di un istruttore. Basta uno dei due valori: l’altro lo calcoliamo dal peso.',
+                'Body composition comes from a bioimpedance scale or an instructor’s skinfold measurement. One of the two values is enough: we calculate the other from your weight.',
+              )}
             </Text>
             <View style={stili.griglia}>
-              <CampoNumero etichetta="Massa grassa" unita="%" value={b.massa_grassa_pct} onChange={(t) => cambia('massa_grassa_pct', t)} placeholder="es. 18" />
-              <CampoNumero etichetta="Massa magra" unita="kg" value={b.massa_magra_kg} onChange={(t) => cambia('massa_magra_kg', t)} placeholder="es. 58" />
+              <CampoNumero etichetta={t('Massa grassa', 'Body fat')} unita="%" value={b.massa_grassa_pct} onChange={(v) => cambia('massa_grassa_pct', v)} placeholder={t('es. 18', 'e.g. 18')} />
+              <CampoNumero etichetta={t('Massa magra', 'Lean mass')} unita="kg" value={b.massa_magra_kg} onChange={(v) => cambia('massa_magra_kg', v)} placeholder={t('es. 58', 'e.g. 58')} />
             </View>
           </View>
         ) : null}
 
         {errore ? <Messaggio>{errore}</Messaggio> : null}
-        <Pulsante testo="Salva" icona="spunta" onPress={salva} inCorso={inCorso} />
-        {esiste ? <Pulsante testo="Togli questa misurazione" variante="fantasma" onPress={togli} disabilitato={inCorso} /> : null}
+        <Pulsante testo={t('Salva', 'Save')} icona="spunta" onPress={salva} inCorso={inCorso} />
+        {esiste ? <Pulsante testo={t('Togli questa misurazione', 'Remove this measurement')} variante="fantasma" onPress={togli} disabilitato={inCorso} /> : null}
       </View>
     </Foglio>
   )
@@ -251,9 +261,9 @@ function BarraBmi({ v }: { v: number }) {
         <View style={[stili.segno, { left: `${pos * 100}%`, borderColor: p.carta, backgroundColor: p.testo }]} />
       </View>
       <View style={{ height: 16 }}>
-        {tacche.map((t) => (
-          <Text key={t} style={[stili.piccola, { color: p.testoTerzo, position: 'absolute', width: 40, marginLeft: -20, textAlign: 'center', left: `${((t - da) / (a - da)) * 100}%` }]}>
-            {numero(t)}
+        {tacche.map((x) => (
+          <Text key={x} style={[stili.piccola, { color: p.testoTerzo, position: 'absolute', width: 40, marginLeft: -20, textAlign: 'center', left: `${((x - da) / (a - da)) * 100}%` }]}>
+            {numero(x)}
           </Text>
         ))}
       </View>
@@ -295,11 +305,11 @@ export function Misure() {
 
   if (!misure) {
     return (
-      <Schermata sopratitolo="Athlon Health System" titolo="Il tuo corpo" indietro="/allenamento" barra={false}>
+      <Schermata sopratitolo="Athlon Health System" titolo={t('Il tuo corpo', 'Your body')} indietro="/allenamento" barra={false}>
         {errore ? (
           <>
             <Messaggio>{errore}</Messaggio>
-            <Pulsante testo="Riprova" icona="aggiorna" onPress={carica} />
+            <Pulsante testo={t('Riprova', 'Try again')} icona="aggiorna" onPress={carica} />
           </>
         ) : (
           <SchedeInArrivo quante={2} />
@@ -310,7 +320,7 @@ export function Misure() {
 
   if (consenso === null) {
     return (
-      <Schermata sopratitolo="Athlon Health System" titolo="Il tuo corpo" indietro="/allenamento" barra={false}>
+      <Schermata sopratitolo="Athlon Health System" titolo={t('Il tuo corpo', 'Your body')} indietro="/allenamento" barra={false}>
         <PaginaConsenso onConsenso={rileggi} />
       </Schermata>
     )
@@ -332,16 +342,19 @@ export function Misure() {
 
   if (!n) {
     return (
-      <Schermata sopratitolo="Athlon Health System" titolo="Il tuo corpo" indietro="/allenamento" barra={false}>
+      <Schermata sopratitolo="Athlon Health System" titolo={t('Il tuo corpo', 'Your body')} indietro="/allenamento" barra={false}>
         <Carta style={{ alignItems: 'center', gap: spazio.tre, paddingVertical: spazio.cinque }}>
           <View style={[stili.bollo, { backgroundColor: velo(p, 'accento') }]}>
             <Icona nome="grafico" size={30} colore={p.accento} />
           </View>
-          <Text style={[stili.titolo, { color: p.testo, textAlign: 'center' }]}>Segui come cambi</Text>
+          <Text style={[stili.titolo, { color: p.testo, textAlign: 'center' }]}>{t('Segui come cambi', 'See how you’re changing')}</Text>
           <Text style={[stili.nota, { color: p.testoSecondario, textAlign: 'center' }]}>
-            Segna altezza e peso: calcoliamo il tuo BMI e ti mostriamo l’andamento nel tempo. Se li hai, aggiungi circonferenze, massa grassa e massa magra.
+            {t(
+              'Segna altezza e peso: calcoliamo il tuo BMI e ti mostriamo l’andamento nel tempo. Se li hai, aggiungi circonferenze, massa grassa e massa magra.',
+              'Log your height and weight: we calculate your BMI and show you the trend over time. If you have them, add body measurements, body fat and lean mass.',
+            )}
           </Text>
-          <Pulsante testo="Aggiungi i tuoi dati" icona="piu" onPress={nuova} />
+          <Pulsante testo={t('Aggiungi i tuoi dati', 'Add your details')} icona="piu" onPress={nuova} />
         </Carta>
         {impostazioni}
         {foglio}
@@ -368,19 +381,22 @@ export function Misure() {
     .filter((x): x is NonNullable<typeof x> => !!x)
 
   return (
-    <Schermata sopratitolo="Athlon Health System" titolo="Il tuo corpo" indietro="/allenamento" barra={false}>
+    <Schermata sopratitolo="Athlon Health System" titolo={t('Il tuo corpo', 'Your body')} indietro="/allenamento" barra={false}>
       <Entra indice={0}>
         <Carta style={{ gap: spazio.tre }}>
           <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: spazio.tre }}>
             <View style={{ flex: 1, gap: 2 }}>
-              <Text style={[stili.etichetta, { color: p.testoSecondario }]}>PESO</Text>
-              {ultimaPeso?.peso_kg != null ? <Numero valore={numero(ultimaPeso.peso_kg)} unita="kg" size={40} /> : <Text style={[stili.nota, { color: p.testoTerzo }]}>Non ancora segnato</Text>}
+              <Text style={[stili.etichetta, { color: p.testoSecondario }]}>{t('PESO', 'WEIGHT')}</Text>
+              {ultimaPeso?.peso_kg != null ? <Numero valore={numero(ultimaPeso.peso_kg)} unita="kg" size={40} /> : <Text style={[stili.nota, { color: p.testoTerzo }]}>{t('Non ancora segnato', 'Not logged yet')}</Text>}
               {iPeso.length > 1 ? (
                 <Text style={[stili.piccola, { color: p.testoSecondario }]}>
-                  {`${differenza(iPeso[iPeso.length - 1].valore - iPeso[iPeso.length - 2].valore)} kg dall’ultima volta · ${differenza(iPeso[iPeso.length - 1].valore - iPeso[0].valore)} kg dal ${dataCorta(iPeso[0].data)}`}
+                  {t(
+                    `${differenza(iPeso[iPeso.length - 1].valore - iPeso[iPeso.length - 2].valore)} kg dall’ultima volta · ${differenza(iPeso[iPeso.length - 1].valore - iPeso[0].valore)} kg dal ${dataCorta(iPeso[0].data)}`,
+                    `${differenza(iPeso[iPeso.length - 1].valore - iPeso[iPeso.length - 2].valore)} kg since last time · ${differenza(iPeso[iPeso.length - 1].valore - iPeso[0].valore)} kg since ${dataCorta(iPeso[0].data)}`,
+                  )}
                 </Text>
               ) : ultimaPeso ? (
-                <Text style={[stili.piccola, { color: p.testoSecondario }]}>{`Il ${dataCorta(ultimaPeso.data)}`}</Text>
+                <Text style={[stili.piccola, { color: p.testoSecondario }]}>{t(`Il ${dataCorta(ultimaPeso.data)}`, `On ${dataCorta(ultimaPeso.data)}`)}</Text>
               ) : null}
             </View>
             {bmiOra != null && fascia ? (
@@ -391,16 +407,19 @@ export function Misure() {
               </View>
             ) : null}
           </View>
-          {bmiOra != null ? <BarraBmi v={bmiOra} /> : <Text style={[stili.piccola, { color: p.testoSecondario }]}>Aggiungi l’altezza per calcolare il BMI.</Text>}
+          {bmiOra != null ? <BarraBmi v={bmiOra} /> : <Text style={[stili.piccola, { color: p.testoSecondario }]}>{t('Aggiungi l’altezza per calcolare il BMI.', 'Add your height to calculate your BMI.')}</Text>}
           {bmiOra != null ? (
             <Text style={[stili.piccola, { color: p.testoTerzo, marginTop: spazio.due }]}>
-              {`Altezza ${numero(altezza ?? 0)} cm. Il BMI è un’indicazione generale: non distingue i muscoli dal grasso, per questo conta anche la composizione.`}
+              {t(
+                `Altezza ${numero(altezza ?? 0)} cm. Il BMI è un’indicazione generale: non distingue i muscoli dal grasso, per questo conta anche la composizione.`,
+                `Height ${numero(altezza ?? 0)} cm. BMI is a general indication: it doesn’t tell muscle from fat, which is why body composition matters too.`,
+              )}
             </Text>
           ) : null}
         </Carta>
       </Entra>
 
-      <Sezione titolo="Andamento">
+      <Sezione titolo={t('Andamento', 'Trend')}>
         <View style={{ gap: spazio.tre }}>
           {disponibili.length > 1 ? (
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={stili.fila} style={stili.fuori}>
@@ -426,21 +445,21 @@ export function Misure() {
               <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: spazio.due }}>
                 <Text style={[stili.titolo, { color: p.testo, flex: 1 }]}>{scelta.nome}</Text>
                 {punti.length > 1 ? (
-                  <Text style={[stili.piccola, { color: p.testoSecondario }]}>{`${differenza(punti[punti.length - 1].valore - punti[0].valore)}${scelta.unita ? ` ${scelta.unita}` : ''} in ${punti.length} misurazioni`}</Text>
+                  <Text style={[stili.piccola, { color: p.testoSecondario }]}>{t(`${differenza(punti[punti.length - 1].valore - punti[0].valore)}${scelta.unita ? ` ${scelta.unita}` : ''} in ${punti.length} misurazioni`, `${differenza(punti[punti.length - 1].valore - punti[0].valore)}${scelta.unita ? ` ${scelta.unita}` : ''} over ${punti.length} measurements`)}</Text>
                 ) : null}
               </View>
               <Grafico punti={punti} unita={scelta.unita} colore={scelta.chiave === 'bmi' && fascia ? coloreTono(p, fascia.tono) : undefined} />
-              {punti.length < 2 ? <Text style={[stili.piccola, { color: p.testoSecondario, textAlign: 'center' }]}>Con la prossima misurazione vedi la linea dell’andamento.</Text> : null}
+              {punti.length < 2 ? <Text style={[stili.piccola, { color: p.testoSecondario, textAlign: 'center' }]}>{t('Con la prossima misurazione vedi la linea dell’andamento.', 'With your next measurement you’ll see the trend line.')}</Text> : null}
             </Carta>
           ) : null}
         </View>
       </Sezione>
 
       {riquadri.length ? (
-        <Sezione titolo="Circonferenze e composizione">
+        <Sezione titolo={t('Circonferenze e composizione', 'Measurements and composition')}>
           <View style={stili.griglia}>
             {riquadri.map((r) => (
-              <Tocco key={r.chiave} onPress={() => setMetrica(r.chiave)} etichetta={`Andamento: ${r.nome}`} style={[stili.riquadro, { backgroundColor: p.carta, borderColor: r.chiave === scelta?.chiave ? p.accento : p.linea }]}>
+              <Tocco key={r.chiave} onPress={() => setMetrica(r.chiave)} etichetta={t(`Andamento: ${r.nome}`, `Trend: ${r.nome}`)} style={[stili.riquadro, { backgroundColor: p.carta, borderColor: r.chiave === scelta?.chiave ? p.accento : p.linea }]}>
                 <Text style={[stili.etichetta, { color: p.testoSecondario }]}>{r.nome.toUpperCase()}</Text>
                 <Text style={[stili.riquadroValore, { color: p.testo }]}>
                   {numero(r.ora)}
@@ -453,9 +472,9 @@ export function Misure() {
         </Sezione>
       ) : null}
 
-      <Pulsante testo={fissa ? 'Registra il peso' : 'Aggiungi una misurazione'} icona="piu" onPress={nuova} />
+      <Pulsante testo={fissa ? t('Registra il peso', 'Log your weight') : t('Aggiungi una misurazione', 'Add a measurement')} icona="piu" onPress={nuova} />
 
-      <Sezione titolo="Storico" conteggio={n}>
+      <Sezione titolo={t('Storico', 'History')} conteggio={n}>
         <Carta style={{ paddingVertical: spazio.uno, paddingHorizontal: spazio.tre }}>
           {[...misure].reverse().map((m, i) => {
             const idx = n - 1 - i
@@ -463,21 +482,21 @@ export function Misure() {
             const parti = [
               m.peso_kg != null ? `${numero(m.peso_kg)} kg` : null,
               b != null ? `BMI ${numero(b)}` : null,
-              m.vita_cm != null ? `vita ${numero(m.vita_cm)} cm` : null,
-              m.massa_grassa_pct != null ? `grassa ${numero(m.massa_grassa_pct)}%` : null,
+              m.vita_cm != null ? t(`vita ${numero(m.vita_cm)} cm`, `waist ${numero(m.vita_cm)} cm`) : null,
+              m.massa_grassa_pct != null ? t(`grassa ${numero(m.massa_grassa_pct)}%`, `body fat ${numero(m.massa_grassa_pct)}%`) : null,
             ].filter(Boolean)
             return (
               <Tocco
                 key={m.id}
                 onPress={() => setBozza({ b: bozzaDa(m, altezza), esiste: true })}
-                etichetta={`Misurazione del ${dataCorta(m.data)}`}
+                etichetta={t(`Misurazione del ${dataCorta(m.data)}`, `Measurement of ${dataCorta(m.data)}`)}
                 scala={0.99}
                 style={[stili.riga, i > 0 && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: p.linea }]}
               >
                 <View style={{ flex: 1, gap: 2 }}>
                   <Text style={[stili.rigaData, { color: p.testo }]}>{dataCorta(m.data)}</Text>
                   <Text style={[stili.piccola, { color: p.testoSecondario }]} numberOfLines={1}>
-                    {parti.join(' · ') || 'Circonferenze'}
+                    {parti.join(' · ') || t('Circonferenze', 'Measurements')}
                   </Text>
                 </View>
                 <Icona nome="modifica" size={16} colore={p.testoTerzo} />

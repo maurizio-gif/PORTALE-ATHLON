@@ -7,9 +7,12 @@ import type { SchedaLezione } from '@/api/lab'
 import { eliminaPercorso, type GiornoSettimana, type TappaSettimana } from '@/api/percorso'
 import { LARGO } from '@/components/Pagina'
 import { giornoEsteso } from '@/lib/eventi'
+import { t, tv } from '@/lib/lingua'
 import { spazio } from '@/theme'
 
+import { LIVELLI } from '../schede/comune'
 import { giornoRoma, lunediDi, spostaGiorno } from '../schede/contatoreCalorie'
+import { nomeObiettivo } from '../schede/questionario'
 import { FoglioLezione } from '../ui/FoglioLezione'
 import { Icona } from '../ui/Icona'
 import { Carta, Entra, Etichetta, Messaggio, Pulsante, SchedeInArrivo, Sezione, Tag } from '../ui/kit'
@@ -50,8 +53,8 @@ export function Percorso() {
 
   if (errore?.nonAttivo) {
     return (
-      <Schermata {...intestazione} titolo="Il tuo percorso">
-        <Messaggio tono="attenzione" titolo="Non è ancora attivo">
+      <Schermata {...intestazione} titolo={t('Il tuo percorso', 'Your program')}>
+        <Messaggio tono="attenzione" titolo={t('Non è ancora attivo', 'Not active yet')}>
           {errore.messaggio}
         </Messaggio>
       </Schermata>
@@ -59,11 +62,11 @@ export function Percorso() {
   }
   if (!stato) {
     return (
-      <Schermata {...intestazione} titolo="Il tuo percorso">
+      <Schermata {...intestazione} titolo={t('Il tuo percorso', 'Your program')}>
         {errore ? (
           <>
             <Messaggio>{errore.messaggio}</Messaggio>
-            <Pulsante testo="Riprova" icona="aggiorna" onPress={ricarica} />
+            <Pulsante testo={t('Riprova', 'Try again')} icona="aggiorna" onPress={ricarica} />
           </>
         ) : (
           <SchedeInArrivo />
@@ -73,8 +76,8 @@ export function Percorso() {
   }
   if (!stato.maggiorenne) {
     return (
-      <Schermata {...intestazione} titolo="Il tuo percorso">
-        <Messaggio tono="attenzione">Il Percorso è riservato ai maggiorenni.</Messaggio>
+      <Schermata {...intestazione} titolo={t('Il tuo percorso', 'Your program')}>
+        <Messaggio tono="attenzione">{t('Il Percorso è riservato ai maggiorenni.', 'The program is for adults only.')}</Messaggio>
       </Schermata>
     )
   }
@@ -90,25 +93,28 @@ function Vetrina({ vista }: { vista: boolean }) {
   return (
     <Schermata
       {...intestazione}
-      titolo="Il tutor della tua settimana"
-      sottotitolo="Ti chiede cosa ti piace, guarda il palinsesto vero e compone una settimana a tappe: sala, lezioni, acqua e cardio, nei giorni e negli orari giusti per te."
+      titolo={t('Il tutor della tua settimana', 'Your weekly coach')}
+      sottotitolo={t(
+        'Ti chiede cosa ti piace, guarda il palinsesto vero e compone una settimana a tappe: sala, lezioni, acqua e cardio, nei giorni e negli orari giusti per te.',
+        'It asks what you like, looks at the real timetable and builds a week in steps: gym floor, classes, water and cardio, on the days and at the times that suit you.',
+      )}
     >
       <Entra>
         <LinearGradient colors={FUOCO} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={stili.hero}>
           <Icona nome="stella" size={34} colore="#fff" />
           <Text style={stili.heroTitolo}>Percorso Athlon</Text>
-          <Text style={stili.heroTesto}>Il tutor tecnico della tua settimana: sala, lezioni e acqua, insieme.</Text>
+          <Text style={stili.heroTesto}>{t('Il tutor tecnico della tua settimana: sala, lezioni e acqua, insieme.', 'The technical coach for your week: gym floor, classes and water, together.')}</Text>
         </LinearGradient>
       </Entra>
 
       <PianoOPercorso />
 
-      <Sezione titolo="Cosa ottieni">
+      <Sezione titolo={t('Cosa ottieni', 'What you get')}>
         <Carta style={{ gap: spazio.tre }}>
           {[
-            ['calendario', 'Una settimana a tappe: giorno, ora e cosa fare, nelle lezioni che ci sono davvero.'],
-            ['avanti', 'Ogni lezione si prenota dalla sua tappa, o tutte insieme con «Prenota la settimana».'],
-            ['grafico', 'Cosa fa la settimana: lavoro, intensità, recupero e cosa copre il tuo obiettivo, non solo le calorie.'],
+            ['calendario', t('Una settimana a tappe: giorno, ora e cosa fare, nelle lezioni che ci sono davvero.', 'A week in steps: day, time and what to do, in classes that really exist.')],
+            ['avanti', t('Ogni lezione si prenota dalla sua tappa, o tutte insieme con «Prenota la settimana».', 'Book each class from its step, or all of them at once with “Book the week”.')],
+            ['grafico', t('Cosa fa la settimana: lavoro, intensità, recupero e cosa copre il tuo obiettivo, non solo le calorie.', 'What the week does: workload, intensity, recovery and how it covers your goal, not just calories.')],
           ].map(([icona, testo]) => (
             <View key={testo} style={stili.differenzaRiga}>
               <Icona nome={icona as 'calendario'} size={19} colore={p.accento} />
@@ -119,12 +125,15 @@ function Vetrina({ vista }: { vista: boolean }) {
       </Sezione>
 
       {vista ? (
-        <Messaggio tono="attenzione">In vista cliente il Percorso si guarda e basta: questo socio non ne ha ancora uno.</Messaggio>
+        <Messaggio tono="attenzione">{t('In vista cliente il Percorso si guarda e basta: questo socio non ne ha ancora uno.', 'In member view the program is view-only: this member doesn’t have one yet.')}</Messaggio>
       ) : (
-        <Pulsante testo="Crea il tuo percorso" icona="stella" onPress={() => router.push('/allenamento/percorso-nuovo')} />
+        <Pulsante testo={t('Crea il tuo percorso', 'Create your program')} icona="stella" onPress={() => router.push('/allenamento/percorso-nuovo')} />
       )}
       <Text style={[stili.piccola, { color: p.testoTerzo, textAlign: 'center' }]}>
-        Il percorso è riservato ai maggiorenni. Lo compone un’intelligenza artificiale e lo confermi tu; i trainer del club lo possono vedere dal pannello.
+        {t(
+          'Il percorso è riservato ai maggiorenni. Lo compone un’intelligenza artificiale e lo confermi tu; i trainer del club lo possono vedere dal pannello.',
+          'The program is for adults only. An artificial intelligence builds it and you confirm it; the club’s trainers can see it from their dashboard.',
+        )}
       </Text>
     </Schermata>
   )
@@ -212,14 +221,14 @@ function ConPercorso({ percorso, schede, vista, dopoLaModifica }: { percorso: Pe
     <Schermata {...intestazione} titolo={percorso.titolo} sottotitolo={percorso.sintesi || undefined}>
       <View style={{ gap: spazio.tre }}>
         <View style={stili.etichette}>
-          <Tag testo={percorso.obiettivo} colore={p.accento} />
-          <Tag testo={percorso.livello} colore={p.testoSecondario} />
-          <Tag testo={`${effetti.giorni.attivi} ${effetti.giorni.attivi === 1 ? 'giorno' : 'giorni'} a settimana`} colore={p.testoSecondario} />
+          <Tag testo={nomeObiettivo(percorso.obiettivo)} colore={p.accento} />
+          <Tag testo={tv(percorso.livello, LIVELLI[percorso.livello] ?? percorso.livello)} colore={p.testoSecondario} />
+          <Tag testo={t(`${effetti.giorni.attivi} ${effetti.giorni.attivi === 1 ? 'giorno' : 'giorni'} a settimana`, `${effetti.giorni.attivi} ${effetti.giorni.attivi === 1 ? 'day' : 'days'} a week`)} colore={p.testoSecondario} />
         </View>
         <PianoOPercorso />
       </View>
 
-      <Sezione titolo="La tua settimana">
+      <Sezione titolo={t('La tua settimana', 'Your week')}>
         <View style={stili.settimane}>
           {[0, 1].map((n) => {
             const attivo = n === avanti
@@ -230,10 +239,10 @@ function ConPercorso({ percorso, schede, vista, dopoLaModifica }: { percorso: Pe
                 vibra="scelta"
                 stato={{ selected: attivo }}
                 onPress={() => setAvanti(n)}
-                etichetta={`${n === 0 ? 'Questa settimana' : 'Settimana prossima'}, ${intervallo(lun, spostaGiorno(lun, 6))}`}
+                etichetta={`${n === 0 ? t('Questa settimana', 'This week') : t('Settimana prossima', 'Next week')}, ${intervallo(lun, spostaGiorno(lun, 6))}`}
                 style={[stili.settimana, { backgroundColor: attivo ? p.testo : p.carta, borderColor: attivo ? p.testo : p.linea }]}
               >
-                <Text style={{ color: attivo ? p.fondo : p.testo, fontFamily: F.extra, fontSize: 14.5 }}>{n === 0 ? 'Questa settimana' : 'La prossima'}</Text>
+                <Text style={{ color: attivo ? p.fondo : p.testo, fontFamily: F.extra, fontSize: 14.5 }}>{n === 0 ? t('Questa settimana', 'This week') : t('La prossima', 'Next week')}</Text>
                 <Text style={{ color: attivo ? p.fondo : p.testoSecondario, fontFamily: F.medio, fontSize: 12.5 }}>{intervallo(lun, spostaGiorno(lun, 6))}</Text>
               </Tocco>
             )
@@ -243,18 +252,18 @@ function ConPercorso({ percorso, schede, vista, dopoLaModifica }: { percorso: Pe
         {errore && !settimana ? (
           <>
             <Messaggio>{errore}</Messaggio>
-            <Pulsante testo="Riprova" icona="aggiorna" onPress={ricarica} />
+            <Pulsante testo={t('Riprova', 'Try again')} icona="aggiorna" onPress={ricarica} />
           </>
         ) : !settimana ? (
           <SchedeInArrivo />
         ) : (
           <>
             {!settimana.prenotazioni_lette ? (
-              <Messaggio tono="attenzione">Non riusciamo a leggere le tue prenotazioni adesso: la settimana si vede, ma non sappiamo cosa hai già prenotato.</Messaggio>
+              <Messaggio tono="attenzione">{t('Non riusciamo a leggere le tue prenotazioni adesso: la settimana si vede, ma non sappiamo cosa hai già prenotato.', 'We can’t read your bookings right now: you can see the week, but we don’t know what you’ve already booked.')}</Messaggio>
             ) : null}
             {!vista && settimana.prenotazioni_lette ? (
               <Pulsante
-                testo={prenotabili ? `Prenota la settimana · ${prenotabili} ${prenotabili === 1 ? 'lezione' : 'lezioni'}` : 'Prenota la settimana'}
+                testo={prenotabili ? t(`Prenota la settimana · ${prenotabili} ${prenotabili === 1 ? 'lezione' : 'lezioni'}`, `Book the week · ${prenotabili} ${prenotabili === 1 ? 'class' : 'classes'}`) : t('Prenota la settimana', 'Book the week')}
                 icona="avanti"
                 onPress={() => setRiepilogo(true)}
               />
@@ -270,7 +279,7 @@ function ConPercorso({ percorso, schede, vista, dopoLaModifica }: { percorso: Pe
                       <View style={stili.giornoTesta}>
                         <Text style={[stili.giornoNome, { color: p.testo }]}>{NOME_GIORNO[g]}</Text>
                         {data ? <Text style={[stili.nota, { color: p.testoSecondario }]}>{giornoEsteso(data).replace(/^\S+\s/, '')}</Text> : null}
-                        {data === oggi ? <Etichetta testo="Oggi" tono="accento" /> : null}
+                        {data === oggi ? <Etichetta testo={t('Oggi', 'Today')} tono="accento" /> : null}
                       </View>
                     </Entra>
                     {delGiorno.map((t) => (
@@ -291,7 +300,7 @@ function ConPercorso({ percorso, schede, vista, dopoLaModifica }: { percorso: Pe
             {riposo.length ? (
               <Carta piatta style={stili.riposo}>
                 <Icona nome="foglia" size={20} colore={p.ok} />
-                <Text style={[stili.nota, { color: p.testo, flex: 1 }]}>{`Riposo: ${riposo.map((g) => NOME_GIORNO[g].toLowerCase()).join(', ')}.`}</Text>
+                <Text style={[stili.nota, { color: p.testo, flex: 1 }]}>{t(`Riposo: ${riposo.map((g) => NOME_GIORNO[g].toLowerCase()).join(', ')}.`, `Rest: ${riposo.map((g) => NOME_GIORNO[g]).join(', ')}.`)}</Text>
               </Carta>
             ) : null}
           </>
@@ -301,20 +310,20 @@ function ConPercorso({ percorso, schede, vista, dopoLaModifica }: { percorso: Pe
       <PannelloEffetti effetti={effetti} ultime={ultime} corpo={corpo} />
 
       {vista ? null : (
-        <Sezione titolo="Il tuo percorso">
+        <Sezione titolo={t('Il tuo percorso', 'Your program')}>
           <View style={{ gap: spazio.due }}>
-            <Pulsante testo="Cambia le tappe" icona="modifica" variante="scuro" onPress={modifica} />
-            <Pulsante testo="Fallo rifare al tutor" icona="stella" variante="secondario" onPress={() => router.push('/allenamento/percorso-nuovo')} />
+            <Pulsante testo={t('Cambia le tappe', 'Change the steps')} icona="modifica" variante="scuro" onPress={modifica} />
+            <Pulsante testo={t('Fallo rifare al tutor', 'Have the coach redo it')} icona="stella" variante="secondario" onPress={() => router.push('/allenamento/percorso-nuovo')} />
             {conferma ? (
               <>
-                <Text style={[stili.nota, { color: p.testoSecondario }]}>Il percorso sparisce: le lezioni che hai già prenotato restano prenotate, e i tuoi piani di allenamento non cambiano.</Text>
+                <Text style={[stili.nota, { color: p.testoSecondario }]}>{t('Il percorso sparisce: le lezioni che hai già prenotato restano prenotate, e i tuoi piani di allenamento non cambiano.', 'The program goes away: classes you’ve already booked stay booked, and your workout plans don’t change.')}</Text>
                 <View style={stili.azioni}>
-                  <Pulsante testo="Sì, toglilo" variante="pericolo" onPress={togli} inCorso={togliendo} />
-                  <Pulsante testo="No" variante="secondario" onPress={() => setConferma(false)} disabilitato={togliendo} />
+                  <Pulsante testo={t('Sì, toglilo', 'Yes, remove it')} variante="pericolo" onPress={togli} inCorso={togliendo} />
+                  <Pulsante testo={t('No', 'No')} variante="secondario" onPress={() => setConferma(false)} disabilitato={togliendo} />
                 </View>
               </>
             ) : (
-              <Pulsante testo="Togli il percorso" variante="fantasma" onPress={() => setConferma(true)} />
+              <Pulsante testo={t('Togli il percorso', 'Remove the program')} variante="fantasma" onPress={() => setConferma(true)} />
             )}
             {erroreTogli ? <Messaggio>{erroreTogli}</Messaggio> : null}
           </View>

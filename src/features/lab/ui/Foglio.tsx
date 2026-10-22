@@ -3,6 +3,7 @@ import { KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleShee
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { spazio } from '@/theme'
+import { t } from '@/lib/lingua'
 
 import { Icona } from './Icona'
 import { F, usePalette } from './tema'
@@ -37,7 +38,7 @@ export function Foglio({
   return (
     <Modal visible={aperto} transparent animationType="slide" onRequestClose={onChiudi}>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={stili.velo}>
-        <Pressable style={StyleSheet.absoluteFill} onPress={onChiudi} accessibilityLabel="Chiudi" />
+        <Pressable style={StyleSheet.absoluteFill} onPress={onChiudi} accessibilityLabel={t('Chiudi', 'Close')} />
         <View style={[stili.foglio, { backgroundColor: p.carta, paddingBottom: ins.bottom + spazio.tre }]} accessibilityViewIsModal>
           <View style={[stili.maniglia, { backgroundColor: p.incavo }]} />
           <ScrollView ref={scorrimento} onScroll={onScorri} scrollEventThrottle={16} keyboardShouldPersistTaps="handled" contentContainerStyle={{ gap: spazio.tre + 2, padding: spazio.quattro - 4, paddingTop: spazio.due }}>
@@ -48,7 +49,7 @@ export function Foglio({
                 </Text>
                 {sottotitolo ? <Text style={[stili.sotto, { color: p.testoSecondario }]}>{sottotitolo}</Text> : null}
               </View>
-              <Tocco onPress={onChiudi} etichetta="Chiudi" style={[stili.chiudi, { backgroundColor: p.incavo }]}>
+              <Tocco onPress={onChiudi} etichetta={t('Chiudi', 'Close')} style={[stili.chiudi, { backgroundColor: p.incavo }]}>
                 <Icona nome="chiudi" size={17} colore={p.testo} />
               </Tocco>
             </View>

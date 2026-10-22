@@ -3,22 +3,23 @@
 // dicono subito. La lista dei Paesi e' `paesi.ts` (la stessa nei tre repository).
 
 import { NOME_PAESE, PAESI } from './paesi'
+import { t } from './lingua'
 
 export const ITALIA = 'IT'
 
 /** Il testo della casella: lo stesso in tutti i moduli. */
-export const TESTO_RESIDENTE_ESTERO = 'Sono residente all’estero e non ho un codice fiscale italiano'
+export const TESTO_RESIDENTE_ESTERO = t('Sono residente all’estero e non ho un codice fiscale italiano', 'I live abroad and don’t have an Italian tax code')
 
 /** Dove si scrive al posto del codice fiscale, per chi e' residente all'estero. */
-export const CODICE_FISCALE_NON_ATTRIBUITO = 'Non attribuito (residente all’estero)'
+export const CODICE_FISCALE_NON_ATTRIBUITO = t('Non attribuito (residente all’estero)', 'Not assigned (lives abroad)')
 
 /** Per un indirizzo: l'Italia in cima (e' il valore di partenza), poi tutti gli altri. */
-export const PAESI_CON_ITALIA: readonly (readonly [string, string])[] = [[ITALIA, 'Italia'], ...PAESI]
+export const PAESI_CON_ITALIA: readonly (readonly [string, string])[] = [[ITALIA, t('Italia', 'Italy')], ...PAESI]
 
 /** Il nome di un Paese dal suo codice, Italia compresa; null se il codice non c'e'. */
 export function nomePaese(codice: string | null | undefined): string | null {
   if (!codice) return null
-  return codice === ITALIA ? 'Italia' : (NOME_PAESE[codice] ?? null)
+  return codice === ITALIA ? t('Italia', 'Italy') : (NOME_PAESE[codice] ?? null)
 }
 
 /** Il CAP estero mentre si scrive: lettere, cifre, spazio e trattino, al massimo 12 caratteri. */

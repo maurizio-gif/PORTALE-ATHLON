@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { StyleSheet, Text, View } from 'react-native'
 
 import { statoInvito, type Amico, type StatoInvito } from '@/api/referral'
+import { locale, t, tv } from '@/lib/lingua'
 import { spazio } from '@/theme'
 
 import { inMemoria, prendi } from '../memoria'
@@ -25,22 +26,22 @@ export const CHIAVE_INVITO = 'referral:stato'
 function giorno(iso: string | null): string {
   if (!iso) return ''
   const d = /^\d{4}-\d{2}-\d{2}$/.test(iso) ? new Date(`${iso}T12:00:00Z`) : new Date(iso)
-  return d.toLocaleDateString('it-IT', { day: 'numeric', month: 'long', timeZone: 'Europe/Rome' })
+  return d.toLocaleDateString(locale(), { day: 'numeric', month: 'long', timeZone: 'Europe/Rome' })
 }
 
 /** Lo stato dell'amico in una riga: da dove viene e cosa succede dopo. */
 function racconto(a: Amico): { testo: string; tono: ToniTutti } {
   switch (a.stato) {
     case 'iscritto':
-      return { testo: `Si è iscritto il ${giorno(a.firmato_il)} · il tuo voucher è in arrivo`, tono: 'ok' }
+      return { testo: t(`Si è iscritto il ${giorno(a.firmato_il)} · il tuo voucher è in arrivo`, `Joined on ${giorno(a.firmato_il)} · your voucher is on its way`), tono: 'ok' }
     case 'in_prova':
-      return { testo: `In prova fino al ${giorno(a.prova_fine)}`, tono: 'blu' }
+      return { testo: t(`In prova fino al ${giorno(a.prova_fine)}`, `On trial until ${giorno(a.prova_fine)}`), tono: 'blu' }
     case 'prova_finita':
-      return { testo: `Prova finita · può iscriversi fino al ${giorno(a.ultimo_giorno)}`, tono: 'attenzione' }
+      return { testo: t(`Prova finita · può iscriversi fino al ${giorno(a.ultimo_giorno)}`, `Trial ended · can join until ${giorno(a.ultimo_giorno)}`), tono: 'attenzione' }
     case 'scaduto':
-      return { testo: 'Invito scaduto', tono: 'neutro' }
+      return { testo: t('Invito scaduto', 'Invitation expired'), tono: 'neutro' }
     default:
-      return { testo: `Ha accettato · ha tempo fino al ${giorno(a.ultimo_giorno)}`, tono: 'accento' }
+      return { testo: t(`Ha accettato · ha tempo fino al ${giorno(a.ultimo_giorno)}`, `Accepted · has until ${giorno(a.ultimo_giorno)}`), tono: 'accento' }
   }
 }
 
@@ -65,17 +66,17 @@ export function Invita() {
     setCanale(c)
     const r = await manda(c, stato.oggetto, stato.messaggio, stato.link)
     setCanale(null)
-    if (r === 'copiato') setEsito('Link copiato: incollalo dove vuoi.')
-    else if (r === 'errore') setEsito('Non riusciamo ad aprirlo da qui: copia il link e incollalo a mano.')
+    if (r === 'copiato') setEsito(t('Link copiato: incollalo dove vuoi.', 'Link copied: paste it wherever you like.'))
+    else if (r === 'errore') setEsito(t('Non riusciamo ad aprirlo da qui: copia il link e incollalo a mano.', 'We can’t open it from here: copy the link and paste it yourself.'))
   }
 
-  const intestazione = { titolo: 'Invita un amico', sopratitolo: 'Allenati in compagnia', indietro: '/' as const, barra: false }
+  const intestazione = { titolo: t('Invita un amico', 'Invite a friend'), sopratitolo: t('Allenati in compagnia', 'Train together'), indietro: '/' as const, barra: false }
 
   if (vista) {
     return (
       <Schermata {...intestazione}>
-        <Messaggio tono="attenzione" titolo="Vista cliente">
-          L’invito lo manda solo il socio, dal suo telefono: da qui non si crea il suo link.
+        <Messaggio tono="attenzione" titolo={t('Vista cliente', 'Client view')}>
+          {t('L’invito lo manda solo il socio, dal suo telefono: da qui non si crea il suo link.', 'Only the member can send the invitation, from their phone: their link can’t be created from here.')}
         </Messaggio>
       </Schermata>
     )
@@ -93,7 +94,7 @@ export function Invita() {
     return (
       <Schermata {...intestazione}>
         <Messaggio>{stato.errore}</Messaggio>
-        <Pulsante testo="Riprova" icona="aggiorna" variante="secondario" onPress={carica} />
+        <Pulsante testo={t('Riprova', 'Try again')} icona="aggiorna" variante="secondario" onPress={carica} />
       </Schermata>
     )
   }
@@ -101,23 +102,22 @@ export function Invita() {
   if (!stato.idoneo) {
     return (
       <Schermata {...intestazione}>
-        <Messaggio tono="attenzione" titolo="Per ora non puoi invitare">
-          {stato.motivo || 'Puoi invitare un amico quando hai un abbonamento in corso.'}
+        <Messaggio tono="attenzione" titolo={t('Per ora non puoi invitare', 'You can’t invite anyone yet')}>
+          {stato.motivo || t('Puoi invitare un amico quando hai un abbonamento in corso.', 'You can invite a friend once you have a current membership.')}
         </Messaggio>
       </Schermata>
     )
   }
 
   return (
-    <Schermata {...intestazione} sottotitolo="Manda il tuo link a chi vuoi: lo apre dal telefono, senza installare niente.">
+    <Schermata {...intestazione} sottotitolo={t('Manda il tuo link a chi vuoi: lo apre dal telefono, senza installare niente.', 'Send your link to anyone: they open it on their phone, nothing to install.')}>
       <Carta style={{ gap: spazio.tre }}>
         <View style={stili.testa}>
           <Bollino icona="regalo" tono="accento" size={48} pieno />
           <View style={{ flex: 1, gap: 4 }}>
-            <Text style={[stili.titolo, { color: p.testo }]}>Porta un amico al club</Text>
+            <Text style={[stili.titolo, { color: p.testo }]}>{t('Porta un amico al club', 'Bring a friend to the club')}</Text>
             <Text style={[stili.corpo, { color: p.testoSecondario }]}>
-              Con il tuo invito il tuo amico prova il club per una settimana pagando solo {stato.prezzo_prova} € invece di {stato.prezzo_pieno}, oppure si
-              iscrive subito. Se si iscrive, ricevi un voucher da {stato.voucher} € sul tuo abbonamento.
+              {t(`Con il tuo invito il tuo amico prova il club per una settimana pagando solo ${stato.prezzo_prova} € invece di ${stato.prezzo_pieno}, oppure si iscrive subito. Se si iscrive, ricevi un voucher da ${stato.voucher} € sul tuo abbonamento.`, `With your invitation your friend tries the club for a week for just €${stato.prezzo_prova} instead of €${stato.prezzo_pieno}, or joins right away. If they join, you get a €${stato.voucher} voucher on your membership.`)}
             </Text>
           </View>
         </View>
@@ -126,7 +126,7 @@ export function Invita() {
             {stato.link.replace(/^https:\/\//, '')}
           </Text>
         </View>
-        <Pulsante testo="Manda su WhatsApp" icona="invia" onPress={() => premi('whatsapp')} inCorso={canale === 'whatsapp'} />
+        <Pulsante testo={t('Manda su WhatsApp', 'Send on WhatsApp')} icona="invia" onPress={() => premi('whatsapp')} inCorso={canale === 'whatsapp'} />
         <View style={stili.riga}>
           <View style={{ flex: 1 }}>
             <Pulsante testo="Email" icona="email" variante="secondario" onPress={() => premi('email')} inCorso={canale === 'email'} />
@@ -137,27 +137,32 @@ export function Invita() {
             </View>
           ) : null}
         </View>
-        <Pulsante testo="Copia il link" icona="copia" variante="contorno" onPress={() => premi('copia')} inCorso={canale === 'copia'} />
+        <Pulsante testo={t('Copia il link', 'Copy the link')} icona="copia" variante="contorno" onPress={() => premi('copia')} inCorso={canale === 'copia'} />
         {esito ? <Messaggio tono="ok">{esito}</Messaggio> : null}
       </Carta>
 
-      <Sezione titolo="Come funziona">
+      <Sezione titolo={t('Come funziona', 'How it works')}>
         <Carta piatta style={{ gap: spazio.due }}>
-          {[
+          {tv([
             'Il tuo amico apre il link, lascia la sua email e i suoi dati, e riceve il link per completare.',
             `Ha ${stato.giorni} giorni da quando accetta l’invito per iscriversi. Se nel frattempo comincia la settimana di prova, può iscriversi fino al giorno dopo la fine della prova.`,
             `Quando si iscrive, la segreteria carica il voucher da ${stato.voucher} € sul tuo abbonamento.`,
             'Vale per chi non ha avuto abbonamenti o Guest Pass al club negli ultimi 3 anni. Se il tuo amico accetta prima l’invito di un altro socio, vale quello.',
-          ].map((t, i) => (
+          ], [
+            'Your friend opens the link, leaves their email and details, and gets a link to finish.',
+            `They have ${stato.giorni} days from accepting the invitation to join. If they start the trial week in the meantime, they can join until the day after the trial ends.`,
+            `When they join, the front desk adds the €${stato.voucher} voucher to your membership.`,
+            'It’s for people who haven’t had a membership or Guest Pass at the club in the last 3 years. If your friend accepts another member’s invitation first, that one counts.',
+          ]).map((x, i) => (
             <View key={i} style={stili.punto}>
               <Text style={[stili.numero, { color: p.accento }]}>{i + 1}</Text>
-              <Text style={[stili.corpo, { color: p.testoSecondario, flex: 1 }]}>{t}</Text>
+              <Text style={[stili.corpo, { color: p.testoSecondario, flex: 1 }]}>{x}</Text>
             </View>
           ))}
         </Carta>
       </Sezione>
 
-      <Sezione titolo="I tuoi inviti" conteggio={stato.inviti.length || undefined}>
+      <Sezione titolo={t('I tuoi inviti', 'Your invitations')} conteggio={stato.inviti.length || undefined}>
         {stato.inviti.length ? (
           <Carta piatta style={{ paddingVertical: 0 }}>
             {stato.inviti.map((a, i) => {
@@ -172,7 +177,7 @@ export function Invita() {
                   sotto={
                     <View style={{ alignItems: 'flex-start', gap: 4 }}>
                       <Etichetta testo={r.testo} tono={r.tono} />
-                      <Text style={[stili.piccolo, { color: p.testoTerzo }]}>Accettato il {giorno(a.accettato_il)}</Text>
+                      <Text style={[stili.piccolo, { color: p.testoTerzo }]}>{t(`Accettato il ${giorno(a.accettato_il)}`, `Accepted on ${giorno(a.accettato_il)}`)}</Text>
                     </View>
                   }
                 />
@@ -181,7 +186,7 @@ export function Invita() {
           </Carta>
         ) : (
           <Carta piatta>
-            <Text style={[stili.corpo, { color: p.testoSecondario }]}>Quando un amico accetta il tuo invito lo vedi qui, con i giorni che gli restano.</Text>
+            <Text style={[stili.corpo, { color: p.testoSecondario }]}>{t('Quando un amico accetta il tuo invito lo vedi qui, con i giorni che gli restano.', 'When a friend accepts your invitation you’ll see it here, with the days they have left.')}</Text>
           </Carta>
         )}
       </Sezione>

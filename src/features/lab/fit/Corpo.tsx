@@ -3,6 +3,7 @@ import { router } from 'expo-router'
 import { StyleSheet, Text, View } from 'react-native'
 
 import type { Misura } from '@/api/lab'
+import { t } from '@/lib/lingua'
 import { spazio } from '@/theme'
 
 import { altezzaAl, bmi, dataCorta, fasciaBmi, numero } from '../dati/calcoli'
@@ -55,45 +56,54 @@ export function CartaCorpo({ misure, senzaConsenso = false }: { misure: Misura[]
   const vita = [...ordinate].reverse().find((m) => m.vita_cm != null)
 
   return (
-    <Tocco onPress={() => router.push('/allenamento/misure')} etichetta="Il tuo corpo: peso, BMI e composizione corporea" scala={0.985}>
+    <Tocco onPress={() => router.push('/allenamento/misure')} etichetta={t('Il tuo corpo: peso, BMI e composizione corporea', 'Your body: weight, BMI and body composition')} scala={0.985}>
       <View style={[stili.carta, { backgroundColor: p.carta, borderColor: p.linea, boxShadow: p.ombra }]}>
         <View style={stili.testa}>
           <LinearGradient colors={['#5C8DFF', '#8B5CF6']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={stili.icona}>
             <Icona nome="persona" size={22} colore="#fff" />
           </LinearGradient>
           <View style={{ flex: 1 }}>
-            <Text style={[stili.titolo, { color: p.testo }]}>Il tuo corpo</Text>
-            <Text style={[stili.testo, { color: p.testoSecondario }]}>Il punto di partenza e la verifica dell’equilibrio.</Text>
+            <Text style={[stili.titolo, { color: p.testo }]}>{t('Il tuo corpo', 'Your body')}</Text>
+            <Text style={[stili.testo, { color: p.testoSecondario }]}>{t('Il punto di partenza e la verifica dell’equilibrio.', 'Your starting point, and the check on your balance.')}</Text>
           </View>
           <Icona nome="avanti" size={18} colore={p.testoTerzo} />
         </View>
 
         {senzaConsenso ? (
           <Text style={[stili.testo, { color: p.testoSecondario }]}>
-            Peso, altezza, circonferenze e composizione sono dati sulla salute: per segnarli e usarli per le stime delle calorie serve il tuo consenso. Tocca per leggere l’informativa e attivare «Il tuo corpo».
+            {t(
+              'Peso, altezza, circonferenze e composizione sono dati sulla salute: per segnarli e usarli per le stime delle calorie serve il tuo consenso. Tocca per leggere l’informativa e attivare «Il tuo corpo».',
+              'Weight, height, measurements and body composition are health data: to log them and use them for calorie estimates we need your consent. Tap to read the privacy notice and turn on “Your body”.',
+            )}
           </Text>
         ) : ultima ? (
           <>
             <View style={stili.cifre}>
               <Cifra
-                etichetta="PESO"
+                etichetta={t('PESO', 'WEIGHT')}
                 valore={`${numero(ultima.peso_kg!)} kg`}
-                sotto={delta != null && prima ? (Math.abs(delta) < 0.1 ? `stabile dal ${dataCorta(prima.data)}` : `${delta < 0 ? '−' : '+'}${numero(Math.abs(delta))} kg dal ${dataCorta(prima.data)}`) : null}
+                sotto={delta != null && prima ? (Math.abs(delta) < 0.1 ? t(`stabile dal ${dataCorta(prima.data)}`, `steady since ${dataCorta(prima.data)}`) : t(`${delta < 0 ? '−' : '+'}${numero(Math.abs(delta))} kg dal ${dataCorta(prima.data)}`, `${delta < 0 ? '−' : '+'}${numero(Math.abs(delta))} kg since ${dataCorta(prima.data)}`)) : null}
               />
               {b != null && fascia ? <Cifra etichetta="BMI" valore={numero(b)} sotto={fascia.nome} colore={coloreTono(p, fascia.tono)} /> : null}
               {grassa ? (
-                <Cifra etichetta="MASSA GRASSA" valore={`${numero(grassa.massa_grassa_pct!)}%`} sotto={grassa.massa_magra_kg != null ? `magra ${numero(grassa.massa_magra_kg)} kg` : null} />
+                <Cifra etichetta={t('MASSA GRASSA', 'BODY FAT')} valore={`${numero(grassa.massa_grassa_pct!)}%`} sotto={grassa.massa_magra_kg != null ? t(`magra ${numero(grassa.massa_magra_kg)} kg`, `lean ${numero(grassa.massa_magra_kg)} kg`) : null} />
               ) : vita ? (
-                <Cifra etichetta="VITA" valore={`${numero(vita.vita_cm!)} cm`} />
+                <Cifra etichetta={t('VITA', 'WAIST')} valore={`${numero(vita.vita_cm!)} cm`} />
               ) : null}
             </View>
             <Text style={[stili.piccola, { color: p.testoTerzo }]}>
-              {`Ultima misura ${dataCorta(ultima.data)} · ${ordinate.length} ${ordinate.length === 1 ? 'misurazione' : 'misurazioni'}. Servono anche a stimare le calorie che consumi.`}
+              {t(
+                `Ultima misura ${dataCorta(ultima.data)} · ${ordinate.length} ${ordinate.length === 1 ? 'misurazione' : 'misurazioni'}. Servono anche a stimare le calorie che consumi.`,
+                `Last measured ${dataCorta(ultima.data)} · ${ordinate.length} ${ordinate.length === 1 ? 'measurement' : 'measurements'}. They also help estimate the calories you burn.`,
+              )}
             </Text>
           </>
         ) : (
           <Text style={[stili.testo, { color: p.testoSecondario }]}>
-            Peso, altezza, circonferenze e composizione corporea: segnali e guarda come cambiano. Servono anche a stimare le calorie che consumi, nel Balance e nel contatore.
+            {t(
+              'Peso, altezza, circonferenze e composizione corporea: segnali e guarda come cambiano. Servono anche a stimare le calorie che consumi, nel Balance e nel contatore.',
+              'Weight, height, measurements and body composition: log them and see how they change. They also help estimate the calories you burn, in Balance and in the counter.',
+            )}
           </Text>
         )}
       </View>

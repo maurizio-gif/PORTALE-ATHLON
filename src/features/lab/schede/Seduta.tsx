@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { StyleSheet, Text, TextInput, View } from 'react-native'
 
 import { chiudiSeduta, iniziaSeduta, leggiSchedaLab, segnaSerie, togliSerie, type EsercizioScheda, type GiornoSchedaLab, type Massimale, type Precedente, type SchedaLab } from '@/api/lab'
+import { locale, t } from '@/lib/lingua'
 import { spazio } from '@/theme'
 
 import { dimentica, inMemoria, prendi } from '../memoria'
@@ -30,13 +31,13 @@ type Bozza = { ripetizioni: string; kg: string }
 const chiaveSerie = (riga: string, n: number) => `${riga}:${n}`
 
 /** «8-10» → «8»; «30 s» → «30». */
-function primoNumero(t: string): string {
-  return t.match(/\d+/)?.[0] ?? ''
+function primoNumero(x: string): string {
+  return x.match(/\d+/)?.[0] ?? ''
 }
 
-function numero(t: string): number | null {
-  const n = Number(t.replace(',', '.'))
-  return t.trim() && Number.isFinite(n) && n >= 0 ? n : null
+function numero(x: string): number | null {
+  const n = Number(x.replace(',', '.'))
+  return x.trim() && Number.isFinite(n) && n >= 0 ? n : null
 }
 
 function durata(daIso: string, ora: number): string {
@@ -79,26 +80,26 @@ function RigaSerie({
           <View style={stili.campo}>
             <TextInput
               value={bozza.ripetizioni}
-              onChangeText={(t) => onBozza({ ...bozza, ripetizioni: t.replace(/[^\d]/g, '').slice(0, 4) })}
+              onChangeText={(v) => onBozza({ ...bozza, ripetizioni: v.replace(/[^\d]/g, '').slice(0, 4) })}
               keyboardType="number-pad"
-              placeholder={tempo ? 'sec' : 'rip.'}
+              placeholder={tempo ? t('sec', 'sec') : t('rip.', 'reps')}
               placeholderTextColor={p.testoTerzo}
               style={[stili.input, { color: p.testo, backgroundColor: p.carta, borderColor: p.linea }]}
-              accessibilityLabel={`Serie ${n}: ${tempo ? 'secondi' : 'ripetizioni'}`}
+              accessibilityLabel={t(`Serie ${n}: ${tempo ? 'secondi' : 'ripetizioni'}`, `Set ${n}: ${tempo ? 'seconds' : 'reps'}`)}
               selectTextOnFocus
             />
-            <Text style={[stili.unita, { color: p.testoTerzo }]}>{tempo ? 's' : 'rip'}</Text>
+            <Text style={[stili.unita, { color: p.testoTerzo }]}>{tempo ? 's' : t('rip', 'reps')}</Text>
           </View>
           {!tempo ? (
             <View style={stili.campo}>
               <TextInput
                 value={bozza.kg}
-                onChangeText={(t) => onBozza({ ...bozza, kg: t.replace(/[^\d.,]/g, '').slice(0, 6) })}
+                onChangeText={(v) => onBozza({ ...bozza, kg: v.replace(/[^\d.,]/g, '').slice(0, 6) })}
                 keyboardType="decimal-pad"
                 placeholder="kg"
                 placeholderTextColor={p.testoTerzo}
                 style={[stili.input, { color: p.testo, backgroundColor: p.carta, borderColor: p.linea }]}
-                accessibilityLabel={`Serie ${n}: chili`}
+                accessibilityLabel={t(`Serie ${n}: chili`, `Set ${n}: kilos`)}
                 selectTextOnFocus
               />
               <Text style={[stili.unita, { color: p.testoTerzo }]}>kg</Text>
@@ -111,7 +112,7 @@ function RigaSerie({
       <Tocco
         onPress={fatta ? onTogli : onSegna}
         spento={occupata}
-        etichetta={fatta ? `Togli la serie ${n}` : `Segna la serie ${n} fatta`}
+        etichetta={fatta ? t(`Togli la serie ${n}`, `Remove set ${n}`) : t(`Segna la serie ${n} fatta`, `Mark set ${n} as done`)}
         style={[stili.spunta, { backgroundColor: fatta ? p.ok : attiva ? p.accento : p.incavo }]}
       >
         <Icona nome={fatta ? 'spunta' : 'spunta'} size={20} colore={fatta || attiva ? '#fff' : p.testoTerzo} />
@@ -169,8 +170,8 @@ export function Seduta() {
   }, [carica])
 
   useEffect(() => {
-    const t = setInterval(() => setOra(Date.now()), 1000)
-    return () => clearInterval(t)
+    const id = setInterval(() => setOra(Date.now()), 1000)
+    return () => clearInterval(id)
   }, [])
 
   const precedente = useCallback((eid: string) => precedenti.find((x) => x.esercizio_id === eid), [precedenti])
@@ -188,7 +189,7 @@ export function Seduta() {
       const prima = fatte.get(chiaveSerie(e.id, n - 1))
       const ultima = precedente(e.esercizio_id)?.serie
       const kg = prima?.kg ?? ind.kg ?? ultima?.find((x) => x.numero === n)?.kg ?? ultima?.[ultima.length - 1]?.kg ?? null
-      return { ripetizioni: ind.ripetizioni != null ? String(ind.ripetizioni) : primoNumero(e.ripetizioni), kg: kg != null ? String(kg).replace('.', ',') : '' }
+      return { ripetizioni: ind.ripetizioni != null ? String(ind.ripetizioni) : primoNumero(e.ripetizioni), kg: kg != null ? String(kg).replace('.', t(',', '.')) : '' }
     },
     [bozze, fatte, precedente, massimali],
   )
@@ -222,9 +223,9 @@ export function Seduta() {
         prossimo: descriviPasso(giorno, prossimo),
         dettaglio: (() => {
           const ind = indicazione(pe, massimali)
-          if (ind.kg != null) return `Carico: ${ind.carico}`
-          if (ult) return `L’ultima volta: ${serieInRiga([ult])}`
-          return ind.carico ? `Carico: ${ind.carico}` : null
+          if (ind.kg != null) return t(`Carico: ${ind.carico}`, `Load: ${ind.carico}`)
+          if (ult) return t(`L’ultima volta: ${serieInRiga([ult])}`, `Last time: ${serieInRiga([ult])}`)
+          return ind.carico ? t(`Carico: ${ind.carico}`, `Load: ${ind.carico}`) : null
         })(),
       })
     }
@@ -278,15 +279,15 @@ export function Seduta() {
 
   if (errore && !seduta) {
     return (
-      <Schermata sopratitolo="Train" titolo="Seduta" indietro={`/allenamento/${schedaId}`} barra={false}>
+      <Schermata sopratitolo="Train" titolo={t('Seduta', 'Workout')} indietro={`/allenamento/${schedaId}`} barra={false}>
         <Messaggio>{errore}</Messaggio>
-        <Pulsante testo="Riprova" icona="aggiorna" onPress={carica} />
+        <Pulsante testo={t('Riprova', 'Try again')} icona="aggiorna" onPress={carica} />
       </Schermata>
     )
   }
   if (!giorno || !seduta || !scheda) {
     return (
-      <Schermata sopratitolo="Train" titolo="Seduta" indietro={`/allenamento/${schedaId}`} barra={false}>
+      <Schermata sopratitolo="Train" titolo={t('Seduta', 'Workout')} indietro={`/allenamento/${schedaId}`} barra={false}>
         <SchedeInArrivo quante={2} />
       </Schermata>
     )
@@ -294,31 +295,31 @@ export function Seduta() {
 
   if (finita) {
     return (
-      <Schermata sopratitolo={scheda.titolo} titolo="Allenamento finito" indietro={`/allenamento/${schedaId}`} barra={false}>
+      <Schermata sopratitolo={scheda.titolo} titolo={t('Allenamento finito', 'Workout finished')} indietro={`/allenamento/${schedaId}`} barra={false}>
         <Carta style={{ alignItems: 'center', gap: spazio.tre, paddingVertical: spazio.cinque }}>
           <View style={[stili.coppa, { backgroundColor: FUOCO[1] }]}>
             <Icona nome="bandiera" size={30} colore="#fff" />
           </View>
-          <Text style={[stili.complimenti, { color: p.testo }]}>Bel lavoro!</Text>
+          <Text style={[stili.complimenti, { color: p.testo }]}>{t('Bel lavoro!', 'Great work!')}</Text>
           <View style={{ flexDirection: 'row', gap: spazio.cinque }}>
             <View style={{ alignItems: 'center' }}>
               <Numero valore={String(finita.serie)} size={34} />
-              <Text style={[stili.piccola, { color: p.testoSecondario }]}>serie</Text>
+              <Text style={[stili.piccola, { color: p.testoSecondario }]}>{t('serie', 'sets')}</Text>
             </View>
             <View style={{ alignItems: 'center' }}>
               <Numero valore={finita.durata} size={34} />
-              <Text style={[stili.piccola, { color: p.testoSecondario }]}>durata</Text>
+              <Text style={[stili.piccola, { color: p.testoSecondario }]}>{t('durata', 'duration')}</Text>
             </View>
             {finita.volume ? (
               <View style={{ alignItems: 'center' }}>
-                <Numero valore={Math.round(finita.volume).toLocaleString('it-IT')} size={34} />
-                <Text style={[stili.piccola, { color: p.testoSecondario }]}>kg sollevati</Text>
+                <Numero valore={Math.round(finita.volume).toLocaleString(locale())} size={34} />
+                <Text style={[stili.piccola, { color: p.testoSecondario }]}>{t('kg sollevati', 'kg lifted')}</Text>
               </View>
             ) : null}
           </View>
         </Carta>
-        <Pulsante testo="Vedi i progressi" icona="grafico" onPress={() => router.replace('/allenamento/storico')} />
-        <Pulsante testo="Torna al piano" variante="secondario" onPress={() => router.replace({ pathname: '/allenamento/[scheda]', params: { scheda: scheda.id } })} />
+        <Pulsante testo={t('Vedi i progressi', 'See your progress')} icona="grafico" onPress={() => router.replace('/allenamento/storico')} />
+        <Pulsante testo={t('Torna al piano', 'Back to the plan')} variante="secondario" onPress={() => router.replace({ pathname: '/allenamento/[scheda]', params: { scheda: scheda.id } })} />
       </Schermata>
     )
   }
@@ -332,7 +333,7 @@ export function Seduta() {
             <Icona nome="cronometro" size={18} colore={p.accento} />
             <Text style={[stili.tempo, { color: p.testo }]}>{durata(seduta.inizio, ora)}</Text>
           </View>
-          <Text style={[stili.piccola, { color: p.testoSecondario }]}>{`${fatteN} di ${totaleSerie} serie`}</Text>
+          <Text style={[stili.piccola, { color: p.testoSecondario }]}>{t(`${fatteN} di ${totaleSerie} serie`, `${fatteN} of ${totaleSerie} sets`)}</Text>
         </View>
         <Barra valore={totaleSerie ? fatteN / totaleSerie : 0} colore={p.accento} altezza={8} />
       </Carta>
@@ -363,15 +364,15 @@ export function Seduta() {
               </Tocco>
               {qui ? (
                 <View style={{ gap: spazio.due }}>
-                  {e.superserie ? <Text style={[stili.superserie, { color: p.accento }]}>{`SUPERSERIE ${e.superserie} · ${gr.indexOf(i) + 1} di ${gr.length}: si recupera alla fine del giro`}</Text> : null}
+                  {e.superserie ? <Text style={[stili.superserie, { color: p.accento }]}>{t(`SUPERSERIE ${e.superserie} · ${gr.indexOf(i) + 1} di ${gr.length}: si recupera alla fine del giro`, `SUPERSET ${e.superserie} · ${gr.indexOf(i) + 1} of ${gr.length}: rest at the end of the round`)}</Text> : null}
                   <Text style={[stili.nomeGrande, { color: p.testo }]}>{e.nome}</Text>
                   <Text style={[stili.piccola, { color: p.testoSecondario }]}>
-                    {(({ serieRip, carico }) => `${serieRip}${carico ? ` · ${carico}` : ''} · recupero ${recupero(e.recupero_serie)}`)(indicazione(e, massimali))}
+                    {(({ serieRip, carico }) => `${serieRip}${carico ? ` · ${carico}` : ''} · ${t('recupero', 'rest')} ${recupero(e.recupero_serie)}`)(indicazione(e, massimali))}
                   </Text>
                   {indicazione(e, massimali).manca ? <Nota testo={SPIEGA_TARATURA} /> : null}
                   {e.note ? <Nota testo={e.note} /> : null}
                   {precedente(e.esercizio_id) ? (
-                    <Text style={[stili.piccola, { color: p.testoTerzo }]}>{`L’ultima volta: ${serieInRiga(precedente(e.esercizio_id)!.serie)}`}</Text>
+                    <Text style={[stili.piccola, { color: p.testoTerzo }]}>{t(`L’ultima volta: ${serieInRiga(precedente(e.esercizio_id)!.serie)}`, `Last time: ${serieInRiga(precedente(e.esercizio_id)!.serie)}`)}</Text>
                   ) : null}
                   <View style={{ gap: spazio.due, marginTop: spazio.uno }}>
                     {Array.from({ length: e.serie }, (_, k) => k + 1).map((n) => (
@@ -396,9 +397,9 @@ export function Seduta() {
         })}
       </View>
 
-      <Pulsante testo="Fine allenamento" icona="bandiera" variante={fatteN === totaleSerie ? 'primario' : 'scuro'} onPress={chiudi} inCorso={occupato && !timer} />
+      <Pulsante testo={t('Fine allenamento', 'Finish workout')} icona="bandiera" variante={fatteN === totaleSerie ? 'primario' : 'scuro'} onPress={chiudi} inCorso={occupato && !timer} />
       {fatteN < totaleSerie ? (
-        <Text style={[stili.piccola, { color: p.testoTerzo, textAlign: 'center' }]}>Puoi chiuderlo anche prima: le serie segnate restano nello storico.</Text>
+        <Text style={[stili.piccola, { color: p.testoTerzo, textAlign: 'center' }]}>{t('Puoi chiuderlo anche prima: le serie segnate restano nello storico.', 'You can finish early: the sets you’ve logged stay in your history.')}</Text>
       ) : null}
 
       <TimerRecupero
@@ -406,7 +407,7 @@ export function Seduta() {
         totale={timer?.totale ?? 0}
         prossimo={timer?.prossimo ?? ''}
         dettaglio={timer?.dettaglio}
-        onCambia={(fine, totale) => setTimer((t) => (t ? { ...t, fine, totale } : t))}
+        onCambia={(fine, totale) => setTimer((x) => (x ? { ...x, fine, totale } : x))}
         onChiudi={() => setTimer(null)}
       />
     </Schermata>

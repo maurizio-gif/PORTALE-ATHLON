@@ -1,5 +1,6 @@
 import { spostaGiorno, type Voce } from '../schede/contatoreCalorie'
 import { CURVA_TRAIN, MINUTI_GIORNO_ATTIVO, minutiPerGiorno, PESI, type Sessione } from './calcoloPunteggio'
+import { locale, t, tv } from '../../../lib/lingua'
 
 // L'analisi del Train in profondita' (richiesta del club, 20/10/2026): sotto il punteggio, **com'e' fatto**
 // l'allenamento delle ultime quattro settimane: quanti giorni e quante volte, di che tipo (sala o lezioni, e quali),
@@ -80,13 +81,13 @@ export type AnalisiTraining = {
   haDati: boolean
 }
 
-export const NOMI_GIORNI = ['lunedì', 'martedì', 'mercoledì', 'giovedì', 'venerdì', 'sabato', 'domenica'] as const
-export const SIGLE_GIORNI = ['L', 'M', 'M', 'G', 'V', 'S', 'D'] as const
+export const NOMI_GIORNI: readonly string[] = tv(['lunedì', 'martedì', 'mercoledì', 'giovedì', 'venerdì', 'sabato', 'domenica'], ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'])
+export const SIGLE_GIORNI: readonly string[] = tv(['L', 'M', 'M', 'G', 'V', 'S', 'D'], ['M', 'T', 'W', 'T', 'F', 'S', 'S'])
 const FASCE: { id: 'mattina' | 'pranzo' | 'pomeriggio' | 'sera'; nome: string; da: number; fino: number }[] = [
-  { id: 'mattina', nome: 'Mattina', da: 5, fino: 12 },
-  { id: 'pranzo', nome: 'Pranzo', da: 12, fino: 15 },
-  { id: 'pomeriggio', nome: 'Pomeriggio', da: 15, fino: 19 },
-  { id: 'sera', nome: 'Sera', da: 19, fino: 29 }, // fino alle 5 del mattino dopo
+  { id: 'mattina', nome: t('Mattina', 'Morning'), da: 5, fino: 12 },
+  { id: 'pranzo', nome: t('Pranzo', 'Lunchtime'), da: 12, fino: 15 },
+  { id: 'pomeriggio', nome: t('Pomeriggio', 'Afternoon'), da: 15, fino: 19 },
+  { id: 'sera', nome: t('Sera', 'Evening'), da: 19, fino: 29 }, // fino alle 5 del mattino dopo
 ]
 
 const oraRoma = new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/Rome', hour: '2-digit', hourCycle: 'h23' })
@@ -99,9 +100,9 @@ export const giornoDellaSettimana = (giorno: string): number => (new Date(`${gio
 const somma = (xs: number[]) => xs.reduce((s, x) => s + x, 0)
 const media = (xs: number[]) => (xs.length ? somma(xs) / xs.length : 0)
 const uno = (n: number) => Math.round(n * 10) / 10
-const decimale = (n: number) => uno(n).toLocaleString('it-IT', { maximumFractionDigits: 1 })
-const volte = (n: number) => (n === 1 ? 'una volta' : `${n} volte`)
-const giorniParola = (n: number) => (n === 1 ? '1 giorno' : `${n} giorni`)
+const decimale = (n: number) => uno(n).toLocaleString(locale(), { maximumFractionDigits: 1 })
+const volte = (n: number) => (n === 1 ? t('una volta', 'once') : t(`${n} volte`, `${n} times`))
+const giorniParola = (n: number) => (n === 1 ? t('1 giorno', '1 day') : t(`${n} giorni`, `${n} days`))
 
 function perNome(sessioni: Sessione[], chiave: (s: Sessione) => string): Conteggio[] {
   const m = new Map<string, Conteggio>()
@@ -112,7 +113,7 @@ function perNome(sessioni: Sessione[], chiave: (s: Sessione) => string): Contegg
     c.minuti += s.minuti
     m.set(k, c)
   }
-  return [...m.values()].map((c) => ({ ...c, minuti: Math.round(c.minuti) })).sort((a, b) => b.volte - a.volte || b.minuti - a.minuti || a.nome.localeCompare(b.nome, 'it'))
+  return [...m.values()].map((c) => ({ ...c, minuti: Math.round(c.minuti) })).sort((a, b) => b.volte - a.volte || b.minuti - a.minuti || a.nome.localeCompare(b.nome, locale()))
 }
 
 export function analizzaTraining(sessioni: Sessione[], oggi: string, attivita: Voce[] | null): AnalisiTraining {
@@ -160,7 +161,7 @@ export function analizzaTraining(sessioni: Sessione[], oggi: string, attivita: V
 
   const lezioni = ultime28.filter((s) => s.fonte === 'lezione')
   const sedute = ultime28.filter((s) => s.fonte === 'scheda')
-  const categorie = perNome(lezioni, (s) => s.categoria ?? 'Lezioni di gruppo')
+  const categorie = perNome(lezioni, (s) => s.categoria ?? t('Lezioni di gruppo', 'Group classes'))
   const perNomeLezione = perNome(lezioni, (s) => s.nome)
 
   let sala: SalaAnalisi | null = null
@@ -258,44 +259,91 @@ function frasi(a: {
   const r: string[] = []
   if (!a.totali.sessioni) return r
 
-  r.push(`Negli ultimi 28 giorni ti sei allenato in ${giorniParola(a.totali.giorniAttivi)}, per ${a.totali.sessioni === 1 ? 'una sessione' : `${a.totali.sessioni} sessioni`} e circa ${Math.round(a.totali.minuti / 60)} ${Math.round(a.totali.minuti / 60) === 1 ? 'ora' : 'ore'} in tutto.`)
+  const ore = Math.round(a.totali.minuti / 60)
+  r.push(
+    t(
+      `Negli ultimi 28 giorni ti sei allenato in ${giorniParola(a.totali.giorniAttivi)}, per ${a.totali.sessioni === 1 ? 'una sessione' : `${a.totali.sessioni} sessioni`} e circa ${Math.round(a.totali.minuti / 60)} ${Math.round(a.totali.minuti / 60) === 1 ? 'ora' : 'ore'} in tutto.`,
+      `In the last 28 days you trained on ${giorniParola(a.totali.giorniAttivi)}, for ${a.totali.sessioni === 1 ? 'one session' : `${a.totali.sessioni} sessions`} and about ${ore} ${ore === 1 ? 'hour' : 'hours'} in all.`,
+    ),
+  )
 
   if (a.nSettimane >= 2) {
-    r.push(`In media sono ${decimale(a.medie.giorniAttivi)} giorni a settimana${a.medie.giorniAttivi >= 2 && a.medie.giorniAttivi <= 4 ? ': il ritmo da punti pieni è fra 2 e 4' : ''}.`)
-    if (a.ritmo.serie >= 2) r.push(`Sono ${a.ritmo.serie} settimane di fila nel ritmo giusto.`)
-    else if (a.ritmo.settimaneNelRitmo > 0) r.push(`${a.ritmo.settimaneNelRitmo === 1 ? 'Una settimana' : `${a.ritmo.settimaneNelRitmo} settimane`} su ${a.ritmo.settimaneContate} nel ritmo giusto (2–4 giorni).`)
+    const pieni = a.medie.giorniAttivi >= 2 && a.medie.giorniAttivi <= 4
+    r.push(
+      t(
+        `In media sono ${decimale(a.medie.giorniAttivi)} giorni a settimana${a.medie.giorniAttivi >= 2 && a.medie.giorniAttivi <= 4 ? ': il ritmo da punti pieni è fra 2 e 4' : ''}.`,
+        `On average that’s ${decimale(a.medie.giorniAttivi)} ${a.medie.giorniAttivi === 1 ? 'day' : 'days'} a week${pieni ? ': the full-points pace is between 2 and 4' : ''}.`,
+      ),
+    )
+    if (a.ritmo.serie >= 2) r.push(t(`Sono ${a.ritmo.serie} settimane di fila nel ritmo giusto.`, `That’s ${a.ritmo.serie} weeks in a row at the right pace.`))
+    else if (a.ritmo.settimaneNelRitmo > 0)
+      r.push(
+        t(
+          `${a.ritmo.settimaneNelRitmo === 1 ? 'Una settimana' : `${a.ritmo.settimaneNelRitmo} settimane`} su ${a.ritmo.settimaneContate} nel ritmo giusto (2–4 giorni).`,
+          `${a.ritmo.settimaneNelRitmo === 1 ? 'One week' : `${a.ritmo.settimaneNelRitmo} weeks`} out of ${a.ritmo.settimaneContate} at the right pace (2–4 days).`,
+        ),
+      )
   }
 
   if (a.totali.sala > 0 && a.totali.lezioni > 0) {
-    r.push(`Alterni la sala (${volte(a.totali.sala)}) e le lezioni di gruppo (${volte(a.totali.lezioni)}).`)
+    r.push(t(`Alterni la sala (${volte(a.totali.sala)}) e le lezioni di gruppo (${volte(a.totali.lezioni)}).`, `You mix the gym floor (${volte(a.totali.sala)}) and group classes (${volte(a.totali.lezioni)}).`))
   } else if (a.totali.sala > 0) {
-    r.push(`Ti alleni in sala: ${volte(a.totali.sala)} nelle ultime quattro settimane.`)
+    r.push(t(`Ti alleni in sala: ${volte(a.totali.sala)} nelle ultime quattro settimane.`, `You train on the gym floor: ${volte(a.totali.sala)} in the last four weeks.`))
   } else if (a.totali.lezioni > 0) {
-    r.push(`Ti alleni con le lezioni di gruppo: ${volte(a.totali.lezioni)} nelle ultime quattro settimane.`)
+    r.push(t(`Ti alleni con le lezioni di gruppo: ${volte(a.totali.lezioni)} nelle ultime quattro settimane.`, `You train with group classes: ${volte(a.totali.lezioni)} in the last four weeks.`))
   }
-  if (a.lezioni.length) r.push(`La lezione che fai più spesso è ${a.lezioni[0].nome} (${volte(a.lezioni[0].volte)}).`)
+  if (a.lezioni.length) r.push(t(`La lezione che fai più spesso è ${a.lezioni[0].nome} (${volte(a.lezioni[0].volte)}).`, `The class you take most often is ${a.lezioni[0].nome} (${volte(a.lezioni[0].volte)}).`))
 
   if (a.totali.sessioni >= 4) {
     const max = Math.max(...a.perGiornoSettimana)
     const giorni = a.perGiornoSettimana.map((n, i) => (n === max ? NOMI_GIORNI[i] : null)).filter(Boolean) as string[]
-    if (giorni.length === 1) r.push(`Il giorno in cui ti alleni di più è il ${giorni[0]} (${volte(max)}).`)
+    if (giorni.length === 1) r.push(t(`Il giorno in cui ti alleni di più è il ${giorni[0]} (${volte(max)}).`, `The day you train most is ${giorni[0]} (${volte(max)}).`))
     const fascia = [...a.fasce].sort((x, y) => y.volte - x.volte)[0]
-    if (fascia.volte > 0 && fascia.volte / a.totali.sessioni >= 0.5) r.push(`Ti alleni soprattutto ${fascia.id === 'mattina' ? 'al mattino' : fascia.id === 'pranzo' ? 'all’ora di pranzo' : fascia.id === 'pomeriggio' ? 'nel pomeriggio' : 'la sera'}.`)
+    if (fascia.volte > 0 && fascia.volte / a.totali.sessioni >= 0.5)
+      r.push(
+        t(
+          `Ti alleni soprattutto ${fascia.id === 'mattina' ? 'al mattino' : fascia.id === 'pranzo' ? 'all’ora di pranzo' : fascia.id === 'pomeriggio' ? 'nel pomeriggio' : 'la sera'}.`,
+          `You mostly train ${fascia.id === 'mattina' ? 'in the morning' : fascia.id === 'pranzo' ? 'at lunchtime' : fascia.id === 'pomeriggio' ? 'in the afternoon' : 'in the evening'}.`,
+        ),
+      )
   }
 
   if (a.sala && a.sala.volume > 0) {
-    r.push(`In sala hai fatto ${a.sala.serie.toLocaleString('it-IT')} serie e sollevato circa ${a.sala.volume.toLocaleString('it-IT')} kg in tutto.`)
+    r.push(
+      t(
+        `In sala hai fatto ${a.sala.serie.toLocaleString(locale())} serie e sollevato circa ${a.sala.volume.toLocaleString(locale())} kg in tutto.`,
+        `On the gym floor you did ${a.sala.serie.toLocaleString(locale())} ${a.sala.serie === 1 ? 'set' : 'sets'} and lifted about ${a.sala.volume.toLocaleString(locale())} kg in all.`,
+      ),
+    )
     if (a.sala.volumeMediaPrecedenti && a.sala.volumeUltima > 0) {
       const d = Math.round(((a.sala.volumeUltima - a.sala.volumeMediaPrecedenti) / a.sala.volumeMediaPrecedenti) * 100)
-      if (Math.abs(d) >= 5) r.push(`Negli ultimi 7 giorni hai sollevato il ${Math.abs(d)}% ${d > 0 ? 'in più' : 'in meno'} della media delle tre settimane prima.`)
+      if (Math.abs(d) >= 5)
+        r.push(
+          t(
+            `Negli ultimi 7 giorni hai sollevato il ${Math.abs(d)}% ${d > 0 ? 'in più' : 'in meno'} della media delle tre settimane prima.`,
+            `In the last 7 days you lifted ${Math.abs(d)}% ${d > 0 ? 'more' : 'less'} than the average of the three weeks before.`,
+          ),
+        )
     }
   }
 
-  if (a.intervalloMassimo >= 4) r.push(`Il tuo tratto più lungo senza allenarti è stato di ${giorniParola(a.intervalloMassimo)}.`)
-  if (a.daQuando !== null) r.push(a.daQuando === 0 ? 'Ti sei allenato oggi.' : a.daQuando === 1 ? 'L’ultimo allenamento è stato ieri.' : `L’ultimo allenamento è stato ${a.daQuando} giorni fa.`)
+  if (a.intervalloMassimo >= 4) r.push(t(`Il tuo tratto più lungo senza allenarti è stato di ${giorniParola(a.intervalloMassimo)}.`, `Your longest stretch without training was ${giorniParola(a.intervalloMassimo)}.`))
+  if (a.daQuando !== null)
+    r.push(
+      a.daQuando === 0
+        ? t('Ti sei allenato oggi.', 'You trained today.')
+        : a.daQuando === 1
+          ? t('L’ultimo allenamento è stato ieri.', 'Your last workout was yesterday.')
+          : t(`L’ultimo allenamento è stato ${a.daQuando} giorni fa.`, `Your last workout was ${a.daQuando} days ago.`),
+    )
 
   if (a.calorie && a.calorie.totali > 0) {
-    r.push(`Dall’allenamento hai consumato circa ${a.calorie.totali.toLocaleString('it-IT')} kcal nelle quattro settimane${a.calorie.perSeduta ? ', circa ' + a.calorie.perSeduta.toLocaleString('it-IT') + ' a sessione' : ''}.`)
+    r.push(
+      t(
+        `Dall’allenamento hai consumato circa ${a.calorie.totali.toLocaleString(locale())} kcal nelle quattro settimane${a.calorie.perSeduta ? ', circa ' + a.calorie.perSeduta.toLocaleString(locale()) + ' a sessione' : ''}.`,
+        `Your workouts burned about ${a.calorie.totali.toLocaleString(locale())} kcal over the four weeks${a.calorie.perSeduta ? ', about ' + a.calorie.perSeduta.toLocaleString(locale()) + ' per session' : ''}.`,
+      ),
+    )
   }
   return r
 }

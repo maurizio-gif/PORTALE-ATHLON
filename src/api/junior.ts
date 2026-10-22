@@ -1,4 +1,5 @@
 import { funzione } from "@/api/lab";
+import { t } from "@/lib/lingua";
 
 // La sezione Junior (21/10/2026, richiesta di Maurizio): i gruppi dei corsi per bambini e ragazzi che sono attivi, con
 // gli anni di nascita e i posti che restano, dalla funzione `portale-lab-junior` (APP-ATHLON), che legge il mirror con
@@ -55,9 +56,9 @@ export type EsitoGruppi =
   | { ok: false; errore: string };
 
 const GUASTO =
-  "Non riusciamo a leggere i gruppi adesso. Riprova fra qualche minuto.";
+  t("Non riusciamo a leggere i gruppi adesso. Riprova fra qualche minuto.", "We can’t load the groups right now. Try again in a few minutes.");
 const NON_ATTIVO =
-  "La sezione Junior non è ancora attiva: riprova fra qualche giorno.";
+  t("La sezione Junior non è ancora attiva: riprova fra qualche giorno.", "The Junior section isn’t active yet: try again in a few days.");
 
 export async function gruppiJunior(): Promise<EsitoGruppi> {
   const { ok, stato, dati } = await funzione("portale-lab-junior", {
@@ -111,13 +112,15 @@ export async function aggiungiComponente(
           ? (dati.nucleo as NucleoJunior)
           : null,
     };
-  const nonAttivo = stato === 400 && dati.errore === "Azione sconosciuta.";
+  const nonAttivo =
+    stato === 400 &&
+    (dati.errore === "Azione sconosciuta." || dati.errore === "Unknown action.");
   return {
     ok: false,
     errore: nonAttivo
-      ? "Aggiungere un componente da qui non è ancora attivo: passa in segreteria."
+      ? t("Aggiungere un componente da qui non è ancora attivo: passa in segreteria.", "Adding a family member from here isn’t active yet: stop by the front desk.")
       : (dati.errore ??
-        "Non siamo riusciti ad aggiungerlo adesso. Riprova fra qualche minuto."),
+        t("Non siamo riusciti ad aggiungerlo adesso. Riprova fra qualche minuto.", "We couldn’t add them right now. Try again in a few minutes.")),
     giaNelNucleo: dati.gia_nel_nucleo === true,
   };
 }

@@ -3,6 +3,7 @@ import { Modal, Pressable, StyleSheet, Text, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { conPulsante, segna, type NotificaApp } from '@/api/notifiche'
+import { t } from '@/lib/lingua'
 import { spazio } from '@/theme'
 
 import { Icona } from '../ui/Icona'
@@ -46,16 +47,16 @@ export function FinestraNotifica({ notifica: n }: { notifica: NotificaApp }) {
   return (
     <Modal visible transparent animationType="fade" onRequestClose={chiudi} statusBarTranslucent>
       <View style={[stili.velo, { paddingTop: ins.top + spazio.tre, paddingBottom: ins.bottom + spazio.tre }]}>
-        <Pressable style={StyleSheet.absoluteFill} onPress={chiudi} accessibilityLabel="Chiudi" />
+        <Pressable style={StyleSheet.absoluteFill} onPress={chiudi} accessibilityLabel={t('Chiudi', 'Close')} />
         <View style={[stili.carta, { backgroundColor: p.carta, borderColor: p.linea, boxShadow: p.ombra }]} accessibilityViewIsModal accessibilityLiveRegion="polite">
           <View style={stili.testa}>
             <View style={[stili.bollino, { backgroundColor: FUOCO[1] }]}>
               <Icona nome="campanello" size={20} colore="#fff" />
             </View>
             <Text style={[stili.sopra, { color: p.accento }]} numberOfLines={1}>
-              {n.per?.nome ? `ATHLON CLUB · PER ${n.per.nome.toUpperCase()}` : 'ATHLON CLUB'}
+              {n.per?.nome ? t(`ATHLON CLUB · PER ${n.per.nome.toUpperCase()}`, `ATHLON CLUB · FOR ${n.per.nome.toUpperCase()}`) : 'ATHLON CLUB'}
             </Text>
-            <Tocco onPress={chiudi} etichetta="Chiudi" style={[stili.chiudi, { backgroundColor: p.incavo }]}>
+            <Tocco onPress={chiudi} etichetta={t('Chiudi', 'Close')} style={[stili.chiudi, { backgroundColor: p.incavo }]}>
               <Icona nome="chiudi" size={16} colore={p.testo} />
             </Tocco>
           </View>
@@ -68,11 +69,11 @@ export function FinestraNotifica({ notifica: n }: { notifica: NotificaApp }) {
           <View style={{ gap: spazio.due, marginTop: spazio.due }}>
             {pulsante ? (
               <>
-                <Pulsante testo={n.etichetta ?? 'Apri'} icona="avanti" onPress={premi} />
-                <Pulsante testo="Chiudi" variante="fantasma" onPress={chiudi} />
+                <Pulsante testo={n.etichetta ?? t('Apri', 'Open')} icona="avanti" onPress={premi} />
+                <Pulsante testo={t('Chiudi', 'Close')} variante="fantasma" onPress={chiudi} />
               </>
             ) : (
-              <Pulsante testo="Ok, letto" icona="spunta" onPress={letto} />
+              <Pulsante testo={t('Ok, letto', 'OK, got it')} icona="spunta" onPress={letto} />
             )}
           </View>
         </View>

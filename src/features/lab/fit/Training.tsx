@@ -3,6 +3,7 @@ import { router } from 'expo-router'
 import { useMemo } from 'react'
 import { StyleSheet, Text, View } from 'react-native'
 
+import { locale, t } from '@/lib/lingua'
 import { spazio } from '@/theme'
 
 import { oggiRoma } from '../alimentazione/conti'
@@ -20,8 +21,8 @@ import { useFit } from './useFit'
 // **Descrive, non giudica**: nessuna frase dice cosa fare. Il Balance resta com'e' (le calorie consumate accanto a quelle
 // mangiate); qui le calorie sono solo quelle dell'allenamento, e rimandano al contatore e al Balance.
 
-const intero = (x: number) => Math.round(x).toLocaleString('it-IT')
-const dataCorta = new Intl.DateTimeFormat('it-IT', { day: 'numeric', month: 'short', timeZone: 'UTC' })
+const intero = (x: number) => Math.round(x).toLocaleString(locale())
+const dataCorta = new Intl.DateTimeFormat(locale(), { day: 'numeric', month: 'short', timeZone: 'UTC' })
 const breve = (g: string) => dataCorta.format(new Date(`${g}T12:00:00Z`)).replace('.', '')
 const ore = (minuti: number) => (minuti < 60 ? `${minuti} min` : `${Math.floor(minuti / 60)} h${minuti % 60 ? ` ${String(minuti % 60).padStart(2, '0')}` : ''}`)
 
@@ -43,17 +44,17 @@ function Riepilogo({ a }: { a: AnalisiTraining }) {
           <Icona nome="peso" size={20} colore="#fff" />
         </LinearGradient>
         <View style={{ flex: 1 }}>
-          <Text style={stili.titolo}>Ultime quattro settimane</Text>
-          <Text style={stili.sotto}>Com’è fatto il tuo allenamento</Text>
+          <Text style={stili.titolo}>{t('Ultime quattro settimane', 'Last four weeks')}</Text>
+          <Text style={stili.sotto}>{t('Com’è fatto il tuo allenamento', 'What your training looks like')}</Text>
         </View>
       </View>
       <View style={stili.cifre}>
-        <Cifra valore={String(a.totali.giorniAttivi)} etichetta="giorni attivi" sotto={a.ritmo.settimaneContate >= 2 ? `${a.medie.giorniAttivi.toLocaleString('it-IT')} a settimana` : undefined} />
-        <Cifra valore={String(a.totali.sessioni)} etichetta="sessioni" sotto={`${a.totali.sala} in sala · ${a.totali.lezioni} lezioni`} />
+        <Cifra valore={String(a.totali.giorniAttivi)} etichetta={t('giorni attivi', 'active days')} sotto={a.ritmo.settimaneContate >= 2 ? t(`${a.medie.giorniAttivi.toLocaleString(locale())} a settimana`, `${a.medie.giorniAttivi.toLocaleString(locale())} a week`) : undefined} />
+        <Cifra valore={String(a.totali.sessioni)} etichetta={t('sessioni', 'sessions')} sotto={t(`${a.totali.sala} in sala · ${a.totali.lezioni} lezioni`, `${a.totali.sala} gym floor · ${a.totali.lezioni} ${a.totali.lezioni === 1 ? 'class' : 'classes'}`)} />
       </View>
       <View style={stili.cifre}>
-        <Cifra valore={ore(a.totali.minuti)} etichetta="di allenamento" sotto={a.medie.durataSessione ? `${a.medie.durataSessione} min a sessione` : undefined} />
-        <Cifra valore={a.calorie ? intero(a.calorie.totali) : '—'} etichetta="kcal consumate" sotto={a.calorie ? undefined : 'servono i tuoi dati'} />
+        <Cifra valore={ore(a.totali.minuti)} etichetta={t('di allenamento', 'of training')} sotto={a.medie.durataSessione ? t(`${a.medie.durataSessione} min a sessione`, `${a.medie.durataSessione} min per session`) : undefined} />
+        <Cifra valore={a.calorie ? intero(a.calorie.totali) : '—'} etichetta={t('kcal consumate', 'kcal burned')} sotto={a.calorie ? undefined : t('servono i tuoi dati', 'your details are needed')} />
       </View>
     </LinearGradient>
   )
@@ -65,9 +66,12 @@ function SettimanaPerSettimana({ settimane }: { settimane: SettimanaAnalisi[] })
   return (
     <Carta style={{ paddingVertical: spazio.due }}>
       {settimane.map((s, i) => (
-        <View key={s.a} style={[stili.settimana, i > 0 && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: p.linea }]} accessibilityLabel={`${i === 0 ? 'Ultimi 7 giorni' : `Dal ${breve(s.da)} al ${breve(s.a)}`}: ${s.giorniAttivi} giorni attivi, ${s.sessioni} sessioni, ${ore(s.minuti)}${s.kcal !== null ? `, ${intero(s.kcal)} kcal` : ''}${s.conta ? '' : ', prima dell’inizio'}`}>
+        <View key={s.a} style={[stili.settimana, i > 0 && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: p.linea }]} accessibilityLabel={t(
+            `${i === 0 ? 'Ultimi 7 giorni' : `Dal ${breve(s.da)} al ${breve(s.a)}`}: ${s.giorniAttivi} giorni attivi, ${s.sessioni} sessioni, ${ore(s.minuti)}${s.kcal !== null ? `, ${intero(s.kcal)} kcal` : ''}${s.conta ? '' : ', prima dell’inizio'}`,
+            `${i === 0 ? 'Last 7 days' : `From ${breve(s.da)} to ${breve(s.a)}`}: ${s.giorniAttivi} active ${s.giorniAttivi === 1 ? 'day' : 'days'}, ${s.sessioni} ${s.sessioni === 1 ? 'session' : 'sessions'}, ${ore(s.minuti)}${s.kcal !== null ? `, ${intero(s.kcal)} kcal` : ''}${s.conta ? '' : ', before you started'}`,
+          )}>
           <View style={{ flex: 1, gap: 6 }}>
-            <Text style={[stili.settimanaNome, { color: s.conta ? p.testo : p.testoTerzo }]}>{i === 0 ? 'Ultimi 7 giorni' : `${breve(s.da)} – ${breve(s.a)}`}</Text>
+            <Text style={[stili.settimanaNome, { color: s.conta ? p.testo : p.testoTerzo }]}>{i === 0 ? t('Ultimi 7 giorni', 'Last 7 days') : `${breve(s.da)} – ${breve(s.a)}`}</Text>
             <View style={stili.tacche}>
               {Array.from({ length: 7 }, (_, k) => (
                 <View key={k} style={[stili.tacca, { backgroundColor: !s.conta ? p.incavo : k < s.giorniAttivi ? (s.nelRitmo ? FUOCO[1] : `${FUOCO[1]}88`) : p.incavo }]} />
@@ -75,16 +79,16 @@ function SettimanaPerSettimana({ settimane }: { settimane: SettimanaAnalisi[] })
             </View>
           </View>
           <View style={{ alignItems: 'flex-end', gap: 1 }}>
-            <Text style={[stili.settimanaValore, { color: s.conta ? p.testo : p.testoTerzo }]}>{s.conta ? `${s.giorniAttivi} ${s.giorniAttivi === 1 ? 'giorno' : 'giorni'}` : '—'}</Text>
+            <Text style={[stili.settimanaValore, { color: s.conta ? p.testo : p.testoTerzo }]}>{s.conta ? t(`${s.giorniAttivi} ${s.giorniAttivi === 1 ? 'giorno' : 'giorni'}`, `${s.giorniAttivi} ${s.giorniAttivi === 1 ? 'day' : 'days'}`) : '—'}</Text>
             {s.conta ? (
               <Text style={[stili.piccola, { color: p.testoSecondario }]}>
-                {[`${s.sessioni} ${s.sessioni === 1 ? 'sessione' : 'sessioni'}`, ore(s.minuti), s.kcal !== null ? `${intero(s.kcal)} kcal` : null].filter(Boolean).join(' · ')}
+                {[t(`${s.sessioni} ${s.sessioni === 1 ? 'sessione' : 'sessioni'}`, `${s.sessioni} ${s.sessioni === 1 ? 'session' : 'sessions'}`), ore(s.minuti), s.kcal !== null ? `${intero(s.kcal)} kcal` : null].filter(Boolean).join(' · ')}
               </Text>
             ) : null}
           </View>
         </View>
       ))}
-      <Text style={[stili.piccola, { color: p.testoTerzo, paddingBottom: spazio.due }]}>Le tacche scure sono le settimane nel ritmo giusto (2–4 giorni); quelle chiare, le altre.</Text>
+      <Text style={[stili.piccola, { color: p.testoTerzo, paddingBottom: spazio.due }]}>{t('Le tacche scure sono le settimane nel ritmo giusto (2–4 giorni); quelle chiare, le altre.', 'Dark marks are weeks at the right pace (2–4 days); light ones are the others.')}</Text>
     </Carta>
   )
 }
@@ -96,27 +100,27 @@ function Divisione({ a }: { a: AnalisiTraining }) {
   return (
     <Carta style={{ gap: spazio.tre }}>
       <View style={{ gap: 6 }}>
-        <View style={stili.spezzata} accessibilityLabel={`${a.totali.sala} in sala, ${a.totali.lezioni} lezioni di gruppo`}>
+        <View style={stili.spezzata} accessibilityLabel={t(`${a.totali.sala} in sala, ${a.totali.lezioni} lezioni di gruppo`, `${a.totali.sala} on the gym floor, ${a.totali.lezioni} group ${a.totali.lezioni === 1 ? 'class' : 'classes'}`)}>
           {a.totali.sala > 0 ? <View style={{ flex: a.totali.sala, backgroundColor: FUOCO[1] }} /> : null}
           {a.totali.lezioni > 0 ? <View style={{ flex: a.totali.lezioni, backgroundColor: MARE[1] }} /> : null}
         </View>
         <View style={stili.legenda}>
           <View style={[stili.puntino, { backgroundColor: FUOCO[1] }]} />
-          <Text style={[stili.nota, { color: p.testoSecondario }]}>{`Sala ${a.totali.sala}${tot ? ` (${Math.round((a.totali.sala / tot) * 100)}%)` : ''}`}</Text>
+          <Text style={[stili.nota, { color: p.testoSecondario }]}>{t(`Sala ${a.totali.sala}${tot ? ` (${Math.round((a.totali.sala / tot) * 100)}%)` : ''}`, `Gym floor ${a.totali.sala}${tot ? ` (${Math.round((a.totali.sala / tot) * 100)}%)` : ''}`)}</Text>
           <View style={[stili.puntino, { backgroundColor: MARE[1], marginLeft: spazio.tre }]} />
-          <Text style={[stili.nota, { color: p.testoSecondario }]}>{`Lezioni ${a.totali.lezioni}${tot ? ` (${Math.round((a.totali.lezioni / tot) * 100)}%)` : ''}`}</Text>
+          <Text style={[stili.nota, { color: p.testoSecondario }]}>{t(`Lezioni ${a.totali.lezioni}${tot ? ` (${Math.round((a.totali.lezioni / tot) * 100)}%)` : ''}`, `Classes ${a.totali.lezioni}${tot ? ` (${Math.round((a.totali.lezioni / tot) * 100)}%)` : ''}`)}</Text>
         </View>
       </View>
       {a.categorie.length ? (
         <View style={{ gap: spazio.due }}>
-          <Text style={[stili.sottoTitolo, { color: p.testo }]}>Le lezioni, per categoria</Text>
+          <Text style={[stili.sottoTitolo, { color: p.testo }]}>{t('Le lezioni, per categoria', 'Classes, by category')}</Text>
           {a.categorie.slice(0, 5).map((c) => (
             <View key={c.nome} style={{ gap: 4 }}>
               <View style={stili.rigaDue}>
                 <Text style={[stili.nota, { color: p.testo, flex: 1 }]} numberOfLines={1}>
                   {c.nome}
                 </Text>
-                <Text style={[stili.nota, { color: p.testoSecondario }]}>{`${c.volte} ${c.volte === 1 ? 'volta' : 'volte'} · ${ore(c.minuti)}`}</Text>
+                <Text style={[stili.nota, { color: p.testoSecondario }]}>{t(`${c.volte} ${c.volte === 1 ? 'volta' : 'volte'} · ${ore(c.minuti)}`, `${c.volte === 1 ? 'once' : `${c.volte} times`} · ${ore(c.minuti)}`)}</Text>
               </View>
               <Barra valore={c.volte / massimo} colore={MARE[1]} altezza={6} />
             </View>
@@ -125,11 +129,11 @@ function Divisione({ a }: { a: AnalisiTraining }) {
       ) : null}
       {a.lezioni.length ? (
         <View style={{ gap: 4 }}>
-          <Text style={[stili.sottoTitolo, { color: p.testo }]}>Le più frequenti</Text>
+          <Text style={[stili.sottoTitolo, { color: p.testo }]}>{t('Le più frequenti', 'Most frequent')}</Text>
           {a.lezioni.slice(0, 3).map((l) => (
             <Text key={l.nome} style={[stili.nota, { color: p.testoSecondario }]}>
               <Text style={{ fontFamily: F.bold, color: p.testo }}>{l.nome}</Text>
-              {` · ${l.volte} ${l.volte === 1 ? 'volta' : 'volte'}`}
+              {t(` · ${l.volte} ${l.volte === 1 ? 'volta' : 'volte'}`, ` · ${l.volte === 1 ? 'once' : `${l.volte} times`}`)}
             </Text>
           ))}
         </View>
@@ -141,7 +145,7 @@ function Divisione({ a }: { a: AnalisiTraining }) {
 function Quando({ a }: { a: AnalisiTraining }) {
   const p = usePalette()
   const [ref, visibile] = useVisibile()
-  const t = useProgresso(900, 100, visibile)
+  const prog = useProgresso(900, 100, visibile)
   const massimo = Math.max(1, ...a.perGiornoSettimana)
   const fasceMax = Math.max(1, ...a.fasce.map((f) => f.volte))
   const ALTO = 70
@@ -149,10 +153,10 @@ function Quando({ a }: { a: AnalisiTraining }) {
     <Carta style={{ gap: spazio.tre }}>
       <View ref={ref} collapsable={false} style={stili.giorniSett}>
         {a.perGiornoSettimana.map((n, i) => (
-          <View key={i} style={{ alignItems: 'center', gap: 4, flex: 1 }} accessibilityLabel={`${NOMI_GIORNI[i]}: ${n} ${n === 1 ? 'sessione' : 'sessioni'}`}>
+          <View key={i} style={{ alignItems: 'center', gap: 4, flex: 1 }} accessibilityLabel={t(`${NOMI_GIORNI[i]}: ${n} ${n === 1 ? 'sessione' : 'sessioni'}`, `${NOMI_GIORNI[i]}: ${n} ${n === 1 ? 'session' : 'sessions'}`)}>
             <Text style={[stili.piccola, { color: p.testoSecondario, minHeight: 15 }]}>{n || ''}</Text>
             <View style={{ height: ALTO, justifyContent: 'flex-end' }}>
-              <View style={{ width: 24, height: Math.max(4, (n / massimo) * ALTO * t), borderRadius: 8, backgroundColor: n === 0 ? p.incavo : n === massimo ? FUOCO[1] : `${FUOCO[1]}88` }} />
+              <View style={{ width: 24, height: Math.max(4, (n / massimo) * ALTO * prog), borderRadius: 8, backgroundColor: n === 0 ? p.incavo : n === massimo ? FUOCO[1] : `${FUOCO[1]}88` }} />
             </View>
             <Text style={[stili.sigla, { color: n === massimo && n > 0 ? p.testo : p.testoTerzo }]}>{SIGLE_GIORNI[i]}</Text>
           </View>
@@ -182,15 +186,18 @@ function Sala({ a }: { a: AnalisiTraining }) {
   return (
     <Carta style={{ gap: spazio.tre }}>
       <View style={stili.griglia}>
-        <Piccola valore={String(s.sedute)} etichetta="sedute" />
-        <Piccola valore={intero(s.serie)} etichetta="serie" />
-        <Piccola valore={intero(s.volume)} etichetta="kg sollevati" />
-        <Piccola valore={intero(s.esercizi)} etichetta="esercizi" />
+        <Piccola valore={String(s.sedute)} etichetta={t('sedute', 'sessions')} />
+        <Piccola valore={intero(s.serie)} etichetta={t('serie', 'sets')} />
+        <Piccola valore={intero(s.volume)} etichetta={t('kg sollevati', 'kg lifted')} />
+        <Piccola valore={intero(s.esercizi)} etichetta={t('esercizi', 'exercises')} />
       </View>
       {confronto !== null && Math.abs(confronto) >= 5 ? (
-        <Text style={[stili.nota, { color: p.testoSecondario }]}>{`Negli ultimi 7 giorni: ${intero(s.volumeUltima)} kg, il ${Math.abs(confronto)}% ${confronto > 0 ? 'in più' : 'in meno'} della media delle tre settimane prima.`}</Text>
+        <Text style={[stili.nota, { color: p.testoSecondario }]}>{t(
+            `Negli ultimi 7 giorni: ${intero(s.volumeUltima)} kg, il ${Math.abs(confronto)}% ${confronto > 0 ? 'in più' : 'in meno'} della media delle tre settimane prima.`,
+            `Last 7 days: ${intero(s.volumeUltima)} kg, ${Math.abs(confronto)}% ${confronto > 0 ? 'more' : 'less'} than the average of the three weeks before.`,
+          )}</Text>
       ) : null}
-      <Text style={[stili.piccola, { color: p.testoTerzo }]}>I chili sono serie × ripetizioni × peso delle sedute chiuse nell’app.</Text>
+      <Text style={[stili.piccola, { color: p.testoTerzo }]}>{t('I chili sono serie × ripetizioni × peso delle sedute chiuse nell’app.', 'The kilos are sets × reps × weight from the sessions finished in the app.')}</Text>
     </Carta>
   )
 }
@@ -210,9 +217,9 @@ function Riposo({ a }: { a: AnalisiTraining }) {
   return (
     <Carta style={{ gap: spazio.tre }}>
       <View style={stili.griglia}>
-        <Piccola valore={String(r.giorniDiRiposo)} etichetta="giorni di riposo" />
-        <Piccola valore={String(r.intervalloMassimo)} etichetta="giorni, la pausa più lunga" />
-        <Piccola valore={r.daQuando === null ? '—' : r.daQuando === 0 ? 'oggi' : String(r.daQuando)} etichetta={r.daQuando !== null && r.daQuando > 1 ? 'giorni dall’ultimo' : 'ultimo allenamento'} />
+        <Piccola valore={String(r.giorniDiRiposo)} etichetta={t('giorni di riposo', 'rest days')} />
+        <Piccola valore={String(r.intervalloMassimo)} etichetta={t('giorni, la pausa più lunga', 'days, the longest break')} />
+        <Piccola valore={r.daQuando === null ? '—' : r.daQuando === 0 ? t('oggi', 'today') : String(r.daQuando)} etichetta={r.daQuando !== null && r.daQuando > 1 ? t('giorni dall’ultimo', 'days since the last one') : t('ultimo allenamento', 'last workout')} />
       </View>
     </Carta>
   )
@@ -220,49 +227,49 @@ function Riposo({ a }: { a: AnalisiTraining }) {
 
 function Calorie({ a, fit }: { a: AnalisiTraining; fit: ReturnType<typeof useFit> }) {
   const p = usePalette()
-  const massimo = Math.max(1, ...(a.calorie?.perTipo.map((t) => t.kcal) ?? [1]))
+  const massimo = Math.max(1, ...(a.calorie?.perTipo.map((x) => x.kcal) ?? [1]))
   return (
     <Carta style={{ gap: spazio.tre }}>
       {a.calorie ? (
         <>
           <View style={stili.griglia}>
-            <Piccola valore={intero(a.calorie.totali)} etichetta="kcal in 4 settimane" />
-            <Piccola valore={a.calorie.perSeduta !== null ? intero(a.calorie.perSeduta) : '—'} etichetta="kcal a sessione" />
+            <Piccola valore={intero(a.calorie.totali)} etichetta={t('kcal in 4 settimane', 'kcal in 4 weeks')} />
+            <Piccola valore={a.calorie.perSeduta !== null ? intero(a.calorie.perSeduta) : '—'} etichetta={t('kcal a sessione', 'kcal per session')} />
           </View>
           {a.calorie.perTipo.length ? (
             <View style={{ gap: spazio.due }}>
-              <Text style={[stili.sottoTitolo, { color: p.testo }]}>Da dove vengono</Text>
-              {a.calorie.perTipo.slice(0, 5).map((t) => (
-                <View key={t.tipo} style={{ gap: 4 }}>
+              <Text style={[stili.sottoTitolo, { color: p.testo }]}>{t('Da dove vengono', 'Where they come from')}</Text>
+              {a.calorie.perTipo.slice(0, 5).map((x) => (
+                <View key={x.tipo} style={{ gap: 4 }}>
                   <View style={stili.rigaDue}>
                     <Text style={[stili.nota, { color: p.testo, flex: 1 }]} numberOfLines={1}>
-                      {t.tipo}
+                      {x.tipo}
                     </Text>
-                    <Text style={[stili.nota, { color: p.testoSecondario }]}>{`${intero(t.kcal)} kcal`}</Text>
+                    <Text style={[stili.nota, { color: p.testoSecondario }]}>{`${intero(x.kcal)} kcal`}</Text>
                   </View>
-                  <Barra valore={t.kcal / massimo} colore={FUOCO[1]} altezza={6} />
+                  <Barra valore={x.kcal / massimo} colore={FUOCO[1]} altezza={6} />
                 </View>
               ))}
             </View>
           ) : null}
-          <Text style={[stili.piccola, { color: p.testoTerzo }]}>Sono stime, e possono sbagliare del 20–30%: contano le sedute chiuse nell’app e le lezioni con la presenza segnata.</Text>
+          <Text style={[stili.piccola, { color: p.testoTerzo }]}>{t('Sono stime, e possono sbagliare del 20–30%: contano le sedute chiuse nell’app e le lezioni con la presenza segnata.', 'These are estimates, and can be off by 20–30%: sessions finished in the app and classes with attendance marked are what count.')}</Text>
         </>
       ) : fit.corpo.stato === 'mancano-dati' ? (
         <>
-          <Text style={[stili.nota, { color: p.testoSecondario }]}>Per stimare le calorie servono peso, altezza, età e sesso: li segni una volta sola.</Text>
-          <Pulsante testo="Aggiungi i tuoi dati" icona="piu" variante="secondario" piccolo onPress={() => router.push('/allenamento/misure')} />
+          <Text style={[stili.nota, { color: p.testoSecondario }]}>{t('Per stimare le calorie servono peso, altezza, età e sesso: li segni una volta sola.', 'To estimate calories we need your weight, height, age and sex: you log them just once.')}</Text>
+          <Pulsante testo={t('Aggiungi i tuoi dati', 'Add your details')} icona="piu" variante="secondario" piccolo onPress={() => router.push('/allenamento/misure')} />
         </>
       ) : fit.corpo.stato === 'attesa' ? (
         <Scheletro altezza={60} tondo={16} />
       ) : (
-        <Text style={[stili.nota, { color: p.testoSecondario }]}>Le calorie si stimano per gli adulti.</Text>
+        <Text style={[stili.nota, { color: p.testoSecondario }]}>{t('Le calorie si stimano per gli adulti.', 'Calories are estimated for adults.')}</Text>
       )}
       <View style={stili.azioni}>
         <View style={{ flex: 1 }}>
-          <Pulsante testo="Il contatore" icona="fiamma" variante="contorno" piccolo onPress={() => router.push('/allenamento/calorie')} />
+          <Pulsante testo={t('Il contatore', 'Calorie counter')} icona="fiamma" variante="contorno" piccolo onPress={() => router.push('/allenamento/calorie')} />
         </View>
         <View style={{ flex: 1 }}>
-          <Pulsante testo="Il Balance" icona="grafico" variante="contorno" piccolo onPress={() => router.push('/allenamento/balance')} />
+          <Pulsante testo={t('Il Balance', 'Balance')} icona="grafico" variante="contorno" piccolo onPress={() => router.push('/allenamento/balance')} />
         </View>
       </View>
     </Carta>
@@ -274,7 +281,7 @@ export function SchermataTraining() {
   const fit = useFit()
   const oggi = oggiRoma()
   const a = useMemo(() => (fit.sessioni ? analizzaTraining(fit.sessioni, oggi, fit.attivita) : null), [fit.sessioni, fit.attivita, oggi])
-  const testata = { sopratitolo: 'Athlon Health Score', titolo: 'Il tuo allenamento', indietro: '/allenamento/punteggio' as const, barra: false as const }
+  const testata = { sopratitolo: 'Athlon Health Score', titolo: t('Il tuo allenamento', 'Your training'), indietro: '/allenamento/punteggio' as const, barra: false as const }
 
   return (
     <Schermata {...testata}>
@@ -284,8 +291,8 @@ export function SchermataTraining() {
           <Scheletro altezza={150} tondo={24} />
         </>
       ) : !a.haDati ? (
-        <Messaggio tono="attenzione" titolo="Ancora niente da analizzare">
-          Qui compare l’analisi appena ci sono allenamenti: i piani di allenamento chiusi nell’app e le lezioni con la presenza segnata dalla reception.
+        <Messaggio tono="attenzione" titolo={t('Ancora niente da analizzare', 'Nothing to analyze yet')}>
+          {t('Qui compare l’analisi appena ci sono allenamenti: i piani di allenamento chiusi nell’app e le lezioni con la presenza segnata dalla reception.', 'Your analysis shows up here as soon as there are workouts: workout plans finished in the app and classes where reception marks your attendance.')}
         </Messaggio>
       ) : (
         <>
@@ -295,7 +302,7 @@ export function SchermataTraining() {
 
           {a.frasi.length ? (
             <Entra indice={1}>
-              <Sezione titolo="In breve">
+              <Sezione titolo={t('In breve', 'In short')}>
                 <Carta style={{ gap: spazio.due }}>
                   {a.frasi.map((f) => (
                     <View key={f} style={stili.frase}>
@@ -309,39 +316,39 @@ export function SchermataTraining() {
           ) : null}
 
           <Entra indice={2}>
-            <Sezione titolo="Settimana per settimana">
+            <Sezione titolo={t('Settimana per settimana', 'Week by week')}>
               <SettimanaPerSettimana settimane={a.settimane} />
             </Sezione>
           </Entra>
 
           <Entra indice={3}>
-            <Sezione titolo="Cosa fai">
+            <Sezione titolo={t('Cosa fai', 'What you do')}>
               <Divisione a={a} />
             </Sezione>
           </Entra>
 
           <Entra indice={4}>
-            <Sezione titolo="Quando ti alleni">
+            <Sezione titolo={t('Quando ti alleni', 'When you train')}>
               <Quando a={a} />
             </Sezione>
           </Entra>
 
           {a.sala ? (
             <Entra indice={5}>
-              <Sezione titolo="La sala">
+              <Sezione titolo={t('La sala', 'Gym floor')}>
                 <Sala a={a} />
               </Sezione>
             </Entra>
           ) : null}
 
           <Entra indice={6}>
-            <Sezione titolo="Il riposo">
+            <Sezione titolo={t('Il riposo', 'Rest')}>
               <Riposo a={a} />
             </Sezione>
           </Entra>
 
           <Entra indice={7}>
-            <Sezione titolo="Le calorie dell’allenamento">
+            <Sezione titolo={t('Le calorie dell’allenamento', 'Calories from training')}>
               <Calorie a={a} fit={fit} />
             </Sezione>
           </Entra>

@@ -4,6 +4,7 @@ import { StyleSheet, Text, useWindowDimensions, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { LARGO } from '@/components/Pagina'
+import { t } from '@/lib/lingua'
 import { spazio } from '@/theme'
 
 import { Icona } from '../ui/Icona'
@@ -61,7 +62,7 @@ export function PulsanteFeedback() {
           schermata.current = schermataDa(percorso)
           setAperto(true)
         }}
-        etichetta="Lascia un feedback sull’app"
+        etichetta={t('Lascia un feedback sull’app', 'Leave feedback about the app')}
         scala={0.95}
         style={[stili.area, { top: ins.top + spazio.tre, right: destra }]}
       >

@@ -3,6 +3,7 @@ import { createContext, useContext, useState } from 'react'
 import { Platform, ScrollView, StyleSheet, Text, View, type StyleProp, type TextStyle } from 'react-native'
 
 import type { Blocco, ClubLife, Inline, TipoModulo } from '@/api/clubLife'
+import { t } from '@/lib/lingua'
 import { spazio } from '@/theme'
 
 import { Icona } from '../ui/Icona'
@@ -31,7 +32,7 @@ function etichetta(s: string): string {
  * sono «Vai alla tua area».
  */
 function etichettaApp(testo: string): string {
-  return /^(accedi|apri|vai)\b.*\b(portale|area riservata)\b/i.test(testo.trim()) ? 'Vai alla tua area' : etichetta(testo)
+  return /^(accedi|apri|vai)\b.*\b(portale|area riservata)\b/i.test(testo.trim()) ? t('Vai alla tua area', 'Go to your area') : etichetta(testo)
 }
 
 export function TestoInline({ pezzi, stile, selezionabile = true }: { pezzi: Inline[]; stile: StyleProp<TextStyle>; selezionabile?: boolean }) {
@@ -143,7 +144,7 @@ function Codice({ etichetta: nome, codice }: { etichetta: string; codice: string
       </Text>
       {copiabile ? (
         <Pulsante
-          testo={copiato ? 'Copiato' : 'Copia il codice'}
+          testo={copiato ? t('Copiato', 'Copied') : t('Copia il codice', 'Copy the code')}
           icona={copiato ? 'spunta' : 'copia'}
           variante="secondario"
           piccolo
@@ -163,10 +164,10 @@ function Modulo({ tipo, etichetta: nome }: { tipo: TipoModulo; etichetta: string
         <Bollino icona="modifica" />
         <View style={{ flex: 1, gap: 2 }}>
           <Text style={[stili.moduloTitolo, { color: p.testo }]}>{nome}</Text>
-          <Text style={[stili.moduloSotto, { color: p.testoSecondario }]}>Lo compili qui: i tuoi dati sono già scritti.</Text>
+          <Text style={[stili.moduloSotto, { color: p.testoSecondario }]}>{t('Lo compili qui: i tuoi dati sono già scritti.', 'Fill it in here: your details are already filled in.')}</Text>
         </View>
       </View>
-      <Pulsante testo="Apri il modulo" icona="avanti" onPress={() => vai(hrefModulo(tipo))} />
+      <Pulsante testo={t('Apri il modulo', 'Open the form')} icona="avanti" onPress={() => vai(hrefModulo(tipo))} />
     </Carta>
   )
 }

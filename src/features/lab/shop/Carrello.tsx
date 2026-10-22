@@ -6,6 +6,7 @@ import { Linking, Platform, StyleSheet, Text, View } from 'react-native'
 import { ordina, pagaOrdineConCarta, type OrdineAperto } from '@/api/shop'
 import { InfoAdyen } from '@/components/InfoAdyen'
 import { euro } from '@/lib/eventi'
+import { t } from '@/lib/lingua'
 import { spazio } from '@/theme'
 
 import { Carta, Messaggio, Pulsante, SchedeInArrivo } from '../ui/kit'
@@ -78,11 +79,11 @@ export function Carrello() {
 
   if (!dati) {
     return (
-      <Schermata titolo="Carrello" indietro="/shop" barra={false}>
+      <Schermata titolo={t('Carrello', 'Cart')} indietro="/shop" barra={false}>
         {erroreVetrina ? (
           <View style={{ gap: spazio.tre }}>
             <Messaggio>{erroreVetrina}</Messaggio>
-            <Pulsante testo="Riprova" icona="aggiorna" variante="secondario" onPress={() => carica(true)} />
+            <Pulsante testo={t('Riprova', 'Try again')} icona="aggiorna" variante="secondario" onPress={() => carica(true)} />
           </View>
         ) : (
           <SchedeInArrivo quante={2} />
@@ -93,26 +94,26 @@ export function Carrello() {
 
   if (!righe.length) {
     return (
-      <Schermata titolo="Carrello" indietro="/shop" barra={false}>
+      <Schermata titolo={t('Carrello', 'Cart')} indietro="/shop" barra={false}>
         <Carta piatta>
-          <Text style={{ color: p.testo, fontFamily: F.semi, fontSize: 15, lineHeight: 22 }}>Il carrello è vuoto.</Text>
-          <Text style={{ color: p.testoSecondario, fontFamily: F.medio, fontSize: 13.5, lineHeight: 20, marginTop: 4 }}>Scegli un articolo dallo shop e mettilo qui.</Text>
+          <Text style={{ color: p.testo, fontFamily: F.semi, fontSize: 15, lineHeight: 22 }}>{t('Il carrello è vuoto.', 'Your cart is empty.')}</Text>
+          <Text style={{ color: p.testoSecondario, fontFamily: F.medio, fontSize: 13.5, lineHeight: 20, marginTop: 4 }}>{t('Scegli un articolo dallo shop e mettilo qui.', 'Pick an item from the shop and add it here.')}</Text>
         </Carta>
         {problema ? <Messaggio tono="attenzione">{problema}</Messaggio> : null}
-        <Pulsante testo="Vai allo shop" variante="secondario" onPress={() => router.replace('/shop')} />
+        <Pulsante testo={t('Vai allo shop', 'Go to the shop')} variante="secondario" onPress={() => router.replace('/shop')} />
       </Schermata>
     )
   }
 
   return (
-    <Schermata titolo="Carrello" sottotitolo="Controlla gli articoli, poi vai al pagamento." indietro="/shop" barra={false}>
+    <Schermata titolo={t('Carrello', 'Cart')} sottotitolo={t('Controlla gli articoli, poi vai al pagamento.', 'Check your items, then go to payment.')} indietro="/shop" barra={false}>
       <Carta style={{ paddingVertical: spazio.due }}>
         {voci.map(({ r, a }, i) => (
           <View key={r.product_id} style={[stili.riga, i > 0 && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: p.linea }]}>
             <View style={[stili.miniatura, { backgroundColor: p.incavo }]}>{a ? a.foto[0] ? <Image source={{ uri: a.foto[0] }} style={StyleSheet.absoluteFill} contentFit="cover" /> : <SegnapostoFoto size={24} /> : null}</View>
             <View style={{ flex: 1, gap: 6 }}>
               <Text style={[stili.nome, { color: p.testo }]} numberOfLines={2}>
-                {a?.nome ?? 'Articolo non più disponibile'}
+                {a?.nome ?? t('Articolo non più disponibile', 'Item no longer available')}
               </Text>
               {a && !a.esaurito ? (
                 <>
@@ -123,11 +124,11 @@ export function Carrello() {
                   {daPagare ? null : <Quantita valore={r.quantita} massimo={massimo} nome={a.nome} onCambia={(n) => impostaQuantita(r.product_id, n, massimo)} />}
                 </>
               ) : (
-                <Text style={{ color: p.errore, fontFamily: F.bold, fontSize: 13.5 }}>{a ? 'Esaurito: toglilo per continuare.' : 'Toglilo per continuare.'}</Text>
+                <Text style={{ color: p.errore, fontFamily: F.bold, fontSize: 13.5 }}>{a ? t('Esaurito: toglilo per continuare.', 'Sold out: remove it to continue.') : t('Toglilo per continuare.', 'Remove it to continue.')}</Text>
               )}
             </View>
             {daPagare ? null : (
-              <Tocco onPress={() => togliDalCarrello(r.product_id)} etichetta={`Togli ${a?.nome ?? 'l’articolo'} dal carrello`} style={stili.togli}>
+              <Tocco onPress={() => togliDalCarrello(r.product_id)} etichetta={t(`Togli ${a?.nome ?? 'l’articolo'} dal carrello`, `Remove ${a?.nome ?? 'the item'} from the cart`)} style={stili.togli}>
                 <Icona nome="cestino" size={18} colore={p.testoSecondario} />
               </Tocco>
             )}
@@ -135,50 +136,50 @@ export function Carrello() {
         ))}
       </Carta>
 
-      {inVista ? <Messaggio tono="attenzione">Vista cliente: lo shop si guarda soltanto, non si compra.</Messaggio> : null}
+      {inVista ? <Messaggio tono="attenzione">{t('Vista cliente: lo shop si guarda soltanto, non si compra.', 'Client view: you can browse the shop, but not buy.')}</Messaggio> : null}
       {problema ? <Messaggio>{problema}</Messaggio> : null}
 
       {daPagare ? (
         <Carta style={{ gap: spazio.tre }}>
           <View style={stili.totale}>
-            <Text style={[stili.totaleEtichetta, { color: p.testoSecondario }]}>Totale da pagare</Text>
+            <Text style={[stili.totaleEtichetta, { color: p.testoSecondario }]}>{t('Totale da pagare', 'Total to pay')}</Text>
             <Text style={[stili.totaleCifra, { color: p.testo }]}>{euro(daPagare.totale)}</Text>
           </View>
           {daPagare.carta ? (
             <>
               <Pulsante
-                testo={`Paga ${euro(daPagare.totale)} con la carta${daPagare.carta.finale ? ` •••• ${daPagare.carta.finale}` : ''}`}
+                testo={t(`Paga ${euro(daPagare.totale)} con la carta${daPagare.carta.finale ? ` •••• ${daPagare.carta.finale}` : ''}`, `Pay ${euro(daPagare.totale)} with card${daPagare.carta.finale ? ` •••• ${daPagare.carta.finale}` : ''}`)}
                 icona="carta"
                 inCorso={occupato}
                 onPress={() => pagaConCarta(daPagare)}
               />
-              <Pulsante testo="Usa un’altra carta" variante="fantasma" piccolo onPress={() => apri(daPagare.url)} disabilitato={occupato} />
+              <Pulsante testo={t('Usa un’altra carta', 'Use another card')} variante="fantasma" piccolo onPress={() => apri(daPagare.url)} disabilitato={occupato} />
             </>
           ) : (
-            <Pulsante testo={`Vai al pagamento · ${euro(daPagare.totale)}`} icona="carta" onPress={() => apri(daPagare.url)} />
+            <Pulsante testo={t(`Vai al pagamento · ${euro(daPagare.totale)}`, `Go to payment · ${euro(daPagare.totale)}`)} icona="carta" onPress={() => apri(daPagare.url)} />
           )}
-          <Pulsante testo="Torna al carrello" variante="fantasma" piccolo onPress={() => setDaPagare(null)} disabilitato={occupato} />
+          <Pulsante testo={t('Torna al carrello', 'Back to cart')} variante="fantasma" piccolo onPress={() => setDaPagare(null)} disabilitato={occupato} />
           <Text style={[stili.nota, { color: p.testoSecondario }]}>
-            {daPagare.carta ? 'La carta la custodisce ' : 'Paghi sulla pagina protetta di '}
+            {daPagare.carta ? t('La carta la custodisce ', 'Your card is stored by ') : t('Paghi sulla pagina protetta di ', 'You pay on the secure page of ')}
             <InfoAdyen />
-            {daPagare.carta ? ': il club non vede mai il numero completo.' : ', in un passo solo: la carta resta salvata per i prossimi acquisti e il club non ne vede mai il numero completo.'}
+            {daPagare.carta ? t(': il club non vede mai il numero completo.', ': the club never sees the full number.') : t(', in un passo solo: la carta resta salvata per i prossimi acquisti e il club non ne vede mai il numero completo.', ', in a single step: your card stays saved for future purchases and the club never sees the full number.')}
           </Text>
         </Carta>
       ) : (
         <Carta style={{ gap: spazio.tre }}>
           <View style={stili.totale}>
-            <Text style={[stili.totaleEtichetta, { color: p.testoSecondario }]}>Totale</Text>
+            <Text style={[stili.totaleEtichetta, { color: p.testoSecondario }]}>{t('Totale', 'Total')}</Text>
             <Text style={[stili.totaleCifra, { color: p.testo }]}>{euro(totale)}</Text>
           </View>
           <Pulsante
-            testo="Vai al pagamento"
+            testo={t('Vai al pagamento', 'Go to payment')}
             icona="carta"
             inCorso={occupato}
             disabilitato={inVista || nonDisponibili.length > 0}
             onPress={vaiAlPagamento}
           />
           <Text style={[stili.nota, { color: p.testoSecondario }]}>
-            Il ritiro è in segreteria, negli orari di apertura del club: non facciamo spedizioni. Il prezzo si ricontrolla al pagamento, e non si addebita niente finché non confermi su Adyen o con la tua carta.
+            {t('Il ritiro è in segreteria, negli orari di apertura del club: non facciamo spedizioni. Il prezzo si ricontrolla al pagamento, e non si addebita niente finché non confermi su Adyen o con la tua carta.', 'Pick up at reception during the club’s opening hours: we don’t ship. The price is checked again at payment, and nothing is charged until you confirm on Adyen or with your card.')}
           </Text>
         </Carta>
       )}

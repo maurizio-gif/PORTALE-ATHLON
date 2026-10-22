@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native'
 
 import type { Catalogo, GiornoSettimana, PianoSala, SlotRicorrente, Tappa } from '@/api/percorso'
+import { t as tr } from '@/lib/lingua'
 import { spazio } from '@/theme'
 
 import { Scelte } from '../ui/Campi'
@@ -34,11 +35,11 @@ function Stepper({ valore, onCambia, min, max, passo, formato }: { valore: numbe
   const su = valore + passo <= max
   return (
     <View style={stili.stepper}>
-      <Tocco onPress={() => giu && onCambia(valore - passo)} spento={!giu} etichetta="Meno" style={[stili.passo, { backgroundColor: p.incavo, opacity: giu ? 1 : 0.4 }]}>
+      <Tocco onPress={() => giu && onCambia(valore - passo)} spento={!giu} etichetta={tr('Meno', 'Less')} style={[stili.passo, { backgroundColor: p.incavo, opacity: giu ? 1 : 0.4 }]}>
         <Icona nome="meno" size={18} colore={p.testo} />
       </Tocco>
       <Text style={[stili.stepperValore, { color: p.testo }]}>{formato(valore)}</Text>
-      <Tocco onPress={() => su && onCambia(valore + passo)} spento={!su} etichetta="Più" style={[stili.passo, { backgroundColor: p.incavo, opacity: su ? 1 : 0.4 }]}>
+      <Tocco onPress={() => su && onCambia(valore + passo)} spento={!su} etichetta={tr('Più', 'More')} style={[stili.passo, { backgroundColor: p.incavo, opacity: su ? 1 : 0.4 }]}>
         <Icona nome="piu" size={18} colore={p.testo} />
       </Tocco>
     </View>
@@ -134,16 +135,16 @@ export function FoglioTappa({
   // Le tappe del giorno a cui il cardio si puo' agganciare: lezioni e sala, non altro cardio.
   const agganciabili = altre.filter((t) => t.giorno === giorno && t.tipo !== 'cardio')
 
-  const titolo = iniziale ? 'Cambia la tappa' : 'Aggiungi una tappa'
+  const titolo = iniziale ? tr('Cambia la tappa', 'Change the step') : tr('Aggiungi una tappa', 'Add a step')
 
   return (
-    <Foglio aperto titolo={titolo} sottotitolo={iniziale ? undefined : `${NOME_GIORNO[giornoIniziale]}: scegli cosa fare.`} onChiudi={onChiudi}>
+    <Foglio aperto titolo={titolo} sottotitolo={iniziale ? undefined : tr(`${NOME_GIORNO[giornoIniziale]}: scegli cosa fare.`, `${NOME_GIORNO[giornoIniziale]}: choose what to do.`)} onChiudi={onChiudi}>
       <View style={{ gap: spazio.quattro - 4 }}>
         {iniziale ? null : (
           <Scelte
             valori={[
-              { valore: 'lezione', testo: 'Lezione' },
-              { valore: 'sala', testo: 'In sala' },
+              { valore: 'lezione', testo: tr('Lezione', 'Class') },
+              { valore: 'sala', testo: tr('In sala', 'Gym floor') },
               { valore: 'cardio', testo: 'Cardio' },
             ]}
             scelto={tipo}
@@ -155,7 +156,7 @@ export function FoglioTappa({
         {!catalogo && !errore ? (
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: spazio.tre }}>
             <ActivityIndicator color={p.accento} />
-            <Text style={[stili.nota, { color: p.testo }]}>Leggo il palinsesto…</Text>
+            <Text style={[stili.nota, { color: p.testo }]}>{tr('Leggo il palinsesto…', 'Reading the timetable…')}</Text>
           </View>
         ) : null}
 
@@ -185,10 +186,10 @@ export function FoglioTappa({
 
         {tipo === 'sala' && catalogo ? (
           <>
-            <Campo titolo="Giorno">
+            <Campo titolo={tr('Giorno', 'Day')}>
               <Giorni scelto={giorno} onScegli={(g) => { setGiorno(g); setOraSala((o) => Math.max(ORARI_SALA[g][0], Math.min(o, ORARI_SALA[g][1] - minutiSala))) }} />
             </Campo>
-            <Campo titolo="Il piano di allenamento">
+            <Campo titolo={tr('Il piano di allenamento', 'The workout plan')}>
               {piani.length ? (
                 <View style={{ gap: spazio.due }}>
                   {piani.map((x) => {
@@ -206,11 +207,11 @@ export function FoglioTappa({
                           style={[stili.voce, { backgroundColor: attivo ? p.accento : p.carta, borderColor: attivo ? p.accento : p.linea }]}
                         >
                           <Text style={{ color: attivo ? '#fff' : p.testo, fontFamily: F.extra, fontSize: 15 }}>{x.titolo}</Text>
-                          <Text style={{ color: attivo ? 'rgba(255,255,255,0.85)' : p.testoSecondario, fontFamily: F.medio, fontSize: 12.5 }}>{x.del_club ? 'Consigliato dal club' : 'Tuo'}</Text>
+                          <Text style={{ color: attivo ? 'rgba(255,255,255,0.85)' : p.testoSecondario, fontFamily: F.medio, fontSize: 12.5 }}>{x.del_club ? tr('Consigliato dal club', 'Recommended by the club') : tr('Tuo', 'Yours')}</Text>
                         </Tocco>
                         {attivo ? (
                           <Scelte
-                            valori={x.giorni.map((g) => ({ valore: g.posizione, testo: `${g.nome ?? `Giorno ${g.posizione}`} · ${g.esercizi} es.` }))}
+                            valori={x.giorni.map((g) => ({ valore: g.posizione, testo: `${g.nome ?? tr(`Giorno ${g.posizione}`, `Day ${g.posizione}`)} · ${g.esercizi} ${tr('es.', 'ex.')}` }))}
                             scelto={posizione}
                             onScegli={setPosizione}
                           />
@@ -220,13 +221,13 @@ export function FoglioTappa({
                   })}
                 </View>
               ) : (
-                <Text style={[stili.nota, { color: p.testoSecondario }]}>Non hai ancora un piano di allenamento: creane uno dalla pagina Train, e torna qui.</Text>
+                <Text style={[stili.nota, { color: p.testoSecondario }]}>{tr('Non hai ancora un piano di allenamento: creane uno dalla pagina Train, e torna qui.', 'You don’t have a workout plan yet: create one from the Train page, then come back here.')}</Text>
               )}
             </Campo>
-            <Campo titolo="A che ora">
+            <Campo titolo={tr('A che ora', 'What time')}>
               <Stepper valore={oraSala} onCambia={setOraSala} min={apre} max={Math.max(apre, chiude - minutiSala)} passo={15} formato={oraDaMinuti} />
             </Campo>
-            <Campo titolo="Per quanto">
+            <Campo titolo={tr('Per quanto', 'How long')}>
               <Stepper valore={minutiSala} onCambia={(m) => { setMinutiSala(m); setOraSala((o) => Math.min(o, chiude - m)) }} min={TETTI.minutiSala[0]} max={TETTI.minutiSala[1]} passo={5} formato={(m) => `${m} min`} />
             </Campo>
           </>
@@ -234,27 +235,27 @@ export function FoglioTappa({
 
         {tipo === 'cardio' && catalogo ? (
           <>
-            <Campo titolo="Giorno">
+            <Campo titolo={tr('Giorno', 'Day')}>
               <Giorni scelto={giorno} onScegli={(g) => { setGiorno(g); setQuando('ora'); setOraCardio((o) => Math.max(ORARI_SALA[g][0], Math.min(o, ORARI_SALA[g][1] - minutiCardio))) }} />
             </Campo>
-            <Campo titolo="La macchina">
+            <Campo titolo={tr('La macchina', 'The machine')}>
               {catalogo.cardio.length ? (
                 <Scelte valori={catalogo.cardio.map((c) => ({ valore: c.id, testo: c.nome }))} scelto={macchina} onScegli={setMacchina} />
               ) : (
-                <Text style={[stili.nota, { color: p.testoSecondario }]}>Non ci sono macchine cardio nella libreria.</Text>
+                <Text style={[stili.nota, { color: p.testoSecondario }]}>{tr('Non ci sono macchine cardio nella libreria.', 'There are no cardio machines in the library.')}</Text>
               )}
             </Campo>
-            <Campo titolo="Per quanto">
+            <Campo titolo={tr('Per quanto', 'How long')}>
               <Stepper valore={minutiCardio} onCambia={(m) => { setMinutiCardio(m); setOraCardio((o) => Math.min(o, chiude - m)) }} min={TETTI.minutiCardio[0]} max={TETTI.minutiCardio[1]} passo={5} formato={(m) => `${m} min`} />
             </Campo>
-            <Campo titolo="Quando">
+            <Campo titolo={tr('Quando', 'When')}>
               <Scelte
                 valori={[
                   ...agganciabili.flatMap((t) => [
-                    { valore: `prima:${t.ordine}`, testo: `Prima di ${t.tipo === 'lezione' ? (t.lezione?.nome ?? 'lezione') : 'la sala'} (${t.ora})` },
-                    { valore: `dopo:${t.ordine}`, testo: `Dopo ${t.tipo === 'lezione' ? (t.lezione?.nome ?? 'la lezione') : 'la sala'}` },
+                    { valore: `prima:${t.ordine}`, testo: tr(`Prima di ${t.tipo === 'lezione' ? (t.lezione?.nome ?? 'lezione') : 'la sala'} (${t.ora})`, `Before ${t.tipo === 'lezione' ? (t.lezione?.nome ?? 'the class') : 'the gym floor'} (${t.ora})`) },
+                    { valore: `dopo:${t.ordine}`, testo: tr(`Dopo ${t.tipo === 'lezione' ? (t.lezione?.nome ?? 'la lezione') : 'la sala'}`, `After ${t.tipo === 'lezione' ? (t.lezione?.nome ?? 'the class') : 'the gym floor'}`) },
                   ]),
-                  { valore: 'ora', testo: 'A un’ora precisa' },
+                  { valore: 'ora', testo: tr('A un’ora precisa', 'At a set time') },
                 ]}
                 scelto={quando}
                 onScegli={setQuando}
@@ -262,7 +263,7 @@ export function FoglioTappa({
               {quando === 'ora' ? (
                 <Stepper valore={oraCardio} onCambia={setOraCardio} min={apre} max={Math.max(apre, chiude - minutiCardio)} passo={15} formato={oraDaMinuti} />
               ) : costruita?.ora ? (
-                <Text style={[stili.nota, { color: p.testoSecondario }]}>{`Si fa alle ${costruita.ora}, con dieci minuti di pausa dall’altra tappa.`}</Text>
+                <Text style={[stili.nota, { color: p.testoSecondario }]}>{tr(`Si fa alle ${costruita.ora}, con dieci minuti di pausa dall’altra tappa.`, `It’s at ${costruita.ora}, with a ten-minute break from the other step.`)}</Text>
               ) : null}
             </Campo>
           </>
@@ -276,7 +277,7 @@ export function FoglioTappa({
               </Messaggio>
             ))}
             <Pulsante
-              testo={iniziale ? 'Salva la tappa' : 'Aggiungi al percorso'}
+              testo={iniziale ? tr('Salva la tappa', 'Save the step') : tr('Aggiungi al percorso', 'Add to the program')}
               icona="spunta"
               onPress={() => costruita && onConferma(costruita)}
               disabilitato={!costruita || problemi.length > 0}
@@ -310,20 +311,20 @@ function Lezioni({
   const conOpzione = catalogo.idoneita.categorie != null
   return (
     <View style={{ gap: spazio.tre }}>
-      <Campo titolo="Giorno">
+      <Campo titolo={tr('Giorno', 'Day')}>
         <Giorni scelto={giorno} onScegli={setGiorno} />
       </Campo>
       {conOpzione ? (
         <Scelte
           valori={[
-            { valore: 'no', testo: 'Solo comprese' },
-            { valore: 'si', testo: 'Anche non comprese' },
+            { valore: 'no', testo: tr('Solo comprese', 'Included only') },
+            { valore: 'si', testo: tr('Anche non comprese', 'Also not included') },
           ]}
           scelto={nonComprese ? 'si' : 'no'}
           onScegli={(v) => onNonComprese(v === 'si')}
         />
       ) : null}
-      <Campo titolo={`Lezioni di ${NOME_GIORNO[giorno].toLowerCase()}`}>
+      <Campo titolo={tr(`Lezioni di ${NOME_GIORNO[giorno].toLowerCase()}`, `${NOME_GIORNO[giorno]} classes`)}>
         {delGiorno.length ? (
           <View style={{ gap: spazio.due }}>
             {delGiorno.map((s) => {
@@ -341,19 +342,22 @@ function Lezioni({
                 >
                   <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: spazio.due }}>
                     <Text style={{ color: p.testo, fontFamily: F.extra, fontSize: 15, flex: 1 }}>{`${s.ora} · ${s.nome}`}</Text>
-                    {s.compresa === false ? <Etichetta testo="Da acquistare" tono="attenzione" /> : null}
+                    {s.compresa === false ? <Etichetta testo={tr('Da acquistare', 'To purchase')} tono="attenzione" /> : null}
                   </View>
                   <Text style={{ color: p.testoSecondario, fontFamily: F.medio, fontSize: 12.5 }}>
                     {`${s.categoria} · ${s.minuti} min`}
-                    {gia ? ' · è già nel percorso' : guai.length ? ` · si sovrappone a un’altra tappa` : ''}
-                    {spessoCompleta(s.affollamento) ? ' · spesso al completo' : ''}
+                    {gia ? tr(' · è già nel percorso', ' · already in the program') : guai.length ? tr(' · si sovrappone a un’altra tappa', ' · overlaps with another step') : ''}
+                    {spessoCompleta(s.affollamento) ? tr(' · spesso al completo', ' · often full') : ''}
                   </Text>
                 </Tocco>
               )
             })}
           </View>
         ) : (
-          <Text style={[stili.nota, { color: p.testoSecondario }]}>Quel giorno non ci sono lezioni che ricorrono ogni settimana{nonComprese ? '' : ' fra quelle comprese nel tuo abbonamento'}.</Text>
+          <Text style={[stili.nota, { color: p.testoSecondario }]}>
+            {tr('Quel giorno non ci sono lezioni che ricorrono ogni settimana', 'That day there are no weekly recurring classes')}
+            {nonComprese ? '' : tr(' fra quelle comprese nel tuo abbonamento', ' among those included in your membership')}.
+          </Text>
         )}
       </Campo>
     </View>

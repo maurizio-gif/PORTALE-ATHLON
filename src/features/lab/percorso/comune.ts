@@ -1,32 +1,39 @@
 import type { Fascia, Gruppo, GiornoSettimana, Tappa, TipoTappa } from '@/api/percorso'
+import { locale, t, t as tr, tv } from '@/lib/lingua'
 
 // Le parole e i piccoli conti del Percorso Athlon (20/10/2026). **Non e' un piano di allenamento**: il piano
 // (nel codice, la «scheda») sono gli esercizi di un allenamento in sala; il Percorso e' la settimana intera, e
 // i piani ci entrano come tappe di sala. Nei testi per il socio si scrive «percorso» e mai «piano» o «scheda»
 // per questo: la distinzione e' la prima cosa che la schermata deve far capire.
 
-export const NOME_GIORNO: Record<GiornoSettimana, string> = { 1: 'Lunedì', 2: 'Martedì', 3: 'Mercoledì', 4: 'Giovedì', 5: 'Venerdì', 6: 'Sabato', 7: 'Domenica' }
-export const GIORNO_BREVE: Record<GiornoSettimana, string> = { 1: 'Lun', 2: 'Mar', 3: 'Mer', 4: 'Gio', 5: 'Ven', 6: 'Sab', 7: 'Dom' }
+export const NOME_GIORNO: Record<GiornoSettimana, string> = tv(
+  { 1: 'Lunedì', 2: 'Martedì', 3: 'Mercoledì', 4: 'Giovedì', 5: 'Venerdì', 6: 'Sabato', 7: 'Domenica' },
+  { 1: 'Monday', 2: 'Tuesday', 3: 'Wednesday', 4: 'Thursday', 5: 'Friday', 6: 'Saturday', 7: 'Sunday' },
+)
+export const GIORNO_BREVE: Record<GiornoSettimana, string> = tv(
+  { 1: 'Lun', 2: 'Mar', 3: 'Mer', 4: 'Gio', 5: 'Ven', 6: 'Sab', 7: 'Dom' },
+  { 1: 'Mon', 2: 'Tue', 3: 'Wed', 4: 'Thu', 5: 'Fri', 6: 'Sat', 7: 'Sun' },
+)
 export const GIORNI: GiornoSettimana[] = [1, 2, 3, 4, 5, 6, 7]
 
 export const NOME_GRUPPO: Record<Gruppo, { titolo: string; nota: string }> = {
-  mente_corpo: { titolo: 'Mente e corpo', nota: 'Yoga, pilates, Reformer, postura' },
-  forza_tono: { titolo: 'Forza e tono', nota: 'Body sculpt, calisthenics, circuiti' },
-  cardio_danza: { titolo: 'Cardio e danza', nota: 'Coreografie, balli, ritmo' },
-  acqua: { titolo: 'Acqua', nota: 'Aqua fitness, nuoto libero, corsi di nuoto' },
-  combat: { titolo: 'Combat', nota: 'Boxe e difesa personale' },
+  mente_corpo: { titolo: t('Mente e corpo', 'Mind and body'), nota: t('Yoga, pilates, Reformer, postura', 'Yoga, pilates, Reformer, posture') },
+  forza_tono: { titolo: t('Forza e tono', 'Strength and tone'), nota: t('Body sculpt, calisthenics, circuiti', 'Body sculpt, calisthenics, circuits') },
+  cardio_danza: { titolo: t('Cardio e danza', 'Cardio and dance'), nota: t('Coreografie, balli, ritmo', 'Choreography, dance, rhythm') },
+  acqua: { titolo: t('Acqua', 'Water'), nota: t('Aqua fitness, nuoto libero, corsi di nuoto', 'Aqua fitness, lap swimming, swim courses') },
+  combat: { titolo: 'Combat', nota: t('Boxe e difesa personale', 'Boxing and self-defense') },
 }
 
 export const NOME_FASCIA: Record<Fascia, { titolo: string; nota: string }> = {
-  mattina_presto: { titolo: 'Mattina presto', nota: 'prima delle 9' },
-  mattina: { titolo: 'Mattina', nota: '9–12' },
-  pranzo: { titolo: 'Pranzo', nota: '12–14:30' },
-  pomeriggio: { titolo: 'Pomeriggio', nota: '14:30–17:30' },
-  sera: { titolo: 'Sera', nota: 'dopo le 17:30' },
-  weekend: { titolo: 'Weekend', nota: 'sabato e domenica' },
+  mattina_presto: { titolo: t('Mattina presto', 'Early morning'), nota: t('prima delle 9', 'before 9') },
+  mattina: { titolo: t('Mattina', 'Morning'), nota: '9–12' },
+  pranzo: { titolo: t('Pranzo', 'Lunchtime'), nota: '12–14:30' },
+  pomeriggio: { titolo: t('Pomeriggio', 'Afternoon'), nota: '14:30–17:30' },
+  sera: { titolo: t('Sera', 'Evening'), nota: t('dopo le 17:30', 'after 17:30') },
+  weekend: { titolo: 'Weekend', nota: t('sabato e domenica', 'Saturday and Sunday') },
 }
 
-export const ETICHETTA_TIPO: Record<TipoTappa, string> = { lezione: 'Lezione', sala: 'In sala', cardio: 'Cardio' }
+export const ETICHETTA_TIPO: Record<TipoTappa, string> = { lezione: t('Lezione', 'Class'), sala: t('In sala', 'Gym floor'), cardio: 'Cardio' }
 
 /** L'istante in minuti dalla mezzanotte di «HH:MM», o null. */
 export function minutiDaOra(ora: string | null | undefined): number | null {
@@ -50,10 +57,10 @@ export function fasciaOraria(ora: string | null, minuti: number): string {
 
 /** Cosa si fa in una tappa, in due parole: il nome della lezione, il giorno del piano, la macchina. */
 export function titoloTappa(t: Tappa): string {
-  if (t.tipo === 'lezione') return t.lezione?.nome ?? 'Lezione'
+  if (t.tipo === 'lezione') return t.lezione?.nome ?? tr('Lezione', 'Class')
   if (t.tipo === 'cardio') return t.cardio?.nome ?? 'Cardio'
   const giorno = t.sala?.giorno_nome ? ` · ${t.sala.giorno_nome}` : ''
-  return `${t.sala?.scheda_titolo ?? 'Sala'}${giorno}`
+  return `${t.sala?.scheda_titolo ?? tr('Sala', 'Gym floor')}${giorno}`
 }
 
 /** Le tappe di un giorno, nell'ordine in cui si fanno. */
@@ -74,8 +81,8 @@ export function rinumera(tappe: Tappa[]): Tappa[] {
   })
 }
 
-const dataLunga = new Intl.DateTimeFormat('it-IT', { day: 'numeric', month: 'long', timeZone: 'UTC' })
-const dataBreve = new Intl.DateTimeFormat('it-IT', { day: 'numeric', month: 'short', timeZone: 'UTC' })
+const dataLunga = new Intl.DateTimeFormat(locale(), { day: 'numeric', month: 'long', timeZone: 'UTC' })
+const dataBreve = new Intl.DateTimeFormat(locale(), { day: 'numeric', month: 'short', timeZone: 'UTC' })
 
 /** «21 ottobre», da AAAA-MM-GG. */
 export const dataEstesa = (giorno: string) => dataLunga.format(new Date(`${giorno}T12:00:00Z`))

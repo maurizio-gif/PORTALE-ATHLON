@@ -18,6 +18,7 @@ import type {
   RispostaConsigli,
   SedutaConsigliata,
 } from '@/api/percorso'
+import { t, tv } from '@/lib/lingua'
 
 // Le parole e i piccoli conti dei Consigli di Athlon (20/10/2026, rifatti il 21/10/2026). Sono **consigli**, non una settimana:
 // dal profilo del socio (obiettivi, esperienza, gusti, quando preferisce venire) quali tipi di lezione potrebbero interessargli,
@@ -72,64 +73,64 @@ export const SCELTE_DI_PARTENZA: SceltePerConsigli = {
 }
 
 export const ESPERIENZA_TESTO: Record<Esperienza, { testo: string; nota: string }> = {
-  mai: { testo: 'Non ho mai praticato', nota: 'Non ho mai fatto attività fisica con regolarità: parto da zero.' },
-  ex: { testo: 'Ho praticato, poi ho smesso', nota: 'Mi allenavo, poi ho smesso e ora voglio riprendere.' },
-  pratico: { testo: 'Mi alleno già', nota: 'Faccio già attività con regolarità, qui o altrove.' },
+  mai: { testo: t('Non ho mai praticato', 'I’ve never trained'), nota: t('Non ho mai fatto attività fisica con regolarità: parto da zero.', 'I’ve never exercised regularly: I’m starting from scratch.') },
+  ex: { testo: t('Ho praticato, poi ho smesso', 'I used to train, then stopped'), nota: t('Mi allenavo, poi ho smesso e ora voglio riprendere.', 'I used to train, then stopped, and now I want to get back to it.') },
+  pratico: { testo: t('Mi alleno già', 'I already train'), nota: t('Faccio già attività con regolarità, qui o altrove.', 'I already exercise regularly, here or elsewhere.') },
 }
 
 export const PAUSA_TESTO: Record<Pausa, string> = {
-  meno_di_un_anno: 'Meno di un anno fa',
-  da_uno_a_tre_anni: 'Da uno a tre anni fa',
-  oltre_tre_anni: 'Più di tre anni fa',
+  meno_di_un_anno: t('Meno di un anno fa', 'Less than a year ago'),
+  da_uno_a_tre_anni: t('Da uno a tre anni fa', 'One to three years ago'),
+  oltre_tre_anni: t('Più di tre anni fa', 'More than three years ago'),
 }
 
 export const DISCIPLINA_TESTO: Record<Disciplina, string> = {
-  sala_pesi: 'Sala pesi',
-  corsa: 'Corsa',
-  corsi_di_gruppo: 'Corsi di gruppo',
-  yoga_pilates: 'Yoga o pilates',
-  nuoto: 'Nuoto',
-  sport_di_squadra: 'Sport di squadra',
-  combattimento: 'Arti marziali o boxe',
-  danza: 'Danza',
-  ciclismo: 'Ciclismo o spinning',
-  altro: 'Altro',
+  sala_pesi: t('Sala pesi', 'Gym floor'),
+  corsa: t('Corsa', 'Running'),
+  corsi_di_gruppo: t('Corsi di gruppo', 'Group classes'),
+  yoga_pilates: t('Yoga o pilates', 'Yoga or pilates'),
+  nuoto: t('Nuoto', 'Swimming'),
+  sport_di_squadra: t('Sport di squadra', 'Team sports'),
+  combattimento: t('Arti marziali o boxe', 'Martial arts or boxing'),
+  danza: t('Danza', 'Dance'),
+  ciclismo: t('Ciclismo o spinning', 'Cycling or spinning'),
+  altro: t('Altro', 'Other'),
 }
 
 export const LIVELLO_TESTO: Record<Livello, { testo: string; nota: string }> = {
-  principiante: { testo: 'Da costruire', nota: 'Mi stanco presto, o è da tanto che non mi alleno.' },
-  intermedio: { testo: 'Discreta', nota: 'Reggo un’ora di attività senza troppa fatica.' },
-  esperto: { testo: 'Ottima', nota: 'Reggo senza problemi anche le lezioni intense.' },
+  principiante: { testo: t('Da costruire', 'Needs building'), nota: t('Mi stanco presto, o è da tanto che non mi alleno.', 'I tire quickly, or it’s been a long time since I trained.') },
+  intermedio: { testo: t('Discreta', 'Fair'), nota: t('Reggo un’ora di attività senza troppa fatica.', 'I can manage an hour of activity without too much effort.') },
+  esperto: { testo: t('Ottima', 'Excellent'), nota: t('Reggo senza problemi anche le lezioni intense.', 'I can easily handle intense classes too.') },
 }
 
 export const INTENSITA_TESTO: Record<Intensita, { testo: string; nota: string }> = {
-  dolce: { testo: 'Tranquilla', nota: 'Mi piace muovermi senza affanno.' },
-  media: { testo: 'Media', nota: 'Un po’ di fatica, ma senza esagerare.' },
-  intensa: { testo: 'Intensa', nota: 'Mi piace sudare e spingere.' },
+  dolce: { testo: t('Tranquilla', 'Easy'), nota: t('Mi piace muovermi senza affanno.', 'I like to move without getting out of breath.') },
+  media: { testo: t('Media', 'Moderate'), nota: t('Un po’ di fatica, ma senza esagerare.', 'A bit of effort, but nothing extreme.') },
+  intensa: { testo: t('Intensa', 'Intense'), nota: t('Mi piace sudare e spingere.', 'I like to sweat and push hard.') },
 }
 
-export const PERSONAL_ESPERIENZA_TESTO: Record<PersonalEsperienza, string> = { mai: 'Mai', passato: 'In passato', ora: 'Sì, adesso' }
-export const PERSONAL_INTERESSE_TESTO: Record<PersonalInteresse, string> = { no: 'No, grazie', curioso: 'Mi incuriosisce', si: 'Sì, mi piacerebbe' }
+export const PERSONAL_ESPERIENZA_TESTO: Record<PersonalEsperienza, string> = { mai: t('Mai', 'Never'), passato: t('In passato', 'In the past'), ora: t('Sì, adesso', 'Yes, right now') }
+export const PERSONAL_INTERESSE_TESTO: Record<PersonalInteresse, string> = { no: t('No, grazie', 'No, thanks'), curioso: t('Mi incuriosisce', 'I’m curious'), si: t('Sì, mi piacerebbe', 'Yes, I’d like that') }
 
 /** Le domande indirette sul personal: cosa c'e' dietro agli obiettivi. */
 export const BISOGNO_TESTO: Record<Bisogno, { testo: string; nota: string }> = {
-  tecnica: { testo: 'Imparare a fare bene gli esercizi', nota: 'la tecnica giusta, senza farmi male' },
-  scadenza: { testo: 'Ho una data in mente', nota: 'un evento, una gara, l’estate' },
-  ripresa: { testo: 'Ripartire dopo uno stop', nota: 'una pausa lunga, un periodo difficile' },
-  costanza: { testo: 'Restare costante', nota: 'mi serve qualcuno che mi tenga sulla strada' },
-  su_misura: { testo: 'Un lavoro su misura', nota: 'costruito su di me e su come cambio' },
+  tecnica: { testo: t('Imparare a fare bene gli esercizi', 'Learning to do the exercises properly'), nota: t('la tecnica giusta, senza farmi male', 'the right technique, without getting hurt') },
+  scadenza: { testo: t('Ho una data in mente', 'I have a date in mind'), nota: t('un evento, una gara, l’estate', 'an event, a race, the summer') },
+  ripresa: { testo: t('Ripartire dopo uno stop', 'Restarting after a break'), nota: t('una pausa lunga, un periodo difficile', 'a long break, a tough time') },
+  costanza: { testo: t('Restare costante', 'Staying consistent'), nota: t('mi serve qualcuno che mi tenga sulla strada', 'I need someone to keep me on track') },
+  su_misura: { testo: t('Un lavoro su misura', 'Tailor-made training'), nota: t('costruito su di me e su come cambio', 'built around me and how I change') },
 }
 
 /** Cosa gli piace fare: i generi di lezione, e in piu' la sala pesi per conto suo e nuotare. */
 export type Gusto = Gruppo | 'sala' | 'nuotare'
 export const GUSTI: { valore: Gusto; testo: string; nota: string }[] = [
-  { valore: 'mente_corpo', testo: 'Mente e corpo', nota: 'yoga, pilates, Reformer, postura' },
-  { valore: 'forza_tono', testo: 'Forza e tono', nota: 'body sculpt, calisthenics, circuiti' },
-  { valore: 'cardio_danza', testo: 'Cardio e musica', nota: 'coreografie, balli, ritmo' },
-  { valore: 'combat', testo: 'Combattimento', nota: 'boxe e difesa personale' },
-  { valore: 'acqua', testo: 'Lezioni in acqua', nota: 'aqua fitness, hydrobike' },
-  { valore: 'nuotare', testo: 'Nuotare', nota: 'il nuoto libero, o imparare' },
-  { valore: 'sala', testo: 'Sala pesi per conto mio', nota: 'con un piano di allenamento' },
+  { valore: 'mente_corpo', testo: t('Mente e corpo', 'Mind and body'), nota: t('yoga, pilates, Reformer, postura', 'yoga, pilates, Reformer, posture') },
+  { valore: 'forza_tono', testo: t('Forza e tono', 'Strength and tone'), nota: t('body sculpt, calisthenics, circuiti', 'body sculpt, calisthenics, circuits') },
+  { valore: 'cardio_danza', testo: t('Cardio e musica', 'Cardio and music'), nota: t('coreografie, balli, ritmo', 'choreography, dance, rhythm') },
+  { valore: 'combat', testo: t('Combattimento', 'Combat'), nota: t('boxe e difesa personale', 'boxing and self-defense') },
+  { valore: 'acqua', testo: t('Lezioni in acqua', 'Water classes'), nota: 'aqua fitness, hydrobike' },
+  { valore: 'nuotare', testo: t('Nuotare', 'Swimming'), nota: t('il nuoto libero, o imparare', 'lap swimming, or learning') },
+  { valore: 'sala', testo: t('Sala pesi per conto mio', 'Gym floor on my own'), nota: t('con un piano di allenamento', 'with a workout plan') },
 ]
 
 export const gustiDi = (s: SceltePerConsigli): Gusto[] => [...s.gruppi, ...(s.sala ? (['sala'] as const) : []), ...(s.nuotare ? (['nuotare'] as const) : [])]
@@ -143,9 +144,13 @@ export function conGusti(s: SceltePerConsigli, gusti: Gusto[]): Partial<SceltePe
 /** «Martedì 20 ottobre»: il giorno com'e' scritto, con l'iniziale maiuscola. */
 export const titoloGiorno = (testo: string) => testo.charAt(0).toUpperCase() + testo.slice(1)
 
-export const volteTesto = (n: number) => (n === 1 ? 'una volta a settimana' : n === 2 ? 'due volte a settimana' : n === 3 ? 'tre volte a settimana' : `${n} volte a settimana`)
+export const volteTesto = (n: number) =>
+  t(
+    n === 1 ? 'una volta a settimana' : n === 2 ? 'due volte a settimana' : n === 3 ? 'tre volte a settimana' : `${n} volte a settimana`,
+    n === 1 ? 'once a week' : n === 2 ? 'twice a week' : n === 3 ? 'three times a week' : `${n} times a week`,
+  )
 
-const GIORNO_ORARIO = ['', 'lun', 'mar', 'mer', 'gio', 'ven', 'sab', 'dom']
+const GIORNO_ORARIO = tv(['', 'lun', 'mar', 'mer', 'gio', 'ven', 'sab', 'dom'], ['', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'])
 /** «lun 18:30». */
 export const testoOrario = (o: Pick<OrarioLezione, 'giorno' | 'ora'>) => `${GIORNO_ORARIO[o.giorno] ?? ''} ${o.ora}`.trim()
 
@@ -156,11 +161,14 @@ export function orariOrdinati(orari: OrarioLezione[]): { orari: OrarioLezione[];
 }
 
 /** I giorni di una seduta in parole: «lunedì e giovedì». */
-const GIORNO_ESTESO = ['', 'lunedì', 'martedì', 'mercoledì', 'giovedì', 'venerdì', 'sabato', 'domenica']
+const GIORNO_ESTESO = tv(
+  ['', 'lunedì', 'martedì', 'mercoledì', 'giovedì', 'venerdì', 'sabato', 'domenica'],
+  ['', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'],
+)
 export function giorniTesto(giorni: number[]): string | null {
   const nomi = giorni.map((g) => GIORNO_ESTESO[g]).filter(Boolean)
   if (!nomi.length) return null
-  return nomi.length === 1 ? nomi[0] : `${nomi.slice(0, -1).join(', ')} e ${nomi[nomi.length - 1]}`
+  return nomi.length === 1 ? nomi[0] : `${nomi.slice(0, -1).join(', ')} ${t('e', 'and')} ${nomi[nomi.length - 1]}`
 }
 
 /** Dove porta una seduta: a comporre il piano (in sala o in vasca) e, per prenotare il turno, al calendario sul primo giorno utile. */
@@ -182,7 +190,7 @@ export type FormulaPersonal = {
   destinazione: { pathname: '/personal'; params?: { compra: string } }
 }
 
-export const sedutePersonalTesto = (n: number) => (n === 1 ? 'una seduta al mese' : `${n} sedute al mese`)
+export const sedutePersonalTesto = (n: number) => (n === 1 ? t('una seduta al mese', 'one session a month') : t(`${n} sedute al mese`, `${n} sessions a month`))
 
 /**
  * Dal consiglio (quante sedute al mese) e dallo stato del personal (`statoPersonal`: la seduta singola in vendita, gli
@@ -197,16 +205,16 @@ export function formulePersonal(c: ConsiglioPersonal, stato: StatoPersonal | nul
   const minuti = stato?.acquisto?.minuti
   const singola: FormulaPersonal = {
     chiave: 'seduta',
-    titolo: 'Seduta singola',
-    sotto: `${minuti ? `${minuti} minuti` : 'Una seduta'} con un trainer, da prenotare quando vuoi`,
+    titolo: t('Seduta singola', 'Single session'),
+    sotto: t(`${minuti ? `${minuti} minuti` : 'Una seduta'} con un trainer, da prenotare quando vuoi`, `${minuti ? `${minuti} minutes` : 'A session'} with a trainer, to book whenever you like`),
     prezzo: prezzoSeduta,
     alMese: false,
     destinazione: { pathname: '/personal' },
   }
   const pacchetto = (k: PacchettoPersonal): FormulaPersonal => ({
     chiave: `pt-${k.piano_id}`,
-    titolo: `Abbonamento PT · ${sedutePersonalTesto(k.sedute ?? 0)}`,
-    sotto: 'Si aggiunge al tuo abbonamento: le sedute si caricano ogni mese',
+    titolo: `${t('Abbonamento PT', 'PT membership')} · ${sedutePersonalTesto(k.sedute ?? 0)}`,
+    sotto: t('Si aggiunge al tuo abbonamento: le sedute si caricano ogni mese', 'Added to your membership: sessions are loaded every month'),
     prezzo: k.prezzo_mese,
     alMese: true,
     destinazione: { pathname: '/personal', params: { compra: String(k.piano_id) } },
@@ -215,7 +223,7 @@ export function formulePersonal(c: ConsiglioPersonal, stato: StatoPersonal | nul
   const pacchetti = attivo ? [] : (stato?.pacchetti ?? [])
   const scelto = c.sedute_mese === 1 ? null : pacchetti.find((k) => k.sedute === c.sedute_mese) ?? null
   // Senza lo stato non si sa cosa e' in vendita: la consigliata resta, senza prezzo, e porta alla schermata del personal.
-  const senzaStato: FormulaPersonal = { ...singola, chiave: `pt-${c.sedute_mese}`, titolo: `Abbonamento PT · ${sedutePersonalTesto(c.sedute_mese)}`, sotto: null, alMese: true }
+  const senzaStato: FormulaPersonal = { ...singola, chiave: `pt-${c.sedute_mese}`, titolo: `${t('Abbonamento PT', 'PT membership')} · ${sedutePersonalTesto(c.sedute_mese)}`, sotto: null, alMese: true }
   const consigliata = scelto ? pacchetto(scelto) : c.sedute_mese === 1 || stato ? singola : senzaStato
   const altre = [singola, ...pacchetti.map(pacchetto)].filter((f) => f.chiave !== consigliata.chiave)
   return { consigliata, altre: stato ? altre : [], attivo, senzaAbbonamento: !!stato && !attivo && !stato.pacchetti.length && c.sedute_mese > 1 }
@@ -235,10 +243,10 @@ export function evitateDa(testo: string): string[] {
 /** Cosa manca perche' il questionario si possa mandare, nell'ordine delle domande; vuoto se c'e' tutto. */
 export function cosaManca(s: SceltePerConsigli): string[] {
   const manca: string[] = []
-  if (!s.obiettivi.length) manca.push('un obiettivo')
-  if (!s.esperienza) manca.push('la tua esperienza')
-  else if (s.esperienza !== 'mai' && !s.livello) manca.push('com’è la tua forma oggi')
-  if (s.nuotare && s.saNuotare === null) manca.push('se sai nuotare stile libero e dorso')
+  if (!s.obiettivi.length) manca.push(t('un obiettivo', 'a goal'))
+  if (!s.esperienza) manca.push(t('la tua esperienza', 'your experience'))
+  else if (s.esperienza !== 'mai' && !s.livello) manca.push(t('com’è la tua forma oggi', 'how fit you are today'))
+  if (s.nuotare && s.saNuotare === null) manca.push(t('se sai nuotare stile libero e dorso', 'whether you can swim freestyle and backstroke'))
   return manca
 }
 

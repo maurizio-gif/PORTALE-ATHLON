@@ -1,4 +1,5 @@
 import type { Alternativa, DatiLezione, TappaSettimana } from '@/api/percorso'
+import { locale, t as tr } from '@/lib/lingua'
 
 // Le tappe-lezione della settimana, divise per cosa se ne puo' fare adesso: la logica di «Prenota la
 // settimana» (`PrenotaSettimana.tsx`), tenuta qui perche' e' pura e si prova senza schermata.
@@ -43,7 +44,7 @@ export function dividiLaSettimana(tappe: TappaSettimana[]) {
     else if (t.lezione?.compresa === false) daAcquistare.push({ t, d })
     else if (d.dopo) piuAvanti.push({ t, d, perche: d.dopo.messaggio })
     else if (d.limite) piuAvanti.push({ t, d, perche: d.limite.messaggio })
-    else if (d.prenotabile_dal) piuAvanti.push({ t, d, perche: `Si apre il ${giornoOra(d.prenotabile_dal)}.` })
+    else if (d.prenotabile_dal) piuAvanti.push({ t, d, perche: tr(`Si apre il ${giornoOra(d.prenotabile_dal)}.`, `Opens ${giornoOra(d.prenotabile_dal)}.`) })
     else if (d.liberi <= 0) complete.push({ t, d, alternative: (t.alternative ?? []).filter(prenotabileOra) })
     else adesso.push({ t, d })
   }
@@ -90,7 +91,7 @@ export function listaDaPrenotare(g: ReturnType<typeof dividiLaSettimana>, scelte
 
 export const giornoOra = (iso: string) => {
   const d = new Date(iso)
-  const giorno = d.toLocaleDateString('it-IT', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'Europe/Rome' })
-  const ora = d.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit', hourCycle: 'h23', timeZone: 'Europe/Rome' })
+  const giorno = d.toLocaleDateString(locale(), { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'Europe/Rome' })
+  const ora = d.toLocaleTimeString(locale(), { hour: '2-digit', minute: '2-digit', hourCycle: 'h23', timeZone: 'Europe/Rome' })
   return `${giorno} · ${ora}`
 }

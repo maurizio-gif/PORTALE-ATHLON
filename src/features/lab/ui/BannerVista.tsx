@@ -1,5 +1,7 @@
 import { StyleSheet, Text, View } from 'react-native'
 
+import { t } from '@/lib/lingua'
+
 import { esciDallaVista, vistaCorrente } from '../vista'
 import { Icona } from './Icona'
 import { F } from './tema'
@@ -18,14 +20,14 @@ export function BannerVista() {
       <Icona nome="persona" size={16} colore="#fff" />
       <View style={{ flex: 1 }}>
         <Text style={stili.forte} numberOfLines={1}>
-          Vista cliente · solo lettura
+          {t('Vista cliente · solo lettura', 'Client view · read only')}
         </Text>
         <Text style={stili.testo} numberOfLines={1}>
           {email}
         </Text>
       </View>
-      <Tocco onPress={esciDallaVista} etichetta="Esci dalla vista cliente" scala={0.94} style={stili.esci}>
-        <Text style={stili.esciTesto}>Esci</Text>
+      <Tocco onPress={esciDallaVista} etichetta={t('Esci dalla vista cliente', 'Leave client view')} scala={0.94} style={stili.esci}>
+        <Text style={stili.esciTesto}>{t('Esci', 'Leave')}</Text>
       </Tocco>
     </View>
   )

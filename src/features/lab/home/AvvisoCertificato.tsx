@@ -2,6 +2,7 @@ import { StyleSheet, Text, useWindowDimensions, View } from 'react-native'
 
 import type { Area, PersonaArea } from '@/api/lab'
 import { spazio } from '@/theme'
+import { t } from '@/lib/lingua'
 
 import { Bollino, Carta, Entra, Pulsante } from '../ui/kit'
 import { F, usePalette, velo } from '../ui/tema'
@@ -38,7 +39,7 @@ export function personeDaAvvisare(area: AreaTrovata): Avviso[] {
 
 /** Di chi si parla: «Tu» per il titolare, il nome per un familiare. */
 function chi(a: Avviso): string {
-  return a.persona.titolare ? 'Tu' : nome(a.persona)
+  return a.persona.titolare ? t('Tu', 'You') : nome(a.persona)
 }
 
 export function AvvisoCertificato({ area, onVai }: { area: AreaTrovata; onVai: () => void }) {
@@ -47,9 +48,9 @@ export function AvvisoCertificato({ area, onVai }: { area: AreaTrovata; onVai: (
   const avvisi = personeDaAvvisare(area)
   if (!avvisi.length) return null
   const unico = avvisi.length === 1 ? avvisi[0] : null
-  const titolo = unico ? `Certificato medico ${unico.s.testo.toLowerCase()}` : 'Certificati medici da sistemare'
+  const titolo = unico ? t(`Certificato medico ${unico.s.testo.toLowerCase()}`, `Medical certificate ${unico.s.testo.toLowerCase()}`) : t('Certificati medici da sistemare', 'Medical certificates to sort out')
   // Chi guarda l'app di un cliente (lo staff, in sola lettura) vede la sezione ma non puo' caricare niente.
-  const testoPulsante = vistaCorrente() ? 'Vedi il certificato' : avvisi.length > 1 ? 'Sistema i certificati' : 'Carica il certificato'
+  const testoPulsante = vistaCorrente() ? t('Vedi il certificato', 'View the certificate') : avvisi.length > 1 ? t('Sistema i certificati', 'Sort out the certificates') : t('Carica il certificato', 'Upload certificate')
   return (
     <Entra indice={1}>
       <Carta style={[stili.carta, { borderColor: p.errore, backgroundColor: velo(p, 'errore', p.scuro ? 0.13 : 0.06) }]}>
@@ -59,7 +60,7 @@ export function AvvisoCertificato({ area, onVai }: { area: AreaTrovata; onVai: (
             <Bollino icona="certificato" tono="errore" pieno={!p.scuro} />
             <View style={{ flex: 1, gap: 2 }}>
               <Text style={[stili.titolo, { color: p.testo }]}>{titolo}</Text>
-              <Text style={[stili.sotto, { color: p.testoSecondario }]}>Si consegna da qui, con una foto o un PDF.</Text>
+              <Text style={[stili.sotto, { color: p.testoSecondario }]}>{t('Si consegna da qui, con una foto o un PDF.', 'You can hand it in here, with a photo or a PDF.')}</Text>
             </View>
           </View>
           <View style={{ gap: spazio.due }}>

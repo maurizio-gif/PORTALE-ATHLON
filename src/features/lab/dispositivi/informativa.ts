@@ -12,12 +12,16 @@
 // rileggere dal consulente privacy del club prima di aprire la sezione a tutti.
 
 // 2026-10-20: dice anche del sonno che si scrive a mano e dell'Athlon Health Score.
+import { t, tv } from '../../../lib/lingua'
+
 export const VERSIONE_INFORMATIVA = '2026-10-20'
 
-export const CONSENSO =
-  'Acconsento al trattamento dei miei dati relativi alla salute (il sonno che scrivo io, e sonno, recupero, battito e allenamenti del mio dispositivo) per mostrarli nell’app e calcolare il mio Athlon Health Score, come descritto nell’informativa.'
+export const CONSENSO = t(
+  'Acconsento al trattamento dei miei dati relativi alla salute (il sonno che scrivo io, e sonno, recupero, battito e allenamenti del mio dispositivo) per mostrarli nell’app e calcolare il mio Athlon Health Score, come descritto nell’informativa.',
+  'I consent to the processing of my health data (the sleep I log myself, and the sleep, recovery, heart rate and workouts from my device) to show them in the app and calculate my Athlon Health Score, as described in the privacy notice.',
+)
 
-export const INFORMATIVA: { titolo: string; testo: string }[] = [
+export const INFORMATIVA: { titolo: string; testo: string }[] = tv([
   {
     titolo: 'Che cos’è',
     testo:
@@ -53,4 +57,45 @@ export const INFORMATIVA: { titolo: string; testo: string }[] = [
     testo:
       'La sezione è riservata ai maggiorenni. Se un numero ti preoccupa o ti mette a disagio, non interpretarlo da solo: parlane con il tuo medico. L’app non dà consigli medici e non ti dice cosa fare in base ai tuoi valori.',
   },
-]
+], [
+  {
+    titolo: 'Courtesy translation',
+    testo:
+      'Courtesy translation: the Italian text is the binding version.',
+  },
+  {
+    titolo: 'What it is',
+    testo:
+      'You can log how long you slept each morning, and connect your Oura ring or Polar watch to the club app. The app shows your sleep, how well you’ve recovered and the workouts your device recorded, next to the ones you do at the club. These are approximate values: they are not medical advice and are not for diagnosis.',
+  },
+  {
+    titolo: 'What data we read',
+    testo:
+      'The sleep you log yourself: the night, what time you went to bed and what time you woke up. From your device, for each day: the sleep score and duration (with deep and REM stages), the device’s recovery score, the lowest heart rate of the night and its variability, steps and activity calories. For each workout: the sport, when it started, how long it lasted, calories and, if the device provides them, average and maximum heart rate. We don’t read your location or routes, or the heart-rate series (from the night’s series we take only the lowest value and discard the rest), or your profile data at Oura or Polar such as email, age or sex.',
+  },
+  {
+    titolo: 'How the connection works',
+    testo:
+      'With the “Connect” button you go to the Oura or Polar site, sign in to your account and authorize the club to read that data: we never see your password. You can remove the permission whenever you like, from here and also from your Oura or Polar account settings. The data updates by itself, about every half hour, when the device has synced with your phone. Oura and Polar also process your data on their own behalf, under their own privacy notices.',
+  },
+  {
+    titolo: 'Why and on what basis',
+    testo:
+      'To show you your data, put it next to your training and calculate your Athlon Health Score (the Athlon Health System score: sleep is one of its three parts), and for nothing else: we don’t use it to decide anything about you or for marketing communications. This is health data: we process it only with your explicit consent (art. 9(2)(a) GDPR), which you give below.',
+  },
+  {
+    titolo: 'Who sees it',
+    testo:
+      'Only you. Club staff and trainers can’t see your device data, neither from the app nor from the management system, and it doesn’t go to PerfectGym. We keep it in a protected database, and the access keys to your device (the “tokens”) are stored encrypted: not even the app sees them.',
+  },
+  {
+    titolo: 'How long, and how to remove it',
+    testo:
+      'We keep the summary of your last 90 days and the workouts from that period, and delete the rest. If you disconnect a device we delete its data straight away. If you withdraw consent, from this same section, we disconnect all devices and delete everything straight away, including the nights you logged yourself: only the record of when you gave and withdrew consent is kept, as proof. For your other rights (access, correction, deletion, complaint to the Italian Data Protection Authority) the club’s privacy notice applies.',
+  },
+  {
+    titolo: 'Who it isn’t for',
+    testo:
+      'This section is for adults only. If a number worries you or makes you uncomfortable, don’t interpret it on your own: talk to your doctor. The app doesn’t give medical advice and doesn’t tell you what to do based on your values.',
+  },
+])

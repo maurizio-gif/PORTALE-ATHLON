@@ -1,6 +1,8 @@
 import { router } from 'expo-router'
 import { StyleSheet, Text, View } from 'react-native'
 
+import { t } from '@/lib/lingua'
+
 import { F, FUOCO } from '../ui/tema'
 import { Icona } from '../ui/Icona'
 import { Tocco } from '../ui/Tocco'
@@ -16,7 +18,7 @@ export function Campanello({ colore = '#fff', fondo = 'rgba(255,255,255,0.12)' }
   return (
     <Tocco
       onPress={() => router.push('/notifiche')}
-      etichetta={nonLette > 0 ? `Notifiche: ${nonLette} da leggere` : 'Notifiche'}
+      etichetta={nonLette > 0 ? t(`Notifiche: ${nonLette} da leggere`, `Notifications: ${nonLette} unread`) : t('Notifiche', 'Notifications')}
       style={[stili.tondo, { backgroundColor: fondo }]}
     >
       <Icona nome="campanello" size={16} colore={colore} />

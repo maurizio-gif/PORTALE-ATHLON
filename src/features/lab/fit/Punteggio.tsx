@@ -3,6 +3,7 @@ import { router } from 'expo-router'
 import { StyleSheet, Text, View } from 'react-native'
 import Svg, { Circle } from 'react-native-svg'
 
+import { locale, t, tv } from '@/lib/lingua'
 import { spazio } from '@/theme'
 
 import { useDispositivi, type Dispositivi } from '../dispositivi/useDispositivi'
@@ -12,7 +13,7 @@ import { Barra, Carta, Entra, Messaggio, Pulsante, Scheletro, Sezione } from '..
 import { Schermata } from '../ui/Schermata'
 import { F, FUOCO, NOTTE, ORTO, RELAX, usePalette } from '../ui/tema'
 import { Tocco } from '../ui/Tocco'
-import { CURVA_TRAIN, GIORNI_FOOD, MINUTI_GIORNO_ATTIVO, NOTTI_RELAX, PESI, PUNTI, type IdPilastro, type Pilastro, type Punteggio, type Settimana } from './calcoloPunteggio'
+import { CURVA_TRAIN, GIORNI_FOOD, MINUTI_GIORNO_ATTIVO, NOTTI_RELAX, PESI, PUNTI, type Banda, type IdPilastro, type Pilastro, type Punteggio, type Settimana } from './calcoloPunteggio'
 import { useFit, type DatiFit } from './useFit'
 import { RigaLivello, SezioneLivelli } from './Livelli'
 import { useLivelli, type Livelli } from './useLivelli'
@@ -32,10 +33,15 @@ const AREE: Record<IdPilastro, string> = { train: 'train', food: 'food', relax: 
 const apriArea = (id: IdPilastro) => router.navigate({ pathname: '/allenamento', params: { area: AREE[id] } })
 const apriPunteggio = () => router.push('/allenamento/punteggio')
 
-const SIGLE = ['D', 'L', 'M', 'M', 'G', 'V', 'S']
+const SIGLE = tv(['D', 'L', 'M', 'M', 'G', 'V', 'S'], ['S', 'M', 'T', 'W', 'T', 'F', 'S'])
 const sigla = (g: string) => SIGLE[new Date(`${g}T12:00:00Z`).getUTCDay()]
-const dataCorta = new Intl.DateTimeFormat('it-IT', { day: 'numeric', month: 'short', timeZone: 'UTC' })
+const dataCorta = new Intl.DateTimeFormat(locale(), { day: 'numeric', month: 'short', timeZone: 'UTC' })
 const breve = (g: string) => dataCorta.format(new Date(`${g}T12:00:00Z`))
+/** La banda come si legge: il valore resta quello del calcolo. */
+const BANDE_EN: Record<Banda, string> = { 'Si comincia': 'Getting started', 'Sulla strada': 'On your way', 'Buon ritmo': 'Good pace', 'Ottimo ritmo': 'Great pace', 'In equilibrio': 'In balance' }
+const nomeBanda = (b: Banda) => t(b, BANDE_EN[b])
+/** «points» in inglese, al singolare per uno. */
+const pt = (x: number) => (x === 1 ? 'point' : 'points')
 
 // ---------------------------------------------------------------------------
 // L'anello: un settore per pilastro, grande quanto i suoi punti; si riempie quanto i punti presi
@@ -48,7 +54,7 @@ const VUOTO = 4
 export function Anello({ p, size = 132, chiaro = true }: { p: Punteggio; size?: number; chiaro?: boolean }) {
   const pal = usePalette()
   const [ref, visibile] = useVisibile()
-  const t = useProgresso(1300, 150, visibile)
+  const prog = useProgresso(1300, 150, visibile)
   const pilastri = [p.train, p.food, p.relax].filter((x) => x.stato === 'attivo' || x.stato === 'spento')
   const riferimento = pilastri.reduce((s, x) => s + x.max, 0)
   const vuoto = pilastri.length > 1 ? VUOTO : 0
@@ -67,16 +73,16 @@ export function Anello({ p, size = 132, chiaro = true }: { p: Punteggio; size?: 
           <Circle key={`f-${x.id}`} cx={60} cy={60} r={R} stroke={fondo} strokeWidth={12} fill="none" strokeLinecap="round" strokeDasharray={`${lunghezza} ${GIRO}`} strokeDashoffset={-da} transform="rotate(-90 60 60)" />
         ))}
         {settori.map(({ x, inizio: da, lunghezza }) => {
-          const pieno = lunghezza * Math.max(0, Math.min(1, x.punti / x.max)) * t
+          const pieno = lunghezza * Math.max(0, Math.min(1, x.punti / x.max)) * prog
           if (pieno < 0.5) return null
           return <Circle key={`p-${x.id}`} cx={60} cy={60} r={R} stroke={COLORI[x.id]} strokeWidth={12} fill="none" strokeLinecap="round" strokeDasharray={`${pieno} ${GIRO}`} strokeDashoffset={-da} transform="rotate(-90 60 60)" />
         })}
       </Svg>
       <View style={stili.anelloCentro} pointerEvents="none">
         <Text style={[stili.anelloNumero, { color: chiaro ? '#fff' : pal.testo, fontSize: size * 0.3 }]} numberOfLines={1} adjustsFontSizeToFit>
-          {Math.round(p.totale * t)}
+          {Math.round(p.totale * prog)}
         </Text>
-        <Text style={[stili.anelloSu, { color: chiaro ? 'rgba(255,255,255,0.65)' : pal.testoSecondario }]}>{`su ${p.su}`}</Text>
+        <Text style={[stili.anelloSu, { color: chiaro ? 'rgba(255,255,255,0.65)' : pal.testoSecondario }]}>{t(`su ${p.su}`, `out of ${p.su}`)}</Text>
       </View>
     </View>
   )
@@ -90,7 +96,7 @@ function Pallini({ giorni, chiaro = true }: { giorni: Punteggio['train7']; chiar
   const spento = chiaro ? 'rgba(255,255,255,0.16)' : pal.incavo
   const testo = chiaro ? 'rgba(255,255,255,0.65)' : pal.testoSecondario
   return (
-    <View style={stili.pallini} accessibilityLabel={`Ultimi 7 giorni: ${giorni.filter((g) => g.attivo).length} con un allenamento`}>
+    <View style={stili.pallini} accessibilityLabel={t(`Ultimi 7 giorni: ${giorni.filter((g) => g.attivo).length} con un allenamento`, `Last 7 days: ${giorni.filter((g) => g.attivo).length} with a workout`)}>
       {giorni.map((g, i) => (
         <View key={g.giorno} style={{ alignItems: 'center', gap: 4 }}>
           <View style={[stili.pallino, { backgroundColor: g.attivo ? FUOCO[1] : spento }]}>{g.attivo ? <Icona nome="spunta" size={12} colore="#fff" /> : null}</View>
@@ -108,7 +114,7 @@ function RigaPilastro({ x }: { x: Pilastro }) {
   const attivo = x.stato === 'attivo'
   const parola = attivo ? `${x.punti}` : '—'
   return (
-    <View style={stili.pilastro} accessibilityLabel={attivo ? `${x.nome}: ${x.punti} punti su ${x.max}` : `${x.nome}: da attivare, fino a ${x.max} punti`}>
+    <View style={stili.pilastro} accessibilityLabel={attivo ? t(`${x.nome}: ${x.punti} punti su ${x.max}`, `${x.nome}: ${x.punti} ${pt(x.punti)} out of ${x.max}`) : t(`${x.nome}: da attivare, fino a ${x.max} punti`, `${x.nome}: not turned on yet, up to ${x.max} points`)}>
       <View style={[stili.pilastroPuntino, { backgroundColor: attivo ? COLORI[x.id] : 'rgba(255,255,255,0.25)' }]} />
       <Text style={stili.pilastroNome}>{x.nome}</Text>
       <Text style={stili.pilastroPunti}>
@@ -137,25 +143,25 @@ export function CartaPunteggioVista({ p, livelli, apri = true }: { p: Punteggio 
           </LinearGradient>
           <View style={{ flex: 1 }}>
             <Text style={stili.titolo}>Athlon Health Score</Text>
-            <Text style={stili.sotto}>Allenamento, alimentazione e recupero · ultime 4 settimane</Text>
+            <Text style={stili.sotto}>{t('Allenamento, alimentazione e recupero · ultime 4 settimane', 'Training, nutrition and recovery · last 4 weeks')}</Text>
           </View>
           {p ? <Icona nome="avanti" size={18} colore="rgba(255,255,255,0.7)" /> : null}
         </View>
       ) : (
-        <Text style={stili.sotto}>Allenamento, alimentazione e recupero. La media delle ultime quattro settimane, la più recente pesa di più.</Text>
+        <Text style={stili.sotto}>{t('Allenamento, alimentazione e recupero. La media delle ultime quattro settimane, la più recente pesa di più.', 'Training, nutrition and recovery. The average of the last four weeks, with the most recent counting more.')}</Text>
       )}
 
       {!p ? (
         <View style={{ gap: spazio.tre }}>
           <Scheletro altezza={132} larghezza={132} tondo={66} style={{ alignSelf: 'center', backgroundColor: 'rgba(255,255,255,0.08)' }} />
-          <Text style={stili.testo}>Calcoliamo il tuo punteggio…</Text>
+          <Text style={stili.testo}>{t('Calcoliamo il tuo punteggio…', 'Calculating your score…')}</Text>
         </View>
       ) : (
         <>
           <View style={stili.corpo}>
             <Anello p={p} />
             <View style={{ flex: 1, gap: spazio.due }}>
-              <Text style={stili.banda}>{p.banda}</Text>
+              <Text style={stili.banda}>{nomeBanda(p.banda)}</Text>
               <View style={{ gap: 6 }}>
                 {[p.train, p.food, p.relax]
                   .filter((x) => x.stato !== 'nonDisponibile' && x.stato !== 'escluso')
@@ -173,16 +179,16 @@ export function CartaPunteggioVista({ p, livelli, apri = true }: { p: Punteggio 
               <RigaLivello stato={livelli.stato} />
             </>
           ) : null}
-          {p.rapportato ? <Text style={stili.piccola}>Il punteggio è calcolato sui pilastri che usi.</Text> : null}
+          {p.rapportato ? <Text style={stili.piccola}>{t('Il punteggio è calcolato sui pilastri che usi.', 'Your score is based on the pillars you use.')}</Text> : null}
           {p.invito.length ? (
-            <Text style={stili.piccola}>{`Con ${p.invito.map((i) => (i.id === 'food' ? 'Food' : 'Relax')).join(' e ')} puoi arrivare fino a 100.`}</Text>
+            <Text style={stili.piccola}>{t(`Con ${p.invito.map((i) => (i.id === 'food' ? 'Food' : 'Relax')).join(' e ')} puoi arrivare fino a 100.`, `With ${p.invito.map((i) => (i.id === 'food' ? 'Food' : 'Relax')).join(' and ')} you can reach 100.`)}</Text>
           ) : null}
         </>
       )}
     </LinearGradient>
   )
   return apri && p ? (
-    <Tocco onPress={apriPunteggio} etichetta={`Athlon Health Score: ${p.totale} su ${p.su}. ${p.banda}. Apri il dettaglio`} scala={0.985}>
+    <Tocco onPress={apriPunteggio} etichetta={t(`Athlon Health Score: ${p.totale} su ${p.su}. ${p.banda}. Apri il dettaglio`, `Athlon Health Score: ${p.totale} out of ${p.su}. ${nomeBanda(p.banda)}. Open details`)} scala={0.985}>
       {dentro}
     </Tocco>
   ) : (
@@ -197,8 +203,8 @@ function CartaPilastro({ x, onAzione }: { x: Pilastro; onAzione: (x: Pilastro) =
   const pal = usePalette()
   if (x.stato === 'nonDisponibile' || x.stato === 'escluso') return null
   const attivo = x.stato === 'attivo'
-  const spiegazione = x.id === 'train' ? 'giorni di allenamento' : x.id === 'food' ? 'regolarità dei pasti' : 'notti di sonno'
-  const invito = x.id === 'food' ? 'Scrivi i pasti' : 'Scrivi il sonno'
+  const spiegazione = x.id === 'train' ? t('giorni di allenamento', 'training days') : x.id === 'food' ? t('regolarità dei pasti', 'regular meals') : t('notti di sonno', 'nights of sleep')
+  const invito = x.id === 'food' ? t('Scrivi i pasti', 'Log your meals') : t('Scrivi il sonno', 'Log your sleep')
   return (
     <Carta style={{ gap: spazio.tre }}>
       <View style={stili.riga}>
@@ -220,18 +226,21 @@ function CartaPilastro({ x, onAzione }: { x: Pilastro; onAzione: (x: Pilastro) =
         <>
           <Text style={[stili.nota, { color: pal.testoSecondario }]}>
             {x.id === 'food'
-              ? 'Food si attiva dall’informativa: poi scrivi i pasti nel diario e compaiono qui, fino a 15 punti.'
-              : 'Relax si attiva dall’informativa: poi scrivi ogni mattina quanto hai dormito, e compare qui, fino a 15 punti.'}
+              ? t('Food si attiva dall’informativa: poi scrivi i pasti nel diario e compaiono qui, fino a 15 punti.', 'Food turns on from its privacy notice: then log your meals in the diary and they show up here, up to 15 points.')
+              : t('Relax si attiva dall’informativa: poi scrivi ogni mattina quanto hai dormito, e compare qui, fino a 15 punti.', 'Relax turns on from its privacy notice: then log how long you slept each morning, and it shows up here, up to 15 points.')}
           </Text>
           <Pulsante testo={invito} icona="avanti" variante="secondario" piccolo onPress={() => onAzione(x)} />
         </>
       ) : x.id !== 'train' ? (
-        <Pulsante testo={x.id === 'food' ? 'Il diario' : 'Scrivi il sonno'} icona="avanti" variante="secondario" piccolo onPress={() => onAzione(x)} />
+        <Pulsante testo={x.id === 'food' ? t('Il diario', 'Diary') : t('Scrivi il sonno', 'Log your sleep')} icona="avanti" variante="secondario" piccolo onPress={() => onAzione(x)} />
       ) : (
-        <Pulsante testo="L’analisi del tuo allenamento" icona="grafico" variante="secondario" piccolo onPress={() => router.push('/allenamento/training')} />
+        <Pulsante testo={t('L’analisi del tuo allenamento', 'Your training analysis')} icona="grafico" variante="secondario" piccolo onPress={() => router.push('/allenamento/training')} />
       )}
       {x.stato === 'attivo' && x.settimane > 0 && x.settimane < PESI.length ? (
-        <Text style={[stili.piccola2, { color: pal.testoTerzo }]}>{`Calcolato su ${x.settimane === 1 ? 'una settimana' : `${x.settimane} settimane`}: le precedenti non hanno ancora niente di registrato.`}</Text>
+        <Text style={[stili.piccola2, { color: pal.testoTerzo }]}>{t(
+            `Calcolato su ${x.settimane === 1 ? 'una settimana' : `${x.settimane} settimane`}: le precedenti non hanno ancora niente di registrato.`,
+            `Based on ${x.settimane === 1 ? 'one week' : `${x.settimane} weeks`}: the earlier ones have nothing recorded yet.`,
+          )}</Text>
       ) : null}
     </Carta>
   )
@@ -241,7 +250,7 @@ function CartaPilastro({ x, onAzione }: { x: Pilastro; onAzione: (x: Pilastro) =
 function QuattroSettimane({ settimane }: { settimane: Settimana[] }) {
   const pal = usePalette()
   const [ref, visibile] = useVisibile()
-  const t = useProgresso(900, 100, visibile)
+  const prog = useProgresso(900, 100, visibile)
   const ALTO = 96
   const in7 = ALTO / 7
   const dal = [...settimane].reverse()
@@ -252,32 +261,41 @@ function QuattroSettimane({ settimane }: { settimane: Settimana[] }) {
         {dal.map((s, i) => {
           const ultima = i === dal.length - 1
           return (
-            <View key={s.a} style={stili.colonnaSett} accessibilityLabel={`${ultima ? 'Ultimi 7 giorni' : `Settimana al ${breve(s.a)}`}: ${s.giorni} giorni attivi${s.conta ? '' : ', prima dell’inizio'}`}>
+            <View key={s.a} style={stili.colonnaSett} accessibilityLabel={t(
+              `${ultima ? 'Ultimi 7 giorni' : `Settimana al ${breve(s.a)}`}: ${s.giorni} giorni attivi${s.conta ? '' : ', prima dell’inizio'}`,
+              `${ultima ? 'Last 7 days' : `Week to ${breve(s.a)}`}: ${s.giorni} active ${s.giorni === 1 ? 'day' : 'days'}${s.conta ? '' : ', before you started'}`,
+            )}>
               <View style={{ height: ALTO + 19, justifyContent: 'flex-end', alignItems: 'center', gap: 4 }}>
                 <Text style={[stili.colonnaValore, { color: pal.testoSecondario }]}>{s.conta ? s.giorni : ''}</Text>
-                <View style={{ width: 30, height: Math.max(4, s.giorni * in7 * t), borderRadius: 9, backgroundColor: !s.conta ? pal.incavo : ultima ? FUOCO[1] : `${FUOCO[1]}99` }} />
+                <View style={{ width: 30, height: Math.max(4, s.giorni * in7 * prog), borderRadius: 9, backgroundColor: !s.conta ? pal.incavo : ultima ? FUOCO[1] : `${FUOCO[1]}99` }} />
               </View>
               <Text style={[stili.colonnaEtichetta, { color: ultima ? pal.testo : pal.testoTerzo }]} numberOfLines={1}>
-                {ultima ? 'Ora' : `${(dal.length - 1 - i) * 7}g fa`}
+                {ultima ? t('Ora', 'Now') : t(`${(dal.length - 1 - i) * 7}g fa`, `${(dal.length - 1 - i) * 7}d ago`)}
               </Text>
             </View>
           )
         })}
       </View>
-      <Text style={[stili.piccola2, { color: pal.testoTerzo }]}>Giorni con un allenamento in 7 giorni. La fascia chiara, 2–4 giorni, è il ritmo da punti pieni.</Text>
+      <Text style={[stili.piccola2, { color: pal.testoTerzo }]}>{t('Giorni con un allenamento in 7 giorni. La fascia chiara, 2–4 giorni, è il ritmo da punti pieni.', 'Days with a workout out of 7. The light band, 2–4 days, is the full-points pace.')}</Text>
     </View>
   )
 }
 
 function RegoleSpiegate() {
   const pal = usePalette()
-  const REGOLE: { titolo: string; testo: string }[] = [
+  const REGOLE: { titolo: string; testo: string }[] = tv([
     { titolo: 'Tre pilastri', testo: `Train vale fino a ${PUNTI.train} punti, Food ${PUNTI.food} e Relax ${PUNTI.relax}: il 100 si raggiunge con tutti e tre. Un pilastro che non usi non toglie niente, semplicemente non aggiunge.` },
     { titolo: 'Regolarità, non quantità', testo: `Train conta i giorni in cui ti sei allenato (almeno ${MINUTI_GIORNO_ATTIVO} minuti fra i piani chiusi nell’app e le lezioni con la presenza segnata): più lezioni nello stesso giorno valgono una volta sola. Da 2 a 4 giorni su 7 è il ritmo da punti pieni, con un solo giorno prendi il ${Math.round(CURVA_TRAIN[1] * 100)}%, e oltre i quattro scende piano (con sette giorni su sette è il ${Math.round(CURVA_TRAIN[7] * 100)}%): un giorno di riposo fa parte dell’allenamento.` },
     { titolo: 'Food guarda i pasti, non le calorie', testo: `Un giorno vale se nel diario ci sono colazione, pranzo e cena (chi non fa colazione, pranzo e cena), e ${GIORNI_FOOD} giorni su 7 danno il massimo. Oggi non conta, non è finito. Se hai scelto di nascondere i numeri Food esce dal punteggio.` },
     { titolo: 'Relax guarda le notti', testo: `Ogni notte scritta (o letta dal tuo dispositivo) vale in base alle ore, e da 7 ore in su è piena; ${NOTTI_RELAX} notti su 7 danno il massimo. Una notte più lunga non costa punti.` },
     { titolo: 'Le ultime quattro settimane', testo: `Ogni pilastro è la media di quattro settimane mobili, la più recente pesa il ${Math.round(PESI[0] * 100)}%, poi ${Math.round(PESI[1] * 100)}, ${Math.round(PESI[2] * 100)} e ${Math.round(PESI[3] * 100)}. Una settimana storta non azzera tutto. Le settimane prima della tua prima attività non contano.` },
-  ]
+  ], [
+    { titolo: 'Three pillars', testo: `Train is worth up to ${PUNTI.train} points, Food ${PUNTI.food} and Relax ${PUNTI.relax}: you reach 100 with all three. A pillar you don’t use takes nothing away, it just doesn’t add.` },
+    { titolo: 'Consistency, not quantity', testo: `Train counts the days you trained (at least ${MINUTI_GIORNO_ATTIVO} minutes between plans finished in the app and classes with attendance marked): several classes on the same day count once. 2 to 4 days out of 7 is the full-points pace, with a single day you get ${Math.round(CURVA_TRAIN[1] * 100)}%, and past four it goes down slowly (seven days out of seven is ${Math.round(CURVA_TRAIN[7] * 100)}%): a rest day is part of training.` },
+    { titolo: 'Food looks at meals, not calories', testo: `A day counts if the diary has breakfast, lunch and dinner (lunch and dinner if you skip breakfast), and ${GIORNI_FOOD} days out of 7 give you the maximum. Today doesn’t count, it isn’t over. If you chose to hide the numbers, Food leaves the score.` },
+    { titolo: 'Relax looks at your nights', testo: `Each night you log (or your device reads) counts by the hours, and from 7 hours up it’s full; ${NOTTI_RELAX} nights out of 7 give you the maximum. A longer night doesn’t cost points.` },
+    { titolo: 'The last four weeks', testo: `Each pillar is the average of four rolling weeks: the most recent weighs ${Math.round(PESI[0] * 100)}%, then ${Math.round(PESI[1] * 100)}, ${Math.round(PESI[2] * 100)} and ${Math.round(PESI[3] * 100)}. One bad week doesn’t wipe everything out. Weeks before your first activity don’t count.` },
+  ])
   return (
     <Carta style={{ gap: spazio.tre }}>
       {REGOLE.map((r) => (
@@ -287,7 +305,7 @@ function RegoleSpiegate() {
         </View>
       ))}
       <Text style={[stili.piccola2, { color: pal.testoTerzo }]}>
-        Il punteggio descrive come stai andando: non è un parere medico e non è un traguardo da raggiungere a ogni costo. Le soglie sono indicative.
+        {t('Il punteggio descrive come stai andando: non è un parere medico e non è un traguardo da raggiungere a ogni costo. Le soglie sono indicative.', 'Your score describes how you’re doing: it isn’t medical advice, and it isn’t a goal to hit at all costs. The thresholds are a guide.')}
       </Text>
     </Carta>
   )
@@ -312,14 +330,14 @@ export function SchermataPunteggio() {
         <>
           {livelli.disponibile && livelli.stato ? (
             <Entra indice={1}>
-              <Sezione titolo="Il tuo livello">
+              <Sezione titolo={t('Il tuo livello', 'Your level')}>
                 <SezioneLivelli stato={livelli.stato} />
               </Sezione>
             </Entra>
           ) : null}
 
           <Entra indice={1}>
-            <Sezione titolo="I tre pilastri">
+            <Sezione titolo={t('I tre pilastri', 'The three pillars')}>
               <View style={{ gap: spazio.tre }}>
                 {[p.train, p.food, p.relax].map((x) => (
                   <CartaPilastro key={x.id} x={x} onAzione={attiva} />
@@ -329,7 +347,7 @@ export function SchermataPunteggio() {
           </Entra>
 
           <Entra indice={2}>
-            <Sezione titolo="Le ultime quattro settimane">
+            <Sezione titolo={t('Le ultime quattro settimane', 'The last four weeks')}>
               <Carta>
                 <QuattroSettimane settimane={p.dettaglio.train.settimane} />
               </Carta>
@@ -337,13 +355,13 @@ export function SchermataPunteggio() {
           </Entra>
 
           {fit.vista ? (
-            <Messaggio tono="attenzione" titolo="Vista cliente">
-              Si vede solo l’allenamento: alimentazione e recupero li vede soltanto il socio, dalla sua app.
+            <Messaggio tono="attenzione" titolo={t('Vista cliente', 'Client view')}>
+              {t('Si vede solo l’allenamento: alimentazione e recupero li vede soltanto il socio, dalla sua app.', 'Only training is shown: nutrition and recovery are visible only to the member, from their own app.')}
             </Messaggio>
           ) : null}
 
           <Entra indice={3}>
-            <Sezione titolo="Come si calcola">
+            <Sezione titolo={t('Come si calcola', 'How it’s calculated')}>
               <RegoleSpiegate />
             </Sezione>
           </Entra>

@@ -1,6 +1,7 @@
 import type { Area, ContrattoArea, PersonaArea } from '@/api/lab'
 import { meseAnno, metodoDaPerfectGym } from '@/lib/metodoPagamento'
 import type { Tono } from '@/theme'
+import { locale, t } from '@/lib/lingua'
 
 // La regolarita' degli abbonamenti (17/10/2026). Un abbonamento puo' esserci e
 // non essere in regola: la Home prima contava solo quelli «attivi», quindi uno
@@ -58,7 +59,7 @@ export function personeConAbbonamento(area: AreaTrovata): Set<number> {
 }
 
 function soldi(n: number): string {
-  return n.toLocaleString('it-IT', { style: 'currency', currency: 'EUR' })
+  return n.toLocaleString(locale(), { style: 'currency', currency: 'EUR' })
 }
 
 function tonoDa(motivi: { chiave: ChiaveMotivo }[]): Regolarita['tono'] {
@@ -74,16 +75,16 @@ function tonoDa(motivi: { chiave: ChiaveMotivo }[]): Regolarita['tono'] {
 export function regolaritaContratto(c: ContrattoArea, persona: PersonaArea | undefined): Regolarita {
   const motivi: Motivo[] = []
   const importo = persona?.debito?.importo ?? 0
-  if (importo > 0) motivi.push({ chiave: 'debito', breve: 'in debito', dettaglio: `Pagamento in sospeso: ${soldi(importo)} da saldare.` })
+  if (importo > 0) motivi.push({ chiave: 'debito', breve: t('in debito', 'in debt'), dettaglio: t(`Pagamento in sospeso: ${soldi(importo)} da saldare.`, `Outstanding payment: ${soldi(importo)} to pay.`) })
 
   if ((c.canone ?? 0) > 0 && c.stato !== 'Freezed') {
     const metodo = metodoDaPerfectGym(c.metodo)
     const tipo = (metodo?.tipo ?? '').toLowerCase()
     if (!metodo || tipo === 'cash') {
-      motivi.push({ chiave: 'metodo', breve: 'manca il metodo', dettaglio: 'Manca il metodo di pagamento: aggiungi una carta o un conto corrente per gli addebiti.' })
+      motivi.push({ chiave: 'metodo', breve: t('manca il metodo', 'no payment method'), dettaglio: t('Manca il metodo di pagamento: aggiungi una carta o un conto corrente per gli addebiti.', 'Payment method missing: add a card or a bank account for the charges.') })
     } else if (tipo === 'creditcard' && metodo.scaduta) {
       const quando = meseAnno(metodo.scadenza)
-      motivi.push({ chiave: 'carta', breve: 'carta scaduta', dettaglio: `La carta salvata è scaduta${quando ? ` (${quando})` : ''}: sostituiscila per gli addebiti.` })
+      motivi.push({ chiave: 'carta', breve: t('carta scaduta', 'card expired'), dettaglio: t(`La carta salvata è scaduta${quando ? ` (${quando})` : ''}: sostituiscila per gli addebiti.`, `Your saved card has expired${quando ? ` (${quando})` : ''}: replace it for the charges.`) })
     }
   }
   return { motivi, tono: tonoDa(motivi) }

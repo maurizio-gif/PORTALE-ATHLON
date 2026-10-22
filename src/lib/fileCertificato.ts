@@ -1,5 +1,6 @@
 import * as DocumentPicker from 'expo-document-picker'
 import { Platform } from 'react-native'
+import { t } from './lingua'
 
 // Il file del certificato medico: lo si sceglie, lo si controlla e lo si porta in
 // base64, che e' come la funzione lo riceve (come l'allegato dell'Help Desk del sito).
@@ -47,7 +48,7 @@ function tipoDi(a: { name: string; mimeType?: string }): TipoCertificato | null 
 
 /** Il peso come lo si legge: «2,4 MB», «380 kB». */
 export function pesoLeggibile(byte: number): string {
-  return byte >= 1024 * 1024 ? `${(byte / 1024 / 1024).toFixed(1).replace('.', ',')} MB` : `${Math.max(1, Math.round(byte / 1024))} kB`
+  return byte >= 1024 * 1024 ? `${(byte / 1024 / 1024).toFixed(1).replace('.', t(',', '.'))} MB` : `${Math.max(1, Math.round(byte / 1024))} kB`
 }
 
 function inBase64(blob: Blob): Promise<string> {
@@ -85,7 +86,7 @@ async function riduciImmagine(blob: Blob): Promise<Blob | null> {
 /** Controlla il file scelto e lo porta in base64. Non solleva mai. */
 export async function preparaFile(a: DocumentPicker.DocumentPickerAsset): Promise<EsitoFile> {
   const tipo = tipoDi(a)
-  if (!tipo) return { ok: false, errore: `Il file deve essere una foto JPG o PNG, oppure un PDF.` }
+  if (!tipo) return { ok: false, errore: t(`Il file deve essere una foto JPG o PNG, oppure un PDF.`, `The file must be a JPG or PNG photo, or a PDF.`) }
   try {
     let blob: Blob = Platform.OS === 'web' && a.file ? a.file : await (await fetch(a.uri)).blob()
     let nome = a.name || 'certificato'
@@ -98,12 +99,12 @@ export async function preparaFile(a: DocumentPicker.DocumentPickerAsset): Promis
         nome = nome.replace(/\.[A-Za-z0-9]{1,5}$/, '') + '.jpg'
       }
     }
-    if (blob.size === 0) return { ok: false, errore: 'Il file è vuoto.' }
+    if (blob.size === 0) return { ok: false, errore: t('Il file è vuoto.', 'The file is empty.') }
     if (blob.size > MAX_BYTE) {
-      return { ok: false, errore: `Il file pesa troppo (${pesoLeggibile(blob.size)}): il limite è ${MAX_BYTE / 1024 / 1024} MB.` }
+      return { ok: false, errore: t(`Il file pesa troppo (${pesoLeggibile(blob.size)}): il limite è ${MAX_BYTE / 1024 / 1024} MB.`, `The file is too large (${pesoLeggibile(blob.size)}): the limit is ${MAX_BYTE / 1024 / 1024} MB.`) }
     }
     return { ok: true, file: { nome, tipo: tipoFinale, byte: blob.size, base64: await inBase64(blob) } }
   } catch {
-    return { ok: false, errore: 'Non riusciamo a leggere il file. Riprova scegliendolo di nuovo.' }
+    return { ok: false, errore: t('Non riusciamo a leggere il file. Riprova scegliendolo di nuovo.', 'We can’t read the file. Try choosing it again.') }
   }
 }

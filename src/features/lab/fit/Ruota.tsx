@@ -3,6 +3,8 @@ import { StyleSheet, Text, View } from 'react-native'
 import Animated, { Easing, useAnimatedStyle, useReducedMotion, useSharedValue, withRepeat, withTiming, type SharedValue } from 'react-native-reanimated'
 import Svg, { Path } from 'react-native-svg'
 
+import { t } from '@/lib/lingua'
+
 import { F, usePalette } from '../ui/tema'
 
 // La ruota dell'Athlon Health System (richiesta del club, 19/10/2026): tre frecce
@@ -71,7 +73,7 @@ export function RuotaBenessere() {
   const rotazione = useAnimatedStyle(() => ({ transform: [{ rotate: `${giro.value}deg` }] }))
 
   return (
-    <View style={stili.ruota} accessibilityRole="image" accessibilityLabel="Train, Food e Relax: tre frecce che si rincorrono in cerchio. Il benessere è il loro equilibrio.">
+    <View style={stili.ruota} accessibilityRole="image" accessibilityLabel={t('Train, Food e Relax: tre frecce che si rincorrono in cerchio. Il benessere è il loro equilibrio.', 'Train, Food and Relax: three arrows chasing each other in a circle. Wellbeing is the balance between them.')}>
       <Animated.View style={[StyleSheet.absoluteFill, rotazione]}>
         <Svg width={LATO} height={LATO} viewBox={`0 0 ${LATO} ${LATO}`}>
           {FRECCE.map((f) => (
@@ -83,7 +85,7 @@ export function RuotaBenessere() {
         </Svg>
       </Animated.View>
       <View pointerEvents="none" style={stili.centro}>
-        <Text style={[stili.centroTesto, { color: p.testo }]}>Equilibrio</Text>
+        <Text style={[stili.centroTesto, { color: p.testo }]}>{t('Equilibrio', 'Balance')}</Text>
       </View>
       {FRECCE.map((f) => (
         <Etichetta key={f.nome} nome={f.nome} colore={f.colore} fondo={p.carta} mezzo={f.mezzo} giro={giro} />

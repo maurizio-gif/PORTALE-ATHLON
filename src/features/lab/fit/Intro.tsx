@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { StyleSheet, Text, View } from 'react-native'
 
+import { t } from '@/lib/lingua'
 import { spazio } from '@/theme'
 
 import { Icona, type NomeIcona } from '../ui/Icona'
@@ -19,9 +20,9 @@ import { ComeLeggere } from './Balance'
 // che fa parte del programma, perche' chi apre Fit non pensi che servano sette
 // allenamenti a settimana.
 const PARTI: { nome: string; icona: NomeIcona; colore: string; testo: string }[] = [
-  { nome: 'Train', icona: 'peso', colore: '#FF5701', testo: 'allenarsi il giusto, non troppo. Qui i tuoi piani di allenamento, il registro dei pesi, il test dei massimali e le calorie che consumi.' },
-  { nome: 'Food', icona: 'piatto', colore: '#18A957', testo: 'mangiare bene. Il diario dei pasti, la foto del piatto e i consigli; si apre dopo aver accettato la sua informativa, e i dati li vedi solo tu.' },
-  { nome: 'Relax', icona: 'foglia', colore: '#14B8A6', testo: 'recuperare. Il sonno e i giorni di riposo fanno parte dell’allenamento: è lì che il corpo si rimette in forze.' },
+  { nome: 'Train', icona: 'peso', colore: '#FF5701', testo: t('allenarsi il giusto, non troppo. Qui i tuoi piani di allenamento, il registro dei pesi, il test dei massimali e le calorie che consumi.', 'training the right amount, not too much. Here you’ll find your workout plans, your weight log, the one-rep max test and the calories you burn.') },
+  { nome: 'Food', icona: 'piatto', colore: '#18A957', testo: t('mangiare bene. Il diario dei pasti, la foto del piatto e i consigli; si apre dopo aver accettato la sua informativa, e i dati li vedi solo tu.', 'eating well. The meal diary, the photo of your plate and tips; it opens once you accept its privacy notice, and only you see the data.') },
+  { nome: 'Relax', icona: 'foglia', colore: '#14B8A6', testo: t('recuperare. Il sonno e i giorni di riposo fanno parte dell’allenamento: è lì che il corpo si rimette in forze.', 'recovering. Sleep and rest days are part of training: that’s when your body gets its strength back.') },
 ]
 
 export function IntroFit({ relax = false }: { relax?: boolean }) {
@@ -30,8 +31,8 @@ export function IntroFit({ relax = false }: { relax?: boolean }) {
   return (
     <Carta style={{ gap: spazio.tre }}>
       <View style={{ gap: 4 }}>
-        <Text style={[stili.titolo, { color: p.testo }]}>Il benessere è un equilibrio.</Text>
-        <Text style={[stili.testo, { color: p.testoSecondario }]}>Viene da tre cose insieme, e nessuna basta da sola:</Text>
+        <Text style={[stili.titolo, { color: p.testo }]}>{t('Il benessere è un equilibrio.', 'Wellbeing is a balance.')}</Text>
+        <Text style={[stili.testo, { color: p.testoSecondario }]}>{t('Viene da tre cose insieme, e nessuna basta da sola:', 'It comes from three things together, and none is enough on its own:')}</Text>
       </View>
       <View style={{ gap: spazio.due }}>
         {PARTI.map((x) => (
@@ -42,21 +43,21 @@ export function IntroFit({ relax = false }: { relax?: boolean }) {
             <Text style={[stili.testo, { color: p.testoSecondario, flex: 1 }]}>
               <Text style={{ fontFamily: F.extra, color: p.testo }}>{`${x.nome}: `}</Text>
               {x.testo}
-              {x.nome === 'Relax' && relax ? ' Ogni mattina scrivi quanto hai dormito, o collega un anello Oura o un orologio Polar: il sonno arriva da solo.' : ''}
+              {x.nome === 'Relax' && relax ? t(' Ogni mattina scrivi quanto hai dormito, o collega un anello Oura o un orologio Polar: il sonno arriva da solo.', ' Each morning, log how long you slept, or connect an Oura ring or a Polar watch: your sleep comes in by itself.') : ''}
             </Text>
           </View>
         ))}
       </View>
       <Text style={[stili.testo, { color: p.testoSecondario }]}>
         <Text style={{ fontFamily: F.extra, color: p.testo }}>Athlon Health Score </Text>
-        mette insieme i tre in un punteggio da 0 a 100: premia la regolarità, non la quantità.
+        {t('mette insieme i tre in un punteggio da 0 a 100: premia la regolarità, non la quantità.', 'brings the three together in a score from 0 to 100: it rewards consistency, not quantity.')}
       </Text>
       <Text style={[stili.testo, { color: p.testoSecondario }]}>
         <Text style={{ fontFamily: F.extra, color: p.testo }}>Balance </Text>
-        mette accanto le calorie che consumi e quelle che mangi: è il punto in cui allenamento e alimentazione si incontrano.
+        {t('mette accanto le calorie che consumi e quelle che mangi: è il punto in cui allenamento e alimentazione si incontrano.', 'puts the calories you burn next to the ones you eat: it’s where training and nutrition meet.')}
       </Text>
-      <Tocco onPress={() => setAperto((a) => !a)} etichetta={aperto ? 'Chiudi la spiegazione dei numeri' : 'Come leggere i numeri'} style={[stili.apri, { borderTopColor: p.linea }]}>
-        <Text style={[stili.apriTesto, { color: p.accento }]}>Come leggere i numeri</Text>
+      <Tocco onPress={() => setAperto((a) => !a)} etichetta={aperto ? t('Chiudi la spiegazione dei numeri', 'Close the explanation of the numbers') : t('Come leggere i numeri', 'How to read the numbers')} style={[stili.apri, { borderTopColor: p.linea }]}>
+        <Text style={[stili.apriTesto, { color: p.accento }]}>{t('Come leggere i numeri', 'How to read the numbers')}</Text>
         <View style={{ transform: [{ rotate: aperto ? '-90deg' : '90deg' }] }}>
           <Icona nome="avanti" size={14} colore={p.accento} />
         </View>

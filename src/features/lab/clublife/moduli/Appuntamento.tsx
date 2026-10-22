@@ -4,6 +4,7 @@ import { ScrollView, StyleSheet, Text, View } from 'react-native'
 import type { Calendario, GiornoPrenotabile } from '@/api/appuntamenti'
 import { orariLiberi, prenotaDesk, prenotaNuoto } from '@/api/moduli'
 import { controllaTelefono } from '@/lib/anagrafica'
+import { t } from '@/lib/lingua'
 import { spazio } from '@/theme'
 
 import { CampoTesto } from '../../ui/Campi'
@@ -23,16 +24,16 @@ import { inVista, useIdentita } from './identita'
 
 const TESTI: Record<Calendario, { sopra: string; titolo: string; sotto: string; durata: string }> = {
   desk: {
-    sopra: 'Il desk',
-    titolo: 'Prenota una chiamata',
-    sotto: 'Scegli quando ti richiamiamo. Ti basta dirci di cosa vuoi parlare.',
-    durata: 'La telefonata dura circa dieci minuti.',
+    sopra: t('Il desk', 'Front desk'),
+    titolo: t('Prenota una chiamata', 'Book a call'),
+    sotto: t('Scegli quando ti richiamiamo. Ti basta dirci di cosa vuoi parlare.', 'Choose when we call you back. Just tell us what you’d like to talk about.'),
+    durata: t('La telefonata dura circa dieci minuti.', 'The call takes about ten minutes.'),
   },
   nuoto: {
-    sopra: 'Direzione Tecnica del nuoto',
-    titolo: 'Parla col Direttore Tecnico',
-    sotto: 'Una telefonata di dieci minuti, riservata alle famiglie dei corsi di nuoto.',
-    durata: 'Riceve dal lunedì al venerdì, nell’ora che vedi negli orari.',
+    sopra: t('Direzione Tecnica del nuoto', 'Swimming Technical Director'),
+    titolo: t('Parla col Direttore Tecnico', 'Talk to the Technical Director'),
+    sotto: t('Una telefonata di dieci minuti, riservata alle famiglie dei corsi di nuoto.', 'A ten-minute call, for families in our swimming courses only.'),
+    durata: t('Riceve dal lunedì al venerdì, nell’ora che vedi negli orari.', 'Available Monday to Friday, during the hour shown in the times.'),
   },
 }
 
@@ -42,7 +43,7 @@ function Giorni({ giorni, scelto, onScegli }: { giorni: GiornoPrenotabile[]; sce
   const p = usePalette()
   return (
     <View style={{ gap: spazio.due }}>
-      <Text style={[stili.etichetta, { color: p.testoSecondario }]}>GIORNO</Text>
+      <Text style={[stili.etichetta, { color: p.testoSecondario }]}>{t('GIORNO', 'DAY')}</Text>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: spazio.due }} accessibilityRole="radiogroup">
         {giorni.map((g) => {
           const sceltoQui = g.data === scelto
@@ -52,14 +53,14 @@ function Giorni({ giorni, scelto, onScegli }: { giorni: GiornoPrenotabile[]; sce
               key={g.data}
               onPress={() => onScegli(g.data)}
               ruolo="radio"
-              etichetta={`${g.etichetta}, ${posti} ${posti === 1 ? 'orario' : 'orari'}`}
+              etichetta={`${g.etichetta}, ${posti} ${posti === 1 ? t('orario', 'time') : t('orari', 'times')}`}
               stato={{ selected: sceltoQui }}
               vibra="scelta"
               scala={0.96}
               style={[stili.giorno, { borderColor: sceltoQui ? p.accento : p.linea, backgroundColor: sceltoQui ? velo(p, 'accento', 0.14) : p.carta }]}
             >
               <Text style={[stili.giornoNome, { color: sceltoQui ? p.accento : p.testo }]}>{g.etichetta}</Text>
-              <Text style={[stili.giornoPosti, { color: p.testoSecondario }]}>{posti === 1 ? 'ultimo orario' : `${posti} orari`}</Text>
+              <Text style={[stili.giornoPosti, { color: p.testoSecondario }]}>{posti === 1 ? t('ultimo orario', 'last time') : t(`${posti} orari`, `${posti} times`)}</Text>
             </Tocco>
           )
         })}
@@ -72,7 +73,7 @@ function Orari({ slot, scelto, onScegli }: { slot: string[]; scelto: string | nu
   const p = usePalette()
   return (
     <View style={{ gap: spazio.due }}>
-      <Text style={[stili.etichetta, { color: p.testoSecondario }]}>ORARIO</Text>
+      <Text style={[stili.etichetta, { color: p.testoSecondario }]}>{t('ORARIO', 'TIME')}</Text>
       <View style={stili.orari} accessibilityRole="radiogroup">
         {slot.map((o) => {
           const sceltoQui = o === scelto
@@ -97,7 +98,7 @@ function Orari({ slot, scelto, onScegli }: { slot: string[]; scelto: string | nu
 }
 
 export function Appuntamento({ calendario, emailAccesso, oggettoIniziale = '' }: { calendario: Calendario; emailAccesso?: string | null; oggettoIniziale?: string }) {
-  const t = TESTI[calendario]
+  const testi = TESTI[calendario]
   const pal = usePalette()
   const identita = useIdentita(emailAccesso)
   const [orari, setOrari] = useState<{ giorni: GiornoPrenotabile[] } | null>(null)
@@ -129,32 +130,32 @@ export function Appuntamento({ calendario, emailAccesso, oggettoIniziale = '' }:
   const figli = identita?.figli ?? []
   // Con un figlio solo e' lui; con piu' di uno si sceglie; senza, si scrive.
   const figlioAttivo = figlio ?? (figli.length === 1 ? '0' : figli.length ? null : ALTRO)
-  const opzioniFiglio = [...figli.map((f, i) => ({ id: String(i), testo: f.nome || f.cognome })), { id: ALTRO, testo: 'Un altro bambino' }]
+  const opzioniFiglio = [...figli.map((f, i) => ({ id: String(i), testo: f.nome || f.cognome })), { id: ALTRO, testo: t('Un altro bambino', 'Another child') }]
 
   async function invia() {
     if (!identita || inCorso) return
     setErrore(null)
-    if (!giorno || !ora) return setErrore('Scegli un giorno e un orario.')
+    if (!giorno || !ora) return setErrore(t('Scegli un giorno e un orario.', 'Choose a day and a time.'))
     const tel = controllaTelefono(telefono ?? identita.telefono)
-    if (!tel.ok) return setErrore('Controlla il numero di cellulare: serve a chi ti chiama.')
+    if (!tel.ok) return setErrore(t('Controlla il numero di cellulare: serve a chi ti chiama.', 'Check your mobile number: we need it to call you.'))
     const base = { data: giorno, ora, email: identita.email, nome: identita.nome, cognome: identita.cognome, telefono: tel.valore }
     setInCorso(true)
     let esito
     if (calendario === 'desk') {
       if (!oggetto.trim()) {
         setInCorso(false)
-        return setErrore('Dicci di cosa vuoi parlare: serve a chi ti chiama.')
+        return setErrore(t('Dicci di cosa vuoi parlare: serve a chi ti chiama.', 'Tell us what you’d like to talk about: it helps whoever calls you.'))
       }
       esito = await prenotaDesk({ ...base, oggetto: oggetto.trim() })
     } else {
       const bimbo = figlioAttivo === ALTRO || figlioAttivo === null ? { nome: altroNome.trim(), cognome: altroCognome.trim() } : figli[Number(figlioAttivo)]
       if (!bimbo?.nome || !bimbo?.cognome) {
         setInCorso(false)
-        return setErrore('Serve il nome e il cognome del bambino di cui parliamo.')
+        return setErrore(t('Serve il nome e il cognome del bambino di cui parliamo.', 'We need the first and last name of the child.'))
       }
       if (!oggetto.trim()) {
         setInCorso(false)
-        return setErrore('Scrivi, anche in due parole, cosa vuoi chiedere.')
+        return setErrore(t('Scrivi, anche in due parole, cosa vuoi chiedere.', 'Write, even briefly, what you’d like to ask.'))
       }
       esito = await prenotaNuoto({ ...base, minore: bimbo, motivo: oggetto.trim() })
     }
@@ -170,55 +171,55 @@ export function Appuntamento({ calendario, emailAccesso, oggettoIniziale = '' }:
 
   if (fatto) {
     return (
-      <Cornice sopratitolo={t.sopra} titolo={t.titolo}>
-        <Fatto titolo="Appuntamento fissato">
-          {`${giornoEvento(`${fatto.data}T00:00:00Z`)} alle ${fatto.ora}. Ti mandiamo la conferma a ${identita?.email ?? 'la tua email'}, con il link per spostarlo o annullarlo.`}
+      <Cornice sopratitolo={testi.sopra} titolo={testi.titolo}>
+        <Fatto titolo={t('Appuntamento fissato', 'Appointment booked')}>
+          {t(`${giornoEvento(`${fatto.data}T00:00:00Z`)} alle ${fatto.ora}. Ti mandiamo la conferma a ${identita?.email ?? 'la tua email'}, con il link per spostarlo o annullarlo.`, `${giornoEvento(`${fatto.data}T00:00:00Z`)} at ${fatto.ora}. We’ll send a confirmation to ${identita?.email ?? 'your email'}, with a link to reschedule or cancel.`)}
         </Fatto>
       </Cornice>
     )
   }
 
   return (
-    <Cornice sopratitolo={t.sopra} titolo={t.titolo} sottotitolo={t.sotto}>
+    <Cornice sopratitolo={testi.sopra} titolo={testi.titolo} sottotitolo={testi.sotto}>
       {erroreOrari ? (
         <View style={{ gap: spazio.tre }}>
           <Messaggio>{erroreOrari}</Messaggio>
-          <Pulsante testo="Riprova" icona="aggiorna" onPress={leggi} />
+          <Pulsante testo={t('Riprova', 'Try again')} icona="aggiorna" onPress={leggi} />
         </View>
       ) : !orari || !identita ? (
         <SchedeInArrivo quante={1} />
       ) : !orari.giorni.length ? (
-        <Messaggio tono="attenzione">Per ora non ci sono orari liberi. Riprova fra qualche giorno.</Messaggio>
+        <Messaggio tono="attenzione">{t('Per ora non ci sono orari liberi. Riprova fra qualche giorno.', 'There are no free times right now. Try again in a few days.')}</Messaggio>
       ) : (
         <>
           <Giorni giorni={orari.giorni} scelto={giorno} onScegli={(d) => (setGiorno(d), setOra(null))} />
           {giornoScelto ? <Orari slot={giornoScelto.slot} scelto={ora} onScegli={setOra} /> : null}
-          <Text style={[stili.nota, { color: pal.testoSecondario }]}>{t.durata}</Text>
+          <Text style={[stili.nota, { color: pal.testoSecondario }]}>{testi.durata}</Text>
 
           {calendario === 'nuoto' ? (
             <>
-              <Pillole etichetta="Di quale bambino parliamo" opzioni={opzioniFiglio} valore={figlioAttivo} onScegli={setFiglio} />
+              <Pillole etichetta={t('Di quale bambino parliamo', 'Which child is it about')} opzioni={opzioniFiglio} valore={figlioAttivo} onScegli={setFiglio} />
               {figlioAttivo === ALTRO || figlioAttivo === null ? (
                 <Carta piatta style={{ gap: spazio.tre }}>
-                  <CampoTesto etichetta="Nome del bambino" value={altroNome} onChangeText={setAltroNome} autoCapitalize="words" autoComplete="off" />
-                  <CampoTesto etichetta="Cognome del bambino" value={altroCognome} onChangeText={setAltroCognome} autoCapitalize="words" autoComplete="off" />
+                  <CampoTesto etichetta={t('Nome del bambino', 'Child’s first name')} value={altroNome} onChangeText={setAltroNome} autoCapitalize="words" autoComplete="off" />
+                  <CampoTesto etichetta={t('Cognome del bambino', 'Child’s last name')} value={altroCognome} onChangeText={setAltroCognome} autoCapitalize="words" autoComplete="off" />
                 </Carta>
               ) : null}
             </>
           ) : null}
 
           <CampoTesto
-            etichetta={calendario === 'desk' ? 'Di cosa vuoi parlare' : 'Cosa vuoi chiedere'}
+            etichetta={calendario === 'desk' ? t('Di cosa vuoi parlare', 'What would you like to talk about') : t('Cosa vuoi chiedere', 'What would you like to ask')}
             value={oggetto}
             onChangeText={setOggetto}
             multiline
             numberOfLines={3}
             maxLength={500}
             style={{ minHeight: 72, textAlignVertical: 'top' }}
-            placeholder={calendario === 'desk' ? 'In due parole' : 'Ad esempio: il livello di mia figlia'}
+            placeholder={calendario === 'desk' ? t('In due parole', 'In a few words') : t('Ad esempio: il livello di mia figlia', 'For example: my daughter’s level')}
           />
           <CampoTesto
-            etichetta="Cellulare per la chiamata"
+            etichetta={t('Cellulare per la chiamata', 'Mobile number for the call')}
             icona="telefono"
             value={telefono ?? identita.telefono}
             onChangeText={setTelefono}
@@ -228,7 +229,7 @@ export function Appuntamento({ calendario, emailAccesso, oggettoIniziale = '' }:
           <DaDoveParti email={identita.email} />
 
           {errore ? <Messaggio>{errore}</Messaggio> : null}
-          <Pulsante testo="Fissa l’appuntamento" icona="avanti" onPress={invia} inCorso={inCorso} disabilitato={inVista()} />
+          <Pulsante testo={t('Fissa l’appuntamento', 'Book the appointment')} icona="avanti" onPress={invia} inCorso={inCorso} disabilitato={inVista()} />
         </>
       )}
     </Cornice>

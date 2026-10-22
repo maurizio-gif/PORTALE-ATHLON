@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { StyleSheet, Text, View } from 'react-native'
 
 import { conPulsante, leggiElenco, leggiTutte, segna, type NotificaApp } from '@/api/notifiche'
+import { locale, t } from '@/lib/lingua'
 import { spazio } from '@/theme'
 
 import { Foglio } from '../ui/Foglio'
@@ -27,11 +28,11 @@ function quando(iso: string): string {
   const d = new Date(iso)
   if (Number.isNaN(d.getTime())) return ''
   const giorno = (x: Date) => x.toLocaleDateString('sv-SE', { timeZone: 'Europe/Rome' })
-  const ora = d.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Rome' })
+  const ora = d.toLocaleTimeString(locale(), { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Rome' })
   const oggi = new Date()
-  if (giorno(d) === giorno(oggi)) return `oggi ${ora}`
-  if (giorno(d) === giorno(new Date(oggi.getTime() - 86_400_000))) return `ieri ${ora}`
-  return d.toLocaleDateString('it-IT', { day: 'numeric', month: 'short', timeZone: 'Europe/Rome' })
+  if (giorno(d) === giorno(oggi)) return t(`oggi ${ora}`, `today ${ora}`)
+  if (giorno(d) === giorno(new Date(oggi.getTime() - 86_400_000))) return t(`ieri ${ora}`, `yesterday ${ora}`)
+  return d.toLocaleDateString(locale(), { day: 'numeric', month: 'short', timeZone: 'Europe/Rome' })
 }
 
 type Stato = { fase: 'carico' } | { fase: 'errore'; testo: string } | { fase: 'pronto'; notifiche: NotificaApp[] }
@@ -99,10 +100,10 @@ export function CentroNotifiche() {
   const nonLette = stato.fase === 'pronto' ? stato.notifiche.filter((n) => !n.letta).length : 0
 
   return (
-    <Schermata titolo="Notifiche" sopratitolo="Dal club" sottotitolo="Quello che il club ti ha scritto." indietro="/">
+    <Schermata titolo={t('Notifiche', 'Notifications')} sopratitolo={t('Dal club', 'From the club')} sottotitolo={t('Quello che il club ti ha scritto.', 'What the club has sent you.')} indietro="/">
       {inVista ? (
         <Messaggio tono="attenzione" icona="info">
-          Vista cliente: le notifiche sono del socio, e guardarle le segnerebbe come viste. Le trovi nella sua scheda, dal pannello.
+          {t('Vista cliente: le notifiche sono del socio, e guardarle le segnerebbe come viste. Le trovi nella sua scheda, dal pannello.', 'Client view: these notifications belong to the member, and opening them would mark them as seen. You’ll find them on their profile in the panel.')}
         </Messaggio>
       ) : (
         <View style={{ gap: spazio.tre }}>
@@ -112,14 +113,14 @@ export function CentroNotifiche() {
           {stato.fase === 'errore' ? (
             <>
               <Messaggio tono="errore">{stato.testo}</Messaggio>
-              <Pulsante testo="Riprova" icona="aggiorna" onPress={() => void carica()} />
+              <Pulsante testo={t('Riprova', 'Try again')} icona="aggiorna" onPress={() => void carica()} />
             </>
           ) : null}
 
           {stato.fase === 'pronto' && stato.notifiche.length === 0 ? (
             <Carta piatta style={{ alignItems: 'center', gap: spazio.due, paddingVertical: spazio.cinque }}>
-              <Text style={[stili.vuotoTitolo, { color: p.testo }]}>Nessuna notifica</Text>
-              <Text style={[stili.vuotoTesto, { color: p.testoSecondario }]}>Quando il club ti scrive, lo trovi qui.</Text>
+              <Text style={[stili.vuotoTitolo, { color: p.testo }]}>{t('Nessuna notifica', 'No notifications')}</Text>
+              <Text style={[stili.vuotoTesto, { color: p.testoSecondario }]}>{t('Quando il club ti scrive, lo trovi qui.', 'When the club writes to you, you’ll find it here.')}</Text>
             </Carta>
           ) : null}
 
@@ -127,15 +128,15 @@ export function CentroNotifiche() {
             <>
               {nonLette > 0 ? (
                 <View style={stili.testaElenco}>
-                  <Text style={[stili.contatore, { color: p.testoSecondario }]}>{nonLette === 1 ? '1 da leggere' : `${nonLette} da leggere`}</Text>
-                  <Tocco onPress={() => void leggiTutteOra()} etichetta="Segna tutte come lette">
-                    <Text style={[stili.link, { color: p.accento }]}>Segna tutte come lette</Text>
+                  <Text style={[stili.contatore, { color: p.testoSecondario }]}>{nonLette === 1 ? t('1 da leggere', '1 unread') : t(`${nonLette} da leggere`, `${nonLette} unread`)}</Text>
+                  <Tocco onPress={() => void leggiTutteOra()} etichetta={t('Segna tutte come lette', 'Mark all as read')}>
+                    <Text style={[stili.link, { color: p.accento }]}>{t('Segna tutte come lette', 'Mark all as read')}</Text>
                   </Tocco>
                 </View>
               ) : null}
               {stato.notifiche.map((n) => (
                 <Carta key={n.id} onPress={() => apriVoce(n)} style={stili.voce}>
-                  <View style={[stili.pallino, { backgroundColor: n.letta ? 'transparent' : FUOCO[1] }]} accessibilityLabel={n.letta ? undefined : 'Da leggere'} />
+                  <View style={[stili.pallino, { backgroundColor: n.letta ? 'transparent' : FUOCO[1] }]} accessibilityLabel={n.letta ? undefined : t('Da leggere', 'Unread')} />
                   <View style={{ flex: 1, gap: 4 }}>
                     <View style={stili.titoloRiga}>
                       <Text style={[stili.titolo, { color: p.testo, fontFamily: n.letta ? F.bold : F.extra }]} numberOfLines={2}>
@@ -146,7 +147,7 @@ export function CentroNotifiche() {
                     <Text style={[stili.anteprima, { color: p.testoSecondario }]} numberOfLines={2}>
                       {n.testo}
                     </Text>
-                    {n.per?.nome ? <Text style={[stili.per, { color: p.accento }]}>Per {n.per.nome}</Text> : null}
+                    {n.per?.nome ? <Text style={[stili.per, { color: p.accento }]}>{t(`Per ${n.per.nome}`, `For ${n.per.nome}`)}</Text> : null}
                   </View>
                 </Carta>
               ))}
@@ -155,14 +156,14 @@ export function CentroNotifiche() {
         </View>
       )}
 
-      <Foglio aperto={aperta !== null} titolo={aperta?.titolo ?? ''} sottotitolo={aperta ? [aperta.per?.nome ? `Per ${aperta.per.nome}` : null, quando(aperta.creata_il)].filter(Boolean).join(' · ') : undefined} onChiudi={() => setAperta(null)}>
+      <Foglio aperto={aperta !== null} titolo={aperta?.titolo ?? ''} sottotitolo={aperta ? [aperta.per?.nome ? t(`Per ${aperta.per.nome}`, `For ${aperta.per.nome}`) : null, quando(aperta.creata_il)].filter(Boolean).join(' · ') : undefined} onChiudi={() => setAperta(null)}>
         {aperta ? (
           <View style={{ gap: spazio.tre }}>
             <Text style={[stili.dettaglio, { color: p.testo }]} selectable>
               {aperta.testo}
             </Text>
-            {conPulsante(aperta) ? <Pulsante testo={aperta.etichetta ?? 'Apri'} icona="avanti" onPress={() => premiPulsante(aperta)} /> : null}
-            <Pulsante testo="Togli dall’elenco" variante="fantasma" piccolo onPress={() => nascondi(aperta)} />
+            {conPulsante(aperta) ? <Pulsante testo={aperta.etichetta ?? t('Apri', 'Open')} icona="avanti" onPress={() => premiPulsante(aperta)} /> : null}
+            <Pulsante testo={t('Togli dall’elenco', 'Remove from list')} variante="fantasma" piccolo onPress={() => nascondi(aperta)} />
           </View>
         ) : null}
       </Foglio>

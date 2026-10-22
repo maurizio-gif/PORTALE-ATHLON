@@ -11,6 +11,7 @@ import { Scelta } from '@/components/Scelta'
 import { Testo } from '@/components/Testo'
 import { problemaCodiceFiscale } from '@/lib/codiceFiscale'
 import type { CandidatoGuestPass, SceltaGuestPass } from '@/lib/guestPass'
+import { locale, t } from '@/lib/lingua'
 import { spazio, useColori } from '@/theme'
 
 // «Per chi è il Guest Pass?» (21/10/2026, decisione di Maurizio): il primo blocco del link. Il primo passo del sito non
@@ -38,7 +39,7 @@ function nomeIntero(c: { nome: string | null; cognome: string | null }): string 
 
 /** «15 ottobre 2010». */
 function dataLunga(g: string): string {
-  return new Date(g.slice(0, 10) + 'T12:00:00Z').toLocaleDateString('it-IT', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' })
+  return new Date(g.slice(0, 10) + 'T12:00:00Z').toLocaleDateString(locale(), { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' })
 }
 
 /** La scelta di partenza: quella salvata, o nessuna. */
@@ -69,7 +70,7 @@ export function PerChi({ token, scelta, onScelto }: { token: string; scelta: Sce
   const erroreCf = modo === NUOVO ? problemaCodiceFiscale(figlio) : null
   const etaNuovo = modo === NUOVO && /^\d{4}-\d{2}-\d{2}$/.test(figlio.nascita) ? anni(figlio.nascita) : null
   const erroreEta =
-    etaNuovo === null ? null : etaNuovo > scelta.eta.max ? 'È maggiorenne: il Guest Pass lo chiede con la sua email.' : etaNuovo < scelta.eta.min ? 'Il Guest Pass si può attivare dai 13 anni.' : null
+    etaNuovo === null ? null : etaNuovo > scelta.eta.max ? t('È maggiorenne: il Guest Pass lo chiede con la sua email.', 'They’re an adult: they request the Guest Pass with their own email.') : etaNuovo < scelta.eta.min ? t('Il Guest Pass si può attivare dai 13 anni.', 'The Guest Pass can be activated from age 13.') : null
   const nuovoCompleto =
     !!figlio.nome.trim() && !!figlio.cognome.trim() && !!figlio.nascita && figlio.codice_fiscale.replace(/\s/g, '').length === 16 && !erroreCf && !erroreEta
   const pronto = modo !== null && (!perFiglio || tutore) && (modo !== NUOVO || nuovoCompleto)
@@ -93,7 +94,7 @@ export function PerChi({ token, scelta, onScelto }: { token: string; scelta: Sce
         return setAperto(false)
       }
       setAttesa(false)
-      return setErrore(dati.errore ?? 'Non siamo riusciti a salvare la scelta adesso. Riprova fra qualche minuto.')
+      return setErrore(dati.errore ?? t('Non siamo riusciti a salvare la scelta adesso. Riprova fra qualche minuto.', 'We couldn’t save your choice right now. Try again in a few minutes.'))
     }
     await onScelto()
     setAttesa(false)
@@ -107,22 +108,25 @@ export function PerChi({ token, scelta, onScelto }: { token: string; scelta: Sce
       <View style={{ gap: spazio.due }}>
         {scelta.per === 'me' ? (
           <Testo>
-            Per <Text style={{ fontWeight: '700' }}>te</Text>.
+            {t('Per', 'For')} <Text style={{ fontWeight: '700' }}>{t('te', 'you')}</Text>.
           </Testo>
         ) : (
           <>
             <Testo>
-              Per <Text style={{ fontWeight: '700' }}>{f ? nomeIntero(f) : 'tuo figlio'}</Text>
-              {f?.nascita ? `, data di nascita ${dataLunga(f.nascita)}` : ''}
+              {t('Per', 'For')} <Text style={{ fontWeight: '700' }}>{f ? nomeIntero(f) : t('tuo figlio', 'your child')}</Text>
+              {f?.nascita ? t(`, data di nascita ${dataLunga(f.nascita)}`, `, date of birth ${dataLunga(f.nascita)}`) : ''}
               {f?.codice_fiscale ? ` · ${f.codice_fiscale}` : ''}.
             </Testo>
             <Testo variante="piccolo">
-              Lo attivi come genitore: i dati qui sotto sono i tuoi, e paghi tu. Il contratto è intestato a {f?.nome ?? 'tuo figlio'}
-              {f?.nuovo ? ', che registriamo al club nel tuo nucleo familiare quando confermi' : ''}.
+              {t(
+                `Lo attivi come genitore: i dati qui sotto sono i tuoi, e paghi tu. Il contratto è intestato a ${f?.nome ?? 'tuo figlio'}`,
+                `You activate it as the parent: the details below are yours, and you pay. The contract is in ${f?.nome ? `${f.nome}’s` : 'your child’s'} name`,
+              )}
+              {f?.nuovo ? t(', che registriamo al club nel tuo nucleo familiare quando confermi', ', whom we’ll register at the club in your family when you confirm') : ''}.
             </Testo>
           </>
         )}
-        <Bottone testo="Cambia" variante="contorno" onPress={() => setAperto(true)} />
+        <Bottone testo={t('Cambia', 'Change')} variante="contorno" onPress={() => setAperto(true)} />
       </View>
     )
   }
@@ -151,14 +155,16 @@ export function PerChi({ token, scelta, onScelto }: { token: string; scelta: Sce
   return (
     <View style={{ gap: spazio.due }}>
       <Testo variante="piccolo">
-        Il Guest Pass si può attivare per te o per un figlio dai {scelta.eta.min} ai {scelta.eta.max} anni. Ognuno ha il suo: finito questo, puoi
-        attivarne un altro.
+        {t(
+          `Il Guest Pass si può attivare per te o per un figlio dai ${scelta.eta.min} ai ${scelta.eta.max} anni. Ognuno ha il suo: finito questo, puoi attivarne un altro.`,
+          `The Guest Pass can be activated for you or a child aged ${scelta.eta.min} to ${scelta.eta.max}. Everyone gets their own: once this one is done, you can activate another.`,
+        )}
       </Testo>
-      {me ? riga(me, 'me', 'Per me', me.idoneo ? null : me.motivo) : null}
+      {me ? riga(me, 'me', t('Per me', 'For me'), me.idoneo ? null : me.motivo) : null}
       {figli.map((x) => {
-        const chi = nomeIntero(x) || 'Tuo figlio'
-        const eta = x.nascita ? `${anni(x.nascita)} anni` : null
-        return riga(x, `f${x.member_id}`, `Per ${chi}`, x.idoneo ? eta : x.motivo)
+        const chi = nomeIntero(x) || t('Tuo figlio', 'Your child')
+        const eta = x.nascita ? t(`${anni(x.nascita)} anni`, `${anni(x.nascita)} years old`) : null
+        return riga(x, `f${x.member_id}`, t(`Per ${chi}`, `For ${chi}`), x.idoneo ? eta : x.motivo)
       })}
       <Scelta
         scelta={modo === NUOVO}
@@ -167,29 +173,29 @@ export function PerChi({ token, scelta, onScelto }: { token: string; scelta: Sce
           setErrore(null)
         }}
         spento={attesa}
-        etichetta="Per un figlio che non è ancora iscritto al club"
+        etichetta={t('Per un figlio che non è ancora iscritto al club', 'For a child who isn’t registered at the club yet')}
         stile={{ alignSelf: 'stretch' }}
       >
         <Text style={{ color: modo === NUOVO ? c.suAccento : c.testo, fontWeight: '700' }}>
-          {figli.length ? '+ Per un altro figlio' : 'Per un figlio'}
+          {figli.length ? t('+ Per un altro figlio', '+ For another child') : t('Per un figlio', 'For a child')}
         </Text>
-        <Text style={{ color: modo === NUOVO ? c.suAccento : c.testo, fontSize: 13, marginTop: 2 }}>Che non è ancora iscritto al club</Text>
+        <Text style={{ color: modo === NUOVO ? c.suAccento : c.testo, fontSize: 13, marginTop: 2 }}>{t('Che non è ancora iscritto al club', 'Who isn’t registered at the club yet')}</Text>
       </Scelta>
 
       {modo === NUOVO ? (
         <View style={[stili.riquadro, { borderColor: c.bordo, backgroundColor: c.sfondo }]}>
-          <Testo variante="piccolo">I dati di tuo figlio, per intero come sul documento: controlliamo che il codice fiscale corrisponda.</Testo>
-          <Campo etichetta="Nome" value={figlio.nome} onChangeText={(v) => setFiglio((x) => ({ ...x, nome: v }))} autoCapitalize="words" errore={!figlio.nome.trim()} />
-          <Campo etichetta="Cognome" value={figlio.cognome} onChangeText={(v) => setFiglio((x) => ({ ...x, cognome: v }))} autoCapitalize="words" errore={!figlio.cognome.trim()} />
+          <Testo variante="piccolo">{t('I dati di tuo figlio, per intero come sul documento: controlliamo che il codice fiscale corrisponda.', 'Your child’s details, in full as on their ID: we check that the tax code matches.')}</Testo>
+          <Campo etichetta={t('Nome', 'First name')} value={figlio.nome} onChangeText={(v) => setFiglio((x) => ({ ...x, nome: v }))} autoCapitalize="words" errore={!figlio.nome.trim()} />
+          <Campo etichetta={t('Cognome', 'Last name')} value={figlio.cognome} onChangeText={(v) => setFiglio((x) => ({ ...x, cognome: v }))} autoCapitalize="words" errore={!figlio.cognome.trim()} />
           <CampoData
-            etichetta="Data di nascita"
+            etichetta={t('Data di nascita', 'Date of birth')}
             value={figlio.nascita}
             onChange={(v) => setFiglio((x) => ({ ...x, nascita: v }))}
             annoIniziale={new Date().getFullYear() - 15}
             errore={!figlio.nascita || !!erroreEta}
           />
           <Campo
-            etichetta="Codice fiscale"
+            etichetta={t('Codice fiscale', 'Tax code')}
             value={figlio.codice_fiscale}
             onChangeText={(v) => setFiglio((x) => ({ ...x, codice_fiscale: v.toUpperCase() }))}
             autoCapitalize="characters"
@@ -203,16 +209,16 @@ export function PerChi({ token, scelta, onScelto }: { token: string; scelta: Sce
       ) : null}
 
       {perFiglio ? (
-        <Casella spuntata={tutore} onCambia={() => setTutore((x) => !x)} etichetta="Dichiaro di essere il genitore o il tutore legale">
+        <Casella spuntata={tutore} onCambia={() => setTutore((x) => !x)} etichetta={t('Dichiaro di essere il genitore o il tutore legale', 'I declare I am the parent or legal guardian')}>
           <Testo variante="piccolo" style={{ color: c.testo }}>
-            Dichiaro di essere il genitore o il tutore legale di questo figlio, e di attivare il Guest Pass a suo nome.
+            {t('Dichiaro di essere il genitore o il tutore legale di questo figlio, e di attivare il Guest Pass a suo nome.', 'I declare I am the parent or legal guardian of this child, and that I’m activating the Guest Pass in their name.')}
           </Testo>
         </Casella>
       ) : null}
 
       {errore ? <Avviso>{errore}</Avviso> : null}
-      <Bottone testo="Continua" onPress={conferma} inCorso={attesa} disabilitato={!pronto} />
-      {scelta.per ? <Bottone testo="Lascia com’era" variante="contorno" onPress={() => setAperto(false)} disabilitato={attesa} /> : null}
+      <Bottone testo={t('Continua', 'Continue')} onPress={conferma} inCorso={attesa} disabilitato={!pronto} />
+      {scelta.per ? <Bottone testo={t('Lascia com’era', 'Leave as it was')} variante="contorno" onPress={() => setAperto(false)} disabilitato={attesa} /> : null}
     </View>
   )
 }

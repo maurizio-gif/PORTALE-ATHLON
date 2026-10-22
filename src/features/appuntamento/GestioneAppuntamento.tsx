@@ -15,6 +15,7 @@ import { Pagina } from '@/components/Pagina'
 import { Scelta } from '@/components/Scelta'
 import { Testo } from '@/components/Testo'
 import { spazio, useColori } from '@/theme'
+import { t } from '@/lib/lingua'
 
 // L'appuntamento telefonico visto da chi l'ha preso: vederlo, spostarlo,
 // annullarlo. Ripreso dal CRM (`app/appuntamento/[token]/GestioneAppuntamento.tsx`).
@@ -27,7 +28,7 @@ type Schermata = 'riepilogo' | 'sposta' | 'conferma-annulla' | 'annullato' | 'sp
 
 function quando(giorni: GiornoPrenotabile[], data: string, ora: string): string {
   const giorno = giorni.find((g) => g.data === data)
-  return `${giorno ? giorno.etichetta : data} alle ${ora}`
+  return t(`${giorno ? giorno.etichetta : data} alle ${ora}`, `${giorno ? giorno.etichetta : data} at ${ora}`)
 }
 
 export function GestioneAppuntamento({
@@ -52,9 +53,10 @@ export function GestioneAppuntamento({
 
   // Per il desk sotto l'orario c'e' l'argomento scritto da chi ha prenotato;
   // per il Direttore Tecnico il nome del bambino di cui si parla.
-  const etichettaOggetto = calendario === 'nuoto' ? 'Per' : 'Argomento'
+  const etichettaOggetto = calendario === 'nuoto' ? t('Per', 'For') : t('Argomento', 'Topic')
   // «ti chiamiamo noi» per il desk, «ti chiama il Direttore Tecnico» per il nuoto.
-  const tiChiama = calendario === 'nuoto' ? 'ti chiama il Direttore Tecnico' : 'ti chiamiamo noi'
+  const tiChiama = calendario === 'nuoto' ? t('ti chiama il Direttore Tecnico', 'the Technical Director will call you') : t('ti chiamiamo noi', 'we’ll call you')
+  const tiChiamaMaiuscolo = tiChiama.charAt(0).toUpperCase() + tiChiama.slice(1)
   const etichetta = quando(listaGiorni, appuntamento.data, appuntamento.ora)
   const giorno = listaGiorni.find((g) => g.data === giornoAperto)
   const contatto = calendario === 'nuoto' ? 'nuoto@athlonroma.it' : 'desk@athlonroma.it'
@@ -95,38 +97,38 @@ export function GestioneAppuntamento({
 
   if (schermata === 'annullato') {
     return (
-      <Pagina titolo="Appuntamento annullato">
-        <Testo variante="attenuato">Non ti chiamiamo più. Quando vuoi puoi prenotarne un altro dal sito, oppure scriverci a {contatto}.</Testo>
-        <Bottone testo="Torna al sito" onPress={() => Linking.openURL('https://www.athlonroma.it')} />
+      <Pagina titolo={t('Appuntamento annullato', 'Appointment canceled')}>
+        <Testo variante="attenuato">{t(`Non ti chiamiamo più. Quando vuoi puoi prenotarne un altro dal sito, oppure scriverci a ${contatto}.`, `We won’t call you. Whenever you like, you can book another one from the website, or write to us at ${contatto}.`)}</Testo>
+        <Bottone testo={t('Torna al sito', 'Back to the website')} onPress={() => Linking.openURL('https://www.athlonroma.it')} />
       </Pagina>
     )
   }
 
   if (schermata === 'spostato') {
     return (
-      <Pagina titolo="Spostato">
+      <Pagina titolo={t('Spostato', 'Rescheduled')}>
         {orario}
-        <Testo variante="attenuato">{tiChiama.charAt(0).toUpperCase() + tiChiama.slice(1)} al nuovo orario. Se cambia di nuovo qualcosa, questo stesso link resta valido.</Testo>
-        <Bottone testo="Va bene" onPress={() => setSchermata('riepilogo')} />
+        <Testo variante="attenuato">{t(`${tiChiamaMaiuscolo} al nuovo orario. Se cambia di nuovo qualcosa, questo stesso link resta valido.`, `${tiChiamaMaiuscolo} at the new time. If anything changes again, this same link stays valid.`)}</Testo>
+        <Bottone testo={t('Va bene', 'OK')} onPress={() => setSchermata('riepilogo')} />
       </Pagina>
     )
   }
 
   if (schermata === 'conferma-annulla') {
     return (
-      <Pagina titolo="Annulliamo la telefonata?" sottotitolo={etichetta}>
-        <Testo variante="attenuato">Da qui non si torna indietro: per un nuovo appuntamento si prenota di nuovo dal sito.</Testo>
-        <Bottone testo="Sì, annulla l’appuntamento" onPress={annulla} inCorso={attesa} />
-        <Bottone testo="No, tienilo" variante="contorno" onPress={() => setSchermata('riepilogo')} disabilitato={attesa} />
+      <Pagina titolo={t('Annulliamo la telefonata?', 'Cancel the call?')} sottotitolo={etichetta}>
+        <Testo variante="attenuato">{t('Da qui non si torna indietro: per un nuovo appuntamento si prenota di nuovo dal sito.', 'There’s no going back from here: for a new appointment, book again from the website.')}</Testo>
+        <Bottone testo={t('Sì, annulla l’appuntamento', 'Yes, cancel the appointment')} onPress={annulla} inCorso={attesa} />
+        <Bottone testo={t('No, tienilo', 'No, keep it')} variante="contorno" onPress={() => setSchermata('riepilogo')} disabilitato={attesa} />
       </Pagina>
     )
   }
 
   if (schermata === 'sposta') {
     return (
-      <Pagina titolo="Quando ti chiamiamo?" sottotitolo={`Adesso sei su ${etichetta}. Scegli un altro momento nei prossimi giorni.`}>
+      <Pagina titolo={t('Quando ti chiamiamo?', 'When should we call you?')} sottotitolo={t(`Adesso sei su ${etichetta}. Scegli un altro momento nei prossimi giorni.`, `You’re currently on ${etichetta}. Choose another time in the coming days.`)}>
         {listaGiorni.length === 0 ? (
-          <Testo variante="attenuato">Non ci sono altri orari liberi in questi giorni. Scrivici a {contatto} e troviamo un momento.</Testo>
+          <Testo variante="attenuato">{t(`Non ci sono altri orari liberi in questi giorni. Scrivici a ${contatto} e troviamo un momento.`, `There are no other free times in the coming days. Write to us at ${contatto} and we’ll find a time.`)}</Testo>
         ) : (
           <>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={stili.giorni}>
@@ -138,7 +140,7 @@ export function GestioneAppuntamento({
                   <Scelta
                     key={g.data}
                     scelta={attivo}
-                    etichetta={`${g.etichetta}, ${g.slot.length} orari liberi`}
+                    etichetta={t(`${g.etichetta}, ${g.slot.length} orari liberi`, `${g.etichetta}, ${g.slot.length} free times`)}
                     onPress={() => {
                       setGiornoAperto(g.data)
                       setScelto(null)
@@ -147,13 +149,13 @@ export function GestioneAppuntamento({
                   >
                     <Text style={[stili.settimana, { color: colore }]}>{settimana}</Text>
                     <Text style={[stili.numero, { color: colore }]}>{numero}</Text>
-                    <Text style={[stili.liberi, { color: colore }]}>{g.slot.length} liberi</Text>
+                    <Text style={[stili.liberi, { color: colore }]}>{g.slot.length} {t('liberi', 'free')}</Text>
                   </Scelta>
                 )
               })}
             </ScrollView>
             {!giorno ? (
-              <Testo variante="attenuato">Scegli un giorno per vedere gli orari liberi.</Testo>
+              <Testo variante="attenuato">{t('Scegli un giorno per vedere gli orari liberi.', 'Choose a day to see the free times.')}</Testo>
             ) : (
               <View style={stili.orari}>
                 {giorno.slot.map((o) => {
@@ -170,19 +172,19 @@ export function GestioneAppuntamento({
         )}
         {errore ? <Avviso>{errore}</Avviso> : null}
         <Bottone
-          testo={scelto ? `Sposta a ${quando(listaGiorni, scelto.data, scelto.ora)}` : 'Scegli un orario'}
+          testo={scelto ? t(`Sposta a ${quando(listaGiorni, scelto.data, scelto.ora)}`, `Move to ${quando(listaGiorni, scelto.data, scelto.ora)}`) : t('Scegli un orario', 'Choose a time')}
           onPress={sposta}
           disabilitato={!scelto}
           inCorso={attesa}
         />
-        <Bottone testo="Indietro" variante="contorno" onPress={() => setSchermata('riepilogo')} disabilitato={attesa} />
+        <Bottone testo={t('Indietro', 'Back')} variante="contorno" onPress={() => setSchermata('riepilogo')} disabilitato={attesa} />
       </Pagina>
     )
   }
 
   const primo = appuntamento.nome ? appuntamento.nome.split(' ')[0] : ''
   return (
-    <Pagina titolo={primo ? `${primo}, ${tiChiama}` : tiChiama.charAt(0).toUpperCase() + tiChiama.slice(1)}>
+    <Pagina titolo={primo ? `${primo}, ${tiChiama}` : tiChiamaMaiuscolo}>
       {orario}
       {appuntamento.oggetto ? (
         <Testo variante="attenuato">
@@ -190,8 +192,8 @@ export function GestioneAppuntamento({
         </Testo>
       ) : null}
       {errore ? <Avviso>{errore}</Avviso> : null}
-      <Bottone testo="Sposta a un altro orario" onPress={() => setSchermata('sposta')} disabilitato={attesa} />
-      <Bottone testo="Annulla l’appuntamento" variante="contorno" onPress={() => setSchermata('conferma-annulla')} disabilitato={attesa} />
+      <Bottone testo={t('Sposta a un altro orario', 'Move to another time')} onPress={() => setSchermata('sposta')} disabilitato={attesa} />
+      <Bottone testo={t('Annulla l’appuntamento', 'Cancel the appointment')} variante="contorno" onPress={() => setSchermata('conferma-annulla')} disabilitato={attesa} />
     </Pagina>
   )
 }

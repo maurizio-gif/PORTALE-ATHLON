@@ -1,5 +1,6 @@
 import * as DocumentPicker from 'expo-document-picker'
 import { Platform } from 'react-native'
+import { t } from './lingua'
 
 // La foto del piatto per la sezione Alimentazione (19/10/2026): la si sceglie (o la
 // si scatta: sul telefono il selettore del browser offre la fotocamera), la si
@@ -52,18 +53,18 @@ async function riduci(blob: Blob): Promise<Blob | null> {
 export async function preparaFoto(a: DocumentPicker.DocumentPickerAsset): Promise<{ ok: true; dati: string; anteprima: string } | { ok: false; errore: string }> {
   try {
     let blob: Blob = Platform.OS === 'web' && a.file ? a.file : await (await fetch(a.uri)).blob()
-    if (blob.type && !blob.type.startsWith('image/')) return { ok: false, errore: 'Scegli una foto.' }
+    if (blob.type && !blob.type.startsWith('image/')) return { ok: false, errore: t('Scegli una foto.', 'Choose a photo.') }
     if (Platform.OS === 'web') {
       const ridotta = await riduci(blob)
       if (ridotta && ridotta.size > 0) blob = ridotta
       // Una foto che il browser non sa aprire (per esempio HEIC su un computer) non si puo' ridurre.
-      else if (!/^image\/(jpeg|png|webp)$/.test(blob.type)) return { ok: false, errore: 'Questo formato di foto non si apre qui: prova con una foto JPG o PNG.' }
+      else if (!/^image\/(jpeg|png|webp)$/.test(blob.type)) return { ok: false, errore: t('Questo formato di foto non si apre qui: prova con una foto JPG o PNG.', 'This photo format can’t be opened here: try a JPG or PNG photo.') }
     }
-    if (blob.size === 0) return { ok: false, errore: 'La foto è vuota.' }
-    if (blob.size > MAX_BYTE) return { ok: false, errore: 'La foto pesa troppo: il limite è 4 MB.' }
+    if (blob.size === 0) return { ok: false, errore: t('La foto è vuota.', 'The photo is empty.') }
+    if (blob.size > MAX_BYTE) return { ok: false, errore: t('La foto pesa troppo: il limite è 4 MB.', 'The photo is too large: the limit is 4 MB.') }
     const dati = await inBase64(blob)
     return { ok: true, dati, anteprima: dati }
   } catch {
-    return { ok: false, errore: 'Non riusciamo a leggere la foto. Riprova scegliendola di nuovo.' }
+    return { ok: false, errore: t('Non riusciamo a leggere la foto. Riprova scegliendola di nuovo.', 'We can’t read the photo. Try choosing it again.') }
   }
 }

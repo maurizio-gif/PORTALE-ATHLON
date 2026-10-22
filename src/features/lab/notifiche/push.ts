@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { Platform } from 'react-native'
 
 import { iscriviPush, rimuoviPush, statoPushServer } from '@/api/notifiche'
+import { t } from '@/lib/lingua'
 
 import { vistaCorrente } from '../vista'
 
@@ -121,7 +122,7 @@ export function usePush() {
       const permesso = await Notification.requestPermission()
       if (permesso !== 'granted') {
         setStato(permesso === 'denied' ? 'bloccato' : 'spento')
-        if (permesso !== 'denied') setErrore('Non hai consentito le notifiche: puoi riprovare quando vuoi.')
+        if (permesso !== 'denied') setErrore(t('Non hai consentito le notifiche: puoi riprovare quando vuoi.', 'You didn’t allow notifications: you can try again whenever you like.'))
         return
       }
       const server = await statoPushServer()
@@ -130,7 +131,7 @@ export function usePush() {
         return
       }
       const reg = await registrazione()
-      if (!reg) return setErrore('Il browser non ha potuto preparare le notifiche. Riprova fra poco.')
+      if (!reg) return setErrore(t('Il browser non ha potuto preparare le notifiche. Riprova fra poco.', 'The browser couldn’t set up notifications. Try again shortly.'))
       await navigator.serviceWorker.ready
       const chiave = chiaveInByte(server.chiave)
       let sub = await reg.pushManager.getSubscription()
@@ -138,13 +139,13 @@ export function usePush() {
         sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: chiave as BufferSource })
       }
       const j = sub.toJSON()
-      if (!j.endpoint || !j.keys?.p256dh || !j.keys?.auth) return setErrore('Il browser ha dato un indirizzo per le notifiche che non va bene. Riprova.')
+      if (!j.endpoint || !j.keys?.p256dh || !j.keys?.auth) return setErrore(t('Il browser ha dato un indirizzo per le notifiche che non va bene. Riprova.', 'The browser gave an invalid notification address. Try again.'))
       const r = await iscriviPush({ endpoint: j.endpoint, p256dh: j.keys.p256dh, auth: j.keys.auth })
       if (!r.ok) return setErrore(r.errore)
       setStato('attivo')
       void leggi()
     } catch {
-      setErrore('Non siamo riusciti ad attivare le notifiche su questo dispositivo. Riprova fra poco.')
+      setErrore(t('Non siamo riusciti ad attivare le notifiche su questo dispositivo. Riprova fra poco.', 'We couldn’t turn on notifications on this device. Try again shortly.'))
     } finally {
       setOccupato(false)
     }
@@ -163,7 +164,7 @@ export function usePush() {
       setStato('spento')
       void leggi()
     } catch {
-      setErrore('Non siamo riusciti a spegnere le notifiche su questo dispositivo. Riprova fra poco.')
+      setErrore(t('Non siamo riusciti a spegnere le notifiche su questo dispositivo. Riprova fra poco.', 'We couldn’t turn off notifications on this device. Try again shortly.'))
     } finally {
       setOccupato(false)
     }

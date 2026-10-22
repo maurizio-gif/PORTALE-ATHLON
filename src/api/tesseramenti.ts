@@ -3,6 +3,7 @@ import { Platform } from 'react-native'
 import { CRM_URL } from '@/config'
 import { vistaCorrente } from '@/features/lab/vista'
 import { supabase } from '@/lib/supabase'
+import { t } from '@/lib/lingua'
 
 // Il tesseramento ASI del socio e della sua famiglia (17/10/2026): la tessera attiva di ogni
 // persona del nucleo, e il suo PDF, lo stesso che il CRM stampa dalla scheda. I dati li dice il
@@ -30,7 +31,7 @@ export async function leggiTesseramenti(): Promise<EsitoTesseramenti> {
   const { data, error } = vista ? await supabase.rpc('portale_tesseramenti_di', { p_email: vista }) : await supabase.rpc('portale_i_miei_tesseramenti')
   if (error) {
     console.error('tesseramenti:', error.code, error.message)
-    return { ok: false, errore: 'Non riusciamo a leggere il tuo tesseramento adesso.' }
+    return { ok: false, errore: t('Non riusciamo a leggere il tuo tesseramento adesso.', 'We can’t load your membership card right now.') }
   }
   return { ok: true, tessere: ((data as { tessere?: Tessera[] } | null)?.tessere ?? []) as Tessera[] }
 }
@@ -42,28 +43,28 @@ export type EsitoTessera = { ok: true; url: string; nome: string } | { ok: false
  * indirizzo locale (`blob:`) da aprire, salvare o inviare; nell'app nativa servira' un file
  * sul telefono (expo-file-system, expo-sharing), che oggi il progetto non ha.
  */
-export async function scaricaTessera(t: Tessera): Promise<EsitoTessera> {
-  const nome = `tessera-asi-${t.numero.replace(/[^\w-]/g, '')}.pdf`
+export async function scaricaTessera(tessera: Tessera): Promise<EsitoTessera> {
+  const nome = `tessera-asi-${tessera.numero.replace(/[^\w-]/g, '')}.pdf`
   if (Platform.OS !== 'web') {
-    return { ok: false, errore: 'Il download della tessera dall’app installata arriva con la versione definitiva: per ora aprila da app.athlonroma.it.' }
+    return { ok: false, errore: t('Il download della tessera dall’app installata arriva con la versione definitiva: per ora aprila da app.athlonroma.it.', 'Downloading the card from the installed app comes with the final version: for now, open it from app.athlonroma.it.') }
   }
   const { data } = await supabase.auth.getSession()
   const token = data.session?.access_token
-  if (!token) return { ok: false, errore: 'Sessione scaduta: entra di nuovo.' }
+  if (!token) return { ok: false, errore: t('Sessione scaduta: entra di nuovo.', 'Session expired: sign in again.') }
   const vista = vistaCorrente()
   try {
     const r = await fetch(`${CRM_URL}/api/portale/tessera-asi`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, ...(vista ? { 'X-Athlon-Come': vista } : {}) },
-      body: JSON.stringify({ member_id: t.member_id }),
+      body: JSON.stringify({ member_id: tessera.member_id }),
     })
     if (!r.ok) {
       const d = (await r.json().catch(() => null)) as { errore?: string } | null
-      return { ok: false, errore: d?.errore ?? 'Non riusciamo a scaricare la tessera adesso. Riprova fra qualche minuto.' }
+      return { ok: false, errore: d?.errore ?? t('Non riusciamo a scaricare la tessera adesso. Riprova fra qualche minuto.', 'We can’t download the card right now. Try again in a few minutes.') }
     }
     const blob = await r.blob()
     return { ok: true, url: URL.createObjectURL(blob), nome }
   } catch {
-    return { ok: false, errore: 'Connessione non riuscita. Controlla la rete e riprova.' }
+    return { ok: false, errore: t('Connessione non riuscita. Controlla la rete e riprova.', 'Connection failed. Check your network and try again.') }
   }
 }

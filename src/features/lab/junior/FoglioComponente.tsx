@@ -4,6 +4,7 @@ import { StyleSheet, Text, View } from "react-native";
 import { aggiungiComponente, type NucleoJunior } from "@/api/junior";
 import { CampoData } from "@/components/CampoData";
 import { problemaCodiceFiscale } from "@/lib/codiceFiscale";
+import { t } from "@/lib/lingua";
 import { spazio } from "@/theme";
 
 import { CampoTesto } from "../ui/Campi";
@@ -48,7 +49,7 @@ export function FoglioComponente({
   const erroreCf = problemaCodiceFiscale(d);
   const erroreEta =
     /^\d{4}-\d{2}-\d{2}$/.test(d.nascita) && anni(d.nascita) >= 18
-      ? "Risulta maggiorenne: chi ha 18 anni entra nell’app con la sua email."
+      ? t("Risulta maggiorenne: chi ha 18 anni entra nell’app con la sua email.", "This person is an adult: anyone 18 or over signs in to the app with their own email.")
       : null;
   const pronto =
     !!d.nome.trim() &&
@@ -88,11 +89,11 @@ export function FoglioComponente({
     <Foglio
       aperto={aperto}
       onChiudi={chiudi}
-      titolo="Aggiungi un componente"
-      sottotitolo="Un figlio che non è ancora nel tuo nucleo familiare. Tutti i dati per intero, come sul documento."
+      titolo={t("Aggiungi un componente", "Add a family member")}
+      sottotitolo={t("Un figlio che non è ancora nel tuo nucleo familiare. Tutti i dati per intero, come sul documento.", "A child who isn’t in your family members yet. Enter all details in full, as on their ID.")}
     >
       <CampoTesto
-        etichetta="Nome"
+        etichetta={t("Nome", "First name")}
         icona="persona"
         value={d.nome}
         onChangeText={(v) => setD((x) => ({ ...x, nome: v }))}
@@ -100,7 +101,7 @@ export function FoglioComponente({
         autoComplete="off"
       />
       <CampoTesto
-        etichetta="Cognome"
+        etichetta={t("Cognome", "Last name")}
         icona="persona"
         value={d.cognome}
         onChangeText={(v) => setD((x) => ({ ...x, cognome: v }))}
@@ -110,7 +111,7 @@ export function FoglioComponente({
       {/* CampoData ha `flex: 1`: in una colonna che scorre si schiaccerebbe sul campo dopo. */}
       <View>
         <CampoData
-          etichetta="Data di nascita"
+          etichetta={t("Data di nascita", "Date of birth")}
           value={d.nascita}
           onChange={(v) => setD((x) => ({ ...x, nascita: v }))}
           max={oggi()}
@@ -120,7 +121,7 @@ export function FoglioComponente({
         />
       </View>
       <CampoTesto
-        etichetta="Codice fiscale"
+        etichetta={t("Codice fiscale", "Italian tax code")}
         icona="documento"
         value={d.codice_fiscale}
         onChangeText={(v) =>
@@ -139,7 +140,7 @@ export function FoglioComponente({
         onPress={() => setTutore((v) => !v)}
         stato={{ selected: tutore }}
         ruolo="checkbox"
-        etichetta="Dichiaro di esserne il genitore o il tutore legale"
+        etichetta={t("Dichiaro di esserne il genitore o il tutore legale", "I declare that I am their parent or legal guardian")}
         style={stili.casellaRiga}
       >
         <View
@@ -154,18 +155,17 @@ export function FoglioComponente({
           {tutore ? <Text style={stili.spunta}>✓</Text> : null}
         </View>
         <Text style={[stili.dichiarazione, { color: p.testo }]}>
-          Dichiaro di esserne il genitore o il tutore legale.
+          {t("Dichiaro di esserne il genitore o il tutore legale.", "I declare that I am their parent or legal guardian.")}
         </Text>
       </Tocco>
 
       <Text style={[stili.nota, { color: p.testoSecondario }]}>
-        Prima di aggiungerlo controlliamo che non sia già registrato al club. Se
-        lo è, per collegarlo al tuo nucleo passa in segreteria.
+        {t("Prima di aggiungerlo controlliamo che non sia già registrato al club. Se lo è, per collegarlo al tuo nucleo passa in segreteria.", "Before adding them we check they’re not already registered at the club. If they are, come to the front desk to link them to your family.")}
       </Text>
 
       {errore ? <Messaggio>{errore}</Messaggio> : null}
       <Pulsante
-        testo="Aggiungi al nucleo"
+        testo={t("Aggiungi al nucleo", "Add to family")}
         icona="aggiungi"
         onPress={aggiungi}
         inCorso={invio}
