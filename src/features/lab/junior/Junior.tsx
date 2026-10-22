@@ -49,6 +49,7 @@ import {
 import { attivitaDiPersona } from "./attivita";
 import { ComeFunziona } from "./ComeFunziona";
 import { CorsiPersona } from "./Corsi";
+import { DirettoreTecnico } from "./DirettoreTecnico";
 import { FoglioComponente } from "./FoglioComponente";
 import { FoglioLivelli } from "./FoglioLivelli";
 import { TestataJunior } from "./Presentazione";
@@ -316,6 +317,9 @@ export function Junior() {
       ) : null}
 
       {persona ? <CorsiPersona persona={persona} vista={vista} /> : null}
+      {persona && persona.minorenne && persona.gruppi.length > 0 ? (
+        <DirettoreTecnico persona={persona} vista={vista} />
+      ) : null}
       <FoglioLivelli
         persona={persona}
         aperto={storiaLivelli}
