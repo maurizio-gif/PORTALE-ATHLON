@@ -36,6 +36,7 @@ import {
   anniDisponibili,
   conPosto,
   descriviPersona,
+  eBaby,
   giorniDelAnno,
   gruppiDellAnno,
   personeDaMostrare,
@@ -43,6 +44,7 @@ import {
   statoPosti,
   titoloGruppo,
 } from "./comune";
+import { CorsiPersona } from "./Corsi";
 import { FoglioComponente } from "./FoglioComponente";
 
 // La sezione Junior (21/10/2026, richiesta di Maurizio): tutti i gruppi dei corsi per bambini e ragazzi attivi adesso
@@ -54,7 +56,13 @@ import { FoglioComponente } from "./FoglioComponente";
 // il suo anno. Sotto, «Aggiungi un componente» (`FoglioComponente`): un figlio con tutti i dati, che la funzione controlla
 // non sia gia' al club prima di crearlo su PerfectGym. In vista cliente il comando non c'e'.
 //
-// Ai gruppi da qui non ci si iscrive. I numeri sono quelli del mirror di PerfectGym (si aggiornano ogni
+// **Sotto le anagrafiche, i corsi della persona scelta** (22/10/2026, `CorsiPersona`): se e' iscritta a un gruppo, l'abbonamento
+// con tutti i suoi dati, i conteggi delle lezioni disdette e recuperate, le prossime lezioni (con «Disdici») e il calendario dei
+// recuperi; se e' in eta' per il Baby Nuoto, l'abbonamento o le due strade (lezione singola, mensile) e il calendario delle
+// lezioni. I gruppi con l'anno di nascita restano per chi non e' ancora iscritto e non e' in eta' per il Baby Nuoto (e, con
+// «Vedi tutti i gruppi», per chi e' gia' iscritto).
+//
+// Ai gruppi da qui ci si iscrive toccando un turno con posti (`/iscrizione`). I numeri sono quelli del mirror di PerfectGym (si aggiornano ogni
 // pochi minuti), e l'ultima parola sui posti e' della segreteria al momento dell'iscrizione: la schermata lo dice.
 
 export const CHIAVE_GRUPPI_JUNIOR = "junior:gruppi";
@@ -71,6 +79,8 @@ export function Junior() {
   const [foglio, setFoglio] = useState(false);
   const [daIscrivere, setDaIscrivere] = useState<GruppoJunior | null>(null);
   const [aggiunto, setAggiunto] = useState<string | null>(null);
+  const [personaScelta, setPersonaScelta] = useState<number | null>(null);
+  const [tuttiIGruppi, setTuttiIGruppi] = useState(false);
   const vista = !!vistaCorrente();
 
   const carica = useCallback(async () => {
@@ -84,6 +94,16 @@ export function Junior() {
   const anni = useMemo(() => anniDisponibili(gruppi), [gruppi]);
   const nucleo = esito?.ok ? esito.nucleo : null;
   const persone = personeDaMostrare(nucleo);
+  // La persona di cui si vedono i corsi: quella toccata, se c'e' ancora; se no la prima in eta' per i corsi.
+  const idonee = persone.filter((x) => x.idoneo);
+  const persona =
+    idonee.find((x) => x.member_id === personaScelta) ?? idonee[0] ?? null;
+  const personaBaby = !!persona && eBaby(persona.data_nascita);
+  const personaIscritta = !!persona && persona.gruppi.length > 0;
+  // I gruppi da cui scegliere servono a chi non ha ancora un corso: non a un lattante (c'e' il Baby Nuoto) e non a chi e'
+  // gia' iscritto (ha il suo abbonamento sopra), salvo che li chieda.
+  const mostraGruppi =
+    !persona || tuttiIGruppi || (!personaBaby && !personaIscritta);
   const scelto =
     anno != null && anni.includes(anno)
       ? anno
@@ -108,7 +128,10 @@ export function Junior() {
   const giorniAttivi = giorni.filter((i) => giorniAnno.includes(i));
   function iscrivi(g: GruppoJunior, membro: number) {
     setDaIscrivere(null);
-    router.navigate({ pathname: "/iscrizione", params: { group: g.id, membro: String(membro) } });
+    router.navigate({
+      pathname: "/iscrizione",
+      params: { group: g.id, membro: String(membro) },
+    });
   }
   function tocca(g: GruppoJunior) {
     const chi = chiPuoIscriversi(nucleo, g);
@@ -169,7 +192,11 @@ export function Junior() {
   return (
     <Schermata
       {...intestazione}
-      sottotitolo="I gruppi attivi e i posti ancora liberi. Scegli l’anno di nascita."
+      sottotitolo={
+        mostraGruppi
+          ? "I gruppi attivi e i posti ancora liberi. Scegli l’anno di nascita."
+          : `I corsi di ${persona?.nome ?? "chi hai scelto"}: abbonamento, lezioni e recuperi.`
+      }
     >
       {nucleo ? (
         <Sezione titolo="La tua famiglia">
@@ -191,16 +218,32 @@ export function Junior() {
                     }
                     sotto={descriviPersona(x)}
                     coda={
-                      apre ? (
+                      x.idoneo ? (
                         <Etichetta
-                          testo={a === scelto ? "Il suo anno" : "Vedi i gruppi"}
-                          tono={a === scelto ? "accento" : "neutro"}
+                          testo={
+                            x.member_id === persona?.member_id
+                              ? "Scelto"
+                              : "Vedi i corsi"
+                          }
+                          tono={
+                            x.member_id === persona?.member_id
+                              ? "accento"
+                              : "neutro"
+                          }
                         />
-                      ) : !x.idoneo ? (
+                      ) : (
                         <Etichetta testo="Non ancora" tono="neutro" />
-                      ) : undefined
+                      )
                     }
-                    onPress={apre ? () => setAnno(a) : undefined}
+                    onPress={
+                      x.idoneo
+                        ? () => {
+                            setPersonaScelta(x.member_id);
+                            setTuttiIGruppi(false);
+                            if (apre) setAnno(a);
+                          }
+                        : undefined
+                    }
                   />
                 );
               })}
@@ -226,103 +269,76 @@ export function Junior() {
         </Sezione>
       ) : null}
 
-      <View style={{ gap: spazio.due }}>
-        <Text
-          style={[stili.filtriTitolo, { color: p.testoSecondario }]}
-          accessibilityRole="header"
-        >
-          Anno di nascita
-        </Text>
-        <View style={stili.tessere}>
-          {anni.map((a) => {
-            const attivo = a === scelto;
-            const n = conPosto(gruppi, a);
-            return (
-              <Tocco
-                key={a}
-                vibra="scelta"
-                stato={{ selected: attivo }}
-                onPress={() => setAnno(a)}
-                etichetta={`Nati nel ${a}, ${n} ${n === 1 ? "gruppo" : "gruppi"} con posti liberi`}
-                style={[
-                  stili.tessera,
-                  {
-                    backgroundColor: attivo
-                      ? velo(p, "accento", p.scuro ? 0.16 : 0.1)
-                      : p.carta,
-                    borderColor: attivo ? p.accento : p.linea,
-                    borderWidth: attivo ? 1.5 : StyleSheet.hairlineWidth,
-                  },
-                ]}
-              >
-                <Text
-                  style={[
-                    stili.anno,
-                    {
-                      color: n ? p.testo : p.testoTerzo,
-                      fontFamily: attivo ? F.extra : F.bold,
-                    },
-                  ]}
-                >
-                  {a}
-                </Text>
-              </Tocco>
-            );
-          })}
-        </View>
-        {giorniAnno.length ? (
-          <>
+      {persona ? <CorsiPersona persona={persona} vista={vista} /> : null}
+
+      {mostraGruppi ? (
+        <>
+          <View style={{ gap: spazio.due }}>
             <Text
               style={[stili.filtriTitolo, { color: p.testoSecondario }]}
               accessibilityRole="header"
             >
-              Giorno della settimana
+              Anno di nascita
             </Text>
             <View style={stili.tessere}>
-              <Tocco
-                vibra="scelta"
-                stato={{ selected: !giorniAttivi.length }}
-                onPress={() => setGiorni([])}
-                etichetta="Tutti i giorni"
-                style={[
-                  stili.giorno,
-                  stili.giornoTutti,
-                  {
-                    backgroundColor: !giorniAttivi.length
-                      ? velo(p, "accento", p.scuro ? 0.16 : 0.1)
-                      : p.carta,
-                    borderColor: !giorniAttivi.length ? p.accento : p.linea,
-                  },
-                ]}
-              >
-                <Text
-                  style={[
-                    stili.giornoTesto,
-                    {
-                      color: p.testo,
-                      fontFamily: !giorniAttivi.length ? F.extra : F.bold,
-                    },
-                  ]}
-                >
-                  Tutti
-                </Text>
-              </Tocco>
-              {giorniAnno.map((i) => {
-                const on = giorniAttivi.includes(i);
+              {anni.map((a) => {
+                const attivo = a === scelto;
+                const n = conPosto(gruppi, a);
                 return (
                   <Tocco
-                    key={i}
+                    key={a}
                     vibra="scelta"
-                    stato={{ selected: on }}
-                    onPress={() => scegliGiorno(i)}
-                    etichetta={SIGLE_GIORNI[i]}
+                    stato={{ selected: attivo }}
+                    onPress={() => setAnno(a)}
+                    etichetta={`Nati nel ${a}, ${n} ${n === 1 ? "gruppo" : "gruppi"} con posti liberi`}
                     style={[
-                      stili.giorno,
+                      stili.tessera,
                       {
-                        backgroundColor: on
+                        backgroundColor: attivo
                           ? velo(p, "accento", p.scuro ? 0.16 : 0.1)
                           : p.carta,
-                        borderColor: on ? p.accento : p.linea,
+                        borderColor: attivo ? p.accento : p.linea,
+                        borderWidth: attivo ? 1.5 : StyleSheet.hairlineWidth,
+                      },
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        stili.anno,
+                        {
+                          color: n ? p.testo : p.testoTerzo,
+                          fontFamily: attivo ? F.extra : F.bold,
+                        },
+                      ]}
+                    >
+                      {a}
+                    </Text>
+                  </Tocco>
+                );
+              })}
+            </View>
+            {giorniAnno.length ? (
+              <>
+                <Text
+                  style={[stili.filtriTitolo, { color: p.testoSecondario }]}
+                  accessibilityRole="header"
+                >
+                  Giorno della settimana
+                </Text>
+                <View style={stili.tessere}>
+                  <Tocco
+                    vibra="scelta"
+                    stato={{ selected: !giorniAttivi.length }}
+                    onPress={() => setGiorni([])}
+                    etichetta="Tutti i giorni"
+                    style={[
+                      stili.giorno,
+                      stili.giornoTutti,
+                      {
+                        backgroundColor: !giorniAttivi.length
+                          ? velo(p, "accento", p.scuro ? 0.16 : 0.1)
+                          : p.carta,
+                        borderColor: !giorniAttivi.length ? p.accento : p.linea,
                       },
                     ]}
                   >
@@ -331,98 +347,140 @@ export function Junior() {
                         stili.giornoTesto,
                         {
                           color: p.testo,
-                          fontFamily: on ? F.extra : F.bold,
+                          fontFamily: !giorniAttivi.length ? F.extra : F.bold,
                         },
                       ]}
                     >
-                      {SIGLE_GIORNI[i]}
+                      Tutti
                     </Text>
                   </Tocco>
-                );
-              })}
-            </View>
-          </>
-        ) : null}
-        <Tocco
-          vibra="scelta"
-          stato={{ selected: soloLiberi }}
-          onPress={() => setSoloLiberi((v) => !v)}
-          etichetta="Mostra solo i gruppi con posti liberi"
-          style={[
-            stili.interruttore,
-            {
-              backgroundColor: soloLiberi
-                ? velo(p, "accento", p.scuro ? 0.16 : 0.1)
-                : p.carta,
-              borderColor: soloLiberi ? p.accento : p.linea,
-            },
-          ]}
-        >
-          <View
-            style={[
-              stili.casella,
-              {
-                borderColor: soloLiberi ? p.accento : p.testoTerzo,
-                backgroundColor: soloLiberi ? p.accento : "transparent",
-              },
-            ]}
-          >
-            {soloLiberi ? <Text style={stili.spunta}>✓</Text> : null}
+                  {giorniAnno.map((i) => {
+                    const on = giorniAttivi.includes(i);
+                    return (
+                      <Tocco
+                        key={i}
+                        vibra="scelta"
+                        stato={{ selected: on }}
+                        onPress={() => scegliGiorno(i)}
+                        etichetta={SIGLE_GIORNI[i]}
+                        style={[
+                          stili.giorno,
+                          {
+                            backgroundColor: on
+                              ? velo(p, "accento", p.scuro ? 0.16 : 0.1)
+                              : p.carta,
+                            borderColor: on ? p.accento : p.linea,
+                          },
+                        ]}
+                      >
+                        <Text
+                          style={[
+                            stili.giornoTesto,
+                            {
+                              color: p.testo,
+                              fontFamily: on ? F.extra : F.bold,
+                            },
+                          ]}
+                        >
+                          {SIGLE_GIORNI[i]}
+                        </Text>
+                      </Tocco>
+                    );
+                  })}
+                </View>
+              </>
+            ) : null}
+            <Tocco
+              vibra="scelta"
+              stato={{ selected: soloLiberi }}
+              onPress={() => setSoloLiberi((v) => !v)}
+              etichetta="Mostra solo i gruppi con posti liberi"
+              style={[
+                stili.interruttore,
+                {
+                  backgroundColor: soloLiberi
+                    ? velo(p, "accento", p.scuro ? 0.16 : 0.1)
+                    : p.carta,
+                  borderColor: soloLiberi ? p.accento : p.linea,
+                },
+              ]}
+            >
+              <View
+                style={[
+                  stili.casella,
+                  {
+                    borderColor: soloLiberi ? p.accento : p.testoTerzo,
+                    backgroundColor: soloLiberi ? p.accento : "transparent",
+                  },
+                ]}
+              >
+                {soloLiberi ? <Text style={stili.spunta}>✓</Text> : null}
+              </View>
+              <Text
+                style={{ color: p.testo, fontFamily: F.semi, fontSize: 14 }}
+              >
+                Solo i gruppi con posti liberi
+              </Text>
+            </Tocco>
           </View>
-          <Text style={{ color: p.testo, fontFamily: F.semi, fontSize: 14 }}>
-            Solo i gruppi con posti liberi
-          </Text>
-        </Tocco>
-      </View>
 
-      {blocchi.length ? (
-        blocchi.map((b) => (
-          <Sezione key={b.corso} titolo={b.corso}>
-            <Carta>
-              {b.gruppi.map((g, i) => {
-                const s = statoPosti(g);
-                const chi = vista ? [] : chiPuoIscriversi(nucleo, g);
-                return (
-                  <Riga
-                    key={g.id}
-                    prima={i === 0}
-                    testa={
-                      <Bollino
-                        icona="goccia"
-                        tono={s.tono === "neutro" ? "neutro" : "blu"}
-                        size={40}
+          {blocchi.length ? (
+            blocchi.map((b) => (
+              <Sezione key={b.corso} titolo={b.corso}>
+                <Carta>
+                  {b.gruppi.map((g, i) => {
+                    const s = statoPosti(g);
+                    const chi = vista ? [] : chiPuoIscriversi(nucleo, g);
+                    return (
+                      <Riga
+                        key={g.id}
+                        prima={i === 0}
+                        testa={
+                          <Bollino
+                            icona="goccia"
+                            tono={s.tono === "neutro" ? "neutro" : "blu"}
+                            size={40}
+                          />
+                        }
+                        titolo={titoloGruppo(g)}
+                        sotto={
+                          (g.posti != null
+                            ? `${annateGruppo(g)} · ${g.iscritti} su ${g.posti} iscritti`
+                            : annateGruppo(g)) +
+                          (chi.length ? " · Tocca per iscrivere" : "")
+                        }
+                        coda={<Etichetta testo={s.testo} tono={s.tono} />}
+                        onPress={chi.length ? () => tocca(g) : undefined}
                       />
-                    }
-                    titolo={titoloGruppo(g)}
-                    sotto={
-                      (g.posti != null
-                        ? `${annateGruppo(g)} · ${g.iscritti} su ${g.posti} iscritti`
-                        : annateGruppo(g)) + (chi.length ? " · Tocca per iscrivere" : "")
-                    }
-                    coda={<Etichetta testo={s.testo} tono={s.tono} />}
-                    onPress={chi.length ? () => tocca(g) : undefined}
-                  />
-                );
-              })}
-            </Carta>
-          </Sezione>
-        ))
-      ) : (
-        <Messaggio
-          tono="attenzione"
-          titolo={`Nessun gruppo per i nati nel ${scelto}`}
-        >
-          {soloLiberi && !giorniAttivi.length
-            ? "Tutti i gruppi di quest’anno sono al completo. Togli il filtro per vederli, o chiedi in segreteria."
-            : "Con questi filtri non c’è nessun gruppo. Prova a togliere un giorno o i posti liberi."}
-        </Messaggio>
-      )}
+                    );
+                  })}
+                </Carta>
+              </Sezione>
+            ))
+          ) : (
+            <Messaggio
+              tono="attenzione"
+              titolo={`Nessun gruppo per i nati nel ${scelto}`}
+            >
+              {soloLiberi && !giorniAttivi.length
+                ? "Tutti i gruppi di quest’anno sono al completo. Togli il filtro per vederli, o chiedi in segreteria."
+                : "Con questi filtri non c’è nessun gruppo. Prova a togliere un giorno o i posti liberi."}
+            </Messaggio>
+          )}
 
-      <Text style={[stili.nota, { color: p.testoTerzo }]}>
-        I posti sono quelli del gestionale del club e si aggiornano ogni pochi
-        minuti: al momento dell’iscrizione la segreteria ti conferma quello che
-        c’è davvero.
-      </Text>
+          <Text style={[stili.nota, { color: p.testoTerzo }]}>
+            I posti sono quelli del gestionale del club e si aggiornano ogni
+            pochi minuti: al momento dell’iscrizione la segreteria ti conferma
+            quello che c’è davvero.
+          </Text>
+        </>
+      ) : personaIscritta ? (
+        <Pulsante
+          testo="Vedi tutti i gruppi"
+          variante="secondario"
+          onPress={() => setTuttiIGruppi(true)}
+        />
+      ) : null}
 
       <Foglio
         aperto={!!daIscrivere}
@@ -437,7 +495,10 @@ export function Junior() {
                   key={x.member_id}
                   prima={i === 0}
                   testa={<Avatar nome={x.nome} cognome={x.cognome} size={40} />}
-                  titolo={[x.nome, x.cognome].filter(Boolean).join(" ") || "Senza nome"}
+                  titolo={
+                    [x.nome, x.cognome].filter(Boolean).join(" ") ||
+                    "Senza nome"
+                  }
                   sotto={descriviPersona(x)}
                   onPress={() => iscrivi(daIscrivere, x.member_id)}
                 />

@@ -208,6 +208,19 @@ export async function leggiGiorno(data?: string, memberId?: number): Promise<{ o
   return { ok: false, errore: dati.errore ?? 'Non riusciamo a leggere il calendario adesso.' }
 }
 
+/**
+ * Le lezioni di una categoria nei prossimi giorni, per la sezione Junior (22/10/2026): i recuperi della Scuola Nuoto Bambini
+ * (`recuperi`) e il Baby Nuoto (`baby`), gia' filtrati per la nascita della persona e con la stessa forma di `leggiGiorno`.
+ */
+export async function leggiLezioniPeriodo(
+  categoria: 'recuperi' | 'baby',
+  memberId: number,
+): Promise<{ ok: true; lezioni: Lezione[]; schede: Record<string, SchedaLezione> } | { ok: false; errore: string }> {
+  const { ok, dati } = await calendario({ azione: 'periodo', categoria, member_id: memberId })
+  if (ok) return { ok: true, lezioni: (dati.lezioni ?? []) as Lezione[], schede: (dati.schede ?? {}) as Record<string, SchedaLezione> }
+  return { ok: false, errore: dati.errore ?? 'Non riusciamo a leggere le lezioni adesso.' }
+}
+
 /** Una lezione a cui il titolare e' stato presente (segnata dalla reception), per il contatore delle calorie. */
 export type PresenzaLezione = { inizio: string; fine: string; nome: string; categoria: string | null; scheda: string | null }
 

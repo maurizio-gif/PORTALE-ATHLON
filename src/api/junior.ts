@@ -121,3 +121,85 @@ export async function aggiungiComponente(
     giaNelNucleo: dati.gia_nel_nucleo === true,
   };
 }
+
+// ---------------------------------------------------------------------------
+// I corsi di una persona (22/10/2026): a cosa e' iscritta, le lezioni che ha in programma, disdette e recuperi, e per il Baby
+// Nuoto cosa si puo' comprare. Dalla funzione `portale-lab-junior`, azione `corsi` (`public.junior_corsi_di`, APP-ATHLON).
+
+export type ContrattoJunior = {
+  id: number;
+  piano: string | null;
+  canone: number | null;
+  stato: string | null;
+  inizio: string | null;
+  /** La fine del contratto: le lezioni si vedono fin li'. Il rinnovo di meta' mese la sposta al mese dopo. */
+  fine: string | null;
+  rinnovo_automatico: boolean | null;
+  /** Il giorno in cui e' stata data la disdetta, se c'e'. */
+  disdetta: string | null;
+};
+
+export type LezioneIscritto = {
+  booking_id: number;
+  class_id: number;
+  inizio: string;
+  fine: string;
+  nome: string;
+};
+
+export type IscrizioneJunior = {
+  iscrizione_id: number;
+  gruppo_id: number;
+  gruppo: string;
+  /** I recuperi esistono solo per la Scuola Nuoto Bambini. */
+  recuperabile: boolean;
+  dal: string;
+  contratto: ContrattoJunior;
+  /** Stime dal mirror (che non dice chi ha annullato): da recuperare = disdette meno recuperi gia' prenotati. */
+  conteggi: { disdette: number; recuperate: number; da_recuperare: number };
+  prossime: LezioneIscritto[];
+  recuperi: LezioneIscritto[];
+};
+
+export type BabyJunior = {
+  idoneo: true;
+  mesi: number;
+  abbonamento: ContrattoJunior | null;
+  prenotate: LezioneIscritto[];
+  singola: { product_id: number; prezzo: number } | null;
+  mensile: {
+    piano_id: number;
+    canone: number;
+    quota_attivazione: number;
+  } | null;
+};
+
+export type CorsiPersona = {
+  iscrizioni: IscrizioneJunior[];
+  baby: BabyJunior | null;
+};
+
+export async function corsiJunior(
+  memberId: number,
+): Promise<({ ok: true } & CorsiPersona) | { ok: false; errore: string }> {
+  const { ok, stato, dati } = await funzione("portale-lab-junior", {
+    azione: "corsi",
+    member_id: memberId,
+  });
+  if (!ok)
+    return {
+      ok: false,
+      errore:
+        stato === 400 && dati.errore === "Azione sconosciuta."
+          ? "I corsi della persona non sono ancora attivi: riprova fra qualche giorno."
+          : (dati.errore ??
+            "Non riusciamo a leggere i corsi adesso. Riprova fra qualche minuto."),
+    };
+  return {
+    ok: true,
+    iscrizioni: Array.isArray(dati.iscrizioni)
+      ? (dati.iscrizioni as IscrizioneJunior[])
+      : [],
+    baby: dati.baby && dati.baby.idoneo ? (dati.baby as BabyJunior) : null,
+  };
+}
