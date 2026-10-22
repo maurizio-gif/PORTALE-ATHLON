@@ -239,8 +239,9 @@ export function Junior() {
                         </View>
                       }
                       titolo={
-                        [x.nome, x.cognome].filter(Boolean).join(" ") ||
-                        t("Senza nome", "No name")
+                        ([x.nome, x.cognome].filter(Boolean).join(" ") ||
+                          t("Senza nome", "No name")) +
+                        (x.livello ? ` · ${x.livello}` : "")
                       }
                       sotto={descriviPersona(x)}
                       coda={

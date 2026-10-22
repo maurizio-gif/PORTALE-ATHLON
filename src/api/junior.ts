@@ -34,6 +34,8 @@ export type PersonaJunior = {
   /** Dai 3 mesi ai nati nell'anno piu' vecchio dei gruppi del Nuoto Agonistico: lo decide il database. */
   idoneo: boolean;
   motivo: string | null;
+  /** Il livello della Scuola Nuoto Bambini (`A1 - Stella Marina 1`…), se c'è: dal mirror, solo quello di adesso. Manca con una funzione di prima. */
+  livello?: string | null;
   gruppi: { group_id: number; nome: string }[];
 };
 
