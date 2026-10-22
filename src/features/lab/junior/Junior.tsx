@@ -49,6 +49,7 @@ import {
 import { attivitaDiPersona } from "./attivita";
 import { ComeFunziona } from "./ComeFunziona";
 import { CorsiPersona } from "./Corsi";
+import { DirettoreTecnico } from "./DirettoreTecnico";
 import { FoglioComponente } from "./FoglioComponente";
 import { FoglioLivelli } from "./FoglioLivelli";
 import { TestataJunior } from "./Presentazione";
@@ -112,8 +113,14 @@ export function Junior() {
   // gia' iscritto (ha il suo abbonamento sopra), salvo che li chieda.
   const mostraGruppi =
     !persona || tuttiIGruppi || (!personaBaby && !personaIscritta);
+  // Con una persona scelta l'anno e' il suo: non si sceglie (si vedono solo i gruppi per i suoi anni). Le tessere restano
+  // solo se non si sa chi e', o se il suo anno non ha nessun gruppo.
+  const annoPersona = persona ? annoDi(persona) : null;
+  const annoFisso = annoPersona != null && anni.includes(annoPersona) ? annoPersona : null;
   const scelto =
-    anno != null && anni.includes(anno)
+    annoFisso != null
+      ? annoFisso
+      : anno != null && anni.includes(anno)
       ? anno
       : annoIniziale(anni, chiesto ?? annoDalNucleo(nucleo, anni)?.toString());
 
@@ -202,7 +209,7 @@ export function Junior() {
       {...intestazione}
       sottotitolo={
         mostraGruppi
-          ? t("I gruppi attivi e i posti ancora liberi. Scegli l’anno di nascita.", "Active groups and spots still available. Choose the birth year.")
+          ? t("I gruppi attivi e i posti ancora liberi.", "Active groups and spots still available.")
           : t(`I corsi di ${persona?.nome ?? "chi hai scelto"}: abbonamento, lezioni e recuperi.`, `${persona?.nome ?? "The person you chose"}’s courses: membership, classes and make-ups.`)
       }
     >
@@ -316,6 +323,9 @@ export function Junior() {
       ) : null}
 
       {persona ? <CorsiPersona persona={persona} vista={vista} /> : null}
+      {persona && persona.minorenne && persona.gruppi.length > 0 ? (
+        <DirettoreTecnico persona={persona} vista={vista} />
+      ) : null}
       <FoglioLivelli
         persona={persona}
         aperto={storiaLivelli}
@@ -335,6 +345,23 @@ export function Junior() {
       {mostraGruppi ? (
         <>
           <View style={{ gap: spazio.due }}>
+            {annoFisso != null && persona ? (
+              <Text
+                style={[stili.filtriTitolo, { color: p.testoSecondario }]}
+                accessibilityRole="header"
+              >
+                {t(
+                  `Queste sono le attività alle quali puoi iscrivere ${persona.nome ?? "chi hai scelto"} · nato nel ${annoFisso}`,
+                  `These are the activities you can enroll ${persona.nome ?? "the person you chose"} in · born in ${annoFisso}`,
+                )}
+              </Text>
+            ) : null}
+            {annoFisso != null && persona ? (
+              <Text style={[stili.nota, { color: p.testoSecondario }]}>
+                {t("La pallanuoto è solo maschile.", "Water polo is boys only.")}
+              </Text>
+            ) : (
+              <>
             <Text
               style={[stili.filtriTitolo, { color: p.testoSecondario }]}
               accessibilityRole="header"
@@ -378,6 +405,8 @@ export function Junior() {
                 );
               })}
             </View>
+              </>
+            )}
             {giorniAnno.length ? (
               <>
                 <Text

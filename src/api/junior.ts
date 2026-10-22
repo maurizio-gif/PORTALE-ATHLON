@@ -266,3 +266,90 @@ export async function livelliJunior(memberId: number): Promise<EsitoLivelli> {
       : [],
   };
 }
+
+// ---------------------------------------------------------------------------------------------------------------------
+// Il Direttore Tecnico (22/10/2026, richiesta di Maurizio): dalla scheda di un bambino iscritto il genitore vede gli orari liberi e
+// prenota una telefonata, senza riscrivere nessun dato. Genitore e bambino li ricava la funzione; l'unico dato che puo' mancare e' il
+// cellulare del genitore. Stessa agenda e stesse email del modulo del sito.
+
+export type GiornoDt = { data: string; etichetta: string; slot: string[] };
+
+export type EsitoSlotDt =
+  | { ok: true; durataMinuti: number | null; giorni: GiornoDt[]; telefonoMancante: boolean }
+  | { ok: false; errore: string };
+
+const NON_ATTIVO_DT = () =>
+  t(
+    "L’appuntamento col Direttore Tecnico non è ancora attivo: riprova fra qualche giorno.",
+    "Appointments with the Technical Director aren’t active yet: try again in a few days.",
+  );
+
+function dtNonAttivo(stato: number, errore?: string): boolean {
+  return (
+    (stato === 404 && !errore) ||
+    errore === "Azione sconosciuta." ||
+    errore === "Unknown action."
+  );
+}
+
+export async function slotDirettoreTecnico(memberId: number): Promise<EsitoSlotDt> {
+  const { ok, stato, dati } = await funzione("portale-lab-junior", {
+    azione: "dt_slot",
+    member_id: memberId,
+  });
+  if (!ok) {
+    return {
+      ok: false,
+      errore: dtNonAttivo(stato, dati.errore)
+        ? NON_ATTIVO_DT()
+        : (dati.errore ??
+          t("Non riusciamo a leggere gli orari adesso. Riprova fra qualche minuto.", "We can’t load the available times right now. Try again in a few minutes.")),
+    };
+  }
+  return {
+    ok: true,
+    durataMinuti: typeof dati.durata_minuti === "number" ? dati.durata_minuti : null,
+    giorni: Array.isArray(dati.giorni)
+      ? (dati.giorni as GiornoDt[]).filter((g) => Array.isArray(g.slot) && g.slot.length > 0)
+      : [],
+    telefonoMancante: dati.telefono_mancante === true,
+  };
+}
+
+export type EsitoPrenotaDt =
+  | { ok: true; data: string; ora: string; durataMinuti: number | null }
+  | { ok: false; errore: string; slotOccupato?: boolean; telefonoMancante?: boolean };
+
+export async function prenotaDirettoreTecnico(d: {
+  memberId: number;
+  data: string;
+  ora: string;
+  motivo: string;
+  telefono?: string;
+}): Promise<EsitoPrenotaDt> {
+  const { ok, stato, dati } = await funzione("portale-lab-junior", {
+    azione: "dt_prenota",
+    member_id: d.memberId,
+    data: d.data,
+    ora: d.ora,
+    motivo: d.motivo,
+    ...(d.telefono ? { telefono: d.telefono } : {}),
+  });
+  if (!ok) {
+    return {
+      ok: false,
+      slotOccupato: dati.slot_occupato === true,
+      telefonoMancante: dati.telefono_mancante === true,
+      errore: dtNonAttivo(stato, dati.errore)
+        ? NON_ATTIVO_DT()
+        : (dati.errore ??
+          t("Non riusciamo a registrare l’appuntamento adesso. Riprova fra qualche minuto.", "We can’t book the appointment right now. Try again in a few minutes.")),
+    };
+  }
+  return {
+    ok: true,
+    data: String(dati.data ?? d.data),
+    ora: String(dati.ora ?? d.ora),
+    durataMinuti: typeof dati.durata_minuti === "number" ? dati.durata_minuti : null,
+  };
+}
