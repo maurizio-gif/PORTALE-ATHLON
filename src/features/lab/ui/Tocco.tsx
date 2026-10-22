@@ -39,7 +39,7 @@ export function Tocco({
   vibra?: 'leggero' | 'scelta' | null
   ruolo?: AccessibilityRole
   etichetta?: string
-  stato?: { selected?: boolean; disabled?: boolean; busy?: boolean; expanded?: boolean }
+  stato?: { selected?: boolean; checked?: boolean; disabled?: boolean; busy?: boolean; expanded?: boolean }
 }) {
   const s = useSharedValue(1)
   const animato = useAnimatedStyle(() => ({ transform: [{ scale: s.value }] }))
@@ -48,6 +48,8 @@ export function Tocco({
       accessibilityRole={ruolo}
       accessibilityLabel={etichetta}
       accessibilityState={{ disabled: spento, ...stato }}
+      // Sul web `accessibilityState` non arriva al DOM: per un radio o una casella (`stato.checked`) si scrive `aria-checked`, che e' valido per quei ruoli.
+      aria-checked={stato?.checked}
       disabled={spento || !onPress}
       onPressIn={() => {
         s.value = withSpring(scala, MOLLA)

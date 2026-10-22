@@ -350,6 +350,33 @@ vuol dire altro (la scheda del socio al club, la scheda di una lezione, l'Help D
   - **Cosa usi: «Tutto», «Prevalenza macchine isotoniche», «Prevalenza pesi liberi e corpo libero»** (`tutto`, `macchine`, `pesi_liberi`; prima `sala_completa`,
     `manubri_e_corpo_libero`, `corpo_libero`, che la funzione legge come il più vicino). **È una prevalenza, non un'esclusiva**: lo dice una riga sotto le
     pillole. La funzione filtra solo forza e pliometria (solo macchine e cavi, o tutto tranne loro); cardio, stretching e mobilità restano sempre.
+    **Dal 22/10/2026 in sala la domanda è «Con cosa ti trovi bene in sala?»** (multipla) e la prevalenza si ricava dagli strumenti scelti; in vasca non c'è.
+  - **In sala il questionario è a passi** (22/10/2026, richiesta di Maurizio: «le domande che facciamo oggi per la scheda d'allenamento sono veramente troppo poche»; l'idea
+    è delle app che chiedono una cosa per schermata). **Una domanda per schermata**, indietro a sinistra, **l'anello in alto a destra che si chiude** (`AnelloPassi.tsx`: un
+    `Svg` fermo, il valore passa da `requestAnimationFrame`; con «riduci movimento» salta) e «Continua» in basso, spento finché non si risponde. File: `Agente.tsx` (sceglie fra sala e
+    vasca), `PassiSala.tsx` (i passi), `PassiUI.tsx` (la carta di una risposta, la griglia), `SaluteBlocco.tsx` (il riquadro del personal trainer, lo stesso in sala e in vasca), `FormVasca.tsx`
+    (**la vasca resta il modulo di prima**: le domande sul nuoto si rifanno dopo, e qui non ci sono squat o flessioni), `rispostePiano.ts` (le risposte in memoria).
+    - **I 18 passi, in ordine**: obiettivo (con «Salute» che porta al personal trainer, **com'era**: non c'è una domanda in più sui limiti del medico), su cosa concentrarsi (fino a 3, facoltativo),
+      esperienza, **con cosa ti trovi bene** (multipla), i tre test (squat, flessioni, plank, con «non lo so»), **il tuo livello** (stimato, cambiabile), fastidi per zona (o «nessun fastidio»; se c'è una
+      zona compare un campo facoltativo), com'è la giornata, cosa evitare (o «niente»), cardio, intensità (dolce, media, intensa: le parole dei consigli), durata, **giorni a settimana** (solo il numero,
+      con «Consigliato»; **non si chiede quali giorni**), quando ti alleni (la fascia), una nota facoltativa e **il riepilogo «Ecco cosa abbiamo capito»**, dove ogni riga si tocca per cambiarla e,
+      cambiata, si torna al riepilogo. Solo «Componi il mio piano» fa partire la richiesta. Con `?dove=sala` (dai Consigli) la prima domanda è già risposta e si parte da «Qual è il tuo obiettivo?».
+      Niente calorie, niente peso, niente promesse nel riepilogo (`riepilogoDa`).
+    - **Le regole sono pure, in `questionario.ts`** (si provano con `LC_ALL=it_IT.UTF-8 npx tsx`, perché `t()` fuori da un browser sceglie l'inglese): `livelloDa` (esperienza e tre test pesano metà
+      ciascuno; «non lo so» non conta; senza test basta l'esperienza, e solo chi si allena regolarmente è intermedio; chi non ha mai fatto niente non va oltre intermedio), `giorniConsigliati` (3, 4 per un
+      esperto, +1 per sedute da 30 minuti o per un'intensità intensa di chi non comincia, −1 per sedute da 80, sempre fra 2 e 5), `passoCompleto` (obbligatori e facoltativi), `accendi` («nessuno» esclude le altre),
+      `questionarioSalaDa` (cosa parte: solo le risposte date; «nessuno» e «non lo so» non partono). **Soglie nostre, da far validare dal Direttore Tecnico**: il livello è una stima e il socio lo vede e lo può
+      cambiare; i giorni li calcola il codice, non un modello.
+    - **Cosa parte per la funzione** (`Questionario` di `api/lab.ts`): le sette risposte di sempre più `focus`, `esperienza`, `strumenti`, `capacita`, `zone`, `giornata`, `evita`, `cardio`, `intensita`, `fascia`, tutte
+      facoltative. La prevalenza `attrezzatura` si ricava dagli strumenti. **Una funzione che non le conosce ancora le ignora** e il piano si scrive con le sette di prima: l'app può uscire prima. Lato server e
+      prompt: `CLAUDE.md` di APP-ATHLON, «Il questionario di sala a passi».
+    - **Le risposte non restano.** Le zone che danno fastidio sono dati sulla salute: stanno solo in memoria (`rispostePiano.ts`, mai sul disco, niente nel `localStorage`: provato), servono a non perdere venti risposte
+      se si esce per sbaglio (si riparte da dove si era), si buttano quando il piano è composto e uscendo dall'app (`esciDalLaboratorio`). Dopo un ricaricamento della pagina si ricomincia.
+    - **Il pulsante «Feedback» si fa da parte**: l'anello sta dove di solito sta lui, quindi `PassiSala` dice `useSegnaAzioneInAlto` (resta la sola icona, accanto all'anello; durante l'attesa torna al suo posto).
+    - **Provato in Chromium** (bundle web esportato, funzione simulata con `page.route`; 390 px chiaro e scuro, 360 px, 1280 px): i 18 passi di fila, Salute (riquadro del personal trainer, niente «Continua»), il
+      tetto di tre zone, il livello stimato, il campo dei fastidi, il riepilogo con la riga che si cambia, la richiesta che parte con le risposte giuste (e senza il quarto «su cosa concentrarti» né i «non lo so»), il
+      passaggio alla vasca e il ritorno in sala, `?dove=sala` e `?dove=vasca`, la memoria uscendo e rientrando, niente delle risposte sul disco. **Non provato**: un telefono vero, la funzione vera con una sessione vera,
+      il piano che il modello scrive con le risposte nuove (vedi APP-ATHLON), e le animazioni con «riduci movimento».
   - **L'AI non è in primo piano** (20/10/2026): niente «Agente AI», niente viola, i testi dicono «generiamo insieme» e «componi» («Stiamo leggendo le tue
     risposte…» nell'attesa, che ora dura una decina di secondi e non un paio di minuti). **Che dietro ci sia un'intelligenza artificiale si dice nelle
     postille**, in piccolo e senza nasconderlo: la nota in fondo al questionario, quella in fondo all'editor («Questa bozza è stata composta con il supporto di

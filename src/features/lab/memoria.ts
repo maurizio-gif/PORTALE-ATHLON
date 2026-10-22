@@ -2,6 +2,7 @@ import { esci } from '@/api/lab'
 
 import { azzeraNotifiche } from './notifiche/store'
 import { scollegaDispositivo } from './notifiche/push'
+import { dimenticaRisposte } from './schede/rispostePiano'
 import { svuotaCarrello } from './shop/carrello'
 import { memoria as memoriaTv } from './tv/comune'
 import { dimenticaLaVista } from './vista'
@@ -67,6 +68,8 @@ export async function esciDalLaboratorio() {
   dimentica()
   // Il carrello dello shop e' di chi c'era: sul web sta nella scheda del browser, e un dispositivo condiviso non lo deve passare al prossimo.
   svuotaCarrello()
+  // Le risposte del questionario di «Componi il tuo piano» (zone che danno fastidio: dati sulla salute) non passano a chi entra dopo.
+  dimenticaRisposte()
   dimenticaLaVista()
   memoriaTv.vetrine = null
   memoriaTv.video.clear()
