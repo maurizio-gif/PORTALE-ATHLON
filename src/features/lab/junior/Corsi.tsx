@@ -200,6 +200,12 @@ function SezioneIscrizione({
 
       {i.recuperabile ? (
         <Sezione titolo="Le lezioni disdette e i recuperi">
+          <Text style={[stili.nota, { color: p.testoSecondario }]}>
+            I recuperi si usano entro e non oltre la fine del corso e sono
+            legati all’abbonamento da cui sono stati generati: l’abbonamento
+            deve restare attivo per mantenerne la validità. In caso di
+            disdetta, i recuperi si perdono.
+          </Text>
           <View style={stili.conteggi}>
             <Conteggio n={i.conteggi.disdette} testo="Disdette" />
             <Conteggio n={i.conteggi.recuperate} testo="Recuperate" />
@@ -226,8 +232,9 @@ function SezioneIscrizione({
             </Text>
           ) : null}
           <Text style={[stili.nota, { color: p.testoTerzo }]}>
-            Un recupero ti viene assegnato quando disdici una lezione in tempo:
-            lo vedi anche fra i prodotti del tuo profilo.
+            Un recupero ti viene assegnato quando disdici una lezione in tempo
+            (fino a un’ora prima dell’inizio): lo vedi anche fra i prodotti del
+            tuo profilo.
           </Text>
         </Sezione>
       ) : null}
