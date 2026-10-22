@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { router } from "expo-router";
 import { StyleSheet, Text, View } from "react-native";
 
 import {
@@ -15,6 +16,7 @@ import {
   type SchedaLezione,
 } from "@/api/lab";
 import type { LezioneConsiglio } from "@/api/percorso";
+import { t, tv } from "@/lib/lingua";
 import { spazio } from "@/theme";
 
 import { AzioniLezione } from "../Calendario";
@@ -85,7 +87,7 @@ function comeLezione(l: Lezione): LezioneConsiglio {
 }
 
 const senzaPunto = (piano: string | null) =>
-  (piano ?? "Abbonamento").replace(/^!\s*/, "").trim();
+  (piano ?? t("Abbonamento", "Membership")).replace(/^!\s*/, "").trim();
 
 export function CorsiPersona({
   persona,
@@ -118,7 +120,7 @@ export function CorsiPersona({
       <View style={{ gap: spazio.due }}>
         <Messaggio>{esito.errore}</Messaggio>
         <Pulsante
-          testo="Riprova"
+          testo={t("Riprova", "Try again")}
           icona="aggiorna"
           variante="secondario"
           onPress={carica}
@@ -178,7 +180,13 @@ function SezioneIscrizione({
   });
   return (
     <>
-      <Sezione titolo={nome ? `L’abbonamento di ${nome}` : "L’abbonamento"}>
+      <Sezione
+        titolo={
+          nome
+            ? t(`L’abbonamento di ${nome}`, `${nome}’s membership`)
+            : t("L’abbonamento", "The membership")
+        }
+      >
         <Carta>
           <Riga
             prima
@@ -188,59 +196,94 @@ function SezioneIscrizione({
             coda={<Etichetta testo={statoContratto(c.stato)} tono="ok" />}
           />
           {c.canone != null && c.canone > 0 ? (
-            <Dato etichetta="Quota" valore={`${euroIt(c.canone)} al mese`} />
+            <Dato
+              etichetta={t("Quota", "Fee")}
+              valore={t(
+                `${euroIt(c.canone)} al mese`,
+                `${euroIt(c.canone)} a month`,
+              )}
+            />
           ) : null}
-          <Dato etichetta="Dal" valore={dataIt(c.inizio ?? i.dal)} />
-          <Dato etichetta="Rinnovo" valore={rinnovoContratto(c)} />
+          <Dato
+            etichetta={t("Dal", "From")}
+            valore={dataIt(c.inizio ?? i.dal)}
+          />
+          <Dato
+            etichetta={t("Rinnovo", "Renewal")}
+            valore={rinnovoContratto(c)}
+          />
           {c.fine && !c.disdetta ? (
-            <Dato etichetta="Pagato fino al" valore={dataIt(c.fine)} />
+            <Dato
+              etichetta={t("Pagato fino al", "Paid until")}
+              valore={dataIt(c.fine)}
+            />
           ) : null}
         </Carta>
       </Sezione>
 
       {i.recuperabile ? (
-        <Sezione titolo="Le lezioni disdette e i recuperi">
+        <Sezione
+          titolo={t(
+            "Le lezioni disdette e i recuperi",
+            "Cancelled classes and make-ups",
+          )}
+        >
           <Text style={[stili.nota, { color: p.testoSecondario }]}>
-            I recuperi si usano entro e non oltre la fine del corso e sono
-            legati all’abbonamento da cui sono stati generati: l’abbonamento
-            deve restare attivo per mantenerne la validità. In caso di
-            disdetta, i recuperi si perdono.
+            {t(
+              "I recuperi si usano entro e non oltre la fine del corso e sono legati all’abbonamento da cui sono stati generati: l’abbonamento deve restare attivo per mantenerne la validità. In caso di disdetta, i recuperi si perdono.",
+              "Make-ups must be used by the end of the course at the latest and are tied to the membership that generated them: the membership must stay active for them to remain valid. If you cancel, make-ups are lost.",
+            )}
           </Text>
           <View style={stili.conteggi}>
-            <Conteggio n={i.conteggi.disdette} testo="Disdette" />
-            <Conteggio n={i.conteggi.recuperate} testo="Recuperate" />
+            <Conteggio
+              n={i.conteggi.disdette}
+              testo={t("Disdette", "Cancelled")}
+            />
+            <Conteggio
+              n={i.conteggi.recuperate}
+              testo={t("Recuperate", "Made up")}
+            />
             <Conteggio
               n={i.conteggi.da_recuperare}
-              testo="Da recuperare"
+              testo={t("Da recuperare", "To make up")}
               evidenza={i.conteggi.da_recuperare > 0}
             />
           </View>
           {i.conteggi.da_recuperare > 0 && i.conteggi.scade_il ? (
             <Text style={[stili.nota, { color: p.testoSecondario }]}>
-              Hai {nLezioni(i.conteggi.da_recuperare)} da recuperare: il
-              recupero si usa entro il {dataIt(i.conteggi.scade_il)}.
+              {t(
+                `Hai ${nLezioni(i.conteggi.da_recuperare)} da recuperare: il recupero si usa entro il ${dataIt(i.conteggi.scade_il)}.`,
+                `You have ${nLezioni(i.conteggi.da_recuperare)} to make up: the make-up must be used by ${dataIt(i.conteggi.scade_il)}.`,
+              )}
             </Text>
           ) : null}
           {(i.conteggi.scadute ?? 0) > 0 ? (
             <Text style={[stili.nota, { color: p.testoSecondario }]}>
-              {nLezioni(i.conteggi.scadute ?? 0)} di recupero non{" "}
               {(i.conteggi.scadute ?? 0) === 1
-                ? "è stata usata"
-                : "sono state usate"}{" "}
-              in tempo e{" "}
-              {(i.conteggi.scadute ?? 0) === 1 ? "è scaduta" : "sono scadute"}.
+                ? t(
+                    `${nLezioni(1)} di recupero non è stata usata in tempo ed è scaduta.`,
+                    `${nLezioni(1)} of make-up wasn’t used in time and has expired.`,
+                  )
+                : t(
+                    `${nLezioni(i.conteggi.scadute ?? 0)} di recupero non sono state usate in tempo e sono scadute.`,
+                    `${nLezioni(i.conteggi.scadute ?? 0)} of make-up weren’t used in time and have expired.`,
+                  )}
             </Text>
           ) : null}
           <Text style={[stili.nota, { color: p.testoTerzo }]}>
-            Un recupero ti viene assegnato quando disdici una lezione in tempo
-            (fino a un’ora prima dell’inizio): lo vedi anche fra i prodotti del
-            tuo profilo.
+            {t(
+              "Un recupero ti viene assegnato quando disdici una lezione in tempo (fino a un’ora prima dell’inizio): lo vedi anche fra i prodotti del tuo profilo.",
+              "A make-up is assigned when you cancel a class in time (up to one hour before it starts): you can also see it among the products in your profile.",
+            )}
           </Text>
         </Sezione>
       ) : null}
 
       <Sezione
-        titolo="Le prossime lezioni del corso"
+        titolo={t(
+          "Le prossime lezioni del corso",
+          "Upcoming classes of the course",
+        )}
         conteggio={i.prossime.length}
       >
         <Text style={[stili.nota, { color: p.testoSecondario }]}>
@@ -250,7 +293,10 @@ function SezioneIscrizione({
           <View style={{ gap: spazio.due }}>
             <ConAltre
               visibili={6}
-              nome={["lezione", "lezioni"]}
+              nome={tv<[string, string]>(
+                ["lezione", "lezioni"],
+                ["class", "classes"],
+              )}
               voci={i.prossime.map((l) => (
                 <RigaPrenotata
                   key={l.class_id}
@@ -263,29 +309,39 @@ function SezioneIscrizione({
           </View>
         ) : (
           <Text style={[stili.nota, { color: p.testoSecondario }]}>
-            Non ci sono altre lezioni in programma fino alla fine del contratto.
+            {t(
+              "Non ci sono altre lezioni in programma fino alla fine del contratto.",
+              "There are no more classes scheduled until the end of the contract.",
+            )}
           </Text>
         )}
         {i.recuperabile && !vista ? (
           <Text style={[stili.nota, { color: p.testoTerzo }]}>
-            Puoi disdire una lezione fino a un’ora prima dell’inizio: poi la
-            recuperi con una lezione di recupero, qui sotto.
+            {t(
+              "Puoi disdire una lezione fino a un’ora prima dell’inizio: poi la recuperi con una lezione di recupero, qui sotto.",
+              "You can cancel a class up to one hour before it starts: then you make it up with a make-up class, below.",
+            )}
           </Text>
         ) : null}
       </Sezione>
 
       {i.recuperabile && !vista ? (
-        <Sezione titolo="Prenota un recupero">
+        <Sezione titolo={t("Prenota un recupero", "Book a make-up")}>
           {i.conteggi.da_recuperare === 0 ? (
             <Messaggio tono="attenzione">
-              Per il conteggio non hai lezioni da recuperare. Se pensi di
-              averne, prova a prenotare: PerfectGym ti dice se si può.
+              {t(
+                "Per il conteggio non hai lezioni da recuperare. Se pensi di averne, prova a prenotare: PerfectGym ti dice se si può.",
+                "According to our count you have no classes to make up. If you think you do, try booking: PerfectGym will tell you if you can.",
+              )}
             </Messaggio>
           ) : null}
           <CalendarioLezioni
             categoria="recuperi"
             memberId={memberId}
-            vuoto="Nei prossimi giorni non ci sono lezioni di recupero per la sua annata."
+            vuoto={t(
+              "Nei prossimi giorni non ci sono lezioni di recupero per la sua annata.",
+              "There are no make-up classes in the next few days for their birth year.",
+            )}
             onCambiato={onCambiato}
           />
         </Sezione>
@@ -314,21 +370,36 @@ function SezioneBaby({
   const a = baby.abbonamento;
   return (
     <>
-      <Sezione titolo={nome ? `Baby Nuoto di ${nome}` : "Baby Nuoto"}>
+      <Sezione
+        titolo={
+          nome
+            ? t(`Baby Nuoto di ${nome}`, `${nome}’s Baby Nuoto`)
+            : "Baby Nuoto"
+        }
+      >
         {a ? (
           <Carta>
             <Riga
               prima
               testa={<Bollino icona="goccia" tono="blu" size={40} />}
               titolo={senzaPunto(a.piano)}
-              sotto="Abbonamento mensile"
+              sotto={t("Abbonamento mensile", "Monthly membership")}
               coda={<Etichetta testo={statoContratto(a.stato)} tono="ok" />}
             />
             {a.canone != null && a.canone > 0 ? (
-              <Dato etichetta="Quota" valore={`${euroIt(a.canone)} al mese`} />
+              <Dato
+                etichetta={t("Quota", "Fee")}
+                valore={t(
+                  `${euroIt(a.canone)} al mese`,
+                  `${euroIt(a.canone)} a month`,
+                )}
+              />
             ) : null}
-            <Dato etichetta="Dal" valore={dataIt(a.inizio)} />
-            <Dato etichetta="Rinnovo" valore={rinnovoContratto(a)} />
+            <Dato etichetta={t("Dal", "From")} valore={dataIt(a.inizio)} />
+            <Dato
+              etichetta={t("Rinnovo", "Renewal")}
+              valore={rinnovoContratto(a)}
+            />
           </Carta>
         ) : (
           <View style={{ gap: spazio.due }}>
@@ -337,8 +408,11 @@ function SezioneBaby({
                 <Riga
                   prima
                   testa={<Bollino icona="goccia" tono="blu" size={40} />}
-                  titolo="Lezione singola"
-                  sotto="Prenoti e paghi una lezione alla volta. Nessuna quota di attivazione."
+                  titolo={t("Lezione singola", "Single class")}
+                  sotto={t(
+                    "Prenoti e paghi una lezione alla volta. Nessuna quota di attivazione.",
+                    "You book and pay one class at a time. No activation fee.",
+                  )}
                   coda={
                     <Etichetta
                       testo={euroIt(baby.singola.prezzo)}
@@ -355,33 +429,61 @@ function SezioneBaby({
                   testa={
                     <Bollino icona="calendario" tono="accento" size={40} />
                   }
-                  titolo="Abbonamento mensile"
-                  sotto={`Prenoti in tutti i turni disponibili, senza limiti. Quota di attivazione una tantum ${euroIt(baby.mensile.quota_attivazione)}.`}
+                  titolo={t("Abbonamento mensile", "Monthly membership")}
+                  sotto={t(
+                    `Prenoti in tutti i turni disponibili, senza limiti. Quota di attivazione una tantum ${euroIt(baby.mensile.quota_attivazione)}.`,
+                    `You can book every available class, with no limits. One-off activation fee of ${euroIt(baby.mensile.quota_attivazione)}.`,
+                  )}
                   coda={
                     <Etichetta
-                      testo={`${euroIt(baby.mensile.canone)} al mese`}
+                      testo={t(
+                        `${euroIt(baby.mensile.canone)} al mese`,
+                        `${euroIt(baby.mensile.canone)} a month`,
+                      )}
                       tono="accento"
                     />
                   }
                 />
+                {!vista ? (
+                  <View style={{ padding: spazio.quattro, paddingTop: 0 }}>
+                    <Pulsante
+                      testo={t(
+                        "Attiva l’abbonamento mensile",
+                        "Start the monthly membership",
+                      )}
+                      onPress={() =>
+                        router.navigate(
+                          `/iscrizione?membro=${memberId}&baby=1` as const,
+                        )
+                      }
+                    />
+                  </View>
+                ) : null}
               </Carta>
             ) : null}
             <Text style={[stili.nota, { color: p.testoSecondario }]}>
-              Il Baby Nuoto si prenota lezione per lezione, come le attività
-              degli adulti: con l’abbonamento mensile oppure con la lezione
-              singola, che acquisti dal calendario qui sotto quando prenoti. Per
-              attivare il mensile da qui stiamo preparando l’iscrizione: intanto
-              lo attivi in segreteria.
+              {t(
+                "Il Baby Nuoto si prenota lezione per lezione, come le attività degli adulti: con l’abbonamento mensile oppure con la lezione singola, che acquisti dal calendario qui sotto quando prenoti.",
+                "Baby Nuoto is booked class by class, like the adults’ activities: with the monthly membership or with a single class, which you buy from the calendar below when you book.",
+              )}
             </Text>
           </View>
         )}
       </Sezione>
       {!vista ? (
-        <Sezione titolo="Prenota una lezione di Baby Nuoto">
+        <Sezione
+          titolo={t(
+            "Prenota una lezione di Baby Nuoto",
+            "Book a Baby Nuoto class",
+          )}
+        >
           <CalendarioLezioni
             categoria="baby"
             memberId={memberId}
-            vuoto="Nei prossimi giorni non ci sono lezioni di Baby Nuoto per la sua età."
+            vuoto={t(
+              "Nei prossimi giorni non ci sono lezioni di Baby Nuoto per la sua età.",
+              "There are no Baby Nuoto classes in the next few days for their age.",
+            )}
             onCambiato={onCambiato}
           />
         </Sezione>
@@ -477,7 +579,7 @@ function RigaPrenotata({
         <Text style={[stili.quando, { color: p.testo }]}>
           {giornoOra(l.inizio)}
         </Text>
-        <Etichetta testo="Prenotata" tono="ok" icona="spunta" />
+        <Etichetta testo={t("Prenotata", "Booked")} tono="ok" icona="spunta" />
       </View>
       {puoDisdire ? (
         <AzioniLezione
@@ -569,7 +671,7 @@ function CalendarioLezioni({
       <View style={{ gap: spazio.due }}>
         <Messaggio>{letto.errore}</Messaggio>
         <Pulsante
-          testo="Riprova"
+          testo={t("Riprova", "Try again")}
           icona="aggiorna"
           variante="secondario"
           onPress={leggi}
@@ -584,7 +686,10 @@ function CalendarioLezioni({
     <View style={{ gap: spazio.due }}>
       <ConAltre
         visibili={4}
-        nome={["lezione", "lezioni"]}
+        nome={tv<[string, string]>(
+          ["lezione", "lezioni"],
+          ["class", "classes"],
+        )}
         voci={letto.lezioni.map((l) => (
           <RigaLezione
             key={l.class_id}
@@ -596,7 +701,10 @@ function CalendarioLezioni({
         ))}
       />
       <Text style={[stili.nota, { color: p.testoTerzo }]}>
-        I posti cambiano in fretta: l’ultima parola è del Calendario.
+        {t(
+          "I posti cambiano in fretta: l’ultima parola è del Calendario.",
+          "Spots go fast: the Calendar has the final say.",
+        )}
       </Text>
       {aperta ? (
         <FoglioLezione

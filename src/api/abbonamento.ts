@@ -262,7 +262,13 @@ export async function documentoAbbonamento(numero: string): Promise<{ ok: true; 
 // L'iscrizione a un gruppo dei corsi junior (21/10/2026): stessa firma dell'abbonamento, ma il contratto lo crea PerfectGym
 // iscrivendo al gruppo. Il pagamento e l'esito sono quelli di sempre, per numero (`pagaAbbonamento`, `esitoAbbonamento`).
 
-export type SceltaIscrizione = { member_id: number; group_id: string | number; data_inizio?: string }
+export type SceltaIscrizione = {
+  member_id: number
+  /** Assente per il mensile del Baby Nuoto (`baby`): non ha un gruppo. */
+  group_id?: string | number
+  baby?: boolean
+  data_inizio?: string
+}
 
 export type AnteprimaIscrizione = AnteprimaContratto & {
   /** Le date in cui si puo' cominciare (le lezioni del gruppo da oggi); `data_inizio` e' quella dell'anteprima. */
@@ -288,11 +294,12 @@ export type RispostaIscrizione =
     }
 
 export async function anteprimaIscrizione(s: SceltaIscrizione): Promise<RispostaIscrizione> {
-  const { ok, dati } = await abbonamento({ azione: 'junior_anteprima', ...s })
+  const { baby, ...resto } = s
+  const { ok, dati } = await abbonamento({ azione: baby ? 'baby_anteprima' : 'junior_anteprima', ...resto })
   if (ok) return { ok: true, anteprima: dati as unknown as AnteprimaIscrizione }
   return {
     ok: false,
-    errore: dati.errore ?? 'Non riusciamo a preparare il contratto adesso.',
+    errore: dati.errore ?? t('Non riusciamo a preparare il contratto adesso.', 'We can’t prepare the contract right now.'),
     mancanti: Array.isArray(dati.mancanti) ? dati.mancanti : undefined,
     persone_dati: Array.isArray(dati.persone_dati) ? (dati.persone_dati as PersonaDati[]) : undefined,
     importi: dati.importi as ImportiContratto | undefined,
@@ -309,7 +316,8 @@ export async function firmaIscrizione(
   consensi: Record<string, boolean>,
   firmaPng: string,
 ): Promise<{ ok: true; esito: EsitoFirma } | { ok: false; errore: string }> {
-  const { ok, dati } = await abbonamento({ azione: 'junior_firma', ...s, dati_confermati: true, impronta, consensi, firma_png: firmaPng })
+  const { baby, ...resto } = s
+  const { ok, dati } = await abbonamento({ azione: baby ? 'baby_firma' : 'junior_firma', ...resto, dati_confermati: true, impronta, consensi, firma_png: firmaPng })
   if (ok && dati.numero) return { ok: true, esito: { numero: String(dati.numero), stato: dati.stato as StatoContratto, totale_oggi: Number(dati.totale_oggi ?? 0) } }
-  return { ok: false, errore: dati.errore ?? 'Non siamo riusciti a registrare il contratto adesso.' }
+  return { ok: false, errore: dati.errore ?? t('Non siamo riusciti a registrare il contratto adesso.', 'We couldn’t record the contract right now.') }
 }
