@@ -351,9 +351,14 @@ export function Junior() {
                 accessibilityRole="header"
               >
                 {t(
-                  `Gruppi per ${persona.nome ?? "chi hai scelto"} · nato nel ${annoFisso}`,
-                  `Groups for ${persona.nome ?? "the person you chose"} · born in ${annoFisso}`,
+                  `Queste sono le attività alle quali puoi iscrivere ${persona.nome ?? "chi hai scelto"} · nato nel ${annoFisso}`,
+                  `These are the activities you can enroll ${persona.nome ?? "the person you chose"} in · born in ${annoFisso}`,
                 )}
+              </Text>
+            ) : null}
+            {annoFisso != null && persona ? (
+              <Text style={[stili.nota, { color: p.testoSecondario }]}>
+                {t("La pallanuoto è solo maschile.", "Water polo is boys only.")}
               </Text>
             ) : (
               <>

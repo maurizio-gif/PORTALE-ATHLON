@@ -154,6 +154,7 @@ export const ATTIVITA: Record<ChiaveAttivita, Attivita> = {
         "A tradition that began in 1989: swimming meets team play, teaching not just technique but commitment, dedication and fair competition. Two courses: Acqua Gol for the youngest and Under 14 for those ready to get serious.",
       ),
     inBreve: () => [
+      t("Solo maschile", "Boys only"),
       t("Dagli 8 ai 13 anni, in vasca grande", "Ages 8 to 13, in the big pool"),
       t("Acqua Gol, nati 2016-17-18: 3 sessioni a settimana, ne consigliamo 2", "Acqua Gol, born 2016-17-18: 3 sessions a week, 2 recommended"),
       t("Under 14, nati 2013-14-15: 4 sessioni a settimana, ne consigliamo 3", "Under 14, born 2013-14-15: 4 sessions a week, 3 recommended"),
