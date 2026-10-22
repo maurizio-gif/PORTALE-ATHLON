@@ -129,9 +129,9 @@ export function statoPosti(g: GruppoJunior): StatoPosti {
     };
   if (g.liberi <= 0) return { testo: t("Completo", "Full"), tono: "neutro" };
   if (g.liberi === 1)
-    return { testo: t("Ultimo posto", "Last spot"), tono: "attenzione" };
+    return { testo: t("1 posto disponibile", "1 spot available"), tono: "attenzione" };
   return {
-    testo: t(`${g.liberi} posti liberi`, `${g.liberi} spots available`),
+    testo: t(`${g.liberi} posti disponibili`, `${g.liberi} spots available`),
     tono: "ok",
   };
 }
