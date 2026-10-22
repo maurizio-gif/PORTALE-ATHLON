@@ -47,6 +47,7 @@ import {
   titoloGruppo,
 } from "./comune";
 import { attivitaDiPersona } from "./attivita";
+import { CambioOrario } from "./CambioOrario";
 import { ComeFunziona } from "./ComeFunziona";
 import { CorsiPersona } from "./Corsi";
 import { DirettoreTecnico } from "./DirettoreTecnico";
@@ -68,7 +69,7 @@ import { SchedaAttivita } from "./SchedaAttivita";
 // con tutti i suoi dati, i conteggi delle lezioni disdette e recuperate, le prossime lezioni (con «Disdici») e il calendario dei
 // recuperi; se e' in eta' per il Baby Nuoto, l'abbonamento o le due strade (lezione singola, mensile) e il calendario delle
 // lezioni. I gruppi con l'anno di nascita restano per chi non e' ancora iscritto e non e' in eta' per il Baby Nuoto (e, con
-// «Vedi tutti i gruppi», per chi e' gia' iscritto).
+// il «Cambio orario», per chi e' gia' iscritto: solo turni dello stesso tipo).
 //
 // Ai gruppi da qui ci si iscrive toccando un turno con posti (`/iscrizione`). I numeri sono quelli del mirror di PerfectGym (si aggiornano ogni
 // pochi minuti), e l'ultima parola sui posti e' della segreteria al momento dell'iscrizione: la schermata lo dice.
@@ -89,7 +90,6 @@ export function Junior() {
   const [daIscrivere, setDaIscrivere] = useState<GruppoJunior | null>(null);
   const [aggiunto, setAggiunto] = useState<string | null>(null);
   const [personaScelta, setPersonaScelta] = useState<number | null>(null);
-  const [tuttiIGruppi, setTuttiIGruppi] = useState(false);
   const vista = !!vistaCorrente();
 
   const carica = useCallback(async () => {
@@ -112,7 +112,7 @@ export function Junior() {
   // I gruppi da cui scegliere servono a chi non ha ancora un corso: non a un lattante (c'e' il Baby Nuoto) e non a chi e'
   // gia' iscritto (ha il suo abbonamento sopra), salvo che li chieda.
   const mostraGruppi =
-    !persona || tuttiIGruppi || (!personaBaby && !personaIscritta);
+    !persona || (!personaBaby && !personaIscritta);
   // Con una persona scelta l'anno e' il suo: non si sceglie (si vedono solo i gruppi per i suoi anni). Le tessere restano
   // solo se non si sa chi e', o se il suo anno non ha nessun gruppo.
   const annoPersona = persona ? annoDi(persona) : null;
@@ -279,7 +279,6 @@ export function Junior() {
                         x.idoneo
                           ? () => {
                               setPersonaScelta(x.member_id);
-                              setTuttiIGruppi(false);
                               if (apre) setAnno(a);
                             }
                           : undefined
@@ -563,12 +562,8 @@ export function Junior() {
             {t("I posti sono quelli del gestionale del club e si aggiornano ogni pochi minuti: al momento dell’iscrizione la segreteria ti conferma quello che c’è davvero.", "Spots come from the club’s management system and update every few minutes: when you enroll, the front desk confirms what’s actually available.")}
           </Text>
         </>
-      ) : personaIscritta ? (
-        <Pulsante
-          testo={t("Vedi tutti i gruppi", "See all groups")}
-          variante="secondario"
-          onPress={() => setTuttiIGruppi(true)}
-        />
+      ) : personaIscritta && persona && !personaBaby ? (
+        <CambioOrario persona={persona} gruppi={gruppi} vista={vista} />
       ) : null}
 
       <Foglio

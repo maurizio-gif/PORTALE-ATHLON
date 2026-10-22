@@ -171,6 +171,10 @@ export type IscrizioneJunior = {
     scade_il?: string | null;
   };
   prossime: LezioneIscritto[];
+  /** Le lezioni che non si vedono perche' la quota del loro mese non e' ancora pagata (manca con una funzione di prima). */
+  sospese?: number;
+  /** Il primo mese con una quota da pagare (ISO, il giorno 1). */
+  sospese_dal?: string | null;
   recuperi: LezioneIscritto[];
 };
 
@@ -352,4 +356,26 @@ export async function prenotaDirettoreTecnico(d: {
     ora: String(dati.ora ?? d.ora),
     durataMinuti: typeof dati.durata_minuti === "number" ? dati.durata_minuti : null,
   };
+}
+
+export type EsitoCambioOrario = { ok: true; giaChiesto: boolean } | { ok: false; errore: string };
+
+/** Chiede alla segreteria di passare a un altro turno dello stesso tipo: non cambia niente da solo (lo fa la segreteria su PerfectGym). */
+export async function chiediCambioOrario(d: { memberId: number; groupId: string | number; nota?: string }): Promise<EsitoCambioOrario> {
+  const { ok, stato, dati } = await funzione("portale-lab-junior", {
+    azione: "cambio_orario",
+    member_id: d.memberId,
+    group_id: Number(d.groupId),
+    ...(d.nota ? { nota: d.nota } : {}),
+  });
+  if (!ok) {
+    return {
+      ok: false,
+      errore:
+        stato === 400 && dati.errore === "Azione sconosciuta."
+          ? t("Il cambio orario non è ancora attivo: riprova fra qualche giorno.", "Schedule changes aren’t active yet: try again in a few days.")
+          : (dati.errore ?? t("Non riusciamo a mandare la richiesta adesso. Riprova fra qualche minuto.", "We can’t send the request right now. Try again in a few minutes.")),
+    };
+  }
+  return { ok: true, giaChiesto: dati.gia_chiesto === true };
 }

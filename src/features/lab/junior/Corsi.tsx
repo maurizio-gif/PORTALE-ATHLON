@@ -34,6 +34,7 @@ import {
   Sezione,
 } from "../ui/kit";
 import { FoglioLezione } from "../ui/FoglioLezione";
+import { PagamentiContratto } from "./PagamentiContratto";
 import { F, usePalette } from "../ui/tema";
 import { usePrenotazioneLezione } from "../usePrenotazioneLezione";
 import {
@@ -131,7 +132,7 @@ export function CorsiPersona({
   const nome = persona.nome ?? "";
   return (
     <>
-      {esito.baby ? (
+      {esito.baby && esito.iscrizioni.length === 0 ? (
         <SezioneBaby
           nome={nome}
           memberId={persona.member_id}
@@ -219,6 +220,7 @@ function SezioneIscrizione({
             />
           ) : null}
         </Carta>
+        <PagamentiContratto contrattoId={c.id} />
       </Sezione>
 
       {i.recuperabile ? (
@@ -289,6 +291,17 @@ function SezioneIscrizione({
         <Text style={[stili.nota, { color: p.testoSecondario }]}>
           {finestraLezioni(c)}
         </Text>
+        {(i.sospese ?? 0) > 0 ? (
+          <Messaggio
+            tono="attenzione"
+            titolo={t("Lezioni in attesa del pagamento", "Classes waiting for payment")}
+          >
+            {t(
+              `Le lezioni di un mese si vedono (e si possono disdire) quando la sua quota è pagata. ${nLezioni(i.sospese ?? 0)} compariranno appena paghi${i.sospese_dal ? ` la quota di ${new Intl.DateTimeFormat("it-IT", { month: "long", timeZone: "UTC" }).format(new Date(i.sospese_dal))}` : ""}: la trovi qui sopra, fra i pagamenti da fare.`,
+              `A month’s classes show up (and can be cancelled) once its fee is paid. ${nLezioni(i.sospese ?? 0)} will appear as soon as you pay${i.sospese_dal ? ` the ${new Intl.DateTimeFormat("en-GB", { month: "long", timeZone: "UTC" }).format(new Date(i.sospese_dal))} fee` : ""}: you’ll find it above, among the payments due.`,
+            )}
+          </Messaggio>
+        ) : null}
         {i.prossime.length ? (
           <View style={{ gap: spazio.due }}>
             <ConAltre
