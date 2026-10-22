@@ -34,7 +34,9 @@ import { inMemoria, prendi, ricorda } from '../memoria'
 import { PERCORSO_IN_STANDBY } from '../percorso/standby'
 import { GIORNI, GIORNO_BREVE, NOME_FASCIA } from '../percorso/comune'
 import { giornoRoma } from '../schede/contatoreCalorie'
-import { aggiornaProfilo, CHIAVI_CONSIGLI, consigliDaProfilo, daConsigli, leggiProfilo, senzaToccate, type CampoConsigli } from '../schede/profiloComune'
+import { notaSalto, testoAbitudine, volteConsigliate } from '../schede/abitudine'
+import { abitudineNota, ricordaAbitudine } from '../schede/abitudineMemoria'
+import { aggiornaProfilo, CHIAVI_CONSIGLI, consigliDaProfilo, daConsigli, leggiProfilo, momentoDaVisiteAlPosto, senzaToccate, type CampoConsigli } from '../schede/profiloComune'
 import { nomeObiettivo } from '../schede/questionario'
 import { Scelte, SceltePiu } from '../ui/Campi'
 import { FoglioLezione } from '../ui/FoglioLezione'
@@ -138,6 +140,10 @@ export function Consigli() {
   }
   const [scelte, setScelte] = useState<SceltePerConsigli>(partenza.current.scelte)
   const [riportate, setRiportate] = useState<CampoConsigli[]>(partenza.current.riportate)
+  const scelteCorrenti = useRef(scelte)
+  scelteCorrenti.current = scelte
+  const riportateCorrenti = useRef(riportate)
+  riportateCorrenti.current = riportate
   // Le limitazioni sono dati sulla salute: vivono solo qui, nel campo di testo.
   const [limitazioni, setLimitazioni] = useState('')
   const [errore, setErrore] = useState<string | null>(null)
@@ -165,11 +171,16 @@ export function Consigli() {
     cercatiRef.current = true
     const [r, salvati] = await Promise.all([prendi(CHIAVE_STATO_CONSIGLI, statoConsigli), cerca ? ultimiConsigli() : Promise.resolve(null)])
     if (!qui.current) return
+    // L'abitudine (quanto viene al club e quando) arriva con lo stato; se prima non c'era (si e' aperta la schermata da un link) i giorni e
+    // il momento si propongono dopo, solo dove la persona non ha ancora risposto.
+    const abitudinePrima = abitudineNota()
     if (r.ok) {
       setStato(r)
       setErroreStato(null)
+      ricordaAbitudine(r.abitudine)
     } else setErroreStato({ messaggio: r.errore, nonAttivo: r.stato === 404 || r.stato === 503 })
-    if (salvati?.ok && salvati.risposta && !rispostaCorrente.current) {
+    const ritrovati = !!(salvati?.ok && salvati.risposta && !rispostaCorrente.current)
+    if (ritrovati && salvati?.ok && salvati.risposta) {
       const ritrovata = salvati.risposta
       ricorda(CHIAVE_ULTIMI_CONSIGLI, ritrovata)
       setRisposta(ritrovata)
@@ -182,6 +193,15 @@ export function Consigli() {
         // Le sue risposte salvate valgono piu' di quelle portate dal profilo.
         ricorda(CHIAVE_RIPORTATE_CONSIGLI, [])
         setRiportate([])
+      }
+    }
+    if (r.ok && r.abitudine && !abitudinePrima && !ritrovati && !rispostaCorrente.current) {
+      const dal = consigliDaProfilo(scelteCorrenti.current, riportateCorrenti.current, leggiProfilo())
+      if (dal.riportate.length) {
+        ricorda(CHIAVE_SCELTE_CONSIGLI, dal.scelte)
+        ricorda(CHIAVE_RIPORTATE_CONSIGLI, dal.riportate)
+        setScelte(dal.scelte)
+        setRiportate(dal.riportate)
       }
     }
     if (cerca) setCercati(true)
@@ -229,6 +249,9 @@ export function Consigli() {
   const questionario = questionarioDa(scelte, limitazioni)
   const manca = cosaManca(scelte)
   const finita = quotaFinita(stato?.quota)
+  // Quanto viene al club davvero: il «consigliato» delle volte a settimana e le cifre vere accanto (`schede/abitudine.ts`).
+  const abitudine = abitudineNota()
+  const consigliate = volteConsigliate(abitudine)
 
   async function chiedi() {
     if (!questionario || finita) return
@@ -432,8 +455,14 @@ export function Consigli() {
       </Sezione>
 
       <Sezione titolo={tr('Quante volte a settimana pensi di venire', 'How many times a week you plan to come')}>
-        <Scelte valori={[1, 2, 3, 4, 5, 6].map((n) => ({ valore: n, testo: String(n) }))} scelto={scelte.volte_settimana} onScegli={(volte_settimana) => cambia({ volte_settimana })} />
-        <Text style={[stili.nota, { color: p.testoSecondario }]}>{tr(`Ti proponiamo cose per ${volteTesto(scelte.volte_settimana)}, più o meno: poi scegli tu.`, `We’ll suggest things for about ${volteTesto(scelte.volte_settimana)}: then it’s up to you.`)}</Text>
+        <Scelte
+          valori={[1, 2, 3, 4, 5, 6].map((n) => ({ valore: n, testo: n === consigliate ? `${n} · ${tr('consigliato', 'suggested')}` : String(n) }))}
+          scelto={scelte.volte_settimana}
+          onScegli={(volte_settimana) => cambia({ volte_settimana })}
+        />
+        <Text style={[stili.nota, { color: p.testoSecondario }]}>
+          {[tr(`Ti proponiamo cose per ${volteTesto(scelte.volte_settimana)}, più o meno: poi scegli tu.`, `We’ll suggest things for about ${volteTesto(scelte.volte_settimana)}: then it’s up to you.`), testoAbitudine(abitudine), notaSalto(scelte.volte_settimana, abitudine)].filter(Boolean).join(' ')}
+        </Text>
       </Sezione>
 
       <Sezione titolo={tr('Quando ti piacerebbe venire', 'When you’d like to come')} destra={<Facoltativo />}>
@@ -443,7 +472,7 @@ export function Consigli() {
           {scelte.fasce.length ? `${scelte.fasce.map((f) => `${NOME_FASCIA[f].titolo}: ${NOME_FASCIA[f].nota}`).join(' · ')}. ` : ''}
           {tr('Non è un vincolo: ti mostriamo prima le lezioni che ci stanno, ma ti diciamo anche quelle adatte a te in altri momenti.', 'It’s not a constraint: we show the classes that fit first, but we also tell you about ones that suit you at other times.')}
         </Text>
-        <Riportata mostra={riportate.includes('fasce')} />
+        <Riportata mostra={riportate.includes('fasce') || riportate.includes('giorni')} daVisite={riportate.includes('giorni') || (riportate.includes('fasce') && momentoDaVisiteAlPosto())} />
       </Sezione>
 
       <Sezione titolo={tr('Ti ha mai seguito un personal trainer?', 'Have you ever worked with a personal trainer?')} destra={<Facoltativo />}>
@@ -576,6 +605,13 @@ function Risposta({ risposta, azioni, onScheda, onCambia }: { risposta: Risposta
             'The classes you can book change by themselves, because booking opens three days before: later ones appear as time goes on.',
           )}
         </Text>
+        {testoAbitudine(risposta.abitudine) ? (
+          <Text style={[stili.nota, { color: p.testoSecondario }]}>
+            {tr('Abbiamo tenuto conto anche di quanto vieni al club. ', 'We also took into account how often you come to the club. ')}
+            {testoAbitudine(risposta.abitudine)}{' '}
+            {tr('Le volte a settimana che ti consigliamo per ogni lezione partono da lì, e le lezioni che fai già sono segnate.', 'The times a week we suggest for each class start from there, and classes you already go to are marked.')}
+          </Text>
+        ) : null}
         <Text style={[stili.nota, { color: p.testoSecondario }]}>{tr('Puoi chiedere nuovi consigli una volta a settimana.', 'You can ask for new tips once a week.')}</Text>
       </Carta>
 
@@ -647,6 +683,14 @@ function CartaConsiglio({ c, schede, azioni, onScheda }: { c: ConsiglioRisolto; 
         </View>
       ) : null}
       {c.perche ? <Text style={[stili.perche, { color: p.testoSecondario }]}>{c.perche}</Text> : null}
+      {c.gia_fatta ? (
+        <Text style={[stili.nota, { color: p.accento, fontFamily: F.bold }]}>
+          {tr(
+            `La fai già: ${c.gia_fatta.volte} ${c.gia_fatta.volte === 1 ? 'volta' : 'volte'} nelle ultime otto settimane, l’ultima ${giornoEsteso(c.gia_fatta.ultima)}.`,
+            `You already go: ${c.gia_fatta.volte} ${c.gia_fatta.volte === 1 ? 'time' : 'times'} in the last eight weeks, most recently on ${giornoEsteso(c.gia_fatta.ultima)}.`,
+          )}
+        </Text>
+      ) : null}
 
       <OrariDiSolito orari={c.orari} />
 
@@ -864,10 +908,15 @@ function RigaFormula({ f, principale }: { f: FormulaPersonal; principale?: boole
 }
 
 /** Sotto una risposta portata dal profilo comune (`schede/profiloComune.ts`): si vede da dove viene, finche' la persona non la tocca. */
-function Riportata({ mostra }: { mostra: boolean }) {
+function Riportata({ mostra, daVisite }: { mostra: boolean; daVisite?: boolean }) {
   const p = usePalette()
   if (!mostra) return null
-  return <Text style={[stili.nota, { color: p.accento, fontFamily: F.bold }]}>{tr('Riportato dalle tue risposte precedenti: cambialo se serve.', 'Carried over from your earlier answers: change it if you like.')}</Text>
+  // Se viene da quello che fa davvero (ingressi e lezioni) non e' una sua risposta, e si dice (`schede/abitudine.ts`).
+  return (
+    <Text style={[stili.nota, { color: p.accento, fontFamily: F.bold }]}>
+      {daVisite ? tr('Dalle tue visite al club: cambialo se serve.', 'From your visits to the club: change it if you like.') : tr('Riportato dalle tue risposte precedenti: cambialo se serve.', 'Carried over from your earlier answers: change it if you like.')}
+    </Text>
+  )
 }
 
 const stili = StyleSheet.create({

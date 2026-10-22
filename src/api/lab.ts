@@ -841,9 +841,48 @@ export type Questionario = {
 
 const schedeLab =(corpo: Record<string, unknown>) => funzione('portale-lab-schede', corpo)
 
-export async function elencoSchede(): Promise<Esito<{ schede: RigaSchedaLab[]; ultimi: SedutaBreve[]; ai: { usate: number; massimo: number }; test: StatoTest }>> {
+/**
+ * Quanto il socio viene al club e quando (22/10/2026): lo calcola la funzione dagli ingressi al tornello e dalle presenze alle lezioni, e
+ * serve a due cose soltanto, il «consigliato» dei questionari e una riga che dice «la fai gia'». **Non va a nessun servizio esterno.**
+ * `fasce` sono quelle dei Consigli (mattina_presto, mattina, pranzo, pomeriggio, sera, weekend), `giorni` quelli della settimana (1 = lunedi').
+ * Null se la funzione e' di prima, o se non ha potuto leggere i dati: allora le schermate sono quelle di sempre.
+ */
+export type AbitudineTrain = {
+  /** Vero se la storia e' abbastanza lunga (almeno tre settimane) perche' le medie dicano qualcosa. */
+  affidabile: boolean
+  giorni_28: number
+  giorni_a_settimana: number
+  ultima_visita_giorni: number | null
+  fasce: string[]
+  giorni: number[]
+  lezioni_8_sett: number
+  /** Un giorno in piu' di quanti ne fa oggi (al massimo sei); null se l'abitudine non e' affidabile. */
+  volte_sostenibili: number | null
+}
+
+/** Ripulisce quello che arriva dalla funzione: una funzione di prima non lo manda, e un valore strano non deve rompere una schermata. */
+export function abitudineDa(x: unknown): AbitudineTrain | null {
+  if (!x || typeof x !== 'object') return null
+  const a = x as Record<string, unknown>
+  const num = (v: unknown) => (typeof v === 'number' && Number.isFinite(v) ? v : null)
+  const g28 = num(a.giorni_28)
+  const perSett = num(a.giorni_a_settimana)
+  if (g28 === null || perSett === null) return null
+  return {
+    affidabile: a.affidabile === true,
+    giorni_28: g28,
+    giorni_a_settimana: perSett,
+    ultima_visita_giorni: num(a.ultima_visita_giorni),
+    fasce: Array.isArray(a.fasce) ? a.fasce.filter((f): f is string => typeof f === 'string') : [],
+    giorni: Array.isArray(a.giorni) ? a.giorni.filter((g): g is number => typeof g === 'number' && g >= 1 && g <= 7) : [],
+    lezioni_8_sett: num(a.lezioni_8_sett) ?? 0,
+    volte_sostenibili: num(a.volte_sostenibili),
+  }
+}
+
+export async function elencoSchede(): Promise<Esito<{ schede: RigaSchedaLab[]; ultimi: SedutaBreve[]; ai: { usate: number; massimo: number }; abitudine: AbitudineTrain | null; test: StatoTest }>> {
   const { ok, dati } = await schedeLab({ azione: 'elenco' })
-  if (ok) return { ok: true, schede: dati.schede, ultimi: dati.ultimi, ai: dati.ai, test: dati.test ?? { ultimo: null, fatti: 0, totale: 0, giorni: 42 } }
+  if (ok) return { ok: true, schede: dati.schede, ultimi: dati.ultimi, ai: dati.ai, abitudine: abitudineDa(dati.abitudine), test: dati.test ?? { ultimo: null, fatti: 0, totale: 0, giorni: 42 } }
   return { ok: false, errore: dati.errore ?? t('Non riusciamo a leggere i tuoi piani adesso.', 'We can’t load your plans right now.') }
 }
 

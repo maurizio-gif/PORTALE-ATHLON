@@ -4,13 +4,14 @@ import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { ActivityIndicator, ScrollView, StyleSheet, Text, TextInput, useWindowDimensions, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
-import { chiediSchedaAi } from '@/api/lab'
+import { chiediSchedaAi, elencoSchede } from '@/api/lab'
 import { ultimiConsigli } from '@/api/percorso'
 import { t, tv } from '@/lib/lingua'
 import { spazio, tinta } from '@/theme'
 
 import { mettiBozza, scartaBozza } from './bozza'
 import { SCELTE_DI_PARTENZA, scelteDa } from '../consigli/comune'
+import { prendi } from '../memoria'
 import { useSegnaAzioneInAlto } from '../feedback/posizione'
 import { Icona } from '../ui/Icona'
 import { Carta, Entra, Messaggio, Pulsante } from '../ui/kit'
@@ -18,9 +19,12 @@ import { Schermata } from '../ui/Schermata'
 import { F, FUOCO, usePalette } from '../ui/tema'
 import { colpetto, Tocco } from '../ui/Tocco'
 import { vistaCorrente } from '../vista'
+import { notaSalto, testoAbitudine } from './abitudine'
+import { abitudineNota, ricordaAbitudine } from './abitudineMemoria'
 import { AnelloPassi } from './AnelloPassi'
+import { CHIAVE_ELENCO_PIANI } from './comune'
 import { Griglia, OpzioneCarta } from './PassiUI'
-import { aggiornaProfilo, daConsigli, daSala, daSalaCambiate, giaCercato, inSala, leggiProfilo, livelloDaSala, salaDaProfilo, segnaCercato, senzaToccate, soloMancanti, type CampoSala } from './profiloComune'
+import { aggiornaProfilo, daConsigli, daSala, daSalaCambiate, giaCercato, inSala, leggiProfilo, livelloDaSala, momentoDaVisiteAlPosto, profiloEffettivo, salaDaProfilo, segnaCercato, senzaToccate, soloMancanti, type CampoSala } from './profiloComune'
 import {
   accendi, CARDIO, DURATE_SALA, ESPERIENZE, eSalute, EVITA, FASCE, FOCUS, FOCUS_MAX, giorniConsigliati, giorniScelti, GIORNATE, INTENSITA, LIVELLI_PASSI, livelloDa, livelloScelto, nomeObiettivo, NESSUNO, OBIETTIVI, OBIETTIVO_SALUTE,
   PASSI_SALA, passoCompleto, questionarioSalaDa, riepilogoDa, STRUMENTI, TEST, ZONE, type NomeTest, type PassoSala, type Risposte,
@@ -61,6 +65,8 @@ const ATTESA = tv(
 
 /** La riga sopra una risposta che la persona aveva gia' dato (nei Consigli o in un piano di prima): `profiloComune.ts`. */
 const DAL_PROFILO = t('Dalle tue risposte precedenti', 'From your earlier answers')
+/** La riga sopra il momento che si propone da quello che la persona fa davvero (ingressi e lezioni), non da una risposta: `abitudine.ts`. */
+const DALLE_VISITE = t('Dalle tue visite al club', 'From your visits to the club')
 
 const DOVE = [
   { valore: 'sala', testo: t('In sala', 'In the gym') },
@@ -117,6 +123,27 @@ export function PassiSala({ dove, onDove, saltaDove, onVasca }: { dove: 'sala' |
       aggiornaProfilo(soloMancanti(leggiProfilo(), daConsigli({ ...SCELTE_DI_PARTENZA, ...scelteDa(x.risposta.questionario) })))
       if (!vivo) return
       const dal = inSala(leggiProfilo(), rCorrente.current)
+      if (!dal.riportate.length) return
+      setR({ ...rCorrente.current, ...dal.risposte })
+      setRiportate((prima) => [...new Set([...prima, ...dal.riportate])])
+    })()
+    return () => {
+      vivo = false
+    }
+  }, [])
+  // L'abitudine (quanto viene al club e quando) di solito c'e' gia', letta dalla schermata Train; se si arriva da un link la si legge qui. Arriva
+  // in ritardo: porta nelle domande solo il momento, e solo dove la persona non ha ancora risposto, e fa rileggere il «Consigliato» dei giorni.
+  const [, rinfresca] = useState(0)
+  useEffect(() => {
+    if (vistaCorrente() || abitudineNota()) return
+    let vivo = true
+    ;(async () => {
+      const x = await prendi(CHIAVE_ELENCO_PIANI, elencoSchede)
+      if (!x.ok || !x.abitudine) return
+      ricordaAbitudine(x.abitudine)
+      if (!vivo) return
+      rinfresca((n) => n + 1)
+      const dal = inSala(profiloEffettivo(leggiProfilo()), rCorrente.current)
       if (!dal.riportate.length) return
       setR({ ...rCorrente.current, ...dal.risposte })
       setRiportate((prima) => [...new Set([...prima, ...dal.riportate])])
@@ -226,7 +253,8 @@ export function PassiSala({ dove, onDove, saltaDove, onVasca }: { dove: 'sala' |
     </View>
   )
   /** L'etichetta «Dalle tue risposte precedenti» sulla risposta portata dal profilo, finche' non la tocca. */
-  const eti = <T extends string>(campo: CampoSala, valore: T | null): Partial<Record<T, string>> | undefined => (valore && riportate.includes(campo) ? ({ [valore]: DAL_PROFILO } as Partial<Record<T, string>>) : undefined)
+  const eti = <T extends string>(campo: CampoSala, valore: T | null): Partial<Record<T, string>> | undefined =>
+    valore && riportate.includes(campo) ? ({ [valore]: campo === 'fascia' && momentoDaVisiteAlPosto() ? DALLE_VISITE : DAL_PROFILO } as Partial<Record<T, string>>) : undefined
   const piu = <T extends string>(opzioni: readonly { valore: T; testo: string; nota?: string }[], scelti: readonly (T | typeof NESSUNO)[], onCambia: (v: (T | typeof NESSUNO)[]) => void, max = Infinity, nessuno?: string) => (
     <View style={stili.lista}>
       {opzioni.map((o) => (
@@ -344,17 +372,25 @@ export function PassiSala({ dove, onDove, saltaDove, onVasca }: { dove: 'sala' |
       nota = t('Il piano sta nel tempo che scegli, recuperi compresi.', 'The plan fits the time you choose, rest included.')
       corpo = una(DURATE_SALA.map((n) => ({ valore: String(n), testo: t(`${n} minuti`, `${n} minutes`) })), r.minuti ? String(r.minuti) : null, (v) => imposta({ minuti: Number(v) }))
       break
-    case 'giorni':
+    case 'giorni': {
+      // Quanto viene al club davvero (ingressi e lezioni): le cifre vere accanto al consiglio, e una frase leggera se la scelta e' molto piu' alta.
+      const abitudine = abitudineNota()
+      const cifre = testoAbitudine(abitudine)
+      const salto = notaSalto(giorniScelti(r), abitudine)
       titolo = t('Quanti giorni a settimana?', 'How many days a week?')
-      nota = t(`In base alle tue risposte ti consigliamo ${consigliati} allenamenti a settimana. Scegli tu.`, `Based on your answers we suggest ${consigliati} workouts a week. It’s up to you.`)
+      nota = [t(`In base alle tue risposte ti consigliamo ${consigliati} allenamenti a settimana. Scegli tu.`, `Based on your answers we suggest ${consigliati} workouts a week. It’s up to you.`), cifre].filter(Boolean).join(' ')
       corpo = (
-        <Griglia>
-          {[1, 2, 3, 4, 5, 6].map((n) => (
-            <OpzioneCarta key={n} compatta testo={String(n)} etichetta={n === consigliati ? t('Consigliato', 'Suggested') : undefined} attivo={giorniScelti(r) === n} onPress={() => imposta({ giorni: n })} />
-          ))}
-        </Griglia>
+        <>
+          <Griglia>
+            {[1, 2, 3, 4, 5, 6].map((n) => (
+              <OpzioneCarta key={n} compatta testo={String(n)} etichetta={n === consigliati ? t('Consigliato', 'Suggested') : undefined} attivo={giorniScelti(r) === n} onPress={() => imposta({ giorni: n })} />
+            ))}
+          </Griglia>
+          {salto ? <Text style={[stili.notaSalto, { color: p.testoSecondario }]}>{salto}</Text> : null}
+        </>
       )
       break
+    }
     case 'fascia':
       titolo = t('Quando ti alleni di solito?', 'When do you usually train?')
       nota = t('Ci aiuta a tenere conto di quando la sala è più piena.', 'It helps us account for when the gym is busiest.')
@@ -457,4 +493,5 @@ const stili = StyleSheet.create({
   attesa: { borderRadius: 30, padding: spazio.cinque, alignItems: 'center', gap: spazio.tre },
   attesaTesto: { color: '#fff', fontFamily: F.extra, fontSize: 19, textAlign: 'center', letterSpacing: -0.4 },
   attesaNota: { color: 'rgba(255,255,255,0.8)', fontFamily: F.medio, fontSize: 13.5, textAlign: 'center' },
+  notaSalto: { fontFamily: F.medio, fontSize: 14, lineHeight: 20, marginTop: spazio.tre },
 })
