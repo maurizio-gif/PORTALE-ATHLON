@@ -8,9 +8,12 @@ import { Carta, Messaggio, Pulsante } from '../ui/kit'
 import { F, usePalette } from '../ui/tema'
 import { usePush } from './push'
 
-// «Ricevi le notifiche sul telefono» (20/10/2026), in cima al centro notifiche: attiva o spegne la push di questo dispositivo.
-// Chi non le attiva non perde niente: ogni notifica del club arriva comunque nell'app, come finestra e nel centro. La push
-// serve a sapere subito che c'e' qualcosa anche con l'app chiusa.
+// «Attiva le notifiche» (20/10/2026), in cima al centro notifiche: attiva o spegne la push di questo dispositivo.
+// Dal 22/10/2026 (richiesta di Maurizio) l'invito **consiglia** di attivarle, quasi come un requisito: e' il modo per restare
+// aggiornati su novita', iniziative e comunicazioni del club, anche con l'app chiusa. Attivarle «di default» non si puo': il
+// browser (e iOS) accende la push solo dopo un tocco della persona e il suo «Consenti». Ogni notifica arriva comunque anche
+// nell'app, come finestra e nel centro; le notifiche di marketing solo a chi ha il consenso della newsletter (lo controlla il
+// database), e questo testo non lo cambia.
 
 export function AttivaPush() {
   const p = usePalette()
@@ -21,16 +24,16 @@ export function AttivaPush() {
 
   if (stato === 'serve_app_installata') {
     return (
-      <Messaggio tono="attenzione" icona="info" titolo={t('Per le notifiche sul telefono', 'For notifications on your phone')}>
-        {t('Su iPhone le notifiche arrivano solo all’app aggiunta alla schermata Home: aggiungila da Safari («Condividi», poi «Aggiungi alla schermata Home») e riapri da lì. Intanto le trovi qui, nell’app.', 'On iPhone, notifications only reach the app once it’s added to the Home Screen: add it from Safari (“Share”, then “Add to Home Screen”) and reopen it from there. Meanwhile you’ll find them here, in the app.')}
+      <Messaggio tono="attenzione" icona="info" titolo={t('Attiva le notifiche per restare aggiornato', 'Turn on notifications to stay up to date')}>
+        {t('Per non perderti nessuna novità del club, aggiungi l’app alla schermata Home: su iPhone le notifiche arrivano solo così. Da Safari tocca «Condividi», poi «Aggiungi alla schermata Home», e riaprila da lì per attivarle.', 'So you don’t miss any club news, add the app to your Home Screen: on iPhone that’s the only way notifications arrive. In Safari tap “Share”, then “Add to Home Screen”, and reopen it from there to turn them on.')}
       </Messaggio>
     )
   }
 
   if (stato === 'bloccato') {
     return (
-      <Messaggio tono="attenzione" icona="info" titolo={t('Le notifiche sono bloccate nel browser', 'Notifications are blocked in your browser')}>
-        {t('Hai negato le notifiche a questo sito: per riceverle sul dispositivo consentile dalle impostazioni del browser, poi torna qui. Intanto le trovi in questo elenco.', 'You’ve blocked notifications for this site: to get them on your device, allow them in your browser settings, then come back here. Meanwhile you’ll find them in this list.')}
+      <Messaggio tono="attenzione" icona="info" titolo={t('Le notifiche sono bloccate: ti stai perdendo le novità', 'Notifications are blocked: you’re missing out on news')}>
+        {t('Ti consigliamo di riattivarle: consenti le notifiche a questo sito dalle impostazioni del browser e torna qui. Così ricevi subito novità, iniziative e comunicazioni del club.', 'We recommend turning them back on: allow notifications for this site in your browser settings and come back here. That way you get club news, initiatives and updates right away.')}
       </Messaggio>
     )
   }
@@ -43,13 +46,13 @@ export function AttivaPush() {
           <Icona nome="campanello" size={20} colore={attivo ? '#fff' : p.testo} />
         </View>
         <View style={{ flex: 1, gap: 3 }}>
-          <Text style={[stili.titolo, { color: p.testo }]}>{attivo ? t('Notifiche attive su questo dispositivo', 'Notifications on for this device') : t('Ricevi le notifiche sul telefono', 'Get notifications on your phone')}</Text>
+          <Text style={[stili.titolo, { color: p.testo }]}>{attivo ? t('Notifiche attive: sei sempre aggiornato', 'Notifications on: you’re always up to date') : t('Attiva le notifiche: te lo consigliamo', 'Turn on notifications: we recommend it')}</Text>
           <Text style={[stili.testo, { color: p.testoSecondario }]}>
             {attivo
               ? dispositivi > 1
-                ? t(`Le ricevi su ${dispositivi} dispositivi. Il club ti scrive solo per cose che ti riguardano.`, `You get them on ${dispositivi} devices. The club only writes about things that concern you.`)
-                : t('Il club ti scrive solo per cose che ti riguardano: una chiusura, un cambio d’orario, una scadenza.', 'The club only writes about things that concern you: a closure, a time change, a deadline.')
-              : t('Anche con l’app chiusa: una chiusura, un cambio d’orario, una scadenza. Le trovi comunque qui, nell’app.', 'Even with the app closed: a closure, a time change, a deadline. You’ll still find them here, in the app.')}
+                ? t(`Bene! Le ricevi su ${dispositivi} dispositivi: così resti aggiornato su tutte le nostre novità, le iniziative e le comunicazioni del club.`, `Great! You get them on ${dispositivi} devices, so you stay up to date on all our news, initiatives and club updates.`)
+                : t('Bene! Così resti aggiornato su tutte le nostre novità, le iniziative e le comunicazioni del club.', 'Great! This way you stay up to date on all our news, initiatives and club updates.')
+              : t('È il modo per restare sempre aggiornato: novità, iniziative, eventi e comunicazioni del club ti arrivano subito sul telefono, anche con l’app chiusa. Senza, rischi di perderti qualcosa.', 'It’s the way to always stay up to date: club news, initiatives, events and updates reach your phone right away, even with the app closed. Without them, you might miss something.')}
           </Text>
         </View>
       </View>
