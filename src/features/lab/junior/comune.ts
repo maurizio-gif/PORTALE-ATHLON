@@ -303,6 +303,46 @@ export function rinnovoContratto(c: {
 }
 
 /**
+ * Una disdetta vera di un abbonamento mensile junior finisce l'ultimo giorno di un mese. PerfectGym segna una «disdetta» anche su
+ * ogni iscrizione a un corso, il giorno stesso in cui nasce, con la fine del corso (il 20 giugno): quella non e' una disdetta, e
+ * l'abbonamento resta mensile e si rinnova ogni mese (22/10/2026, richiesta di Maurizio).
+ */
+export function disdettaVera(c: { disdetta: string | null; fine: string | null }): boolean {
+  if (!c.disdetta || !c.fine) return false;
+  const d = new Date(`${c.fine.slice(0, 10)}T12:00:00Z`);
+  return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 0)).getUTCDate() === d.getUTCDate();
+}
+
+/** Il rinnovo di un abbonamento junior, in una riga. */
+export function rinnovoJunior(c: { disdetta: string | null; fine: string | null }): string {
+  if (disdettaVera(c))
+    return t(`Disdetto: finisce il ${dataIt(c.fine)} e non si rinnova`, `Cancelled: ends on ${dataIt(c.fine)} and won’t renew`);
+  return t(
+    "Abbonamento mensile: si rinnova automaticamente ogni mese, salvo disdetta",
+    "Monthly membership: renews automatically every month unless cancelled",
+  );
+}
+
+/**
+ * Quando finirebbe l'abbonamento disdicendo oggi: la disdetta va data almeno 10 giorni prima del rinnovo del giorno 1 (entro il 21
+ * di un mese da 31 giorni, il 20 di uno da 30, il 18 di febbraio), e allora finisce l'ultimo giorno di questo mese; dopo, l'ultimo
+ * del mese dopo. La stessa regola di `fineDisdettaMensile` della funzione (APP-ATHLON), che e' quella che decide. `oggi` AAAA-MM-GG.
+ */
+export function fineDisdettaMensile(oggi: string): string {
+  const [a, m, g] = oggi.split("-").map(Number);
+  const ultimo = (anno: number, mese: number) => new Date(Date.UTC(anno, mese, 0)).getUTCDate();
+  const inTempo = ultimo(a, m) - g >= 10;
+  const anno = inTempo ? a : m === 12 ? a + 1 : a;
+  const mese = inTempo ? m : m === 12 ? 1 : m + 1;
+  return `${anno}-${String(mese).padStart(2, "0")}-${String(ultimo(anno, mese)).padStart(2, "0")}`;
+}
+
+/** Oggi a Roma, AAAA-MM-GG. */
+export function oggiRoma(): string {
+  return new Date().toLocaleDateString("sv-SE", { timeZone: "Europe/Rome" });
+}
+
+/**
  * Perche' le lezioni si vedono solo fin li': PerfectGym tiene vive le lezioni fino alla fine del contratto, e il rinnovo di
  * meta' mese (di solito fra il 20 e il 21) la sposta al mese dopo. Chi ha disdetto non ha un mese dopo.
  */
@@ -310,19 +350,14 @@ export function finestraLezioni(c: {
   fine: string | null;
   disdetta: string | null;
 }): string {
-  if (!c.fine)
-    return t(
-      "Qui vedi le lezioni che hai in programma.",
-      "Here you can see your upcoming classes.",
-    );
-  if (c.disdetta)
+  if (disdettaVera(c))
     return t(
       `Qui vedi le lezioni fino al ${dataIt(c.fine)}, quando finisce il tuo abbonamento.`,
       `Here you can see classes up to ${dataIt(c.fine)}, when your membership ends.`,
     );
   return t(
-    `Qui vedi le lezioni fino al ${dataIt(c.fine)}, la fine del mese pagato. Quando l’abbonamento si rinnova (di solito fra il 20 e il 21) compaiono quelle del mese dopo.`,
-    `Here you can see classes up to ${dataIt(c.fine)}, the end of the paid month. When the membership renews (usually around the 20th–21st) next month’s classes appear.`,
+    "Qui vedi le lezioni dei mesi già pagati. Quando l’abbonamento si rinnova (di solito fra il 20 e il 21) compaiono quelle del mese dopo.",
+    "Here you can see classes in the months already paid. When the membership renews (usually around the 20th–21st) next month’s classes appear.",
   );
 }
 
