@@ -10,8 +10,8 @@ import { F, usePalette } from '../ui/tema'
 import { CONTINUO_ELENCO, NOME_CONTINUO, STILI_ELENCO } from './nuoto'
 
 // Le due domande che servono a scrivere un piano di nuoto, e il messaggio per chi non puo' ancora fare il Nuoto Libero
-// (20/10/2026). Le usano l'agente dei piani (`Agente.tsx`, «In vasca») e il questionario del Percorso Athlon: sono le
-// stesse e dicono le stesse parole, perche' la regola e' una sola ed e' del club.
+// (20/10/2026). Le usa il questionario del Percorso Athlon (in standby). L'agente dei piani, dal 22/10/2026, ha le sue
+// domande a passi (`PassiVasca.tsx`), che dicono le stesse parole: la regola e' una sola ed e' del club.
 //
 // **Il Nuoto Libero chiede stile libero e dorso.** Non e' un giudizio sul livello: e' l'attivita' che il club ha scritto
 // cosi'. Chi non c'e' ancora comincia dalla Scuola Nuoto Adulti, dove sono gli istruttori a dire quando passare. Il

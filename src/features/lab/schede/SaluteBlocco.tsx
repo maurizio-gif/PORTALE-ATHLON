@@ -13,7 +13,7 @@ import { CONDIZIONI_SALUTE, NOTA_SALUTE, testoSalute, type CondizioneSalute } fr
 
 // Cosa si vede quando l'obiettivo e' «Salute» (20/10/2026, richiesta del club): di cosa si tratta e il riquadro che porta alla prenotazione
 // del personal trainer. L'agente non scrive questo piano e non parte nessuna richiesta. Lo usano il questionario a passi della sala
-// (`PassiSala.tsx`) e il modulo della vasca (`FormVasca.tsx`).
+// (`PassiSala.tsx`) e il questionario a passi della vasca (`PassiVasca.tsx`).
 
 export function SaluteBlocco({ condizione, onCondizione }: { condizione: CondizioneSalute | null; onCondizione: (c: CondizioneSalute) => void }) {
   const p = usePalette()

@@ -32,7 +32,7 @@ import { SaluteBlocco } from './SaluteBlocco'
 // **Il piano non si scrive da solo**: alla fine c'e' un riepilogo («Ecco cosa abbiamo capito») che si puo' correggere riga per riga, e solo
 // «Componi il mio piano» fa partire la richiesta; torna una bozza, che l'editor fa rivedere e confermare come prima. **Le risposte non
 // restano**: solo in memoria (`rispostePiano.ts`), perche' i fastidi sono dati sulla salute, e uscendo dall'app si buttano.
-// **Salute** (20/10/2026) resta com'era: non e' un obiettivo per l'agente, porta al personal trainer. La vasca ha ancora il suo modulo (`FormVasca.tsx`).
+// **Salute** (20/10/2026) resta com'era: non e' un obiettivo per l'agente, porta al personal trainer. La vasca ha il suo, di sei domande sul nuoto (`PassiVasca.tsx`).
 
 const ATTESA = tv(
   [
