@@ -187,7 +187,11 @@ export function descriviPersona(p: PersonaJunior): string {
   const a = annoDi(p);
   const nato = a ? `Classe ${a}` : "Data di nascita mancante";
   if (!p.idoneo) return p.motivo ? `${nato} · ${p.motivo}` : nato;
-  if (!p.gruppi.length) return `${nato} · nessun gruppo per ora`;
+  // Il Baby Nuoto non ha gruppi: si prenota lezione per lezione, come le attività degli adulti.
+  if (!p.gruppi.length)
+    return eBaby(p.data_nascita)
+      ? `${nato} · Baby Nuoto`
+      : `${nato} · nessun gruppo per ora`;
   return `${nato} · ${p.gruppi.map((g) => nomeIscrizione(g.nome)).join(", ")}`;
 }
 

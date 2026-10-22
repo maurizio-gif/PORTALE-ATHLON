@@ -345,9 +345,11 @@ function SezioneBaby({
               </Carta>
             ) : null}
             <Text style={[stili.nota, { color: p.testoSecondario }]}>
-              La lezione singola la acquisti dal calendario qui sotto, quando
-              prenoti. Per attivare l’abbonamento mensile da qui stiamo
-              preparando l’iscrizione: intanto lo attivi in segreteria.
+              Il Baby Nuoto si prenota lezione per lezione, come le attività
+              degli adulti: con l’abbonamento mensile oppure con la lezione
+              singola, che acquisti dal calendario qui sotto quando prenoti. Per
+              attivare il mensile da qui stiamo preparando l’iscrizione: intanto
+              lo attivi in segreteria.
             </Text>
           </View>
         )}

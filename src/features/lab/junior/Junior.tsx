@@ -205,46 +205,70 @@ export function Junior() {
               {persone.map((x, i) => {
                 const a = annoDi(x);
                 const apre = x.idoneo && a != null && anni.includes(a);
+                const sel = x.member_id === persona?.member_id;
                 return (
-                  <Riga
+                  <View
                     key={x.member_id}
-                    prima={i === 0}
-                    testa={
-                      <Avatar nome={x.nome} cognome={x.cognome} size={40} />
-                    }
-                    titolo={
-                      [x.nome, x.cognome].filter(Boolean).join(" ") ||
-                      "Senza nome"
-                    }
-                    sotto={descriviPersona(x)}
-                    coda={
-                      x.idoneo ? (
-                        <Etichetta
-                          testo={
-                            x.member_id === persona?.member_id
-                              ? "Scelto"
-                              : "Vedi i corsi"
-                          }
-                          tono={
-                            x.member_id === persona?.member_id
-                              ? "accento"
-                              : "neutro"
-                          }
-                        />
-                      ) : (
-                        <Etichetta testo="Non ancora" tono="neutro" />
-                      )
-                    }
-                    onPress={
-                      x.idoneo
-                        ? () => {
-                            setPersonaScelta(x.member_id);
-                            setTuttiIGruppi(false);
-                            if (apre) setAnno(a);
-                          }
+                    style={
+                      sel
+                        ? [
+                            stili.scelta,
+                            {
+                              backgroundColor: velo(
+                                p,
+                                "accento",
+                                p.scuro ? 0.18 : 0.1,
+                              ),
+                              borderColor: p.accento,
+                            },
+                          ]
                         : undefined
                     }
-                  />
+                  >
+                    <Riga
+                      prima={i === 0 || sel}
+                      testa={
+                        <View
+                          style={[
+                            stili.avatarAnello,
+                            { borderColor: sel ? p.accento : "transparent" },
+                          ]}
+                        >
+                          <Avatar nome={x.nome} cognome={x.cognome} size={40} />
+                        </View>
+                      }
+                      titolo={
+                        [x.nome, x.cognome].filter(Boolean).join(" ") ||
+                        "Senza nome"
+                      }
+                      sotto={descriviPersona(x)}
+                      coda={
+                        x.idoneo ? (
+                          <Etichetta
+                            icona={sel ? "spunta" : undefined}
+                            grande={sel}
+                            testo={sel ? "Scelto" : "Vedi i corsi"}
+                            tono={
+                              x.member_id === persona?.member_id
+                                ? "accento"
+                                : "neutro"
+                            }
+                          />
+                        ) : (
+                          <Etichetta testo="Non ancora" tono="neutro" />
+                        )
+                      }
+                      onPress={
+                        x.idoneo
+                          ? () => {
+                              setPersonaScelta(x.member_id);
+                              setTuttiIGruppi(false);
+                              if (apre) setAnno(a);
+                            }
+                          : undefined
+                      }
+                    />
+                  </View>
                 );
               })}
             </Carta>
@@ -519,6 +543,18 @@ export function Junior() {
 }
 
 const stili = StyleSheet.create({
+  // La persona scelta: sfondo e bordo nell'arancio del club, e l'anello intorno all'avatar.
+  scelta: {
+    borderRadius: 18,
+    borderWidth: 2,
+    marginHorizontal: -2,
+    overflow: "hidden",
+  },
+  avatarAnello: {
+    padding: 2,
+    borderRadius: 18,
+    borderWidth: 2,
+  },
   filtriTitolo: {
     fontSize: 13,
     fontFamily: F.extra,
