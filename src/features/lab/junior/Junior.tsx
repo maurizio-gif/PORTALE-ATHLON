@@ -521,8 +521,8 @@ export function Junior() {
                     const s = statoPosti(g);
                     const chi = vista ? [] : chiPuoIscriversi(nucleo, g);
                     return (
-                      <View key={g.id}>
                       <Riga
+                        key={g.id}
                         prima={i === 0}
                         testa={
                           <Bollino
@@ -533,21 +533,25 @@ export function Junior() {
                         }
                         titolo={titoloGruppo(g)}
                         sotto={
-                          (calendarioGruppo(g) ? calendarioGruppo(g) + "\n" : "") +
-                          annateGruppo(g)
+                          <View style={{ gap: 6 }}>
+                            <Text style={[stili.nota, { color: p.testoSecondario }]}>
+                              {(calendarioGruppo(g) ? calendarioGruppo(g) + "\n" : "") +
+                                annateGruppo(g)}
+                            </Text>
+                            {chi.length ? (
+                              <Tocco
+                                onPress={() => tocca(g)}
+                                style={{ alignSelf: "flex-start", paddingVertical: 6 }}
+                              >
+                                <Text style={{ color: p.accento, fontFamily: F.semi, fontSize: 13.5 }}>
+                                  {t("Iscriviti a questo turno →", "Enroll in this slot →")}
+                                </Text>
+                              </Tocco>
+                            ) : null}
+                          </View>
                         }
                         coda={<Etichetta testo={s.testo} tono={s.tono} />}
-                        onPress={chi.length ? () => tocca(g) : undefined}
                       />
-                      {chi.length ? (
-                        <View style={{ paddingHorizontal: spazio.due, paddingBottom: spazio.due }}>
-                          <Pulsante
-                            testo={t("Scopri le modalità di iscrizione e iscriviti", "See how to enroll, and enroll")}
-                            onPress={() => tocca(g)}
-                          />
-                        </View>
-                      ) : null}
-                      </View>
                     );
                   })}
                 </Carta>

@@ -66,7 +66,7 @@ export function SchedaAttivita({
       titolo={
         chiavi.length > 1
           ? t(`Le attività per ${nome ?? "chi hai scelto"}`, `Activities for ${nome ?? "the person you chose"}`)
-          : t(`L’attività di ${nome ?? "chi hai scelto"}`, `${nome ?? "The person you chose"}’s activity`)
+          : t(`L’attività per ${nome ?? "chi hai scelto"}`, `Activity for ${nome ?? "the person you chose"}`)
       }
     >
       {chiavi.map((k) => {
