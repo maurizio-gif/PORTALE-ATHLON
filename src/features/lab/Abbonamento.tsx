@@ -54,7 +54,7 @@ import { colpetto, Tocco } from './ui/Tocco'
 // Il contratto che si firma e' quello che si e' letto: il server ricompone il
 // documento e ne confronta l'impronta con quella dell'anteprima.
 
-function giornoBreve(iso: string): string {
+export function giornoBreve(iso: string): string {
   const [a, m, g] = iso.split('-').map(Number)
   return new Intl.DateTimeFormat(locale(), { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' }).format(new Date(Date.UTC(a, m - 1, g)))
 }
@@ -130,7 +130,7 @@ function BloccoDocumento({ b }: { b: Blocco }) {
  * il server accoda dopo il blocco `salto`) sta chiuso e si apre al tocco. E' una
  * scelta di lettura: il documento che si firma e quello archiviato restano interi.
  */
-function DocumentoContratto({ blocchi }: { blocchi: Blocco[] }) {
+export function DocumentoContratto({ blocchi }: { blocchi: Blocco[] }) {
   const p = usePalette()
   const [aperto, setAperto] = useState(false)
   const i = blocchi.findIndex((b) => b.t === 'salto')
@@ -168,7 +168,7 @@ function DocumentoContratto({ blocchi }: { blocchi: Blocco[] }) {
 }
 
 /** Un dato del contratto, con la sua etichetta: «Nato/a il · 3 marzo 1990». */
-function RigaDato({ nome, valore }: { nome: string; valore: string | null | undefined }) {
+export function RigaDato({ nome, valore }: { nome: string; valore: string | null | undefined }) {
   const p = usePalette()
   return (
     <View style={{ flexDirection: 'row', gap: spazio.due }}>
@@ -179,7 +179,7 @@ function RigaDato({ nome, valore }: { nome: string; valore: string | null | unde
 }
 
 /** «Via Ugo Ojetti 134, 00137 Roma»; per chi risiede all'estero, con il Paese in fondo (se la riga non lo dice gia'). */
-function residenzaConPaese(c: DatiContraente): string | null {
+export function residenzaConPaese(c: DatiContraente): string | null {
   const paese = c.senza_codice_fiscale && c.paese && c.paese !== ITALIA ? nomePaese(c.paese) : null
   if (!c.residenza || !paese) return c.residenza
   return c.residenza.toLowerCase().includes(paese.toLowerCase()) ? c.residenza : `${c.residenza}, ${paese}`
