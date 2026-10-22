@@ -370,13 +370,18 @@ vuol dire altro (la scheda del socio al club, la scheda di una lezione, l'Help D
     - **Cosa parte per la funzione** (`Questionario` di `api/lab.ts`): le sette risposte di sempre più `focus`, `esperienza`, `strumenti`, `capacita`, `zone`, `giornata`, `evita`, `cardio`, `intensita`, `fascia`, tutte
       facoltative. La prevalenza `attrezzatura` si ricava dagli strumenti. **Una funzione che non le conosce ancora le ignora** e il piano si scrive con le sette di prima: l'app può uscire prima. Lato server e
       prompt: `CLAUDE.md` di APP-ATHLON, «Il questionario di sala a passi».
+    - **Cosa ne fa la funzione, e cosa vede il socio** (22/10/2026): le risposte non vengono solo passate al modello, **la funzione ne ricava il programma** (giorni, distretti, quanti esercizi per distretto, serie,
+      ripetizioni, percentuale, recupero, cardio) e il modello sceglie gli esercizi dentro quella struttura; poi un controllo corregge i numeri fuori scala. L'app non ricalcola né mostra il programma: il
+      socio vede il piano nell'editor, come prima. Cose che noterà: **il numero di esercizi di una seduta dipende dai minuti e dal tipo di lavoro** (una seduta di forza pesante, con tre minuti di recupero,
+      ne ha meno di una da quindici ripetizioni, e meno ancora con il cardio in fondo), il cardio c'è in ogni seduta se si allena fino a tre giorni e a giorni alterni da quattro, e con un fastidio a ginocchio, anca,
+      caviglia o schiena non compaiono pliometria e corsa. Se in futuro l'editor dovesse mostrare perché un esercizio c'è, la fonte è il programma, non il modello.
     - **Le risposte non restano.** Le zone che danno fastidio sono dati sulla salute: stanno solo in memoria (`rispostePiano.ts`, mai sul disco, niente nel `localStorage`: provato), servono a non perdere venti risposte
       se si esce per sbaglio (si riparte da dove si era), si buttano quando il piano è composto e uscendo dall'app (`esciDalLaboratorio`). Dopo un ricaricamento della pagina si ricomincia.
     - **Il pulsante «Feedback» si fa da parte**: l'anello sta dove di solito sta lui, quindi `PassiSala` dice `useSegnaAzioneInAlto` (resta la sola icona, accanto all'anello; durante l'attesa torna al suo posto).
     - **Provato in Chromium** (bundle web esportato, funzione simulata con `page.route`; 390 px chiaro e scuro, 360 px, 1280 px): i 18 passi di fila, Salute (riquadro del personal trainer, niente «Continua»), il
       tetto di tre zone, il livello stimato, il campo dei fastidi, il riepilogo con la riga che si cambia, la richiesta che parte con le risposte giuste (e senza il quarto «su cosa concentrarti» né i «non lo so»), il
       passaggio alla vasca e il ritorno in sala, `?dove=sala` e `?dove=vasca`, la memoria uscendo e rientrando, niente delle risposte sul disco. **Non provato**: un telefono vero, la funzione vera con una sessione vera,
-      il piano che il modello scrive con le risposte nuove (vedi APP-ATHLON), e le animazioni con «riduci movimento».
+      il piano che il modello scrive visto dall'app (provato con il modello vero dal database, otto profili: vedi APP-ATHLON), e le animazioni con «riduci movimento».
   - **L'AI non è in primo piano** (20/10/2026): niente «Agente AI», niente viola, i testi dicono «generiamo insieme» e «componi» («Stiamo leggendo le tue
     risposte…» nell'attesa, che ora dura una decina di secondi e non un paio di minuti). **Che dietro ci sia un'intelligenza artificiale si dice nelle
     postille**, in piccolo e senza nasconderlo: la nota in fondo al questionario, quella in fondo all'editor («Questa bozza è stata composta con il supporto di
