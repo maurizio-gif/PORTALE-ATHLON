@@ -243,6 +243,8 @@ export type ContrattoElenco = {
   totali: { addebitato: number; pagato: number; da_pagare: number }
   /** Se l'ha firmato da qui: il numero e se c'e' il PDF. */
   firmato: { numero: string; firmato_il: string; pdf: boolean } | null
+  /** Firmato al desk: l'id del PDF che PerfectGym conserva fra i file della persona (si apre con `apriFilePgm`). Assente con una funzione di prima. */
+  documento_pgm?: string | null
 }
 
 export async function contrattiAbbonamento(): Promise<{ ok: true; contratti: ContrattoElenco[] } | { ok: false; errore: string }> {

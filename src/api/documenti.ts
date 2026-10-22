@@ -37,3 +37,10 @@ export async function apriDocumento(d: Documento): Promise<{ ok: true; url: stri
   if (ok && typeof dati.url === 'string') return { ok: true, url: dati.url }
   return { ok: false, errore: dati.errore ?? t('Non riusciamo ad aprire il documento adesso.', 'We can’t open the document right now.') }
 }
+
+/** Un PDF di PerfectGym dato per id (il contratto firmato al desk): `portale-lab-documenti` ricontrolla che sia del nucleo. */
+export async function apriFilePgm(id: string): Promise<{ ok: true; url: string } | { ok: false; errore: string }> {
+  const { ok, dati } = await funzione('portale-lab-documenti', { azione: 'apri', id })
+  if (ok && typeof dati.url === 'string') return { ok: true, url: dati.url }
+  return { ok: false, errore: dati.errore ?? t('Non riusciamo ad aprire il documento adesso.', 'We can’t open the document right now.') }
+}
