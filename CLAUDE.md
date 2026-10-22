@@ -1147,3 +1147,7 @@ Sotto «La tua famiglia» della sezione Junior si sceglie una persona (tocco su 
 - **In vista cliente** si legge soltanto (niente Disdici né calendari: `periodo` non è fra le letture).
 - Provato: `comune.ts` con `node --experimental-strip-types`; browser (Chromium, 390 e 1280 px, chiaro e scuro, funzioni simulate): 46 controlli, nessun errore di pagina. **Non provato**: funzioni vere, `CancelSingleBooking` su una prenotazione di gruppo, un telefono.
 - **Da pubblicare**: migrazione `20261022a`, poi `portale-lab-junior` e `portale-lab-calendario`, poi l'app.
+
+## Junior: il livello del bambino e la sua storia (22/10/2026)
+
+Nella scheda «La tua famiglia» il livello della Scuola Nuoto Bambini sta accanto al nome («Nome Cognome · A2 - Stella Marina 2», `livello` di `junior_nucleo`: dal mirror, solo quello di adesso). Sotto, per la persona scelta, una carta «Livello» che apre **«La storia dei livelli»** (`junior/FoglioLivelli.tsx`, azione `livelli` di `portale-lab-junior`): una timeline dal più recente. **PerfectGym non dà le date dei passaggi**: le scrive il nostro database (`junior_livelli_storico`, APP-ATHLON) a ogni giro, da quando ha cominciato a guardare (22/10/2026). Sono date «rilevate», la prima riga dice «Livello al primo rilevamento» e una nota in fondo lo spiega; per i passaggi di prima non c'è nessuna data. **Da pubblicare in quest'ordine**: migrazione `20261022c` (già applicata), `portale-lab-junior`, app. `tsc` pulito sui file toccati; **non guardato in un browser**, né con la funzione vera.

@@ -47,6 +47,7 @@ import {
 } from "./comune";
 import { CorsiPersona } from "./Corsi";
 import { FoglioComponente } from "./FoglioComponente";
+import { FoglioLivelli } from "./FoglioLivelli";
 
 // La sezione Junior (21/10/2026, richiesta di Maurizio): tutti i gruppi dei corsi per bambini e ragazzi attivi adesso
 // (Scuola Nuoto mono e bisettimanale, Nuoto Agonistico e Propaganda, Pallanuoto), divisi per anno di nascita, con i
@@ -78,6 +79,7 @@ export function Junior() {
   const [soloLiberi, setSoloLiberi] = useState(false);
   const [giorni, setGiorni] = useState<number[]>([]);
   const [foglio, setFoglio] = useState(false);
+  const [storiaLivelli, setStoriaLivelli] = useState(false);
   const [daIscrivere, setDaIscrivere] = useState<GruppoJunior | null>(null);
   const [aggiunto, setAggiunto] = useState<string | null>(null);
   const [personaScelta, setPersonaScelta] = useState<number | null>(null);
@@ -294,7 +296,25 @@ export function Junior() {
         </Sezione>
       ) : null}
 
+      {persona?.livello ? (
+        <Carta>
+          <Riga
+            prima
+            icona="stella"
+            titolo={t("Livello", "Level")}
+            sotto={persona.livello}
+            coda={<Etichetta testo={t("Storia", "History")} tono="neutro" />}
+            onPress={() => setStoriaLivelli(true)}
+          />
+        </Carta>
+      ) : null}
+
       {persona ? <CorsiPersona persona={persona} vista={vista} /> : null}
+      <FoglioLivelli
+        persona={persona}
+        aperto={storiaLivelli}
+        onChiudi={() => setStoriaLivelli(false)}
+      />
 
       {mostraGruppi ? (
         <>

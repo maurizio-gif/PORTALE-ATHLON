@@ -216,3 +216,53 @@ export async function corsiJunior(
     baby: dati.baby && dati.baby.idoneo ? (dati.baby as BabyJunior) : null,
   };
 }
+
+export type PassaggioLivello = {
+  livello: string;
+  precedente: string | null;
+  /** La riga con cui abbiamo cominciato a guardare: la data e' quella del primo rilevamento, non del passaggio. */
+  primo_rilevamento: boolean;
+  rilevato_il: string;
+};
+
+export type EsitoLivelli =
+  | {
+      ok: true;
+      livello: string | null;
+      rilevato_dal: string | null;
+      /** Dal piu' recente. */
+      passaggi: PassaggioLivello[];
+    }
+  | { ok: false; errore: string };
+
+/**
+ * Lo storico dei livelli della Scuola Nuoto Bambini di una persona del nucleo. PerfectGym non da' le date dei passaggi: le scrive il
+ * nostro database quando vede cambiare il livello (da 22/10/2026), quindi sono date «rilevate».
+ */
+export async function livelliJunior(memberId: number): Promise<EsitoLivelli> {
+  const { ok, stato, dati } = await funzione("portale-lab-junior", {
+    azione: "livelli",
+    member_id: memberId,
+  });
+  if (!ok) {
+    const nonAttivo =
+      (stato === 404 && !dati.errore) ||
+      dati.errore === "Azione sconosciuta." ||
+      dati.errore === "Unknown action.";
+    return {
+      ok: false,
+      errore: nonAttivo
+        ? t("La storia dei livelli non è ancora attiva: riprova fra qualche giorno.", "The level history isn’t active yet: try again in a few days.")
+        : (dati.errore ??
+          t("Non riusciamo a leggere i livelli adesso. Riprova fra qualche minuto.", "We can’t load the levels right now. Try again in a few minutes.")),
+    };
+  }
+  return {
+    ok: true,
+    livello: dati.livello ?? null,
+    rilevato_dal: dati.rilevato_dal ?? null,
+    passaggi: Array.isArray(dati.passaggi)
+      ? (dati.passaggi as PassaggioLivello[])
+      : [],
+  };
+}
