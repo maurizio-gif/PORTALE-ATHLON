@@ -1124,6 +1124,18 @@ export async function testMassimali(): Promise<Esito<{ esercizi: EsercizioTest[]
   return { ok: false, errore: dati.errore ?? t('Non riusciamo ad aprire il test adesso.', 'We can’t open the test right now.') }
 }
 
+export type VideoCapacita = Partial<Record<'squat' | 'flessioni' | 'plank', { immagini: string[]; video: string | null }>>
+
+/** Poster e video (link firmati dalla funzione) dei tre movimenti dei test del questionario di sala. Senza la funzione aggiornata o senza rete: niente video, mai un errore. */
+export async function videoCapacita(): Promise<VideoCapacita> {
+  try {
+    const { ok, dati } = await schedeLab({ azione: 'video_capacita' })
+    return ok && dati.video && typeof dati.video === 'object' ? (dati.video as VideoCapacita) : {}
+  } catch {
+    return {}
+  }
+}
+
 export async function salvaTestMassimale(esercizioId: string, kg: number | null, ripetizioni: number): Promise<Esito<{ massimale: number; tipo: 'carico' | 'ripetizioni' }>> {
   const { ok, dati } = await schedeLab({ azione: 'salva_test', esercizio_id: esercizioId, kg, ripetizioni })
   if (ok) return { ok: true, massimale: Number(dati.massimale), tipo: dati.tipo }
