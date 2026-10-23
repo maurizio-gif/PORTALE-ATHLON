@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useFocusEffect } from "expo-router";
+import { useCallback, useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 
 import {
@@ -41,13 +42,16 @@ export function PagamentiContratto({ contrattoId }: { contrattoId: number }) {
   const [scarico, setScarico] = useState(false);
   const { apri, avviso } = useApriPdf();
 
-  useEffect(() => {
-    let vivo = true;
-    prendi(CHIAVE, () => contrattiAbbonamento()).then((e) => vivo && setEsito(e as Esito));
-    return () => {
-      vivo = false;
-    };
-  }, []);
+  // A ogni ritorno sulla schermata (dopo un pagamento) si rilegge: le quote pagate o da pagare non restano quelle di prima.
+  useFocusEffect(
+    useCallback(() => {
+      let vivo = true;
+      prendi(CHIAVE, () => contrattiAbbonamento()).then((e) => vivo && setEsito(e as Esito));
+      return () => {
+        vivo = false;
+      };
+    }, []),
+  );
 
   const c = esito?.ok ? esito.contratti.find((x) => x.contract_id === contrattoId) : undefined;
   if (!c) return null;

@@ -53,6 +53,11 @@ export function scorda(chiave: string) {
   valori.delete(chiave)
 }
 
+/** Toglie tutti i valori che cominciano cosi' (le letture di una persona, per esempio): alla prossima apertura si rileggono. */
+export function scordaPrefisso(prefisso: string) {
+  for (const k of [...valori.keys()]) if (k.startsWith(prefisso)) valori.delete(k)
+}
+
 /** All'uscita dal laboratorio non deve restare niente dell'utente di prima. */
 export function dimentica() {
   valori.clear()

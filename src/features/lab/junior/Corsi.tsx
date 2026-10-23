@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { router } from "expo-router";
+import { router, useFocusEffect } from "expo-router";
 import { StyleSheet, Text, View } from "react-native";
 
 import {
@@ -37,6 +37,7 @@ import {
 import { Foglio } from "../ui/Foglio";
 import { FoglioLezione } from "../ui/FoglioLezione";
 import { PagamentiContratto } from "./PagamentiContratto";
+import { concludiInCorso, type InCorso } from "./inCorso";
 import { F, usePalette } from "../ui/tema";
 import { usePrenotazioneLezione } from "../usePrenotazioneLezione";
 import {
@@ -99,9 +100,14 @@ const senzaPunto = (piano: string | null) =>
 export function CorsiPersona({
   persona,
   vista,
+  inCorso,
+  onInCorsoFinito,
 }: {
   persona: PersonaJunior;
   vista: boolean;
+  /** Un'iscrizione appena firmata che il mirror non ha ancora (`inCorso.ts`). */
+  inCorso?: InCorso;
+  onInCorsoFinito?: () => void;
 }) {
   const chiave = chiaveCorsi(persona.member_id);
   const [esito, setEsito] = useState<EsitoCorsi | undefined>(() =>
@@ -112,8 +118,32 @@ export function CorsiPersona({
   }, [chiave, persona.member_id]);
   useEffect(() => {
     setEsito(inMemoria<EsitoCorsi>(chiave));
-    carica();
-  }, [chiave, carica]);
+  }, [chiave]);
+  // Si rilegge a ogni ritorno sulla schermata (dopo la firma o il pagamento) e, finche' l'iscrizione appena firmata non e' nel
+  // mirror, ogni pochi secondi: il pagamento fatto o da fare non resta quello di prima.
+  useFocusEffect(
+    useCallback(() => {
+      scorda(chiave);
+      carica();
+    }, [chiave, carica]),
+  );
+  const attesa = !!inCorso;
+  useEffect(() => {
+    if (!attesa) return;
+    const id = setInterval(() => {
+      scorda(chiave);
+      carica();
+    }, 6000);
+    return () => clearInterval(id);
+  }, [attesa, chiave, carica]);
+  const arrivata =
+    !!inCorso && !!esito?.ok && esito.iscrizioni.some((i) => Number(i.gruppo_id) === inCorso.group_id);
+  useEffect(() => {
+    if (inCorso && arrivata) {
+      concludiInCorso(inCorso.member_id, inCorso.group_id);
+      onInCorsoFinito?.();
+    }
+  }, [arrivata, inCorso, onInCorsoFinito]);
 
   /** Dopo una prenotazione o una disdetta i conteggi sono cambiati: si rileggono. */
   const cambiato = useCallback(async () => {
@@ -121,7 +151,12 @@ export function CorsiPersona({
     await carica();
   }, [chiave, carica]);
 
-  if (!esito) return <SchedeInArrivo quante={1} />;
+  // L'iscrizione appena firmata, finche' il mirror non la dice: si vede subito, con il pagamento da fare o fatto.
+  const provvisoria =
+    inCorso && !arrivata ? (
+      <IscrizioneInCorso nome={persona.nome ?? ""} x={inCorso} />
+    ) : null;
+  if (!esito) return provvisoria ?? <SchedeInArrivo quante={1} />;
   if (!esito.ok)
     return (
       <View style={{ gap: spazio.due }}>
@@ -138,6 +173,7 @@ export function CorsiPersona({
   const nome = persona.nome ?? "";
   return (
     <>
+      {provvisoria}
       {esito.baby && esito.iscrizioni.length === 0 ? (
         <SezioneBaby
           nome={nome}
@@ -158,6 +194,55 @@ export function CorsiPersona({
         />
       ))}
     </>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// L'iscrizione appena firmata (23/10/2026)
+
+function IscrizioneInCorso({ nome, x }: { nome: string; x: InCorso }) {
+  const p = usePalette();
+  return (
+    <Sezione
+      titolo={
+        nome
+          ? t(`L’abbonamento di ${nome}`, `${nome}’s membership`)
+          : t("L’abbonamento", "The membership")
+      }
+    >
+      <Carta>
+        <Riga
+          prima
+          testa={<Bollino icona="goccia" tono="blu" size={40} />}
+          titolo={t("Iscrizione in corso", "Enrollment in progress")}
+          sotto={x.gruppo}
+          coda={
+            <Etichetta
+              testo={x.pagata ? t("Pagato", "Paid") : t("Da pagare", "To pay")}
+              tono={x.pagata ? "ok" : "attenzione"}
+            />
+          }
+        />
+      </Carta>
+      <Text style={[stili.nota, { color: p.testoSecondario }]}>
+        {x.pagata
+          ? t(
+              `Pagamento ricevuto. Stiamo attivando l’iscrizione (contratto n. ${x.numero}): questa pagina si aggiorna da sola.`,
+              `Payment received. We’re activating the enrollment (contract no. ${x.numero}): this page updates by itself.`,
+            )
+          : t(
+              `Il contratto n. ${x.numero} è firmato. Per attivare l’iscrizione completa il pagamento: questa pagina si aggiorna da sola.`,
+              `Contract no. ${x.numero} is signed. To activate the enrollment, complete the payment: this page updates by itself.`,
+            )}
+      </Text>
+      {!x.pagata ? (
+        <Pulsante
+          testo={t("Completa il pagamento", "Complete the payment")}
+          icona="carta"
+          onPress={() => router.navigate("/abbonamento" as const)}
+        />
+      ) : null}
+    </Sezione>
   );
 }
 

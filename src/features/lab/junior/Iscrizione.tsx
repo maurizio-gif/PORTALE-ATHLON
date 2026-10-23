@@ -37,6 +37,9 @@ import { Foglio } from "../ui/Foglio";
 import { Icona } from "../ui/Icona";
 import { Carta, Messaggio, Pulsante, Sezione } from "../ui/kit";
 import { Schermata } from "../ui/Schermata";
+import { scorda, scordaPrefisso } from "../memoria";
+import { registraInCorso } from "./inCorso";
+import { CHIAVE_GRUPPI_JUNIOR } from "./Junior";
 import { F, usePalette } from "../ui/tema";
 import { colpetto, Tocco } from "../ui/Tocco";
 import { vistaCorrente } from "../vista";
@@ -198,7 +201,20 @@ export function Iscrizione() {
     colpetto("ok");
     setFoglio(false);
     setFirmando(false);
-    // Il contratto e' firmato e non pagato: `/abbonamento` lo trova e riparte dal pagamento.
+    // Il contratto e' firmato e non pagato: `/abbonamento` lo trova e riparte dal pagamento. La sezione Junior non aspetta il
+    // mirror di PerfectGym: lo dice subito («iscrizione in corso, da pagare») e butta le letture di prima.
+    if (!baby) {
+      registraInCorso({
+        member_id: memberId,
+        group_id: Number(group),
+        gruppo: anteprima.gruppo.nome,
+        numero: r.esito.numero,
+      });
+    }
+    scorda(CHIAVE_GRUPPI_JUNIOR);
+    scordaPrefisso("junior:corsi");
+    scorda("abbonamenti:contratti");
+    scorda("area");
     router.replace("/abbonamento" as const);
   }
 

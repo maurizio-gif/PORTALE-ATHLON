@@ -34,6 +34,8 @@ import { hrefSezione } from './home/sezioni'
 import { Indicatore, SchedaScelta } from './abbonamento/Passi'
 import { FORMULE, Listino } from './abbonamento/Listino'
 import { FirmaPad } from './FirmaPad'
+import { segnaPagataInCorso } from './junior/inCorso'
+import { scorda, scordaPrefisso } from './memoria'
 import { dataLunga, RiepilogoCosti } from './RiepilogoCosti'
 import { Foglio } from './ui/Foglio'
 import { Icona } from './ui/Icona'
@@ -710,6 +712,12 @@ function EsitoContrattoVista({ numero, onFine, onRiprova }: { numero: string; on
         setErrore(null)
         setEsito(r.esito)
         const finito = r.esito.stato === 'completato' || r.esito.stato === 'errore' || !!r.esito.pagamento?.errore
+        // La sezione Junior non aspetta il mirror: il pagamento a posto si dice subito, e le letture di prima si rifanno.
+        if (r.esito.stato === 'completato') segnaPagataInCorso(numero)
+        scorda('abbonamenti:contratti')
+        scordaPrefisso('junior:corsi')
+        scorda('junior:gruppi')
+        scorda('area')
         giri.current += 1
         if (!finito && giri.current < 15) timer = setTimeout(giro, 3000)
       }
