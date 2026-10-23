@@ -27,7 +27,14 @@ export type Attivita = {
   /** I dati secchi: a chi e', quanto dura, dove, quante volte. */
   inBreve: () => string[];
   /** Gli aspetti che contano, in evidenza: titolo e frase. */
-  daSapere: () => { titolo: string; testo: string }[];
+  daSapere: () => VoceDaSapere[];
+};
+
+/** Una voce delle FAQ «Da sapere»; `link` porta a una sezione della Home (per ora il Certificato). */
+export type VoceDaSapere = {
+  titolo: string;
+  testo: string;
+  link?: { etichetta: string; sezione: "certificato" };
 };
 
 // Le tre regole di ogni abbonamento mensile dei corsi in vasca (Scuola Nuoto, Pallanuoto, Agonistico, Propaganda).
@@ -35,15 +42,8 @@ const MENSILE = () => [
   {
     titolo: t("Rinnovo e disdetta", "Renewal and cancellation"),
     testo: t(
-      "L’abbonamento è mensile e si rinnova il 1° di ogni mese. Per disdire scrivi a disdetta@athlonroma.it dall’indirizzo registrato, almeno 10 giorni prima del rinnovo (entro la mezzanotte del 21 per un mese da 31 giorni, del 20 per uno da 30, del 18 per febbraio). Una disdetta in ritardo vale dal mese dopo, e il primo addebito parte comunque.",
-      "The membership is monthly and renews on the 1st of each month. To cancel, write to disdetta@athlonroma.it from your registered address at least 10 days before renewal (by midnight on the 21st for a 31-day month, the 20th for a 30-day month, the 18th for February). A late cancellation takes effect the following month, and the first charge still goes through.",
-    ),
-  },
-  {
-    titolo: t("Se serve fermarsi", "If you need to pause"),
-    testo: t(
-      "Qui non esiste la sospensione a pagamento. C’è solo la sospensione per inidoneità documentata di almeno 60 giorni: la quota del mese resta dovuta e il ristoro è un credito di almeno 2 mensilità. Si chiede scrivendo a desk@athlonroma.it con il certificato medico.",
-      "There’s no paid pause here. The only option is a suspension for documented unfitness of at least 60 days: the month’s fee is still due and compensation is a credit of at least 2 monthly fees. Request it by writing to desk@athlonroma.it with the medical certificate.",
+      "L’abbonamento è mensile e si rinnova il 1° di ogni mese. Per disdire segui la procedura qui in app (trovi il pulsante «Disdici l’abbonamento» nella scheda del corso), almeno 10 giorni prima del rinnovo (entro la mezzanotte del 21 per un mese da 31 giorni, del 20 per uno da 30, del 18 per febbraio). Una disdetta in ritardo vale dal mese dopo, e il primo addebito parte comunque.",
+      "The membership is monthly and renews on the 1st of each month. To cancel, follow the procedure here in the app (you’ll find the “Cancel membership” button on the course card) at least 10 days before renewal (by midnight on the 21st for a 31-day month, the 20th for a 30-day month, the 18th for February). A late cancellation takes effect the following month, and the first charge still goes through.",
     ),
   },
 ];
@@ -128,17 +128,25 @@ export const ATTIVITA: Record<ChiaveAttivita, Attivita> = {
         ),
       },
       {
+        titolo: t("Segui i livelli nell’app", "Follow the levels in the app"),
+        testo: t(
+          "Il livello del bambino sta accanto al suo nome in «La tua famiglia». Toccando la carta «Livello» si apre la storia dei livelli, dal più recente: così vedi i progressi e quando è passato al livello successivo. Le date sono quelle in cui abbiamo visto cambiare il livello, a partire dal 22 ottobre 2026.",
+          "Your child’s level sits next to their name in “Your family”. Tap the “Level” card to open the level history, newest first: you can follow their progress and when they moved up. Dates are when we saw each change, starting 22 October 2026.",
+        ),
+      },
+      {
         titolo: t("Prima di cominciare", "Before you start"),
         testo: t(
-          "Serve il certificato medico di idoneità non agonistica (si esentano i bambini fino a 5 anni), da mandare a desk@athlonroma.it. Il tesseramento ASI lo fa il club. Senza metodo di pagamento l’iscrizione viene cancellata entro 24 ore.",
-          "A non-competitive medical fitness certificate is required (children up to age 5 are exempt), to send to desk@athlonroma.it. The club handles the ASI membership. Without a payment method the enrollment is cancelled within 24 hours.",
+          "Serve il certificato medico di idoneità non agonistica (si esentano i bambini fino a 5 anni), da caricare qui in app. Il tesseramento ASI lo fa il club. Senza metodo di pagamento l’iscrizione viene cancellata entro 24 ore.",
+          "A non-competitive medical fitness certificate is required (children up to age 5 are exempt), to upload here in the app. The club handles the ASI membership. Without a payment method the enrollment is cancelled within 24 hours.",
         ),
+        link: { etichetta: t("Carica il certificato", "Upload the certificate"), sezione: "certificato" },
       },
       {
         titolo: t("Turno al completo", "Full slot"),
         testo: t(
-          "Per iscriversi a un turno non c’è una lista d’attesa: si sceglie un altro turno con posti liberi, oppure si scrive alla segreteria.",
-          "There’s no waiting list for a slot: pick another slot with spots available, or write to the front desk.",
+          "Per iscriversi a un turno non c’è una lista d’attesa: si sceglie un altro turno con posti liberi.",
+          "There’s no waiting list for a slot: pick another slot with spots available.",
         ),
       },
       ...MENSILE(),

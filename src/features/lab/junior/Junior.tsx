@@ -44,11 +44,11 @@ import {
   personeDaMostrare,
   SIGLE_GIORNI,
   statoPosti,
+  quotaMensile,
   titoloGruppo,
 } from "./comune";
 import { attivitaDiPersona } from "./attivita";
 import { CambioOrario } from "./CambioOrario";
-import { ComeFunziona } from "./ComeFunziona";
 import { CorsiPersona } from "./Corsi";
 import { DirettoreTecnico } from "./DirettoreTecnico";
 import { FoglioComponente } from "./FoglioComponente";
@@ -339,8 +339,6 @@ export function Junior() {
         />
       ) : null}
 
-      <ComeFunziona />
-
       {mostraGruppi ? (
         <>
           <View style={{ gap: spazio.due }}>
@@ -550,7 +548,14 @@ export function Junior() {
                             ) : null}
                           </View>
                         }
-                        coda={<Etichetta testo={s.testo} tono={s.tono} />}
+                        coda={
+                          <View style={{ alignItems: "flex-end", gap: 6 }}>
+                            <Etichetta testo={s.testo} tono={s.tono} />
+                            {quotaMensile(g) ? (
+                              <Etichetta testo={quotaMensile(g)!} tono="neutro" />
+                            ) : null}
+                          </View>
+                        }
                       />
                     );
                   })}

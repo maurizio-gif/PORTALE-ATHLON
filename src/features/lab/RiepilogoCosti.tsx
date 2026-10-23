@@ -22,7 +22,38 @@ export function dataLunga(iso: string): string {
 
 const MOSTRA = 3
 
-export function RiepilogoCosti({ importi, metodo }: { importi: ImportiContratto; metodo?: 'carta' | 'conto' }) {
+/** Totale fino a una data (23/10/2026, Junior): oggi + le quote già in elenco + i rinnovi ogni 1° fino a `fine` compreso. */
+export function totaleFinoA(c: ImportiContratto['calendario'], fine: string): number {
+  let tot = c.totale_oggi
+  let ultima = ''
+  for (const q of c.prossimi) {
+    if (q.data <= fine) tot += q.importo
+    if (q.data > ultima) ultima = q.data
+  }
+  if (c.ricorrenza && c.ricorrenza.ogni === 'mese') {
+    const [a, m] = c.ricorrenza.dal.split('-').map(Number)
+    for (let k = 0; k < 60; k++) {
+      const d = new Date(Date.UTC(a, m - 1 + k, 1)).toISOString().slice(0, 10)
+      if (d > fine) break
+      if (d > ultima) tot += c.ricorrenza.importo
+    }
+  }
+  return tot
+}
+
+export function RiepilogoCosti({
+  importi,
+  metodo,
+  primaLezione,
+  fineStagione,
+}: {
+  importi: ImportiContratto
+  metodo?: 'carta' | 'conto'
+  /** Data della prima lezione (ISO), se nota. */
+  primaLezione?: string | null
+  /** Fine della stagione (ISO): aggiunge il totale fino a quel giorno. */
+  fineStagione?: string
+}) {
   const p = usePalette()
   const [tutte, setTutte] = useState(false)
   const c = importi.calendario
@@ -31,6 +62,12 @@ export function RiepilogoCosti({ importi, metodo }: { importi: ImportiContratto;
   return (
     <Carta piatta>
       <View style={{ gap: spazio.tre }}>
+        {primaLezione ? (
+          <View style={riga}>
+            <Text style={[stili.voce, { color: p.testo, fontFamily: F.bold, flex: 1 }]}>{t('Prima lezione', 'First class')}</Text>
+            <Text style={[stili.importo, { color: p.testo }]}>{dataLunga(primaLezione)}</Text>
+          </View>
+        ) : null}
         <View style={{ gap: 2 }}>
           <Text style={[stili.sopra, { color: p.testoSecondario }]}>{t('Oggi paghi', 'You pay today')}</Text>
           <Text style={{ color: p.testo, fontFamily: F.extra, fontSize: 34, letterSpacing: -1 }}>{euro(c.totale_oggi)}</Text>
@@ -82,6 +119,14 @@ export function RiepilogoCosti({ importi, metodo }: { importi: ImportiContratto;
           </Text>
           <Text style={{ color: p.testo, fontFamily: F.extra, fontSize: 18 }}>{euro(c.totale_impegno)}</Text>
         </View>
+        {fineStagione ? (
+          <View style={riga}>
+            <Text style={[stili.voce, { color: p.testo, fontFamily: F.bold, flex: 1 }]}>
+              {t(`Totale fino alla fine della stagione (${dataLunga(fineStagione)})`, `Total until the end of the season (${dataLunga(fineStagione)})`)}
+            </Text>
+            <Text style={{ color: p.testo, fontFamily: F.extra, fontSize: 18 }}>{euro(totaleFinoA(c, fineStagione))}</Text>
+          </View>
+        ) : null}
       </View>
     </Carta>
   )

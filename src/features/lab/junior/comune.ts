@@ -136,6 +136,15 @@ export function statoPosti(g: GruppoJunior): StatoPosti {
   };
 }
 
+/** La quota mensile della Scuola Nuoto Bambini (23/10/2026, richiesta di Maurizio): 89 € il monosettimanale, 109 € il bisettimanale. Gli altri gruppi non la mostrano. */
+export function quotaMensile(g: Pick<GruppoJunior, "nome" | "corso" | "categoria">): string | null {
+  const n = `${g.categoria ?? ""} ${g.corso} ${g.nome}`.toLowerCase();
+  if (!n.includes("scuola nuoto")) return null;
+  if (n.includes("bisettimanale")) return t("109 € / mese", "€109 / month");
+  if (n.includes("monosettimanale")) return t("89 € / mese", "€89 / month");
+  return null;
+}
+
 export type BloccoCorso = {
   corso: string;
   gruppi: GruppoJunior[];

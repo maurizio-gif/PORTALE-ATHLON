@@ -37,11 +37,13 @@ import { Foglio } from "../ui/Foglio";
 import { Icona } from "../ui/Icona";
 import { Carta, Messaggio, Pulsante, Sezione } from "../ui/kit";
 import { chiaveDelGruppo } from "./attivita";
-import { DaSapere } from "./SchedaAttivita";
 import { Schermata } from "../ui/Schermata";
 import { F, usePalette } from "../ui/tema";
 import { colpetto, Tocco } from "../ui/Tocco";
 import { vistaCorrente } from "../vista";
+
+/** Fine della stagione 2026/27 (da riprendere ogni anno con il sito). */
+const FINE_STAGIONE = "2027-06-20";
 
 // L'iscrizione a un gruppo dei corsi junior, dal portale (21/10/2026, richiesta di Maurizio): quando parte, i costi, i dati, il
 // contratto con le dichiarazioni e la firma. Il genitore firma per il minorenne. Il contratto lo crea PerfectGym iscrivendo
@@ -327,35 +329,15 @@ export function Iscrizione() {
 
         {passo === 1 ? (
           <>
-            {(() => {
-              const nome = anteprima?.gruppo.nome ?? nomeGruppo ?? "";
-              const chiave = baby
-                ? "baby"
-                : chiaveDelGruppo({ nome, corso: nome });
-              return chiave ? <DaSapere chiave={chiave} /> : null;
-            })()}
-            <Sezione titolo={t("Quando parte", "When it starts")}>
-              <Text style={[stili.nota, { color: p.testoSecondario }]}>
-                {inizio
-                  ? t(
-                      `Parte oggi, ${dataLunga(inizio)}.`,
-                      `It starts today, ${dataLunga(inizio)}.`,
-                    )
-                  : t("Calcoliamo i costi…", "Calculating the costs…")}
-              </Text>
-              <Text style={[stili.nota, { color: p.testoSecondario }]}>
-                {t(
-                  "L’abbonamento parte subito. Si paga alla firma: la prima quota copre i giorni che restano del mese, e dal mese dopo si rinnova ogni 1°.",
-                  "The membership starts right away. You pay when you sign: the first payment covers the days left in the month, and from next month it renews on the 1st.",
-                )}
-              </Text>
-            </Sezione>
-
             <Sezione
               titolo={t("Il tuo piano di pagamento", "Your payment plan")}
             >
               {costi ? (
-                <RiepilogoCosti importi={costi} />
+                <RiepilogoCosti
+                  importi={costi}
+                  primaLezione={anteprima?.inizi?.[0]?.data ?? null}
+                  fineStagione={baby ? undefined : FINE_STAGIONE}
+                />
               ) : (
                 <Text style={[stili.nota, { color: p.testoSecondario }]}>
                   {t("Calcoliamo i costi…", "Calculating the costs…")}
