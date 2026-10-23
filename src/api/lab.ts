@@ -824,13 +824,65 @@ export type Questionario = {
   attrezzatura: 'tutto' | 'macchine' | 'pesi_liberi'
   limitazioni: string
   note: string
+  // Le risposte del questionario a passi (22/10/2026): tutte facoltative, una chiave c'e' solo se la risposta e' stata data. I valori sono
+  // quelli di `schede/questionario.ts`, che la funzione ricontrolla (`_shared/schede/questionario.ts` di APP-ATHLON): una funzione che non li
+  // conosce ancora li ignora, e il piano si scrive con le sette risposte di sempre.
+  focus?: string[]
+  esperienza?: string
+  strumenti?: string[]
+  capacita?: Record<string, string>
+  zone?: string[]
+  giornata?: string
+  evita?: string[]
+  cardio?: string
+  intensita?: string
+  fascia?: string
 }
 
-const schedeLab = (corpo: Record<string, unknown>) => funzione('portale-lab-schede', corpo)
+const schedeLab =(corpo: Record<string, unknown>) => funzione('portale-lab-schede', corpo)
 
-export async function elencoSchede(): Promise<Esito<{ schede: RigaSchedaLab[]; ultimi: SedutaBreve[]; ai: { usate: number; massimo: number }; test: StatoTest }>> {
+/**
+ * Quanto il socio viene al club e quando (22/10/2026): lo calcola la funzione dagli ingressi al tornello e dalle presenze alle lezioni, e
+ * serve a due cose soltanto, il «consigliato» dei questionari e una riga che dice «la fai gia'». **Non va a nessun servizio esterno.**
+ * `fasce` sono quelle dei Consigli (mattina_presto, mattina, pranzo, pomeriggio, sera, weekend), `giorni` quelli della settimana (1 = lunedi').
+ * Null se la funzione e' di prima, o se non ha potuto leggere i dati: allora le schermate sono quelle di sempre.
+ */
+export type AbitudineTrain = {
+  /** Vero se la storia e' abbastanza lunga (almeno tre settimane) perche' le medie dicano qualcosa. */
+  affidabile: boolean
+  giorni_28: number
+  giorni_a_settimana: number
+  ultima_visita_giorni: number | null
+  fasce: string[]
+  giorni: number[]
+  lezioni_8_sett: number
+  /** Un giorno in piu' di quanti ne fa oggi (al massimo sei); null se l'abitudine non e' affidabile. */
+  volte_sostenibili: number | null
+}
+
+/** Ripulisce quello che arriva dalla funzione: una funzione di prima non lo manda, e un valore strano non deve rompere una schermata. */
+export function abitudineDa(x: unknown): AbitudineTrain | null {
+  if (!x || typeof x !== 'object') return null
+  const a = x as Record<string, unknown>
+  const num = (v: unknown) => (typeof v === 'number' && Number.isFinite(v) ? v : null)
+  const g28 = num(a.giorni_28)
+  const perSett = num(a.giorni_a_settimana)
+  if (g28 === null || perSett === null) return null
+  return {
+    affidabile: a.affidabile === true,
+    giorni_28: g28,
+    giorni_a_settimana: perSett,
+    ultima_visita_giorni: num(a.ultima_visita_giorni),
+    fasce: Array.isArray(a.fasce) ? a.fasce.filter((f): f is string => typeof f === 'string') : [],
+    giorni: Array.isArray(a.giorni) ? a.giorni.filter((g): g is number => typeof g === 'number' && g >= 1 && g <= 7) : [],
+    lezioni_8_sett: num(a.lezioni_8_sett) ?? 0,
+    volte_sostenibili: num(a.volte_sostenibili),
+  }
+}
+
+export async function elencoSchede(): Promise<Esito<{ schede: RigaSchedaLab[]; ultimi: SedutaBreve[]; ai: { usate: number; massimo: number; in_prova?: boolean }; abitudine: AbitudineTrain | null; test: StatoTest }>> {
   const { ok, dati } = await schedeLab({ azione: 'elenco' })
-  if (ok) return { ok: true, schede: dati.schede, ultimi: dati.ultimi, ai: dati.ai, test: dati.test ?? { ultimo: null, fatti: 0, totale: 0, giorni: 42 } }
+  if (ok) return { ok: true, schede: dati.schede, ultimi: dati.ultimi, ai: dati.ai, abitudine: abitudineDa(dati.abitudine), test: dati.test ?? { ultimo: null, fatti: 0, totale: 0, giorni: 42 } }
   return { ok: false, errore: dati.errore ?? t('Non riusciamo a leggere i tuoi piani adesso.', 'We can’t load your plans right now.') }
 }
 
@@ -1072,6 +1124,18 @@ export async function testMassimali(): Promise<Esito<{ esercizi: EsercizioTest[]
   return { ok: false, errore: dati.errore ?? t('Non riusciamo ad aprire il test adesso.', 'We can’t open the test right now.') }
 }
 
+export type VideoCapacita = Partial<Record<'squat' | 'flessioni' | 'plank', { immagini: string[]; video: string | null }>>
+
+/** Poster e video (link firmati dalla funzione) dei tre movimenti dei test del questionario di sala. Senza la funzione aggiornata o senza rete: niente video, mai un errore. */
+export async function videoCapacita(): Promise<VideoCapacita> {
+  try {
+    const { ok, dati } = await schedeLab({ azione: 'video_capacita' })
+    return ok && dati.video && typeof dati.video === 'object' ? (dati.video as VideoCapacita) : {}
+  } catch {
+    return {}
+  }
+}
+
 export async function salvaTestMassimale(esercizioId: string, kg: number | null, ripetizioni: number): Promise<Esito<{ massimale: number; tipo: 'carico' | 'ripetizioni' }>> {
   const { ok, dati } = await schedeLab({ azione: 'salva_test', esercizio_id: esercizioId, kg, ripetizioni })
   if (ok) return { ok: true, massimale: Number(dati.massimale), tipo: dati.tipo }
@@ -1199,8 +1263,44 @@ export type QuotaFutura = {
   carta_scade: string | null
 }
 
-export async function movimentiPagamenti(): Promise<Esito<{ storico: Movimento[]; daSaldare: Movimento[]; futuri: QuotaFutura[] }>> {
+/** Con quale carta si propone di saldare le quote scadute: le ultime cifre e la scadenza («AAAA-MM»), o null. */
+export type CartaSaldo = { finale: string | null; scade: string | null }
+
+export async function movimentiPagamenti(): Promise<Esito<{ storico: Movimento[]; daSaldare: Movimento[]; futuri: QuotaFutura[]; cartaSaldo: CartaSaldo | null }>> {
   const { ok, dati } = await pagamenti({ azione: 'movimenti' })
-  if (ok) return { ok: true, storico: dati.storico ?? [], daSaldare: dati.da_saldare ?? [], futuri: dati.futuri ?? [] }
+  // `saldo` manca con la funzione di prima (22/10/2026): niente carta da proporre, si paga dalla pagina della carta.
+  if (ok) return { ok: true, storico: dati.storico ?? [], daSaldare: dati.da_saldare ?? [], futuri: dati.futuri ?? [], cartaSaldo: dati.saldo?.carta ?? null }
   return { ok: false, errore: dati.errore ?? t('Non riusciamo a leggere i tuoi pagamenti adesso.', 'We can’t load your payments right now.') }
+}
+
+// ---------------------------------------------------------------------------
+// Il saldo delle quote scadute (22/10/2026): si pagano adesso, con la carta salvata o dalla pagina della carta di Adyen.
+// Il server rilegge le quote da PerfectGym e non addebita niente se il totale non e' quello mostrato (`importo_cambiato`).
+
+export type EsitoSaldo =
+  | { ok: true; stato: 'in_corso' | 'pagato'; url?: undefined }
+  | { ok: true; stato: 'redirect'; url: string }
+  | { ok: false; errore: string; importoCambiato?: number; nonAttivo?: boolean }
+
+export async function saldaPagamenti(totale: number, conCarta: boolean): Promise<EsitoSaldo> {
+  const { ok, dati } = await pagamenti({ azione: 'salda', totale, con_carta: conCarta })
+  if (ok && dati.stato === 'redirect' && typeof dati.url === 'string') return { ok: true, stato: 'redirect', url: dati.url }
+  if (ok && (dati.stato === 'in_corso' || dati.stato === 'pagato')) return { ok: true, stato: dati.stato }
+  // Una funzione di prima non conosce l'azione: il pagamento da qui non c'e' ancora.
+  if (dati.errore === 'Azione sconosciuta.' || dati.errore === 'Unknown action.') {
+    return { ok: false, nonAttivo: true, errore: t('Il pagamento dall’app non è ancora attivo: aggiorna il metodo di pagamento, il club riprova l’addebito.', 'Paying from the app isn’t available yet: update your payment method, the club will retry the charge.') }
+  }
+  return {
+    ok: false,
+    errore: dati.errore ?? t('Non siamo riusciti a completare il pagamento adesso.', 'We couldn’t complete the payment right now.'),
+    importoCambiato: dati.codice === 'importo_cambiato' && typeof dati.totale === 'number' ? dati.totale : undefined,
+  }
+}
+
+export type StatoSaldo = { stato: 'nessuno' | 'in_corso' | 'pagato' | 'fallito'; daPagare: number | null; motivo: string | null }
+
+export async function esitoSaldo(): Promise<Esito<StatoSaldo>> {
+  const { ok, dati } = await pagamenti({ azione: 'saldo_esito' })
+  if (ok) return { ok: true, stato: dati.stato ?? 'nessuno', daPagare: typeof dati.da_pagare === 'number' ? dati.da_pagare : null, motivo: dati.motivo ?? null }
+  return { ok: false, errore: dati.errore ?? t('Non riusciamo a verificare il pagamento adesso.', 'We can’t check the payment right now.') }
 }

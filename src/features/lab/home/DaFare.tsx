@@ -2,6 +2,7 @@ import { router } from 'expo-router'
 import { StyleSheet, Text, View } from 'react-native'
 
 import type { Area } from '@/api/lab'
+import { vistaCorrente } from '../vista'
 import { spazio } from '@/theme'
 import { locale, t } from '@/lib/lingua'
 
@@ -39,7 +40,7 @@ export function vociDaFare(area: AreaTrovata): Voce[] {
       icona: 'attenzione',
       tono: 'errore',
       titolo: t('Pagamento in sospeso', 'Outstanding payment'),
-      sotto: `${t(`${soldi(totale)} da saldare`, `${soldi(totale)} to pay`)}${conDebito.length === 1 && conDebito[0].titolare ? '' : ` · ${chi.join(', ')}`}`,
+      sotto: `${t(`${soldi(totale)} da pagare`, `${soldi(totale)} to pay`)}${conDebito.length === 1 && conDebito[0].titolare ? '' : ` · ${chi.join(', ')}`}`,
       sezione: 'pagamenti',
       urgenza: 9,
     })
@@ -112,16 +113,20 @@ export function DaFare({ area, onSezione }: { area: AreaTrovata; onSezione: (s: 
               onPress={() => onSezione(v.sezione)}
             />
           ))}
+          {/* Un pulsante per cosa: «Paga adesso» porta alla quota da pagare (si paga li', con la carta), «Aggiorna il metodo»
+              c'e' solo se il metodo manca o la carta e' scaduta. Prima c'erano tutti e due anche con una carta valida (22/10/2026). */}
           {inSospeso || senzaMetodo ? (
             <View style={stili.azioni}>
               {inSospeso ? (
                 <View style={{ flexGrow: 1, flexBasis: 160 }}>
-                  <Pulsante testo={t('Vedi i pagamenti', 'View payments')} icona="carta" onPress={() => onSezione('pagamenti')} />
+                  <Pulsante testo={vistaCorrente() ? t('Vedi i pagamenti', 'View payments') : t('Paga adesso', 'Pay now')} icona="carta" onPress={() => onSezione('pagamenti')} />
                 </View>
               ) : null}
-              <View style={{ flexGrow: 1, flexBasis: 160 }}>
-                <Pulsante testo={t('Aggiorna il metodo', 'Update the method')} variante={inSospeso ? 'secondario' : 'primario'} onPress={() => router.push('/metodo-pagamento')} />
-              </View>
+              {senzaMetodo ? (
+                <View style={{ flexGrow: 1, flexBasis: 160 }}>
+                  <Pulsante testo={t('Aggiorna il metodo', 'Update the method')} variante={inSospeso ? 'secondario' : 'primario'} onPress={() => router.push('/metodo-pagamento')} />
+                </View>
+              ) : null}
             </View>
           ) : null}
         </Carta>

@@ -1,4 +1,4 @@
-import { router, useLocalSearchParams } from "expo-router";
+import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 
@@ -44,12 +44,13 @@ import {
   personeDaMostrare,
   SIGLE_GIORNI,
   statoPosti,
+  quotaMensile,
   titoloGruppo,
 } from "./comune";
 import { attivitaDiPersona } from "./attivita";
 import { CambioOrario } from "./CambioOrario";
-import { ComeFunziona } from "./ComeFunziona";
 import { CorsiPersona } from "./Corsi";
+import { concludiInCorso, iscrizioniInCorso, type InCorso } from "./inCorso";
 import { DirettoreTecnico } from "./DirettoreTecnico";
 import { FoglioComponente } from "./FoglioComponente";
 import { FoglioLivelli } from "./FoglioLivelli";
@@ -95,13 +96,40 @@ export function Junior() {
   const carica = useCallback(async () => {
     setEsito(await prendi(CHIAVE_GRUPPI_JUNIOR, gruppiJunior));
   }, []);
-  useEffect(() => {
-    carica();
-  }, [carica]);
+  // Ogni volta che la schermata torna in primo piano (dopo la firma o il pagamento) si rilegge: non resta quella di prima.
+  useFocusEffect(
+    useCallback(() => {
+      carica();
+    }, [carica]),
+  );
 
   const gruppi = esito?.ok ? esito.gruppi : [];
   const anni = useMemo(() => anniDisponibili(gruppi), [gruppi]);
-  const nucleo = esito?.ok ? esito.nucleo : null;
+  const nucleoServer = esito?.ok ? esito.nucleo : null;
+  // Un'iscrizione appena firmata che il mirror non ha ancora (`inCorso.ts`) si vede subito, e si rilegge finche' non arriva.
+  const [giroInCorso, setGiroInCorso] = useState(0);
+  const inCorso = useMemo(
+    () => (nucleoServer ? daMostrare(nucleoServer, iscrizioniInCorso()) : []),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [nucleoServer, giroInCorso],
+  );
+  const nucleo = useMemo(() => conInCorso(nucleoServer, inCorso), [nucleoServer, inCorso]);
+  useEffect(() => {
+    if (!nucleoServer) return;
+    // Il mirror l'ha vista: la voce provvisoria non serve piu'.
+    for (const x of iscrizioniInCorso()) {
+      const pers = nucleoServer.persone.find((q) => q.member_id === x.member_id);
+      if (pers?.gruppi.some((g) => g.group_id === x.group_id)) {
+        concludiInCorso(x.member_id, x.group_id);
+        setGiroInCorso((n) => n + 1);
+      }
+    }
+  }, [nucleoServer]);
+  useEffect(() => {
+    if (!inCorso.length) return;
+    const id = setInterval(carica, 6000);
+    return () => clearInterval(id);
+  }, [inCorso.length, carica]);
   const persone = personeDaMostrare(nucleo);
   // La persona di cui si vedono i corsi: quella toccata, se c'e' ancora; se no la prima in eta' per i corsi.
   const idonee = persone.filter((x) => x.idoneo);
@@ -321,7 +349,14 @@ export function Junior() {
         </Carta>
       ) : null}
 
-      {persona ? <CorsiPersona persona={persona} vista={vista} /> : null}
+      {persona ? (
+        <CorsiPersona
+          persona={persona}
+          vista={vista}
+          inCorso={inCorso.find((x) => x.member_id === persona.member_id)}
+          onInCorsoFinito={() => setGiroInCorso((n) => n + 1)}
+        />
+      ) : null}
       {persona && persona.minorenne && persona.gruppi.length > 0 ? (
         <DirettoreTecnico persona={persona} vista={vista} />
       ) : null}
@@ -338,8 +373,6 @@ export function Junior() {
           nome={persona.nome}
         />
       ) : null}
-
-      <ComeFunziona />
 
       {mostraGruppi ? (
         <>
@@ -550,7 +583,14 @@ export function Junior() {
                             ) : null}
                           </View>
                         }
-                        coda={<Etichetta testo={s.testo} tono={s.tono} />}
+                        coda={
+                          <View style={{ alignItems: "flex-end", gap: 6 }}>
+                            <Etichetta testo={s.testo} tono={s.tono} />
+                            {quotaMensile(g) ? (
+                              <Etichetta testo={quotaMensile(g)!} tono="neutro" />
+                            ) : null}
+                          </View>
+                        }
                       />
                     );
                   })}
@@ -688,3 +728,23 @@ const stili = StyleSheet.create({
     paddingHorizontal: 2,
   },
 });
+
+/** Le iscrizioni firmate che il mirror non ha ancora (la persona esiste nel nucleo e non ha ancora quel gruppo). */
+function daMostrare(n: NucleoJunior, tutte: InCorso[]): InCorso[] {
+  return tutte.filter((x) => {
+    const pers = n.persone.find((q) => q.member_id === x.member_id);
+    return !!pers && !pers.gruppi.some((g) => g.group_id === x.group_id);
+  });
+}
+
+/** Il nucleo con, per chi ha un'iscrizione appena firmata, il gruppo gia' dentro: la sezione lo tratta da iscritto. */
+function conInCorso(n: NucleoJunior | null, inCorso: InCorso[]): NucleoJunior | null {
+  if (!n || !inCorso.length) return n;
+  return {
+    ...n,
+    persone: n.persone.map((q) => {
+      const x = inCorso.find((y) => y.member_id === q.member_id);
+      return x ? { ...q, gruppi: [...q.gruppi, { group_id: x.group_id, nome: x.gruppo }] } : q;
+    }),
+  };
+}

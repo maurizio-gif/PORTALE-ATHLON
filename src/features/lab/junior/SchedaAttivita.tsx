@@ -1,3 +1,4 @@
+import { router } from "expo-router";
 import { useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 
@@ -18,7 +19,7 @@ function Punto({ colore }: { colore: string }) {
   return <View style={[stili.punto, { backgroundColor: colore }]} />;
 }
 
-/** Gli aspetti che contano di un'attivita', in evidenza: usato nella scheda e prima di iscriversi. */
+/** Gli aspetti che contano, in stile FAQ: titolo e anteprima (una riga) chiusi, si aprono uno a uno. Usato nella scheda e prima di iscriversi. */
 export function DaSapere({
   chiave,
   titolo,
@@ -28,6 +29,15 @@ export function DaSapere({
 }) {
   const p = usePalette();
   const a = ATTIVITA[chiave];
+  const [aperte, setAperte] = useState<Set<number>>(new Set());
+  const voci = a.daSapere();
+  const alterna = (i: number) =>
+    setAperte((prev) => {
+      const n = new Set(prev);
+      if (n.has(i)) n.delete(i);
+      else n.add(i);
+      return n;
+    });
   return (
     <View
       style={[
@@ -41,12 +51,48 @@ export function DaSapere({
           {titolo ?? t(`Da sapere su ${a.nome()}`, `Good to know about ${a.nome()}`)}
         </Text>
       </View>
-      {a.daSapere().map((d, i) => (
-        <View key={i} style={{ gap: 2 }}>
-          <Text style={[stili.voceTitolo, { color: p.testo }]}>{d.titolo}</Text>
-          <Text style={[stili.voceTesto, { color: p.testoSecondario }]}>{d.testo}</Text>
-        </View>
-      ))}
+      {voci.map((d, i) => {
+        const on = aperte.has(i);
+        return (
+          <View
+            key={i}
+            style={[
+              i > 0 && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: p.linea },
+            ]}
+          >
+            <Tocco
+              vibra="scelta"
+              stato={{ expanded: on }}
+              etichetta={d.titolo}
+              onPress={() => alterna(i)}
+              style={stili.faq}
+            >
+              <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
+                <Text style={[stili.voceTitolo, { color: p.testo }]}>{d.titolo}</Text>
+                <Text
+                  numberOfLines={on ? undefined : 1}
+                  style={[stili.voceTesto, { color: p.testoSecondario }]}
+                >
+                  {d.testo}
+                </Text>
+              </View>
+              <Icona nome={on ? "meno" : "piu"} size={16} colore={p.testoSecondario} />
+            </Tocco>
+            {on && d.link ? (
+              <Tocco
+                vibra="scelta"
+                etichetta={d.link.etichetta}
+                onPress={() =>
+                  router.navigate({ pathname: "/", params: { sezione: d.link!.sezione } })
+                }
+                style={stili.link}
+              >
+                <Text style={[stili.voceTitolo, { color: p.accento }]}>{d.link.etichetta} →</Text>
+              </Tocco>
+            ) : null}
+          </View>
+        );
+      })}
     </View>
   );
 }
@@ -128,6 +174,8 @@ const stili = StyleSheet.create({
     padding: spazio.tre,
     gap: spazio.tre,
   },
+  faq: { flexDirection: "row", alignItems: "center", gap: spazio.due, paddingVertical: spazio.due, minHeight: 44 },
+  link: { paddingBottom: spazio.due, minHeight: 36, justifyContent: "center" },
   evidenzaTesta: { flexDirection: "row", alignItems: "center", gap: spazio.due },
   evidenzaTitolo: { fontFamily: F.extra, fontSize: 15, flex: 1, minWidth: 0 },
   voceTitolo: { fontFamily: F.bold, fontSize: 14, lineHeight: 19 },

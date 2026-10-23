@@ -50,9 +50,6 @@ export function CorreggiDati({
   const [errore, setErrore] = useState<string | null>(null)
   const [attesa, setAttesa] = useState(false)
 
-  // Il Paese dell'indirizzo com'e' adesso: quello dichiarato, o l'Italia.
-  const paeseIndirizzoPrima = persona.indirizzo?.paese ?? (persona.senza_codice_fiscale ? persona.paese : null) ?? ITALIA
-
   // La casella cambia il tipo di CAP: tolta la spunta, un CAP che non ha cinque cifre non vale piu'.
   function cambiaEstero() {
     if (estero) setCap((c) => (/^\d{5}$/.test(c) ? c : ''))
@@ -83,7 +80,8 @@ export function CorreggiDati({
     if (!senzaRecapiti && telefono.trim() !== (persona.telefono ?? '')) cambi.telefono = telefono.trim()
     // Il Paese dell'indirizzo: quello della residenza all'estero, altrimenti l'Italia.
     const paeseIndirizzo = estero ? paese : ITALIA
-    if (!senzaRecapiti && (via.trim() !== (persona.indirizzo?.via ?? '') || cap !== (persona.indirizzo?.cap ?? '') || citta.trim() !== (persona.indirizzo?.citta ?? '') || paeseIndirizzo !== paeseIndirizzoPrima)) {
+    if (!senzaRecapiti && (via.trim() !== (persona.indirizzo?.via ?? '') || cap !== (persona.indirizzo?.cap ?? '') || citta.trim() !== (persona.indirizzo?.citta ?? ''))) {
+      // L'indirizzo parte solo se l'hai scritto tu: dichiarare un Paese non riscrive quello che c'e'.
       if (!via.trim() || !citta.trim()) {
         setErrore(t('Scrivi via e numero civico, CAP e città.', 'Enter street and number, postal code and city.'))
         return

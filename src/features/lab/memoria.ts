@@ -2,6 +2,7 @@ import { esci } from '@/api/lab'
 
 import { azzeraNotifiche } from './notifiche/store'
 import { scollegaDispositivo } from './notifiche/push'
+import { dimenticaTutteLeRisposte } from './schede/rispostePiano'
 import { svuotaCarrello } from './shop/carrello'
 import { memoria as memoriaTv } from './tv/comune'
 import { dimenticaLaVista } from './vista'
@@ -52,6 +53,11 @@ export function scorda(chiave: string) {
   valori.delete(chiave)
 }
 
+/** Toglie tutti i valori che cominciano cosi' (le letture di una persona, per esempio): alla prossima apertura si rileggono. */
+export function scordaPrefisso(prefisso: string) {
+  for (const k of [...valori.keys()]) if (k.startsWith(prefisso)) valori.delete(k)
+}
+
 /** All'uscita dal laboratorio non deve restare niente dell'utente di prima. */
 export function dimentica() {
   valori.clear()
@@ -67,6 +73,8 @@ export async function esciDalLaboratorio() {
   dimentica()
   // Il carrello dello shop e' di chi c'era: sul web sta nella scheda del browser, e un dispositivo condiviso non lo deve passare al prossimo.
   svuotaCarrello()
+  // Le risposte dei questionari di «Componi il tuo piano», in sala e in vasca (zone che danno fastidio: dati sulla salute), non passano a chi entra dopo.
+  dimenticaTutteLeRisposte()
   dimenticaLaVista()
   memoriaTv.vetrine = null
   memoriaTv.video.clear()

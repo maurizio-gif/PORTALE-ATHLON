@@ -22,7 +22,22 @@ export function dataLunga(iso: string): string {
 
 const MOSTRA = 3
 
-export function RiepilogoCosti({ importi, metodo }: { importi: ImportiContratto; metodo?: 'carta' | 'conto' }) {
+export function RiepilogoCosti({
+  importi,
+  metodo,
+  primaLezione,
+  fineStagione,
+  senzaTotale = false,
+}: {
+  importi: ImportiContratto
+  metodo?: 'carta' | 'conto'
+  /** Data della prima lezione (ISO), se nota. */
+  primaLezione?: string | null
+  /** Fine del corso (ISO): una riga con la data. */
+  fineStagione?: string
+  /** Niente totale dell'impegno: sta solo nel contratto (Junior, 23/10/2026). */
+  senzaTotale?: boolean
+}) {
   const p = usePalette()
   const [tutte, setTutte] = useState(false)
   const c = importi.calendario
@@ -31,6 +46,22 @@ export function RiepilogoCosti({ importi, metodo }: { importi: ImportiContratto;
   return (
     <Carta piatta>
       <View style={{ gap: spazio.tre }}>
+        {primaLezione || fineStagione ? (
+          <View style={{ gap: 6 }}>
+            {primaLezione ? (
+              <View style={riga}>
+                <Text style={[stili.voce, { color: p.testo, fontFamily: F.bold, flex: 1 }]}>{t('Prima lezione', 'First class')}</Text>
+                <Text style={[stili.importo, { color: p.testo }]}>{dataLunga(primaLezione)}</Text>
+              </View>
+            ) : null}
+            {fineStagione ? (
+              <View style={riga}>
+                <Text style={[stili.voce, { color: p.testo, fontFamily: F.bold, flex: 1 }]}>{t('Fine del corso', 'Course ends')}</Text>
+                <Text style={[stili.importo, { color: p.testo }]}>{dataLunga(fineStagione)}</Text>
+              </View>
+            ) : null}
+          </View>
+        ) : null}
         <View style={{ gap: 2 }}>
           <Text style={[stili.sopra, { color: p.testoSecondario }]}>{t('Oggi paghi', 'You pay today')}</Text>
           <Text style={{ color: p.testo, fontFamily: F.extra, fontSize: 34, letterSpacing: -1 }}>{euro(c.totale_oggi)}</Text>
@@ -54,7 +85,7 @@ export function RiepilogoCosti({ importi, metodo }: { importi: ImportiContratto;
 
         {c.prossimi.length || c.ricorrenza ? (
           <View style={{ gap: 6, borderTopWidth: 1, borderTopColor: p.linea, paddingTop: spazio.tre }}>
-            <Text style={[stili.sopra, { color: p.testoSecondario }]}>{t('Poi', 'Then')}</Text>
+            <Text style={[stili.sopra, { color: p.testoSecondario }]}>{senzaTotale ? t('Prossimi pagamenti', 'Next payments') : t('Poi', 'Then')}</Text>
             {elenco.map((q) => (
               <View key={q.data} style={riga}>
                 <Text style={[stili.voce, { color: p.testo, flex: 1 }]}>{dataLunga(q.data)}</Text>
@@ -76,12 +107,14 @@ export function RiepilogoCosti({ importi, metodo }: { importi: ImportiContratto;
           </View>
         ) : null}
 
+        {senzaTotale ? null : (
         <View style={[riga, { borderTopWidth: 1, borderTopColor: p.linea, paddingTop: spazio.tre }]}>
           <Text style={[stili.voce, { color: p.testo, fontFamily: F.bold, flex: 1 }]}>
             {importi.formula === 'flex' ? t('Totale fino alla fine dell’impegno minimo', 'Total until the end of the minimum term') : t('Totale dell’impegno', 'Total commitment')}
           </Text>
           <Text style={{ color: p.testo, fontFamily: F.extra, fontSize: 18 }}>{euro(c.totale_impegno)}</Text>
         </View>
+        )}
       </View>
     </Carta>
   )

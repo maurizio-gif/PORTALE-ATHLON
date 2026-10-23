@@ -1,5 +1,6 @@
 import type { PacchettoPersonal, StatoPersonal } from '@/api/lab'
 import type {
+  AmbienteLezione,
   Bisogno,
   ConsiglioPersonal,
   DatiLezione,
@@ -18,6 +19,7 @@ import type {
   Quota,
   RispostaConsigli,
   SedutaConsigliata,
+  Tipologia,
 } from '@/api/percorso'
 import { locale, t, tv } from '@/lib/lingua'
 
@@ -32,6 +34,8 @@ import { locale, t, tv } from '@/lib/lingua'
 export const CHIAVE_STATO_CONSIGLI = 'consigli:stato'
 export const CHIAVE_ULTIMI_CONSIGLI = 'consigli:ultimi'
 export const CHIAVE_SCELTE_CONSIGLI = 'consigli:scelte'
+/** Le scelte portate dal profilo comune (`schede/profiloComune.ts`) e non ancora toccate: alla riapertura si rifanno dal profilo. */
+export const CHIAVE_RIPORTATE_CONSIGLI = 'consigli:riportate'
 
 /**
  * Le scelte del questionario nella forma in cui stanno nella schermata. **Le limitazioni non ci sono**: sono dati sulla salute,
@@ -46,8 +50,6 @@ export type SceltePerConsigli = Omit<QuestionarioConsigli, 'limitazioni' | 'evit
   nuotare: boolean
   /** Sa nuotare stile libero e dorso: null finche' non risponde. */
   saNuotare: boolean | null
-  /** Le lezioni da evitare come le ha scritte il socio, separate da virgole. */
-  evitate: string
 }
 
 export const VOLTE_DI_PARTENZA = 3
@@ -64,7 +66,10 @@ export const SCELTE_DI_PARTENZA: SceltePerConsigli = {
   sala: false,
   nuotare: false,
   saNuotare: null,
-  evitate: '',
+  tipologie: [],
+  evita_gruppi: [],
+  evita_tipologie: [],
+  ambienti: [],
   fasce: [],
   giorni: [],
   includi_non_comprese: false,
@@ -139,7 +144,39 @@ export const gustiDi = (s: SceltePerConsigli): Gusto[] => [...s.gruppi, ...(s.sa
 /** Le scelte dopo aver toccato i gusti: i generi, la sala e il nuoto (che, tolto, dimentica anche la risposta sullo stile). */
 export function conGusti(s: SceltePerConsigli, gusti: Gusto[]): Partial<SceltePerConsigli> {
   const nuotare = gusti.includes('nuotare')
-  return { gruppi: gusti.filter((g): g is Gruppo => g !== 'sala' && g !== 'nuotare'), sala: gusti.includes('sala'), nuotare, saNuotare: nuotare ? s.saNuotare : null }
+  const gruppi = gusti.filter((g): g is Gruppo => g !== 'sala' && g !== 'nuotare')
+  return { gruppi, evita_gruppi: senza(s.evita_gruppi, gruppi), sala: gusti.includes('sala'), nuotare, saNuotare: nuotare ? s.saNuotare : null }
+}
+
+/** Le tipologie di lezione, con un esempio (22/10/2026): quelle che attraggono e quelle da evitare. */
+export const TIPOLOGIA_TESTO: Record<Tipologia, { testo: string; nota: string }> = {
+  yoga: { testo: 'Yoga', nota: 'hatha, power, yogassè' },
+  pilates_reformer: { testo: t('Pilates e Reformer', 'Pilates and Reformer'), nota: 'matwork, Group Reformer, MOTR' },
+  postura: { testo: t('Postura e mobilità', 'Posture and mobility'), nota: t('ginnastica dolce e posturale, Antigravity', 'gentle and postural gymnastics, Antigravity') },
+  tono_forza: { testo: t('Tono e forza', 'Tone and strength'), nota: 'body sculpt, body pump, calisthenics' },
+  danza: { testo: t('Danza e coreografie', 'Dance and choreography'), nota: t('balli di gruppo, GP Coreo', 'group dances, GP Coreo') },
+  combattimento: { testo: t('Boxe e difesa personale', 'Boxing and self-defense'), nota: 'HBX Boxing, HBX Fusion' },
+  acqua_fitness: { testo: t('Fitness in acqua', 'Water fitness'), nota: 'aqua aerobic, aqua soft, aqua tonic' },
+  hydrobike: { testo: 'Hydrobike', nota: t('la bici in acqua', 'bike in the water') },
+}
+
+/** Dove vuole fare lezione. Con una sola scelta l'altro ambiente cade; nessuna o tutte e due: nessun limite. */
+export const AMBIENTE_TESTO: Record<AmbienteLezione, { testo: string; nota: string }> = {
+  sala: { testo: t('In sala', 'In the studio'), nota: t('lezioni a terra: corsi fitness, Reformer', 'land classes: fitness courses, Reformer') },
+  acqua: { testo: t('In acqua', 'In the water'), nota: t('aqua fitness, hydrobike', 'aqua fitness, hydrobike') },
+}
+
+/** Un valore che il socio vuole evitare non puo' essere anche fra quelli che lo attraggono, e viceversa. */
+const senza = <T extends string>(lista: readonly T[], tolti: readonly string[]): T[] => lista.filter((x) => !tolti.includes(x))
+
+/** Le scelte dopo aver toccato i generi o le tipologie da evitare: quello che evita esce dai gusti. */
+export function conEvitate(s: SceltePerConsigli, evita_gruppi: Gruppo[], evita_tipologie: Tipologia[]): Partial<SceltePerConsigli> {
+  return { evita_gruppi, evita_tipologie, gruppi: senza(s.gruppi, evita_gruppi), tipologie: senza(s.tipologie, evita_tipologie) }
+}
+
+/** Le scelte dopo aver toccato le tipologie che attraggono: quello che gli piace esce dalle cose da evitare. */
+export function conTipologie(s: SceltePerConsigli, tipologie: Tipologia[]): Partial<SceltePerConsigli> {
+  return { tipologie, evita_tipologie: senza(s.evita_tipologie, tipologie) }
 }
 
 /** «Martedì 20 ottobre»: il giorno com'e' scritto, con l'iniziale maiuscola. */
@@ -230,17 +267,6 @@ export function formulePersonal(c: ConsiglioPersonal, stato: StatoPersonal | nul
   return { consigliata, altre: stato ? altre : [], attivo, senzaAbbonamento: !!stato && !attivo && !stato.pacchetti.length && c.sedute_mese > 1 }
 }
 
-/** Le lezioni da evitare scritte dal socio: separate da virgola, punto e virgola o a capo, senza doppioni. */
-export function evitateDa(testo: string): string[] {
-  const visti = new Set<string>()
-  for (const parte of testo.split(/[,;\n]/)) {
-    const t = parte.replace(/\s+/g, ' ').trim().slice(0, 60)
-    if (t) visti.add(t)
-    if (visti.size >= 10) break
-  }
-  return [...visti]
-}
-
 /** Cosa manca perche' il questionario si possa mandare, nell'ordine delle domande; vuoto se c'e' tutto. */
 /**
  * Le scelte da un questionario salvato (`ultimiConsigli`), per riaprirlo com'era: e' l'inverso di `questionarioDa`, senza
@@ -262,7 +288,10 @@ export function scelteDa(q: Partial<QuestionarioConsigli> | undefined): Partial<
     s.nuotare = q.nuoto != null
     s.saNuotare = q.nuoto === 'libero' ? true : q.nuoto === 'imparare' ? false : null
   }
-  if (Array.isArray(q.evitate)) s.evitate = q.evitate.join(', ')
+  if (Array.isArray(q.tipologie)) s.tipologie = q.tipologie
+  if (Array.isArray(q.evita_gruppi)) s.evita_gruppi = q.evita_gruppi
+  if (Array.isArray(q.evita_tipologie)) s.evita_tipologie = q.evita_tipologie
+  if (Array.isArray(q.ambienti)) s.ambienti = q.ambienti
   if (Array.isArray(q.fasce)) s.fasce = q.fasce
   if (Array.isArray(q.giorni)) s.giorni = q.giorni
   if (typeof q.includi_non_comprese === 'boolean') s.includi_non_comprese = q.includi_non_comprese
@@ -308,7 +337,8 @@ export function questionarioDa(s: SceltePerConsigli, limitazioni: string): Quest
     pausa: s.esperienza === 'ex' ? s.pausa : null,
     discipline: s.esperienza === 'mai' ? [] : s.discipline,
     nuoto: nuotare ? (saNuotare ? 'libero' : 'imparare') : null,
-    evitate: evitateDa(s.evitate),
+    // Il testo libero non c'e' piu': la funzione lo legge ancora da un'app di prima.
+    evitate: [],
     limitazioni: limitazioni.trim(),
   }
 }

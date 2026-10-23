@@ -1,31 +1,23 @@
-import { router } from 'expo-router'
 import { View } from 'react-native'
 
+import type { Area } from '@/api/lab'
 import { spazio } from '@/theme'
-import { t } from '@/lib/lingua'
 
 import { RiepilogoPagamenti } from '../pagamenti/Movimenti'
-import { Carta, Entra, Riga } from '../ui/kit'
+import { Entra } from '../ui/kit'
+import { MetodoPagamento } from './MetodoPagamento'
 
-// La sezione Pagamenti della Home: da saldare, prossimi pagamenti, effettuati
-// (con «Storico completo»), e il metodo di pagamento degli abbonamenti.
+// La sezione Pagamenti della Home, in due parti che non si mescolano (22/10/2026, richiesta di Maurizio): sopra il
+// **metodo di pagamento** (c'e'? qual e'? da dove si cambia), sotto lo **stato dei pagamenti**: da pagare (con il
+// pagamento subito), prossimi pagamenti, effettuati con «Storico completo».
 
-export function SezionePagamenti() {
+export function SezionePagamenti({ area, onAggiorna }: { area: Extract<Area, { trovato: true }>; onAggiorna?: () => void }) {
   return (
     <View style={{ gap: spazio.quattro }}>
-      <RiepilogoPagamenti />
       <Entra indice={0}>
-        <Carta style={{ paddingVertical: spazio.uno }}>
-          <Riga
-            prima
-            icona="carta"
-            tono="accento"
-            titolo={t('Aggiorna il metodo di pagamento', 'Update your payment method')}
-            sotto={t('Conto corrente (IBAN) o carta, per te e per la tua famiglia', 'Bank account (IBAN) or card, for you and your family')}
-            onPress={() => router.push('/metodo-pagamento')}
-          />
-        </Carta>
+        <MetodoPagamento area={area} />
       </Entra>
+      <RiepilogoPagamenti onPagato={onAggiorna} />
     </View>
   )
 }

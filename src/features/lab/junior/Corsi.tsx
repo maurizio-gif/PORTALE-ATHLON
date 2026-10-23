@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useState } from "react";
-import { router } from "expo-router";
+import { router, useFocusEffect } from "expo-router";
 import { StyleSheet, Text, View } from "react-native";
 
 import {
   corsiJunior,
+  disdiciCorso,
   type BabyJunior,
   type CorsiPersona,
   type IscrizioneJunior,
@@ -33,16 +34,22 @@ import {
   SchedeInArrivo,
   Sezione,
 } from "../ui/kit";
+import { Foglio } from "../ui/Foglio";
 import { FoglioLezione } from "../ui/FoglioLezione";
 import { PagamentiContratto } from "./PagamentiContratto";
+import { concludiInCorso, type InCorso } from "./inCorso";
 import { F, usePalette } from "../ui/tema";
 import { usePrenotazioneLezione } from "../usePrenotazioneLezione";
 import {
   dataIt,
+  disdettaVera,
   euroIt,
+  fineDisdettaMensile,
   finestraLezioni,
   nLezioni,
+  oggiRoma,
   rinnovoContratto,
+  rinnovoJunior,
   statoContratto,
 } from "./comune";
 
@@ -93,9 +100,14 @@ const senzaPunto = (piano: string | null) =>
 export function CorsiPersona({
   persona,
   vista,
+  inCorso,
+  onInCorsoFinito,
 }: {
   persona: PersonaJunior;
   vista: boolean;
+  /** Un'iscrizione appena firmata che il mirror non ha ancora (`inCorso.ts`). */
+  inCorso?: InCorso;
+  onInCorsoFinito?: () => void;
 }) {
   const chiave = chiaveCorsi(persona.member_id);
   const [esito, setEsito] = useState<EsitoCorsi | undefined>(() =>
@@ -106,8 +118,32 @@ export function CorsiPersona({
   }, [chiave, persona.member_id]);
   useEffect(() => {
     setEsito(inMemoria<EsitoCorsi>(chiave));
-    carica();
-  }, [chiave, carica]);
+  }, [chiave]);
+  // Si rilegge a ogni ritorno sulla schermata (dopo la firma o il pagamento) e, finche' l'iscrizione appena firmata non e' nel
+  // mirror, ogni pochi secondi: il pagamento fatto o da fare non resta quello di prima.
+  useFocusEffect(
+    useCallback(() => {
+      scorda(chiave);
+      carica();
+    }, [chiave, carica]),
+  );
+  const attesa = !!inCorso;
+  useEffect(() => {
+    if (!attesa) return;
+    const id = setInterval(() => {
+      scorda(chiave);
+      carica();
+    }, 6000);
+    return () => clearInterval(id);
+  }, [attesa, chiave, carica]);
+  const arrivata =
+    !!inCorso && !!esito?.ok && esito.iscrizioni.some((i) => Number(i.gruppo_id) === inCorso.group_id);
+  useEffect(() => {
+    if (inCorso && arrivata) {
+      concludiInCorso(inCorso.member_id, inCorso.group_id);
+      onInCorsoFinito?.();
+    }
+  }, [arrivata, inCorso, onInCorsoFinito]);
 
   /** Dopo una prenotazione o una disdetta i conteggi sono cambiati: si rileggono. */
   const cambiato = useCallback(async () => {
@@ -115,7 +151,12 @@ export function CorsiPersona({
     await carica();
   }, [chiave, carica]);
 
-  if (!esito) return <SchedeInArrivo quante={1} />;
+  // L'iscrizione appena firmata, finche' il mirror non la dice: si vede subito, con il pagamento da fare o fatto.
+  const provvisoria =
+    inCorso && !arrivata ? (
+      <IscrizioneInCorso nome={persona.nome ?? ""} x={inCorso} />
+    ) : null;
+  if (!esito) return provvisoria ?? <SchedeInArrivo quante={1} />;
   if (!esito.ok)
     return (
       <View style={{ gap: spazio.due }}>
@@ -132,6 +173,7 @@ export function CorsiPersona({
   const nome = persona.nome ?? "";
   return (
     <>
+      {provvisoria}
       {esito.baby && esito.iscrizioni.length === 0 ? (
         <SezioneBaby
           nome={nome}
@@ -152,6 +194,55 @@ export function CorsiPersona({
         />
       ))}
     </>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// L'iscrizione appena firmata (23/10/2026)
+
+function IscrizioneInCorso({ nome, x }: { nome: string; x: InCorso }) {
+  const p = usePalette();
+  return (
+    <Sezione
+      titolo={
+        nome
+          ? t(`L’abbonamento di ${nome}`, `${nome}’s membership`)
+          : t("L’abbonamento", "The membership")
+      }
+    >
+      <Carta>
+        <Riga
+          prima
+          testa={<Bollino icona="goccia" tono="blu" size={40} />}
+          titolo={t("Iscrizione in corso", "Enrollment in progress")}
+          sotto={x.gruppo}
+          coda={
+            <Etichetta
+              testo={x.pagata ? t("Pagato", "Paid") : t("Da pagare", "To pay")}
+              tono={x.pagata ? "ok" : "attenzione"}
+            />
+          }
+        />
+      </Carta>
+      <Text style={[stili.nota, { color: p.testoSecondario }]}>
+        {x.pagata
+          ? t(
+              `Pagamento ricevuto. Stiamo attivando l’iscrizione (contratto n. ${x.numero}): questa pagina si aggiorna da sola.`,
+              `Payment received. We’re activating the enrollment (contract no. ${x.numero}): this page updates by itself.`,
+            )
+          : t(
+              `Il contratto n. ${x.numero} è firmato. Per attivare l’iscrizione completa il pagamento: questa pagina si aggiorna da sola.`,
+              `Contract no. ${x.numero} is signed. To activate the enrollment, complete the payment: this page updates by itself.`,
+            )}
+      </Text>
+      {!x.pagata ? (
+        <Pulsante
+          testo={t("Completa il pagamento", "Complete the payment")}
+          icona="carta"
+          onPress={() => router.navigate("/abbonamento" as const)}
+        />
+      ) : null}
+    </Sezione>
   );
 }
 
@@ -211,16 +302,20 @@ function SezioneIscrizione({
           />
           <Dato
             etichetta={t("Rinnovo", "Renewal")}
-            valore={rinnovoContratto(c)}
+            valore={rinnovoJunior(c)}
           />
-          {c.fine && !c.disdetta ? (
-            <Dato
-              etichetta={t("Pagato fino al", "Paid until")}
-              valore={dataIt(c.fine)}
-            />
-          ) : null}
         </Carta>
         <PagamentiContratto contrattoId={c.id} />
+        {!vista ? (
+          <DisdiciAbbonamento
+            disdetto={disdettaVera(c)}
+            nome={nome}
+            memberId={memberId}
+            contractId={c.id}
+            gruppo={i.gruppo}
+            onCambiato={onCambiato}
+          />
+        ) : null}
       </Sezione>
 
       {i.recuperabile ? (
@@ -555,6 +650,113 @@ function Conteggio({
         {testo}
       </Text>
     </View>
+  );
+}
+
+/**
+ * «Disdici l'abbonamento» (22/10/2026, richiesta di Maurizio): una conferma che dice quando finisce (regola dei 10 giorni, la stessa
+ * della funzione, che e' quella che decide), poi PerfectGym. Fino ad allora le lezioni restano e le quote fino a quel mese sono dovute.
+ */
+function DisdiciAbbonamento({
+  disdetto,
+  nome,
+  memberId,
+  contractId,
+  gruppo,
+  onCambiato,
+}: {
+  /** Gia' disdetto: il comando non c'e', resta solo la conferma appena data. */
+  disdetto: boolean;
+  nome: string;
+  memberId: number;
+  contractId: number;
+  gruppo: string;
+  onCambiato: () => Promise<void>;
+}) {
+  const p = usePalette();
+  const [aperto, setAperto] = useState(false);
+  const [invio, setInvio] = useState(false);
+  const [errore, setErrore] = useState<string | null>(null);
+  const [fatta, setFatta] = useState<string | null>(null);
+  const fine = fineDisdettaMensile(oggiRoma());
+  const chi = nome || t("tuo figlio", "your child");
+  if (disdetto && !fatta) return null;
+
+  async function conferma() {
+    setInvio(true);
+    setErrore(null);
+    const r = await disdiciCorso({ memberId, contractId });
+    setInvio(false);
+    if (!r.ok) {
+      setErrore(r.errore);
+      if (r.giaDisdetto) {
+        scorda("abbonamenti:contratti");
+        await onCambiato();
+      }
+      return;
+    }
+    setFatta(r.fine);
+    setAperto(false);
+    scorda("abbonamenti:contratti");
+    await onCambiato();
+  }
+
+  return (
+    <>
+      {fatta ? (
+        <Messaggio tono="ok" titolo={t("Disdetta registrata", "Cancellation recorded")}>
+          {t(
+            `L’abbonamento di ${chi} finisce il ${dataIt(fatta)} e non si rinnova.`,
+            `${chi}’s membership ends on ${dataIt(fatta)} and won’t renew.`,
+          )}
+        </Messaggio>
+      ) : (
+        <Pulsante
+          testo={t("Disdici l’abbonamento", "Cancel the membership")}
+          icona="chiudi"
+          variante="fantasma"
+          piccolo
+          onPress={() => {
+            setErrore(null);
+            setAperto(true);
+          }}
+        />
+      )}
+      <Foglio
+        aperto={aperto}
+        titolo={t("Disdici l’abbonamento", "Cancel the membership")}
+        sottotitolo={gruppo}
+        onChiudi={() => (invio ? undefined : setAperto(false))}
+      >
+        <View style={{ gap: spazio.tre }}>
+          <Text style={[stili.nota, { color: p.testoSecondario }]}>
+            {t(
+              `Disdicendo oggi, l’abbonamento di ${chi} finisce il ${dataIt(fine)}: la disdetta vale dalla fine del mese se arriva almeno 10 giorni prima del rinnovo del giorno 1, altrimenti dalla fine del mese dopo.`,
+              `If you cancel today, ${chi}’s membership ends on ${dataIt(fine)}: a cancellation takes effect at the end of the month if it arrives at least 10 days before the renewal on the 1st, otherwise at the end of the following month.`,
+            )}
+          </Text>
+          <Text style={[stili.nota, { color: p.testoSecondario }]}>
+            {t(
+              `Fino ad allora le lezioni restano e le quote fino a quel mese sono dovute. Dopo il ${dataIt(fine)} il posto nel turno si libera e i recuperi non usati si perdono.`,
+              `Until then classes stay and the fees up to that month are due. After ${dataIt(fine)} the spot in the slot is released and unused make-ups are lost.`,
+            )}
+          </Text>
+          {errore ? <Messaggio tono="errore">{errore}</Messaggio> : null}
+          <Pulsante
+            testo={t(`Disdici: finisce il ${dataIt(fine)}`, `Cancel: ends on ${dataIt(fine)}`)}
+            variante="pericolo"
+            onPress={conferma}
+            inCorso={invio}
+          />
+          <Pulsante
+            testo={t("Annulla", "Keep it")}
+            variante="secondario"
+            onPress={() => setAperto(false)}
+            disabilitato={invio}
+          />
+        </View>
+      </Foglio>
+    </>
   );
 }
 

@@ -379,3 +379,26 @@ export async function chiediCambioOrario(d: { memberId: number; groupId: string 
   }
   return { ok: true, giaChiesto: dati.gia_chiesto === true };
 }
+
+export type EsitoDisdetta = { ok: true; fine: string } | { ok: false; errore: string; giaDisdetto?: boolean };
+
+/**
+ * Disdice l'abbonamento mensile di un gruppo (22/10/2026): la fine la decide la regola dei 10 giorni (entro il 21 di un mese da 31
+ * giorni finisce a fine mese, dopo a fine del mese dopo). Scrive su PerfectGym (`Contracts/Cancel`), poi rilegge.
+ */
+export async function disdiciCorso(d: { memberId: number; contractId: number }): Promise<EsitoDisdetta> {
+  const { ok, stato, dati } = await funzione("portale-lab-junior", {
+    azione: "disdici_corso",
+    member_id: d.memberId,
+    contract_id: d.contractId,
+  });
+  if (ok && typeof dati.fine === "string") return { ok: true, fine: dati.fine };
+  return {
+    ok: false,
+    giaDisdetto: dati.gia_disdetto === true,
+    errore:
+      stato === 400 && dati.errore === "Azione sconosciuta."
+        ? t("La disdetta dall’app non è ancora attiva: scrivi a disdetta@athlonroma.it.", "Cancelling from the app isn’t active yet: write to disdetta@athlonroma.it.")
+        : (dati.errore ?? t("Non riusciamo a disdire adesso. Riprova fra qualche minuto.", "We can’t cancel right now. Try again in a few minutes.")),
+  };
+}

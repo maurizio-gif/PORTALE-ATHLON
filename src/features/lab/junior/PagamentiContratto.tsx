@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useFocusEffect } from "expo-router";
+import { useCallback, useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 
 import {
@@ -7,6 +8,7 @@ import {
   type AddebitoContratto,
   type ContrattoElenco,
 } from "@/api/abbonamento";
+import { apriFilePgm } from "@/api/documenti";
 import { t } from "@/lib/lingua";
 import { spazio } from "@/theme";
 
@@ -18,7 +20,8 @@ import { dataIt, euroIt } from "./comune";
 
 // Il contratto firmato e i pagamenti di un abbonamento junior (22/10/2026, richiesta di Maurizio): il PDF sottoscritto, le quote
 // gia' pagate e quelle in arrivo, mese per mese. Stessi dati e stessa funzione di «I tuoi abbonamenti» (`portale-abbonamento`,
-// azione `contratti`): niente di nuovo da calcolare qui. Se la lettura non riesce o il contratto non e' nell'elenco, la sezione
+// azione `contratti`): niente di nuovo da calcolare qui. Il PDF e' quello firmato dall'app o, per un contratto firmato al desk,
+// quello che PerfectGym conserva fra i file della persona (`documento_pgm`); se PerfectGym non l'ha ancora creato non c'e' il pulsante. Se la lettura non riesce o il contratto non e' nell'elenco, la sezione
 // non compare: i dati dell'abbonamento restano quelli della carta sopra.
 
 const CHIAVE = "abbonamenti:contratti";
@@ -39,13 +42,16 @@ export function PagamentiContratto({ contrattoId }: { contrattoId: number }) {
   const [scarico, setScarico] = useState(false);
   const { apri, avviso } = useApriPdf();
 
-  useEffect(() => {
-    let vivo = true;
-    prendi(CHIAVE, () => contrattiAbbonamento()).then((e) => vivo && setEsito(e as Esito));
-    return () => {
-      vivo = false;
-    };
-  }, []);
+  // A ogni ritorno sulla schermata (dopo un pagamento) si rilegge: le quote pagate o da pagare non restano quelle di prima.
+  useFocusEffect(
+    useCallback(() => {
+      let vivo = true;
+      prendi(CHIAVE, () => contrattiAbbonamento()).then((e) => vivo && setEsito(e as Esito));
+      return () => {
+        vivo = false;
+      };
+    }, []),
+  );
 
   const c = esito?.ok ? esito.contratti.find((x) => x.contract_id === contrattoId) : undefined;
   if (!c) return null;
@@ -57,13 +63,21 @@ export function PagamentiContratto({ contrattoId }: { contrattoId: number }) {
     .filter((a) => a.stato === "da_pagare")
     .sort((x, y) => (x.scadenza ?? "").localeCompare(y.scadenza ?? ""));
 
+  // Il PDF firmato dall'app (`firmato`) o quello che PerfectGym conserva per un contratto firmato al desk (`documento_pgm`).
+  const pdf = c.firmato?.pdf || !!c.documento_pgm;
+
   async function scarica() {
-    if (!c?.firmato) return;
-    const numero = c.firmato.numero;
+    if (!c) return;
+    const numero = c.firmato?.pdf ? c.firmato.numero : null;
+    const filePgm = c.documento_pgm ?? null;
     setScarico(true);
     await apri(async () => {
-      const r = await documentoAbbonamento(numero);
-      return r.ok ? { ...r, nome: t(`contratto-${numero}.pdf`, `contract-${numero}.pdf`) } : r;
+      if (numero) {
+        const r = await documentoAbbonamento(numero);
+        return r.ok ? { ...r, nome: t(`contratto-${numero}.pdf`, `contract-${numero}.pdf`) } : r;
+      }
+      const r = await apriFilePgm(filePgm as string);
+      return r.ok ? { ...r, nome: t(`contratto-${c.contract_id}.pdf`, `contract-${c.contract_id}.pdf`) } : r;
     });
     setScarico(false);
   }
@@ -77,20 +91,16 @@ export function PagamentiContratto({ contrattoId }: { contrattoId: number }) {
           <Voce nome={t("Addebitato", "Charged")} valore={euroIt(c.totali.addebitato)} />
           <Voce nome={t("Pagato", "Paid")} valore={euroIt(c.totali.pagato)} colore={p.ok} />
           <Voce nome={t("Da pagare", "Due")} valore={euroIt(c.totali.da_pagare)} colore={c.totali.da_pagare > 0 ? p.accento : undefined} />
-          {c.firmato?.pdf ? (
+          {pdf ? (
             <Pulsante
-              testo={t("Il contratto firmato (PDF)", "Signed contract (PDF)")}
+              testo={t("Scarica il contratto firmato (PDF)", "Download the signed contract (PDF)")}
               icona="documento"
               variante="contorno"
               piccolo
               onPress={scarica}
               inCorso={scarico}
             />
-          ) : (
-            <Text style={[stili.nota, { color: p.testoTerzo }]}>
-              {t("Il PDF del contratto firmato non è disponibile da qui: chiedilo alla segreteria.", "The signed PDF isn’t available here: ask the front desk.")}
-            </Text>
-          )}
+          ) : null}
           {avviso}
         </View>
       </Carta>
