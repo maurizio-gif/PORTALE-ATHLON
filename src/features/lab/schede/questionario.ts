@@ -131,7 +131,7 @@ export const TEST = {
     ],
   },
   flessioni: {
-    titolo: t('Quante flessioni riesci a fare?', 'How many push-ups can you do?'),
+    titolo: t('Quanti piegamenti riesci a fare?', 'How many push-ups can you do?'),
     nota: t('Quante riesci a farne senza una pausa?', 'How many can you do without a break?'),
     opzioni: [
       { valore: 'meno_10', testo: t('Meno di 10', 'Fewer than 10') },
@@ -181,7 +181,7 @@ export const EVITA = [
   { valore: 'stacchi', testo: t('Gli stacchi', 'Deadlifts') },
   { valore: 'affondi', testo: t('Gli affondi', 'Lunges') },
   { valore: 'trazioni', testo: t('Le trazioni', 'Pull-ups') },
-  { valore: 'flessioni', testo: t('Le flessioni', 'Push-ups') },
+  { valore: 'flessioni', testo: t('I piegamenti', 'Push-ups') },
 ] as const
 export type Evita = (typeof EVITA)[number]['valore']
 

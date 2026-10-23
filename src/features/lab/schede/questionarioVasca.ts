@@ -1,7 +1,7 @@
 // Il questionario a passi della vasca (22/10/2026, richiesta di Maurizio: «qualcosa di piu' semplice e focalizzato sull'acqua»): una
 // domanda per schermata, come in sala (`PassiVasca.tsx`), ma con le parole dell'acqua e **sei domande sole**: cosa vuoi ottenere in
 // vasca, che stili sai nuotare, quanto nuoti di fila (anche in vasche da 25 m), quanto tempo hai, quante volte vieni, e se hai fastidi.
-// Squat, flessioni, strumenti, cardio e il resto del questionario di sala qui non ci sono: in acqua non servono.
+// Squat, piegamenti, strumenti, cardio e il resto del questionario di sala qui non ci sono: in acqua non servono.
 //
 // Tutto quello che segue e' puro (si prova con `LC_ALL=it_IT.UTF-8 npx tsx`: `t()` fuori da un browser sceglie l'inglese). **La funzione
 // non e' cambiata**: `chiedi_nuoto` riceve lo stesso `QuestionarioNuoto` di prima (`_shared/nuoto/questionario.ts` di APP-ATHLON, che
