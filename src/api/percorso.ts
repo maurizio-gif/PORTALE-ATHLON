@@ -19,6 +19,13 @@ type Esito<T> = ({ ok: true } & T) | { ok: false; errore: string; stato?: number
 export const GRUPPI = ['mente_corpo', 'forza_tono', 'cardio_danza', 'acqua', 'combat'] as const
 export type Gruppo = (typeof GRUPPI)[number]
 
+/** Le tipologie di lezione (la funzione le ricava dal nome del tipo; la stessa lista e' in `_shared/percorso/consigli.ts` di APP-ATHLON). */
+export const TIPOLOGIE = ['yoga', 'pilates_reformer', 'postura', 'tono_forza', 'danza', 'combattimento', 'acqua_fitness', 'hydrobike'] as const
+export type Tipologia = (typeof TIPOLOGIE)[number]
+/** Lezioni a terra (sala) o in acqua. */
+export const AMBIENTI_LEZIONE = ['sala', 'acqua'] as const
+export type AmbienteLezione = (typeof AMBIENTI_LEZIONE)[number]
+
 export const FASCE = ['mattina_presto', 'mattina', 'pranzo', 'pomeriggio', 'sera', 'weekend'] as const
 export type Fascia = (typeof FASCE)[number]
 
@@ -367,7 +374,13 @@ export type QuestionarioConsigli = {
   sala: boolean
   /** `libero`: sa stile libero e dorso; `imparare`: si parte dalla Scuola Nuoto Adulti. */
   nuoto: NuotoScelta
-  /** I nomi delle lezioni che non vuole: la funzione li confronta senza maiuscole e accenti. Sono l'unico limite duro. */
+  /** Le tipologie di lezione che lo attraggono: la funzione le privilegia, non escludono. */
+  tipologie: Tipologia[]
+  /** Generi e tipologie che non vuole, e dove vuole fare lezione: **sono l'unico limite duro** (con una sola scelta fra sala e acqua, l'altro ambiente cade). */
+  evita_gruppi: Gruppo[]
+  evita_tipologie: Tipologia[]
+  ambienti: AmbienteLezione[]
+  /** Il testo libero di un'app di prima: l'app nuova manda una lista vuota (e la funzione lo legge ancora). */
   evitate: string[]
   /** Quando preferisce venire: **non vincolante**. */
   fasce: Fascia[]

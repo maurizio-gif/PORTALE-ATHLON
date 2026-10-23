@@ -18,9 +18,12 @@ import {
   PERSONAL_ESPERIENZE,
   PERSONAL_INTERESSI,
   statoConsigli,
+  AMBIENTI_LEZIONE,
+  TIPOLOGIE,
   ultimiConsigli,
   type ConsiglioPersonal,
   type ConsiglioRisolto,
+  type Gruppo,
   type OrarioLezione,
   type RispostaConsigli,
   type SedutaConsigliata,
@@ -54,7 +57,10 @@ import {
   CHIAVE_STATO_CONSIGLI,
   CHIAVE_ULTIMI_CONSIGLI,
   BISOGNO_TESTO,
+  AMBIENTE_TESTO,
+  conEvitate,
   conGusti,
+  conTipologie,
   conPrenotazione,
   cosaManca,
   destinazioniSeduta,
@@ -63,6 +69,7 @@ import {
   formulePersonal,
   giorniTesto,
   GUSTI,
+  TIPOLOGIA_TESTO,
   gustiDi,
   INTENSITA_TESTO,
   LIVELLO_TESTO,
@@ -496,17 +503,53 @@ export function Consigli() {
         </Text>
       </Sezione>
 
-      <Sezione titolo={tr('Lezioni che vuoi evitare', 'Classes you want to avoid')} destra={<Facoltativo />}>
-        <Carta style={{ gap: spazio.due }}>
-          <TextInput
-            value={scelte.evitate}
-            onChangeText={(v) => cambia({ evitate: v.slice(0, 200) })}
-            placeholder={tr('Per esempio: boxing, step. Separale con una virgola.', 'For example: boxing, step. Separate them with a comma.')}
-            placeholderTextColor={p.testoTerzo}
-            style={[stili.riga, { color: p.testo, backgroundColor: p.incavo }]}
-            accessibilityLabel={tr('Lezioni da evitare', 'Classes to avoid')}
-          />
-        </Carta>
+      <Sezione titolo={tr('Che tipo di lezioni ti attraggono', 'Which kinds of classes appeal to you')} destra={<Facoltativo />}>
+        <SceltePiu
+          valori={TIPOLOGIE.map((v) => ({ valore: v, testo: TIPOLOGIA_TESTO[v].testo }))}
+          scelti={scelte.tipologie}
+          onCambia={(tipologie) => cambia(conTipologie(scelte, tipologie))}
+        />
+        <Text style={[stili.nota, { color: p.testoSecondario }]}>
+          {scelte.tipologie.length
+            ? scelte.tipologie.map((v) => `${TIPOLOGIA_TESTO[v].testo}: ${TIPOLOGIA_TESTO[v].nota}`).join(' · ')
+            : tr('Le proponiamo per prime, ma non escludiamo le altre.', 'We suggest these first, but we don’t rule out the others.')}
+        </Text>
+      </Sezione>
+
+      <Sezione titolo={tr('Dove preferisci fare lezione', 'Where you’d rather take classes')} destra={<Facoltativo />}>
+        <SceltePiu
+          valori={AMBIENTI_LEZIONE.map((v) => ({ valore: v, testo: AMBIENTE_TESTO[v].testo }))}
+          scelti={scelte.ambienti}
+          onCambia={(ambienti) => cambia({ ambienti })}
+        />
+        <Text style={[stili.nota, { color: p.testoSecondario }]}>
+          {scelte.ambienti.length === 1
+            ? scelte.ambienti[0] === 'sala'
+              ? tr('Solo lezioni in sala: niente acqua.', 'Studio classes only: no water classes.')
+              : tr('Solo lezioni in acqua: niente lezioni in sala.', 'Water classes only: no studio classes.')
+            : tr('Sala e acqua, come preferisci: se non scegli niente guardiamo tutte e due.', 'Studio and water, as you like: if you don’t choose, we look at both.')}
+        </Text>
+      </Sezione>
+
+      <Sezione titolo={tr('Generi che vuoi evitare', 'Types you want to avoid')} destra={<Facoltativo />}>
+        <SceltePiu
+          valori={GUSTI.filter((g) => g.valore !== 'sala' && g.valore !== 'nuotare').map((g) => ({ valore: g.valore, testo: g.testo }))}
+          scelti={scelte.evita_gruppi}
+          onCambia={(v) => cambia(conEvitate(scelte, v as Gruppo[], scelte.evita_tipologie))}
+        />
+      </Sezione>
+
+      <Sezione titolo={tr('Tipologie che vuoi evitare', 'Kinds of classes you want to avoid')} destra={<Facoltativo />}>
+        <SceltePiu
+          valori={TIPOLOGIE.map((v) => ({ valore: v, testo: TIPOLOGIA_TESTO[v].testo }))}
+          scelti={scelte.evita_tipologie}
+          onCambia={(v) => cambia(conEvitate(scelte, scelte.evita_gruppi, v))}
+        />
+        <Text style={[stili.nota, { color: p.testoSecondario }]}>
+          {scelte.evita_gruppi.length || scelte.evita_tipologie.length
+            ? tr('Non te le proponiamo, nemmeno come alternativa.', 'We won’t suggest them, not even as an alternative.')
+            : tr('Se non scegli niente, non togliamo niente.', 'If you don’t choose anything, we don’t rule anything out.')}
+        </Text>
       </Sezione>
 
       {stato.idoneita.categorie != null ? (
