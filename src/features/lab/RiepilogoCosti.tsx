@@ -62,10 +62,20 @@ export function RiepilogoCosti({
   return (
     <Carta piatta>
       <View style={{ gap: spazio.tre }}>
-        {primaLezione ? (
-          <View style={riga}>
-            <Text style={[stili.voce, { color: p.testo, fontFamily: F.bold, flex: 1 }]}>{t('Prima lezione', 'First class')}</Text>
-            <Text style={[stili.importo, { color: p.testo }]}>{dataLunga(primaLezione)}</Text>
+        {primaLezione || fineStagione ? (
+          <View style={{ gap: 6 }}>
+            {primaLezione ? (
+              <View style={riga}>
+                <Text style={[stili.voce, { color: p.testo, fontFamily: F.bold, flex: 1 }]}>{t('Prima lezione', 'First class')}</Text>
+                <Text style={[stili.importo, { color: p.testo }]}>{dataLunga(primaLezione)}</Text>
+              </View>
+            ) : null}
+            {fineStagione ? (
+              <View style={riga}>
+                <Text style={[stili.voce, { color: p.testo, fontFamily: F.bold, flex: 1 }]}>{t('Fine del corso', 'Course ends')}</Text>
+                <Text style={[stili.importo, { color: p.testo }]}>{dataLunga(fineStagione)}</Text>
+              </View>
+            ) : null}
           </View>
         ) : null}
         <View style={{ gap: 2 }}>

@@ -36,7 +36,6 @@ import { SchermataInArrivo } from "../ui/Attesa";
 import { Foglio } from "../ui/Foglio";
 import { Icona } from "../ui/Icona";
 import { Carta, Messaggio, Pulsante, Sezione } from "../ui/kit";
-import { chiaveDelGruppo } from "./attivita";
 import { Schermata } from "../ui/Schermata";
 import { F, usePalette } from "../ui/tema";
 import { colpetto, Tocco } from "../ui/Tocco";
@@ -595,7 +594,11 @@ export function Iscrizione() {
             style={{ gap: spazio.tre }}
             onLayout={(e) => (posti.current.corpo = e.nativeEvent.layout.y)}
           >
-            <RiepilogoCosti importi={anteprima.importi} />
+            <RiepilogoCosti
+              importi={anteprima.importi}
+              primaLezione={anteprima.inizi?.[0]?.data ?? null}
+              fineStagione={baby ? undefined : FINE_STAGIONE}
+            />
             <DocumentoContratto blocchi={anteprima.documento.blocchi} />
 
             <Text
