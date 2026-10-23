@@ -1,6 +1,8 @@
+import type { AbitudineTrain } from '@/api/lab'
 import type { Fascia as FasciaConsigli, Obiettivo, Pausa } from '@/api/percorso'
 
 import type { SceltePerConsigli } from '../consigli/comune'
+import { abitudineNota, dimenticaAbitudine } from './abitudineMemoria'
 import { eSalute, livelloScelto, OBIETTIVI, type Esperienza, type Fascia as FasciaSala, type Intensita, type Livello, type Risposte } from './questionario'
 
 // Il profilo comune fra i Consigli e «Componi il tuo piano» in sala (22/10/2026, richiesta di Maurizio: i due questionari erano lunghi e si
@@ -12,6 +14,10 @@ import { eSalute, livelloScelto, OBIETTIVI, type Esperienza, type Fascia as Fasc
 // sono i giorni di sala; «lezioni da evitare» (nomi di lezioni) non sono gli «esercizi da evitare»; i fastidi non si portano mai.
 // **Niente di sanitario**: zone, limitazioni e note restano dove sono state scritte, in memoria solo li'. Il profilo sta in memoria
 // (mai sul disco) e esce con l'uscita dall'app (`dimenticaTutteLeRisposte`).
+//
+// **Sotto alle risposte, l'abitudine** (22/10/2026, `abitudine.ts`): chi non ha ancora detto **quando** viene o **in che giorni**, li trova gia'
+// scelti da quello che fa davvero (gli ingressi al tornello e le lezioni), segnati «Dalle tue visite al club» e cambiabili. Una risposta data
+// vince sempre: l'abitudine e' un valore di partenza, non una risposta, e non finisce nel profilo finche' la persona non conferma.
 
 /** Quando si viene: come lo dicono i Consigli (anche piu' fasce) ridotto alle quattro del giorno, o «cambia». */
 export type Momento = 'mattina' | 'pranzo' | 'pomeriggio' | 'sera' | 'varia'
@@ -57,6 +63,7 @@ export const segnaCercato = () => {
 export function dimenticaProfilo() {
   profilo = {}
   cercato = false
+  dimenticaAbitudine()
 }
 
 /** Dalle novita' tiene solo le risposte che il profilo non ha ancora: una risposta arrivata in ritardo non ne cancella una piu' recente. */
@@ -72,6 +79,8 @@ const eObiettivo = (o: string | null | undefined): o is Obiettivo => !!o && (OBI
 
 const MOMENTO_DA_FASCIA_SALA: Record<FasciaSala, Momento> = { mattina: 'mattina', pausa_pranzo: 'pranzo', pomeriggio: 'pomeriggio', sera: 'sera', varia: 'varia' }
 const FASCIA_SALA_DA_MOMENTO: Record<Momento, FasciaSala> = { mattina: 'mattina', pranzo: 'pausa_pranzo', pomeriggio: 'pomeriggio', sera: 'sera', varia: 'varia' }
+/** Le fasce dei Consigli (la lista e' di `api/percorso.ts`: qui una copia, perche' un import dall'API non si esegue fuori dall'app). */
+const FASCE_CONSIGLI: readonly FasciaConsigli[] = ['mattina_presto', 'mattina', 'pranzo', 'pomeriggio', 'sera', 'weekend']
 const FASCIA_CONSIGLI_DA_MOMENTO: Record<Exclude<Momento, 'varia'>, FasciaConsigli> = { mattina: 'mattina', pranzo: 'pranzo', pomeriggio: 'pomeriggio', sera: 'sera' }
 
 /**
@@ -88,6 +97,24 @@ export function momentoDaFasce(fasce: readonly FasciaConsigli[]): Momento | null
   }
   return m.size === 0 ? null : m.size === 1 ? [...m][0] : 'varia'
 }
+
+/** Il momento in cui la persona viene davvero, dagli ingressi e dalle lezioni: solo se l'abitudine e' affidabile e c'e' una fascia che prevale. */
+export function momentoDaVisite(a: AbitudineTrain | null | undefined): Momento | null {
+  return a && a.affidabile ? momentoDaFasce(a.fasce as FasciaConsigli[]) : null
+}
+
+/**
+ * Il profilo come lo leggono le due schermate: le risposte date, e **sotto** quello che si vede dalle visite. Per ora solo quando si viene.
+ * Una risposta data (anche «cambia da un giorno all'altro») vince sempre.
+ */
+export function profiloEffettivo(p: ProfiloComune, a: AbitudineTrain | null | undefined = abitudineNota()): ProfiloComune {
+  if (p.momento !== undefined) return p
+  const m = momentoDaVisite(a)
+  return m ? { ...p, momento: m } : p
+}
+
+/** Vero se il momento che si propone viene dalle visite e non da una risposta: per scrivere «Dalle tue visite al club» e non «Dalle tue risposte precedenti». */
+export const momentoDaVisiteAlPosto = (p: ProfiloComune = profilo, a: AbitudineTrain | null | undefined = abitudineNota()): boolean => p.momento === undefined && momentoDaVisite(a) !== null
 
 // ---- l'esperienza ----------------------------------------------------------------------------------------------------------
 
@@ -178,14 +205,18 @@ export function inSala(p: ProfiloComune, r: Pick<Risposte, 'obiettivo' | 'esperi
   return { risposte, riportate }
 }
 
-export type CampoConsigli = 'obiettivi' | 'esperienza' | 'livello' | 'intensita' | 'fasce'
+export type CampoConsigli = 'obiettivi' | 'esperienza' | 'livello' | 'intensita' | 'fasce' | 'giorni'
 
 /**
  * Le scelte dei Consigli da portare dal profilo, **solo dove la persona non ha ancora risposto**. L'esperienza «ho smesso da poco» porta
  * anche «meno di un anno fa»; «ho smesso da tempo» non dice se uno o tre anni, e quella domanda resta da fare. La forma di oggi arriva
  * dalla stima della sala, e solo per chi ha un'esperienza (chi non ha mai praticato e' un principiante, e non la dice).
  */
-export function inConsigli(p: ProfiloComune, s: Pick<SceltePerConsigli, 'obiettivi' | 'esperienza' | 'pausa' | 'livello' | 'intensita' | 'fasce'>): { scelte: Partial<SceltePerConsigli>; riportate: CampoConsigli[] } {
+export function inConsigli(
+  p: ProfiloComune,
+  s: Pick<SceltePerConsigli, 'obiettivi' | 'esperienza' | 'pausa' | 'livello' | 'intensita' | 'fasce' | 'giorni'>,
+  a: AbitudineTrain | null | undefined = null,
+): { scelte: Partial<SceltePerConsigli>; riportate: CampoConsigli[] } {
   const scelte: Partial<SceltePerConsigli> = {}
   const riportate: CampoConsigli[] = []
   if (!s.obiettivi.length && p.obiettivo) {
@@ -207,9 +238,23 @@ export function inConsigli(p: ProfiloComune, s: Pick<SceltePerConsigli, 'obietti
     scelte.intensita = p.intensita
     riportate.push('intensita')
   }
-  if (!s.fasce.length && p.momento && p.momento !== 'varia') {
-    scelte.fasce = [FASCIA_CONSIGLI_DA_MOMENTO[p.momento]]
-    riportate.push('fasce')
+  if (!s.fasce.length) {
+    if (p.momento && p.momento !== 'varia') {
+      scelte.fasce = [FASCIA_CONSIGLI_DA_MOMENTO[p.momento]]
+      riportate.push('fasce')
+    } else if (p.momento === undefined && a && a.affidabile) {
+      // Nessuna risposta sul momento: si propone quello in cui viene davvero (fino a due fasce e il fine settimana), le stesse dei Consigli.
+      const dalleVisite = a.fasce.filter((f): f is FasciaConsigli => (FASCE_CONSIGLI as readonly string[]).includes(f))
+      if (dalleVisite.length) {
+        scelte.fasce = dalleVisite
+        riportate.push('fasce')
+      }
+    }
+  }
+  // I giorni non sono una risposta del profilo: vengono solo dalle visite, e solo se la persona non li ha scelti.
+  if (!s.giorni.length && a && a.affidabile && a.giorni.length) {
+    scelte.giorni = [...a.giorni]
+    riportate.push('giorni')
   }
   return { scelte, riportate }
 }
@@ -226,6 +271,7 @@ export const CHIAVI_CONSIGLI: Record<CampoConsigli, readonly string[]> = {
   livello: ['livello'],
   intensita: ['intensita'],
   fasce: ['fasce'],
+  giorni: ['giorni'],
 }
 
 /** Le risposte riportate che la persona non ha toccato: quelle toccate sono sue, e non si segnano piu'. */
@@ -239,7 +285,7 @@ export const senzaToccate = <C extends string>(riportate: readonly C[], toccate:
 export function salaDaProfilo(salvate: Risposte, riportate: readonly CampoSala[], p: ProfiloComune): { risposte: Risposte; riportate: CampoSala[] } {
   const base: Risposte = { ...salvate }
   for (const c of riportate) base[c] = null
-  const dal = inSala(p, base)
+  const dal = inSala(profiloEffettivo(p), base)
   return { risposte: { ...base, ...dal.risposte }, riportate: dal.riportate }
 }
 
@@ -253,8 +299,9 @@ export function consigliDaProfilo(salvate: SceltePerConsigli, riportate: readonl
       base.pausa = null
     } else if (c === 'livello') base.livello = null
     else if (c === 'intensita') base.intensita = null
+    else if (c === 'giorni') base.giorni = []
     else base.fasce = []
   }
-  const dal = inConsigli(p, base)
+  const dal = inConsigli(p, base, abitudineNota())
   return { scelte: { ...base, ...dal.scelte }, riportate: dal.riportate }
 }

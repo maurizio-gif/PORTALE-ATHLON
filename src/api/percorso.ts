@@ -1,4 +1,4 @@
-import { funzione, type BozzaScheda, type Continuo, type SchedaLezione, type Stile } from './lab'
+import { abitudineDa, funzione, type AbitudineTrain, type BozzaScheda, type Continuo, type SchedaLezione, type Stile } from './lab'
 import { t } from '@/lib/lingua'
 
 // Il Percorso Athlon (20/10/2026): la funzione portale-lab-percorso di APP-ATHLON. Il «tutor tecnico» compone
@@ -410,6 +410,8 @@ export type ConsiglioRisolto = {
   perche: string | null
   /** Quante volte a settimana conviene. */
   volte: number
+  /** Quante volte il socio e' stato presente a questa lezione nelle ultime otto settimane, e l'ultima (ISO): lo scrive la funzione dalle presenze. Null se non la frequenta (o con una funzione di prima). */
+  gia_fatta?: { volte: number; ultima: string } | null
   /** Quando si tiene di solito: vuoto con una funzione di prima. */
   orari: OrarioLezione[]
   /** Le prossime lezioni di questo tipo (vuoto se nei prossimi giorni non ce ne sono). */
@@ -438,6 +440,8 @@ export type StatoConsigli = {
   /** Falso se il servizio dei consigli non e' acceso. */
   attivo: boolean
   idoneita: Idoneita
+  /** Quanto viene al club e quando (dal tornello e dalle presenze): per il «consigliato» del questionario. Null con una funzione di prima. */
+  abitudine: AbitudineTrain | null
 }
 
 export type RispostaConsigli = {
@@ -452,6 +456,8 @@ export type RispostaConsigli = {
   /** Falso se PerfectGym non ha risposto: i consigli si vedono, ma non si sa cosa e' gia' prenotato. */
   prenotazioni_lette: boolean
   quota: Quota
+  /** Le cifre dell'abitudine del socio (non le lezioni, che stanno nei consigli): per la riga «abbiamo tenuto conto di…». Null con una funzione di prima. */
+  abitudine: AbitudineTrain | null
   /** Quando sono stati scritti: restano salvati, e le lezioni si rileggono a ogni apertura. null se non si sono salvati. */
   salvati_il: string | null
   /** Le risposte salvate, senza le limitazioni: servono a riaprire il questionario com'era (solo con `consigli_ultimi`). */
@@ -469,6 +475,7 @@ export async function statoConsigli(): Promise<Esito<StatoConsigli>> {
       quota: dati.quota ?? { usate: 0, massimo: 1, periodo: 'settimana' },
       attivo: dati.attivo !== false,
       idoneita: dati.idoneita ?? { categorie: null, incerta: true },
+      abitudine: abitudineDa(dati.abitudine),
     }
   // Una funzione che non conosce ancora l'azione risponde «Azione sconosciuta.»: per il socio e' «non ancora attivo».
   if (dati.errore === 'Azione sconosciuta.' || dati.errore === 'Unknown action.') return { ok: false, errore: t('I consigli non sono ancora attivi: riprova più avanti.', 'Recommendations aren’t active yet: try again later.'), stato: 503 }
@@ -482,12 +489,13 @@ function rispostaDa(dati: Record<string, any>): RispostaConsigli {
     sintesi: dati.sintesi ?? null,
     integrazione: dati.integrazione ?? null,
     // Una funzione di prima non manda gli orari: le carte restano senza «di solito».
-    consigli: (dati.consigli as ConsiglioRisolto[]).map((c) => ({ ...c, orari: c.orari ?? [], alternative: (c.alternative ?? []).map((a) => ({ ...a, orari: a.orari ?? [] })) })),
+    consigli: (dati.consigli as ConsiglioRisolto[]).map((c) => ({ ...c, gia_fatta: c.gia_fatta ?? null, orari: c.orari ?? [], alternative: (c.alternative ?? []).map((a) => ({ ...a, orari: a.orari ?? [] })) })),
     sedute: Array.isArray(dati.sedute) ? dati.sedute : [],
     personal: dati.personal && typeof dati.personal === 'object' ? dati.personal : null,
     schede: dati.schede ?? {},
     avvisi: dati.avvisi ?? [],
     prenotazioni_lette: dati.prenotazioni_lette !== false,
+    abitudine: abitudineDa(dati.abitudine),
     quota: dati.quota ?? { usate: 0, massimo: 1, periodo: 'settimana' },
     salvati_il: typeof dati.salvati_il === 'string' ? dati.salvati_il : null,
     questionario: dati.questionario && typeof dati.questionario === 'object' ? dati.questionario : undefined,

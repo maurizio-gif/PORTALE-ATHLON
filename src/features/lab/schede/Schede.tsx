@@ -24,6 +24,7 @@ import { Carta, Entra, LinkSezione, Messaggio, Pulsante, Riga, SchedeInArrivo, S
 import { Schermata } from '../ui/Schermata'
 import { F, FUOCO, MARE, NOTTE, ORTO, usePalette } from '../ui/tema'
 import { Tocco } from '../ui/Tocco'
+import { ricordaAbitudine } from './abitudineMemoria'
 import { CHIAVE_ELENCO_PIANI, etichettaPiano, giorniAlTest, giornoTest, LIVELLI, quando, testDaRifare } from './comune'
 import { eDiVasca, ETICHETTA_VASCA } from './nuoto'
 
@@ -281,6 +282,8 @@ export function Schede() {
   const carica = useCallback(async () => {
     setErrore(null)
     const r = await prendi(CHIAVE_SCHEDE, elencoSchede)
+    // L'abitudine (quanto viene al club e quando) serve al «consigliato» dei questionari: si tiene in memoria, mai sul disco.
+    if (r.ok) ricordaAbitudine(r.abitudine)
     if (r.ok) setDati({ schede: r.schede, ultimi: r.ultimi, ai: r.ai, test: r.test })
     else setErrore(r.errore)
   }, [])

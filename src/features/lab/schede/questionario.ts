@@ -9,6 +9,8 @@
 // I valori (`OBIETTIVI`, `valore`) vanno al server e restano in italiano: si traducono solo le etichette (`nomeObiettivo`, `testo`).
 
 import { t } from '../../../lib/lingua'
+import { giorniSalaConsigliati } from './abitudine'
+import { abitudineNota } from './abitudineMemoria'
 
 export const OBIETTIVI = ['Tonificazione', 'Ipertrofia', 'Dimagrimento', 'Forza', 'Resistenza', 'Mobilità', 'Benessere generale'] as const
 /** In vasca c'e' anche «Tecnica», che in sala non ha senso. */
@@ -290,7 +292,8 @@ export const livelloScelto = (r: Risposte): Livello => r.livello ?? livelloDa(r)
 /**
  * Quanti giorni a settimana consigliamo. **Soglie nostre, da far validare dal Direttore Tecnico.** Parte da 3 (4 per un esperto), un
  * giorno in piu' per sedute da 30 minuti o per chi sceglie un'intensita' intensa (e non e' un principiante), uno in meno per sedute da 80
- * minuti; il numero resta fra 2 e 5.
+ * minuti; il numero resta fra 2 e 5. **E non supera mai quanti giorni a settimana puo' sostenere** (un giorno in piu' di quanti ne fa oggi,
+ * dal tornello e dalle lezioni: `abitudine.ts`), quando si sa.
  * Lo calcola il codice, non un modello: il socio lo vede come «Consigliato» e sceglie lui.
  */
 export function giorniConsigliati(r: Pick<Risposte, 'minuti' | 'intensita'> & { livello: Livello }): number {
@@ -298,7 +301,8 @@ export function giorniConsigliati(r: Pick<Risposte, 'minuti' | 'intensita'> & { 
   if (r.minuti !== null && r.minuti <= 30) n += 1
   if (r.minuti !== null && r.minuti >= 80) n -= 1
   if (r.intensita === 'intensa' && r.livello !== 'principiante') n += 1
-  return Math.max(2, Math.min(5, n))
+  // Mai piu' di quanti se ne possono sostenere (22/10/2026, `abitudine.ts`): chi viene un giorno a settimana non parte da tre.
+  return giorniSalaConsigliati(Math.max(2, Math.min(5, n)), abitudineNota())
 }
 
 export const giorniScelti = (r: Risposte): number => r.giorni ?? giorniConsigliati({ ...r, livello: livelloScelto(r) })
