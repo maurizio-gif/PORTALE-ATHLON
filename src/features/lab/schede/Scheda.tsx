@@ -17,6 +17,7 @@ import { CalorieScheda } from './Calorie'
 import { comeDaSalvare } from './copia'
 import { etichettaPiano, giornoTest, gruppo, indicazione, LIVELLI, muscoli, recupero, SPIEGA_STIMA, SPIEGA_TARATURA, testDaRifare } from './comune'
 import { MediaEsercizio } from './MediaEsercizio'
+import { condividiPiano, stampaPiano, type EsitoEsporta } from './esportaVasca'
 import { COSA_FAI_IN_VASCA, eDiVasca, ETICHETTA_VASCA, inMetri, metriDelGiorno, nomeIntensita, nomeParte, parteDa, SPIEGA_SOLO_LETTURA } from './nuoto'
 
 // Un piano: la descrizione, i giorni come schede, e gli esercizi del giorno
@@ -154,6 +155,7 @@ export function Scheda() {
   const [erroreElimina, setErroreElimina] = useState<string | null>(null)
   const [aggiungendo, setAggiungendo] = useState(false)
   const [erroreAggiungi, setErroreAggiungi] = useState<string | null>(null)
+  const [esito, setEsito] = useState<EsitoEsporta | null>(null)
 
   const carica = useCallback(async () => {
     setErrore(null)
@@ -192,6 +194,12 @@ export function Scheda() {
     if (!r.ok) return setErroreElimina(r.errore)
     dimentica()
     router.replace('/allenamento')
+  }
+
+  /** Il piano di nuoto fuori dall'app: stampa (e PDF dalla finestra di stampa) o testo da condividere. */
+  async function esporta(come: 'stampa' | 'condividi') {
+    setEsito(null)
+    setEsito(await (come === 'stampa' ? stampaPiano(s) : condividiPiano(s)))
   }
 
   /** «Aggiungi ai tuoi piani»: la copia com'e', senza passare dall'editor. */
@@ -403,7 +411,19 @@ export function Scheda() {
       </View>
 
       {vasca ? (
-        <Nota testo={SPIEGA_SOLO_LETTURA} />
+        <>
+          <Nota testo={SPIEGA_SOLO_LETTURA} />
+          <View style={stili.azioniTue}>
+            <View style={{ flex: 1, minWidth: 160 }}>
+              <Pulsante testo={t('Stampa o salva in PDF', 'Print or save as PDF')} icona="scarica" variante="secondario" piccolo onPress={() => esporta('stampa')} />
+            </View>
+            <View style={{ flex: 1, minWidth: 160 }}>
+              <Pulsante testo={t('Condividi il piano', 'Share the plan')} icona="condividi" variante="secondario" piccolo onPress={() => esporta('condividi')} />
+            </View>
+          </View>
+          {esito === 'copiato' ? <Nota testo={t('Piano copiato: incollalo dove vuoi.', 'Plan copied: paste it wherever you like.')} /> : null}
+          {esito === 'errore' ? <Messaggio>{t('Non siamo riusciti a preparare il piano. Riprova.', 'We couldn’t prepare the plan. Try again.')}</Messaggio> : null}
+        </>
       ) : (
         <>
           <CalorieScheda scheda={s} giorno={Math.min(giorno, s.giorni.length - 1)} />
