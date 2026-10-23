@@ -46,7 +46,7 @@ import { eDiVasca, ETICHETTA_VASCA } from './nuoto'
 // L'area scelta sta nell'indirizzo (`?area=food`, `?area=relax`), cosi' tornando indietro dal
 // diario o dai dispositivi si ritrova la sua area. L'indirizzo resta /allenamento: e' quello dei link gia' dati.
 
-type Dati = { schede: RigaSchedaLab[]; ultimi: SedutaBreve[]; ai: { usate: number; massimo: number }; test: StatoTest }
+type Dati = { schede: RigaSchedaLab[]; ultimi: SedutaBreve[]; ai: { usate: number; massimo: number; in_prova?: boolean }; test: StatoTest }
 
 /** Il contatore delle calorie: gli allenamenti chiusi e le lezioni con la presenza. */
 /**
@@ -198,11 +198,11 @@ function CartaPersonal() {
  * uno strumento (il colore e' quello del club, non il viola dell'AI); che dietro ci sia un'intelligenza artificiale lo dice la
  * nota in fondo al questionario e quella sul piano composto. Chi preferisce partire da zero lo scrive a mano (`/allenamento/nuova`).
  */
-function CartaComponi({ restano, massimo, riempi = false }: { restano: number; massimo: number; riempi?: boolean }) {
+function CartaComponi({ restano, massimo, inProva = false, riempi = false }: { restano: number; massimo: number; inProva?: boolean; riempi?: boolean }) {
   const p = usePalette()
   return (
     <View style={[stili.agente, { backgroundColor: p.carta, borderColor: p.linea, boxShadow: p.ombra, flexDirection: 'column', alignItems: 'stretch' }, riempi && { flex: 1 }]}>
-      <Tocco onPress={() => router.push('/allenamento/agente')} etichetta={t('Componi il tuo piano di allenamento', 'Build your workout plan')} scala={0.985} spento={!restano}>
+      <Tocco onPress={() => router.push('/allenamento/agente')} etichetta={t('Componi il tuo piano di allenamento', 'Build your workout plan')} scala={0.985} spento={!restano && !inProva}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: spazio.tre }}>
           <LinearGradient colors={FUOCO} style={stili.agenteIcona}>
             <Icona nome="peso" size={26} colore="#fff" />
@@ -210,7 +210,12 @@ function CartaComponi({ restano, massimo, riempi = false }: { restano: number; m
           <View style={{ flex: 1, gap: 3 }}>
             <Text style={[stili.agenteTitolo, { color: p.testo }]}>{t('Componi il tuo piano', 'Build your plan')}</Text>
             <Text style={[stili.agenteTesto, { color: p.testoSecondario }]}>
-              {restano
+              {inProva
+                ? t(
+                    'Generiamo insieme il tuo piano, in sala o in vasca: rispondi a qualche domanda e in meno di un minuto hai una prima versione da modificare.',
+                    'Let’s build your plan together, in the gym or in the pool: answer a few questions and in under a minute you’ll have a first draft to edit.',
+                  )
+                : restano
                 ? t(
                     `Generiamo insieme il tuo piano, in sala o in vasca: rispondi a qualche domanda e in meno di un minuto hai una prima versione da modificare. Puoi comporne ancora ${restano} questo mese.`,
                     `Let’s build your plan together, in the gym or in the pool: answer a few questions and in under a minute you’ll have a first draft to edit. You can build ${restano} more this month.`,
@@ -221,7 +226,7 @@ function CartaComponi({ restano, massimo, riempi = false }: { restano: number; m
                   )}
             </Text>
           </View>
-          {restano ? <Icona nome="avanti" size={18} colore={p.testoTerzo} /> : null}
+          {restano || inProva ? <Icona nome="avanti" size={18} colore={p.testoTerzo} /> : null}
         </View>
       </Tocco>
       <View style={riempi ? { marginTop: 'auto' } : undefined}>
@@ -389,7 +394,7 @@ function Train({ dati, largo }: { dati: Dati; largo: boolean }) {
         </Text>
         <View style={largo ? stili.fila3 : { gap: spazio.tre }}>
           <Entra indice={1} style={largo ? { flex: 1 } : undefined}>
-            <CartaComponi restano={restano} massimo={dati.ai.massimo} riempi={largo} />
+            <CartaComponi restano={restano} massimo={dati.ai.massimo} inProva={!!dati.ai.in_prova} riempi={largo} />
           </Entra>
           <Entra indice={2} style={largo ? { flex: 1 } : undefined}>
             <CartaImporta riempi={largo} />

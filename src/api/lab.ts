@@ -880,7 +880,7 @@ export function abitudineDa(x: unknown): AbitudineTrain | null {
   }
 }
 
-export async function elencoSchede(): Promise<Esito<{ schede: RigaSchedaLab[]; ultimi: SedutaBreve[]; ai: { usate: number; massimo: number }; abitudine: AbitudineTrain | null; test: StatoTest }>> {
+export async function elencoSchede(): Promise<Esito<{ schede: RigaSchedaLab[]; ultimi: SedutaBreve[]; ai: { usate: number; massimo: number; in_prova?: boolean }; abitudine: AbitudineTrain | null; test: StatoTest }>> {
   const { ok, dati } = await schedeLab({ azione: 'elenco' })
   if (ok) return { ok: true, schede: dati.schede, ultimi: dati.ultimi, ai: dati.ai, abitudine: abitudineDa(dati.abitudine), test: dati.test ?? { ultimo: null, fatti: 0, totale: 0, giorni: 42 } }
   return { ok: false, errore: dati.errore ?? t('Non riusciamo a leggere i tuoi piani adesso.', 'We can’t load your plans right now.') }
