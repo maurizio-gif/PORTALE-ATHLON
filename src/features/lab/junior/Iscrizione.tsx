@@ -336,6 +336,7 @@ export function Iscrizione() {
                   importi={costi}
                   primaLezione={anteprima?.inizi?.[0]?.data ?? null}
                   fineStagione={baby ? undefined : FINE_STAGIONE}
+                  senzaTotale
                 />
               ) : (
                 <Text style={[stili.nota, { color: p.testoSecondario }]}>
@@ -598,6 +599,7 @@ export function Iscrizione() {
               importi={anteprima.importi}
               primaLezione={anteprima.inizi?.[0]?.data ?? null}
               fineStagione={baby ? undefined : FINE_STAGIONE}
+              senzaTotale
             />
             <DocumentoContratto blocchi={anteprima.documento.blocchi} />
 

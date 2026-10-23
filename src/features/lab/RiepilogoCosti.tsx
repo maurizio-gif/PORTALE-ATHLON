@@ -22,37 +22,21 @@ export function dataLunga(iso: string): string {
 
 const MOSTRA = 3
 
-/** Totale fino a una data (23/10/2026, Junior): oggi + le quote già in elenco + i rinnovi ogni 1° fino a `fine` compreso. */
-export function totaleFinoA(c: ImportiContratto['calendario'], fine: string): number {
-  let tot = c.totale_oggi
-  let ultima = ''
-  for (const q of c.prossimi) {
-    if (q.data <= fine) tot += q.importo
-    if (q.data > ultima) ultima = q.data
-  }
-  if (c.ricorrenza && c.ricorrenza.ogni === 'mese') {
-    const [a, m] = c.ricorrenza.dal.split('-').map(Number)
-    for (let k = 0; k < 60; k++) {
-      const d = new Date(Date.UTC(a, m - 1 + k, 1)).toISOString().slice(0, 10)
-      if (d > fine) break
-      if (d > ultima) tot += c.ricorrenza.importo
-    }
-  }
-  return tot
-}
-
 export function RiepilogoCosti({
   importi,
   metodo,
   primaLezione,
   fineStagione,
+  senzaTotale = false,
 }: {
   importi: ImportiContratto
   metodo?: 'carta' | 'conto'
   /** Data della prima lezione (ISO), se nota. */
   primaLezione?: string | null
-  /** Fine della stagione (ISO): aggiunge il totale fino a quel giorno. */
+  /** Fine del corso (ISO): una riga con la data. */
   fineStagione?: string
+  /** Niente totale dell'impegno: sta solo nel contratto (Junior, 23/10/2026). */
+  senzaTotale?: boolean
 }) {
   const p = usePalette()
   const [tutte, setTutte] = useState(false)
@@ -101,7 +85,7 @@ export function RiepilogoCosti({
 
         {c.prossimi.length || c.ricorrenza ? (
           <View style={{ gap: 6, borderTopWidth: 1, borderTopColor: p.linea, paddingTop: spazio.tre }}>
-            <Text style={[stili.sopra, { color: p.testoSecondario }]}>{t('Poi', 'Then')}</Text>
+            <Text style={[stili.sopra, { color: p.testoSecondario }]}>{senzaTotale ? t('Prossimi pagamenti', 'Next payments') : t('Poi', 'Then')}</Text>
             {elenco.map((q) => (
               <View key={q.data} style={riga}>
                 <Text style={[stili.voce, { color: p.testo, flex: 1 }]}>{dataLunga(q.data)}</Text>
@@ -123,20 +107,14 @@ export function RiepilogoCosti({
           </View>
         ) : null}
 
+        {senzaTotale ? null : (
         <View style={[riga, { borderTopWidth: 1, borderTopColor: p.linea, paddingTop: spazio.tre }]}>
           <Text style={[stili.voce, { color: p.testo, fontFamily: F.bold, flex: 1 }]}>
             {importi.formula === 'flex' ? t('Totale fino alla fine dell’impegno minimo', 'Total until the end of the minimum term') : t('Totale dell’impegno', 'Total commitment')}
           </Text>
           <Text style={{ color: p.testo, fontFamily: F.extra, fontSize: 18 }}>{euro(c.totale_impegno)}</Text>
         </View>
-        {fineStagione ? (
-          <View style={riga}>
-            <Text style={[stili.voce, { color: p.testo, fontFamily: F.bold, flex: 1 }]}>
-              {t(`Totale fino alla fine della stagione (${dataLunga(fineStagione)})`, `Total until the end of the season (${dataLunga(fineStagione)})`)}
-            </Text>
-            <Text style={{ color: p.testo, fontFamily: F.extra, fontSize: 18 }}>{euro(totaleFinoA(c, fineStagione))}</Text>
-          </View>
-        ) : null}
+        )}
       </View>
     </Carta>
   )

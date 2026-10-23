@@ -616,7 +616,7 @@ export function Abbonamento() {
             </Sezione>
 
             <Sezione titolo={t('Il tuo piano di pagamento', 'Your payment plan')}>
-              <RiepilogoCosti importi={firmato.importi} metodo={metodo} />
+              <RiepilogoCosti importi={firmato.importi} metodo={metodo} senzaTotale={firmato.importi.formula === 'flex'} />
             </Sezione>
 
             {errorePagamento ? <Messaggio>{errorePagamento}</Messaggio> : null}
