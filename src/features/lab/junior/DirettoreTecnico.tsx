@@ -2,8 +2,12 @@ import { useCallback, useEffect, useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 
 import {
+  annullaDirettoreTecnico,
+  appuntamentiDirettoreTecnico,
   prenotaDirettoreTecnico,
   slotDirettoreTecnico,
+  spostaDirettoreTecnico,
+  type AppuntamentoDt,
   type EsitoSlotDt,
   type PersonaJunior,
 } from "@/api/junior";
@@ -52,6 +56,17 @@ export function DirettoreTecnico({
   const [invio, setInvio] = useState(false);
   const [errore, setErrore] = useState<string | null>(null);
   const [fatto, setFatto] = useState<{ data: string; ora: string } | null>(null);
+  const [mie, setMie] = useState<AppuntamentoDt[]>([]);
+
+  // I suoi appuntamenti già fissati: si leggono subito all'apertura e dopo ogni prenotazione, spostamento o disdetta.
+  const rileggiMie = useCallback(async () => {
+    const r = await appuntamentiDirettoreTecnico();
+    if (r) setMie(r.filter((a) => a.memberId === null || a.memberId === persona.member_id));
+  }, [persona.member_id]);
+  useEffect(() => {
+    setMie([]);
+    rileggiMie();
+  }, [rileggiMie]);
 
   const carica = useCallback(async () => {
     setEsito(undefined);
@@ -89,6 +104,18 @@ export function DirettoreTecnico({
     setInvio(false);
     if (r.ok) {
       setFatto({ data: r.data, ora: r.ora });
+      // Subito in elenco, con la possibilità di spostarlo o annullarlo: prima dalla risposta, poi riletto.
+      if (r.id) {
+        setMie((m) => [
+          ...m.filter((a) => a.id !== r.id),
+          { id: r.id as string, data: r.data, ora: r.ora, durataMinuti: r.durataMinuti, bambino: null, memberId: persona.member_id, motivo: motivo.trim() },
+        ]);
+      }
+      setAperto(false);
+      setGiorno(null);
+      setOra(null);
+      setMotivo("");
+      rileggiMie();
       return;
     }
     setErrore(r.errore);
@@ -144,11 +171,24 @@ export function DirettoreTecnico({
           {fatto ? (
             <Messaggio tono="ok" titolo={t("Appuntamento fissato", "Appointment booked")}>
               {t(
-                `Il Direttore Tecnico ti chiamerà ${giornoLungo(fatto.data)} alle ${fatto.ora}. Ti abbiamo mandato una email di conferma.`,
-                `The Technical Director will call you on ${giornoLungo(fatto.data)} at ${fatto.ora}. We’ve sent you a confirmation email.`,
+                `Il Direttore Tecnico ti chiamerà ${giornoLungo(fatto.data)} alle ${fatto.ora}. Ti abbiamo mandato una email di conferma. Lo trovi qui sotto: da lì lo puoi spostare o annullare.`,
+                `The Technical Director will call you on ${giornoLungo(fatto.data)} at ${fatto.ora}. We’ve sent you a confirmation email. You’ll find it below: you can move or cancel it from there.`,
               )}
             </Messaggio>
-          ) : vista ? (
+          ) : null}
+
+          {mie.length ? (
+            <View style={{ gap: spazio.due }}>
+              <Text style={[stili.sotto, { color: p.testo }]}>
+                {mie.length === 1 ? t("Il tuo appuntamento", "Your appointment") : t("I tuoi appuntamenti", "Your appointments")}
+              </Text>
+              {mie.map((a) => (
+                <CartaAppuntamento key={a.id} a={a} vista={vista} persona={persona} onCambiato={rileggiMie} />
+              ))}
+            </View>
+          ) : null}
+
+          {vista ? (
             <Messaggio tono="attenzione">
               {t(
                 "In vista cliente non si prenota: l’appuntamento lo fissa il genitore dalla sua app.",
@@ -157,7 +197,7 @@ export function DirettoreTecnico({
             </Messaggio>
           ) : !aperto ? (
             <Pulsante
-              testo={t("Fissa una telefonata", "Book a phone call")}
+              testo={mie.length ? t("Fissa un’altra telefonata", "Book another call") : t("Fissa una telefonata", "Book a phone call")}
               icona="calendario"
               onPress={() => setAperto(true)}
             />
@@ -206,12 +246,20 @@ export function DirettoreTecnico({
               {ora ? (
                 <>
                   <CampoTesto
-                    etichetta={t("Di cosa vuoi parlare", "What would you like to discuss")}
+                    etichetta={t("Di cosa vuoi parlare (obbligatorio)", "What would you like to discuss (required)")}
                     value={motivo}
                     onChangeText={(v) => setMotivo(v.slice(0, MOTIVO_MAX))}
                     multiline
-                    placeholder={t("Anche in due parole", "A few words are enough")}
+                    placeholder={t("Scrivilo qui, anche in due parole", "Write it here, a few words are enough")}
                   />
+                  {motivo.trim().length === 0 ? (
+                    <Text style={[stili.nota, { color: p.attenzione }]}>
+                      {t(
+                        "Per confermare scrivi di cosa vuoi parlare: il Direttore Tecnico lo legge prima di chiamarti.",
+                        "To confirm, write what you’d like to discuss: the Technical Director reads it before calling you.",
+                      )}
+                    </Text>
+                  ) : null}
                   {esito.telefonoMancante ? (
                     <CampoTesto
                       etichetta={t("Il tuo cellulare", "Your mobile number")}
@@ -248,7 +296,127 @@ export function DirettoreTecnico({
   );
 }
 
+/** Un appuntamento già fissato: quando, di cosa si parla, e «Sposta» / «Annulla» (con conferma). */
+function CartaAppuntamento({
+  a,
+  vista,
+  persona,
+  onCambiato,
+}: {
+  a: AppuntamentoDt;
+  vista: boolean;
+  persona: PersonaJunior;
+  onCambiato: () => void;
+}) {
+  const p = usePalette();
+  const [conferma, setConferma] = useState(false);
+  const [sposta, setSposta] = useState(false);
+  const [esito, setEsito] = useState<EsitoSlotDt | undefined>();
+  const [giorno, setGiorno] = useState<string | null>(null);
+  const [ora, setOra] = useState<string | null>(null);
+  const [inCorso, setInCorso] = useState(false);
+  const [errore, setErrore] = useState<string | null>(null);
+
+  const apriSposta = async () => {
+    setSposta(true);
+    setConferma(false);
+    setErrore(null);
+    setEsito(undefined);
+    setEsito(await slotDirettoreTecnico(persona.member_id, a.id));
+  };
+  const giorni = esito?.ok ? esito.giorni : [];
+  const slotDelGiorno = giorni.find((g) => g.data === giorno)?.slot ?? [];
+
+  const annulla = async () => {
+    setInCorso(true);
+    setErrore(null);
+    const r = await annullaDirettoreTecnico(a.id);
+    setInCorso(false);
+    if (r.ok) return onCambiato();
+    setErrore(r.errore);
+    setConferma(false);
+  };
+  const conferma_sposta = async () => {
+    if (!giorno || !ora) return;
+    setInCorso(true);
+    setErrore(null);
+    const r = await spostaDirettoreTecnico(a.id, giorno, ora);
+    setInCorso(false);
+    if (r.ok) {
+      setSposta(false);
+      return onCambiato();
+    }
+    setErrore(r.errore);
+    if (r.slotOccupato) {
+      setOra(null);
+      setEsito(await slotDirettoreTecnico(persona.member_id, a.id));
+    }
+  };
+
+  return (
+    <View style={[stili.appuntamento, { backgroundColor: p.incavo, borderColor: p.linea }]}>
+      <Text style={[stili.sotto, { color: p.testo }]}>
+        {giornoLungo(a.data)} · {a.ora}
+        {a.durataMinuti ? ` · ${t(`${a.durataMinuti} min`, `${a.durataMinuti} min`)}` : ""}
+      </Text>
+      {a.motivo ? (
+        <Text style={[stili.testo, { color: p.testoSecondario }]} numberOfLines={3}>
+          {a.motivo}
+        </Text>
+      ) : null}
+      {errore ? <Messaggio>{errore}</Messaggio> : null}
+      {vista ? null : sposta ? (
+        <View style={{ gap: spazio.tre }}>
+          {!esito ? (
+            <SchedeInArrivo quante={1} />
+          ) : !esito.ok ? (
+            <Messaggio>{esito.errore}</Messaggio>
+          ) : (
+            <>
+              <Text style={[stili.sotto, { color: p.testo }]}>{t("Scegli il nuovo giorno", "Choose the new day")}</Text>
+              <Scelte
+                valori={giorni.map((g) => ({ valore: g.data, testo: giornoBreve(g.data) }))}
+                scelto={giorno}
+                onScegli={(v) => {
+                  setGiorno(v);
+                  setOra(null);
+                }}
+              />
+              {giorno ? (
+                <>
+                  <Text style={[stili.sotto, { color: p.testo }]}>{t("Scegli il nuovo orario", "Choose the new time")}</Text>
+                  <Scelte valori={slotDelGiorno.map((x) => ({ valore: x, testo: x }))} scelto={ora} onScegli={setOra} />
+                </>
+              ) : null}
+              <Pulsante
+                testo={t("Conferma lo spostamento", "Confirm the change")}
+                icona="spunta"
+                inCorso={inCorso}
+                disabilitato={!giorno || !ora}
+                onPress={conferma_sposta}
+              />
+            </>
+          )}
+          <Pulsante testo={t("Lascia com’è", "Keep it as it is")} variante="secondario" piccolo pieno={false} onPress={() => setSposta(false)} disabilitato={inCorso} />
+        </View>
+      ) : conferma ? (
+        <View style={stili.azioni}>
+          <Pulsante testo={t("Sì, annulla", "Yes, cancel")} variante="pericolo" piccolo pieno={false} onPress={annulla} inCorso={inCorso} />
+          <Pulsante testo={t("No", "No")} variante="secondario" piccolo pieno={false} onPress={() => setConferma(false)} disabilitato={inCorso} />
+        </View>
+      ) : (
+        <View style={stili.azioni}>
+          <Pulsante testo={t("Sposta", "Move")} icona="calendario" variante="secondario" piccolo pieno={false} onPress={apriSposta} />
+          <Pulsante testo={t("Annulla", "Cancel")} variante="secondario" piccolo pieno={false} onPress={() => setConferma(true)} />
+        </View>
+      )}
+    </View>
+  );
+}
+
 const stili = StyleSheet.create({
+  appuntamento: { gap: spazio.due, padding: spazio.tre, borderRadius: 16, borderWidth: StyleSheet.hairlineWidth },
+  azioni: { flexDirection: "row", gap: spazio.due, flexWrap: "wrap" },
   corpo: { gap: spazio.tre, padding: spazio.tre },
   testa: { flexDirection: "row", alignItems: "center", gap: spazio.tre },
   bollino: { width: 36, height: 36, borderRadius: 12, alignItems: "center", justifyContent: "center" },
