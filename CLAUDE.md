@@ -1428,3 +1428,7 @@ Richieste di Maurizio. In produzione dal 24/10/2026 (PORTALE-ATHLON #132 e #133,
 - **Il motivo è obbligatorio e si vede**: etichetta «(obbligatorio)», avviso finché è vuoto, pulsante spento. Il controllo vero sta nella funzione.
 - **Da pubblicare in quest'ordine** (fatto così): CRM, funzioni, app. Un'app nuova con la funzione vecchia non ha `dt_mie` e mostra solo la conferma.
 - **Provato**: `tsc` sui file toccati. **Non guardato in un browser né su un telefono**, e non provato con una sessione vera.
+
+## Cambio orario Junior: modal di conferma, la richiesta non è automatica (25/10/2026)
+
+Richiesta di Maurizio. Scegliendo un turno in «Cambio orario» (`junior/CambioOrario.tsx`) si apre il foglio di conferma, che dice: la richiesta **non è automatica**, la segreteria la controlla e la approva o la rifiuta; solo dopo l'approvazione il bambino cambia turno, **dalla prima lezione utile** dopo la data comunicata (fino ad allora resta nel turno di adesso); l'esito arriva per email; e si **raccomanda di chiedere il cambio solo se strettamente necessario**, per la continuità didattica. Pulsanti «Ho capito, manda la richiesta» e «Annulla». Anche l'introduzione e il messaggio «Richiesta inviata» dicono che l'esito arriva dopo. Lato server (tabella, avviso in Dashboard, email al desk e al genitore): `CLAUDE.md` di APP-ATHLON. `tsc` pulito; **non guardato in un browser**.

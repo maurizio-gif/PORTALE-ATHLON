@@ -18,8 +18,8 @@ import { annoDi, annateGruppo, calendarioGruppo, statoPosti, titoloGruppo } from
 // chiedere un altro turno **dello stesso tipo** (chi e' in un monosettimanale vede i monosettimanali, chi e' in un bisettimanale i
 // bisettimanali: la categoria di PerfectGym) del suo anno di nascita. Si vedono solo i turni con un posto libero.
 //
-// **Da qui non si cambia niente da soli**: la richiesta arriva alla segreteria (un task in Agenda), che sposta il turno su PerfectGym
-// e conferma al genitore. Nello stesso tipo non c'e' una nuova quota (vedi «Come funziona»). In vista cliente si guarda e basta.
+// **Da qui non si cambia niente da soli**: la richiesta arriva alla segreteria (Dashboard del CRM + email al desk), che la approva
+// (con la data da cui vale, dalla prima lezione utile) o la rifiuta (con i motivi) e scrive l'esito al genitore. Nello stesso tipo non c'e' una nuova quota (vedi «Come funziona»). In vista cliente si guarda e basta.
 
 /** I turni che un bambino iscritto puo' chiedere: stessa categoria del suo gruppo, il suo anno, un posto libero, non quello che ha. */
 export function turniPerCambio(persona: PersonaJunior, gruppi: GruppoJunior[]): GruppoJunior[] {
@@ -69,15 +69,15 @@ export function CambioOrario({
     <Sezione titolo={t("Cambio orario", "Change schedule")} conteggio={turni.length}>
       <Text style={[stili.nota, { color: p.testoSecondario }]}>
         {t(
-          `Se ${nome} vuole cambiare orario puoi chiedere un altro turno dello stesso tipo, con un posto libero. La richiesta arriva alla segreteria, che sposta il turno e ti conferma: nello stesso tipo di corso non c’è una nuova quota.`,
-          `If ${nome} wants a different time you can ask for another slot of the same kind, with a free spot. The request goes to the front desk, which moves the slot and confirms: within the same kind of course there’s no new fee.`,
+          `Se ${nome} vuole cambiare orario puoi chiedere un altro turno dello stesso tipo, con un posto libero. La richiesta non è automatica: la segreteria la controlla e poi la approva o la rifiuta, e ti scrive l’esito per email. Nello stesso tipo di corso non c’è una nuova quota.`,
+          `If ${nome} wants a different time you can ask for another slot of the same kind, with a free spot. The request isn’t automatic: the front desk reviews it, then approves or declines it and emails you the outcome. Within the same kind of course there’s no new fee.`,
         )}
       </Text>
       {chiesti.length ? (
         <Messaggio tono="ok" titolo={t("Richiesta inviata", "Request sent")}>
           {t(
-            "La segreteria ha ricevuto la tua richiesta e ti conferma il nuovo turno appena lo ha spostato.",
-            "The front desk got your request and will confirm the new slot as soon as it’s moved.",
+            "La segreteria la controlla e poi la approva o la rifiuta: ti scriviamo l’esito per email. Fino ad allora il turno resta quello di adesso.",
+            "The front desk will review it and approve or decline it: we’ll email you the outcome. Until then the slot stays the same.",
           )}
         </Messaggio>
       ) : null}
@@ -115,14 +115,21 @@ export function CambioOrario({
         onChiudi={() => (invio ? undefined : setScelto(null))}
       >
         <View style={{ gap: spazio.tre }}>
+          <Messaggio tono="attenzione" titolo={t("Prima di mandare la richiesta", "Before you send the request")}>
+            {t(
+              `La richiesta non è automatica: viene controllata dalla segreteria e poi approvata o rifiutata, e solo dopo l’approvazione ${nome} cambia turno. Se viene approvata, il cambio vale dalla prima lezione utile dopo la data che ti comunichiamo. Fino ad allora ${nome} resta nel turno di adesso. Riceverai l’esito per email.`,
+              `The request isn’t automatic: the front desk reviews it and then approves or declines it, and ${nome} only changes slot once it’s approved. If approved, the change applies from the first useful lesson after the date we tell you. Until then ${nome} stays in the current slot. You’ll get the outcome by email.`,
+            )}
+          </Messaggio>
           <Text style={[stili.nota, { color: p.testoSecondario }]}>
             {t(
-              `Chiedi alla segreteria di spostare ${nome} su questo turno. Non cambia niente finché la segreteria non conferma.`,
-              `Ask the front desk to move ${nome} to this slot. Nothing changes until the front desk confirms.`,
+              "Per garantire la continuità didattica, ti raccomandiamo di chiedere il cambio solo se strettamente necessario.",
+              "To protect continuity in lessons, we recommend requesting a change only if strictly necessary.",
             )}
           </Text>
           {errore ? <Messaggio tono="errore">{errore}</Messaggio> : null}
-          <Pulsante testo={t("Manda la richiesta", "Send the request")} icona="ok" onPress={manda} inCorso={invio} />
+          <Pulsante testo={t("Ho capito, manda la richiesta", "I understand, send the request")} icona="ok" onPress={manda} inCorso={invio} />
+          <Pulsante testo={t("Annulla", "Cancel")} variante="secondario" onPress={() => setScelto(null)} disabilitato={invio} />
         </View>
       </Foglio>
     </Sezione>
