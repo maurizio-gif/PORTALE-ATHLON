@@ -232,6 +232,25 @@ export async function presenzeLezioni(): Promise<Esito<{ presenze: PresenzaLezio
   return { ok: false, errore: dati.errore ?? t('Non riusciamo a leggere le tue lezioni adesso.', 'We can’t load your classes right now.') }
 }
 
+/** Una lezione a cui il titolare e' stato presente di recente e a cui non ha ancora dato le stelle. */
+export type LezioneDaValutare = { class_id: number; inizio: string; fine: string; nome: string; istruttore: string | null }
+
+/**
+ * Le lezioni da valutare (24/10/2026): quelle a cui la reception ha segnato la presenza negli ultimi 7 giorni, senza voto.
+ * Null se la funzione e' di prima o non risponde: la carta in Home semplicemente non compare.
+ */
+export async function lezioniDaValutare(): Promise<LezioneDaValutare[] | null> {
+  const { ok, dati } = await calendario({ azione: 'da_valutare' })
+  return ok && Array.isArray(dati.lezioni) ? (dati.lezioni as LezioneDaValutare[]) : null
+}
+
+/** Da 1 a 5 stelle a una lezione; votare di nuovo la stessa lezione cambia il voto. */
+export async function valutaLezione(classId: number, stelle: number): Promise<Esito<Record<never, never>>> {
+  const { ok, dati } = await calendario({ azione: 'valuta', class_id: classId, stelle })
+  if (ok) return { ok: true }
+  return { ok: false, errore: dati.errore ?? t('Non siamo riusciti a registrare il voto. Riprova fra poco.', 'We couldn’t record your rating. Try again shortly.') }
+}
+
 /** Il prodotto PerfectGym che apre la prenotazione di una lezione, per chi non ce l'ha compreso. */
 export type ProdottoLezione = { product_id: number; nome: string; prezzo: number | null }
 

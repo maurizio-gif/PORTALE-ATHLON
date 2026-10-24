@@ -18,6 +18,7 @@ import { CHIAVE_CONTRATTI, ElencoAbbonamenti } from './AbbonamentiMiei'
 import { AvvisoCertificato } from './home/AvvisoCertificato'
 import { CartaInvita } from './home/CartaInvita'
 import { CartaJunior } from './home/CartaJunior'
+import { CartaValutaLezione } from './home/CartaValutaLezione'
 import { CartaShop } from './home/CartaShop'
 import { DaFare } from './home/DaFare'
 import { MessaggioBenvenuto } from './home/MessaggioBenvenuto'
@@ -432,6 +433,9 @@ export function AreaRiservata({ email }: { email: string }) {
       <MessaggioBenvenuto email={email} onSezione={(s) => vai(s, true)} />
 
       <DaFare area={area} onSezione={(s) => vai(s, true)} />
+
+      {/* Le stelle alla lezione appena fatta (home/CartaValutaLezione): compare solo se c'e' una lezione con presenza e senza voto. */}
+      <CartaValutaLezione />
 
       {/* L'invito di un amico: il link personale da condividere, solo per chi ha un abbonamento in vigore (home/CartaInvita). */}
       <CartaInvita area={area} />
