@@ -475,8 +475,8 @@ l'allenamento, l'alimentazione e il recupero dell'adulto in un posto solo. Nel c
   View, non una proprietà animata dell'SVG. Con «riduci movimento» è ferma.
 - **Poi l'Athlon Health Score** (`fit/Punteggio.tsx`, sezione sotto): il punteggio da 0 a 100 sui tre pilastri, con l'anello a tre settori e il dettaglio in
   `/allenamento/punteggio`. **Subito sotto il titolo una riga dice da dove arriva** (24/10/2026, richiesta di Maurizio: «chi accede all'app e non ha mai messo nessun
-  dato trova comunque le lezioni registrate e un punteggio relativo alle lezioni», `DaDoveArriva`): «dalle lezioni che frequenti (ne risultano N registrate nelle ultime
-  4 settimane), segnate dalla reception: non devi inserire niente. Si aggiungono gli allenamenti chiusi nell'app, e Food e Relax se li usi». **N lo conta l'app** dalle
+  dato trova comunque le lezioni registrate e un punteggio relativo alle lezioni», `DaDoveArriva`): «dalle lezioni che hai fatto (ne risultano N registrate nelle ultime
+  4 settimane), dagli allenamenti registrati e poi da Food e Relax, se li usi» (24/10/2026, ritoccata su richiesta di Maurizio). **N lo conta l'app** dalle
   sessioni con `fonte = 'lezione'` (le presenze segnate dalla reception, le stesse del punteggio) nelle quattro settimane del calcolo; senza lezioni la riga c'è lo stesso,
   senza il conteggio; dove Food e Relax non esistono (vista cliente, minorenni) la coda «e Food e Relax se li usi» non compare. **Solo sulla carta di Fit**, non sulla
   schermata del dettaglio, che ha già «Come si calcola». Chi non ha ancora niente di registrato legge sotto i pallini «Ancora nessuna lezione o allenamento registrato:
