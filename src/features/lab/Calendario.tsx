@@ -1,6 +1,6 @@
 import { Image } from 'expo-image'
 import { LinearGradient } from 'expo-linear-gradient'
-import { useLocalSearchParams } from 'expo-router'
+import { router, useLocalSearchParams } from 'expo-router'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { ActivityIndicator, Platform, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native'
 import type Animated from 'react-native-reanimated'
@@ -937,6 +937,17 @@ function CalendarioGiorno() {
           </Text>
         ) : null}
 
+        {perChi && !perChi.titolare ? (
+          // Le attività junior (corsi, recuperi, Baby Nuoto) non stanno qui: si vedono e si gestiscono nella sezione Junior.
+          <Messaggio>
+            <View style={{ gap: spazio.due }}>
+              <Text style={[stili.nota, { color: p.testo }]}>
+                {t(`I corsi dei bambini (Scuola Nuoto, recuperi, Baby Nuoto, Pallanuoto…) di ${perChi.nome || 'questa persona'} sono nella sezione Junior.`, `Kids’ courses (swim school, make-ups, Baby Swim, Water Polo…) for ${perChi.nome || 'this person'} are in the Junior section.`)}
+              </Text>
+              <Pulsante testo={t('Vai alla sezione Junior', 'Go to the Junior section')} variante="secondario" onPress={() => router.navigate('/junior')} />
+            </View>
+          </Messaggio>
+        ) : null}
         {!giorno.prenotazioni_lette ? <Messaggio tono="attenzione">{t('PerfectGym non risponde: le tue prenotazioni potrebbero non comparire.', 'PerfectGym is not responding: your bookings may not show up.')}</Messaggio> : null}
         {mie.length ? <LezioniPrenotate lezioni={mie} occupato={occupato} onAnnulla={disdiciPrenotata} /> : null}
 
