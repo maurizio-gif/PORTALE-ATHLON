@@ -152,14 +152,10 @@ function DaDoveArriva({ p, lezioni }: { p: Punteggio | null; lezioni?: number })
   return (
     <Text style={stili.origine}>
       <Text style={stili.origineForte}>{t('Da dove arriva: ', 'Where it comes from: ')}</Text>
-      {t('dalle lezioni che frequenti', 'from the classes you attend')}
+      {t('dalle lezioni che hai fatto', 'from the classes you’ve done')}
       {registrate ? ` (${registrate})` : ''}
-      {t(
-        ', segnate dalla reception: non devi inserire niente.',
-        ', marked by reception: you don’t have to enter anything.',
-      )}
-      {t(' Si aggiungono gli allenamenti chiusi nell’app', ' Workouts finished in the app are added')}
-      {conAltri ? t(', e Food e Relax se li usi.', ', and Food and Relax if you use them.') : '.'}
+      {t(', dagli allenamenti registrati', ', from your logged workouts')}
+      {conAltri ? t(' e poi da Food e Relax, se li usi.', ' and then from Food and Relax, if you use them.') : '.'}
     </Text>
   )
 }
