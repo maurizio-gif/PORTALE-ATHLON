@@ -129,11 +129,43 @@ function RigaPilastro({ x }: { x: Pilastro }) {
 export function CartaPunteggio({ fit, disp, apri = true }: { fit: DatiFit; disp: Dispositivi; apri?: boolean }) {
   const p = usePunteggio(fit, disp)
   const livelli = useLivelli(fit, disp, p)
-  return <CartaPunteggioVista p={p} livelli={livelli} apri={apri} />
+  // Le lezioni con la presenza segnata dalla reception nelle stesse quattro settimane del punteggio: e' quello che c'e'
+  // anche per chi non ha mai scritto un dato (il «da dove arriva» le nomina e dice quante sono).
+  const lezioni = (() => {
+    const da = p?.dettaglio.train.settimane.at(-1)?.da
+    const fino = p?.dettaglio.train.settimane[0]?.a
+    if (!da || !fino || !fit.sessioni) return undefined
+    return fit.sessioni.filter((x) => x.fonte === 'lezione' && x.giorno >= da && x.giorno <= fino).length
+  })()
+  return <CartaPunteggioVista p={p} livelli={livelli} apri={apri} lezioni={lezioni} />
+}
+
+/** «Da dove arriva» (24/10/2026): una riga, subito sotto il titolo, che dice cosa conta e che non c'e' niente da inserire. */
+function DaDoveArriva({ p, lezioni }: { p: Punteggio | null; lezioni?: number }) {
+  const conAltri = !p || [p.food, p.relax].some((x) => x.stato !== 'nonDisponibile')
+  const registrate = lezioni
+    ? t(
+        lezioni === 1 ? 'ne risulta 1 registrata nelle ultime 4 settimane' : `ne risultano ${lezioni} registrate nelle ultime 4 settimane`,
+        lezioni === 1 ? 'there is 1 registered in the last 4 weeks' : `there are ${lezioni} registered in the last 4 weeks`,
+      )
+    : null
+  return (
+    <Text style={stili.origine}>
+      <Text style={stili.origineForte}>{t('Da dove arriva: ', 'Where it comes from: ')}</Text>
+      {t('dalle lezioni che frequenti', 'from the classes you attend')}
+      {registrate ? ` (${registrate})` : ''}
+      {t(
+        ', segnate dalla reception: non devi inserire niente.',
+        ', marked by reception: you don’t have to enter anything.',
+      )}
+      {t(' Si aggiungono gli allenamenti chiusi nell’app', ' Workouts finished in the app are added')}
+      {conAltri ? t(', e Food e Relax se li usi.', ', and Food and Relax if you use them.') : '.'}
+    </Text>
+  )
 }
 
 /** Quello che si vede: separato dai dati perche' la schermata del dettaglio li legge una volta sola e li passa anche alla sezione dei livelli. */
-export function CartaPunteggioVista({ p, livelli, apri = true }: { p: Punteggio | null; livelli: Livelli; apri?: boolean }) {
+export function CartaPunteggioVista({ p, livelli, apri = true, lezioni }: { p: Punteggio | null; livelli: Livelli; apri?: boolean; /** Le lezioni con la presenza segnata nelle ultime quattro settimane: se c'e', la riga «da dove arriva» le conta. */ lezioni?: number }) {
   const dentro = (
     <LinearGradient colors={NOTTE} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={stili.cornice}>
       {apri ? (
@@ -150,6 +182,8 @@ export function CartaPunteggioVista({ p, livelli, apri = true }: { p: Punteggio 
       ) : (
         <Text style={stili.sotto}>{t('Allenamento, alimentazione e recupero. La media delle ultime quattro settimane, la più recente pesa di più.', 'Training, nutrition and recovery. The average of the last four weeks, with the most recent counting more.')}</Text>
       )}
+
+      {apri ? <DaDoveArriva p={p} lezioni={lezioni} /> : null}
 
       {!p ? (
         <View style={{ gap: spazio.tre }}>
@@ -382,6 +416,8 @@ const stili = StyleSheet.create({
   icona: { width: 44, height: 44, borderRadius: 15, alignItems: 'center', justifyContent: 'center' },
   titolo: { color: '#fff', fontFamily: F.extra, fontSize: 18, letterSpacing: -0.3 },
   sotto: { color: 'rgba(255,255,255,0.65)', fontFamily: F.medio, fontSize: 12.5, lineHeight: 17 },
+  origine: { color: 'rgba(255,255,255,0.82)', fontFamily: F.medio, fontSize: 13, lineHeight: 18.5 },
+  origineForte: { color: '#fff', fontFamily: F.bold },
   corpo: { flexDirection: 'row', alignItems: 'center', gap: spazio.tre },
   banda: { color: '#fff', fontFamily: F.extra, fontSize: 22, letterSpacing: -0.5, lineHeight: 26 },
   testo: { color: 'rgba(255,255,255,0.85)', fontFamily: F.medio, fontSize: 14, lineHeight: 20 },

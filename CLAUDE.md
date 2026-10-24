@@ -474,7 +474,13 @@ l'allenamento, l'alimentazione e il recupero dell'adulto in un posto solo. Nel c
   (un giro in 24 s). Le etichette seguono la loro freccia ma restano diritte; la rotazione è una trasformazione della
   View, non una proprietà animata dell'SVG. Con «riduci movimento» è ferma.
 - **Poi l'Athlon Health Score** (`fit/Punteggio.tsx`, sezione sotto): il punteggio da 0 a 100 sui tre pilastri, con l'anello a tre settori e il dettaglio in
-  `/allenamento/punteggio`.
+  `/allenamento/punteggio`. **Subito sotto il titolo una riga dice da dove arriva** (24/10/2026, richiesta di Maurizio: «chi accede all'app e non ha mai messo nessun
+  dato trova comunque le lezioni registrate e un punteggio relativo alle lezioni», `DaDoveArriva`): «dalle lezioni che frequenti (ne risultano N registrate nelle ultime
+  4 settimane), segnate dalla reception: non devi inserire niente. Si aggiungono gli allenamenti chiusi nell'app, e Food e Relax se li usi». **N lo conta l'app** dalle
+  sessioni con `fonte = 'lezione'` (le presenze segnate dalla reception, le stesse del punteggio) nelle quattro settimane del calcolo; senza lezioni la riga c'è lo stesso,
+  senza il conteggio; dove Food e Relax non esistono (vista cliente, minorenni) la coda «e Food e Relax se li usi» non compare. **Solo sulla carta di Fit**, non sulla
+  schermata del dettaglio, che ha già «Come si calcola». Chi non ha ancora niente di registrato legge sotto i pallini «Ancora nessuna lezione o allenamento registrato:
+  dal primo, il punteggio comincia a salire» (`fraseTrain`, prima ripeteva quello che ora dice la riga in cima).
 - **Poi l'introduzione, come seconda carta** (`fit/Intro.tsx`; 24/10/2026, richiesta di Maurizio: la descrizione dell'Athlon Health System viene subito
   dopo il punteggio): il benessere come equilibrio di allenamento giusto (Train), buona
   alimentazione (Food) e recupero (Relax: sonno e giorni di riposo, senza una sezione sua), cosa fa il Balance e, in un pannello che si apre, come leggere i
@@ -482,8 +488,11 @@ l'allenamento, l'alimentazione e il recupero dell'adulto in un posto solo. Nel c
   introduzione, «Il tuo corpo», Balance. Su schermo largo (da 900 px) l'introduzione sta a sinistra e, a destra, corpo e Balance in colonna.
 - **Poi «Il tuo corpo»** (`fit/Corpo.tsx`, dettaglio in `/allenamento/misure`). **Su Fit si presenta compresso** (24/10/2026, richiesta di Maurizio, come il Balance):
   il titolo e una riga che dice cosa c'è di là («Qui trovi le tue misure: aggiornale e consulta come cambiano nel tempo»); **le cifre compaiono toccando**
-  (la carta si apre e si chiude, la freccia gira) e, aperta, c'è il tasto «Apri il dettaglio». Senza misure, aperta, dice cosa segnare e ha «Aggiungi le tue misure».
-  **Senza il consenso alle misure non c'è niente da aprire**: la carta intera, col suo testo sul consenso, porta alla pagina dell'informativa (freccia a destra, non gira).
+  (la carta si apre e si chiude, la freccia gira) e, aperta, c'è il tasto «Apri il dettaglio». **Senza misure non si apre: è una call to action** (24/10/2026, richiesta
+  di Maurizio): la riga sotto il titolo diventa «Inserisci qui i tuoi dati per avere il consumo calorico delle lezioni e dei tuoi allenamenti», sotto una riga che dice cosa
+  serve (peso, altezza, età e sesso: sono i quattro dati delle stime, vedi «Le calorie di una lezione») e il pulsante «Inserisci i tuoi dati», pieno e nell'arancio del club,
+  che porta a `/allenamento/misure` (come il tocco sulla testata; il vecchio «Aggiungi le tue misure» dentro l'accordion non c'è più). **Senza il consenso alle misure**
+  è la stessa carta, con in più il testo sul consenso: il pulsante porta alla pagina dell'informativa, dove il consenso si dà e si inseriscono i dati.
   Aperta: peso con la variazione degli ultimi 90
   giorni, BMI con la fascia, massa grassa (o la vita). Sta in alto e non in Train perché non è del solo allenamento: è il
   punto di partenza (stima le calorie) e la verifica dell'equilibrio. Le misure di composizione corporea che arriveranno
@@ -492,9 +501,11 @@ l'allenamento, l'alimentazione e il recupero dell'adulto in un posto solo. Nel c
   *Leggero · Equilibrio · Un po’ sopra · Da bilanciare* (le soglie sono quelle di sempre: 18,5 · 25 · 30). Le parole stanno
   in una casella da una riga e sotto i 72 pt (11,5 pt SemiBold) non si troncano su un telefono da 375 pt.
   *Provato (24/10/2026)*: `tsc` pulito e, in Chromium (bundle web esportato, funzioni simulate con `page.route`; 390 px chiaro e scuro, 1280 px), l'ordine delle carte,
-  il corpo compresso che si apre e si chiude (e con la carta aperta il Balance scende), «Apri il dettaglio» che porta a `/allenamento/misure`, il caso senza consenso
-  (la carta intera porta all'informativa) e quello senza misure («Aggiungi le tue misure»), nessuno scorrimento orizzontale, nessun errore di pagina (15 controlli).
-  **Non provato**: un telefono vero, e dati veri con una sessione vera. Con tre cifre su 390 px «MASSA GRASSA» va su due righe nel Chromium di prova: le cifre non sono state ritoccate.
+  il corpo compresso che si apre e si chiude (e con la carta aperta il Balance scende), «Apri il dettaglio» che porta a `/allenamento/misure`, nessuno scorrimento
+  orizzontale, nessun errore di pagina. **Rifatto lo stesso giorno per la riga «da dove arriva» e per l'invito del corpo** (34 controlli in tutto, 390 px chiaro e scuro,
+  1280 px, italiano e inglese, con la funzione delle presenze simulata con 0, 1 e 3 lezioni): la riga sta subito sotto il titolo e conta le lezioni («ne risultano 3 registrate»,
+  «ne risulta 1», nessun conteggio a zero), l'anello non è a zero con le sole lezioni (52 su 100 con tre lezioni in due settimane), senza misure e senza consenso la riga
+  sotto il titolo è l'invito e non c'è l'accordion, il pulsante e la testata portano alle misure. **Non provato**: un telefono vero, e dati veri con una sessione vera. Con tre cifre su 390 px «MASSA GRASSA» va su due righe nel Chromium di prova: le cifre non sono state ritoccate.
 - **Balance** (`fit/Balance.tsx`, conto in `fit/bilancio.ts`, schermata `/allenamento/balance`): **su Fit si presenta chiuso** (20/10/2026, richiesta del club:
   titolo, «consumate e mangiate» e due righe che dicono cos'è; **i dati compaiono solo toccando**, e aperto ha il tasto «Apri il dettaglio»; sulla sua
   schermata è sempre aperto): le calorie consumate

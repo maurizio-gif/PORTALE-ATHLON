@@ -294,7 +294,7 @@ const giorniParola = (g: number) => (g === 1 ? t('1 giorno', '1 day') : t(`${g} 
 
 function fraseTrain(tr: Train): string | null {
   const g = tr.settimane[0].giorni
-  if (!tr.haStoria) return t('Contano i piani di allenamento chiusi nell’app e le lezioni con la presenza segnata dalla reception.', 'What counts: workout plans you finish in the app and classes where reception marks your attendance.')
+  if (!tr.haStoria) return t('Ancora nessuna lezione o allenamento registrato: dal primo, il punteggio comincia a salire.', 'No classes or workouts registered yet: from the first one, your score starts to rise.')
   if (g === 0) return t('Negli ultimi 7 giorni non c’è nessun allenamento.', 'No workouts in the last 7 days.')
   if (g === 1) return t('Un giorno attivo negli ultimi 7: con il secondo sei ai punti pieni.', 'One active day in the last 7: one more and you’re at full points.')
   if (g <= 4) return t(`${giorniParola(g)} attivi negli ultimi 7: è il ritmo giusto.`, `${giorniParola(g)} active in the last 7: that’s the right pace.`)
