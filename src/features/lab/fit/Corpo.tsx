@@ -1,5 +1,6 @@
 import { LinearGradient } from 'expo-linear-gradient'
 import { router } from 'expo-router'
+import { useState } from 'react'
 import { StyleSheet, Text, View } from 'react-native'
 
 import type { Misura } from '@/api/lab'
@@ -9,6 +10,7 @@ import { spazio } from '@/theme'
 import { altezzaAl, bmi, dataCorta, fasciaBmi, numero } from '../dati/calcoli'
 import { spostaGiorno } from '../schede/contatoreCalorie'
 import { Icona } from '../ui/Icona'
+import { Pulsante } from '../ui/kit'
 import { coloreTono, F, usePalette } from '../ui/tema'
 import { Tocco } from '../ui/Tocco'
 
@@ -19,6 +21,13 @@ import { Tocco } from '../ui/Tocco'
 // peso, BMI, circonferenze e massa grassa e magra; le misure di composizione
 // corporea che arriveranno (una bilancia BIA, per esempio) si aggiungono qui.
 // Il dettaglio resta la schermata «Il tuo corpo» (/allenamento/misure).
+// **Su Fit si presenta compressa** (24/10/2026, richiesta di Maurizio, come il Balance): il titolo e una riga che dice
+// cosa si trova di la' (le misure, si aggiornano, si guarda come cambiano); le cifre compaiono toccando, e aperta ha il
+// tasto per la schermata. Senza consenso non c'e' niente da aprire: la carta intera porta all'informativa.
+// **Senza misure non e' una carta da aprire ma un invito** (24/10/2026, richiesta di Maurizio): la riga sotto il titolo
+// diventa la call to action («inserisci qui i tuoi dati per avere il consumo calorico delle lezioni e dei tuoi
+// allenamenti»), la carta intera e' un tocco verso le misure e c'e' il pulsante per farlo. E' il dato che manca a chi
+// ha lezioni registrate dalla reception e non ha mai scritto altro: senza peso, altezza, eta' e sesso le calorie non si stimano.
 // Dal 20/10/2026 le misure si usano solo con un consenso proprio (dati sulla salute): senza, la carta lo dice e porta
 // alla pagina del consenso (dati/ConsensoCorpo.tsx).
 
@@ -44,6 +53,7 @@ function Cifra({ etichetta, valore, sotto, colore }: { etichetta: string; valore
 
 export function CartaCorpo({ misure, senzaConsenso = false }: { misure: Misura[] | null; /** Le misure sono dati sulla salute: senza consenso la funzione non le da' e la carta invita a darlo. */ senzaConsenso?: boolean }) {
   const p = usePalette()
+  const [aperta, setAperta] = useState(false)
   const ordinate = [...(misure ?? [])].sort((a, b) => a.data.localeCompare(b.data))
   const conPeso = ordinate.filter((m) => m.peso_kg != null)
   const ultima = conPeso.at(-1)
@@ -55,59 +65,90 @@ export function CartaCorpo({ misure, senzaConsenso = false }: { misure: Misura[]
   const grassa = [...ordinate].reverse().find((m) => m.massa_grassa_pct != null)
   const vita = [...ordinate].reverse().find((m) => m.vita_cm != null)
 
-  return (
-    <Tocco onPress={() => router.push('/allenamento/misure')} etichetta={t('Il tuo corpo: peso, BMI e composizione corporea', 'Your body: weight, BMI and body composition')} scala={0.985}>
-      <View style={[stili.carta, { backgroundColor: p.carta, borderColor: p.linea, boxShadow: p.ombra }]}>
-        <View style={stili.testa}>
-          <LinearGradient colors={['#5C8DFF', '#8B5CF6']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={stili.icona}>
-            <Icona nome="persona" size={22} colore="#fff" />
-          </LinearGradient>
-          <View style={{ flex: 1 }}>
-            <Text style={[stili.titolo, { color: p.testo }]}>{t('Il tuo corpo', 'Your body')}</Text>
-            <Text style={[stili.testo, { color: p.testoSecondario }]}>{t('Il punto di partenza e la verifica dell’equilibrio.', 'Your starting point, and the check on your balance.')}</Text>
-          </View>
-          <Icona nome="avanti" size={18} colore={p.testoTerzo} />
-        </View>
+  // Senza misure la carta e' un invito, non un accordion: nessuna cifra da mostrare, una cosa da fare.
+  const invito = !ultima
+  const INVITO_TESTO = t(
+    'Inserisci qui i tuoi dati per avere il consumo calorico delle lezioni e dei tuoi allenamenti.',
+    'Enter your details here to get the calories burned in your classes and workouts.',
+  )
 
-        {senzaConsenso ? (
-          <Text style={[stili.testo, { color: p.testoSecondario }]}>
-            {t(
-              'Peso, altezza, circonferenze e composizione sono dati sulla salute: per segnarli e usarli per le stime delle calorie serve il tuo consenso. Tocca per leggere l’informativa e attivare «Il tuo corpo».',
-              'Weight, height, measurements and body composition are health data: to log them and use them for calorie estimates we need your consent. Tap to read the privacy notice and turn on “Your body”.',
-            )}
-          </Text>
-        ) : ultima ? (
-          <>
-            <View style={stili.cifre}>
-              <Cifra
-                etichetta={t('PESO', 'WEIGHT')}
-                valore={`${numero(ultima.peso_kg!)} kg`}
-                sotto={delta != null && prima ? (Math.abs(delta) < 0.1 ? t(`stabile dal ${dataCorta(prima.data)}`, `steady since ${dataCorta(prima.data)}`) : t(`${delta < 0 ? '−' : '+'}${numero(Math.abs(delta))} kg dal ${dataCorta(prima.data)}`, `${delta < 0 ? '−' : '+'}${numero(Math.abs(delta))} kg since ${dataCorta(prima.data)}`)) : null}
-              />
-              {b != null && fascia ? <Cifra etichetta="BMI" valore={numero(b)} sotto={fascia.nome} colore={coloreTono(p, fascia.tono)} /> : null}
-              {grassa ? (
-                <Cifra etichetta={t('MASSA GRASSA', 'BODY FAT')} valore={`${numero(grassa.massa_grassa_pct!)}%`} sotto={grassa.massa_magra_kg != null ? t(`magra ${numero(grassa.massa_magra_kg)} kg`, `lean ${numero(grassa.massa_magra_kg)} kg`) : null} />
-              ) : vita ? (
-                <Cifra etichetta={t('VITA', 'WAIST')} valore={`${numero(vita.vita_cm!)} cm`} />
-              ) : null}
-            </View>
-            <Text style={[stili.piccola, { color: p.testoTerzo }]}>
-              {t(
-                `Ultima misura ${dataCorta(ultima.data)} · ${ordinate.length} ${ordinate.length === 1 ? 'misurazione' : 'misurazioni'}. Servono anche a stimare le calorie che consumi.`,
-                `Last measured ${dataCorta(ultima.data)} · ${ordinate.length} ${ordinate.length === 1 ? 'measurement' : 'measurements'}. They also help estimate the calories you burn.`,
-              )}
-            </Text>
-          </>
-        ) : (
-          <Text style={[stili.testo, { color: p.testoSecondario }]}>
-            {t(
-              'Peso, altezza, circonferenze e composizione corporea: segnali e guarda come cambiano. Servono anche a stimare le calorie che consumi, nel Balance e nel contatore.',
-              'Weight, height, measurements and body composition: log them and see how they change. They also help estimate the calories you burn, in Balance and in the counter.',
-            )}
-          </Text>
-        )}
+  const testa = (
+    <View style={stili.testa}>
+      <LinearGradient colors={['#5C8DFF', '#8B5CF6']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={stili.icona}>
+        <Icona nome="persona" size={22} colore="#fff" />
+      </LinearGradient>
+      <View style={{ flex: 1 }}>
+        <Text style={[stili.titolo, { color: p.testo }]}>{t('Il tuo corpo', 'Your body')}</Text>
+        <Text style={[stili.testo, { color: invito ? p.testo : p.testoSecondario, fontFamily: invito ? F.semi : F.medio }]}>
+          {invito ? INVITO_TESTO : t('Qui trovi le tue misure: aggiornale e consulta come cambiano nel tempo.', 'Your measurements live here: update them and see how they change over time.')}
+        </Text>
       </View>
-    </Tocco>
+      {/* Senza misure (o senza consenso) la freccia porta via; altrimenti apre e chiude, come nel Balance. */}
+      <View style={invito ? undefined : { transform: [{ rotate: aperta ? '-90deg' : '90deg' }] }}>
+        <Icona nome="avanti" size={18} colore={p.testoTerzo} />
+      </View>
+    </View>
+  )
+
+  const apriMisure = () => router.push('/allenamento/misure')
+  if (senzaConsenso || invito) {
+    return (
+      <View style={[stili.carta, { backgroundColor: p.carta, borderColor: p.linea, boxShadow: p.ombra }]}>
+        <Tocco
+          onPress={apriMisure}
+          etichetta={senzaConsenso ? t('Il tuo corpo: inserisci i tuoi dati, prima leggi l’informativa', 'Your body: enter your details, first read the privacy notice') : t('Il tuo corpo: inserisci i tuoi dati per avere il consumo calorico di lezioni e allenamenti', 'Your body: enter your details to get the calories burned in classes and workouts')}
+          scala={0.985}
+        >
+          {testa}
+        </Tocco>
+        <Text style={[stili.piccola, { color: p.testoTerzo }]}>
+          {senzaConsenso
+            ? t(
+                'Peso, altezza, circonferenze e composizione sono dati sulla salute: per segnarli e usarli per le stime delle calorie serve il tuo consenso. Ti mostriamo l’informativa e li attivi con un tocco.',
+                'Weight, height, measurements and body composition are health data: to log them and use them for calorie estimates we need your consent. We show you the privacy notice and you turn them on with one tap.',
+              )
+            : t('Servono peso, altezza, età e sesso: restano tuoi e li puoi aggiornare quando vuoi.', 'You need weight, height, age and sex: they stay yours and you can update them any time.')}
+        </Text>
+        <Pulsante testo={t('Inserisci i tuoi dati', 'Enter your details')} icona="avanti" piccolo onPress={apriMisure} />
+      </View>
+    )
+  }
+
+  return (
+    <View style={[stili.carta, { backgroundColor: p.carta, borderColor: p.linea, boxShadow: p.ombra }]}>
+      <Tocco
+        onPress={() => setAperta((a) => !a)}
+        etichetta={aperta ? t('Il tuo corpo: nascondi le misure', 'Your body: hide your measurements') : t('Il tuo corpo: mostra peso, BMI e composizione corporea', 'Your body: show weight, BMI and body composition')}
+        scala={0.985}
+      >
+        {testa}
+      </Tocco>
+
+      {aperta && ultima ? (
+        <>
+          <View style={stili.cifre}>
+            <Cifra
+              etichetta={t('PESO', 'WEIGHT')}
+              valore={`${numero(ultima.peso_kg!)} kg`}
+              sotto={delta != null && prima ? (Math.abs(delta) < 0.1 ? t(`stabile dal ${dataCorta(prima.data)}`, `steady since ${dataCorta(prima.data)}`) : t(`${delta < 0 ? '−' : '+'}${numero(Math.abs(delta))} kg dal ${dataCorta(prima.data)}`, `${delta < 0 ? '−' : '+'}${numero(Math.abs(delta))} kg since ${dataCorta(prima.data)}`)) : null}
+            />
+            {b != null && fascia ? <Cifra etichetta="BMI" valore={numero(b)} sotto={fascia.nome} colore={coloreTono(p, fascia.tono)} /> : null}
+            {grassa ? (
+              <Cifra etichetta={t('MASSA GRASSA', 'BODY FAT')} valore={`${numero(grassa.massa_grassa_pct!)}%`} sotto={grassa.massa_magra_kg != null ? t(`magra ${numero(grassa.massa_magra_kg)} kg`, `lean ${numero(grassa.massa_magra_kg)} kg`) : null} />
+            ) : vita ? (
+              <Cifra etichetta={t('VITA', 'WAIST')} valore={`${numero(vita.vita_cm!)} cm`} />
+            ) : null}
+          </View>
+          <Text style={[stili.piccola, { color: p.testoTerzo }]}>
+            {t(
+              `Ultima misura ${dataCorta(ultima.data)} · ${ordinate.length} ${ordinate.length === 1 ? 'misurazione' : 'misurazioni'}. Servono anche a stimare le calorie che consumi.`,
+              `Last measured ${dataCorta(ultima.data)} · ${ordinate.length} ${ordinate.length === 1 ? 'measurement' : 'measurements'}. They also help estimate the calories you burn.`,
+            )}
+          </Text>
+          <Pulsante testo={t('Apri il dettaglio', 'Open details')} icona="avanti" variante="secondario" piccolo onPress={() => router.push('/allenamento/misure')} />
+        </>
+      ) : null}
+    </View>
   )
 }
 
