@@ -13,6 +13,7 @@ import {
   type EsitoAcquisto,
   type Giorno,
   type Lezione,
+  type Prenotata,
   type PersonaCalendario,
   type SchedaLezione,
 } from '@/api/lab'
@@ -608,13 +609,22 @@ function InfoAttesa() {
   )
 }
 
-/** Le lezioni prenotate del giorno, per la persona scelta: prenotata o in lista d'attesa, e Annulla. */
-function LezioniPrenotate({ lezioni, occupato, onAnnulla }: { lezioni: Lezione[]; occupato: boolean; onAnnulla: (l: Lezione) => Promise<string | null> }) {
+/** «sab 24 ott», all'ora di Roma. */
+function giornoBreve(iso: string): string {
+  return new Intl.DateTimeFormat(locale(), { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'Europe/Rome' }).format(new Date(iso))
+}
+
+/**
+ * Le prenotazioni in programma della persona scelta, di qualunque giorno (25/10/2026, richiesta di Maurizio): stanno sopra i
+ * giorni e non dentro quello scelto. Prenotata o in lista d'attesa, e Annulla.
+ */
+function LezioniPrenotate({ lezioni, occupato, onAnnulla }: { lezioni: Prenotata[]; occupato: boolean; onAnnulla: (l: Prenotata) => Promise<string | null> }) {
+  const p = usePalette()
   const [conferma, setConferma] = useState<number | null>(null)
   const [inCorso, setInCorso] = useState<number | null>(null)
   const [errore, setErrore] = useState<string | null>(null)
 
-  async function annulla(l: Lezione) {
+  async function annulla(l: Prenotata) {
     setErrore(null)
     setInCorso(l.class_id)
     const problema = await onAnnulla(l)
@@ -627,7 +637,7 @@ function LezioniPrenotate({ lezioni, occupato, onAnnulla }: { lezioni: Lezione[]
     <Sezione titolo={t('Le tue prenotazioni', 'Your bookings')} conteggio={lezioni.length}>
       <Carta style={{ paddingVertical: spazio.due, zIndex: 2 }}>
         {lezioni.map((l, i) => {
-          const attesa = !!l.prenotazione?.attesa
+          const attesa = l.attesa
           return (
             <View key={l.class_id} style={{ zIndex: lezioni.length - i }}>
               <Riga
@@ -639,13 +649,14 @@ function LezioniPrenotate({ lezioni, occupato, onAnnulla }: { lezioni: Lezione[]
                 }
                 titolo={l.nome}
                 sotto={
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 2 }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 2, flexWrap: 'wrap' }}>
+                    <Text style={{ color: p.testoSecondario, fontFamily: F.semi, fontSize: 13 }}>{maiuscola(giornoBreve(l.inizio))}</Text>
                     <Etichetta testo={attesa ? t('In lista d’attesa', 'On the waiting list') : t('Prenotata', 'Booked')} tono={attesa ? 'attenzione' : 'ok'} />
                     {attesa ? <InfoAttesa /> : null}
                   </View>
                 }
                 coda={
-                  l.iniziata ? null : conferma === l.class_id ? (
+                  conferma === l.class_id ? (
                     <View style={{ flexDirection: 'row', gap: 6 }}>
                       <Pulsante testo={t('Sì, annulla', 'Yes, cancel')} variante="pericolo" piccolo pieno={false} onPress={() => annulla(l)} inCorso={inCorso === l.class_id} />
                       <Pulsante testo={t('No', 'No')} variante="secondario" piccolo pieno={false} onPress={() => setConferma(null)} disabilitato={inCorso !== null} />
@@ -773,8 +784,17 @@ function CalendarioGiorno() {
   function aggiorna(classId: number, prenotazione: Lezione['prenotazione'], delta: number, deltaAttesa = 0) {
     setGiorno((g) => {
       if (!g) return g
+      const lez = g.lezioni.find((l) => l.class_id === classId)
+      const resto = (g.prenotate ?? []).filter((x) => x.class_id !== classId)
       const nuovo = {
         ...g,
+        ...(g.prenotate
+          ? {
+              prenotate: prenotazione && lez
+                ? [...resto, { class_id: classId, nome: lez.nome, categoria: lez.categoria, inizio: lez.inizio, attesa: prenotazione.attesa }].sort((x, y) => x.inizio.localeCompare(y.inizio))
+                : resto,
+            }
+          : {}),
         lezioni: g.lezioni.map((l) =>
           l.class_id === classId
             ? {
@@ -807,6 +827,7 @@ function CalendarioGiorno() {
   const prenota = (l: Lezione) => prenotaClasse(l.class_id)
   const acquista = (l: Lezione, pronto?: string) => acquistaClasse(l.class_id, pronto)
   const disdici = (l: Lezione) => disdiciClasse(l.class_id, !!l.prenotazione?.attesa)
+  const disdiciPrenotata = (l: Prenotata) => disdiciClasse(l.class_id, l.attesa)
 
   if (errore && !giorno) {
     return (
@@ -826,7 +847,10 @@ function CalendarioGiorno() {
     )
   }
 
-  const mie = giorno.lezioni.filter((l) => l.prenotazione)
+  // Tutte le prenotazioni in programma, sopra i giorni. Con la funzione di prima si hanno solo quelle del giorno scelto.
+  const mie: Prenotata[] =
+    giorno.prenotate ??
+    giorno.lezioni.filter((l) => l.prenotazione && !l.iniziata).map((l) => ({ class_id: l.class_id, nome: l.nome, categoria: l.categoria, inizio: l.inizio, attesa: !!l.prenotazione?.attesa }))
   // Le lezioni gia' cominciate non si prenotano piu': si tengono solo quelle
   // con una prenotazione, che dicono «ci sei andato».
   const visibili = giorno.lezioni.filter((l) => !l.iniziata || l.prenotazione)
@@ -913,6 +937,9 @@ function CalendarioGiorno() {
           </Text>
         ) : null}
 
+        {!giorno.prenotazioni_lette ? <Messaggio tono="attenzione">{t('PerfectGym non risponde: le tue prenotazioni potrebbero non comparire.', 'PerfectGym is not responding: your bookings may not show up.')}</Messaggio> : null}
+        {mie.length ? <LezioniPrenotate lezioni={mie} occupato={occupato} onAnnulla={disdiciPrenotata} /> : null}
+
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={stili.fila} style={stili.fuori}>
           {giorno.giorni.map((d) => {
             const attivo = d === giorno.data
@@ -975,9 +1002,6 @@ function CalendarioGiorno() {
           </View>
         ) : null}
       </View>
-
-      {!giorno.prenotazioni_lette ? <Messaggio tono="attenzione">{t('PerfectGym non risponde: le tue prenotazioni potrebbero non comparire.', 'PerfectGym is not responding: your bookings may not show up.')}</Messaggio> : null}
-      {mie.length ? <LezioniPrenotate lezioni={mie} occupato={occupato} onAnnulla={disdici} /> : null}
 
       {carica ? (
         <SchedeInArrivo quante={2} />

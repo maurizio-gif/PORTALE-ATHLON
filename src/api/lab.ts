@@ -168,6 +168,9 @@ export type SchedaLezione = {
 
 export type PersonaCalendario = { member_id: number; nome: string | null; cognome: string | null; titolare: boolean }
 
+/** Una prenotazione in programma della persona, di qualunque giorno (non cominciata). */
+export type Prenotata = { class_id: number; nome: string; categoria: string; inizio: string; attesa: boolean }
+
 export type Giorno = {
   persone: PersonaCalendario[]
   giorni: string[]
@@ -175,6 +178,8 @@ export type Giorno = {
   member_id: number
   prenotazioni_lette: boolean
   lezioni: Lezione[]
+  /** Tutte le prenotazioni in programma della persona, a prescindere dal giorno. Manca finche' la funzione non e' aggiornata: allora si usano quelle del giorno. */
+  prenotate?: Prenotata[]
   schede: Record<string, SchedaLezione>
 }
 
