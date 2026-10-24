@@ -296,10 +296,11 @@ function dtNonAttivo(stato: number, errore?: string): boolean {
   );
 }
 
-export async function slotDirettoreTecnico(memberId: number): Promise<EsitoSlotDt> {
+export async function slotDirettoreTecnico(memberId: number, appuntamentoId?: string): Promise<EsitoSlotDt> {
   const { ok, stato, dati } = await funzione("portale-lab-junior", {
     azione: "dt_slot",
     member_id: memberId,
+    ...(appuntamentoId ? { appuntamento_id: appuntamentoId } : {}),
   });
   if (!ok) {
     return {
@@ -321,7 +322,7 @@ export async function slotDirettoreTecnico(memberId: number): Promise<EsitoSlotD
 }
 
 export type EsitoPrenotaDt =
-  | { ok: true; data: string; ora: string; durataMinuti: number | null }
+  | { ok: true; id: string | null; data: string; ora: string; durataMinuti: number | null }
   | { ok: false; errore: string; slotOccupato?: boolean; telefonoMancante?: boolean };
 
 export async function prenotaDirettoreTecnico(d: {
@@ -352,11 +353,56 @@ export async function prenotaDirettoreTecnico(d: {
   }
   return {
     ok: true,
+    id: typeof dati.id === "string" ? dati.id : null,
     data: String(dati.data ?? d.data),
     ora: String(dati.ora ?? d.ora),
     durataMinuti: typeof dati.durata_minuti === "number" ? dati.durata_minuti : null,
   };
 }
+
+/** Un appuntamento col Direttore Tecnico ancora da fare (25/10/2026): si mostra subito dopo averlo preso, e si sposta o si annulla. */
+export type AppuntamentoDt = {
+  id: string;
+  data: string;
+  ora: string;
+  durataMinuti: number | null;
+  bambino: string | null;
+  memberId: number | null;
+  motivo: string;
+};
+
+/** I suoi appuntamenti ancora da fare. Null se la funzione e' di prima o non risponde: allora l'elenco semplicemente non compare. */
+export async function appuntamentiDirettoreTecnico(): Promise<AppuntamentoDt[] | null> {
+  const { ok, dati } = await funzione("portale-lab-junior", { azione: "dt_mie" });
+  if (!ok || !Array.isArray(dati.appuntamenti)) return null;
+  return (dati.appuntamenti as Record<string, any>[]).map((a) => ({
+    id: String(a.id),
+    data: String(a.data),
+    ora: String(a.ora),
+    durataMinuti: typeof a.durata_minuti === "number" ? a.durata_minuti : null,
+    bambino: typeof a.bambino === "string" ? a.bambino : null,
+    memberId: typeof a.member_id === "number" ? a.member_id : null,
+    motivo: String(a.motivo ?? ""),
+  }));
+}
+
+export type EsitoGestioneDt = { ok: true } | { ok: false; errore: string; slotOccupato?: boolean };
+
+async function gestisciDt(corpo: Record<string, unknown>): Promise<EsitoGestioneDt> {
+  const { ok, stato, dati } = await funzione("portale-lab-junior", corpo);
+  if (ok) return { ok: true };
+  return {
+    ok: false,
+    slotOccupato: dati.slot_occupato === true,
+    errore: dtNonAttivo(stato, dati.errore)
+      ? NON_ATTIVO_DT()
+      : (dati.errore ?? t("Non riusciamo adesso. Riprova fra qualche minuto.", "We can’t do it right now. Try again in a few minutes.")),
+  };
+}
+
+export const annullaDirettoreTecnico = (id: string) => gestisciDt({ azione: "dt_annulla", id });
+export const spostaDirettoreTecnico = (id: string, data: string, ora: string) =>
+  gestisciDt({ azione: "dt_sposta", id, data, ora });
 
 export type EsitoCambioOrario = { ok: true; giaChiesto: boolean } | { ok: false; errore: string };
 

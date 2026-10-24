@@ -264,6 +264,8 @@ function SezioneIscrizione({
 }) {
   const p = usePalette();
   const c = i.contratto;
+  // Una quota scaduta e non pagata: il server non fa disdire nessuna lezione (e lo ricontrolla), qui non si offre il comando.
+  const inDebito = (i.sospese ?? 0) > 0 || !!i.sospese_dal;
   const azioni = usePrenotazioneLezione(memberId, {
     prenotata: () => undefined,
     disdetta: () => {
@@ -386,14 +388,14 @@ function SezioneIscrizione({
         <Text style={[stili.nota, { color: p.testoSecondario }]}>
           {finestraLezioni(c)}
         </Text>
-        {(i.sospese ?? 0) > 0 ? (
+        {inDebito ? (
           <Messaggio
             tono="attenzione"
             titolo={t("Lezioni in attesa del pagamento", "Classes waiting for payment")}
           >
             {t(
-              `Le lezioni di un mese si vedono (e si possono disdire) quando la sua quota è pagata. ${nLezioni(i.sospese ?? 0)} compariranno appena paghi${i.sospese_dal ? ` la quota di ${new Intl.DateTimeFormat("it-IT", { month: "long", timeZone: "UTC" }).format(new Date(i.sospese_dal))}` : ""}: la trovi qui sopra, fra i pagamenti da fare.`,
-              `A month’s classes show up (and can be cancelled) once its fee is paid. ${nLezioni(i.sospese ?? 0)} will appear as soon as you pay${i.sospese_dal ? ` the ${new Intl.DateTimeFormat("en-GB", { month: "long", timeZone: "UTC" }).format(new Date(i.sospese_dal))} fee` : ""}: you’ll find it above, among the payments due.`,
+              `Finché c’è una quota scaduta non si può disdire nessuna lezione: salda la quota e poi disdici. Le lezioni di un mese si vedono quando la sua quota è pagata. ${(i.sospese ?? 0) > 0 ? `${nLezioni(i.sospese ?? 0)} compariranno appena paghi` : "Paga"}${i.sospese_dal ? ` la quota di ${new Intl.DateTimeFormat("it-IT", { month: "long", timeZone: "UTC" }).format(new Date(i.sospese_dal))}` : " la quota"}: la trovi qui sopra, fra i pagamenti da fare.`,
+              `While a fee is overdue no class can be cancelled: pay the fee, then cancel. A month’s classes show up once its fee is paid. ${(i.sospese ?? 0) > 0 ? `${nLezioni(i.sospese ?? 0)} will appear as soon as you pay` : "Pay"}${i.sospese_dal ? ` the ${new Intl.DateTimeFormat("en-GB", { month: "long", timeZone: "UTC" }).format(new Date(i.sospese_dal))} fee` : " the fee"}: you’ll find it above, among the payments due.`,
             )}
           </Messaggio>
         ) : null}
@@ -410,7 +412,7 @@ function SezioneIscrizione({
                   key={l.class_id}
                   l={l}
                   azioni={azioni}
-                  puoDisdire={i.recuperabile && !vista}
+                  puoDisdire={i.recuperabile && !vista && !inDebito}
                 />
               ))}
             />
@@ -423,7 +425,7 @@ function SezioneIscrizione({
             )}
           </Text>
         )}
-        {i.recuperabile && !vista ? (
+        {i.recuperabile && !vista && !inDebito ? (
           <Text style={[stili.nota, { color: p.testoTerzo }]}>
             {t(
               "Puoi disdire una lezione fino a un’ora prima dell’inizio: poi la recuperi con una lezione di recupero, qui sotto.",
