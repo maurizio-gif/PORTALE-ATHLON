@@ -1062,6 +1062,18 @@ export async function eserciziLibreria(): Promise<Esito<{ esercizi: EsercizioLib
   return { ok: false, errore: dati.errore ?? t('Non riusciamo ad aprire gli esercizi adesso.', 'We can’t open the exercises right now.') }
 }
 
+/**
+ * Le miniature (il poster, gia' firmato) degli esercizi della libreria indicati, per l'editor di un piano composto o
+ * importato (23/10/2026): senza immagine «Allungamento addominali, variante 3» non dice niente. Chi non ha il poster, o
+ * non e' della libreria accesa, non compare. **Serve la funzione aggiornata** (`anteprime`): una vecchia risponde
+ * «Azione sconosciuta» e l'editor resta com'era.
+ */
+export async function anteprimeEsercizi(ids: string[]): Promise<Esito<{ anteprime: { id: string; immagini: string[] }[] }>> {
+  const { ok, dati } = await schedeLab({ azione: 'anteprime', ids })
+  if (ok) return { ok: true, anteprime: Array.isArray(dati.anteprime) ? dati.anteprime : [] }
+  return { ok: false, errore: dati.errore ?? t('Non riusciamo a caricare le immagini adesso.', 'We can’t load the images right now.') }
+}
+
 export async function salvaSchedaMia(scheda: SchedaDaSalvare): Promise<Esito<{ id: string }>> {
   const { ok, dati } = await schedeLab({ azione: 'salva_mia', ...scheda })
   if (ok) return { ok: true, id: dati.id }
