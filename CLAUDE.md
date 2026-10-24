@@ -310,6 +310,22 @@ vuol dire altro (la scheda del socio al club, la scheda di una lezione, l'Help D
   letta da un file e bozza dell'agente. Cambiano titolo, sottotitolo, avvisi e il tasto («Salva il piano» / «Salva le modifiche» / «Conferma
   e aggiungi ai tuoi piani»). L'`origine` si manda solo alla nascita (`creata`, `importata`, `ai`, `club`): in modifica non si cambia. Le
   validazioni (titolo, giorni vuoti, percentuale 20-100) sono qui e **anche nella funzione**.
+- **Ogni esercizio della libreria ha la sua miniatura** (23/10/2026, segnalazione di un tester: «insieme al nome degli esercizi potrebbe essere carino mettere
+  l'immagine, così si capisce di quale esercizio si tratta prima di accettare il programma»; il caso era «Allungamento addominali, variante 1 / 3»). Nell'editor
+  (`EditorScheda.tsx`, qualunque modo) la riga porta a sinistra il **poster** MoveKit, ritagliato a quadrato (68 pt, `cover`, fermo: il video resta nella scheda del
+  piano). Il poster **non sta nella bozza**: lo chiede `schede/anteprime.ts` (`useAnteprime`, azione `anteprime` di `portale-lab-schede`) con **una chiamata per tutti gli
+  esercizi della libreria del piano** appena l'editor si apre, e una per quello che si sceglie con «Cambia esercizio». **Un piano già salvato** (modifica, copia) ha già
+  i poster firmati nella risposta di `scheda` (`seminaAnteprime`) e non fa nessuna richiesta. Solo in memoria (`memoria.ts`: esce con l'uscita dall'app e dopo un
+  salvataggio), con i link ricordati tre ore su quattro di validità.
+  **Il riquadro tiene il posto mentre si aspetta** (un quadrato vuoto, così la riga non si sposta quando arriva) **e sparisce se non arriva niente**: un esercizio suo
+  («Tuo», `socio-…`) o senza id («Da controllare») non l'ha mai, e dove la funzione non risponde o non conosce l'azione (un'app nuova con la funzione vecchia) l'elenco
+  è quello di prima. È decorativo (il nome gli sta accanto e lo legge lo screen reader). **Il selettore «Cambia esercizio» / «Aggiungi un esercizio» non ha le miniature**:
+  sono 582 poster da firmare e una ricerca che cambia a ogni lettera; se serve si chiedono solo per i quaranta in vista, con lo stesso `useAnteprime` e un po' di attesa.
+  `tsc` pulito (0 errori su Linux). **Guardato in Chromium** (bundle web esportato, funzione simulata con `page.route`, 390 px chiaro e scuro, 1280 px): bozza letta da un file con
+  i riquadri che aspettano e poi i poster, un esercizio senza poster che perde il riquadro, una chiamata sola per sei esercizi e una sola per quello cambiato, la funzione
+  vecchia senza riquadri vuoti, un piano salvato aperto in modifica senza richieste e con l'esercizio «Tuo» senza riquadro, nessuno scorrimento orizzontale, nessun errore in console.
+  **Non provato**: poster veri (le prove usano immagini finte: come si ritaglia un 16:9 a quadrato su plank e nuoto va guardato con i primi poster veri), la funzione vera con
+  una sessione vera, l'app nativa, un telefono. **Da pubblicare: prima la funzione (APP-ATHLON), poi l'app.**
 - **Le percentuali del massimale restano nella copia.** Un piano del club scrive i carichi in % del massimale (e l'agente pure): l'editor
   le porta con sé (campo «% del massimale» per esercizio, vuoto = vale il carico a parole) e nell'app diventano i chili del socio dopo
   il test. Anche `obiettivo` e `livello` si copiano. Se un esercizio del club è stato spento dopo, la conferma risponde che non è più in

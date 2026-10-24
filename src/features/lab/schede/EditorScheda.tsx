@@ -1,5 +1,5 @@
 import { router, useLocalSearchParams } from 'expo-router'
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { StyleSheet, Text, TextInput, View } from 'react-native'
 
 import { leggiSchedaLab, salvaSchedaMia, type BozzaScheda, type SchedaDaSalvare, type SchedaLab } from '@/api/lab'
@@ -16,6 +16,8 @@ import { leggiBozza, scartaBozza } from './bozza'
 import { recupero } from './comune'
 import { origineDellaCopia } from './copia'
 import { eDiVasca, inMetri, metriDelGiorno, metriDi, nomeIntensita } from './nuoto'
+import { eDellaLibreria, seminaAnteprime, useAnteprime } from './anteprime'
+import { MediaEsercizio } from './MediaEsercizio'
 import { SceltaEsercizio, type Scelta } from './SceltaEsercizio'
 
 // Il piano del socio (19/10/2026), da quattro strade che finiscono qui: scritto a mano (`/nuova`), letto da un file
@@ -29,6 +31,12 @@ import { SceltaEsercizio, type Scelta } from './SceltaEsercizio'
 // invece dei giorni, le ripetizioni invece delle serie, la **distanza** in metri (multipli di 25: la vasca e' da 25) e
 // l'**intensita'** a parole invece di chili e percentuale. Gli esercizi si scelgono fra quelli di vasca e non si scrive
 // un nome proprio: un esercizio suo sarebbe di sala e il piano smetterebbe di essere «di vasca», cioe' di leggersi senza «Inizia».
+//
+// **Ogni esercizio della libreria ha la sua miniatura** (23/10/2026, segnalazione di un tester): il poster accanto al nome, per
+// capire di quale esercizio si tratta prima di confermare («Allungamento addominali, variante 3» da solo non dice niente).
+// Arrivano da `anteprime.ts` (una chiamata per tutto il piano, e una per ogni esercizio che si cambia); quelle di un piano gia'
+// salvato arrivano con il piano stesso. Un esercizio suo, o senza poster, non ha il riquadro; dove la funzione non risponde
+// l'elenco e' quello di prima.
 
 const GIORNI_MAX = 7
 const ESERCIZI_GIORNO_MAX = 25
@@ -275,12 +283,18 @@ export function EditorScheda() {
         setDaPiano(r.scheda.titolo)
       }
       setVasca(eDiVasca(r.scheda))
+      // I poster di un piano che si apre sono gia' nella risposta (firmati): non servono altre richieste.
+      seminaAnteprime(r.scheda.giorni.flatMap((g) => g.esercizi))
       setForm(daScheda(r.scheda))
     })
     return () => {
       vivo = false
     }
   }, [id, copia])
+
+  // Le miniature: gli esercizi della libreria che il piano ha adesso (anche quelli appena cambiati).
+  const idLibreria = useMemo(() => (form ? form.giorni.flatMap((g) => g.esercizi.map((e) => e.esercizio_id)).filter(eDellaLibreria) : []), [form])
+  const miniature = useAnteprime(idLibreria)
 
   const aggiorna = (f: (x: Form) => Form) => setForm((x) => (x ? f(x) : x))
   const sulGiorno = (g: string, f: (x: GiornoForm) => GiornoForm) => aggiorna((x) => ({ ...x, giorni: x.giorni.map((y) => (y.chiave === g ? f(y) : y)) }))
@@ -499,10 +513,19 @@ export function EditorScheda() {
             />
             {g.esercizi.map((e, ei) => {
               const espanso = aperto === e.chiave
+              // Il riquadro c'e' dove c'e' il poster, e finche' si aspetta per un esercizio della libreria (cosi' la riga non si sposta all'arrivo).
+              const poster = miniature.poster(e.esercizio_id)
+              const miniatura = !!poster || (eDellaLibreria(e.esercizio_id) && miniature.inArrivo(e.esercizio_id))
               return (
                 <View key={e.chiave} style={[stili.esercizio, { backgroundColor: p.incavo }]}>
                   <Tocco onPress={() => setAperto(espanso ? null : e.chiave)} etichetta={`${e.nome}: ${espanso ? t('chiudi', 'close') : t('modifica', 'edit')}`} scala={0.99}>
                     <View style={stili.testa}>
+                      {miniatura ? (
+                        // Decorativa: il nome e' accanto, e lo legge lo screen reader.
+                        <View style={stili.miniatura} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+                          {poster ? <MediaEsercizio immagini={[poster]} video={null} ferma style={StyleSheet.absoluteFill} /> : <View style={[StyleSheet.absoluteFill, { backgroundColor: p.carta }]} />}
+                        </View>
+                      ) : null}
                       <View style={{ flex: 1, gap: 3 }}>
                         <View style={stili.tag}>
                           {e.superserie ? <Tag testo={t(`Superserie ${e.superserie}`, `Superset ${e.superserie}`)} colore={p.accento} /> : null}
@@ -674,6 +697,8 @@ const stili = StyleSheet.create({
   icona: { width: 36, height: 36, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
   esercizio: { borderRadius: 18, padding: spazio.tre, gap: spazio.tre },
   testa: { flexDirection: 'row', alignItems: 'flex-start', gap: spazio.due },
+  // Il poster e' 16:9 e qui e' ritagliato a quadrato (`cover`), come le miniature del piano (`Scheda.tsx`).
+  miniatura: { width: 68, height: 68, borderRadius: 14, overflow: 'hidden' },
   tag: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
   pillola: { borderRadius: 999, paddingVertical: 8, paddingHorizontal: spazio.tre },
   comandi: { flexDirection: 'row', gap: 6 },
