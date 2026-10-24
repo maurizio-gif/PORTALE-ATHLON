@@ -475,16 +475,26 @@ l'allenamento, l'alimentazione e il recupero dell'adulto in un posto solo. Nel c
   View, non una proprietà animata dell'SVG. Con «riduci movimento» è ferma.
 - **Poi l'Athlon Health Score** (`fit/Punteggio.tsx`, sezione sotto): il punteggio da 0 a 100 sui tre pilastri, con l'anello a tre settori e il dettaglio in
   `/allenamento/punteggio`.
-- **Poi «Il tuo corpo»** (`fit/Corpo.tsx`, dettaglio in `/allenamento/misure`): peso con la variazione degli ultimi 90
+- **Poi l'introduzione, come seconda carta** (`fit/Intro.tsx`; 24/10/2026, richiesta di Maurizio: la descrizione dell'Athlon Health System viene subito
+  dopo il punteggio): il benessere come equilibrio di allenamento giusto (Train), buona
+  alimentazione (Food) e recupero (Relax: sonno e giorni di riposo, senza una sezione sua), cosa fa il Balance e, in un pannello che si apre, come leggere i
+  numeri (`ComeLeggere` in `fit/Balance.tsx`, lo stesso testo in fondo alla schermata di Balance). **L'ordine su Fit** (`schede/Schede.tsx`) è: ruota, punteggio,
+  introduzione, «Il tuo corpo», Balance. Su schermo largo (da 900 px) l'introduzione sta a sinistra e, a destra, corpo e Balance in colonna.
+- **Poi «Il tuo corpo»** (`fit/Corpo.tsx`, dettaglio in `/allenamento/misure`). **Su Fit si presenta compresso** (24/10/2026, richiesta di Maurizio, come il Balance):
+  il titolo e una riga che dice cosa c'è di là («Qui trovi le tue misure: aggiornale e consulta come cambiano nel tempo»); **le cifre compaiono toccando**
+  (la carta si apre e si chiude, la freccia gira) e, aperta, c'è il tasto «Apri il dettaglio». Senza misure, aperta, dice cosa segnare e ha «Aggiungi le tue misure».
+  **Senza il consenso alle misure non c'è niente da aprire**: la carta intera, col suo testo sul consenso, porta alla pagina dell'informativa (freccia a destra, non gira).
+  Aperta: peso con la variazione degli ultimi 90
   giorni, BMI con la fascia, massa grassa (o la vita). Sta in alto e non in Train perché non è del solo allenamento: è il
   punto di partenza (stima le calorie) e la verifica dell'equilibrio. Le misure di composizione corporea che arriveranno
   (una bilancia BIA, per esempio) si aggiungono qui. **La fascia del BMI non usa i nomi dell'OMS** (`fasciaBmi` in
   `lab/dati/calcoli.ts`): su richiesta del club niente «Sottopeso», «Sovrappeso» o «Obesità» davanti al socio, ma
   *Leggero · Equilibrio · Un po’ sopra · Da bilanciare* (le soglie sono quelle di sempre: 18,5 · 25 · 30). Le parole stanno
   in una casella da una riga e sotto i 72 pt (11,5 pt SemiBold) non si troncano su un telefono da 375 pt.
-- **Poi l'introduzione** (`fit/Intro.tsx`): il benessere come equilibrio di allenamento giusto (Train), buona
-  alimentazione (Food) e recupero (Relax: sonno e giorni di riposo, senza una sezione sua), cosa fa il Balance e, in un pannello che si apre, come leggere i
-  numeri (`ComeLeggere` in `fit/Balance.tsx`, lo stesso testo in fondo alla schermata di Balance).
+  *Provato (24/10/2026)*: `tsc` pulito e, in Chromium (bundle web esportato, funzioni simulate con `page.route`; 390 px chiaro e scuro, 1280 px), l'ordine delle carte,
+  il corpo compresso che si apre e si chiude (e con la carta aperta il Balance scende), «Apri il dettaglio» che porta a `/allenamento/misure`, il caso senza consenso
+  (la carta intera porta all'informativa) e quello senza misure («Aggiungi le tue misure»), nessuno scorrimento orizzontale, nessun errore di pagina (15 controlli).
+  **Non provato**: un telefono vero, e dati veri con una sessione vera. Con tre cifre su 390 px «MASSA GRASSA» va su due righe nel Chromium di prova: le cifre non sono state ritoccate.
 - **Balance** (`fit/Balance.tsx`, conto in `fit/bilancio.ts`, schermata `/allenamento/balance`): **su Fit si presenta chiuso** (20/10/2026, richiesta del club:
   titolo, «consumate e mangiate» e due righe che dicono cos'è; **i dati compaiono solo toccando**, e aperto ha il tasto «Apri il dettaglio»; sulla sua
   schermata è sempre aperto): le calorie consumate

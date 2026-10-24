@@ -30,8 +30,9 @@ import { eDiVasca, ETICHETTA_VASCA } from './nuoto'
 
 // Athlon Health System (19/10/2026, era Workout, poi Fit): sotto il titolo la
 // ruota Train, Food, Relax (fit/Ruota.tsx), l'Athlon Health Score (fit/Punteggio.tsx: il punteggio da 0 a 100 sui tre
-// pilastri, 20/10/2026) e il tuo corpo (fit/Corpo.tsx); poi l'introduzione (cosa si fa e cosa vogliono dire i numeri)
-// e il Balance; sotto, le aree da scegliere (tre per i maggiorenni, due per gli altri).
+// pilastri, 20/10/2026); poi, dal 24/10/2026, **l'introduzione come seconda carta** (cosa si fa e cosa vogliono dire i numeri),
+// il tuo corpo (fit/Corpo.tsx, **compresso**: titolo e una riga, le cifre toccando) e il Balance; sotto, le aree da scegliere
+// (tre per i maggiorenni, due per gli altri).
 //   - Train: il test dei massimali, il contatore delle calorie, i Consigli Athlon (i tipi di lezione che
 //     fanno per te, con le alternative, e se vuoi sala e nuoto: non e' una settimana ne' un piano, vedi
 //     `consigli/`; il Percorso a tappe, `percorso/`, e' in standby: `percorso/standby.ts`),
@@ -321,17 +322,35 @@ export function Schede() {
       <Entra indice={0}>
         <CartaPunteggio fit={fit} disp={disp} />
       </Entra>
-      <Entra indice={0}>
-        <CartaCorpo misure={misure} senzaConsenso={senzaConsenso} />
-      </Entra>
-      <View style={largo ? stili.fila3 : { gap: spazio.quattro + 4 }}>
-        <Entra indice={0} style={largo ? { flex: 1 } : undefined}>
-          <IntroFit relax={conRelax} />
-        </Entra>
-        <Entra indice={1} style={largo ? { flex: 1 } : undefined}>
-          <CartaBalance dati={fit} onAttivaFood={area === 'food' ? undefined : () => scegli('food')} />
-        </Entra>
-      </View>
+      {/* Dopo il punteggio, nell'ordine: cos'e' l'Athlon Health System (24/10/2026, richiesta di Maurizio: la descrizione e' la seconda
+          carta), «Il tuo corpo» compresso e il Balance. Su schermo largo la descrizione sta a sinistra e, a destra, corpo e Balance in colonna. */}
+      {largo ? (
+        <View style={stili.fila3}>
+          <Entra indice={0} style={{ flex: 1 }}>
+            <IntroFit relax={conRelax} />
+          </Entra>
+          <View style={{ flex: 1, gap: spazio.tre }}>
+            <Entra indice={1}>
+              <CartaCorpo misure={misure} senzaConsenso={senzaConsenso} />
+            </Entra>
+            <Entra indice={1}>
+              <CartaBalance dati={fit} onAttivaFood={area === 'food' ? undefined : () => scegli('food')} />
+            </Entra>
+          </View>
+        </View>
+      ) : (
+        <View style={{ gap: spazio.quattro + 4 }}>
+          <Entra indice={0}>
+            <IntroFit relax={conRelax} />
+          </Entra>
+          <Entra indice={1}>
+            <CartaCorpo misure={misure} senzaConsenso={senzaConsenso} />
+          </Entra>
+          <Entra indice={1}>
+            <CartaBalance dati={fit} onAttivaFood={area === 'food' ? undefined : () => scegli('food')} />
+          </Entra>
+        </View>
+      )}
 
       <Entra indice={2}>
         <Interruttore area={area} onScegli={scegli} relax={conRelax} />
