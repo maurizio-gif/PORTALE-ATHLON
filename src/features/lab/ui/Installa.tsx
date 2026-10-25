@@ -276,6 +276,10 @@ export function Installa({ dopoAccesso = false }: { dopoAccesso?: boolean }) {
           'Athlon Club 4.0 si salva sulla schermata Home come un’app: si apre a tutto schermo con un tocco, senza cercarla nel browser. Non serve passare dall’App Store o da Google Play.',
           'Athlon Club 4.0 saves to your Home Screen like an app: it opens full screen with one tap, without looking for it in the browser. No need to go through the App Store or Google Play.',
         )}
+        {/* Su iPhone le notifiche del club arrivano solo all'app installata (25/10/2026): e' il motivo in piu' per farlo. */}
+        {stato.caso === 'ios-safari' || stato.caso === 'ios-altro'
+          ? t(' Su iPhone è anche l’unico modo per ricevere le notifiche del club.', ' On iPhone it’s also the only way to receive the club’s notifications.')
+          : null}
       </Text>
 
       {stato.richiesta ? (

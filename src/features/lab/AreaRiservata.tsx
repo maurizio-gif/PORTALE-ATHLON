@@ -17,6 +17,8 @@ import { spazio } from '@/theme'
 import { CHIAVE_CONTRATTI, ElencoAbbonamenti } from './AbbonamentiMiei'
 import { AvvisoCertificato } from './home/AvvisoCertificato'
 import { CartaInvita } from './home/CartaInvita'
+import { CartaNotifiche } from './home/CartaNotifiche'
+import { CartaPush } from './home/CartaPush'
 import { CartaJunior } from './home/CartaJunior'
 import { CartaValutaLezione } from './home/CartaValutaLezione'
 import { CartaShop } from './home/CartaShop'
@@ -85,9 +87,13 @@ function Benvenuto({
   onProfilo: () => void
   onFoto: () => void
 }) {
-  // Su un telefono molto stretto (320 pt) la data non ha piu' posto accanto a campanello e Profilo, e a pezzi non dice niente: si toglie.
+  // Su un telefono molto stretto (sotto i 350 pt: misurato a 340 col nome di giorno piu' lungo, «MERCOLEDÌ 30 SETTEMBRE») la data non ha piu'
+  // posto accanto a campanello e Profilo, e a pezzi non dice niente: si toglie.
   const { width: larghezza } = useWindowDimensions()
-  const conData = larghezza >= 340
+  const conData = larghezza >= 350
+  // Il campanello e' piu' grande (40 punti, 25/10/2026): sotto i 400 la pillola «Profilo» tiene solo l'icona e la freccia, o la data si
+  // spezzava a meta' parola nei giorni dal nome lungo («MERCOLEDÌ 30 SETTEMBRE»). Il comando resta: tutta la testata porta al Profilo.
+  const profiloCompatto = larghezza < 400
   const avatar = (
     <View style={[stili.data, { gap: 12, flexShrink: 1 }]}>
       <AvatarFoto nome={titolare?.nome ?? email} cognome={titolare?.cognome} foto={foto} size={AVATAR_TESTATA} anello="rgba(255,255,255,0.18)" invito={invitoFoto} />
@@ -115,7 +121,7 @@ function Benvenuto({
           <Campanello />
           <View style={stili.profilo}>
             <Icona nome="persona" size={14} colore="#fff" />
-            <Text style={stili.profiloTesto}>{t('Profilo', 'Profile')}</Text>
+            {profiloCompatto ? null : <Text style={stili.profiloTesto}>{t('Profilo', 'Profile')}</Text>}
             <Icona nome="avanti" size={13} colore="rgba(255,255,255,0.7)" />
           </View>
         </View>
@@ -429,8 +435,14 @@ export function AreaRiservata({ email }: { email: string }) {
       {/* Il certificato scaduto o mancante di chi ha un abbonamento: subito sotto la testata, prima di tutto il resto (home/AvvisoCertificato). */}
       <AvvisoCertificato area={area} onVai={() => vai('certificato', true)} />
 
+      {/* Le notifiche del club da leggere (home/CartaNotifiche): solo se ce ne sono; il centro e' il campanello della testata. */}
+      <CartaNotifiche />
+
       {/* Il messaggio di benvenuto: scritto a ogni ritorno nell'app, spinge verso il prossimo passo (home/MessaggioBenvenuto). */}
       <MessaggioBenvenuto email={email} onSezione={(s) => vai(s, true)} />
+
+      {/* L'invito ad attivare le notifiche push: solo dove c'e' una cosa da fare, «Non ora» rimanda di tre giorni (home/CartaPush). */}
+      <CartaPush />
 
       <DaFare area={area} onSezione={(s) => vai(s, true)} />
 
