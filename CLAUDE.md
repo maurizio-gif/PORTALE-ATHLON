@@ -472,11 +472,15 @@ l'allenamento, l'alimentazione e il recupero dell'adulto in un posto solo. Nel c
 
 - **In cima parte il video, che comincia dalla ruota** (25/10/2026, richiesta di Maurizio: «quando apri la sezione Athlon Health System deve partire in automatico
   questo video che ti spiega come funziona e parte subito dall'animazione. Train, food e relax»). `fit/VideoIntro.tsx`, montato da `schede/Schede.tsx` **al posto della
-  ruota**: aprendo la scheda si vede subito la ruota che arriva (Train · Food · Relax), poi il video spiega come si arriva a 100: i massimali e le misure, i giorni attivi
-  e le lezioni, il diario dei pasti, il sonno. Dura circa 54 secondi, è **in italiano con i sottotitoli dentro il video** (si capisce anche senza audio) e ha una musica,
+  ruota**: aprendo la scheda si vede subito la ruota che arriva (Train · Food · Relax). **Comincia spiegando cos'è Athlon Health System** (richiesta di Maurizio, stesso giorno:
+  «fai un intro iniziale, se no non si capisce di cos'è»): «Il benessere è un equilibrio. Il benessere nasce tra allenamento, alimentazione e riposo» con la scheda dei tre
+  pilastri (Allenamento = Train, Alimentazione = Food, Riposo = Relax), poi «Tienili d'occhio, tutti e tre. Athlon Health System ti permette di tenere traccia di tutti e tre» con
+  cosa si tiene d'occhio (Train: lezioni e allenamenti; Food: il diario dei pasti; Relax: il sonno), poi «Come arrivi a 100?». Da lì il video spiega come si arriva a 100: il
+  punteggio 70 + 15 + 15, i massimali e le misure, i giorni attivi e le lezioni, il diario dei pasti, il sonno. **I testi dell'intro sono miei, non del club**: da far leggere.
+  Dura circa 60 secondi (6 di intro, 12 battute della musica), è **in italiano con i sottotitoli dentro il video** (si capisce anche senza audio) e ha una musica,
   nessuna voce. Lo ha fatto `/brag`; i sorgenti (composizione Hyperframes, piano, testi per la condivisione) stanno **fuori dal repository**, in `brag-output-2026-10-25-173714/`
   (escluso da git), e il file della versione per i social (1080×1920, con la copertina nel primo fotogramma) è `brag.mp4` lì.
-  - **I file dell'app** sono `public/video/athlon-health-system.mp4` (720×1280, 2,3 MB, −16 LUFS, comincia direttamente dalla ruota: **nessuna copertina cotta nel primo
+  - **I file dell'app** sono `public/video/athlon-health-system.mp4` (720×1280, 2,9 MB, 60 s, −16 LUFS, comincia direttamente dalla ruota: **nessuna copertina cotta nel primo
     fotogramma**) e `athlon-health-system.jpg` (la copertina che si vede mentre il video si carica). Vercel serve `public/` com'è (la riscrittura verso `index.html` non
     tocca i file con un punto) e `public/sw.js` non intercetta né il video né le richieste a intervalli. **Se il video cambia si rifanno tutti e due i file**, con la stessa
     ricompressione, e si guarda che il primo fotogramma sia ancora la ruota. Sull'app nativa l'indirizzo è assoluto (`https://app.athlonroma.it/video/…`).
@@ -493,9 +497,11 @@ l'allenamento, l'alimentazione e il recupero dell'adulto in un posto solo. Nel c
   - **Provato** (Chromium, bundle web esportato, pagina provvisoria poi tolta, server statico con le richieste a intervalli; 390 px con touch e 1280 px, locale italiano): parte
     da solo e muto e avanza, è il file 720×1280, il comando «Attiva l'audio» accende il suono e passa a «Spegni l'audio», il pulsante mette in pausa e il tempo si ferma, il tocco
     sul video riprende, a fine video i comandi dicono «Rivedi il video» e riparte da capo, nessun errore in console; in inglese non c'è nessun `<video>` e si vede la ruota; con
-    «riduci movimento» resta fermo e si avvia dal comando; con il file bloccato sparisce il video e resta la ruota; sul desktop parte da solo. `tsc` pulito. **Non provato**: un
+    «riduci movimento» resta fermo e si avvia dal comando; con il file bloccato sparisce il video e resta la ruota; sul desktop parte da solo. `tsc` pulito. **Rifatto con l'intro** (il video da 60 s,
+    gli stessi controlli, tutti passati): i fotogrammi dell'intro guardati uno a uno (0,4 s fino a 13 s: titolo, sottotitolo, scheda dei pilastri e ruota senza sovrapposizioni,
+    la prima battuta della musica sul titolo) e il controllo tecnico di Hyperframes senza errori (restano gli avvisi sulla struttura del file). **Non provato**: un
     telefono vero (Safari da PWA su iPhone: `playsInline` e l'avvio automatico muto sono quelli della documentazione, non visti girare), l'app nativa (`expo-video` con l'indirizzo
-    assoluto), la scheda vera dietro il login, **il suono con un tocco vero** (qui si è provato che `muted` cambia, non che si senta), il peso su una rete mobile (2,3 MB alla prima apertura, poi
+    assoluto), la scheda vera dietro il login, **il suono con un tocco vero** (qui si è provato che `muted` cambia, non che si senta), il peso su una rete mobile (2,9 MB alla prima apertura, poi
     li serve la cache del browser), e il livello audio (misurato −16 LUFS, **non ascoltato**).
 - **La ruota** (`fit/Ruota.tsx`, **ora il ripiego del video**; la matematica del 3D in `fit/ruota3d.ts`, le forme in `fit/ruotaForme.ts`, tutte e due pure): tre frecce che
   si rincorrono, Train → Food → Relax, un giro in 9 s (`GIRO_S`). Il video ne riprende la scena (stesse forme, stessa matrice, stessi colori). **Rifatta il 25/10/2026** (Maurizio, sulla prima versione 3D del 24/10: «non gira in modo
