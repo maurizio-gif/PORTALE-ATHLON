@@ -1,5 +1,6 @@
 import { esci } from '@/api/lab'
 
+import { azzeraRimandoPush } from './notifiche/invitoPush'
 import { azzeraNotifiche } from './notifiche/store'
 import { scollegaDispositivo } from './notifiche/push'
 import { dimenticaTutteLeRisposte } from './schede/rispostePiano'
@@ -70,6 +71,8 @@ export async function esciDalLaboratorio() {
   // sapere chi e') e senza far aspettare chi esce. Su un dispositivo condiviso non devono passare a chi entra dopo.
   await scollegaDispositivo()
   azzeraNotifiche()
+  // Il «non ora» dell'invito alle notifiche e' del dispositivo: chi entra dopo non lo eredita.
+  azzeraRimandoPush()
   dimentica()
   // Il carrello dello shop e' di chi c'era: sul web sta nella scheda del browser, e un dispositivo condiviso non lo deve passare al prossimo.
   svuotaCarrello()

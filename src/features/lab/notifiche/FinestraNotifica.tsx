@@ -11,6 +11,8 @@ import { Pulsante } from '../ui/kit'
 import { F, FUOCO, usePalette } from '../ui/tema'
 import { Tocco } from '../ui/Tocco'
 import { apriDestinazione } from './apri'
+import { invitoPush, leggiRimandoPush } from './invitoPush'
+import { useAppenaAttivate, usePush } from './push'
 import { chiudiFinestra, finestraComparsa } from './store'
 
 // La finestra che compare nell'app appena il club manda una notifica (20/10/2026). Una alla volta, dalla piu' recente.
@@ -18,6 +20,10 @@ import { chiudiFinestra, finestraComparsa } from './store'
 // **Quello che la persona fa dice al club com'e' andata**: la finestra che compare e' `vista` (lo dice subito); il pulsante e'
 // `azione` e `aperta`; «Ok, letto» su una notifica senza pulsante e' `aperta`; chiudere con la X la lascia solo `vista`:
 // resta fra le non lette del centro notifiche, perche' chi chiude non ha letto per forza. Il testo non e' mai tagliato.
+//
+// **Sotto, se la push e' spenta, una riga per attivarla** (25/10/2026, richiesta di Maurizio: «promuovi di piu l'attivazione delle
+// push»): e' il momento giusto, la persona ha appena visto una notifica del club arrivare. Vale lo stesso rimando di tre giorni
+// della carta in Home (`invitoPush`): chi ha detto «non ora» non se la ritrova qui.
 
 export function FinestraNotifica({ notifica: n }: { notifica: NotificaApp }) {
   const p = usePalette()
@@ -66,6 +72,7 @@ export function FinestraNotifica({ notifica: n }: { notifica: NotificaApp }) {
           <Text style={[stili.testo, { color: p.testoSecondario }]} selectable>
             {n.testo}
           </Text>
+          <OffertaPush />
           <View style={{ gap: spazio.due, marginTop: spazio.due }}>
             {pulsante ? (
               <>
@@ -82,6 +89,29 @@ export function FinestraNotifica({ notifica: n }: { notifica: NotificaApp }) {
   )
 }
 
+/** «Vuoi riceverle anche con l'app chiusa?»: solo con la push spenta e non rimandata; dopo il tocco dice «fatto» per qualche secondo. */
+function OffertaPush() {
+  const p = usePalette()
+  const { stato, occupato, attiva } = usePush()
+  const fatta = useAppenaAttivate(stato)
+  if (fatta) {
+    return (
+      <View style={[stili.offerta, { backgroundColor: p.incavo }]}>
+        <Icona nome="spunta" size={18} colore={p.ok} />
+        <Text style={[stili.offertaTesto, { color: p.testo }]}>{t('Notifiche attivate: ti avvisiamo subito, anche con l’app chiusa.', 'Notifications on: we’ll alert you right away, even with the app closed.')}</Text>
+      </View>
+    )
+  }
+  if (invitoPush(stato, leggiRimandoPush(), Date.now()) !== 'attiva') return null
+  return (
+    <View style={[stili.offerta, { backgroundColor: p.incavo }]}>
+      <Icona nome="campanello" size={18} colore={p.accento} />
+      <Text style={[stili.offertaTesto, { color: p.testo }]}>{t('Vuoi riceverle anche con l’app chiusa?', 'Want to get them even with the app closed?')}</Text>
+      <Pulsante testo={t('Attiva', 'Turn on')} piccolo pieno={false} inCorso={occupato} onPress={() => void attiva()} />
+    </View>
+  )
+}
+
 const stili = StyleSheet.create({
   velo: { flex: 1, backgroundColor: 'rgba(0,0,0,0.55)', alignItems: 'center', justifyContent: 'center', paddingHorizontal: spazio.tre },
   carta: { width: '100%', maxWidth: 440, borderRadius: 30, borderWidth: 1, padding: spazio.quattro - 2, gap: spazio.tre },
@@ -91,4 +121,6 @@ const stili = StyleSheet.create({
   chiudi: { width: 34, height: 34, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
   titolo: { fontFamily: F.extra, fontSize: 24, lineHeight: 29, letterSpacing: -0.7 },
   testo: { fontFamily: F.medio, fontSize: 16, lineHeight: 23 },
+  offerta: { flexDirection: 'row', alignItems: 'center', gap: spazio.due + 2, borderRadius: 18, paddingVertical: spazio.due + 2, paddingHorizontal: spazio.tre },
+  offertaTesto: { flex: 1, fontFamily: F.bold, fontSize: 13.5, lineHeight: 18 },
 })

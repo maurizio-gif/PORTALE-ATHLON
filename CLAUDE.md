@@ -1192,7 +1192,10 @@ tabelle, la natura servizio/marketing e il consenso, i tetti, il tracciamento e 
   senza risposta non compare **nemmeno il campanello**. L'app può uscire prima della funzione senza mostrare niente di rotto, e non martella una funzione che non c'è.
 - **Il campanello** (`Campanello.tsx`) sta nella testata della Home, accanto a «Profilo», con il numero delle non lette (9+ oltre le nove) e porta al centro. È l'unico ingresso fisso:
   nella barra delle schede non c'è una voce, e aggiungerla è una scelta del club (come per lo Shop). **Nella testata c'è poco posto**: campanello e «Profilo» non si restringono mai e **a cedere è la data**
-  (va a capo su due righe, a 360 pt; si toglie sotto i 340 pt, dove non resterebbe leggibile): senza questo, a 360 pt «Profilo» usciva dalla carta.
+  (va a capo su due righe; si toglie sotto i 350 pt, dove non resterebbe leggibile): senza questo, a 360 pt «Profilo» usciva dalla carta.
+  **Più in vista dal 25/10/2026** (richiesta di Maurizio, vedi «Più in vista» qui sotto): 40 punti e non 32; con notifiche da leggere diventa arancio pieno, col numero in un pallino bianco e l'anello
+  che pulsa (`Richiamo`: tre raffiche e poi sta fermo, niente con «riduci movimento»). **Sotto i 400 pt la pillola «Profilo» tiene solo l'icona e la freccia** (tutta la testata porta comunque al Profilo): col campanello
+  più grande la data si spezzava a metà parola nei giorni dal nome lungo («MERCOLEDÌ 30 SETTEMBRE»), e **a 340-375 pt si spezzava già prima** (misurato con il campanello da 32).
 - **Il centro notifiche** (`Centro.tsx`, `/notifiche`): l'elenco dalla più recente, con il pallino sulle non lette, «oggi 10:30» / «ieri» / «12 ott» all'ora di Roma, e «Per <nome>» sulle notifiche
   rivolte a un figlio del nucleo. **Si apre una notifica toccandola**: da lì è `aperta` (dal centro) e il pallino si spegne; il pulsante è `azione`. «Togli dall'elenco» la nasconde a chi la tocca
   (`nascosta`: non cambia quello che il club vede dell'apertura). **«Segna tutte come lette» toglie i pallini e non conta come apertura**: il club vuole sapere chi l'ha letta davvero, non chi
@@ -1207,6 +1210,24 @@ tabelle, la natura servizio/marketing e il consenso, i tetti, il tracciamento e 
   aggiornato su tutte le nostre novità…». Non si dice più «il club ti scrive solo per cose che ti riguardano». **Attivarle di default non si può**: il browser accende la push
   solo dopo un tocco e il «Consenti» della persona. Ogni notifica arriva comunque anche nell'app, e quelle di marketing solo a chi ha il consenso della newsletter (lo decide il
   database, non questo testo).
+- **Più in vista: carta delle non lette, invito alle push in Home e nella finestra** (25/10/2026, richiesta di Maurizio: «rendi più visibile la sezione notifiche e promuovi di più l'attivazione delle push»).
+  Prima il centro si apriva solo dal campanello, nell'angolo della testata, e l'invito a attivare la push stava solo dentro il centro: chi non lo toccava non sapeva né che il club gli avesse scritto né che poteva
+  ricevere le push. Tre cose, tutte in `src/features/lab/home/` e `notifiche/`:
+  - **`CartaNotifiche`** («Hai N notifiche da leggere»): carta **arancio pieno**, la sola della Home di quel colore, subito sotto l'avviso del certificato e prima del messaggio di benvenuto; porta a `/notifiche`.
+    **C'è solo quando ci sono non lette** e sparisce da sola a zero: una carta fissa «nessuna notifica» sarebbe rumore. Il numero è quello del campanello (`useNotifiche().nonLette`).
+  - **`CartaPush`** («Non perderti le novità del club» + «Attiva le notifiche» + «Non ora»): sotto il messaggio di benvenuto. **Quando compare lo decide `invitoPush` (`notifiche/invitoPush.ts`, puro)**: push **spenta**
+    (un tocco di questa carta fa partire `attiva()`, che è dove il browser vuole il permesso) o **bloccata dal browser** (solo il testo che dice di consentirle dalle impostazioni, senza pulsante di attivazione).
+    **Mai** dove è già attiva, dove il browser non le sa fare o l'app è nativa, dove il club non le ha attivate sul server, **su iPhone senza app installata** (c'è già «Installa l'app», che dal 25/10 dice anche che è l'unico
+    modo di ricevere le notifiche: due carte per la stessa cosa una sull'altra sarebbero troppo) e **in vista cliente**. **Il giro delle push parte solo per chi può avere le notifiche** (`useNotifiche().attivo`): per gli altri non
+    parte nemmeno la lettura dello stato dal server. Dopo il tocco la carta dice «Notifiche attivate» per sei secondi (`useAppenaAttivate`, solo per chi è passato da spento ad attivo: chi le aveva già non legge niente).
+  - **Nella finestra** (`FinestraNotifica`, `OffertaPush`): con la push spenta, sotto il testo, «Vuoi riceverle anche con l'app chiusa?» e «Attiva». È il momento giusto: la persona ha appena visto una notifica del club arrivare.
+  - **«Non ora» rimanda di tre giorni** (`GIORNI_RIMANDO`, chiave `athlon:push-dopo` nel `localStorage`, che se manca non solleva: l'invito torna a ogni apertura) e vale per **tutti e due i posti**. Non per sempre: una carta che non si
+    può togliere è una carta che si impara a non guardare, una che torna dopo qualche giorno è un invito. **Il rimando è del dispositivo e si azzera uscendo dall'app** (`azzeraRimandoPush` in `esciDalLaboratorio`): su un dispositivo
+    condiviso chi entra dopo non eredita il «non ora» di chi c'era.
+  - **Le istanze di `usePush` si avvisano a vicenda** (carta in Home, offerta nella finestra, carta del centro): attivata o spenta da una, le altre rileggono lo stato, o la carta in Home direbbe «Attiva» a chi ha appena
+    attivato dalla finestra.
+  - **Attivarla «di default» resta impossibile** (il browser la accende solo dopo un tocco e il «Consenti» della persona): l'invito è quanto si può fare. Le notifiche di marketing restano per chi ha il consenso della newsletter.
+  - **Non è stato toccato**: il centro (`Centro.tsx`, e la sua carta `AttivaPush`), il tracciamento (`segna`), il giro ogni venti secondi, il service worker, la barra delle schede (una voce in più è una scelta del club).
 - **Un dispositivo segue il nucleo e chi esce lo toglie.** Il server associa l'indirizzo push al titolare e ai figli (una notifica per un figlio arriva sul telefono del genitore, con «Per Giulia»);
   **uscendo dall'app** (`esciDalLaboratorio`) il dispositivo si toglie dal club e dal browser **prima** di chiudere la sessione (il server vuole sapere chi è), senza far aspettare più di quattro secondi
   chi esce: su un dispositivo condiviso le notifiche di una persona non devono passare a chi entra dopo. Chi attiva le notifiche sullo stesso browser dopo un altro se lo porta via.
@@ -1232,6 +1253,13 @@ il centro con le tre voci e «Per Giulia»; il dettaglio e il suo pulsante; «To
 nessun comando per la push senza la chiave sul server; 403 e 404 che fermano il giro; il giro ogni venti secondi (con l'orologio finto); nessuno scorrimento orizzontale; il campanello della Home che porta al centro.
 **Non provato**: una push su un telefono vero, Android o iPhone con l'app installata (**la sottoscrizione, il service worker che segnala ricevuta e apertura, il tocco sull'avviso e il suo segnale al server non
 sono mai stati visti girare**), il permesso del browser (`Notification.requestPermission` non si simula), l'app nativa, le finestre con la funzione vera e una sessione vera, e il carico dei venti secondi.
+**«Più in vista» (25/10/2026), provato**: `invitoPush` con `npx tsx` (stati, rimando di tre giorni con l'estremo, valore sporco, memoria del browser assente; **per mutazione**, sette modifiche del codice tutte rilevate) e
+`tsc` pulito; **in Chromium** (bundle web esportato con `EXPO_PUBLIC_SUPABASE_URL` locale, backend finto con `page.route`, 48 controlli): push spenta con la carta e il tocco che iscrive (`push_iscrivi` con endpoint, `p256dh` e
+`auth`) e «Notifiche attivate» che poi sparisce; «Non ora» (tre giorni esatti, resta dopo il ricaricamento, torna a rimando scaduto); tre non lette (campanello arancio da 40 punti, carta, il tocco porta a `/notifiche`), una sola
+(singolare), push attiva (nessun invito), bloccata (nessun pulsante), non disponibile sul server, iPhone senza app (nessuna carta, la frase su «Installa l'app»), la finestra con l'offerta (e senza, con il rimando; attivata da lì la carta in Home dietro si aggiorna),
+inglese a 1280 pt, «riduci movimento», **vista cliente senza nessuna chiamata a `portale-lab-notifiche`**, e la data della testata a 340-430 pt con la domenica e col mercoledì di settembre, il caso peggiore. **La push del browser è
+finta** (`PushManager.subscribe` sostituito): in Chromium headless parlerebbe con un servizio push vero. **Non provato**: un telefono vero (iPhone, dove l'invito sta in «Installa l'app»), l'app nativa (lì le push non ci sono e
+la carta non compare), e **che un invito più in vista faccia attivare più push**: il numero dei dispositivi iscritti (`app_push_dispositivi`) prima e dopo il rilascio è la misura.
 
 **Stato (20/10/2026): in produzione.** Il lato server (tabelle, funzioni SQL, permesso `notifiche-app`, `portale-lab-notifiche`, `newsletter-invio` v40) e il CRM (APP-ATHLON #385) erano già su, e
 questa app è su `main` dal 20/10/2026, **dopo** `app_notifica_push_esito` (la funzione con cui la push registra l'esito per dispositivo e toglie quelli scaduti: creata a mano dall'editor SQL di Supabase, perché lo

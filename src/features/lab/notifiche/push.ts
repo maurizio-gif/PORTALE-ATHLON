@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Platform } from 'react-native'
 
 import { iscriviPush, rimuoviPush, statoPushServer } from '@/api/notifiche'
@@ -85,6 +85,15 @@ export async function scollegaDispositivo(): Promise<void> {
   }
 }
 
+// Piu' istanze di `usePush` possono essere montate insieme (la carta in Home, l'offerta nella finestra, la carta del centro): quando una
+// cambia lo stato le altre lo rileggono, o la carta in Home direbbe «Attiva» a chi ha appena attivato dalla finestra (25/10/2026).
+const istanze = new Set<() => Promise<void>>()
+function avvisaLeAltre(mia: () => Promise<void>) {
+  istanze.forEach((rileggi) => {
+    if (rileggi !== mia) void rileggi()
+  })
+}
+
 /** Lo stato delle push di questo dispositivo e i comandi per attivarle e spegnerle. */
 export function usePush() {
   const [stato, setStato] = useState<StatoPush>('verifica')
@@ -112,6 +121,10 @@ export function usePush() {
 
   useEffect(() => {
     void leggi()
+    istanze.add(leggi)
+    return () => {
+      istanze.delete(leggi)
+    }
   }, [leggi])
 
   const attiva = useCallback(async () => {
@@ -144,6 +157,7 @@ export function usePush() {
       if (!r.ok) return setErrore(r.errore)
       setStato('attivo')
       void leggi()
+      avvisaLeAltre(leggi)
     } catch {
       setErrore(t('Non siamo riusciti ad attivare le notifiche su questo dispositivo. Riprova fra poco.', 'We couldn’t turn on notifications on this device. Try again shortly.'))
     } finally {
@@ -163,6 +177,7 @@ export function usePush() {
       }
       setStato('spento')
       void leggi()
+      avvisaLeAltre(leggi)
     } catch {
       setErrore(t('Non siamo riusciti a spegnere le notifiche su questo dispositivo. Riprova fra poco.', 'We couldn’t turn off notifications on this device. Try again shortly.'))
     } finally {
@@ -171,4 +186,23 @@ export function usePush() {
   }, [leggi])
 
   return { stato, occupato, errore, dispositivi, attiva, spegni }
+}
+
+/**
+ * Vero per qualche secondo dopo che la persona ha acceso le notifiche da questa schermata (da «spento» ad «attivo»): serve a dire
+ * «fatto» senza ripeterlo a chi le aveva gia' (per lui lo stato parte da «attivo» e non passa da «spento»).
+ */
+export function useAppenaAttivate(stato: StatoPush, ms = 6000): boolean {
+  const [si, setSi] = useState(false)
+  const prima = useRef<StatoPush>('verifica')
+  useEffect(() => {
+    if (prima.current === 'spento' && stato === 'attivo') setSi(true)
+    prima.current = stato
+  }, [stato])
+  useEffect(() => {
+    if (!si) return
+    const x = setTimeout(() => setSi(false), ms)
+    return () => clearTimeout(x)
+  }, [si, ms])
+  return si
 }
