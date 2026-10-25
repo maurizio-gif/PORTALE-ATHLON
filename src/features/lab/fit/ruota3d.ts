@@ -1,15 +1,19 @@
-// La matematica della ruota in 3D (24/10/2026, richiesta di Maurizio: «un'animazione piu' fluida e
-// tridimensionale»). **Pura**, senza React ne' Reanimated: si prova con `node --experimental-strip-types`.
-// Le funzioni portano `'worklet'` perche' le chiama `useAnimatedStyle` (sul telefono gira sul thread
-// dell'interfaccia); su web e in un test sono funzioni normali.
+// La matematica della ruota in 3D. **Pura**, senza React ne' Reanimated: si prova con
+// `node --experimental-strip-types`. Le funzioni portano `'worklet'` perche' le chiama `useAnimatedStyle`
+// (sul telefono gira sul thread dell'interfaccia); su web e in un test sono funzioni normali.
 //
-// Come e' fatta la scena. Ogni freccia e' un tubo: una pila di strati identici (`ruota3d` non li disegna,
-// lo fa Ruota.tsx), ognuno piu' stretto e piu' chiaro di quello sotto, come le curve di livello di una
-// cupola. Ogni strato e' un disco piatto a cui si da' una **matrice 4x4 con la prospettiva**: stessa
-// inclinazione per tutti, ma alzato lungo la normale del disco di `h` punti. Visto dall'alto, la pila
-// da' spessore, il lato vicino, il lato lontano e l'ombra che si riempie. Niente nasce da un tween che
-// riparte: tutto e' una funzione del tempo `s` (secondi dall'apertura), quindi nessuno scatto al giro,
-// nessun passaggio brusco se l'app rallenta, e fermare e riprendere l'orologio non lascia salti.
+// Come e' fatta la scena. La ruota e' una pila di dischi piatti (la base, le pareti, la faccia: li disegna
+// Ruota.tsx), tutti con la stessa matrice 4x4 con prospettiva, alzati lungo la normale del disco di `h`
+// punti. Visto dall'alto, la pila da' spessore e un lato vicino. Tutto e' una funzione del tempo `s`
+// (secondi dall'apertura): niente tween che riparte, quindi nessuno scatto, e fermare e riprendere
+// l'orologio non lascia salti.
+//
+// **Simmetrica (25/10/2026, richiesta di Maurizio: «non gira in modo simmetrico»).** La prima versione
+// (24/10) faceva respirare l'inclinazione, la faceva precedere di lato e variava la velocita': il disco
+// non faceva la stessa cosa a destra e a sinistra. Ora l'inclinazione e' fissa e verticale (la scena e'
+// uguale allo specchio, destra e sinistra), il giro e' a velocita' costante, e l'unico moto in piu' e' un
+// battito che si ripete **tre volte a giro**, quanto le frecce: ogni 120 gradi la ruota e' identica a
+// com'era (`PERIODO_S`). Provato: `proietta` allo specchio, e il periodo di un terzo di giro.
 //
 // Convenzioni: come CSS e come React Native, matrici a 16 numeri **per colonne** (la traslazione sta in
 // 12, 13, 14; la prospettiva in 11), y verso il basso, z verso chi guarda, rotazioni positive in senso
@@ -17,16 +21,18 @@
 
 export type Mat = number[]
 
-/** Una ruota intera, in secondi: lenta, si nota senza distrarre. */
-export const GIRO_S = 24
+/** Una ruota intera, in secondi: abbastanza veloce da essere energica, abbastanza lenta da non stancare. */
+export const GIRO_S = 9
+/** Ogni quanti secondi la ruota torna identica: un terzo di giro, quanto le frecce. */
+export const PERIODO_S = GIRO_S / 3
 /** Da quanto lontano guarda l'occhio, in punti. Piu' e' piccolo, piu' la prospettiva e' forte. */
-export const PROSPETTIVA = 560
-/** Altezza del dorso della freccia sopra il piano del disco, in punti. */
-export const ALTEZZA = 11
-/** L'inclinazione di riposo del disco, in gradi (0 = di fronte, 90 = di taglio). */
-export const INCLINAZIONE = 31
-/** Quanto dura l'arrivo della ruota (la ruota «atterra» e si assesta), in secondi. */
-export const ARRIVO_S = 1.7
+export const PROSPETTIVA = 520
+/** L'inclinazione del disco, in gradi (0 = di fronte, 90 = di taglio). Fissa. */
+export const INCLINAZIONE = 27
+/** Quanto cresce e cala il battito (1,2% della grandezza). */
+export const BATTITO = 0.012
+/** Quanto dura l'arrivo della ruota (si assesta), in secondi. */
+export const ARRIVO_S = 1.4
 /** Un istante qualunque dopo l'arrivo: la posa della ruota ferma («riduci movimento»). */
 export const POSA_FERMA_S = 4.2
 
@@ -67,13 +73,6 @@ export function rotX(a: number): Mat {
   return [1, 0, 0, 0, 0, c, s, 0, 0, -s, c, 0, 0, 0, 0, 1]
 }
 
-export function rotY(a: number): Mat {
-  'worklet'
-  const c = Math.cos(a)
-  const s = Math.sin(a)
-  return [c, 0, -s, 0, 0, 1, 0, 0, s, 0, c, 0, 0, 0, 0, 1]
-}
-
 export function rotZ(a: number): Mat {
   'worklet'
   const c = Math.cos(a)
@@ -87,7 +86,7 @@ export function prospettiva(d: number): Mat {
   return [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, -1 / d, 0, 0, 0, 1]
 }
 
-/** Scala e sposta **dopo** la prospettiva (sullo schermo): la ruota intera, che respira e galleggia. */
+/** Scala e sposta **dopo** la prospettiva (sullo schermo): la ruota intera, che respira e arriva da sotto. */
 export function sulloSchermo(k: number, ty: number): Mat {
   'worklet'
   return [k, 0, 0, 0, 0, k, 0, 0, 0, 0, 1, 0, 0, ty, 0, 1]
@@ -116,74 +115,51 @@ export function proietta(m: Mat, x: number, y: number, z: number): [number, numb
 export type Posa = {
   /** Inclinazione del disco (rotX), radianti. */
   inclina: number
-  /** Rotazione intorno all'asse verticale (rotY), radianti: la precessione. */
-  volta: number
-  /** Giro del disco su se' stesso (rotZ), radianti, sempre crescente. */
+  /** Giro del disco su se' stesso (rotZ), radianti, sempre crescente e a velocita' costante. */
   giro: number
-  /** Quanto e' alta la ruota sopra il suo piano d'appoggio, in punti (per l'ombra): negativa all'arrivo. */
+  /** Di quanto la ruota e' sotto il suo posto, in punti: positivo solo durante l'arrivo. */
   quota: number
-  /** Il respiro della ruota intera (1 = a riposo; piu' piccola all'arrivo). */
+  /** La grandezza della ruota intera (1 = a riposo; piu' piccola all'arrivo, con il battito sopra). */
   scala: number
   /** Da 0 (appena comparsa) a 1 (assestata). */
   arrivo: number
 }
 
 export type Scena = Posa & {
-  /** La matrice del disco (strato a quota 0): inclinazione, giro, prospettiva, respiro, quota. */
+  /** La matrice del disco (strato a quota 0): inclinazione, giro, prospettiva, battito, arrivo. */
   m: Mat
 }
 
 /**
- * Gli angoli a `s` secondi dall'apertura. Rotazione: un giro ogni 24 s con un **respiro di velocita'**
- * (la ruota non gira come un motorino: rallenta e riprende, +-26% in otto secondi, mai all'indietro).
- * Inclinazione: respira fra 21 e 40 gradi e **precede** (il polo del disco gira in un'ellisse in 13 s,
- * poi una seconda onda piu' lenta e con un altro periodo, cosi' il moto non si ripete uguale). Quota:
- * galleggia di 3 punti. All'arrivo la ruota parte piu' inclinata, piu' bassa, piu' piccola e gira piu'
- * in fretta, e si assesta in ARRIVO_S secondi.
+ * La posa a `s` secondi dall'apertura. Giro: costante, un giro ogni GIRO_S. Inclinazione: fissa. Battito:
+ * tre per giro (1,2%). All'arrivo la ruota parte piu' inclinata, piu' piccola e piu' bassa, gira in piu'
+ * di un tratto che si spegne, e si assesta in ARRIVO_S secondi: dopo, e' in posa e il solo moto e' il giro.
  */
 export function posaDa(s: number): Posa {
   'worklet'
   const e = arrivo(s)
   const r = 1 - e
-  const fase = (s / 13) * DUE_PI
-  const inclina = (INCLINAZIONE + 6.5 * Math.sin(fase) + 2.4 * Math.sin((s / 7.3) * DUE_PI + 1.3) + r * 30) * RAD
-  const volta = (12 * Math.cos(fase) + 3 * Math.sin((s / 9.1) * DUE_PI)) * RAD
-  // Il giro in piu' dell'arrivo cresce e rallenta (in senso orario, come le frecce): all'inizio
-  // spinge a ~500 gradi al secondo e si spegne in ARRIVO_S. Mai all'indietro.
-  const giro = ((360 * s) / GIRO_S + 5 * Math.sin((s / 8) * DUE_PI) + (1 - r * r) * 150) * RAD
-  const quota = 3.2 * Math.sin((s / 5.5) * DUE_PI) - 12 * r
-  const scala = (0.9 + 0.1 * e) * (1 + 0.006 * Math.sin((s / 4.6) * DUE_PI + 0.7))
-  return { inclina, volta, giro, quota, scala, arrivo: e }
+  // Il giro in piu' dell'arrivo cresce e rallenta (in senso orario, come le frecce): mai all'indietro.
+  const giro = ((360 * s) / GIRO_S + (1 - r * r) * 150) * RAD
+  const inclina = (INCLINAZIONE + r * 34) * RAD
+  const battito = 1 + BATTITO * e * Math.sin((DUE_PI * s) / PERIODO_S)
+  return { inclina, giro, quota: -10 * r, scala: (0.88 + 0.12 * e) * battito, arrivo: e }
 }
 
-/** La matrice di una posa: M = schermo · prospettiva · rotX · rotY · rotZ. */
+/** La matrice di una posa: M = schermo · prospettiva · rotX · rotZ. */
 export function matriceDa(p: Posa): Mat {
   'worklet'
-  return moltiplica(sulloSchermo(p.scala, -p.quota), moltiplica(prospettiva(PROSPETTIVA), moltiplica(rotX(p.inclina), moltiplica(rotY(p.volta), rotZ(p.giro)))))
+  return moltiplica(sulloSchermo(p.scala, -p.quota), moltiplica(prospettiva(PROSPETTIVA), moltiplica(rotX(p.inclina), rotZ(p.giro))))
 }
 
 export function scenaDa(s: number): Scena {
   'worklet'
   const p = posaDa(s)
-  return { inclina: p.inclina, volta: p.volta, giro: p.giro, quota: p.quota, scala: p.scala, arrivo: p.arrivo, m: matriceDa(p) }
+  return { inclina: p.inclina, giro: p.giro, quota: p.quota, scala: p.scala, arrivo: p.arrivo, m: matriceDa(p) }
 }
-
-/** La matrice di riposo (disco inclinato, senza giro, senza respiro): il punto da cui si misura il parallasse. */
-export const RIPOSO: Mat = moltiplica(prospettiva(PROSPETTIVA), rotX(INCLINAZIONE * RAD))
 
 // ---------------------------------------------------------------------------
-// Gli strati del tubo
-
-/**
- * Lo strato `k` di `n`. `u` e' la quota sul profilo di un cilindro (da -0.8, il fianco in basso, a 0.93,
- * il dorso): la larghezza del tubo a quella quota e' `f = sqrt(1 - u²)`, come in una sezione circolare.
- * `t` va da 0 (in fondo) a 1 (in cima) e dice quanto e' illuminato.
- */
-export function profilo(k: number, n: number): { u: number; h: number; f: number; t: number } {
-  const t = n > 1 ? k / (n - 1) : 1
-  const u = -0.8 + (0.93 + 0.8) * t
-  return { u, h: u * ALTEZZA, f: Math.sqrt(1 - u * u), t }
-}
+// Colori (si calcolano una volta sola, fuori dalle animazioni)
 
 const esadecimale = (c: string): [number, number, number] => {
   const n = parseInt(c.slice(1), 16)
@@ -200,12 +176,10 @@ export function mescola(a: string, b: string, t: number): string {
 }
 
 /**
- * Il colore di uno strato. Dall'alto si vede soprattutto il dorso, e deve restare il colore del brand:
- * da `t` = 0.74 in giu' c'e' il colore pieno, sopra solo un lampo di luce (24% di bianco in cima), e
- * verso il fondo il colore si scurisce come il fianco di un tubo in ombra (fino al 62% di nero).
+ * Il colore della parete numero `k` di `n`: dal fondo, il colore scurito del 62%, fino a quella sotto la
+ * faccia, scurita del 14%. La luce arriva dall'alto, quindi i fianchi sono in ombra.
  */
-export function coloreStrato(colore: string, t: number): string {
-  const PIENO = 0.74
-  if (t <= PIENO) return mescola(mescola(colore, '#000000', 0.62), colore, Math.pow(t / PIENO, 0.9))
-  return mescola(colore, '#FFFFFF', 0.24 * Math.pow((t - PIENO) / (1 - PIENO), 1.1))
+export function coloreParete(colore: string, k: number, n: number): string {
+  const t = n > 1 ? k / (n - 1) : 1
+  return mescola(mescola(colore, '#000000', 0.62), mescola(colore, '#000000', 0.14), t)
 }

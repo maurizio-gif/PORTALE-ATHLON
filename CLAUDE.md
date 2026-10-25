@@ -470,45 +470,56 @@ La scheda che era **Workout** (poi «Fit») si chiama **Athlon Health System** (
 l'allenamento, l'alimentazione e il recupero dell'adulto in un posto solo. Nel codice la cartella resta `fit/`. L'indirizzo resta `/allenamento` (è quello dei link già dati); l'area scelta sta in
 `?area=food`, così tornando dal diario si ritrova Food. Nomi in inglese di proposito, il resto in italiano.
 
-- **Sotto il titolo la ruota** (`fit/Ruota.tsx`, la matematica in `fit/ruota3d.ts`): tre frecce che si rincorrono, Train → Food → Relax,
-  un giro in 24 s. **In 3D e fluida (24/10/2026, richiesta di Maurizio: «un'animazione più fluida e tridimensionale»).** Niente librerie
-  3D né canvas: ogni freccia è un **tubo fatto di 18 strati** dello stesso disegno (`STRATI`), ognuno più stretto e più chiaro di quello
-  sotto come le curve di livello di una cupola (profilo di un cilindro: `profilo`, `coloreStrato`), e ogni strato è una View con la sua
-  **matrice 4x4 con prospettiva** (inclinazione + giro + alzata lungo la normale del disco). Dà spessore, un lato vicino (in basso, più
-  grande) e uno lontano, e un'ombra a terra che si stringe e si scurisce quando la ruota scende. Il colore pieno del brand sta sul dorso
-  (`coloreStrato`: pieno da 0,74 in giù, solo il 24% di bianco in cima): in cima non deve diventare pesca.
-  - **Un solo orologio** (`useFrameCallback`) somma i secondi veri fra un fotogramma e l'altro (al massimo 50 ms, per non saltare dopo
-    una pausa) e da quel numero discende tutto, in `scenaDa(s)`: giro con un **respiro di velocità** (11–19 gradi al secondo, mai
-    all'indietro), inclinazione che respira fra 22 e 40 gradi e **precede** (il polo del disco gira in un'ellisse in 13 s, più una seconda
-    onda con un altro periodo, così non si ripete uguale), galleggiamento di 3 punti. **All'apertura la ruota «atterra»** in 1,7 s (parte più
-    inclinata, più bassa, più piccola e gira più in fretta, poi si assesta). Niente tween che riparte: nessuno scatto al giro. Il numero di
-    fotogrammi non cambia il moto, e l'orologio si **ferma quando la scheda non è in primo piano** (`useIsFocused`) e riprende da dove era.
-  - **Niente passa da React**: i 18 strati, le tre etichette, l'ombra e il testo centrale sono `useAnimatedStyle` che leggono un solo
-    `useDerivedValue` (`scena`); la schermata non si ridisegna mentre la ruota si muove.
-  - **La matrice si chiama `matrix3d` sul web e `matrix` sul telefono** (`MATRICE`): react-native-web trasforma `matrix` in `matrix(...)`,
-    che in CSS vuole 6 numeri e non 16; React Native non conosce `matrix3d`. Il tipo di React Native non ha `matrix3d`, quindi c'è un
-    `as unknown as ViewStyle['transform']` (`conMatrice`). Le funzioni di `ruota3d.ts` hanno la direttiva `'worklet'`: chi ne aggiunge una
-    che `useAnimatedStyle` chiama, la deve mettere anche lì.
-  - **Le etichette restano diritte** (non ruotano col disco: in basso si leggerebbero capovolte) ma seguono la profondità: più piccole e
-    leggermente più tenui sul lato lontano (comunque opache al 92%: una pillola trasparente lascia vedere la freccia e si legge male).
-    «Equilibrio» sta un po' sopra il disco e si sposta rispetto a lui (parallasse): da fermo è al centro.
-  - **Geometria invariata**: raggio, spessore, vuoto fra le frecce e punta sono quelli di prima, e `SPICCHI` resta esportato (lo usa
-    `ui/IconaRuota.tsx`, l'icona della barra delle schede, che non gira e non è cambiata). Il riquadro è sempre 220×220: le etichette sul
-    lato vicino ne sporgono di qualche punto, nessun contenitore taglia (`Entra` non ha `overflow`).
-  - **Con «riduci movimento» è ferma**, in posa inclinata (`POSA_FERMA_S`), senza arrivo e senza orologio.
-  - **Costo**: 18 View composte (una per strato, ognuna con un `Svg` di 6 tracciati), aggiornate a ogni fotogramma solo nella trasformazione.
-    Se su un telefono vecchio pesasse, `N_STRATI` si abbassa senza toccare altro, ma con meno strati le fasce sui fianchi si vedono di più
-    (provato solo con 15 e 18: con 18 appena percettibili a 4×).
-  - **Provato.** `ruota3d.ts` con `node --experimental-strip-types` (9 gruppi: la proiezione della matrice coincide con un calcolo
-    indipendente di rotazioni e prospettiva su 200 pose e punti a caso, `alzata` è M·Tz(h), il lato vicino è in basso e più grande, il giro non
-    va mai all'indietro in 120 s, un giro in 24 s si richiude, nessun salto in 1 ms, inclinazione e precessione nei limiti, l'arrivo, la
-    luminosità dei colori che non scende dal fondo al dorso). `tsc` pulito. **In Chromium** (bundle web esportato, pagina provvisoria poi
-    tolta; 390 px a densità 3, tema chiaro e scuro, e 4× per guardare i fianchi): 59,8 fotogrammi al secondo in 6 secondi, 95° percentile
-    16,7 ms, nessuna *long task*, tutti i 18 strati aggiornati a ogni fotogramma, nessun errore in console; «riduci movimento» ferma le
-    matrici. **Non provato**: un telefono vero (Safari da PWA su iPhone, dove Chromium software è un'altra cosa), **l'app nativa** (la
-    `matrix` con prospettiva su iOS e Android e le worklet su thread UI sono scritte secondo la documentazione, non viste girare), la
-    schermata vera dietro il login, e la pausa quando si cambia scheda (`useIsFocused`). Se su iPhone le fasce sui fianchi si vedessero
-    o la ruota fosse sfocata sul lato vicino (il browser rasterizza gli strati a una scala sola), è il primo posto da guardare.
+- **Sotto il titolo la ruota** (`fit/Ruota.tsx`; la matematica del 3D in `fit/ruota3d.ts`, le forme in `fit/ruotaForme.ts`, tutte e due pure): tre frecce che
+  si rincorrono, Train → Food → Relax, un giro in 9 s (`GIRO_S`). **Rifatta il 25/10/2026** (Maurizio, sulla prima versione 3D del 24/10: «non gira in modo
+  simmetrico e poi vorrei qualcosa di più moderno ed energico»). La prima versione (tubi di plastica a 18 strati, inclinazione che respira e precede di lato,
+  velocità che varia, galleggiamento) è nella cronologia di git (PR #138): **non va rimessa**, è quella che non è piaciuta.
+  - **Il moto è simmetrico, ed è la regola che decide tutto il resto.** L'inclinazione è **fissa e verticale** (27 gradi: la scena a destra è lo specchio di
+    quella a sinistra), il giro è **a velocità costante** (40 gradi al secondo, esatti), e l'unico moto in più è un **battito** (1,2% della grandezza) che si
+    ripete **tre volte a giro**, quanto le frecce: ogni 120 gradi (`PERIODO_S`, 3 s) la ruota è identica a com'era. **Niente può rompere questa simmetria**:
+    né una rotazione di lato (`rotY`), né un'oscillazione dell'inclinazione, né una velocità variabile, né un galleggiamento. Nella prima versione la
+    rotazione di lato arrivava a 12 gradi, cioè a 12 punti di scarto fra destra e sinistra (misurato). Chi vuole altro movimento deve prima chiedersi se lo
+    stesso, a 120 gradi di distanza, ricompare uguale.
+  - **Il disegno è una cometa** (`ruotaForme.ts`): ogni freccia è un solo poligono con la coda sottile che **sfuma nel nulla** (gradiente lineare lungo la
+    corda dell'arco, che per un arco sotto i 180 gradi cresce sempre dalla coda alla testa), il corpo che si allarga e una **punta netta**, larga 1,6 volte il
+    corpo, in una tinta più calda (`chiaro`: 34% di bianco). La direzione del moto si legge da sola (la coda sta dietro) e la ruota sembra più veloce di
+    quanto giri. Le tre frecce sono la stessa forma ruotata di 120 gradi (provato sui vertici).
+  - **Il 3D** (invariato nell'idea): una **pila di dodici View**, ognuna con una **matrice 4x4 con prospettiva** (inclinazione + giro, alzata lungo la normale
+    del disco): la base (il binario tenue, l'alone e il lampo delle teste), **dieci pareti** scure che danno lo spessore (10 punti) e la faccia (colore del
+    brand, luce calda sulla testa, un filo di riflesso lungo il bordo esterno). Niente librerie 3D né canvas. Sotto, l'ombra a terra; sopra, le tre etichette
+    **piene** (colore della freccia, testo bianco, un'ombra colorata) che restano diritte e seguono la profondità, e «Equilibrio» fermo al centro.
+  - **L'alone** (`Base`): sullo scuro un bagliore (nove pennellate larghe e debolissime a passi di 3 punti, più un gradiente radiale attorno a ogni testa);
+    sul chiaro uno più stretto e tenue (cinque pennellate). **Perché così**: una pennellata sola, larga, ha il bordo netto e la testa tonda («una bolla»);
+    a passi grandi si vedono i gradini come curve di livello; e su fondo bianco un colore sotto un altro diventa una sbavatura grigia. Le **pareti**
+    cominciano più avanti della faccia (`ALFA_PARETE`): con la stessa sfumatura, dove la faccia è quasi trasparente (la coda) le pareti scure si vedevano
+    più di lei, come una macchia.
+  - **Fluida.** Un solo orologio (`useFrameCallback`) somma i secondi veri fra un fotogramma e l'altro (al massimo 50 ms, per non saltare dopo una pausa) e da
+    quel numero discende tutto, in `scenaDa(s)`: nessun tween che riparte, nessuno scatto al giro, e **niente passa da React** (i dischi, le etichette e
+    l'ombra sono `useAnimatedStyle` che leggono un solo `useDerivedValue`). L'orologio si **ferma quando la scheda non è in primo piano** (`useIsFocused`) e
+    riprende da dove era. **All'apertura la ruota «atterra»** in 1,4 s (parte più inclinata, più piccola e più bassa, gira in più di un tratto che si spegne,
+    e si assesta): è l'unica parte non periodica.
+  - **La matrice si chiama `matrix3d` sul web e `matrix` sul telefono** (`MATRICE`): react-native-web trasforma `matrix` in `matrix(...)`, che in CSS vuole
+    6 numeri e non 16; React Native non conosce `matrix3d`. Il tipo di React Native non ha `matrix3d`, quindi c'è un `as unknown as ViewStyle['transform']`
+    (`conMatrice`). Le funzioni di `ruota3d.ts` hanno la direttiva `'worklet'`: chi ne aggiunge una che `useAnimatedStyle` chiama, la deve mettere anche lì.
+  - **Geometria di base invariata**: raggio, centro e `SPICCHI` (lo usa `ui/IconaRuota.tsx`, l'icona della barra delle schede, che non gira e non è cambiata:
+    ha ancora le frecce piatte di prima, non le comete). Il riquadro è sempre 220×220; le etichette e l'alone ne sporgono di qualche punto, nessun
+    contenitore taglia (`Entra` non ha `overflow`). **Con «riduci movimento» è ferma**, in posa (`POSA_FERMA_S`), senza arrivo e senza orologio.
+  - **Costo**: dodici View composte (ognuna con un `Svg` statico), aggiornate a ogni fotogramma solo nella trasformazione. La prima versione ne aveva 18.
+    Le pareti sono `PARETI`: con meno si vedono i gradini sulle punte (provato con 7: si vedono a 4×).
+  - **Provato.** Le due parti pure con `node --experimental-strip-types` (16 gruppi): la proiezione della matrice coincide con un calcolo indipendente
+    su 200 pose a caso; **simmetria allo specchio** (la scena a +g è lo specchio di quella a −g: 200 punti, 50 istanti; **provata per mutazione**: con una
+    rotazione di lato di 5 gradi lo scarto è 5 punti, con 12 gradi è 12); **periodo di un terzo di giro** (punti ruotati di 120 gradi, 100 istanti); velocità
+    esattamente 40 gradi al secondo a regime e mai all'indietro, arrivo compreso; battito dentro l'1,2%; nessun salto in 1 ms; inclinazione fissa a regime;
+    la forma delle tre frecce è la stessa ruotata di 120 gradi (tutti i vertici), il profilo della coda, la punta all'angolo giusto, le alette più larghe del
+    corpo, il poligono semplice (nessun lato ne incrocia un altro). `tsc` pulito. **In Chromium** (bundle web esportato, pagina provvisoria poi tolta;
+    390 px a densità 3, tema chiaro e scuro, e 4× per guardare da vicino): 60 fotogrammi al secondo in 6 secondi, 95° percentile 16,8 ms, nessun fotogramma oltre,
+    nessuna *long task*, tutti i dodici dischi aggiornati a ogni fotogramma, nessun errore in console; «riduci movimento» ferma le matrici. Registrati due video
+    (chiaro e scuro) per il giudizio sul moto. **Non provato**: un telefono vero (Safari da PWA su iPhone, dove Chromium software è un'altra cosa), **l'app
+    nativa** (la `matrix` con prospettiva su iOS e Android, le worklet su thread UI, e `boxShadow` con colore esadecimale a 8 cifre sulle etichette sono
+    scritti secondo la documentazione, non visti girare), la schermata vera dietro il login, la pausa quando si cambia scheda (`useIsFocused`) e come
+    l'alone si legge su un telefono con schermo OLED a luminosità bassa. Se su iPhone il lato vicino fosse sfocato (il browser rasterizza ogni disco a una
+    scala sola) o l'alone troppo forte, è il primo posto da guardare. **I numeri da giudicare a occhio** sono costanti in cima a `ruota3d.ts`:
+    `GIRO_S` (9 s), `INCLINAZIONE` (27 gradi), `BATTITO` (1,2%).
 - **Poi l'Athlon Health Score** (`fit/Punteggio.tsx`, sezione sotto): il punteggio da 0 a 100 sui tre pilastri, con l'anello a tre settori e il dettaglio in
   `/allenamento/punteggio`. **Subito sotto il titolo una riga dice da dove arriva** (24/10/2026, richiesta di Maurizio: «chi accede all'app e non ha mai messo nessun
   dato trova comunque le lezioni registrate e un punteggio relativo alle lezioni», `DaDoveArriva`): «dalle lezioni che hai fatto (ne risultano N registrate nelle ultime
