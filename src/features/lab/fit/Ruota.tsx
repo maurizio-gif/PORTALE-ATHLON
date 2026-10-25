@@ -1,52 +1,56 @@
-import { useCallback, useEffect } from 'react'
+import { useCallback, useEffect, type ReactNode } from 'react'
 import { Platform, StyleSheet, Text, View, type ViewStyle } from 'react-native'
 import { useIsFocused } from 'expo-router'
 import Animated, { useAnimatedStyle, useDerivedValue, useFrameCallback, useReducedMotion, useSharedValue, type FrameInfo, type SharedValue } from 'react-native-reanimated'
-import Svg, { Defs, Ellipse, Path, RadialGradient, Stop } from 'react-native-svg'
+import Svg, { Circle, Defs, Ellipse, LinearGradient, Path, RadialGradient, Stop } from 'react-native-svg'
 
 import { t } from '@/lib/lingua'
 
 import { F, usePalette } from '../ui/tema'
-import { ALTEZZA, POSA_FERMA_S, RIPOSO, alzata, coloreStrato, profilo, proietta, scenaDa, type Scena } from './ruota3d'
+import { POSA_FERMA_S, alzata, coloreParete, mescola, proietta, scenaDa, type Scena } from './ruota3d'
+import { arco, costruisciFreccia, puntoSuCerchio, type Freccia } from './ruotaForme'
 
-// La ruota dell'Athlon Health System (richiesta del club, 19/10/2026): tre frecce
-// che si rincorrono in cerchio, Train, Food e Relax. Nessuna viene prima: e' un
-// equilibrio che gira.
+// La ruota dell'Athlon Health System (richiesta del club, 19/10/2026): tre frecce che si rincorrono
+// in cerchio, Train, Food e Relax. Nessuna viene prima: e' un equilibrio che gira.
 //
-// **In 3D (24/10/2026, richiesta di Maurizio: «piu' fluida e tridimensionale»).** Ogni
-// freccia e' un tubo: una pila di strati dello stesso disegno, ognuno piu' stretto e piu'
-// chiaro di quello sotto (come le curve di livello di una cupola) e alzato lungo la
-// normale del disco. Ogni strato e' una View con la sua **matrice 4x4 con prospettiva**
-// (vedi ruota3d.ts), quindi la ruota ha spessore, un lato vicino e uno lontano, e ruota
-// inclinata. Niente librerie 3D e niente canvas: sono View con una trasformazione, che
-// il browser e il telefono compongono con la scheda grafica.
+// **Rifatta il 25/10/2026** (Maurizio, sulla prima versione 3D del 24/10: «non gira in modo simmetrico e
+// poi vorrei qualcosa di piu' moderno ed energico»). Due cose cambiano.
 //
-// **Fluida.** Un solo orologio (`useFrameCallback`) somma i secondi veri fra un fotogramma
-// e l'altro, e da quel numero discendono rotazione (con un respiro di velocita'),
-// inclinazione e precessione, galleggiamento, respiro e ombra: nessun tween che riparte,
-// quindi nessuno scatto al giro, e niente passa da React (la schermata non si ridisegna
-// mai mentre la ruota si muove). L'orologio si ferma quando la scheda non e' in primo
-// piano o l'app e' in secondo piano, e riparte da dove era.
+// 1. **Il moto e' simmetrico.** L'inclinazione e' fissa e verticale (destra e sinistra sono uno specchio
+//    dell'altra), il giro e' a velocita' costante, e l'unico moto in piu' e' un battito che si ripete tre
+//    volte a giro, quanto le frecce: ogni 120 gradi la ruota e' identica. Prima l'inclinazione respirava,
+//    precedeva di lato e la velocita' variava: il disco non faceva la stessa cosa da una parte e dall'altra.
+//    La matematica sta in ruota3d.ts (pura, provata).
+// 2. **Il disegno e' una cometa.** Ogni freccia ha la coda sottile che sfuma nel nulla, il corpo che si
+//    allarga e una punta netta, piu' larga, con la luce calda verso la testa: si legge da che parte va e
+//    sembra piu' veloce di quanto giri. Sotto, un binario tenue e un alone del colore della freccia (la
+//    luce che lascia); sopra, un filo di riflesso. Le forme sono in ruotaForme.ts (pura, provata).
 //
-// Le etichette restano diritte (non ruotano con il disco, o in basso si leggerebbero
-// capovolte) ma seguono la profondita': piu' piccole e un po' piu' tenui sul lato
-// lontano. «Equilibrio» sta un po' sopra il disco e si sposta rispetto a lui (parallasse).
-// Con «riduci movimento» la ruota resta ferma, in posa e inclinata, senza arrivo.
+// Come funziona il 3D, invariato: la ruota e' una pila di View, ognuna con una **matrice 4x4 con
+// prospettiva** (la base, dieci pareti che danno lo spessore, la faccia). Niente librerie 3D e niente
+// canvas: sono View con una trasformazione, che il browser e il telefono compongono con la scheda grafica.
+// Un solo orologio (`useFrameCallback`) somma i secondi veri fra un fotogramma e l'altro e da quel numero
+// discende tutto: nessun tween che riparte, e niente passa da React. L'orologio si ferma quando la scheda
+// non e' in primo piano e riprende da dove era.
+//
+// Le etichette restano diritte (non ruotano col disco, o in basso si leggerebbero capovolte) e
+// seguono la profondita': piu' grandi sul lato vicino. Con «riduci movimento» la ruota resta ferma, in posa.
 
 const LATO = 220
 const C = LATO / 2
 const R = 78
-const SPESSORE = 20
-/** Lo spazio fra una freccia e la successiva, in gradi. */
-const VUOTO = 14
-/** Quanti strati ha un tubo. Piu' strati = fianchi piu' lisci; ognuno e' una View composta a parte. */
-const N_STRATI = 18
-/** Quota delle etichette e del testo centrale sopra il disco, in punti. */
-const Z_ETICHETTA = ALTEZZA + 5
-const Z_CENTRO = ALTEZZA + 28
+/** La larghezza piena del corpo di una freccia. */
+const LARGHEZZA = 22
+/** Quanti strati di parete danno lo spessore, e quanto e' spessa la ruota in tutto, in punti. */
+const PARETI = 10
+const SPESSORE_Z = 10
+/** La quota della faccia: appena sopra l'ultima parete. */
+const Z_FACCIA = SPESSORE_Z + 0.6
+/** La quota delle etichette sopra il disco. */
+const Z_ETICHETTA = SPESSORE_Z + 7
 /** L'ombra a terra. */
-const OMBRA_L = 214
-const OMBRA_A = 62
+const OMBRA_L = 208
+const OMBRA_A = 58
 
 export const SPICCHI = [
   { nome: 'Train', colore: '#FF5701' },
@@ -54,46 +58,53 @@ export const SPICCHI = [
   { nome: 'Relax', colore: '#14B8A6' },
 ] as const
 
-const rad = (g: number) => ((g - 90) * Math.PI) / 180
-const punto = (g: number, r = R) => [C + r * Math.cos(rad(g)), C + r * Math.sin(rad(g))] as const
+const chiaro = (c: string) => mescola(c, '#FFFFFF', 0.34)
 
-/** Una freccia: l'arco da `da` ad `a` gradi (in senso orario, 0 in alto) e i tre vertici della punta alla fine. */
-function freccia(da: number, a: number) {
-  const testa = 12 // gradi che occupa la punta
-  const fine = a - testa
-  const [x0, y0] = punto(da)
-  const [x1, y1] = punto(fine)
-  return {
-    arco: `M ${x0} ${y0} A ${R} ${R} 0 0 1 ${x1} ${y1}`,
-    punta: [punto(fine, R + SPESSORE * 0.9), punto(a), punto(fine, R - SPESSORE * 0.9)] as const,
-  }
-}
-
-/** La punta ristretta di `f` verso il suo baricentro: in cima alla cupola e' piu' piccola, come il resto del tubo. */
-function puntaScalata(v: ReturnType<typeof freccia>['punta'], f: number): string {
-  const cx = (v[0][0] + v[1][0] + v[2][0]) / 3
-  const cy = (v[0][1] + v[1][1] + v[2][1]) / 3
-  const p = v.map(([x, y]) => `${(cx + (x - cx) * f).toFixed(2)} ${(cy + (y - cy) * f).toFixed(2)}`)
-  return `M ${p[0]} L ${p[1]} L ${p[2]} Z`
-}
-
-const FRECCE = SPICCHI.map((s, i) => ({ ...s, ...freccia(i * 120 + VUOTO / 2, (i + 1) * 120 - VUOTO / 2), mezzo: i * 120 + 60 }))
-
-type DatiStrato = { k: number; h: number; frecce: { nome: string; arco: string; punta: string; colore: string; spessore: number }[] }
-
-/** Gli strati, dal fondo al dorso: sono costanti, si calcolano una volta sola. */
-const STRATI: DatiStrato[] = Array.from({ length: N_STRATI }, (_, k) => {
-  const p = profilo(k, N_STRATI)
-  return {
-    k,
-    h: p.h,
-    frecce: FRECCE.map((f) => ({ nome: f.nome, arco: f.arco, punta: puntaScalata(f.punta, p.f), colore: coloreStrato(f.colore, p.t), spessore: SPESSORE * p.f })),
-  }
+const FRECCE = SPICCHI.map((s, i) => {
+  const da = i * 120 + 3
+  const f = costruisciFreccia({ centro: C, raggio: R, larghezza: LARGHEZZA, coda: 0.26, da, a: (i + 1) * 120 - 5, testa: 18, alette: 1.6 })
+  // L'etichetta sta dove il corpo e' gia' pieno (due terzi della freccia), non sulla coda che sfuma.
+  const mezzo = da + 0.68 * (f.base - da)
+  return { ...s, ...f, da, mezzo, chiaro: chiaro(s.colore) }
 })
 
+/** Come cresce l'opacita' dalla coda (0) alla base della testa (1): la coda sfuma nel nulla. */
+const ALFA: readonly (readonly [number, number])[] = [
+  [0, 0],
+  [0.14, 0.08],
+  [0.5, 0.7],
+  [0.86, 1],
+  [1, 1],
+]
+
 /**
- * Sul web la matrice a 16 numeri si chiama `matrix3d` (CSS; react-native-web trasforma `matrix` in
- * `matrix(...)`, che ne vuole 6); sul telefono React Native la chiama `matrix`.
+ * Come cresce l'opacita' delle pareti: comincia piu' avanti di quella della faccia. Le pareti sono scure e stanno
+ * piu' in basso: con la stessa sfumatura, dove la faccia e' ancora quasi trasparente (la coda) si vedrebbero
+ * piu' di lei, come una macchia scura. Cosi' lo spessore compare dove il corpo e' gia' pieno.
+ */
+const ALFA_PARETE: readonly (readonly [number, number])[] = [
+  [0, 0],
+  [0.3, 0],
+  [0.56, 0.7],
+  [0.86, 1],
+  [1, 1],
+]
+
+/** Un gradiente lungo la freccia: dal colore `a` (all'inizio) al colore `b` (alla testa), con l'opacita' di `alfa` (di partenza ALFA) moltiplicata per `forza`. */
+function Catena({ id, f, a, b, forza = 1, alfa: curva = ALFA }: { id: string; f: Freccia; a: string; b: string; forza?: number; alfa?: readonly (readonly [number, number])[] }) {
+  const { x1, y1, x2, y2 } = f.catena
+  return (
+    <LinearGradient id={id} gradientUnits="userSpaceOnUse" x1={x1} y1={y1} x2={x2} y2={y2}>
+      {curva.map(([o, alfa]) => (
+        <Stop key={o} offset={o} stopColor={mescola(a, b, Math.min(1, Math.max(0, (o - 0.5) / 0.5)))} stopOpacity={alfa * forza} />
+      ))}
+    </LinearGradient>
+  )
+}
+
+/**
+ * Sulla ruota, sul web la matrice a 16 numeri si chiama `matrix3d` (CSS; react-native-web trasforma
+ * `matrix` in `matrix(...)`, che ne vuole 6); sul telefono React Native la chiama `matrix`.
  */
 const MATRICE = Platform.OS === 'web' ? 'matrix3d' : 'matrix'
 
@@ -103,42 +114,113 @@ const conMatrice = (m: number[]) => {
   return [{ [MATRICE]: m }] as unknown as ViewStyle['transform']
 }
 
-/** Un solo strato di tutti i tubi: lo stesso disegno di quello sotto, piu' stretto e piu' chiaro, alzato di `h`. */
-function Strato({ dati, scena }: { dati: DatiStrato; scena: SharedValue<Scena> }) {
-  const h = dati.h
+/** Un disco della pila: una View grande come la ruota, con il centro nel centro, alzata di `h` lungo la normale. */
+function Strato({ h, scena, figli }: { h: number; scena: SharedValue<Scena>; figli: ReactNode }) {
   const stile = useAnimatedStyle(() => ({ transform: conMatrice(alzata(scena.value.m, h)) }))
   return (
     <Animated.View pointerEvents="none" style={[stili.strato, stile]}>
       <Svg width={LATO} height={LATO} viewBox={`0 0 ${LATO} ${LATO}`}>
-        {dati.frecce.map((f) => (
-          <Path key={`a${f.nome}`} d={f.arco} stroke={f.colore} strokeWidth={f.spessore} fill="none" strokeLinecap="round" />
-        ))}
-        {dati.frecce.map((f) => (
-          <Path key={`p${f.nome}`} d={f.punta} fill={f.colore} stroke={f.colore} strokeWidth={Math.max(0.6, f.spessore / 10)} strokeLinejoin="round" />
-        ))}
+        {figli}
       </Svg>
     </Animated.View>
   )
 }
 
-/** L'ombra a terra: piu' scura e piu' stretta quando la ruota e' bassa, piu' chiara e larga quando sale. */
+/**
+ * La base: il binario su cui corrono le frecce, l'alone della luce che lasciano e un lampo attorno a ogni
+ * testa. L'alone e' fatto di tante pennellate larghe e debolissime, una sopra l'altra, a passi di tre punti:
+ * una sola, larga, avrebbe il bordo netto (una bolla), e a passi grandi si vedrebbero i gradini come le curve
+ * di livello di una carta. Il lampo e' un gradiente radiale, che sfuma da solo. Sullo scuro e' un bagliore
+ * acceso e largo; sul chiaro, dove un colore sotto un altro su fondo bianco diventa una sbavatura, e'
+ * stretto e tenue.
+ */
+function Base({ scuro }: { scuro: boolean }) {
+  const binario = scuro ? 'rgba(255,255,255,0.07)' : 'rgba(18,19,22,0.06)'
+  const extra = Array.from({ length: scuro ? 9 : 5 }, (_, k) => 3 * (k + 1))
+  const forza = scuro ? 0.055 : 0.05
+  const lampo = scuro ? 0.5 : 0.26
+  return (
+    <>
+      <Defs>
+        {FRECCE.map((f, i) => (
+          <Catena key={i} id={`ruotaAlone${i}`} f={f} a={f.colore} b={f.colore} forza={forza} />
+        ))}
+        {FRECCE.map((f, i) => {
+          const [x, y] = puntoSuCerchio(C, R, f.base + 3)
+          return (
+            <RadialGradient key={`t${i}`} id={`ruotaTesta${i}`} gradientUnits="userSpaceOnUse" cx={x} cy={y} r={38}>
+              <Stop offset="0" stopColor={f.colore} stopOpacity={lampo} />
+              <Stop offset="0.5" stopColor={f.colore} stopOpacity={lampo * 0.3} />
+              <Stop offset="1" stopColor={f.colore} stopOpacity={0} />
+            </RadialGradient>
+          )
+        })}
+      </Defs>
+      <Circle cx={C} cy={C} r={R} stroke={binario} strokeWidth={LARGHEZZA + 8} fill="none" />
+      {extra.map((e) =>
+        FRECCE.map((f, i) => <Path key={`${e}_${i}`} d={arco(C, R, f.da, f.base)} stroke={`url(#ruotaAlone${i})`} strokeWidth={LARGHEZZA + e} fill="none" strokeLinecap="round" />),
+      )}
+      {FRECCE.map((f, i) => {
+        const [x, y] = puntoSuCerchio(C, R, f.base + 3)
+        return <Circle key={`c${i}`} cx={x} cy={y} r={38} fill={`url(#ruotaTesta${i})`} />
+      })}
+    </>
+  )
+}
+
+/** Una parete: la forma delle frecce in un colore piu' scuro (i fianchi sono in ombra), che sfuma come la faccia. */
+function Parete({ k }: { k: number }) {
+  return (
+    <>
+      <Defs>
+        {FRECCE.map((f, i) => {
+          const c = coloreParete(f.colore, k, PARETI)
+          return <Catena key={i} id={`ruotaParete${k}_${i}`} f={f} a={c} b={c} alfa={ALFA_PARETE} />
+        })}
+      </Defs>
+      {FRECCE.map((f, i) => (
+        <Path key={i} d={f.corpo} fill={`url(#ruotaParete${k}_${i})`} stroke={`url(#ruotaParete${k}_${i})`} strokeWidth={1.4} strokeLinejoin="round" />
+      ))}
+    </>
+  )
+}
+
+/** La faccia: il colore del brand che si scalda verso la testa, e un filo di luce lungo il bordo esterno. */
+function Faccia() {
+  return (
+    <>
+      <Defs>
+        {FRECCE.map((f, i) => (
+          <Catena key={i} id={`ruotaFaccia${i}`} f={f} a={f.colore} b={f.chiaro} />
+        ))}
+        {FRECCE.map((f, i) => (
+          <Catena key={`l${i}`} id={`ruotaLuce${i}`} f={f} a="#FFFFFF" b="#FFFFFF" forza={0.62} />
+        ))}
+      </Defs>
+      {FRECCE.map((f, i) => (
+        <Path key={`f${i}`} d={f.corpo} fill={`url(#ruotaFaccia${i})`} stroke={`url(#ruotaFaccia${i})`} strokeWidth={1.4} strokeLinejoin="round" />
+      ))}
+      {FRECCE.map((f, i) => (
+        <Path key={`l${i}`} d={arco(C, R + LARGHEZZA * 0.2, f.da + 0.14 * (f.base - f.da), f.base - 1)} stroke={`url(#ruotaLuce${i})`} strokeWidth={2.2} fill="none" strokeLinecap="round" />
+      ))}
+    </>
+  )
+}
+
+/** L'ombra a terra: un alone morbido sotto la ruota, che segue il battito e cresce all'arrivo. */
 function Ombra({ scena, scuro }: { scena: SharedValue<Scena>; scuro: boolean }) {
   const colore = scuro ? '#000000' : '#121316'
   const stile = useAnimatedStyle(() => {
-    const { quota, arrivo, scala } = scena.value
-    const su = (quota + 12) / 15.2 // 0 = in basso, 1 = in alto
-    return {
-      opacity: (0.62 - 0.2 * su) * arrivo,
-      transform: [{ scaleX: scala * (0.96 + 0.07 * su) }, { scaleY: scala * (0.92 + 0.1 * su) }],
-    }
+    const { arrivo, scala } = scena.value
+    return { opacity: 0.9 * arrivo, transform: [{ scaleX: scala }, { scaleY: scala }] }
   })
   return (
     <Animated.View pointerEvents="none" style={[stili.ombra, stile]}>
       <Svg width={OMBRA_L} height={OMBRA_A} viewBox={`0 0 ${OMBRA_L} ${OMBRA_A}`}>
         <Defs>
           <RadialGradient id="ruotaOmbra" cx="50%" cy="50%" rx="50%" ry="50%">
-            <Stop offset="0" stopColor={colore} stopOpacity={scuro ? 0.7 : 0.34} />
-            <Stop offset="0.55" stopColor={colore} stopOpacity={scuro ? 0.3 : 0.12} />
+            <Stop offset="0" stopColor={colore} stopOpacity={scuro ? 0.62 : 0.3} />
+            <Stop offset="0.55" stopColor={colore} stopOpacity={scuro ? 0.26 : 0.1} />
             <Stop offset="1" stopColor={colore} stopOpacity={0} />
           </RadialGradient>
         </Defs>
@@ -149,39 +231,22 @@ function Ombra({ scena, scuro }: { scena: SharedValue<Scena>; scuro: boolean }) 
 }
 
 /** Dove sta il centro dell'etichetta sul disco, in punti dal centro (la rotazione la mette la matrice). */
-const posto = (mezzo: number) => [R * Math.cos(rad(mezzo)), R * Math.sin(rad(mezzo))] as const
+const posto = (mezzo: number) => {
+  const [x, y] = puntoSuCerchio(0, R, mezzo)
+  return [x, y] as const
+}
 
-function Etichetta({ nome, colore, fondo, scuro, mezzo, scena }: { nome: string; colore: string; fondo: string; scuro: boolean; mezzo: number; scena: SharedValue<Scena> }) {
+function Etichetta({ nome, colore, scuro, mezzo, scena }: { nome: string; colore: string; scuro: boolean; mezzo: number; scena: SharedValue<Scena> }) {
   const [x, y] = posto(mezzo)
   const stile = useAnimatedStyle(() => {
     const [X, Y, k] = proietta(scena.value.m, x, y, Z_ETICHETTA)
-    const lontano = (k - 0.9) / 0.22 // 0 sul lato lontano, 1 sul vicino
-    return {
-      // Quasi opache anche lontano: una pillola che lascia vedere la freccia sotto si legge male.
-      opacity: 0.92 + 0.08 * Math.min(1, Math.max(0, lontano)),
-      transform: [{ translateX: X }, { translateY: Y }, { scale: k * scena.value.scala }],
-    }
+    return { transform: [{ translateX: X }, { translateY: Y }, { scale: k * scena.value.scala }] }
   })
   return (
     <Animated.View pointerEvents="none" style={[stili.etichetta, stile]}>
-      <View style={[stili.pillola, { borderColor: colore, backgroundColor: fondo, boxShadow: scuro ? '0 4px 10px rgba(0,0,0,0.5)' : '0 4px 10px rgba(18,19,22,0.2)' }]}>
-        <Text style={[stili.nome, { color: colore }]}>{nome}</Text>
+      <View style={[stili.pillola, { backgroundColor: colore, boxShadow: `0 6px 14px ${colore}${scuro ? '66' : '55'}` }]}>
+        <Text style={stili.nome}>{nome}</Text>
       </View>
-    </Animated.View>
-  )
-}
-
-/** Il punto in cui «Equilibrio» sta a riposo: il parallasse e' lo scarto da qui, cosi' resta al centro quando la ruota e' ferma. */
-const [CENTRO_X0, CENTRO_Y0, CENTRO_K0] = proietta(RIPOSO, 0, 0, Z_CENTRO)
-
-function Centro({ scena, colore }: { scena: SharedValue<Scena>; colore: string }) {
-  const stile = useAnimatedStyle(() => {
-    const [X, Y, k] = proietta(scena.value.m, 0, 0, Z_CENTRO)
-    return { transform: [{ translateX: X - CENTRO_X0 * scena.value.scala }, { translateY: Y - CENTRO_Y0 * scena.value.scala }, { scale: (k / CENTRO_K0) * scena.value.scala }] }
-  })
-  return (
-    <Animated.View pointerEvents="none" style={[stili.centro, stile]}>
-      <Text style={[stili.centroTesto, { color: colore }]}>{t('Equilibrio', 'Balance')}</Text>
     </Animated.View>
   )
 }
@@ -213,12 +278,16 @@ export function RuotaBenessere() {
   return (
     <View style={stili.ruota} accessibilityRole="image" accessibilityLabel={t('Train, Food e Relax: tre frecce che si rincorrono in cerchio. Il benessere è il loro equilibrio.', 'Train, Food and Relax: three arrows chasing each other in a circle. Wellbeing is the balance between them.')}>
       <Ombra scena={scena} scuro={p.scuro} />
-      {STRATI.map((st) => (
-        <Strato key={st.k} dati={st} scena={scena} />
+      <Strato h={-3} scena={scena} figli={<Base scuro={p.scuro} />} />
+      {Array.from({ length: PARETI }, (_, k) => (
+        <Strato key={k} h={(k / (PARETI - 1)) * SPESSORE_Z} scena={scena} figli={<Parete k={k} />} />
       ))}
-      <Centro scena={scena} colore={p.testo} />
+      <Strato h={Z_FACCIA} scena={scena} figli={<Faccia />} />
+      <View pointerEvents="none" style={stili.centro}>
+        <Text style={[stili.centroTesto, { color: p.testo }]}>{t('Equilibrio', 'Balance')}</Text>
+      </View>
       {FRECCE.map((f) => (
-        <Etichetta key={f.nome} nome={f.nome} colore={f.colore} fondo={p.carta} scuro={p.scuro} mezzo={f.mezzo} scena={scena} />
+        <Etichetta key={f.nome} nome={f.nome} colore={f.colore} scuro={p.scuro} mezzo={f.mezzo} scena={scena} />
       ))}
     </View>
   )
@@ -228,11 +297,11 @@ const stili = StyleSheet.create({
   ruota: { width: LATO, height: LATO, alignSelf: 'center' },
   // Ogni strato e' grande come la ruota e ha il centro nel centro: la matrice lavora intorno a quello.
   strato: { position: 'absolute', left: 0, top: 0, width: LATO, height: LATO },
-  ombra: { position: 'absolute', left: C - OMBRA_L / 2, top: C + 70 - OMBRA_A / 2, width: OMBRA_L, height: OMBRA_A },
+  ombra: { position: 'absolute', left: C - OMBRA_L / 2, top: C + 72 - OMBRA_A / 2, width: OMBRA_L, height: OMBRA_A },
   centro: { position: 'absolute', top: C - 14, left: C - 60, width: 120, height: 28, alignItems: 'center', justifyContent: 'center' },
   centroTesto: { fontFamily: F.extra, fontSize: 15, letterSpacing: -0.2 },
   // L'etichetta parte dal centro e la trasformazione la porta sul disco.
   etichetta: { position: 'absolute', left: C - 40, top: C - 15, width: 80, height: 30, alignItems: 'center', justifyContent: 'center' },
-  pillola: { borderRadius: 999, borderWidth: 2, paddingHorizontal: 10, paddingVertical: 3 },
-  nome: { fontFamily: F.extra, fontSize: 13 },
+  pillola: { borderRadius: 999, paddingHorizontal: 11, paddingVertical: 4 },
+  nome: { fontFamily: F.extra, fontSize: 13, color: '#FFFFFF', letterSpacing: 0.1 },
 })
