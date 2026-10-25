@@ -89,6 +89,10 @@ const ICONE = {
   link: ['link', 'link'],
   // Il badge di accesso nel wallet del telefono (22/10/2026).
   wallet: ['wallet.pass.fill', 'wallet'],
+  // Il video di Athlon Health System (25/10/2026): avvia, pausa e audio spento.
+  riproduci: ['play.fill', 'play_arrow'],
+  pausa: ['pause.fill', 'pause'],
+  muto: ['speaker.slash.fill', 'volume_off'],
 } as const satisfies Record<string, readonly [SFSymbol, AndroidSymbol]>
 
 export type NomeIcona = keyof typeof ICONE

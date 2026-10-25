@@ -6,6 +6,7 @@ import { StyleSheet, Text, useWindowDimensions, View } from 'react-native'
 import { elencoMisure, elencoSchede, type Misura, type RigaSchedaLab, type SedutaBreve, type StatoTest } from '@/api/lab'
 import { LARGO } from '@/components/Pagina'
 import { t } from '@/lib/lingua'
+import { useLingua } from '@/lib/lingua-react'
 import { spazio } from '@/theme'
 
 import { relaxAperto, useDispositivi } from '../dispositivi/useDispositivi'
@@ -15,7 +16,7 @@ import { CartaPunteggio } from '../fit/Punteggio'
 import { AreaFood } from '../fit/Food'
 import { AreaRelax } from '../fit/Relax'
 import { IntroFit } from '../fit/Intro'
-import { RuotaBenessere } from '../fit/Ruota'
+import { VideoIntro } from '../fit/VideoIntro'
 import { useFit } from '../fit/useFit'
 import { CHIAVE_MISURE } from '../dati/Misure'
 import { inMemoria, prendi } from '../memoria'
@@ -305,6 +306,7 @@ export function Schede() {
 
   const fit = useFit()
   const disp = useDispositivi()
+  const lingua = useLingua()
   const conRelax = relaxAperto(disp.stato)
   const { area: parametro } = useLocalSearchParams<{ area?: string }>()
   // Relax solo dove e' aperto; mentre non si sa ancora (stato non arrivato) l'indirizzo vale.
@@ -316,8 +318,10 @@ export function Schede() {
 
   return (
     <Schermata titolo="Athlon Health System" sottotitolo={t('Allenamento, alimentazione e recupero.', 'Training, nutrition and recovery.')}>
+      {/* In cima, il video (25/10/2026, richiesta di Maurizio): parte da solo all'apertura, comincia dalla ruota Train · Food · Relax
+          e spiega come si arriva a 100. In inglese, o se non si carica, resta la ruota (fit/VideoIntro.tsx). */}
       <Entra indice={0}>
-        <RuotaBenessere />
+        <VideoIntro lingua={lingua} />
       </Entra>
       <Entra indice={0}>
         <CartaPunteggio fit={fit} disp={disp} />
