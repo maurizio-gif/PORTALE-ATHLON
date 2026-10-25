@@ -290,17 +290,25 @@ vuol dire altro (la scheda del socio al club, la scheda di una lezione, l'Help D
 
 - **La schermata Train (`Schede.tsx`) ha le due origini sopra e «I tuoi piani» in fondo** (rifatta il 20/10/2026, richiesta del club: **via i piani
   consigliati dal club e via l'AI come titolo**). Dopo il test e le calorie: «Crea il tuo piano di allenamento» con **due strade sole**, poi **«I tuoi
-  piani»** (quelli che il socio ha scelto: suoi, importati, composti, del suo trainer, e gli «AI» di prima), poi gli ultimi allenamenti. Le strade:
-  **«Componi il tuo piano»** (`CartaComponi`, che porta a `Agente.tsx`: «Generiamo insieme il tuo piano, in sala o in vasca: rispondi a qualche
-  domanda…», con la quota «Puoi comporne ancora N questo mese» e, sotto, «Preferisci partire da zero? Scrivilo tu», che porta all'editor vuoto: era
-  un pulsante della carta «Importa») e **«Importa il tuo piano»** (`CartaImporta`, `Importa.tsx`: «Da foto o file»). **Il carosello dei piani del club
-  (`PianoClub`, il filtro per obiettivo) è stato tolto**, e con lui il colore viola e l'icona «stella» dell'AI: la carta «Componi» è nei colori del club
-  (`FUOCO`, il manubrio). **Non è stato tolto altro**: i piani `standard` restano nel database e nella risposta di `elenco` (l'app li scarta), e la scheda di
+  piani»** (quelli che il socio ha scelto: suoi, importati, composti, del suo trainer, e gli «AI» di prima), poi gli ultimi allenamenti. **Una carta sola per le
+  due strade** (25/10/2026, richiesta di Maurizio: «la possibilità di comporre il proprio piano spostala nella sezione importa il tuo piano, metti importa e
+  sotto: oppure componilo»): **«Importa il tuo piano»** (`CartaImporta`, `Importa.tsx`: «Da foto o file») e, sotto una linea sottile, **«Oppure componilo»**
+  (porta a `Agente.tsx`: «Generiamo insieme il tuo piano, in sala o in vasca: rispondi a qualche domanda…», con la quota «Puoi comporne ancora N questo mese»;
+  a quota finita «componilo» è spento e dice perché; in prova non c'è il conteggio) e, in fondo, «Preferisci partire da zero? Scrivilo tu», che porta all'editor vuoto.
+  **La carta «Componi il tuo piano» (`CartaComponi`) non c'è più**: tutto quello che faceva è qui, nessuna strada si è persa. Su schermo largo la carta sta
+  accanto a quella del personal trainer, sulla stessa altezza. **Il carosello dei piani del club
+  (`PianoClub`, il filtro per obiettivo) è stato tolto**, e con lui il colore viola e l'icona «stella» dell'AI (e, il 25/10/2026, l'icona del manubrio
+  arancio della carta «Componi»: il «componilo» è un testo, nei colori del club). **Non è stato tolto altro**: i piani `standard` restano nel database e nella risposta di `elenco` (l'app li scarta), e la scheda di
   un piano del club (`Scheda.tsx`, «Aggiungi ai tuoi piani», «Modifica e aggiungi») si apre ancora da un indirizzo già dato; semplicemente nessuna
   schermata li offre più. Se il club li rivuole, basta rimettere la sezione (è nella cronologia di git, «Oppure scegli un piano consigliato dal club»).
   **Dopo le due strade c'è il personal trainer** (`CartaPersonal`): «Vuoi essere seguito da un personal trainer?» porta **direttamente alla
   prenotazione** (`/personal`, l'altra faccia di Prenotazioni: scegli trainer, giorno e ora). Non produce un piano da modificare: lo costruisce il
   trainer, e compare poi fra i piani «Dal tuo trainer».
+  **Provato** (25/10/2026, Chromium, le due carte vere in una pagina provvisoria poi tolta, non l'intera schermata Train, che chiede una sessione: 390 px scuro e chiaro, 1280 px):
+  la carta c'è una volta sola, «Componi il tuo piano» non c'è più, «Oppure componilo» porta a `/allenamento/agente`, «Scrivilo tu» a `/allenamento/nuova`, «Da foto o file» a
+  `/allenamento/importa` e la carta del personal a `/personal`; la quota («Puoi comporne ancora 3 questo mese»), la quota finita («componilo» spento, nessuna navigazione e il
+  messaggio) e la prova (nessun conteggio); nessuno scorrimento orizzontale. `tsc` pulito. **Non provato**: la schermata Train vera con una sessione vera (le due carte sono
+  quelle, il resto della schermata non è cambiato), un telefono, l'app nativa.
 - **Qualunque sia l'origine, si modifica e si conferma, e solo allora è fra i suoi piani.** Un piano del club si apre (`Scheda.tsx`) con
   **«Aggiungi ai tuoi piani»** (la copia com'è, `comeDaSalvare` in `copia.ts`) e **«Modifica e aggiungi»** (l'editor con `?copia=<id>`); quello
   di un trainer (o un «AI» di prima) solo **«Modifica una copia»**, perché è già suo. L'originale non si tocca. Un piano del club si può ancora
