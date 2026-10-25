@@ -139,10 +139,15 @@ export const CHIAVE_SCHEDE = CHIAVE_ELENCO_PIANI
 
 /**
  * «Importa il tuo piano» (20/10/2026): chi ha gia' un piano, del suo trainer o di un'altra palestra, lo fotografa o carica il
- * file e poi lo controlla e lo conferma. Una strada sola: «Scrivilo tu» (partire da zero) sta sotto «Componi il tuo piano».
+ * file e poi lo controlla e lo conferma. **Sotto, «Oppure componilo»** (25/10/2026, richiesta di Maurizio: la carta «Componi il tuo
+ * piano» e' stata portata qui, dove prima c'era solo l'importazione): si risponde a qualche domanda e il piano si compone insieme,
+ * poi si modifica e si conferma. **L'AI non e' il titolo**: il club vuole che si veda un modo di fare il piano, non uno strumento
+ * (il colore e' quello del club, non il viola dell'AI); che dietro ci sia un'intelligenza artificiale lo dice la nota in fondo al
+ * questionario e quella sul piano composto. In fondo, «Scrivilo tu» (partire da zero, `/allenamento/nuova`), com'era sotto «Componi».
  */
-function CartaImporta({ riempi = false }: { riempi?: boolean }) {
+function CartaImporta({ restano, massimo, inProva = false, riempi = false }: { restano: number; massimo: number; inProva?: boolean; riempi?: boolean }) {
   const p = usePalette()
+  const puoComporre = !!restano || inProva
   return (
     <Carta style={[{ gap: spazio.tre }, riempi && { flex: 1 }]}>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: spazio.tre }}>
@@ -159,8 +164,40 @@ function CartaImporta({ riempi = false }: { riempi?: boolean }) {
           </Text>
         </View>
       </View>
-      <View style={riempi ? { marginTop: 'auto' } : undefined}>
-        <Pulsante testo={t('Da foto o file', 'From photo or file')} icona="fotocamera" piccolo onPress={() => router.push('/allenamento/importa')} />
+      <Pulsante testo={t('Da foto o file', 'From photo or file')} icona="fotocamera" piccolo onPress={() => router.push('/allenamento/importa')} />
+
+      <View style={[{ gap: spazio.due, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: p.linea, paddingTop: spazio.tre }, riempi && { marginTop: 'auto' }]}>
+        <Tocco onPress={() => router.push('/allenamento/agente')} etichetta={t('Componi il tuo piano di allenamento', 'Build your workout plan')} scala={0.985} spento={!puoComporre}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spazio.due }}>
+            <Text style={[stili.agenteTitolo, { color: p.testo }]}>
+              {t('Oppure ', 'Or ')}
+              <Text style={{ color: puoComporre ? p.accento : p.testoTerzo }}>{t('componilo', 'build it')}</Text>
+            </Text>
+            {puoComporre ? <Icona nome="avanti" size={18} colore={p.testoTerzo} /> : null}
+          </View>
+        </Tocco>
+        <Text style={[stili.agenteTesto, { color: p.testoSecondario }]}>
+          {inProva
+            ? t(
+                'Generiamo insieme il tuo piano, in sala o in vasca: rispondi a qualche domanda e in meno di un minuto hai una prima versione da modificare.',
+                'Let’s build your plan together, in the gym or in the pool: answer a few questions and in under a minute you’ll have a first draft to edit.',
+              )
+            : restano
+            ? t(
+                `Generiamo insieme il tuo piano, in sala o in vasca: rispondi a qualche domanda e in meno di un minuto hai una prima versione da modificare. Puoi comporne ancora ${restano} questo mese.`,
+                `Let’s build your plan together, in the gym or in the pool: answer a few questions and in under a minute you’ll have a first draft to edit. You can build ${restano} more this month.`,
+              )
+            : t(
+                `Hai già composto ${massimo} piani negli ultimi trenta giorni: per ora non è possibile comporne altri.`,
+                `You’ve already built ${massimo} plans in the last thirty days: you can’t build more for now.`,
+              )}
+        </Text>
+        <Tocco onPress={() => router.push('/allenamento/nuova')} etichetta={t('Preferisci partire da zero? Scrivi il piano da solo', 'Prefer to start from scratch? Write the plan yourself')} scala={0.99}>
+          <Text style={[stili.agenteTesto, { color: p.testoSecondario, paddingTop: spazio.due }]}>
+            {t('Preferisci partire da zero? ', 'Prefer to start from scratch? ')}
+            <Text style={{ color: p.accento, fontFamily: F.bold }}>{t('Scrivilo tu', 'Write it yourself')}</Text>
+          </Text>
+        </Tocco>
       </View>
     </Carta>
   )
@@ -171,11 +208,11 @@ function CartaImporta({ riempi = false }: { riempi?: boolean }) {
  * prenotazione di una seduta (`/personal`, l'altra faccia di Prenotazioni): e' il trainer a costruire il piano,
  * che poi compare fra i piani «Dal tuo trainer».
  */
-function CartaPersonal() {
+function CartaPersonal({ riempi = false }: { riempi?: boolean }) {
   const p = usePalette()
   return (
-    <Tocco onPress={() => router.push('/personal')} etichetta={t('Prenota una seduta con un personal trainer', 'Book a session with a personal trainer')} scala={0.985}>
-      <View style={[stili.agente, { backgroundColor: p.carta, borderColor: p.linea, boxShadow: p.ombra }]}>
+    <Tocco onPress={() => router.push('/personal')} etichetta={t('Prenota una seduta con un personal trainer', 'Book a session with a personal trainer')} scala={0.985} style={riempi ? { flex: 1 } : undefined}>
+      <View style={[stili.agente, { backgroundColor: p.carta, borderColor: p.linea, boxShadow: p.ombra }, riempi && { flex: 1 }]}>
         <LinearGradient colors={NOTTE} style={stili.agenteIcona}>
           <Icona nome="persona" size={26} colore="#fff" />
         </LinearGradient>
@@ -191,55 +228,6 @@ function CartaPersonal() {
         <Icona nome="avanti" size={18} colore={p.testoTerzo} />
       </View>
     </Tocco>
-  )
-}
-
-/**
- * «Componi il tuo piano» (20/10/2026; era «Crealo con l'aiuto dell'AI»): si risponde a qualche domanda e il piano si compone
- * insieme, poi si modifica e si conferma. **L'AI non e' il titolo**: il club vuole che si veda un modo di fare il piano, non
- * uno strumento (il colore e' quello del club, non il viola dell'AI); che dietro ci sia un'intelligenza artificiale lo dice la
- * nota in fondo al questionario e quella sul piano composto. Chi preferisce partire da zero lo scrive a mano (`/allenamento/nuova`).
- */
-function CartaComponi({ restano, massimo, inProva = false, riempi = false }: { restano: number; massimo: number; inProva?: boolean; riempi?: boolean }) {
-  const p = usePalette()
-  return (
-    <View style={[stili.agente, { backgroundColor: p.carta, borderColor: p.linea, boxShadow: p.ombra, flexDirection: 'column', alignItems: 'stretch' }, riempi && { flex: 1 }]}>
-      <Tocco onPress={() => router.push('/allenamento/agente')} etichetta={t('Componi il tuo piano di allenamento', 'Build your workout plan')} scala={0.985} spento={!restano && !inProva}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: spazio.tre }}>
-          <LinearGradient colors={FUOCO} style={stili.agenteIcona}>
-            <Icona nome="peso" size={26} colore="#fff" />
-          </LinearGradient>
-          <View style={{ flex: 1, gap: 3 }}>
-            <Text style={[stili.agenteTitolo, { color: p.testo }]}>{t('Componi il tuo piano', 'Build your plan')}</Text>
-            <Text style={[stili.agenteTesto, { color: p.testoSecondario }]}>
-              {inProva
-                ? t(
-                    'Generiamo insieme il tuo piano, in sala o in vasca: rispondi a qualche domanda e in meno di un minuto hai una prima versione da modificare.',
-                    'Let’s build your plan together, in the gym or in the pool: answer a few questions and in under a minute you’ll have a first draft to edit.',
-                  )
-                : restano
-                ? t(
-                    `Generiamo insieme il tuo piano, in sala o in vasca: rispondi a qualche domanda e in meno di un minuto hai una prima versione da modificare. Puoi comporne ancora ${restano} questo mese.`,
-                    `Let’s build your plan together, in the gym or in the pool: answer a few questions and in under a minute you’ll have a first draft to edit. You can build ${restano} more this month.`,
-                  )
-                : t(
-                    `Hai già composto ${massimo} piani negli ultimi trenta giorni: per ora non è possibile comporne altri.`,
-                    `You’ve already built ${massimo} plans in the last thirty days: you can’t build more for now.`,
-                  )}
-            </Text>
-          </View>
-          {restano || inProva ? <Icona nome="avanti" size={18} colore={p.testoTerzo} /> : null}
-        </View>
-      </Tocco>
-      <View style={riempi ? { marginTop: 'auto' } : undefined}>
-        <Tocco onPress={() => router.push('/allenamento/nuova')} etichetta={t('Preferisci partire da zero? Scrivi il piano da solo', 'Prefer to start from scratch? Write the plan yourself')} scala={0.99}>
-          <Text style={[stili.agenteTesto, { color: p.testoSecondario, paddingTop: spazio.due }]}>
-            {t('Preferisci partire da zero? ', 'Prefer to start from scratch? ')}
-            <Text style={{ color: p.accento, fontFamily: F.bold }}>{t('Scrivilo tu', 'Write it yourself')}</Text>
-          </Text>
-        </Tocco>
-      </View>
-    </View>
   )
 }
 
@@ -411,22 +399,18 @@ function Train({ dati, largo }: { dati: Dati; largo: boolean }) {
       <Sezione titolo={t('Crea il tuo piano di allenamento', 'Create your workout plan')}>
         <Text style={[stili.nota, { color: p.testoSecondario }]}>
           {t(
-            'Scegli da dove partire: costruiamo il piano insieme, oppure importa quello che hai già. In tutti e due i casi lo guardi, lo modifichi e, quando lo confermi, lo trovi fra i tuoi piani.',
-            'Choose where to start: we build the plan together, or you import the one you already have. Either way you review it, edit it and, once you confirm it, you’ll find it among your plans.',
+            'Importa quello che hai già, oppure costruiamo il piano insieme. In tutti e due i casi lo guardi, lo modifichi e, quando lo confermi, lo trovi fra i tuoi piani.',
+            'Import the plan you already have, or we build it together. Either way you review it, edit it and, once you confirm it, you’ll find it among your plans.',
           )}
         </Text>
         <View style={largo ? stili.fila3 : { gap: spazio.tre }}>
           <Entra indice={1} style={largo ? { flex: 1 } : undefined}>
-            <CartaComponi restano={restano} massimo={dati.ai.massimo} inProva={!!dati.ai.in_prova} riempi={largo} />
+            <CartaImporta restano={restano} massimo={dati.ai.massimo} inProva={!!dati.ai.in_prova} riempi={largo} />
           </Entra>
           <Entra indice={2} style={largo ? { flex: 1 } : undefined}>
-            <CartaImporta riempi={largo} />
+            <CartaPersonal riempi={largo} />
           </Entra>
         </View>
-
-        <Entra indice={3}>
-          <CartaPersonal />
-        </Entra>
       </Sezione>
 
       <Sezione titolo={t('I tuoi piani', 'Your plans')} conteggio={mie.length || undefined}>
