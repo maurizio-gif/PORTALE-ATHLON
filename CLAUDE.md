@@ -470,8 +470,35 @@ La scheda che era **Workout** (poi «Fit») si chiama **Athlon Health System** (
 l'allenamento, l'alimentazione e il recupero dell'adulto in un posto solo. Nel codice la cartella resta `fit/`. L'indirizzo resta `/allenamento` (è quello dei link già dati); l'area scelta sta in
 `?area=food`, così tornando dal diario si ritrova Food. Nomi in inglese di proposito, il resto in italiano.
 
-- **Sotto il titolo la ruota** (`fit/Ruota.tsx`; la matematica del 3D in `fit/ruota3d.ts`, le forme in `fit/ruotaForme.ts`, tutte e due pure): tre frecce che
-  si rincorrono, Train → Food → Relax, un giro in 9 s (`GIRO_S`). **Rifatta il 25/10/2026** (Maurizio, sulla prima versione 3D del 24/10: «non gira in modo
+- **In cima parte il video, che comincia dalla ruota** (25/10/2026, richiesta di Maurizio: «quando apri la sezione Athlon Health System deve partire in automatico
+  questo video che ti spiega come funziona e parte subito dall'animazione. Train, food e relax»). `fit/VideoIntro.tsx`, montato da `schede/Schede.tsx` **al posto della
+  ruota**: aprendo la scheda si vede subito la ruota che arriva (Train · Food · Relax), poi il video spiega come si arriva a 100: i massimali e le misure, i giorni attivi
+  e le lezioni, il diario dei pasti, il sonno. Dura circa 54 secondi, è **in italiano con i sottotitoli dentro il video** (si capisce anche senza audio) e ha una musica,
+  nessuna voce. Lo ha fatto `/brag`; i sorgenti (composizione Hyperframes, piano, testi per la condivisione) stanno **fuori dal repository**, in `brag-output-2026-10-25-173714/`
+  (escluso da git), e il file della versione per i social (1080×1920, con la copertina nel primo fotogramma) è `brag.mp4` lì.
+  - **I file dell'app** sono `public/video/athlon-health-system.mp4` (720×1280, 2,3 MB, −16 LUFS, comincia direttamente dalla ruota: **nessuna copertina cotta nel primo
+    fotogramma**) e `athlon-health-system.jpg` (la copertina che si vede mentre il video si carica). Vercel serve `public/` com'è (la riscrittura verso `index.html` non
+    tocca i file con un punto) e `public/sw.js` non intercetta né il video né le richieste a intervalli. **Se il video cambia si rifanno tutti e due i file**, con la stessa
+    ricompressione, e si guarda che il primo fotogramma sia ancora la ruota. Sull'app nativa l'indirizzo è assoluto (`https://app.athlonroma.it/video/…`).
+  - **Parte muto**: è la regola di ogni browser per l'avvio automatico (su iPhone con `playsInline`). L'altoparlante in basso a destra attiva la musica, ed è un tocco
+    della persona; **non c'è un modo di avviare il suono da solo**. Il tocco sul video lo mette in pausa e lo riprende; alla fine il pulsante diventa «Rivedi il video».
+  - **Si ferma quando si lascia la schermata o l'app** (`useIsFocused`, `AppState`) e riprende da dov'era; se era finito, alla prossima apertura **riparte da capo** (è il senso
+    di «quando apri la sezione»). Una pausa data a mano resta pausa.
+  - **Con «riduci movimento» non parte da solo**: si vede la copertina e il pulsante «Avvia il video».
+  - **Il video è in italiano**: **in inglese resta la ruota di prima** (`VideoIntro` riceve la lingua da `useLingua`), e resta la ruota anche se il file non si carica o il
+    lettore dà errore (`statusChange` con `error`): niente riquadro nero e niente errore a schermo. Un video in inglese è un altro `/brag` con il testo tradotto: non fatto.
+  - **Nella vista cliente dello staff si vede come al socio** (non scrive niente e non chiama nessuna funzione). Il numero e le soglie che il video racconta sono quelli del
+    punteggio qui sotto (20 minuti, 2-4 giorni, 5 giorni di pasti, 7 ore): **se cambiano nel codice, il video va rifatto**, o direbbe una cosa diversa dall'app. I livelli
+    (Legno … Diamante) nel video non ci sono, di proposito.
+  - **Provato** (Chromium, bundle web esportato, pagina provvisoria poi tolta, server statico con le richieste a intervalli; 390 px con touch e 1280 px, locale italiano): parte
+    da solo e muto e avanza, è il file 720×1280, il comando «Attiva l'audio» accende il suono e passa a «Spegni l'audio», il pulsante mette in pausa e il tempo si ferma, il tocco
+    sul video riprende, a fine video i comandi dicono «Rivedi il video» e riparte da capo, nessun errore in console; in inglese non c'è nessun `<video>` e si vede la ruota; con
+    «riduci movimento» resta fermo e si avvia dal comando; con il file bloccato sparisce il video e resta la ruota; sul desktop parte da solo. `tsc` pulito. **Non provato**: un
+    telefono vero (Safari da PWA su iPhone: `playsInline` e l'avvio automatico muto sono quelli della documentazione, non visti girare), l'app nativa (`expo-video` con l'indirizzo
+    assoluto), la scheda vera dietro il login, **il suono con un tocco vero** (qui si è provato che `muted` cambia, non che si senta), il peso su una rete mobile (2,3 MB alla prima apertura, poi
+    li serve la cache del browser), e il livello audio (misurato −16 LUFS, **non ascoltato**).
+- **La ruota** (`fit/Ruota.tsx`, **ora il ripiego del video**; la matematica del 3D in `fit/ruota3d.ts`, le forme in `fit/ruotaForme.ts`, tutte e due pure): tre frecce che
+  si rincorrono, Train → Food → Relax, un giro in 9 s (`GIRO_S`). Il video ne riprende la scena (stesse forme, stessa matrice, stessi colori). **Rifatta il 25/10/2026** (Maurizio, sulla prima versione 3D del 24/10: «non gira in modo
   simmetrico e poi vorrei qualcosa di più moderno ed energico»). La prima versione (tubi di plastica a 18 strati, inclinazione che respira e precede di lato,
   velocità che varia, galleggiamento) è nella cronologia di git (PR #138): **non va rimessa**, è quella che non è piaciuta.
   - **Il moto è simmetrico, ed è la regola che decide tutto il resto.** L'inclinazione è **fissa e verticale** (27 gradi: la scena a destra è lo specchio di
