@@ -470,9 +470,45 @@ La scheda che era **Workout** (poi «Fit») si chiama **Athlon Health System** (
 l'allenamento, l'alimentazione e il recupero dell'adulto in un posto solo. Nel codice la cartella resta `fit/`. L'indirizzo resta `/allenamento` (è quello dei link già dati); l'area scelta sta in
 `?area=food`, così tornando dal diario si ritrova Food. Nomi in inglese di proposito, il resto in italiano.
 
-- **Sotto il titolo la ruota** (`fit/Ruota.tsx`): tre frecce che si rincorrono, Train → Food → Relax, e girano piano
-  (un giro in 24 s). Le etichette seguono la loro freccia ma restano diritte; la rotazione è una trasformazione della
-  View, non una proprietà animata dell'SVG. Con «riduci movimento» è ferma.
+- **Sotto il titolo la ruota** (`fit/Ruota.tsx`, la matematica in `fit/ruota3d.ts`): tre frecce che si rincorrono, Train → Food → Relax,
+  un giro in 24 s. **In 3D e fluida (24/10/2026, richiesta di Maurizio: «un'animazione più fluida e tridimensionale»).** Niente librerie
+  3D né canvas: ogni freccia è un **tubo fatto di 18 strati** dello stesso disegno (`STRATI`), ognuno più stretto e più chiaro di quello
+  sotto come le curve di livello di una cupola (profilo di un cilindro: `profilo`, `coloreStrato`), e ogni strato è una View con la sua
+  **matrice 4x4 con prospettiva** (inclinazione + giro + alzata lungo la normale del disco). Dà spessore, un lato vicino (in basso, più
+  grande) e uno lontano, e un'ombra a terra che si stringe e si scurisce quando la ruota scende. Il colore pieno del brand sta sul dorso
+  (`coloreStrato`: pieno da 0,74 in giù, solo il 24% di bianco in cima): in cima non deve diventare pesca.
+  - **Un solo orologio** (`useFrameCallback`) somma i secondi veri fra un fotogramma e l'altro (al massimo 50 ms, per non saltare dopo
+    una pausa) e da quel numero discende tutto, in `scenaDa(s)`: giro con un **respiro di velocità** (11–19 gradi al secondo, mai
+    all'indietro), inclinazione che respira fra 22 e 40 gradi e **precede** (il polo del disco gira in un'ellisse in 13 s, più una seconda
+    onda con un altro periodo, così non si ripete uguale), galleggiamento di 3 punti. **All'apertura la ruota «atterra»** in 1,7 s (parte più
+    inclinata, più bassa, più piccola e gira più in fretta, poi si assesta). Niente tween che riparte: nessuno scatto al giro. Il numero di
+    fotogrammi non cambia il moto, e l'orologio si **ferma quando la scheda non è in primo piano** (`useIsFocused`) e riprende da dove era.
+  - **Niente passa da React**: i 18 strati, le tre etichette, l'ombra e il testo centrale sono `useAnimatedStyle` che leggono un solo
+    `useDerivedValue` (`scena`); la schermata non si ridisegna mentre la ruota si muove.
+  - **La matrice si chiama `matrix3d` sul web e `matrix` sul telefono** (`MATRICE`): react-native-web trasforma `matrix` in `matrix(...)`,
+    che in CSS vuole 6 numeri e non 16; React Native non conosce `matrix3d`. Il tipo di React Native non ha `matrix3d`, quindi c'è un
+    `as unknown as ViewStyle['transform']` (`conMatrice`). Le funzioni di `ruota3d.ts` hanno la direttiva `'worklet'`: chi ne aggiunge una
+    che `useAnimatedStyle` chiama, la deve mettere anche lì.
+  - **Le etichette restano diritte** (non ruotano col disco: in basso si leggerebbero capovolte) ma seguono la profondità: più piccole e
+    leggermente più tenui sul lato lontano (comunque opache al 92%: una pillola trasparente lascia vedere la freccia e si legge male).
+    «Equilibrio» sta un po' sopra il disco e si sposta rispetto a lui (parallasse): da fermo è al centro.
+  - **Geometria invariata**: raggio, spessore, vuoto fra le frecce e punta sono quelli di prima, e `SPICCHI` resta esportato (lo usa
+    `ui/IconaRuota.tsx`, l'icona della barra delle schede, che non gira e non è cambiata). Il riquadro è sempre 220×220: le etichette sul
+    lato vicino ne sporgono di qualche punto, nessun contenitore taglia (`Entra` non ha `overflow`).
+  - **Con «riduci movimento» è ferma**, in posa inclinata (`POSA_FERMA_S`), senza arrivo e senza orologio.
+  - **Costo**: 18 View composte (una per strato, ognuna con un `Svg` di 6 tracciati), aggiornate a ogni fotogramma solo nella trasformazione.
+    Se su un telefono vecchio pesasse, `N_STRATI` si abbassa senza toccare altro, ma con meno strati le fasce sui fianchi si vedono di più
+    (provato solo con 15 e 18: con 18 appena percettibili a 4×).
+  - **Provato.** `ruota3d.ts` con `node --experimental-strip-types` (9 gruppi: la proiezione della matrice coincide con un calcolo
+    indipendente di rotazioni e prospettiva su 200 pose e punti a caso, `alzata` è M·Tz(h), il lato vicino è in basso e più grande, il giro non
+    va mai all'indietro in 120 s, un giro in 24 s si richiude, nessun salto in 1 ms, inclinazione e precessione nei limiti, l'arrivo, la
+    luminosità dei colori che non scende dal fondo al dorso). `tsc` pulito. **In Chromium** (bundle web esportato, pagina provvisoria poi
+    tolta; 390 px a densità 3, tema chiaro e scuro, e 4× per guardare i fianchi): 59,8 fotogrammi al secondo in 6 secondi, 95° percentile
+    16,7 ms, nessuna *long task*, tutti i 18 strati aggiornati a ogni fotogramma, nessun errore in console; «riduci movimento» ferma le
+    matrici. **Non provato**: un telefono vero (Safari da PWA su iPhone, dove Chromium software è un'altra cosa), **l'app nativa** (la
+    `matrix` con prospettiva su iOS e Android e le worklet su thread UI sono scritte secondo la documentazione, non viste girare), la
+    schermata vera dietro il login, e la pausa quando si cambia scheda (`useIsFocused`). Se su iPhone le fasce sui fianchi si vedessero
+    o la ruota fosse sfocata sul lato vicino (il browser rasterizza gli strati a una scala sola), è il primo posto da guardare.
 - **Poi l'Athlon Health Score** (`fit/Punteggio.tsx`, sezione sotto): il punteggio da 0 a 100 sui tre pilastri, con l'anello a tre settori e il dettaglio in
   `/allenamento/punteggio`. **Subito sotto il titolo una riga dice da dove arriva** (24/10/2026, richiesta di Maurizio: «chi accede all'app e non ha mai messo nessun
   dato trova comunque le lezioni registrate e un punteggio relativo alle lezioni», `DaDoveArriva`): «dalle lezioni che hai fatto (ne risultano N registrate nelle ultime
