@@ -30,6 +30,7 @@ export function Casella({
       accessibilityState={{ checked: spuntata, disabled: bloccata }}
       accessibilityLabel={etichetta}
       onPress={bloccata ? undefined : onCambia}
+      hitSlop={8}
       style={[
         stili.riga,
         riquadro && {
@@ -50,7 +51,8 @@ export function Casella({
 }
 
 const stili = StyleSheet.create({
-  riga: { flexDirection: 'row', alignItems: 'flex-start', gap: spazio.tre },
+  // 48 di altezza minima: il bersaglio di un dito, non quello del quadratino (22) o di una riga di testo.
+  riga: { flexDirection: 'row', alignItems: 'flex-start', gap: spazio.tre, minHeight: 48 },
   quadrato: { width: 22, height: 22, borderRadius: 5, borderWidth: 2, alignItems: 'center', justifyContent: 'center', marginTop: 1 },
   segno: { fontSize: 14, fontWeight: '800', lineHeight: 16 },
   testo: { flex: 1, minWidth: 0 },
