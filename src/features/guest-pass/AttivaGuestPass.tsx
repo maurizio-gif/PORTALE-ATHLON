@@ -285,6 +285,8 @@ export function AttivaGuestPass({ token, nome, iniziale }: { token: string; nome
   // 13/10/2026), non alla conferma finale. Il server controlla i dati e li porta
   // su PerfectGym; se uno non va, lo dice qui e la spunta si toglie.
   async function confermaDati() {
+    // Mentre il server controlla, un secondo tocco non deve togliere la spunta appena messa.
+    if (occupato === 'dati') return
     setErroreDati(null)
     if (confermati) return setConfermati(false)
     if (erroreCf) return // l'avviso del codice fiscale e' gia' sotto i dati
