@@ -121,6 +121,21 @@ export function impostaLingua(l: Lingua) {
     window.location.reload()
     return
   }
+  // Sull'app nativa le costanti calcolate al caricamento (623 `t()` fuori dai componenti: etichette, elenchi, formattatori di date)
+  // restano nella lingua di prima: si riavvia il codice dell'app, cosi' tutto si rifa' nella lingua nuova (27/10/2026: sezioni in
+  // inglese con l'italiano scelto). Se il riavvio non e' possibile (build di sviluppo) si avvisano i componenti.
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const Aggiornamenti = require('expo-updates') as { reloadAsync?: () => Promise<void> }
+    if (typeof Aggiornamenti.reloadAsync === 'function') {
+      Aggiornamenti.reloadAsync().catch(() => {
+        for (const f of ascoltatori) f()
+      })
+      return
+    }
+  } catch {
+    // modulo non disponibile (prove con tsx): si ripiega sull'avviso ai componenti
+  }
   for (const f of ascoltatori) f()
 }
 
