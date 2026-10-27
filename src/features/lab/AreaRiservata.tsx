@@ -91,7 +91,7 @@ function Benvenuto({
   // Su un telefono molto stretto (sotto i 350 pt: misurato a 340 col nome di giorno piu' lungo, «MERCOLEDÌ 30 SETTEMBRE») la data non ha piu'
   // posto accanto a campanello e Profilo, e a pezzi non dice niente: si toglie.
   const { width: larghezza } = useWindowDimensions()
-  const conData = larghezza >= 375
+  const conData = false // la data era tagliata nella testata (27/10/2026, richiesta di Maurizio): non si mostra
   // Il campanello e' piu' grande (40 punti, 25/10/2026): sotto i 400 la pillola «Profilo» tiene solo l'icona e la freccia, o la data si
   // spezzava a meta' parola nei giorni dal nome lungo («MERCOLEDÌ 30 SETTEMBRE»). Il comando resta: tutta la testata porta al Profilo.
   const profiloCompatto = larghezza < 400
