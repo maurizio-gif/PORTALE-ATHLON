@@ -1,6 +1,7 @@
 import * as DocumentPicker from 'expo-document-picker'
 import { Platform } from 'react-native'
 import { t } from './lingua'
+import { scattaFoto, type FileGrezzo } from './fileScheda'
 
 // Il file del certificato medico: lo si sceglie, lo si controlla e lo si porta in
 // base64, che e' come la funzione lo riceve (come l'allegato dell'Help Desk del sito).
@@ -28,10 +29,25 @@ const TIPI: TipoCertificato[] = ['image/jpeg', 'image/png', 'application/pdf']
 export type FileScelto = { nome: string; tipo: TipoCertificato; byte: number; base64: string }
 export type EsitoFile = { ok: true; file: FileScelto } | { ok: false; errore: string }
 
-/** La finestra di scelta del file. Null se la persona rinuncia. */
-export async function scegliDocumento(): Promise<DocumentPicker.DocumentPickerAsset | null> {
+/** Da dove arriva il file: la fotocamera, la galleria delle foto o i documenti (PDF o foto). Le stesse tre strade dei piani di allenamento. */
+export type FonteCertificato = 'fotocamera' | 'galleria' | 'documenti'
+
+/** La finestra di scelta del file (i documenti: PDF o foto). Null se la persona rinuncia. */
+export async function scegliDocumento(): Promise<FileGrezzo | null> {
   const r = await DocumentPicker.getDocumentAsync({ type: TIPI, copyToCacheDirectory: true, multiple: false, base64: false })
-  return r.canceled ? null : (r.assets?.[0] ?? null)
+  const a = r.canceled ? null : (r.assets?.[0] ?? null)
+  return a ? { uri: a.uri, name: a.name, mimeType: a.mimeType, file: a.file } : null
+}
+
+/**
+ * Sceglie il file dalla strada indicata. Nell'app la fotocamera e la galleria sono quelle vere del telefono
+ * (`expo-image-picker`), come per i piani; sul web la fotocamera e' quella posteriore del telefono e la galleria la scelta di una foto.
+ * Null se la persona rinuncia o nega il permesso.
+ */
+export function scegliDa(fonte: FonteCertificato): Promise<FileGrezzo | null> {
+  if (fonte === 'fotocamera') return scattaFoto('environment')
+  if (fonte === 'galleria') return scattaFoto(null)
+  return scegliDocumento()
 }
 
 function tipoDi(a: { name: string; mimeType?: string }): TipoCertificato | null {
@@ -84,7 +100,7 @@ async function riduciImmagine(blob: Blob): Promise<Blob | null> {
 }
 
 /** Controlla il file scelto e lo porta in base64. Non solleva mai. */
-export async function preparaFile(a: DocumentPicker.DocumentPickerAsset): Promise<EsitoFile> {
+export async function preparaFile(a: FileGrezzo): Promise<EsitoFile> {
   const tipo = tipoDi(a)
   if (!tipo) return { ok: false, errore: t(`Il file deve essere una foto JPG o PNG, oppure un PDF.`, `The file must be a JPG or PNG photo, or a PDF.`) }
   try {

@@ -108,11 +108,15 @@ export function CaricaCertificatoDaLink({ token, iniziale }: { token: string; in
                 <Testo variante="piccolo">{pesoLeggibile(car.file.byte)}</Testo>
               </View>
               <View style={{ width: 110 }}>
-                <Bottone testo={t('Cambia', 'Change')} variante="contorno" onPress={car.scegli} />
+                <Bottone testo={t('Cambia', 'Change')} variante="contorno" onPress={car.ricomincia} />
               </View>
             </View>
           ) : (
-            <Bottone testo={car.inLettura ? t('Preparo il file…', 'Preparing the file…') : t('Scegli la foto o il PDF', 'Choose the photo or PDF')} variante="contorno" inCorso={car.inLettura} onPress={car.scegli} />
+            <View style={{ gap: 10 }}>
+              <Bottone testo={car.inLettura ? t('Preparo il file…', 'Preparing the file…') : t('Scatta una foto', 'Take a photo')} variante="contorno" inCorso={car.inLettura} onPress={() => car.scegli('fotocamera')} />
+              <Bottone testo={t('Scegli dalla galleria', 'Choose from your photos')} variante="contorno" onPress={() => car.scegli('galleria')} />
+              <Bottone testo={t('Scegli un documento (PDF)', 'Choose a document (PDF)')} variante="contorno" onPress={() => car.scegli('documenti')} />
+            </View>
           )}
           <Testo variante="piccolo">
             {t(
