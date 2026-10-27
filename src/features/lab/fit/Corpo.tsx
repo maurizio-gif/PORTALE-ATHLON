@@ -10,6 +10,7 @@ import { spazio } from '@/theme'
 import { altezzaAl, bmi, dataCorta, fasciaBmi, numero } from '../dati/calcoli'
 import { spostaGiorno } from '../schede/contatoreCalorie'
 import { Icona } from '../ui/Icona'
+import { Richiamo } from '../profilo/Richiamo'
 import { Pulsante } from '../ui/kit'
 import { coloreTono, F, usePalette } from '../ui/tema'
 import { Tocco } from '../ui/Tocco'
@@ -68,8 +69,8 @@ export function CartaCorpo({ misure, senzaConsenso = false }: { misure: Misura[]
   // Senza misure la carta e' un invito, non un accordion: nessuna cifra da mostrare, una cosa da fare.
   const invito = !ultima
   const INVITO_TESTO = t(
-    'Inserisci qui i tuoi dati per avere il consumo calorico delle lezioni e dei tuoi allenamenti.',
-    'Enter your details here to get the calories burned in your classes and workouts.',
+    'Dati relativi a altezza, peso e sesso: compilali per avere il consumo calorico di lezioni e allenamenti.',
+    'Details about your height, weight and sex: fill them in to get the calories burned in classes and workouts.',
   )
 
   const testa = (
@@ -78,9 +79,9 @@ export function CartaCorpo({ misure, senzaConsenso = false }: { misure: Misura[]
         <Icona nome="persona" size={22} colore="#fff" />
       </LinearGradient>
       <View style={{ flex: 1 }}>
-        <Text style={[stili.titolo, { color: p.testo }]}>{t('Il tuo corpo', 'Your body')}</Text>
+        <Text style={[stili.titolo, { color: p.testo }]}>{t('I tuoi dati', 'Your details')}</Text>
         <Text style={[stili.testo, { color: invito ? p.testo : p.testoSecondario, fontFamily: invito ? F.semi : F.medio }]}>
-          {invito ? INVITO_TESTO : t('Qui trovi le tue misure: aggiornale e consulta come cambiano nel tempo.', 'Your measurements live here: update them and see how they change over time.')}
+          {invito ? INVITO_TESTO : t('Altezza, peso e sesso: aggiornali e guarda come cambiano nel tempo.', 'Height, weight and sex: update them and see how they change over time.')}
         </Text>
       </View>
       {/* Senza misure (o senza consenso) la freccia porta via; altrimenti apre e chiude, come nel Balance. */}
@@ -94,6 +95,8 @@ export function CartaCorpo({ misure, senzaConsenso = false }: { misure: Misura[]
   if (senzaConsenso || invito) {
     return (
       <View style={[stili.carta, { backgroundColor: p.carta, borderColor: p.linea, boxShadow: p.ombra }]}>
+        {/* Finche' i dati non sono compilati un anello pulsa sulla carta: serve per le calorie, e senza non si stimano. */}
+        <Richiamo raggio={26} colore={p.accento} ingrandimento={1.03} spessore={2} finoAlFatto />
         <Tocco
           onPress={apriMisure}
           etichetta={senzaConsenso ? t('Il tuo corpo: inserisci i tuoi dati, prima leggi l’informativa', 'Your body: enter your details, first read the privacy notice') : t('Il tuo corpo: inserisci i tuoi dati per avere il consumo calorico di lezioni e allenamenti', 'Your body: enter your details to get the calories burned in classes and workouts')}
