@@ -40,7 +40,9 @@ export function scegliFotoProfilo(da: OrigineFoto): Promise<FileGrezzo | null> {
 
 /** Si puo' scattare dal browser? Dove c'e' un touch (telefono, tablet): sul computer `capture` non conta e si aprirebbe una finestra di file. */
 export function fotocameraDisponibile(): boolean {
-  return Platform.OS === 'web' && typeof navigator !== 'undefined' && navigator.maxTouchPoints > 0
+  // Nell'app c'e' sempre la fotocamera (expo-image-picker); sul web solo dove c'e' un touch.
+  if (Platform.OS !== 'web') return true
+  return typeof navigator !== 'undefined' && navigator.maxTouchPoints > 0
 }
 
 const FORMATI = /^image\/(jpeg|jpg|png|webp)$/

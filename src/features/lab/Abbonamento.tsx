@@ -44,6 +44,7 @@ import { SchermataInArrivo } from './ui/Attesa'
 import { Schermata } from './ui/Schermata'
 import { F, usePalette } from './ui/tema'
 import { colpetto, Tocco } from './ui/Tocco'
+import { apriPagamento } from '@/lib/pagamentoEsterno'
 
 // L'abbonamento principale comprato dal portale (16/10/2026): Smart o Premium,
 // nelle tre formule, con il contratto da leggere e firmare come su Adobe o
@@ -370,8 +371,7 @@ export function Abbonamento() {
     }
     colpetto('ok')
     if (r.esito.url) {
-      if (Platform.OS === 'web') window.location.assign(r.esito.url)
-      else await Linking.openURL(r.esito.url)
+      await apriPagamento(r.esito.url)
       setPagando(false)
       return
     }

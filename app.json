@@ -79,7 +79,15 @@
         }
       ],
       "expo-sqlite",
-      "expo-video"
+      "expo-video",
+      [
+        "expo-image-picker",
+        {
+          "cameraPermission": "Athlon Club usa la fotocamera per scattare la foto del tuo profilo e per fotografare piani di allenamento, certificati e pasti.",
+          "photosPermission": "Athlon Club legge una foto dalla tua libreria solo quando la scegli tu, per il profilo, i piani, i certificati e i pasti.",
+          "microphonePermission": false
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,

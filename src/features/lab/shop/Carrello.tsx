@@ -19,6 +19,7 @@ import { allineaAllaVetrina, impostaQuantita, togliDalCarrello, useCarrello } fr
 import { Quantita } from './Quantita'
 import { SegnapostoFoto } from './SegnapostoFoto'
 import { useVetrina } from './useVetrina'
+import { apriPagamento } from '@/lib/pagamentoEsterno'
 
 // Il carrello e il pagamento (18/10/2026), come «Acquista e prenota» delle lezioni singole: «Vai al pagamento» apre
 // l'ordine da PerfectGym (**non addebita niente**: apre il link) e poi si paga sulla pagina protetta di Adyen,
@@ -29,7 +30,7 @@ import { useVetrina } from './useVetrina'
 // vetrina e si toglie dal carrello cio' che non c'e' piu'. Dopo l'apertura dell'ordine il totale mostrato e' quello
 // della funzione.
 
-const apri = (url: string) => (Platform.OS === 'web' ? void window.location.assign(url) : void Linking.openURL(url))
+const apri = (url: string) => void apriPagamento(url)
 
 export function Carrello() {
   const p = usePalette()

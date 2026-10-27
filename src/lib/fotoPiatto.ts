@@ -1,5 +1,6 @@
 import * as DocumentPicker from 'expo-document-picker'
-import { Platform } from 'react-native'
+import { Alert, Platform } from 'react-native'
+import { scattaFoto, type FileGrezzo } from './fileScheda'
 import { t } from './lingua'
 
 // La foto del piatto per la sezione Alimentazione (19/10/2026): la si sceglie (o la
@@ -17,7 +18,24 @@ import { t } from './lingua'
 const LATO = 1280
 export const MAX_BYTE = 4 * 1024 * 1024
 
-export async function scegliFoto(): Promise<DocumentPicker.DocumentPickerAsset | null> {
+/** Nell'app: chiede se scattare o scegliere dalla libreria (il selettore dei file aprirebbe solo Documenti). */
+function scattaOScegliNativo(): Promise<FileGrezzo | null> {
+  return new Promise((risolvi) => {
+    Alert.alert(
+      t('Foto del piatto', 'Photo of your meal'),
+      undefined,
+      [
+        { text: t('Scatta una foto', 'Take a photo'), onPress: () => scattaFoto('environment').then(risolvi) },
+        { text: t('Scegli dalla libreria', 'Choose from library'), onPress: () => scattaFoto(null).then(risolvi) },
+        { text: t('Annulla', 'Cancel'), style: 'cancel', onPress: () => risolvi(null) },
+      ],
+      { cancelable: true, onDismiss: () => risolvi(null) },
+    )
+  })
+}
+
+export async function scegliFoto(): Promise<FileGrezzo | null> {
+  if (Platform.OS !== 'web') return scattaOScegliNativo()
   const r = await DocumentPicker.getDocumentAsync({ type: ['image/*'], copyToCacheDirectory: true, multiple: false, base64: false })
   return r.canceled ? null : (r.assets?.[0] ?? null)
 }
@@ -50,7 +68,7 @@ async function riduci(blob: Blob): Promise<Blob | null> {
 }
 
 /** La foto pronta da mandare, come «data:image/jpeg;base64,…», e l'indirizzo per mostrarla. Non solleva mai. */
-export async function preparaFoto(a: DocumentPicker.DocumentPickerAsset): Promise<{ ok: true; dati: string; anteprima: string } | { ok: false; errore: string }> {
+export async function preparaFoto(a: FileGrezzo): Promise<{ ok: true; dati: string; anteprima: string } | { ok: false; errore: string }> {
   try {
     let blob: Blob = Platform.OS === 'web' && a.file ? a.file : await (await fetch(a.uri)).blob()
     if (blob.type && !blob.type.startsWith('image/')) return { ok: false, errore: t('Scegli una foto.', 'Choose a photo.') }
