@@ -3,7 +3,8 @@ import { router, useLocalSearchParams } from 'expo-router'
 import { useEffect, useRef, useState } from 'react'
 import { Linking, Platform, StyleSheet, Text, View } from 'react-native'
 
-import { aggiornaDispositivi, collega, completaCollegamento, revocaConsensoDispositivi, scollega, type Collegamento, type Fornitore, type IdFornitore } from '@/api/dispositivi'
+import { appleSaluteAttivo, appleSaluteDisponibile, chiediPermessoSalute, impostaAppleSalute, sincronizzaSalute } from './appleSalute'
+import { scollegaSalute, aggiornaDispositivi, collega, completaCollegamento, revocaConsensoDispositivi, scollega, type Collegamento, type Fornitore, type IdFornitore } from '@/api/dispositivi'
 import { t } from '@/lib/lingua'
 import { spazio } from '@/theme'
 
@@ -157,6 +158,7 @@ function Gestione({ d, fornitori, collegamenti, onRevocato }: { d: DatiDispositi
         )}
       </Text>
       {errore ? <Messaggio>{errore}</Messaggio> : null}
+      <CartaAppleSalute d={d} onErrore={setErrore} />
       <View style={{ gap: spazio.tre }}>
         {fornitori.map((f, i) => (
           <Entra key={f.id} indice={i}>
@@ -295,6 +297,83 @@ function CartaFornitore({ f, collegamento, d, onErrore }: { f: Fornitore; colleg
           </View>
           <View style={{ flex: 1 }}>
             <Pulsante testo={t('Scollega', 'Disconnect')} variante="contorno" piccolo onPress={() => setFase('chiedi')} />
+          </View>
+        </View>
+      )}
+    </Carta>
+  )
+}
+
+function CartaAppleSalute({ d, onErrore }: { d: DatiDispositivi; onErrore: (e: string | null) => void }) {
+  const p = usePalette()
+  const [disponibile, setDisponibile] = useState(false)
+  const [attivo, setAttivo] = useState(appleSaluteAttivo())
+  const [fase, setFase] = useState<'no' | 'attiva' | 'aggiorna' | 'scollega'>('no')
+  useEffect(() => {
+    appleSaluteDisponibile().then(setDisponibile)
+  }, [])
+  if (Platform.OS !== 'ios' || !disponibile) return null
+
+  async function attiva() {
+    onErrore(null)
+    setFase('attiva')
+    const ok = await chiediPermessoSalute()
+    if (!ok) {
+      setFase('no')
+      onErrore(t('Non siamo riusciti ad aprire Apple Salute. Riprova.', 'We couldn’t open Apple Health. Try again.'))
+      return
+    }
+    impostaAppleSalute(true)
+    setAttivo(true)
+    const r = await sincronizzaSalute(true)
+    setFase('no')
+    if (r) d.imposta(r)
+  }
+  async function aggiorna() {
+    onErrore(null)
+    setFase('aggiorna')
+    const r = await sincronizzaSalute(true)
+    setFase('no')
+    if (r) d.imposta(r)
+    else onErrore(t('Non abbiamo letto niente da Apple Salute. Controlla in Impostazioni › Salute che Athlon possa leggere passi, sonno e allenamenti.', 'We read nothing from Apple Health. Check in Settings › Health that Athlon can read steps, sleep and workouts.'))
+  }
+  async function scollegaOra() {
+    onErrore(null)
+    setFase('scollega')
+    const r = await scollegaSalute()
+    setFase('no')
+    if (r.ok) {
+      impostaAppleSalute(false)
+      setAttivo(false)
+      d.imposta(r)
+    } else onErrore(r.errore)
+  }
+
+  return (
+    <Carta style={{ gap: spazio.tre }}>
+      <View style={stili.testa}>
+        <Bollino icona="orologio" tono="neutro" size={46} />
+        <View style={{ flex: 1, gap: 2 }}>
+          <Text style={[stili.nome, { color: p.testo }]}>{t('Apple Salute', 'Apple Health')}</Text>
+          <Text style={[stili.nota, { color: p.testoSecondario }]}>{t('Passi, sonno e allenamenti dal tuo iPhone', 'Steps, sleep and workouts from your iPhone')}</Text>
+        </View>
+        {attivo ? <Etichetta testo={t('Attivo', 'On')} tono="ok" icona="ok" /> : <Etichetta testo={t('Non attivo', 'Off')} />}
+      </View>
+      <Text style={[stili.nota, { color: p.testoSecondario }]}>
+        {t(
+          'Scegli tu cosa condividere: l’app legge solo passi, sonno e allenamenti, e solo quando la apri. Il sonno e gli allenamenti di Apple Salute compaiono in Relax.',
+          'You choose what to share: the app only reads steps, sleep and workouts, and only when you open it. Sleep and workouts from Apple Health show up in Relax.',
+        )}
+      </Text>
+      {!attivo ? (
+        <Pulsante testo={t('Attiva Apple Salute', 'Turn on Apple Health')} icona="avanti" inCorso={fase === 'attiva'} onPress={attiva} />
+      ) : (
+        <View style={stili.azioni}>
+          <View style={{ flex: 1 }}>
+            <Pulsante testo={t('Aggiorna ora', 'Refresh now')} icona="aggiorna" variante="secondario" piccolo inCorso={fase === 'aggiorna'} onPress={aggiorna} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Pulsante testo={t('Disattiva', 'Turn off')} variante="contorno" piccolo inCorso={fase === 'scollega'} onPress={scollegaOra} />
           </View>
         </View>
       )}

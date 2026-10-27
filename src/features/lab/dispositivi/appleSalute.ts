@@ -2,6 +2,8 @@
 // Altrove (web, Android) ogni funzione risponde "non disponibile" senza sollevare.
 import { Platform } from 'react-native';
 
+import { importaSalute, type DatiDispositivi } from '@/api/dispositivi';
+
 export type GiornoSalute = {
   data: string; // AAAA-MM-GG, giorno di Roma/dispositivo
   passi: number | null;
@@ -117,4 +119,39 @@ export async function leggiSalute(giorni = 14): Promise<LetturaSalute | null> {
   } catch {
     return null;
   }
+}
+
+// --- Il collegamento vive sul telefono: un segno nel browser/nell'app dice che il socio l'ha attivato. ---
+const CHIAVE_ATTIVO = 'athlon:apple-salute'
+const ogni = 10 * 60_000
+let ultimaLettura = 0
+
+export function appleSaluteAttivo(): boolean {
+  try {
+    return globalThis.localStorage?.getItem(CHIAVE_ATTIVO) === '1'
+  } catch {
+    return false
+  }
+}
+export function impostaAppleSalute(attivo: boolean) {
+  try {
+    if (attivo) globalThis.localStorage?.setItem(CHIAVE_ATTIVO, '1')
+    else globalThis.localStorage?.removeItem(CHIAVE_ATTIVO)
+  } catch {
+    // senza memoria il segno non resta: si riattiva dalla schermata
+  }
+}
+
+/** Legge da Apple Salute e manda al club. Al massimo una volta ogni 10 minuti, salvo `subito`. Non solleva mai. */
+export async function sincronizzaSalute(subito = false): Promise<DatiDispositivi | null> {
+  if (Platform.OS !== 'ios' || !appleSaluteAttivo()) return null
+  if (!subito && Date.now() - ultimaLettura < ogni) return null
+  ultimaLettura = Date.now()
+  const l = await leggiSalute(14)
+  if (!l) return null
+  const r = await importaSalute({
+    giorni: l.giorni,
+    allenamenti: l.allenamenti.map((a) => ({ inizio: a.inizio, fine: a.fine, tipo: a.tipo, calorie: a.calorie })),
+  })
+  return r.ok ? r : null
 }
