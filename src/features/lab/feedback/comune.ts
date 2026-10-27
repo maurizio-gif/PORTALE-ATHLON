@@ -85,4 +85,4 @@ export const SPOSTA_SE_OCCUPATO = 52
  * Sotto questa larghezza (e dove la schermata ha gia' un comando in alto a destra) il pulsante e' solo l'icona: con
  * la freccia indietro, il marchio e un comando a destra, la pillola con la scritta finirebbe sul marchio.
  */
-export const LARGHEZZA_COMPATTA = 340
+export const LARGHEZZA_COMPATTA = 440
