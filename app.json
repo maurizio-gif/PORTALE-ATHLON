@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "Athlon Club",
-    "slug": "portale-athlon",
+    "slug": "portale-athlon-club",
     "version": "0.1.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -68,6 +68,13 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "dd484741-bae6-479f-98bc-0d7ee2bb41b2"
+      }
+    },
+    "owner": "ready-2-digital"
   }
 }
