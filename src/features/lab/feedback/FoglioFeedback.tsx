@@ -105,6 +105,8 @@ export function FoglioFeedback({ aperto, f, schermata, onChiudi }: { aperto: boo
               onChangeText={f.setTesto}
               placeholder={t('Scrivi qui…', 'Write here…')}
               multiline
+              submitBehavior="blurAndSubmit"
+              returnKeyType="done"
               maxLength={TESTO_MAX}
               textAlignVertical="top"
               style={{ minHeight: 132, paddingTop: 14, paddingBottom: 14 }}

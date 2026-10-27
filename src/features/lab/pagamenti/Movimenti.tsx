@@ -16,6 +16,7 @@ import { Carta, Etichetta, LinkSezione, Messaggio, Numero, Pulsante, Riga, Sched
 import { Schermata } from '../ui/Schermata'
 import { F, usePalette, type ToniTutti } from '../ui/tema'
 import { Tocco } from '../ui/Tocco'
+import { apriPagamento } from '@/lib/pagamentoEsterno'
 
 // I pagamenti veri del socio e della famiglia (15/10/2026), da PerfectGym:
 // le quote scadute da saldare, i prossimi pagamenti e lo storico, ognuno col
@@ -271,8 +272,9 @@ function DaPagare({ elenco, carta, onApri, onAggiorna, verificaSubito }: { elenc
       // Si esce dall'app per la pagina della carta, e si torna qui con `?saldo=1`.
       if (Platform.OS === 'web') window.location.assign(r.url)
       else {
-        await Linking.openURL(r.url)
-        setFase('verifica')
+        // Il browser integrato si chiude quando la persona torna: solo allora si rilegge l'esito.
+        await apriPagamento(r.url)
+        if (vivo.current) setFase('verifica')
       }
       return
     }

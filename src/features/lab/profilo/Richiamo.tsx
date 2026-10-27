@@ -21,7 +21,7 @@ const PAUSA_FRA_RAFFICHE_MS = 4500
 const OPACITA = 0.7
 
 /** L'anello. Si mette dentro una View delle misure del comando, e la riempie: `raggio` e' quello del comando. */
-export function Richiamo({ raggio, colore, ingrandimento = 1.3, spessore = 2 }: { raggio: number; colore: string; /** Di quanto cresce prima di sparire. */ ingrandimento?: number; spessore?: number }) {
+export function Richiamo({ raggio, colore, ingrandimento = 1.3, spessore = 2, finoAlFatto = false }: { raggio: number; colore: string; /** Di quanto cresce prima di sparire. */ ingrandimento?: number; spessore?: number; /** Non si ferma dopo tre raffiche: per un dato che manca e serve (i dati del corpo, il test dei massimali). Il comando che lo mostra sparisce quando e' fatto. */ finoAlFatto?: boolean }) {
   const fermo = useReducedMotion()
   const t = useSharedValue(0)
 
@@ -29,12 +29,12 @@ export function Richiamo({ raggio, colore, ingrandimento = 1.3, spessore = 2 }: 
     if (fermo) return
     const colpo = withSequence(withTiming(1, { duration: DURATA_COLPO_MS, easing: Easing.out(Easing.quad) }), withTiming(0, { duration: 0 }))
     const raffica = withSequence(withRepeat(colpo, COLPI_PER_RAFFICA, false), withDelay(PAUSA_FRA_RAFFICHE_MS, withTiming(0, { duration: 0 })))
-    t.value = withRepeat(raffica, RAFFICHE, false)
+    t.value = withRepeat(raffica, finoAlFatto ? -1 : RAFFICHE, false)
     // Assegnare un valore ferma l'animazione: uscendo dalla schermata non resta niente che gira.
     return () => {
       t.value = 0
     }
-  }, [fermo, t])
+  }, [fermo, t, finoAlFatto])
 
   const stile = useAnimatedStyle(() => ({
     // A riposo (t = 0) l'anello non si vede: dopo l'ultima raffica non resta un contorno fisso.

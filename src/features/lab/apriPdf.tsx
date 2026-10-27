@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState, type ReactNode } from 'react'
+import * as Sharing from 'expo-sharing'
 import { Linking, Platform, Share, Text } from 'react-native'
 import { t } from '@/lib/lingua'
 
@@ -68,7 +69,9 @@ function PdfPronto({ pronto, onChiudi }: { pronto: Pronto | null; onChiudi: () =
   function apri() {
     if (!pronto) return
     if (Platform.OS !== 'web') {
-      Linking.openURL(pronto.url)
+      // Un file nel telefono (la tessera) si apre dal foglio di condivisione; un link firmato si apre nel browser.
+      if (pronto.url.startsWith('file:')) Sharing.shareAsync(pronto.url, { mimeType: 'application/pdf', UTI: 'com.adobe.pdf', dialogTitle: pronto.nome }).catch(() => undefined)
+      else Linking.openURL(pronto.url)
       return
     }
     // Sincrono dentro il tocco: e' questo che lo rende lecito.
@@ -94,7 +97,8 @@ function PdfPronto({ pronto, onChiudi }: { pronto: Pronto | null; onChiudi: () =
     setErrore(null)
     try {
       if (Platform.OS !== 'web') {
-        await Share.share({ message: pronto.nome, url: pronto.url })
+        if (pronto.url.startsWith('file:')) await Sharing.shareAsync(pronto.url, { mimeType: 'application/pdf', UTI: 'com.adobe.pdf', dialogTitle: pronto.nome })
+        else await Share.share({ message: pronto.nome, url: pronto.url })
         return
       }
       if (file && navigator.canShare?.({ files: [file] })) {

@@ -1,3 +1,8 @@
+// Sul nativo `localStorage` lo installa expo-sqlite: va caricato PRIMA di qualunque `t()`, o le costanti di modulo
+// leggono la lingua senza la scelta ricordata e restano in quella di partenza (visto in TestFlight il 27/10/2026:
+// sezioni in inglese con l'italiano scelto).
+import './localStorage'
+
 // Modulo puro (niente React ne' React Native): lo importano anche i calcoli che si provano con `npx tsx`.
 // Il gancio per i componenti e' `useLingua` in `lingua-react.ts`.
 //
@@ -33,17 +38,9 @@ function salvata(): Lingua | null {
   }
 }
 
-/** La lingua del dispositivo: italiano se e' italiano, altrimenti inglese (chi non legge l'italiano legge piu' facilmente l'inglese). */
+/** La lingua di partenza: sempre l'italiano (decisione di Maurizio, 27/10/2026). Chi preferisce l'inglese lo sceglie nella pagina d'accesso o nel Profilo. */
 function delDispositivo(): Lingua {
-  try {
-    const l = (Intl.DateTimeFormat().resolvedOptions().locale || '').toLowerCase()
-    const nav = typeof navigator !== 'undefined' ? ((navigator as unknown as { languages?: readonly string[]; language?: string }).languages?.[0] ?? (navigator as unknown as { language?: string }).language ?? '') : ''
-    const scelta = (nav || l).toLowerCase()
-    if (!scelta) return 'it'
-    return scelta.startsWith('it') ? 'it' : 'en'
-  } catch {
-    return 'it'
-  }
+  return 'it'
 }
 
 /**

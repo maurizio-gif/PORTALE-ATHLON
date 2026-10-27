@@ -42,6 +42,7 @@ import { SceltaPrenotazioni } from './ui/SceltaPrenotazioni'
 import { Schermata } from './ui/Schermata'
 import { F, FUOCO, usePalette, velo } from './ui/tema'
 import { colpetto, Tocco } from './ui/Tocco'
+import { apriPagamento } from '@/lib/pagamentoEsterno'
 
 // Il personal training del laboratorio (15/10/2026): la seconda faccia di
 // «Prenotazioni». Funziona come PerfectGym lo fa funzionare (vedi
@@ -263,8 +264,7 @@ function FoglioCompra({
   }
 
   async function vai(url: string) {
-    if (Platform.OS === 'web') window.location.assign(url)
-    else await Linking.openURL(url)
+    await apriPagamento(url)
   }
 
   async function paga(conCarta: boolean) {
@@ -838,11 +838,8 @@ export function Personal() {
       setAttesa(false)
       return setDaPagare({ prodotto, url: r.url, acquisto_id: r.acquisto_id, carta: r.carta })
     }
-    if (Platform.OS === 'web') window.location.assign(r.url)
-    else {
-      setAttesa(false)
-      await Linking.openURL(r.url)
-    }
+    setAttesa(false)
+    await apriPagamento(r.url)
   }
 
   /** Alla pagina di pagamento; si torna qui con ?acquisto=<id>. */
@@ -856,8 +853,7 @@ export function Personal() {
       if (!r.ok) return setErroreAzione(r.errore)
       url = r.url
     }
-    if (Platform.OS === 'web') window.location.assign(url)
-    else await Linking.openURL(url)
+    await apriPagamento(url)
   }
 
   async function pagaConCarta(acquistoId: string) {

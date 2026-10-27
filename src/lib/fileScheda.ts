@@ -1,4 +1,5 @@
 import * as DocumentPicker from 'expo-document-picker'
+import * as ImagePicker from 'expo-image-picker'
 import { Platform } from 'react-native'
 import { t } from './lingua'
 
@@ -49,6 +50,27 @@ export async function scegliFile(): Promise<FileGrezzo[]> {
 }
 
 /**
+ * Nell'app: la fotocamera vera (frontale per il Profilo, posteriore per il resto) e, con `null`, la libreria foto. Prima
+ * era il selettore dei file e su iPhone si apriva l'app Documenti, anche premendo «Scatta una foto» (visto in TestFlight
+ * il 27/10/2026). Se la persona nega il permesso la finestra non si apre e si torna indietro, senza errore.
+ */
+async function scattaFotoNativa(fotocamera: 'environment' | 'user' | null): Promise<FileGrezzo | null> {
+  try {
+    const permesso = fotocamera ? await ImagePicker.requestCameraPermissionsAsync() : await ImagePicker.requestMediaLibraryPermissionsAsync()
+    if (!permesso.granted) return null
+    const opzioni: ImagePicker.ImagePickerOptions = { mediaTypes: ['images'], quality: 0.85, exif: false, allowsEditing: false }
+    const r = fotocamera
+      ? await ImagePicker.launchCameraAsync({ ...opzioni, cameraType: fotocamera === 'user' ? ImagePicker.CameraType.front : ImagePicker.CameraType.back })
+      : await ImagePicker.launchImageLibraryAsync({ ...opzioni, allowsMultipleSelection: false })
+    const a = r.canceled ? null : r.assets?.[0]
+    if (!a) return null
+    return { uri: a.uri, name: a.fileName || `foto-${Date.now()}.jpg`, mimeType: a.mimeType || 'image/jpeg' }
+  } catch {
+    return null
+  }
+}
+
+/**
  * La fotocamera. Sul web apre quella posteriore del telefono (`capture`), e sul computer, dove `capture` non
  * conta, la scelta di una foto. Nell'app nativa per ora e' il selettore delle foto (serve `expo-image-picker`
  * per la fotocamera diretta, e quindi una nuova build).
@@ -57,11 +79,7 @@ export async function scegliFile(): Promise<FileGrezzo[]> {
  * fotocamera e lascia scegliere fra le foto del telefono. Di partenza e' la posteriore, come per le schede.
  */
 export function scattaFoto(fotocamera: 'environment' | 'user' | null = 'environment'): Promise<FileGrezzo | null> {
-  if (Platform.OS !== 'web' || typeof document === 'undefined') {
-    return DocumentPicker.getDocumentAsync({ type: ['image/*'], copyToCacheDirectory: true, multiple: false, base64: false }).then((r) =>
-      r.canceled || !r.assets?.[0] ? null : comeFile(r.assets[0])
-    )
-  }
+  if (Platform.OS !== 'web' || typeof document === 'undefined') return scattaFotoNativa(fotocamera)
   return new Promise((risolvi) => {
     const campo = document.createElement('input')
     campo.type = 'file'

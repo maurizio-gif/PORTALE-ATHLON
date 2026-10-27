@@ -322,9 +322,12 @@ export function AreaRiservata({ email }: { email: string }) {
       return
     }
     const sv = scorrimento.current as unknown as ScrollView | null
-    const contenuto = sv?.getInnerViewNode?.()
+    // `getInnerViewNode` non esiste piu' nelle versioni recenti di React Native (c'e' `getInnerViewRef`): senza questo
+    // fallback il pulsante non scorreva alla sezione sul telefono, in silenzio (visto in TestFlight il 27/10/2026).
+    const dentro = sv as unknown as { getInnerViewRef?: () => unknown; getInnerViewNode?: () => unknown } | null
+    const contenuto = dentro?.getInnerViewRef?.() ?? dentro?.getInnerViewNode?.()
     if (!sv || !contenuto) return
-    vista.measureLayout(contenuto, (_x, y) => sv.scrollTo({ y: Math.max(0, y - margine), animated: true }), () => undefined)
+    vista.measureLayout(contenuto as never, (_x, y) => sv.scrollTo({ y: Math.max(0, y - margine), animated: true }), () => undefined)
   }
 
   /** Sceglie la sezione (cambia il parametro). Da «Da fare» porta anche in vista i riquadri. */

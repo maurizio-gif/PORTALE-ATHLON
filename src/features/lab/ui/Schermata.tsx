@@ -34,7 +34,7 @@ export function Marchio({ piccolo = false }: { piccolo?: boolean }) {
   return (
     <View style={stili.marchio} accessibilityLabel="Athlon Club" accessibilityRole="image">
       <Image source={PITTOGRAMMA} style={piccolo ? stili.pittogrammaPiccolo : stili.pittogramma} contentFit="contain" />
-      {piccolo ? null : <Text style={[stili.nomeClub, { color: p.testo }]}>Athlon Club</Text>}
+      {piccolo ? null : <Text numberOfLines={1} style={[stili.nomeClub, { color: p.testo }]}>Athlon Club</Text>}
     </View>
   )
 }
@@ -116,6 +116,7 @@ export function Schermata({
         onScroll={onScroll}
         scrollEventThrottle={16}
         keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
         contentContainerStyle={{ paddingBottom: barra ? ingombroBarra(ins.bottom) + spazio.tre : spazio.cinque + ins.bottom, paddingTop: sopra ? 0 : ins.top + spazio.tre }}
       >
         {sopra}
@@ -178,7 +179,7 @@ const stili = StyleSheet.create({
   marchio: { flexDirection: 'row', alignItems: 'center', gap: spazio.due },
   pittogramma: { width: 30, height: 24 },
   pittogrammaPiccolo: { width: 24, height: 19 },
-  nomeClub: { fontFamily: F.extra, fontSize: 16, letterSpacing: -0.3 },
+  nomeClub: { fontFamily: F.extra, fontSize: 16, letterSpacing: -0.3, paddingRight: 4 },
   marchioTestata: { position: 'absolute', left: spazio.tre + 2, height: 52, justifyContent: 'center' },
   tondo: { width: 44, height: 44, borderRadius: 16, alignItems: 'center', justifyContent: 'center', borderWidth: StyleSheet.hairlineWidth },
   titoli: { gap: 6, paddingHorizontal: 2 },

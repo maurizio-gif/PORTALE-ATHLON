@@ -26,6 +26,7 @@ import { Schermata } from '../ui/Schermata'
 import { F, FUOCO, MARE, NOTTE, ORTO, usePalette } from '../ui/tema'
 import { Tocco } from '../ui/Tocco'
 import { ricordaAbitudine } from './abitudineMemoria'
+import { Richiamo } from '../profilo/Richiamo'
 import { CHIAVE_ELENCO_PIANI, etichettaPiano, giorniAlTest, giornoTest, LIVELLI, quando, testDaRifare } from './comune'
 import { eDiVasca, ETICHETTA_VASCA } from './nuoto'
 
@@ -123,6 +124,8 @@ function CartaTest({ test, riempi = false }: { test: StatoTest; riempi?: boolean
   return (
     <Tocco onPress={() => router.push('/allenamento/test')} etichetta={titolo} scala={0.985} style={riempi ? { flex: 1 } : undefined}>
       <LinearGradient colors={rifare ? FUOCO : MARE} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[stili.test, riempi && { flex: 1 }]}>
+        {/* Finche' il test dei massimali non e' mai stato fatto, un anello pulsa per invitare a farlo (si ferma da solo, quando c'e'). */}
+        {!test.ultimo ? <Richiamo raggio={26} colore="#fff" ingrandimento={1.05} finoAlFatto /> : null}
         <View style={stili.testIcona}>
           <Icona nome={rifare ? 'aggiorna' : fatto ? 'ok' : 'grafico'} size={26} colore="#fff" />
         </View>

@@ -124,6 +124,8 @@ export function CambioAbbonamento({ emailAccesso }: { emailAccesso?: string | nu
             value={extra}
             onChangeText={setExtra}
             multiline
+            submitBehavior="blurAndSubmit"
+            returnKeyType="done"
             numberOfLines={3}
             maxLength={4000}
             style={{ minHeight: 72, textAlignVertical: 'top' }}

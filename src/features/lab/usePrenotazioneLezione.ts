@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { Linking, Platform } from 'react-native'
 
 import { acquistaLezione, disdiciLezione, pagaLezioneConCarta, prenotaLezione, type DaPagare } from '@/api/lab'
+import { apriPagamento } from '@/lib/pagamentoEsterno'
 
 // Prenotare, disdire e pagare una lezione di gruppo: i quattro gesti che il Calendario faceva da solo e che
 // adesso fa anche il Percorso Athlon dalle sue tappe (20/10/2026). Sono qui, in un posto solo, perche' due copie
@@ -48,8 +49,7 @@ export function usePrenotazioneLezione(memberId: number | null | undefined, dopo
       if (!r.ok) return r.errore
       url = r.url
     }
-    if (Platform.OS === 'web') window.location.assign(url)
-    else await Linking.openURL(url)
+    await apriPagamento(url)
     return null
   }
 

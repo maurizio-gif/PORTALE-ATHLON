@@ -1,3 +1,5 @@
+import * as Print from 'expo-print'
+import * as Sharing from 'expo-sharing'
 import { Platform, Share } from 'react-native'
 
 import type { SchedaLab } from '@/api/lab'
@@ -17,7 +19,7 @@ const web = () => Platform.OS === 'web' && typeof document !== 'undefined'
 /** Sul web apre la stampa del piano; altrove il foglio di condivisione. */
 export async function stampaPiano(s: SchedaLab): Promise<EsitoEsporta> {
   try {
-    if (!web()) return await condividiPiano(s)
+    if (!web()) return await pdfNativo(s)
     const telaio = document.createElement('iframe')
     telaio.setAttribute('aria-hidden', 'true')
     telaio.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0;visibility:hidden'
@@ -47,6 +49,18 @@ export async function stampaPiano(s: SchedaLab): Promise<EsitoEsporta> {
     return 'stampa'
   } catch {
     return 'errore'
+  }
+}
+
+/** Nell'app: il PDF vero (expo-print), poi il foglio di condivisione del telefono (Salva nei File, AirDrop, stampa...). Se qualcosa non va, il testo. */
+async function pdfNativo(s: SchedaLab): Promise<EsitoEsporta> {
+  try {
+    const { uri } = await Print.printToFileAsync({ html: htmlPianoVasca(s) })
+    if (!(await Sharing.isAvailableAsync())) return await condividiPiano(s)
+    await Sharing.shareAsync(uri, { mimeType: 'application/pdf', UTI: 'com.adobe.pdf', dialogTitle: s.titolo })
+    return 'condiviso'
+  } catch {
+    return await condividiPiano(s)
   }
 }
 
