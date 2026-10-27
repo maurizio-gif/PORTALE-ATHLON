@@ -10,6 +10,7 @@ import { F, FUOCO, usePalette } from '../ui/tema'
 import { vistaCorrente } from '../vista'
 import { invitoPush, leggiRimandoPush, rimandaFinoA, salvaRimandoPush } from '../notifiche/invitoPush'
 import { useAppenaAttivate, usePush } from '../notifiche/push'
+import { eNativo } from '../notifiche/pushNativo'
 import { useNotifiche } from '../notifiche/store'
 
 // L'invito ad attivare le notifiche, in Home (25/10/2026, richiesta di Maurizio: «promuovi di piu l'attivazione delle push»).
@@ -70,7 +71,9 @@ function CartaPushViva() {
             </Text>
             <Text style={[stili.testo, { color: p.testoSecondario }]}>
               {sbloccare
-                ? t('Così ti perdi le novità del club. Per riceverle consenti le notifiche a questo sito dalle impostazioni del browser, poi torna qui.', 'That way you miss the club’s news. To get them, allow notifications for this site in your browser settings, then come back here.')
+                ? eNativo
+                  ? t('Così ti perdi le novità del club. Per riceverle apri le Impostazioni del telefono, scegli Athlon Club e consenti le notifiche.', 'That way you miss the club’s news. To get them, open your phone’s Settings, choose Athlon Club and allow notifications.')
+                  : t('Così ti perdi le novità del club. Per riceverle consenti le notifiche a questo sito dalle impostazioni del browser, poi torna qui.', 'That way you miss the club’s news. To get them, allow notifications for this site in your browser settings, then come back here.')
                 : t('Attiva le notifiche: ti avvisiamo subito di novità, eventi e comunicazioni del club, anche con l’app chiusa. Basta un tocco.', 'Turn on notifications: we’ll alert you right away about club news, events and updates, even with the app closed. It takes one tap.')}
             </Text>
           </View>

@@ -1,7 +1,7 @@
 import { useCallback, useState } from 'react'
 
 import type { EsitoCarica } from '@/api/certificati'
-import { preparaFile, scegliDocumento, type FileScelto } from '@/lib/fileCertificato'
+import { preparaFile, scegliDa, type FileScelto, type FonteCertificato } from '@/lib/fileCertificato'
 import { t } from '@/lib/lingua'
 
 // Lo stato di chi carica un certificato: il file scelto, l'attesa, l'errore, l'esito. Lo usano
@@ -16,11 +16,11 @@ export function useCarica(invia: (f: FileScelto) => Promise<EsitoCarica>) {
   const [fatto, setFatto] = useState(false)
 
   /** Apre la scelta del file. Non c'e' un'attesa: chi chiude la finestra senza scegliere non lascia traccia. */
-  const scegli = useCallback(async () => {
+  const scegli = useCallback(async (fonte: FonteCertificato = 'documenti') => {
     setErrore(null)
     let asset
     try {
-      asset = await scegliDocumento()
+      asset = await scegliDa(fonte)
     } catch {
       setErrore(t('Non riusciamo ad aprire la scelta del file. Riprova.', 'We can’t open the file picker. Try again.'))
       return

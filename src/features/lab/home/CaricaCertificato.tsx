@@ -116,15 +116,14 @@ export function FoglioCertificato({
           <IstruzioniCertificato />
 
           {c.file ? (
-            <FileInviato file={c.file} onCambia={c.scegli} />
+            <FileInviato file={c.file} onCambia={c.ricomincia} />
           ) : (
-            <Pulsante
-              testo={c.inLettura ? t('Preparo il file…', 'Preparing the file…') : t(`Scegli la foto o il PDF`, `Choose the photo or PDF`)}
-              variante="contorno"
-              icona="condividi"
-              inCorso={c.inLettura}
-              onPress={c.scegli}
-            />
+            <View style={{ gap: spazio.due }}>
+              {/* Le stesse tre strade dei piani di allenamento: fotocamera, galleria, documenti. */}
+              <Pulsante testo={c.inLettura ? t('Preparo il file…', 'Preparing the file…') : t('Scatta una foto', 'Take a photo')} icona="fotocamera" inCorso={c.inLettura} onPress={() => c.scegli('fotocamera')} />
+              <Pulsante testo={t('Scegli dalla galleria', 'Choose from your photos')} variante="contorno" icona="galleria" disabilitato={c.inLettura} onPress={() => c.scegli('galleria')} />
+              <Pulsante testo={t('Scegli un documento (PDF)', 'Choose a document (PDF)')} variante="contorno" icona="documento" disabilitato={c.inLettura} onPress={() => c.scegli('documenti')} />
+            </View>
           )}
           <Text style={[stili.nota, { color: p.testoTerzo }]}>
             {FORMATI_CERTIFICATO}
