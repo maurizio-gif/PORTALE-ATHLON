@@ -25,6 +25,7 @@ import { CartaShop } from './home/CartaShop'
 import { DaFare } from './home/DaFare'
 import { MessaggioBenvenuto } from './home/MessaggioBenvenuto'
 import { Campanello } from './notifiche/Campanello'
+import { SelettoreBandiere } from './ui/SelettoreBandiere'
 import { Riquadri, type VoceRiquadro } from './home/Riquadri'
 import { SezioneCertificato } from './home/SezioneCertificato'
 import { SezioneFamiglia } from './home/SezioneFamiglia'
@@ -90,7 +91,7 @@ function Benvenuto({
   // Su un telefono molto stretto (sotto i 350 pt: misurato a 340 col nome di giorno piu' lungo, «MERCOLEDÌ 30 SETTEMBRE») la data non ha piu'
   // posto accanto a campanello e Profilo, e a pezzi non dice niente: si toglie.
   const { width: larghezza } = useWindowDimensions()
-  const conData = larghezza >= 350
+  const conData = larghezza >= 375
   // Il campanello e' piu' grande (40 punti, 25/10/2026): sotto i 400 la pillola «Profilo» tiene solo l'icona e la freccia, o la data si
   // spezzava a meta' parola nei giorni dal nome lungo («MERCOLEDÌ 30 SETTEMBRE»). Il comando resta: tutta la testata porta al Profilo.
   const profiloCompatto = larghezza < 400
@@ -118,6 +119,8 @@ function Benvenuto({
         {/* A destra campanello e Profilo non si restringono mai: e' la data a cedere (va a capo) su un telefono stretto. */}
         <View style={[stili.data, { gap: 8, flexShrink: 0 }]}>
           {/* Il campanello delle notifiche del club (features/lab/notifiche): non si vede finche' la funzione non risponde. */}
+          {/* La lingua: due bandiere, una sola scelta (cambiarla riavvia l'app nella lingua nuova). */}
+          <SelettoreBandiere />
           <Campanello />
           <View style={stili.profilo}>
             <Icona nome="persona" size={14} colore="#fff" />
