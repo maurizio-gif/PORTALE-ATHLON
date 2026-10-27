@@ -281,6 +281,8 @@ export function PassiSala({ dove, onDove, saltaDove, onVasca }: { dove: 'sala' |
       placeholder={segnaposto}
       placeholderTextColor={p.testoTerzo}
       multiline
+      submitBehavior="blurAndSubmit"
+      returnKeyType="done"
       style={[stili.testo, { color: p.testo, backgroundColor: p.carta, borderColor: p.linea }]}
     />
   )
@@ -445,7 +447,7 @@ export function PassiSala({ dove, onDove, saltaDove, onVasca }: { dove: 'sala' |
   const ultimo = passo === 'riepilogo'
   return (
     <View style={[stili.fondo, { backgroundColor: p.fondo }]}>
-      <ScrollView ref={scorri} keyboardShouldPersistTaps="handled" contentContainerStyle={{ alignItems: 'center', paddingTop: ins.top + spazio.tre, paddingBottom: 130 + ins.bottom }}>
+      <ScrollView ref={scorri} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" contentContainerStyle={{ alignItems: 'center', paddingTop: ins.top + spazio.tre, paddingBottom: 130 + ins.bottom }}>
         <View style={{ width: colonna, paddingHorizontal: spazio.tre + 2, gap: spazio.tre + 2 }}>
           <View style={stili.testata}>
             <Tocco onPress={indietro} etichetta={t('Indietro', 'Back')} style={[stili.tondo, { backgroundColor: p.carta, borderColor: p.linea, boxShadow: p.ombra }]}>

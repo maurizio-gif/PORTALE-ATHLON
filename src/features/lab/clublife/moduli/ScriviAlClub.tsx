@@ -81,6 +81,8 @@ export function ScriviAlClub({ emailAccesso, argomentoIniziale = '' }: { emailAc
             value={messaggio}
             onChangeText={setMessaggio}
             multiline
+            submitBehavior="blurAndSubmit"
+            returnKeyType="done"
             numberOfLines={6}
             maxLength={4000}
             style={{ minHeight: 140, textAlignVertical: 'top' }}

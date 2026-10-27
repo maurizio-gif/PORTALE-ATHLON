@@ -195,6 +195,8 @@ function Campo({
         placeholderTextColor={p.testoTerzo}
         accessibilityLabel={etichetta}
         multiline={multiline}
+        submitBehavior={multiline ? "blurAndSubmit" : undefined}
+        returnKeyType={multiline ? "done" : undefined}
         keyboardType={numerico ? 'number-pad' : undefined}
         style={[stili.input, { color: p.testo, backgroundColor: fondo ?? p.incavo, borderColor: fuoco ? p.accento : 'transparent' }, multiline && stili.inputLungo]}
       />

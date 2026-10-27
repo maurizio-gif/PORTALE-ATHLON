@@ -213,6 +213,8 @@ export function Appuntamento({ calendario, emailAccesso, oggettoIniziale = '' }:
             value={oggetto}
             onChangeText={setOggetto}
             multiline
+            submitBehavior="blurAndSubmit"
+            returnKeyType="done"
             numberOfLines={3}
             maxLength={500}
             style={{ minHeight: 72, textAlignVertical: 'top' }}

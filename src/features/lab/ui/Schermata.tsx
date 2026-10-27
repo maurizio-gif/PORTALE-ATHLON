@@ -116,6 +116,7 @@ export function Schermata({
         onScroll={onScroll}
         scrollEventThrottle={16}
         keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
         contentContainerStyle={{ paddingBottom: barra ? ingombroBarra(ins.bottom) + spazio.tre : spazio.cinque + ins.bottom, paddingTop: sopra ? 0 : ins.top + spazio.tre }}
       >
         {sopra}

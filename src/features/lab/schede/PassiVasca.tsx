@@ -255,6 +255,8 @@ export function PassiVasca({ saltaDove, onDove }: { saltaDove: boolean; onDove: 
                 placeholder={t('Vuoi aggiungere qualcosa? Per esempio: la spalla destra mi fa male quando respiro a destra. (facoltativo)', 'Want to add anything? For example: my right shoulder hurts when I breathe to the right. (optional)')}
                 placeholderTextColor={p.testoTerzo}
                 multiline
+                submitBehavior="blurAndSubmit"
+                returnKeyType="done"
                 style={[stili.testo, { color: p.testo, backgroundColor: p.carta, borderColor: p.linea }]}
               />
               <Text style={[stili.piccola, { color: p.testoSecondario }]}>
@@ -310,7 +312,7 @@ export function PassiVasca({ saltaDove, onDove }: { saltaDove: boolean; onDove: 
   const ultimo = passo === 'riepilogo'
   return (
     <View style={[stili.fondo, { backgroundColor: p.fondo }]}>
-      <ScrollView ref={scorri} keyboardShouldPersistTaps="handled" contentContainerStyle={{ alignItems: 'center', paddingTop: ins.top + spazio.tre, paddingBottom: 130 + ins.bottom }}>
+      <ScrollView ref={scorri} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" contentContainerStyle={{ alignItems: 'center', paddingTop: ins.top + spazio.tre, paddingBottom: 130 + ins.bottom }}>
         <View style={{ width: colonna, paddingHorizontal: spazio.tre + 2, gap: spazio.tre + 2 }}>
           <View style={stili.testata}>
             <Tocco onPress={indietro} etichetta={t('Indietro', 'Back')} style={[stili.tondo, { backgroundColor: p.carta, borderColor: p.linea, boxShadow: p.ombra }]}>
