@@ -9,6 +9,7 @@
     "userInterfaceStyle": "automatic",
     "ios": {
       "associatedDomains": [
+        "applinks:app.athlonroma.it",
         "applinks:app.athlonroma.it"
       ],
       "bundleIdentifier": "it.athlonroma.app",
@@ -25,6 +26,21 @@
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "intentFilters": [
+        {
+          "action": "VIEW",
+          "autoVerify": true,
+          "data": [
+            {
+              "scheme": "https",
+              "host": "app.athlonroma.it",
+              "pathPrefix": "/r/"
+            }
+          ],
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
+        },
         {
           "action": "VIEW",
           "autoVerify": true,
@@ -75,6 +91,12 @@
         "projectId": "dd484741-bae6-479f-98bc-0d7ee2bb41b2"
       }
     },
-    "owner": "ready-2-digital"
+    "owner": "ready-2-digital",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/dd484741-bae6-479f-98bc-0d7ee2bb41b2"
+    }
   }
 }
