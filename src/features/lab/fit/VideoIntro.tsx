@@ -119,7 +119,9 @@ function Player({ onErrore }: { onErrore: () => void }) {
 
   // Alta come un telefono in piedi (9:16) ma mai piu' di ALTEZZA_MAX: nella colonna stretta il video e' al centro, con il suo fondo ai lati.
   const colonna = Math.min(larghezza, 640) - 36
-  const altezza = Math.min(ALTEZZA_MAX, Math.round((colonna * 16) / 9))
+  // Sul telefono il video riempie tutta la scheda (9:16, senza fasce ai lati); il tetto vale solo sugli schermi larghi.
+  const piena = Math.round((colonna * 16) / 9)
+  const altezza = larghezza < 640 ? piena : Math.min(ALTEZZA_MAX, piena)
 
   return (
     <View
