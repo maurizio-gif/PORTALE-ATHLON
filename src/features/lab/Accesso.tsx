@@ -127,6 +127,11 @@ export function Accesso() {
   return (
     <Schermata titolo={t('Accesso', 'Sign in')} nascondiTitolo barra={false} sopra={<Testata fase={fase} />}>
       <Carta style={stili.modulo}>
+        {/* La lingua, in vista sia all'email sia al codice (lib/lingua.ts): di partenza e' l'italiano. */}
+        <View style={{ gap: 6, alignItems: 'center' }}>
+          <Text style={[stili.nota, { color: p.testoSecondario, fontSize: 12.5 }]}>{t('Lingua · Language', 'Language · Lingua')}</Text>
+          <SceltaLingua centrata />
+        </View>
         <Animated.View key={fase} entering={FadeInRight.duration(320)} style={{ gap: spazio.tre + 4 }}>
           <Passi fase={fase} />
           {fase === 'email' ? (
@@ -190,8 +195,6 @@ export function Accesso() {
           <Text style={{ fontFamily: F.bold, color: p.accento, textDecorationLine: 'underline' }}>{t('informativa privacy', 'privacy notice')}</Text>
         </Text>
       </Tocco>
-      {/* La lingua, anche prima di entrare (lib/lingua.ts). */}
-      <SceltaLingua centrata />
     </Schermata>
   )
 }
