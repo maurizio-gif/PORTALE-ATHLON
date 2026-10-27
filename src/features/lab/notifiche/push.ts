@@ -5,6 +5,7 @@ import { iscriviPush, rimuoviPush, statoPushServer } from '@/api/notifiche'
 import { t } from '@/lib/lingua'
 
 import { vistaCorrente } from '../vista'
+import { attivaNativo, eNativo, gettone, permessoNativo, spegniNativo } from './pushNativo'
 
 // Le notifiche push sul dispositivo (20/10/2026): solo sul web, dove l'app e' una PWA con il suo service worker (`public/sw.js`).
 // Sul telefono nativo non ci sono (servirebbe `expo-notifications` e una build nuova): il centro notifiche e la finestra
@@ -35,6 +36,7 @@ function eWeb(): boolean {
 }
 
 function supportato(): boolean {
+  if (eNativo) return true
   return eWeb() && 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window
 }
 
@@ -73,6 +75,10 @@ export async function scollegaDispositivo(): Promise<void> {
   if (!supportato() || vistaCorrente()) return
   try {
     const lavoro = (async () => {
+      if (eNativo) {
+        await spegniNativo()
+        return
+      }
       const reg = await navigator.serviceWorker.getRegistration()
       const sub = await reg?.pushManager.getSubscription()
       if (!sub) return
@@ -103,6 +109,20 @@ export function usePush() {
 
   const leggi = useCallback(async () => {
     if (!supportato()) return setStato('non_supportato')
+    if (eNativo) {
+      // L'app nativa: il gettone di Expo, non un indirizzo di browser. Il server dice se sa mandarle (`nativo`).
+      try {
+        const permesso = await permessoNativo()
+        const g = permesso === 'concesso' ? await gettone() : null
+        const server = await statoPushServer(undefined, g ?? undefined)
+        if (!server.ok || !server.nativo) return setStato('non_disponibile')
+        setDispositivi(server.dispositivi)
+        if (permesso === 'negato') return setStato('bloccato')
+        return setStato(g && server.questo ? 'attivo' : 'spento')
+      } catch {
+        return setStato('non_disponibile')
+      }
+    }
     // Su iPhone le push esistono solo per l'app aggiunta alla schermata Home.
     if (eIos() && !installata()) return setStato('serve_app_installata')
     try {
@@ -130,6 +150,22 @@ export function usePush() {
   const attiva = useCallback(async () => {
     setErrore(null)
     setOccupato(true)
+    if (eNativo) {
+      try {
+        const r = await attivaNativo()
+        if (r.ok) {
+          setStato('attivo')
+          void leggi()
+          avvisaLeAltre(leggi)
+        } else if (r.negato) setStato('bloccato')
+        else if (r.errore === null) setErrore(t('Non hai consentito le notifiche: puoi riprovare quando vuoi.', 'You didn’t allow notifications: you can try again whenever you like.'))
+        else if (r.errore === 'gettone') setErrore(t('Questo dispositivo non ha potuto preparare le notifiche. Riprova fra poco.', 'This device couldn’t set up notifications. Try again shortly.'))
+        else setErrore(r.errore)
+      } finally {
+        setOccupato(false)
+      }
+      return
+    }
     try {
       // Il permesso va chiesto dentro il tocco: i browser non lo mostrano altrimenti.
       const permesso = await Notification.requestPermission()
@@ -169,6 +205,13 @@ export function usePush() {
     setErrore(null)
     setOccupato(true)
     try {
+      if (eNativo) {
+        await spegniNativo()
+        setStato('spento')
+        void leggi()
+        avvisaLeAltre(leggi)
+        return
+      }
       const reg = await navigator.serviceWorker.getRegistration()
       const sub = await reg?.pushManager.getSubscription()
       if (sub) {

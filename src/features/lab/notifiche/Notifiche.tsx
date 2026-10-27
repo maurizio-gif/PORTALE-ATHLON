@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { AppState, Platform } from 'react-native'
 
 import { FinestraNotifica } from './FinestraNotifica'
+import { ascoltaNotificheNative } from './pushNativo'
 import { notificheSpente, rileggi, useNotifiche } from './store'
 
 // Il giro delle notifiche del club, montato una volta sola nel layout del portale (20/10/2026), solo per chi e' entrato e non in
@@ -33,6 +34,9 @@ export function Notifiche() {
     const t = setTimeout(() => setDopoAvvio(true), Math.max(0, ATTESA_AVVIO_MS - (Date.now() - T0)))
     return () => clearTimeout(t)
   }, [dopoAvvio])
+
+  // Nell'app nativa: cosa fanno le push in primo piano e dove porta un tocco (build 5). Sul web non fa niente.
+  useEffect(() => ascoltaNotificheNative(), [])
 
   useEffect(() => {
     const giro = () => {

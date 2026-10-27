@@ -154,10 +154,12 @@ export type StatoPushServer = {
   questo: boolean
   /** Quanti dispositivi ha il nucleo. */
   dispositivi: number
+  /** L'app nativa puo' ricevere le push (build 5): lo dice il server, che le sa mandare. Una funzione di prima non lo dice. */
+  nativo: boolean
 }
 
-export async function statoPushServer(endpoint?: string): Promise<({ ok: true } & StatoPushServer) | Errore> {
-  const r = await funzione('portale-lab-notifiche', { azione: 'push_stato', ...(endpoint ? { endpoint } : {}) })
+export async function statoPushServer(endpoint?: string, expo?: string): Promise<({ ok: true } & StatoPushServer) | Errore> {
+  const r = await funzione('portale-lab-notifiche', { azione: 'push_stato', ...(endpoint ? { endpoint } : {}), ...(expo ? { expo } : {}) })
   if (!r.ok) return { ok: false, stato: r.stato, errore: String(r.dati.errore ?? t('Non riusciamo a leggere lo stato delle notifiche.', 'We can’t load the notification status.')) }
   return {
     ok: true,
@@ -165,6 +167,7 @@ export async function statoPushServer(endpoint?: string): Promise<({ ok: true } 
     chiave: typeof r.dati.chiave === 'string' ? r.dati.chiave : null,
     questo: r.dati.questo === true,
     dispositivi: Math.max(0, Number(r.dati.dispositivi) || 0),
+    nativo: r.dati.nativo === true,
   }
 }
 
@@ -178,4 +181,24 @@ export async function iscriviPush(s: SottoscrizionePush): Promise<{ ok: true } |
 export async function rimuoviPush(endpoint: string): Promise<boolean> {
   const r = await funzione('portale-lab-notifiche', { azione: 'push_rimuovi', endpoint })
   return r.ok
+}
+
+/** Nell'app nativa il dispositivo e' un gettone di Expo (`ExponentPushToken[...]`), non un indirizzo di browser. */
+export async function iscriviPushNativo(expo: string, piattaforma: string): Promise<{ ok: true } | { ok: false; errore: string }> {
+  const r = await funzione('portale-lab-notifiche', { azione: 'push_iscrivi', expo, piattaforma })
+  return r.ok ? { ok: true } : { ok: false, errore: String(r.dati.errore ?? t('Non siamo riusciti ad attivare le notifiche. Riprova.', 'We couldn’t turn on notifications. Try again.')) }
+}
+
+export async function rimuoviPushNativo(expo: string): Promise<boolean> {
+  const r = await funzione('portale-lab-notifiche', { azione: 'push_rimuovi', expo })
+  return r.ok
+}
+
+/** Nessuna sessione: il gettone (l'id della notifica, nella push) e' il permesso, come per il service worker del web. Non solleva mai. */
+export async function segnaGettone(ids: string[], evento: 'ricevuta' | 'aperta'): Promise<void> {
+  try {
+    await funzione('portale-lab-notifiche', { azione: 'gettone', ids: ids.slice(0, 10), evento })
+  } catch {
+    // Il tracciamento non deve mai far fallire un tocco.
+  }
 }

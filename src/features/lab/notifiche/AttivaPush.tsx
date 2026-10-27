@@ -7,6 +7,7 @@ import { Icona } from '../ui/Icona'
 import { Carta, Messaggio, Pulsante } from '../ui/kit'
 import { F, usePalette } from '../ui/tema'
 import { usePush } from './push'
+import { eNativo } from './pushNativo'
 
 // «Attiva le notifiche» (20/10/2026), in cima al centro notifiche: attiva o spegne la push di questo dispositivo.
 // Dal 22/10/2026 (richiesta di Maurizio) l'invito **consiglia** di attivarle, quasi come un requisito: e' il modo per restare
@@ -33,7 +34,9 @@ export function AttivaPush() {
   if (stato === 'bloccato') {
     return (
       <Messaggio tono="attenzione" icona="info" titolo={t('Le notifiche sono bloccate: ti stai perdendo le novità', 'Notifications are blocked: you’re missing out on news')}>
-        {t('Ti consigliamo di riattivarle: consenti le notifiche a questo sito dalle impostazioni del browser e torna qui. Così ricevi subito novità, iniziative e comunicazioni del club.', 'We recommend turning them back on: allow notifications for this site in your browser settings and come back here. That way you get club news, initiatives and updates right away.')}
+        {eNativo
+          ? t('Ti consigliamo di riattivarle: apri le Impostazioni del telefono, scegli Athlon Club, poi Notifiche e consentile. Così ricevi subito novità, iniziative e comunicazioni del club.', 'We recommend turning them back on: open your phone’s Settings, choose Athlon Club, then Notifications and allow them. That way you get club news, initiatives and updates right away.')
+          : t('Ti consigliamo di riattivarle: consenti le notifiche a questo sito dalle impostazioni del browser e torna qui. Così ricevi subito novità, iniziative e comunicazioni del club.', 'We recommend turning them back on: allow notifications for this site in your browser settings and come back here. That way you get club news, initiatives and updates right away.')}
       </Messaggio>
     )
   }

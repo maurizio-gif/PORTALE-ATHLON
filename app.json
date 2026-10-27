@@ -79,6 +79,12 @@
         }
       ],
       "expo-sqlite",
+      [
+        "expo-notifications",
+        {
+          "color": "#FF5701"
+        }
+      ],
       "expo-video",
       [
         "expo-image-picker",
