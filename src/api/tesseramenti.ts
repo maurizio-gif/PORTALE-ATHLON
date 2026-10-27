@@ -1,3 +1,4 @@
+import { File, Paths } from 'expo-file-system'
 import { Platform } from 'react-native'
 
 import { CRM_URL } from '@/config'
@@ -45,9 +46,6 @@ export type EsitoTessera = { ok: true; url: string; nome: string } | { ok: false
  */
 export async function scaricaTessera(tessera: Tessera): Promise<EsitoTessera> {
   const nome = `tessera-asi-${tessera.numero.replace(/[^\w-]/g, '')}.pdf`
-  if (Platform.OS !== 'web') {
-    return { ok: false, errore: t('Il download della tessera dall’app installata arriva con la versione definitiva: per ora aprila da app.athlonroma.it.', 'Downloading the card from the installed app comes with the final version: for now, open it from app.athlonroma.it.') }
-  }
   const { data } = await supabase.auth.getSession()
   const token = data.session?.access_token
   if (!token) return { ok: false, errore: t('Sessione scaduta: entra di nuovo.', 'Session expired: sign in again.') }
@@ -61,6 +59,13 @@ export async function scaricaTessera(tessera: Tessera): Promise<EsitoTessera> {
     if (!r.ok) {
       const d = (await r.json().catch(() => null)) as { errore?: string } | null
       return { ok: false, errore: d?.errore ?? t('Non riusciamo a scaricare la tessera adesso. Riprova fra qualche minuto.', 'We can’t download the card right now. Try again in a few minutes.') }
+    }
+    if (Platform.OS !== 'web') {
+      // Nell'app il PDF diventa un file nella cache del telefono: da li' si apre e si condivide (apriPdf.tsx).
+      const file = new File(Paths.cache, nome)
+      file.create({ overwrite: true })
+      file.write(new Uint8Array(await r.arrayBuffer()))
+      return { ok: true, url: file.uri, nome }
     }
     const blob = await r.blob()
     return { ok: true, url: URL.createObjectURL(blob), nome }
