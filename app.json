@@ -10,7 +10,12 @@
     "ios": {
       "associatedDomains": [
         "applinks:app.athlonroma.it"
-      ]
+      ],
+      "bundleIdentifier": "it.athlonroma.app",
+      "buildNumber": "1",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -35,7 +40,9 @@
             "DEFAULT"
           ]
         }
-      ]
+      ],
+      "package": "it.athlonroma.app",
+      "versionCode": 1
     },
     "web": {
       "output": "single",
