@@ -2,7 +2,7 @@
   "expo": {
     "name": "Athlon Club",
     "slug": "portale-athlon-club",
-    "version": "0.1.0",
+    "version": "3.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "athlon",
@@ -12,7 +12,7 @@
         "applinks:app.athlonroma.it",
         "applinks:app.athlonroma.it"
       ],
-      "bundleIdentifier": "it.athlonroma.app",
+      "bundleIdentifier": "com.netpulse.centrosportivoathlon",
       "buildNumber": "1",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
