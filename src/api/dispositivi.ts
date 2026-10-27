@@ -28,7 +28,7 @@ export type Collegamento = {
 export type ScalaRecupero = 'oura_prontezza' | 'polar_recharge'
 
 /** Da dove viene il riassunto di un giorno: un fornitore, o «manuale» (il sonno che il socio scrive, 20/10/2026). */
-export type FonteGiorno = IdFornitore | 'manuale'
+export type FonteGiorno = IdFornitore | 'manuale' | 'apple_salute'
 
 export type GiornoDispositivo = {
   fornitore: FonteGiorno
@@ -53,7 +53,7 @@ export type GiornoDispositivo = {
 
 export type AllenamentoDispositivo = {
   id: string
-  fornitore: IdFornitore
+  fornitore: IdFornitore | 'apple_salute'
   inizio: string
   durata_minuti: number
   /** Lo sport come lo scrive il fornitore, in minuscolo («running»). */
@@ -143,4 +143,21 @@ export async function salvaSonno(data: string, ore: { letto: string; sveglia: st
   const { ok, dati } = await chiama({ azione: 'sonno', data, letto: ore ? ore.letto : null, sveglia: ore ? ore.sveglia : null })
   if (ok) return { ok: true, ...dei(dati) }
   return errore(dati, t('Non siamo riusciti a salvare adesso. Riprova.', 'We couldn’t save right now. Try again.'))
+}
+
+/**
+ * Apple Salute (27/10/2026): l'iPhone legge da HealthKit passi, sonno e allenamenti e li manda qui; il server li
+ * controlla e li scrive. Non c'e' un collegamento presso un fornitore: sono dati che spinge il telefono.
+ */
+export async function importaSalute(lettura: { giorni: { data: string; passi: number | null; sonno_minuti: number | null }[]; allenamenti: { inizio: string; fine: string; tipo: string; calorie: number | null }[] }): Promise<Esito<DatiDispositivi>> {
+  const { ok, dati } = await chiama({ azione: 'importa', giorni: lettura.giorni, allenamenti: lettura.allenamenti })
+  if (ok) return { ok: true, ...dei(dati) }
+  return errore(dati, t('Non siamo riusciti a leggere Apple Salute adesso. Riprova.', 'We couldn’t read Apple Health right now. Try again.'))
+}
+
+/** Toglie i dati di Apple Salute dal club (quelli sul telefono restano dove sono). */
+export async function scollegaSalute(): Promise<Esito<DatiDispositivi>> {
+  const { ok, dati } = await chiama({ azione: 'scollega_salute' })
+  if (ok) return { ok: true, ...dei(dati) }
+  return errore(dati, t('Non siamo riusciti a scollegare Apple Salute. Riprova.', 'We couldn’t disconnect Apple Health. Try again.'))
 }

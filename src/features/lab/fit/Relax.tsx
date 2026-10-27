@@ -312,7 +312,7 @@ function RigaAllenamento({ a, oggi, ieri, primo }: { a: AllenamentoDispositivo; 
         <Text style={[stili.nome, { color: p.testo }]}>{nomeSport(a.sport)}</Text>
         <Text style={[stili.piccola, { color: p.testoSecondario }]}>{`${quando(a.inizio, oggi, ieri)} · ${pezzi.join(' · ')}`}</Text>
       </View>
-      <Text style={[stili.piccola, { color: p.testoTerzo }]}>{a.fornitore === 'oura' ? 'Oura' : 'Polar'}</Text>
+      <Text style={[stili.piccola, { color: p.testoTerzo }]}>{a.fornitore === 'oura' ? 'Oura' : a.fornitore === 'apple_salute' ? t('Apple Salute', 'Apple Health') : 'Polar'}</Text>
     </View>
   )
 }

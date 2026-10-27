@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 
 import { datiDispositivi, statoDispositivi, type DatiDispositivi, type StatoDispositivi } from '@/api/dispositivi'
 
+import { sincronizzaSalute } from './appleSalute'
 import { inMemoria, prendi, ricorda } from '../memoria'
 import { vistaCorrente } from '../vista'
 
@@ -66,6 +67,12 @@ export function useDispositivi(): Dispositivi {
       if (d.ok) {
         if (fresco) ricorda<Dati>(CHIAVE_DATI, d)
         setDati(d)
+      }
+      // Apple Salute (solo iPhone, solo se il socio l'ha attivato): il telefono spinge i dati e la risposta li porta gia' aggiornati.
+      const a = await sincronizzaSalute()
+      if (a && vivo.current) {
+        ricorda<Dati>(CHIAVE_DATI, { ok: true, ...a })
+        setDati(a)
       }
     } else {
       setDati(null)
