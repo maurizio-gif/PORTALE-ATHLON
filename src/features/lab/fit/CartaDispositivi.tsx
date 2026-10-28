@@ -6,7 +6,7 @@ import { spazio } from '@/theme'
 
 import { appleSaluteAttivo } from '../dispositivi/appleSalute'
 import { dopo, FORNITORI } from '../dispositivi/comune'
-import { dispositiviCollegabili, relaxAperto, type Dispositivi } from '../dispositivi/useDispositivi'
+import { dispositiviCollegabili, type Dispositivi } from '../dispositivi/useDispositivi'
 import { Bollino, Carta, Etichetta, Pulsante } from '../ui/kit'
 import { F, usePalette } from '../ui/tema'
 
@@ -21,7 +21,10 @@ const apri = () => router.push('/allenamento/dispositivi')
 export function CartaDispositivi({ disp }: { disp: Dispositivi }) {
   const p = usePalette()
   const apple = Platform.OS === 'ios'
-  if (disp.vista || !relaxAperto(disp.stato) || !(apple || dispositiviCollegabili(disp.stato))) return null
+  // Sempre al suo posto (28/10/2026): si nasconde solo in vista cliente, ai minorenni e dove non c'e' niente da collegare.
+  // Se lo stato non e' ancora arrivato (o non e' arrivato) la carta c'e' lo stesso: il tocco porta alla schermata che lo rilegge.
+  const noto = disp.stato?.ok ? disp.stato : null
+  if (disp.vista || (noto && !noto.maggiorenne) || (noto && !apple && !dispositiviCollegabili(disp.stato))) return null
 
   const collegamenti = disp.dati?.collegamenti ?? (disp.stato?.ok ? disp.stato.collegamenti : [])
   const appleAttivo = apple && appleSaluteAttivo()

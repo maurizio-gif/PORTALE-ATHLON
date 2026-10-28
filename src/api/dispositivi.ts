@@ -173,7 +173,8 @@ export async function importaSalute(lettura: { giorni: GiornoDaSalute[]; allenam
   return errore(dati, t('Non siamo riusciti a leggere Apple Salute adesso. Riprova.', 'We couldn’t read Apple Health right now. Try again.'))
 }
 
-export type SportManuale = 'bici' | 'corsa' | 'camminata' | 'escursione' | 'nuoto' | 'canottaggio' | 'yoga' | 'danza' | 'sci' | 'altro'
+/** L'id di uno sport dell'elenco (`elencoSport`): minuscolo, cifre e trattino basso. La funzione ricontrolla la forma. */
+export type SportManuale = string
 export type IntensitaManuale = 'leggera' | 'media' | 'intensa'
 
 /** Un allenamento scritto a mano (28/10/2026): una pedalata all'aperto, una corsa senza orologio. Le calorie le stima l'app, la funzione le controlla. */
