@@ -205,8 +205,17 @@ export function Importa() {
                 }}
               />
               <Pulsante
-                testo={pagine.length ? t('Aggiungi altri file', 'Add more files') : t('Scegli foto o PDF', 'Choose photo or PDF')}
-                icona="ricevuta"
+                testo={t('Scegli dalla galleria', 'Choose from your photos')}
+                icona="galleria"
+                variante={pagine.length ? 'secondario' : 'scuro'}
+                onPress={async () => {
+                  const f = await scattaFoto(null)
+                  if (f) aggiungi([f])
+                }}
+              />
+              <Pulsante
+                testo={t('Scegli un documento (PDF)', 'Choose a document (PDF)')}
+                icona="documento"
                 variante={pagine.length ? 'secondario' : 'scuro'}
                 onPress={async () => aggiungi(await scegliFile())}
               />
