@@ -146,3 +146,39 @@ export function notaAppleSaluteDalWeb(ultimo: string | null): string {
     `Apple Health data is as of the last time you opened the app on your iPhone${quale}. It doesn’t refresh from here: to keep it in sync, always use the app and open it every now and then.`,
   )
 }
+
+type DatiDisp = { giorni: GiornoDispositivo[]; allenamenti: AllenamentoDispositivo[] }
+
+/** Passi e calorie di movimento dell'ultimo giorno che ne ha (da qualunque dispositivo), per la sezione Train. */
+export function ultimoMovimento(giorni: GiornoDispositivo[]): { data: string; passi: number | null; calorie: number | null } | null {
+  const con = giorni.filter((g) => g.passi !== null || g.calorie_attive !== null).sort((a, b) => b.data.localeCompare(a.data))
+  if (!con.length) return null
+  const data = con[0].data
+  const stessi = con.filter((g) => g.data === data)
+  return { data, passi: stessi.find((g) => g.passi !== null)?.passi ?? null, calorie: stessi.find((g) => g.calorie_attive !== null)?.calorie_attive ?? null }
+}
+
+export type VoceApple = { id: string; etichetta: string; valore: string | null; giorno: string | null }
+
+/** Tutto quello che arriva da Apple Salute, una voce per dato, con l'ultimo valore e il giorno; `valore` nullo = non ancora ricevuto. */
+export function riepilogoAppleSalute(d: DatiDisp | null | undefined): VoceApple[] {
+  const g = (d?.giorni ?? []).filter((x) => x.fornitore === 'apple_salute').sort((a, b) => b.data.localeCompare(a.data))
+  const w = (d?.allenamenti ?? []).filter((x) => x.fornitore === 'apple_salute').sort((a, b) => b.inizio.localeCompare(a.inizio))
+  const ultimo = (f: (x: GiornoDispositivo) => number | null, fmt: (n: number) => string): { valore: string | null; giorno: string | null } => {
+    const r = g.find((x) => f(x) !== null)
+    return r ? { valore: fmt(f(r) as number), giorno: r.data } : { valore: null, giorno: null }
+  }
+  return [
+    { id: 'passi', etichetta: t('Passi', 'Steps'), ...ultimo((x) => x.passi, (n) => n.toLocaleString(locale())) },
+    { id: 'calorie', etichetta: t('Calorie di movimento', 'Active calories'), ...ultimo((x) => x.calorie_attive, (n) => `${n.toLocaleString(locale())} kcal`) },
+    { id: 'sonno', etichetta: t('Sonno', 'Sleep'), ...ultimo((x) => x.sonno_minuti, (n) => durata(n)) },
+    { id: 'fc', etichetta: t('Battito a riposo', 'Resting heart rate'), ...ultimo((x) => x.fc_notte, (n) => `${Math.round(n)}`) },
+    { id: 'hrv', etichetta: 'HRV', ...ultimo((x) => x.hrv_ms, (n) => `${Math.round(n)} ms`) },
+    {
+      id: 'allenamenti',
+      etichetta: t('Allenamenti', 'Workouts'),
+      valore: w.length ? t(`${w.length} ricevuti`, `${w.length} received`) : null,
+      giorno: w.length ? giornoDi(w[0].inizio) : null,
+    },
+  ]
+}
