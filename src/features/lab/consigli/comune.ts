@@ -6,6 +6,7 @@ import type {
   DatiLezione,
   Disciplina,
   Esperienza,
+  Fascia,
   Gruppo,
   Intensita,
   LezioneConsiglio,
@@ -42,7 +43,11 @@ export const CHIAVE_RIPORTATE_CONSIGLI = 'consigli:riportate'
  * vivono solo nel campo di testo e arrivano all'AI, e basta. Obiettivi, esperienza e livello sono vuoti finche' il socio non li
  * sceglie. Il nuoto si chiede in due tempi: se gli piace nuotare, e poi se sa gia' lo stile libero e il dorso.
  */
-export type SceltePerConsigli = Omit<QuestionarioConsigli, 'limitazioni' | 'evitate' | 'obiettivo' | 'obiettivi' | 'esperienza' | 'livello' | 'nuoto'> & {
+export type SceltePerConsigli = Omit<QuestionarioConsigli, 'limitazioni' | 'evitate' | 'obiettivo' | 'obiettivi' | 'esperienza' | 'livello' | 'nuoto' | 'esterno'> & {
+  /** Si allena anche fuori dal club (28/10/2026): cosa, in quali giorni e in quali fasce. Vuoto = no. */
+  esterno_attivita: string[]
+  esterno_giorni: number[]
+  esterno_fasce: Fascia[]
   obiettivi: Obiettivo[]
   esperienza: Esperienza | null
   livello: Livello | null
@@ -76,7 +81,13 @@ export const SCELTE_DI_PARTENZA: SceltePerConsigli = {
   personal_esperienza: null,
   personal_interesse: null,
   bisogni: [],
+  esterno_attivita: [],
+  esterno_giorni: [],
+  esterno_fasce: [],
 }
+
+/** Gli sport che si offrono per primi come «cosa fai fuori» (ids di `allenamentiDispositivo`); gli altri si dicono nella nota delle limitazioni. */
+export const SPORT_ESTERNI = ['corsa', 'bici', 'camminata', 'escursione', 'nuoto', 'calcio', 'tennis', 'padel', 'basket', 'yoga', 'sci', 'arrampicata'] as const
 
 export const ESPERIENZA_TESTO: Record<Esperienza, { testo: string; nota: string }> = {
   mai: { testo: t('Non ho mai praticato', 'I’ve never trained'), nota: t('Non ho mai fatto attività fisica con regolarità: parto da zero.', 'I’ve never exercised regularly: I’m starting from scratch.') },
@@ -298,6 +309,11 @@ export function scelteDa(q: Partial<QuestionarioConsigli> | undefined): Partial<
   if (q.personal_esperienza !== undefined) s.personal_esperienza = q.personal_esperienza
   if (q.personal_interesse !== undefined) s.personal_interesse = q.personal_interesse
   if (Array.isArray(q.bisogni)) s.bisogni = q.bisogni
+  if (q.esterno) {
+    s.esterno_attivita = q.esterno.attivita ?? []
+    s.esterno_giorni = q.esterno.giorni ?? []
+    s.esterno_fasce = q.esterno.fasce ?? []
+  }
   return s
 }
 
@@ -328,9 +344,10 @@ export function cosaManca(s: SceltePerConsigli): string[] {
 export function questionarioDa(s: SceltePerConsigli, limitazioni: string): QuestionarioConsigli | null {
   if (cosaManca(s).length || !s.esperienza) return null
   const livello: Livello = s.esperienza === 'mai' ? 'principiante' : s.livello!
-  const { nuotare, saNuotare, ...resto } = s
+  const { nuotare, saNuotare, esterno_attivita, esterno_giorni, esterno_fasce, ...resto } = s
   return {
     ...resto,
+    esterno: esterno_attivita.length ? { attivita: esterno_attivita, giorni: esterno_giorni, fasce: esterno_fasce } : null,
     obiettivo: s.obiettivi[0],
     esperienza: s.esperienza,
     livello,

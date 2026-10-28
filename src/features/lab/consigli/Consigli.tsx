@@ -41,6 +41,7 @@ import { notaSalto, testoAbitudine, volteConsigliate } from '../schede/abitudine
 import { abitudineNota, ricordaAbitudine } from '../schede/abitudineMemoria'
 import { aggiornaProfilo, CHIAVI_CONSIGLI, consigliDaProfilo, daConsigli, leggiProfilo, momentoDaVisiteAlPosto, senzaToccate, type CampoConsigli } from '../schede/profiloComune'
 import { nomeObiettivo } from '../schede/questionario'
+import { nomeSport } from '../dispositivi/allenamentiDispositivo'
 import { Scelte, SceltePiu } from '../ui/Campi'
 import { FoglioLezione } from '../ui/FoglioLezione'
 import { Icona } from '../ui/Icona'
@@ -79,6 +80,7 @@ import {
   PERSONAL_INTERESSE_TESTO,
   questionarioDa,
   SCELTE_DI_PARTENZA,
+  SPORT_ESTERNI,
   sedutePersonalTesto,
   testoOrario,
   trovaLezione,
@@ -469,6 +471,25 @@ export function Consigli() {
         />
         <Text style={[stili.nota, { color: p.testoSecondario }]}>
           {[tr(`Ti proponiamo cose per ${volteTesto(scelte.volte_settimana)}, più o meno: poi scegli tu.`, `We’ll suggest things for about ${volteTesto(scelte.volte_settimana)}: then it’s up to you.`), testoAbitudine(abitudine), notaSalto(scelte.volte_settimana, abitudine)].filter(Boolean).join(' ')}
+        </Text>
+      </Sezione>
+
+      <Sezione titolo={tr('Ti alleni anche all’esterno?', 'Do you also train outside the club?')} destra={<Facoltativo />}>
+        <SceltePiu
+          valori={SPORT_ESTERNI.map((id) => ({ valore: id as string, testo: nomeSport(id) }))}
+          scelti={scelte.esterno_attivita}
+          onCambia={(esterno_attivita) => cambia({ esterno_attivita })}
+        />
+        {scelte.esterno_attivita.length ? (
+          <>
+            <Text style={[stili.nota, { color: p.testoSecondario }]}>{tr('In quali giorni?', 'On which days?')}</Text>
+            <SceltePiu valori={GIORNI.map((g) => ({ valore: g as number, testo: GIORNO_BREVE[g] }))} scelti={scelte.esterno_giorni} onCambia={(v) => cambia({ esterno_giorni: [...v].sort((a, b) => a - b) })} />
+            <Text style={[stili.nota, { color: p.testoSecondario }]}>{tr('E in quale momento?', 'And at what time?')}</Text>
+            <SceltePiu valori={FASCE.map((f) => ({ valore: f, testo: NOME_FASCIA[f].titolo }))} scelti={scelte.esterno_fasce} onCambia={(esterno_fasce) => cambia({ esterno_fasce })} />
+          </>
+        ) : null}
+        <Text style={[stili.nota, { color: p.testoSecondario }]}>
+          {tr('Ne teniamo conto nella settimana: non ti proponiamo lezioni intense negli stessi momenti o il giorno dopo un allenamento pesante. Altri sport, scrivili nelle note.', 'We take it into account for your week: no intense classes at the same times or the day after a hard workout. For other sports, write them in the notes.')}
         </Text>
       </Sezione>
 
