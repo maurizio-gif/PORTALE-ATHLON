@@ -42,7 +42,7 @@ function Pillola({ testo, scelta, onPress }: { testo: string; scelta: boolean; o
   )
 }
 
-export function AggiungiAllenamento({ disp }: { disp: Dispositivi }) {
+export function AggiungiAllenamento({ disp, compatto = false }: { disp: Dispositivi; compatto?: boolean }) {
   const p = usePalette()
   const corpo = useStatoCorpo()
   const oggi = oggiRoma()
@@ -90,13 +90,14 @@ export function AggiungiAllenamento({ disp }: { disp: Dispositivi }) {
 
   return (
     <>
-      <Carta style={{ gap: spazio.tre }}>
+      <Carta style={{ gap: spazio.due }}>
         <View style={stili.testa}>
-          <Bollino icona="aggiungi" tono="accento" size={46} />
+          <Bollino icona="aggiungi" tono="accento" size={compatto ? 36 : 46} />
           <View style={{ flex: 1, gap: 2 }}>
-            <Text style={[stili.titolo, { color: p.testo }]}>{t('Aggiungi un allenamento', 'Add a workout')}</Text>
-            <Text style={[stili.nota, { color: p.testoSecondario }]}>{t('Una pedalata, una corsa, una camminata… anche senza orologio: conta nel tuo punteggio e nelle calorie.', 'A ride, a run, a walk… even without a watch: it counts toward your score and calories.')}</Text>
+            <Text style={[stili.titolo, { color: p.testo }, compatto && { fontSize: 16 }]}>{t('Aggiungi un allenamento', 'Add a workout')}</Text>
+            <Text style={[stili.nota, { color: p.testoSecondario }, compatto && { fontSize: 13, lineHeight: 18 }]}>{compatto ? t('Anche senza orologio: conta nel punteggio e nelle calorie.', 'Even without a watch: it counts toward your score and calories.') : t('Una pedalata, una corsa, una camminata… anche senza orologio: conta nel tuo punteggio e nelle calorie.', 'A ride, a run, a walk… even without a watch: it counts toward your score and calories.')}</Text>
           </View>
+          {compatto ? <Pulsante testo={t('Aggiungi', 'Add')} icona="aggiungi" piccolo onPress={() => (consenso ? setAperto(true) : router.push('/allenamento/dispositivi'))} /> : null}
         </View>
         {miei.map((a) => (
           <View key={a.id} style={stili.riga}>
@@ -108,7 +109,7 @@ export function AggiungiAllenamento({ disp }: { disp: Dispositivi }) {
             </Tocco>
           </View>
         ))}
-        <Pulsante testo={t('Aggiungi', 'Add')} icona="aggiungi" onPress={() => (consenso ? setAperto(true) : router.push('/allenamento/dispositivi'))} />
+        {compatto ? null : <Pulsante testo={t('Aggiungi', 'Add')} icona="aggiungi" onPress={() => (consenso ? setAperto(true) : router.push('/allenamento/dispositivi'))} />}
         {!consenso ? <Text style={[stili.piccola, { color: p.testoSecondario }]}>{t('Prima serve il consenso ai dati dei dispositivi (il battito e le calorie sono dati sulla salute).', 'First we need your consent to device data (heart rate and calories are health data).')}</Text> : null}
       </Carta>
 

@@ -9,7 +9,7 @@ import { t } from '@/lib/lingua'
 import { useLingua } from '@/lib/lingua-react'
 import { spazio } from '@/theme'
 
-import { relaxAperto, useDispositivi } from '../dispositivi/useDispositivi'
+import { relaxAperto, useDispositivi, type Dispositivi } from '../dispositivi/useDispositivi'
 import { CartaBalance } from '../fit/Balance'
 import { CartaCorpo } from '../fit/Corpo'
 import { AggiungiAllenamento } from '../fit/AggiungiAllenamento'
@@ -344,7 +344,6 @@ export function Schede() {
             </Entra>
             <Entra indice={1}>
               <CartaDispositivi disp={disp} />
-              <AggiungiAllenamento disp={disp} />
             </Entra>
             <Entra indice={1}>
               <CartaBalance dati={fit} onAttivaFood={area === 'food' ? undefined : () => scegli('food')} />
@@ -361,7 +360,6 @@ export function Schede() {
           </Entra>
           <Entra indice={1}>
             <CartaDispositivi disp={disp} />
-              <AggiungiAllenamento disp={disp} />
           </Entra>
           <Entra indice={1}>
             <CartaBalance dati={fit} onAttivaFood={area === 'food' ? undefined : () => scegli('food')} />
@@ -387,7 +385,7 @@ export function Schede() {
           <SchedeInArrivo />
         )
       ) : (
-        <Train dati={dati} largo={largo} />
+        <Train dati={dati} largo={largo} disp={disp} />
       )}
     </Schermata>
   )
@@ -402,7 +400,7 @@ export function Schede() {
  * Sotto, **i tuoi piani**: quelli che il socio ha scelto. Qualunque sia l'origine, il piano si modifica e si conferma prima di
  * entrare fra i suoi. Poi gli ultimi allenamenti.
  */
-function Train({ dati, largo }: { dati: Dati; largo: boolean }) {
+function Train({ dati, largo, disp }: { dati: Dati; largo: boolean; disp: Dispositivi }) {
   const p = usePalette()
   const restano = Math.max(0, dati.ai.massimo - dati.ai.usate)
   const mie = dati.schede.filter((s) => s.tipo !== 'standard')
@@ -416,6 +414,10 @@ function Train({ dati, largo }: { dati: Dati; largo: boolean }) {
           <CartaCalorie riempi={largo} />
         </Entra>
       </View>
+
+      <Entra indice={2}>
+        <AggiungiAllenamento disp={disp} compatto />
+      </Entra>
 
       <Entra indice={2}>
         <CartaConsigli />
