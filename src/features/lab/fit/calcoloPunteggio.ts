@@ -1,7 +1,8 @@
 import type { VoceDiario } from '@/api/alimentazione'
-import type { GiornoDispositivo } from '@/api/dispositivi'
+import type { AllenamentoDispositivo, GiornoDispositivo } from '@/api/dispositivi'
 import type { PresenzaLezione, SedutaStorico } from '@/api/lab'
 
+import { allenamentiContati, nomeSport } from '../dispositivi/allenamentiDispositivo'
 import { giornoRoma, spostaGiorno } from '../schede/contatoreCalorie'
 import { locale, t } from '../../../lib/lingua'
 
@@ -67,7 +68,7 @@ export type SessioneBase = { giorno: string; minuti: number }
  * (una seduta di sala o una lezione), come si chiama, a che ora e', e per la sala le serie, i chili sollevati e gli esercizi.
  */
 export type Sessione = SessioneBase & {
-  fonte: 'scheda' | 'lezione'
+  fonte: 'scheda' | 'lezione' | 'dispositivo'
   nome: string
   /** La categoria della lezione su PerfectGym («Mind&Body»…), se la funzione la dice. */
   categoria: string | null
@@ -80,7 +81,7 @@ export type Sessione = SessioneBase & {
 }
 
 /** Le sedute chiuse (fra 10 minuti e 3 ore, come il contatore) e le lezioni con la presenza segnata. */
-export function sessioniDa(sedute: SedutaStorico[], presenze: PresenzaLezione[]): Sessione[] {
+export function sessioniDa(sedute: SedutaStorico[], presenze: PresenzaLezione[], dispositivi: AllenamentoDispositivo[] = []): Sessione[] {
   const r: Sessione[] = []
   for (const s of sedute) {
     if (!s.fine || s.serie <= 0) continue
@@ -102,6 +103,10 @@ export function sessioniDa(sedute: SedutaStorico[], presenze: PresenzaLezione[])
     const minuti = (new Date(l.fine).getTime() - new Date(l.inizio).getTime()) / 60000
     if (!(minuti > 0) || minuti > 240) continue
     r.push({ giorno: giornoRoma(l.inizio), minuti, fonte: 'lezione', nome: l.nome, categoria: l.categoria, inizio: l.inizio, serie: 0, volume: 0, esercizi: 0 })
+  }
+  // Gli allenamenti dei dispositivi e quelli scritti a mano (28/10/2026): contano come giorni attivi, ma non se sono gia' una seduta o una lezione.
+  for (const a of allenamentiContati(dispositivi, r.map((x) => ({ inizio: x.inizio, minuti: x.minuti })))) {
+    r.push({ giorno: giornoRoma(a.inizio), minuti: a.durata_minuti, fonte: 'dispositivo', nome: nomeSport(a.sport), categoria: null, inizio: a.inizio, serie: 0, volume: 0, esercizi: 0 })
   }
   return r
 }

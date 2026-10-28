@@ -15,6 +15,7 @@ import { Carta, Entra, Messaggio, Pulsante, SchedeInArrivo, Sezione } from '../u
 import { Schermata } from '../ui/Schermata'
 import { F, FUOCO, NOTTE, usePalette } from '../ui/tema'
 import { useStatoCorpo } from './CalorieLezione'
+import { useDispositivi } from '../dispositivi/useDispositivi'
 import { contaCalorie, vociCalorie, type Contatore, type Voce } from './contatoreCalorie'
 import { CHIAVE_STORICO } from './Storico'
 
@@ -472,14 +473,17 @@ function Ultime({ voci }: { voci: Voce[] }) {
     <Carta style={{ gap: 0, paddingVertical: spazio.due }}>
       {voci.slice(0, 8).map((v, i) => (
         <View key={`${v.quando}-${i}`} style={[stili.voce, i > 0 && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: p.linea }]}>
-          <LinearGradient colors={v.fonte === 'scheda' ? FUOCO : (['#7FB0FF', '#2F6BFF'] as const)} style={stili.voceIcona}>
-            <Icona nome={v.fonte === 'scheda' ? 'peso' : 'persone'} size={16} colore="#fff" />
+          <LinearGradient colors={v.fonte === 'scheda' || v.fonte === 'dispositivo' ? FUOCO : (['#7FB0FF', '#2F6BFF'] as const)} style={stili.voceIcona}>
+            <Icona nome={v.fonte === 'scheda' ? 'peso' : v.fonte === 'dispositivo' ? 'fiamma' : 'persone'} size={16} colore="#fff" />
           </LinearGradient>
           <View style={{ flex: 1, gap: 1 }}>
             <Text style={[stili.nota, { color: p.testo, fontFamily: F.bold }]} numberOfLines={1}>
               {v.nome}
             </Text>
-            <Text style={[stili.piccola, { color: p.testoSecondario }]}>{t(`${quando(v.giorno)} · ${v.minuti} minuti`, `${quando(v.giorno)} · ${v.minuti} minutes`)}</Text>
+            <Text style={[stili.piccola, { color: p.testoSecondario }]}>
+              {t(`${quando(v.giorno)} · ${v.minuti} minuti`, `${quando(v.giorno)} · ${v.minuti} minutes`)}
+              {v.fonte === 'dispositivo' ? ` · ${v.metodo === 'misurato' ? t('misurato', 'measured') : v.metodo === 'battito' ? t('dal battito', 'from heart rate') : t('stimato', 'estimated')}${v.origine ? ` · ${v.origine}` : ''}` : ''}
+            </Text>
           </View>
           <Text style={[stili.nota, { color: p.testo, fontFamily: F.extra }]}>{`${intero(v.kcal)} kcal`}</Text>
         </View>
@@ -521,10 +525,11 @@ export function ContatoreCalorie() {
     }
   }, [])
 
+  const dispositivi = useDispositivi().dati?.allenamenti ?? null
   const contatore = useMemo(() => {
     if (corpo.stato !== 'ok' || !sedute || !presenze) return null
-    return contaCalorie(vociCalorie(sedute, presenze.presenze, presenze.schede, corpo.corpo), corpo.corpo)
-  }, [corpo, sedute, presenze])
+    return contaCalorie(vociCalorie(sedute, presenze.presenze, presenze.schede, corpo.corpo, dispositivi ?? []), corpo.corpo)
+  }, [corpo, sedute, presenze, dispositivi])
 
   const testata = { sopratitolo: 'Train', titolo: t('Le tue calorie', 'Your calories'), indietro: '/allenamento' as const, barra: false }
 

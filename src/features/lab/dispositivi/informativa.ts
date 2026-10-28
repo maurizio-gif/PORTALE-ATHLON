@@ -11,11 +11,13 @@
 // un fornitore in piu', un tempo di conservazione diverso), cambia anche questo. Va fatto
 // rileggere dal consulente privacy del club prima di aprire la sezione a tutti.
 
+// 2026-10-28: Apple Salute fa da hub (battito a riposo, variabilita', fasi del sonno, calorie, battito degli allenamenti, nome dell'app o
+// dispositivo che li ha scritti) e gli allenamenti si possono scrivere a mano.
 // 2026-10-27: dice anche di Apple Salute (passi, sonno e allenamenti letti dall'iPhone).
 // 2026-10-20: dice anche del sonno che si scrive a mano e dell'Athlon Health Score.
 import { t, tv } from '../../../lib/lingua'
 
-export const VERSIONE_INFORMATIVA = '2026-10-27'
+export const VERSIONE_INFORMATIVA = '2026-10-28'
 
 export const CONSENSO = t(
   'Acconsento al trattamento dei miei dati relativi alla salute (il sonno che scrivo io, e sonno, recupero, battito e allenamenti del mio dispositivo) per mostrarli nell’app e calcolare il mio Athlon Health Score, come descritto nell’informativa.',
@@ -31,7 +33,7 @@ export const INFORMATIVA: { titolo: string; testo: string }[] = tv([
   {
     titolo: 'Quali dati leggiamo',
     testo:
-      'Il sonno che scrivi tu: la notte, a che ora sei andato a dormire e a che ora ti sei svegliato. Dal dispositivo, per ogni giorno: il punteggio e la durata del sonno (con le fasi profonda e REM), il punteggio di recupero del dispositivo, il battito più basso della notte e la sua variabilità, i passi e le calorie dell’attività. Per ogni allenamento: lo sport, quando è iniziato, quanto è durato, le calorie e, se il dispositivo li dà, il battito medio e massimo. Non leggiamo la tua posizione né i tuoi percorsi, né la serie dei battiti (da quella della notte prendiamo solo il valore più basso e il resto lo scartiamo), né i dati del tuo profilo presso Oura o Polar come email, età o sesso. Su iPhone puoi anche leggere da Apple Salute i tuoi passi, il sonno e gli allenamenti: sceglie Apple, nel suo foglio, cosa condividere, e noi leggiamo solo quello. Dall’iPhone non leggiamo il battito né la posizione.',
+      'Il sonno che scrivi tu: la notte, a che ora sei andato a dormire e a che ora ti sei svegliato. Dal dispositivo, per ogni giorno: il punteggio e la durata del sonno (con le fasi profonda e REM), il punteggio di recupero del dispositivo, il battito più basso della notte e la sua variabilità, i passi e le calorie dell’attività. Per ogni allenamento: lo sport, quando è iniziato, quanto è durato, le calorie e, se il dispositivo li dà, il battito medio e massimo. Non leggiamo la tua posizione né i tuoi percorsi, né la serie dei battiti (da quella della notte prendiamo solo il valore più basso e il resto lo scartiamo), né i dati del tuo profilo presso Oura o Polar come email, età o sesso. Su iPhone puoi anche leggere da Apple Salute, dove arrivano anche i dati degli altri tuoi dispositivi (Apple Watch, Oura, Garmin, Fitbit…): passi, sonno con le sue fasi, battito a riposo e variabilità, calorie attive, e gli allenamenti con il loro battito medio e massimo, insieme al nome dell’app o del dispositivo che li ha scritti. Nel suo foglio sceglie Apple cosa condividere, e noi leggiamo solo quello. Non leggiamo la posizione né la serie dei battiti. Puoi anche scrivere a mano un allenamento (sport, quando, quanto è durato, quanto è stato intenso, e il battito medio se lo conosci): le calorie le stimiamo noi.',
   },
   {
     titolo: 'Come funziona il collegamento',
@@ -72,7 +74,7 @@ export const INFORMATIVA: { titolo: string; testo: string }[] = tv([
   {
     titolo: 'What data we read',
     testo:
-      'The sleep you log yourself: the night, what time you went to bed and what time you woke up. From your device, for each day: the sleep score and duration (with deep and REM stages), the device’s recovery score, the lowest heart rate of the night and its variability, steps and activity calories. For each workout: the sport, when it started, how long it lasted, calories and, if the device provides them, average and maximum heart rate. We don’t read your location or routes, or the heart-rate series (from the night’s series we take only the lowest value and discard the rest), or your profile data at Oura or Polar such as email, age or sex. On iPhone you can also read your steps, sleep and workouts from Apple Health: Apple’s own sheet lets you choose what to share, and we only read that. We don’t read heart rate or location from the iPhone.',
+      'The sleep you log yourself: the night, what time you went to bed and what time you woke up. From your device, for each day: the sleep score and duration (with deep and REM stages), the device’s recovery score, the lowest heart rate of the night and its variability, steps and activity calories. For each workout: the sport, when it started, how long it lasted, calories and, if the device provides them, average and maximum heart rate. We don’t read your location or routes, or the heart-rate series (from the night’s series we take only the lowest value and discard the rest), or your profile data at Oura or Polar such as email, age or sex. On iPhone you can also read from Apple Health, where the data of your other devices (Apple Watch, Oura, Garmin, Fitbit…) also arrives: steps, sleep with its stages, resting heart rate and variability, active calories, and workouts with their average and maximum heart rate, along with the name of the app or device that wrote them. Apple’s own sheet lets you choose what to share, and we only read that. We don’t read location or the heart-rate series. You can also log a workout by hand (sport, when, how long, how hard, and average heart rate if you know it): we estimate the calories.',
   },
   {
     titolo: 'How the connection works',

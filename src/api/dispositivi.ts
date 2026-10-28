@@ -49,13 +49,18 @@ export type GiornoDispositivo = {
   hrv_ms: number | null
   passi: number | null
   calorie_attive: number | null
+  origine?: string | null
 }
 
 export type AllenamentoDispositivo = {
   id: string
-  fornitore: IdFornitore | 'apple_salute'
+  fornitore: IdFornitore | 'apple_salute' | 'manuale'
   inizio: string
   durata_minuti: number
+  /** Da quale app o dispositivo arriva (Apple Salute fa da hub: «Oura», «Apple Watch»…). Null per i dati scritti a mano. */
+  origine?: string | null
+  /** Solo per quelli scritti a mano. */
+  intensita?: 'leggera' | 'media' | 'intensa' | null
   /** Lo sport come lo scrive il fornitore, in minuscolo («running»). */
   sport: string | null
   calorie: number | null
@@ -149,10 +154,39 @@ export async function salvaSonno(data: string, ore: { letto: string; sveglia: st
  * Apple Salute (27/10/2026): l'iPhone legge da HealthKit passi, sonno e allenamenti e li manda qui; il server li
  * controlla e li scrive. Non c'e' un collegamento presso un fornitore: sono dati che spinge il telefono.
  */
-export async function importaSalute(lettura: { giorni: { data: string; passi: number | null; sonno_minuti: number | null }[]; allenamenti: { inizio: string; fine: string; tipo: string; calorie: number | null }[] }): Promise<Esito<DatiDispositivi>> {
+export type GiornoDaSalute = {
+  data: string
+  passi: number | null
+  sonno_minuti: number | null
+  sonno_profondo_minuti?: number | null
+  sonno_rem_minuti?: number | null
+  fc_notte?: number | null
+  hrv_ms?: number | null
+  calorie_attive?: number | null
+  origine?: string | null
+}
+export type AllenamentoDaSalute = { inizio: string; fine: string; tipo: string; calorie: number | null; fc_media?: number | null; fc_max?: number | null; origine?: string | null }
+
+export async function importaSalute(lettura: { giorni: GiornoDaSalute[]; allenamenti: AllenamentoDaSalute[] }): Promise<Esito<DatiDispositivi>> {
   const { ok, dati } = await chiama({ azione: 'importa', giorni: lettura.giorni, allenamenti: lettura.allenamenti })
   if (ok) return { ok: true, ...dei(dati) }
   return errore(dati, t('Non siamo riusciti a leggere Apple Salute adesso. Riprova.', 'We couldn’t read Apple Health right now. Try again.'))
+}
+
+export type SportManuale = 'bici' | 'corsa' | 'camminata' | 'escursione' | 'nuoto' | 'canottaggio' | 'yoga' | 'danza' | 'sci' | 'altro'
+export type IntensitaManuale = 'leggera' | 'media' | 'intensa'
+
+/** Un allenamento scritto a mano (28/10/2026): una pedalata all'aperto, una corsa senza orologio. Le calorie le stima l'app, la funzione le controlla. */
+export async function aggiungiAllenamento(a: { inizio: string; durata_minuti: number; sport: SportManuale; intensita: IntensitaManuale; calorie: number | null; fc_media: number | null }): Promise<Esito<DatiDispositivi>> {
+  const { ok, dati } = await chiama({ azione: 'allenamento_aggiungi', ...a })
+  if (ok) return { ok: true, ...dei(dati) }
+  return errore(dati, t('Non siamo riusciti a salvare l’allenamento. Riprova.', 'We couldn’t save the workout. Try again.'))
+}
+
+export async function eliminaAllenamento(id: string): Promise<Esito<DatiDispositivi>> {
+  const { ok, dati } = await chiama({ azione: 'allenamento_elimina', id })
+  if (ok) return { ok: true, ...dei(dati) }
+  return errore(dati, t('Non siamo riusciti a togliere l’allenamento. Riprova.', 'We couldn’t remove the workout. Try again.'))
 }
 
 /** Toglie i dati di Apple Salute dal club (quelli sul telefono restano dove sono). */
