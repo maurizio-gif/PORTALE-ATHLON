@@ -34,6 +34,7 @@ import {
 
 import { problemaCodiceFiscale } from '@/lib/codiceFiscale'
 import { t, tv } from '@/lib/lingua'
+import { apriPagamento } from '@/lib/pagamentoEsterno'
 import { capLiberoValido, pulisciCapLibero } from '@/lib/residenteEstero'
 import { spazio, tinta, useColori } from '@/theme'
 
@@ -62,9 +63,9 @@ import { spazio, tinta, useColori } from '@/theme'
 // c'e' un altro idoneo, «Attiva un altro Guest Pass» apre un link nuovo (`anche_per`). Con una funzione di prima
 // (`scelta` assente) la pagina e' quella di sempre.
 
+// La pagina di pagamento si apre nel browser integrato dell'app (sul nativo): chi paga non esce dall'app.
 function apri(url: string) {
-  if (Platform.OS === 'web') window.location.assign(url)
-  else Linking.openURL(url)
+  return apriPagamento(url)
 }
 
 /** Una pagina del sito in un'altra scheda: chi legge non perde quello che ha compilato. */
