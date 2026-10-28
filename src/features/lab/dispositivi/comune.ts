@@ -124,3 +124,25 @@ export function dopo(iso: string | null, adesso = Date.now()): string {
   const giorni = Math.round(ore / 24)
   return giorni === 1 ? t('ieri', 'yesterday') : t(`${giorni} giorni fa`, `${giorni} days ago`)
 }
+
+/**
+ * Apple Salute visto dal web (28/10/2026): i dati ci sono se l'app iPhone li ha mandati al club, e arrivano solo quando
+ * l'app si apre. `ultimo` e' l'ultimo giorno (AAAA-MM-GG) per cui il club ha ricevuto qualcosa da Apple Salute.
+ */
+export function datiAppleSalute(d: { giorni: GiornoDispositivo[]; allenamenti: AllenamentoDispositivo[] } | null | undefined): { ha: boolean; ultimo: string | null } {
+  if (!d) return { ha: false, ultimo: null }
+  const giorni = [
+    ...d.giorni.filter((g) => g.fornitore === 'apple_salute').map((g) => g.data),
+    ...d.allenamenti.filter((a) => a.fornitore === 'apple_salute').map((a) => giornoDi(a.inizio)),
+  ].sort()
+  return { ha: giorni.length > 0, ultimo: giorni.at(-1) ?? null }
+}
+
+/** La frase per chi guarda Apple Salute dal web o da un telefono senza HealthKit. */
+export function notaAppleSaluteDalWeb(ultimo: string | null): string {
+  const quale = ultimo ? t(` (ultimo giorno ricevuto: ${giornoBreve(ultimo)})`, ` (last day received: ${giornoBreve(ultimo)})`) : ''
+  return t(
+    `I dati di Apple Salute sono quelli dell’ultima volta che hai aperto l’app sull’iPhone${quale}. Da qui non si aggiornano da soli: per sincronizzarli usa sempre l’app, aprendola ogni tanto.`,
+    `Apple Health data is as of the last time you opened the app on your iPhone${quale}. It doesn’t refresh from here: to keep it in sync, always use the app and open it every now and then.`,
+  )
+}

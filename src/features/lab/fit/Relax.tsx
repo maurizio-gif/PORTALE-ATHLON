@@ -1,7 +1,7 @@
 import { LinearGradient } from 'expo-linear-gradient'
 import { router } from 'expo-router'
 import { useState } from 'react'
-import { StyleSheet, Text, View } from 'react-native'
+import { Platform, StyleSheet, Text, View } from 'react-native'
 import Svg, { Circle } from 'react-native-svg'
 
 import { aggiornaDispositivi, type AllenamentoDispositivo, type GiornoDispositivo } from '@/api/dispositivi'
@@ -9,7 +9,7 @@ import { locale, t } from '@/lib/lingua'
 import { spazio } from '@/theme'
 
 import { oggiRoma } from '../alimentazione/conti'
-import { dopo, durata, giornoBreve, giorniUnici, inizialeGiorno, nomeSport, piuRecenti, quando, recupero } from '../dispositivi/comune'
+import { datiAppleSalute, dopo, durata, giornoBreve, notaAppleSaluteDalWeb, giorniUnici, inizialeGiorno, nomeSport, piuRecenti, quando, recupero } from '../dispositivi/comune'
 import { dispositiviCollegabili, type Dispositivi } from '../dispositivi/useDispositivi'
 import { spostaGiorno } from '../schede/contatoreCalorie'
 import { useProgresso } from '../schede/ContatoreCalorie'
@@ -133,6 +133,8 @@ function Dati({ disp }: { disp: Dispositivi }) {
   const allenamenti = piuRecenti(dati.allenamenti, 5)
   const collegati = dati.collegamenti.length > 0
   const collegabili = dispositiviCollegabili(disp.stato)
+  // Dal web i dati di Apple Salute sono quelli dell'ultima apertura dell'app iPhone: lo si dice sotto la notte.
+  const appleDalWeb = Platform.OS !== 'ios' ? datiAppleSalute(dati) : { ha: false, ultimo: null }
 
   async function aggiorna() {
     setInCorso(true)
@@ -172,6 +174,10 @@ function Dati({ disp }: { disp: Dispositivi }) {
           <Text style={[stili.titoletto, { color: p.testo }]}>{t('Ancora niente da mostrare', 'Nothing to show yet')}</Text>
           <Text style={[stili.nota, { color: p.testoSecondario }]}>{t('I dati arrivano quando il dispositivo ha sincronizzato col telefono: di solito entro la mezz’ora.', 'The data comes in once the device has synced with your phone: usually within half an hour.')}</Text>
         </Carta>
+      ) : null}
+
+      {appleDalWeb.ha ? (
+        <Text style={[stili.piccola, { color: p.testoSecondario, paddingHorizontal: 2 }]}>{notaAppleSaluteDalWeb(appleDalWeb.ultimo)}</Text>
       ) : null}
 
       {!collegati && collegabili ? (
