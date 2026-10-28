@@ -392,6 +392,8 @@ export type QuestionarioConsigli = {
   /** Se gli piacerebbe; con «no» il personal non si propone. */
   personal_interesse: PersonalInteresse | null
   bisogni: Bisogno[]
+  /** Cosa fa fuori dal club (sport, giorni, fasce): la funzione ne tiene conto nella settimana intera. null se non si allena all'esterno. */
+  esterno?: { attivita: string[]; giorni: number[]; fasce: Fascia[] } | null
   limitazioni: string
 }
 
