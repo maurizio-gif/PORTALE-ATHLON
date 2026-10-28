@@ -4,6 +4,7 @@ import { useCallback, useMemo, useState } from 'react'
 import { statoAlimentazione, type StatoAlimentazione, type VoceDiario } from '@/api/alimentazione'
 import { presenzeLezioni, storicoAllenamenti, type SedutaStorico } from '@/api/lab'
 
+import { useDispositivi } from '../dispositivi/useDispositivi'
 import { CHIAVE_DIARIO, CHIAVE_STATO, leggiDiarioRecente } from '../alimentazione/chiavi'
 import { inMemoria, prendi } from '../memoria'
 import { useStatoCorpo, type StatoCorpo } from '../schede/CalorieLezione'
@@ -44,6 +45,8 @@ export type DatiFit = {
 export function useFit(): DatiFit {
   const vista = !!vistaCorrente()
   const corpo = useStatoCorpo()
+  // Gli allenamenti dei dispositivi e quelli scritti a mano (28/10/2026): solo con il consenso ai dispositivi (altrimenti `dati` e' null).
+  const dispositivi = useDispositivi().dati?.allenamenti ?? null
   const [food, setFood] = useState<Stato | null>(() => (vista ? null : (inMemoria<Stato>(CHIAVE_STATO) ?? null)))
   const [foodErrore, setFoodErrore] = useState<string | null>(null)
   const [diario, setDiario] = useState<VoceDiario[] | null>(() => inMemoria<{ voci: VoceDiario[] }>(CHIAVE_DIARIO)?.voci ?? null)
@@ -75,10 +78,10 @@ export function useFit(): DatiFit {
 
   const attivita = useMemo(() => {
     if (corpo.stato !== 'ok' || !sedute || !presenze) return null
-    return contaCalorie(vociCalorie(sedute, presenze.presenze, presenze.schede, corpo.corpo), corpo.corpo).voci
-  }, [corpo, sedute, presenze])
+    return contaCalorie(vociCalorie(sedute, presenze.presenze, presenze.schede, corpo.corpo, dispositivi ?? []), corpo.corpo).voci
+  }, [corpo, sedute, presenze, dispositivi])
 
-  const sessioni = useMemo(() => (sedute && presenze ? sessioniDa(sedute, presenze.presenze) : null), [sedute, presenze])
+  const sessioni = useMemo(() => (sedute && presenze ? sessioniDa(sedute, presenze.presenze, dispositivi ?? []) : null), [sedute, presenze, dispositivi])
 
   const conDiario = !vista && !!food?.consenso && !!food.profilo && !food.profilo.nascondi_numeri && food.maggiorenne
   return { vista, food, foodErrore, diario: food?.consenso ? diario : null, corpo, attivita, conDiario, sessioni }

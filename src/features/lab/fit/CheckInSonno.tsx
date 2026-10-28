@@ -33,7 +33,7 @@ const MAX = 960
 
 const nomeGiorno = (g: string, oggi: string) => (g === oggi ? t('Oggi', 'Today') : g === spostaGiorno(oggi, -1) ? t('Ieri', 'Yesterday') : giornoBreve(g).split(' ').slice(0, 2).join(' '))
 
-const ora = (minuti: number) => {
+export const ora = (minuti: number) => {
   const m = ((minuti % 1440) + 1440) % 1440
   return `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`
 }
@@ -81,7 +81,7 @@ function TastoOra({ verso, etichetta, onPasso }: { verso: 1 | -1; etichetta: str
 }
 
 /** `onSposta` riceve di quanti minuti spostare l'ora: chi la chiama aggiorna lo stato in forma funzionale (il tasto che scorre non vede il valore di adesso). */
-function SceltaOra({ titolo, valore, onSposta }: { titolo: string; valore: string; onSposta: (minuti: number) => void }) {
+export function SceltaOra({ titolo, valore, onSposta }: { titolo: string; valore: string; onSposta: (minuti: number) => void }) {
   const p = usePalette()
   return (
     <View style={{ gap: 6 }}>

@@ -1,6 +1,8 @@
+import type { AllenamentoDispositivo } from '@/api/dispositivi'
 import type { PresenzaLezione, SchedaLezione, SedutaStorico } from '@/api/lab'
 import { t } from '../../../lib/lingua'
 
+import { allenamentiContati, nomeSport, stimaAllenamento } from '../dispositivi/allenamentiDispositivo'
 import { dopoSeduta, kcal, MET_MEDIO, metabolismoBasale, type Sesso } from './stimaCalorie'
 import { stimaLezione } from './stimaCorso'
 
@@ -29,12 +31,15 @@ export type Voce = {
   quando: string
   /** «AAAA-MM-GG», a Roma. */
   giorno: string
-  fonte: 'scheda' | 'lezione'
+  fonte: 'scheda' | 'lezione' | 'dispositivo'
   nome: string
   /** Il tipo, per «da dove vengono»: «Schede di allenamento», «Yoga e mobilità», … */
   tipo: string
   minuti: number
   kcal: number
+  /** Per gli allenamenti dei dispositivi e scritti a mano: da dove viene il numero (misurato, dal battito, stimato) e da quale app. */
+  metodo?: 'misurato' | 'battito' | 'stimato'
+  origine?: string | null
 }
 
 export type GiornoCalorie = { giorno: string; schede: number; lezioni: number; totale: number; voci: number }
@@ -84,7 +89,7 @@ export function lunediDi(giorno: string): string {
 const minutiTra = (inizio: string, fine: string) => (new Date(fine).getTime() - new Date(inizio).getTime()) / 60000
 
 /** Le voci: le sedute chiuse (fra 10 minuti e 3 ore, come la durata vera della scheda) e le lezioni stimabili. */
-export function vociCalorie(sedute: SedutaStorico[], presenze: PresenzaLezione[], schede: Record<string, SchedaLezione>, corpo: Corpo): Voce[] {
+export function vociCalorie(sedute: SedutaStorico[], presenze: PresenzaLezione[], schede: Record<string, SchedaLezione>, corpo: Corpo, dispositivi: AllenamentoDispositivo[] = []): Voce[] {
   const bmr = metabolismoBasale(corpo)
   const voci: Voce[] = []
   for (const s of sedute) {
@@ -107,6 +112,22 @@ export function vociCalorie(sedute: SedutaStorico[], presenze: PresenzaLezione[]
     const stima = stimaLezione({ nome: l.nome, categoria: l.categoria, minuti }, scheda, corpo)
     if (!stima) continue
     voci.push({ quando: l.inizio, giorno: giornoRoma(l.inizio), fonte: 'lezione', nome: l.nome, tipo: stima.tipo.etichetta, minuti, kcal: stima.kcal.circa })
+  }
+  // Gli allenamenti dei dispositivi e scritti a mano (28/10/2026), se non sono gia' una seduta o una lezione contata.
+  for (const a of allenamentiContati(dispositivi, voci.map((v) => ({ inizio: v.quando, minuti: v.minuti })))) {
+    const stima = stimaAllenamento(a, corpo)
+    if (!stima) continue
+    voci.push({
+      quando: a.inizio,
+      giorno: giornoRoma(a.inizio),
+      fonte: 'dispositivo',
+      nome: nomeSport(a.sport),
+      tipo: a.fornitore === 'manuale' ? t('Scritti da te', 'Logged by you') : t('Dai tuoi dispositivi', 'From your devices'),
+      minuti: a.durata_minuti,
+      kcal: stima.kcal,
+      metodo: stima.metodo,
+      origine: a.origine ?? null,
+    })
   }
   return voci.sort((a, b) => b.quando.localeCompare(a.quando))
 }
