@@ -13,6 +13,7 @@ import { FinestraLezione, Fotina } from '@/features/lab/SchedaLezione'
 import { euro, giornoEsteso, nomeDi, ora, paginaEventoSito, type EsitoPrenotazione, type PaginaEvento, type Persona, type Prodotto, type Turno } from '@/lib/eventi'
 import { spazio, stileTono, useColori, type Tono } from '@/theme'
 import { t } from '@/lib/lingua'
+import { apriPagamento } from '@/lib/pagamentoEsterno'
 
 // La prenotazione di un evento dal link per email, come il calendario del
 // laboratorio: in alto per chi si prenota («Stai prenotando per …»), sotto le
@@ -193,8 +194,7 @@ export function PrenotaEvento({ token, nome, iniziale }: { token: string; nome: 
     if (!persona) return null
     const { ok, dati } = await chiamaLink(token, 'acquista', { class_id: turno.class_id, member_id: persona.member_id })
     if (!ok || typeof dati.url !== 'string') return dati.errore ?? t('Non riusciamo ad aprire il pagamento adesso. Riprova fra qualche minuto.', 'We can’t open the payment right now. Try again in a few minutes.')
-    if (Platform.OS === 'web') window.location.assign(dati.url)
-    else await Linking.openURL(dati.url)
+    await apriPagamento(dati.url)
     return null
   }
 
