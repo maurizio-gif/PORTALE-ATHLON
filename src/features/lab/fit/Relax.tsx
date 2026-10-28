@@ -1,15 +1,15 @@
 import { LinearGradient } from 'expo-linear-gradient'
 import { router } from 'expo-router'
 import { useState } from 'react'
-import { Platform, StyleSheet, Text, View } from 'react-native'
+import { StyleSheet, Text, View } from 'react-native'
 import Svg, { Circle } from 'react-native-svg'
 
-import { aggiornaDispositivi, type AllenamentoDispositivo, type GiornoDispositivo } from '@/api/dispositivi'
-import { locale, t } from '@/lib/lingua'
+import { aggiornaDispositivi, type GiornoDispositivo } from '@/api/dispositivi'
+import { t } from '@/lib/lingua'
 import { spazio } from '@/theme'
 
 import { oggiRoma } from '../alimentazione/conti'
-import { datiAppleSalute, dopo, durata, giornoBreve, notaAppleSaluteDalWeb, giorniUnici, inizialeGiorno, nomeSport, piuRecenti, quando, recupero } from '../dispositivi/comune'
+import { dopo, durata, giornoBreve, giorniUnici, inizialeGiorno, recupero } from '../dispositivi/comune'
 import { dispositiviCollegabili, type Dispositivi } from '../dispositivi/useDispositivi'
 import { spostaGiorno } from '../schede/contatoreCalorie'
 import { useProgresso } from '../schede/ContatoreCalorie'
@@ -125,16 +125,14 @@ function Dati({ disp }: { disp: Dispositivi }) {
   const oggi = oggiRoma()
   const ieri = spostaGiorno(oggi, -1)
 
-  const giorni = giorniUnici(dati.giorni)
+  // Solo i giorni con il sonno (28/10/2026): passi, calorie e allenamenti stanno in Train, e Apple Salute li elenca in «I tuoi dispositivi».
+  const giorni = giorniUnici(dati.giorni.filter((g) => g.sonno_minuti !== null))
   const notte = giorni.find((g) => g.sonno_minuti !== null) ?? null
   const rec = notte ? recupero(notte.recupero_scala, notte.recupero_valore) : null
   const riautorizza = dati.collegamenti.filter((c) => c.stato === 'da_riautorizzare')
   const ultimaLettura = dati.collegamenti.map((c) => c.ultimo_sync_il).filter((x): x is string => !!x).sort().at(-1) ?? null
-  const allenamenti = piuRecenti(dati.allenamenti, 5)
   const collegati = dati.collegamenti.length > 0
   const collegabili = dispositiviCollegabili(disp.stato)
-  // Dal web i dati di Apple Salute sono quelli dell'ultima apertura dell'app iPhone: lo si dice sotto la notte.
-  const appleDalWeb = Platform.OS !== 'ios' ? datiAppleSalute(dati) : { ha: false, ultimo: null }
 
   async function aggiorna() {
     setInCorso(true)
@@ -176,10 +174,6 @@ function Dati({ disp }: { disp: Dispositivi }) {
         </Carta>
       ) : null}
 
-      {appleDalWeb.ha ? (
-        <Text style={[stili.piccola, { color: p.testoSecondario, paddingHorizontal: 2 }]}>{notaAppleSaluteDalWeb(appleDalWeb.ultimo)}</Text>
-      ) : null}
-
       {!collegati && collegabili ? (
         <Carta style={{ gap: spazio.tre }}>
           <View style={stili.riga}>
@@ -202,26 +196,6 @@ function Dati({ disp }: { disp: Dispositivi }) {
             </Carta>
           </Sezione>
         </Entra>
-      ) : null}
-
-      <Attivita giorni={giorni} oggi={oggi} ieri={ieri} />
-
-      {collegati ? (
-      <Entra indice={3}>
-        <Sezione titolo={t('Allenamenti dei dispositivi', 'Device workouts')}>
-          {allenamenti.length ? (
-            <Carta style={{ gap: spazio.tre }}>
-              {allenamenti.map((a, i) => (
-                <RigaAllenamento key={a.id} a={a} oggi={oggi} ieri={ieri} primo={i === 0} />
-              ))}
-            </Carta>
-          ) : (
-            <Carta>
-              <Text style={[stili.nota, { color: p.testoSecondario }]}>{t('Nessun allenamento registrato dal dispositivo negli ultimi giorni.', 'No workouts recorded by your device in the last few days.')}</Text>
-            </Carta>
-          )}
-        </Sezione>
-      </Entra>
       ) : null}
 
       {errore ? <Messaggio>{errore}</Messaggio> : null}
@@ -280,49 +254,6 @@ function Settimana({ giorni, oggi }: { giorni: GiornoDispositivo[]; oggi: string
   )
 }
 
-/** Passi e calorie dell'attivita' dell'ultimo giorno che li ha: oggi, o ieri se oggi non ne ha ancora. */
-function Attivita({ giorni, oggi, ieri }: { giorni: GiornoDispositivo[]; oggi: string; ieri: string }) {
-  const p = usePalette()
-  const g = giorni.find((x) => (x.data === oggi || x.data === ieri) && (x.passi !== null || x.calorie_attive !== null))
-  if (!g) return null
-  return (
-    <Entra indice={2}>
-      <Carta style={{ gap: spazio.due }}>
-        <Text style={[stili.sottoTitolo, { color: p.testo }]}>{g.data === oggi ? t('Oggi', 'Today') : t('Ieri', 'Yesterday')}</Text>
-        <View style={stili.azioni}>
-          {g.passi !== null ? <Cifra valore={g.passi.toLocaleString(locale())} etichetta={t('passi', 'steps')} /> : null}
-          {g.calorie_attive !== null ? <Cifra valore={g.calorie_attive.toLocaleString(locale())} etichetta={t('kcal di movimento', 'active kcal')} /> : null}
-        </View>
-      </Carta>
-    </Entra>
-  )
-}
-
-function Cifra({ valore, etichetta }: { valore: string; etichetta: string }) {
-  const p = usePalette()
-  return (
-    <View style={[stili.cifra, { backgroundColor: p.incavo }]}>
-      <Text style={[stili.cifraValore, { color: p.testo }]}>{valore}</Text>
-      <Text style={[stili.piccola, { color: p.testoSecondario }]}>{etichetta}</Text>
-    </View>
-  )
-}
-
-function RigaAllenamento({ a, oggi, ieri, primo }: { a: AllenamentoDispositivo; oggi: string; ieri: string; primo: boolean }) {
-  const p = usePalette()
-  const pezzi = [durata(a.durata_minuti), a.calorie !== null ? `${a.calorie} kcal` : null, a.fc_media !== null ? t(`battito medio ${a.fc_media}`, `average heart rate ${a.fc_media}`) : null].filter(Boolean)
-  return (
-    <View style={[stili.allenamento, !primo && { borderTopColor: p.linea, borderTopWidth: StyleSheet.hairlineWidth, paddingTop: spazio.tre }]}>
-      <Bollino icona="cronometro" tono="accento" size={40} />
-      <View style={{ flex: 1, gap: 2 }}>
-        <Text style={[stili.nome, { color: p.testo }]}>{nomeSport(a.sport)}</Text>
-        <Text style={[stili.piccola, { color: p.testoSecondario }]}>{`${quando(a.inizio, oggi, ieri)} · ${pezzi.join(' · ')}`}</Text>
-      </View>
-      <Text style={[stili.piccola, { color: p.testoTerzo }]}>{a.fornitore === 'oura' ? 'Oura' : a.fornitore === 'apple_salute' ? t('Apple Salute', 'Apple Health') : 'Polar'}</Text>
-    </View>
-  )
-}
-
 const stili = StyleSheet.create({
   titoletto: { fontFamily: F.extra, fontSize: 17, letterSpacing: -0.3 },
   sottoTitolo: { fontFamily: F.extra, fontSize: 16 },
@@ -349,7 +280,4 @@ const stili = StyleSheet.create({
   colonna: { alignItems: 'center', gap: 4, flex: 1 },
   colonnaValore: { fontFamily: F.semi, fontSize: 11, minHeight: 14 },
   colonnaGiorno: { fontFamily: F.bold, fontSize: 12 },
-  cifra: { flex: 1, borderRadius: 16, padding: spazio.tre, gap: 2 },
-  cifraValore: { fontFamily: F.extra, fontSize: 22 },
-  allenamento: { flexDirection: 'row', alignItems: 'center', gap: spazio.tre },
 })

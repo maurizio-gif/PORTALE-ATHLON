@@ -13,6 +13,7 @@ import { relaxAperto, useDispositivi, type Dispositivi } from '../dispositivi/us
 import { CartaBalance } from '../fit/Balance'
 import { CartaCorpo } from '../fit/Corpo'
 import { AggiungiAllenamento } from '../fit/AggiungiAllenamento'
+import { CartaMovimento } from '../fit/CartaMovimento'
 import { CartaDispositivi } from '../fit/CartaDispositivi'
 import { CartaPunteggio } from '../fit/Punteggio'
 import { AreaFood } from '../fit/Food'
@@ -417,6 +418,10 @@ function Train({ dati, largo, disp }: { dati: Dati; largo: boolean; disp: Dispos
 
       <Entra indice={2}>
         <AggiungiAllenamento disp={disp} compatto />
+      </Entra>
+
+      <Entra indice={2}>
+        <CartaMovimento disp={disp} />
       </Entra>
 
       <Entra indice={2}>

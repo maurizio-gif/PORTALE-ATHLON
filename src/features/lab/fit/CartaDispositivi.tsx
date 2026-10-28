@@ -1,12 +1,15 @@
 import { router } from 'expo-router'
+import { useState } from 'react'
 import { Platform, StyleSheet, Text, View } from 'react-native'
 
 import { t } from '@/lib/lingua'
 import { spazio } from '@/theme'
 
 import { appleSaluteAttivo } from '../dispositivi/appleSalute'
-import { datiAppleSalute, dopo, FORNITORI, notaAppleSaluteDalWeb } from '../dispositivi/comune'
+import { datiAppleSalute, dopo, FORNITORI, giornoBreve, notaAppleSaluteDalWeb, riepilogoAppleSalute } from '../dispositivi/comune'
 import { dispositiviCollegabili, type Dispositivi } from '../dispositivi/useDispositivi'
+import { Icona } from '../ui/Icona'
+import { Tocco } from '../ui/Tocco'
 import { Bollino, Carta, Etichetta, Pulsante } from '../ui/kit'
 import { F, usePalette } from '../ui/tema'
 
@@ -20,6 +23,7 @@ const apri = () => router.push('/allenamento/dispositivi')
 
 export function CartaDispositivi({ disp }: { disp: Dispositivi }) {
   const p = usePalette()
+  const [aperto, setAperto] = useState(false)
   const apple = Platform.OS === 'ios'
   // Sempre al suo posto (28/10/2026): si nasconde solo in vista cliente, ai minorenni e dove non c'e' niente da collegare.
   // Se lo stato non e' ancora arrivato (o non e' arrivato) la carta c'e' lo stesso: il tocco porta alla schermata che lo rilegge.
@@ -61,16 +65,39 @@ export function CartaDispositivi({ disp }: { disp: Dispositivi }) {
       </View>
       {collegati ? (
         <View style={{ gap: spazio.due }}>
-          {righe.map((r) => (
-            <View key={r.id} style={stili.riga}>
-              <View style={{ flex: 1 }}>
-                <Text style={[stili.nome, { color: p.testo }]}>{r.nome}</Text>
-                {r.nota ? <Text style={[stili.piccola, { color: p.testoSecondario }]}>{r.nota}</Text> : null}
-                {r.sync ? <Text style={[stili.piccola, { color: p.testoSecondario }]}>{t(`Aggiornato ${dopo(r.sync)}`, `Updated ${dopo(r.sync)}`)}</Text> : null}
+          {righe.map((r) => {
+            const espandi = r.id === 'apple'
+            const voci = espandi ? riepilogoAppleSalute(disp.dati) : []
+            return (
+              <View key={r.id} style={{ gap: spazio.due }}>
+                <Tocco onPress={espandi ? () => setAperto((v) => !v) : apri} ruolo="button" etichetta={r.nome} scala={1}>
+                  <View style={stili.riga}>
+                    <View style={{ flex: 1 }}>
+                      <Text style={[stili.nome, { color: p.testo }]}>{r.nome}</Text>
+                      {r.nota && !aperto ? <Text style={[stili.piccola, { color: p.testoSecondario }]}>{r.nota}</Text> : null}
+                      {r.sync ? <Text style={[stili.piccola, { color: p.testoSecondario }]}>{t(`Aggiornato ${dopo(r.sync)}`, `Updated ${dopo(r.sync)}`)}</Text> : null}
+                      {espandi ? <Text style={[stili.piccola, { color: p.testoSecondario }]}>{aperto ? t('Nascondi i dati', 'Hide data') : t('Vedi i dati che arrivano da qui', 'See the data coming from here')}</Text> : null}
+                    </View>
+                    {r.attivo ? <Etichetta testo={t('Collegato', 'Connected')} tono="ok" icona="ok" /> : <Etichetta testo={t('Da ricollegare', 'Reconnect')} tono="attenzione" />}
+                    {espandi ? <Icona nome={aperto ? 'su' : 'giu'} size={18} colore={p.testoTerzo} /> : null}
+                  </View>
+                </Tocco>
+                {espandi && aperto ? (
+                  <View style={[stili.voci, { backgroundColor: p.incavo }]}>
+                    {voci.map((v) => (
+                      <View key={v.id} style={stili.voce}>
+                        <Text style={[stili.piccola, { color: p.testoSecondario, flex: 1 }]}>{v.etichetta}</Text>
+                        <Text style={[stili.piccola, { color: p.testo, fontFamily: F.bold }]}>
+                          {v.valore ? `${v.valore}${v.giorno ? ` · ${giornoBreve(v.giorno)}` : ''}` : t('non ancora ricevuto', 'not received yet')}
+                        </Text>
+                      </View>
+                    ))}
+                    {r.nota ? <Text style={[stili.piccola, { color: p.testoSecondario }]}>{r.nota}</Text> : null}
+                  </View>
+                ) : null}
               </View>
-              {r.attivo ? <Etichetta testo={t('Attivo', 'On')} tono="ok" icona="ok" /> : <Etichetta testo={t('Da ricollegare', 'Reconnect')} tono="attenzione" />}
-            </View>
-          ))}
+            )
+          })}
         </View>
       ) : null}
       <Pulsante testo={collegati ? t('Gestisci i dispositivi', 'Manage devices') : t('Collega', 'Connect')} icona={collegati ? 'orologio' : 'avanti'} variante={collegati ? 'contorno' : 'primario'} piccolo={collegati} onPress={apri} />
@@ -84,5 +111,7 @@ const stili = StyleSheet.create({
   nome: { fontFamily: F.bold, fontSize: 15 },
   nota: { fontFamily: F.medio, fontSize: 14, lineHeight: 20 },
   piccola: { fontFamily: F.medio, fontSize: 12, lineHeight: 17 },
+  voci: { borderRadius: 14, padding: spazio.tre, gap: 6 },
+  voce: { flexDirection: 'row', justifyContent: 'space-between', gap: spazio.due },
   riga: { flexDirection: 'row', alignItems: 'center', gap: spazio.tre },
 })
