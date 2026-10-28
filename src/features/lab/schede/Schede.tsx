@@ -12,6 +12,7 @@ import { spazio } from '@/theme'
 import { relaxAperto, useDispositivi } from '../dispositivi/useDispositivi'
 import { CartaBalance } from '../fit/Balance'
 import { CartaCorpo } from '../fit/Corpo'
+import { CartaDispositivi } from '../fit/CartaDispositivi'
 import { CartaPunteggio } from '../fit/Punteggio'
 import { AreaFood } from '../fit/Food'
 import { AreaRelax } from '../fit/Relax'
@@ -341,6 +342,9 @@ export function Schede() {
               <CartaCorpo misure={misure} senzaConsenso={senzaConsenso} />
             </Entra>
             <Entra indice={1}>
+              <CartaDispositivi disp={disp} />
+            </Entra>
+            <Entra indice={1}>
               <CartaBalance dati={fit} onAttivaFood={area === 'food' ? undefined : () => scegli('food')} />
             </Entra>
           </View>
@@ -352,6 +356,9 @@ export function Schede() {
           </Entra>
           <Entra indice={1}>
             <CartaCorpo misure={misure} senzaConsenso={senzaConsenso} />
+          </Entra>
+          <Entra indice={1}>
+            <CartaDispositivi disp={disp} />
           </Entra>
           <Entra indice={1}>
             <CartaBalance dati={fit} onAttivaFood={area === 'food' ? undefined : () => scegli('food')} />

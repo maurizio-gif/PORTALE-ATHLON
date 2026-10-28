@@ -3,7 +3,7 @@ import { router, useLocalSearchParams } from 'expo-router'
 import { useEffect, useRef, useState } from 'react'
 import { Linking, Platform, StyleSheet, Text, View } from 'react-native'
 
-import { appleSaluteAttivo, appleSaluteDisponibile, chiediPermessoSalute, impostaAppleSalute, sincronizzaSalute } from './appleSalute'
+import { appleSaluteAttivo, appleSaluteDisponibile, chiediPermessoSalute, impostaAppleSalute, sincronizzaSalute, ultimoErroreSalute } from './appleSalute'
 import { scollegaSalute, aggiornaDispositivi, collega, completaCollegamento, revocaConsensoDispositivi, scollega, type Collegamento, type Fornitore, type IdFornitore } from '@/api/dispositivi'
 import { t } from '@/lib/lingua'
 import { spazio } from '@/theme'
@@ -304,6 +304,15 @@ function CartaFornitore({ f, collegamento, d, onErrore }: { f: Fornitore; colleg
   )
 }
 
+/** Perche' Apple Salute non ha dato niente, in parole: il motivo vero se c'e', e dove guardare. */
+function motivoSalute(): string {
+  const base = t(
+    'Non abbiamo letto niente da Apple Salute. Controlla in Impostazioni › Salute › Accesso ai dati e dispositivi › Athlon Club che passi, sonno e allenamenti siano attivi.',
+    'We read nothing from Apple Health. Check in Settings › Health › Data Access & Devices › Athlon Club that steps, sleep and workouts are turned on.',
+  )
+  return ultimoErroreSalute ? `${base} (${ultimoErroreSalute})` : base
+}
+
 function CartaAppleSalute({ d, onErrore }: { d: DatiDispositivi; onErrore: (e: string | null) => void }) {
   const p = usePalette()
   const [disponibile, setDisponibile] = useState(false)
@@ -328,6 +337,7 @@ function CartaAppleSalute({ d, onErrore }: { d: DatiDispositivi; onErrore: (e: s
     const r = await sincronizzaSalute(true)
     setFase('no')
     if (r) d.imposta(r)
+    else onErrore(motivoSalute())
   }
   async function aggiorna() {
     onErrore(null)
@@ -335,7 +345,7 @@ function CartaAppleSalute({ d, onErrore }: { d: DatiDispositivi; onErrore: (e: s
     const r = await sincronizzaSalute(true)
     setFase('no')
     if (r) d.imposta(r)
-    else onErrore(t('Non abbiamo letto niente da Apple Salute. Controlla in Impostazioni › Salute che Athlon possa leggere passi, sonno e allenamenti.', 'We read nothing from Apple Health. Check in Settings › Health that Athlon can read steps, sleep and workouts.'))
+    else onErrore(motivoSalute())
   }
   async function scollegaOra() {
     onErrore(null)

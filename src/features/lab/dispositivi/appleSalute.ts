@@ -126,21 +126,39 @@ const CHIAVE_ATTIVO = 'athlon:apple-salute'
 const ogni = 10 * 60_000
 let ultimaLettura = 0
 
+// Sul telefono non esiste `localStorage`: il segno sta in un piccolo file nella cartella dell'app (expo-file-system). Prima stava
+// solo nel browser, quindi su iPhone non restava mai acceso e non partiva nessuna lettura (28/10/2026).
+function segnoFile() {
+  const { File, Paths } = require('expo-file-system') as typeof import('expo-file-system')
+  return new File(Paths.document, 'apple-salute-attivo.txt')
+}
+
 export function appleSaluteAttivo(): boolean {
   try {
-    return globalThis.localStorage?.getItem(CHIAVE_ATTIVO) === '1'
+    if (Platform.OS === 'web') return globalThis.localStorage?.getItem(CHIAVE_ATTIVO) === '1'
+    return segnoFile().exists
   } catch {
     return false
   }
 }
 export function impostaAppleSalute(attivo: boolean) {
   try {
-    if (attivo) globalThis.localStorage?.setItem(CHIAVE_ATTIVO, '1')
-    else globalThis.localStorage?.removeItem(CHIAVE_ATTIVO)
+    if (Platform.OS === 'web') {
+      if (attivo) globalThis.localStorage?.setItem(CHIAVE_ATTIVO, '1')
+      else globalThis.localStorage?.removeItem(CHIAVE_ATTIVO)
+      return
+    }
+    const f = segnoFile()
+    if (attivo) {
+      if (!f.exists) f.create()
+    } else if (f.exists) f.delete()
   } catch {
     // senza memoria il segno non resta: si riattiva dalla schermata
   }
 }
+
+/** L'ultimo motivo per cui Apple Salute non ha dato niente, in parole per chi guarda (null se tutto bene). */
+export let ultimoErroreSalute: string | null = null
 
 /** Legge da Apple Salute e manda al club. Al massimo una volta ogni 10 minuti, salvo `subito`. Non solleva mai. */
 export async function sincronizzaSalute(subito = false): Promise<DatiDispositivi | null> {
@@ -149,9 +167,14 @@ export async function sincronizzaSalute(subito = false): Promise<DatiDispositivi
   ultimaLettura = Date.now()
   const l = await leggiSalute(14)
   if (!l) return null
+  if (!l.giorni.length && !l.allenamenti.length) {
+    ultimoErroreSalute = 'nessun dato negli ultimi giorni'
+    return null
+  }
   const r = await importaSalute({
     giorni: l.giorni,
     allenamenti: l.allenamenti.map((a) => ({ inizio: a.inizio, fine: a.fine, tipo: a.tipo, calorie: a.calorie })),
   })
+  if (!r.ok) ultimoErroreSalute = r.errore
   return r.ok ? r : null
 }
