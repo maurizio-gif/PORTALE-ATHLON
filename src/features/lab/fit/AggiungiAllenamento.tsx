@@ -1,13 +1,13 @@
 import { router } from 'expo-router'
 import { useMemo, useState } from 'react'
-import { StyleSheet, Text, View } from 'react-native'
+import { ScrollView, StyleSheet, Text, TextInput, View } from 'react-native'
 
 import { aggiungiAllenamento, eliminaAllenamento, type IntensitaManuale, type SportManuale } from '@/api/dispositivi'
 import { t } from '@/lib/lingua'
 import { spazio } from '@/theme'
 
 import { oggiRoma } from '../alimentazione/conti'
-import { nomeSport, stimaAllenamento } from '../dispositivi/allenamentiDispositivo'
+import { elencoSport, nomeSport, senzaAccenti, stimaAllenamento } from '../dispositivi/allenamentiDispositivo'
 import { durata, giornoBreve, minutiDelGiorno } from '../dispositivi/comune'
 import { relaxAperto, type Dispositivi } from '../dispositivi/useDispositivi'
 import { useStatoCorpo } from '../schede/CalorieLezione'
@@ -24,7 +24,6 @@ import { ora, SceltaOra } from './CheckInSonno'
 // dispositivi/allenamentiDispositivo.ts: dal battito, se c'e', altrimenti un valore standard per sport e intensita') e la funzione le
 // controlla. Conta nei giorni attivi dell'Athlon Health Score e nelle calorie, e si puo' togliere. Stesso consenso dei dispositivi.
 
-const SPORT: SportManuale[] = ['bici', 'corsa', 'camminata', 'escursione', 'nuoto', 'canottaggio', 'yoga', 'danza', 'sci', 'altro']
 const INTENSITA: { id: IntensitaManuale; nome: () => string; aiuto: () => string }[] = [
   { id: 'leggera', nome: () => t('Leggera', 'Easy'), aiuto: () => t('Riesci a parlare senza fatica', 'You can talk easily') },
   { id: 'media', nome: () => t('Media', 'Moderate'), aiuto: () => t('Fiato un po’ più corto', 'A bit short of breath') },
@@ -39,6 +38,62 @@ function Pillola({ testo, scelta, onPress }: { testo: string; scelta: boolean; o
     <Tocco onPress={onPress} vibra="scelta" ruolo="radio" stato={{ selected: scelta }} etichetta={testo} style={[stili.pillola, { backgroundColor: scelta ? p.accento : p.incavo }]}>
       <Text style={[stili.pillolaTesto, { color: scelta ? '#fff' : p.testo }]}>{testo}</Text>
     </Tocco>
+  )
+}
+
+
+// Tutti gli sport che conosciamo, in un menu a tendina con il campo di ricerca (28/10/2026, richiesta di Maurizio). La ricerca ignora
+// maiuscole e accenti e cerca dentro il nome; i piu' comuni restano in cima finche' non si scrive.
+function SceltaSport({ valore, onScegli }: { valore: SportManuale; onScegli: (s: SportManuale) => void }) {
+  const p = usePalette()
+  const [aperto, setAperto] = useState(false)
+  const [cerca, setCerca] = useState('')
+  const tutti = useMemo(() => elencoSport(), [])
+  const q = senzaAccenti(cerca)
+  const trovati = q ? tutti.filter((x) => senzaAccenti(x.nome).includes(q)) : tutti
+  return (
+    <View style={{ gap: spazio.due }}>
+      <Tocco onPress={() => setAperto((v) => !v)} ruolo="button" etichetta={t('Scegli lo sport', 'Choose the sport')} style={[stili.menu, { backgroundColor: p.incavo }]}>
+        <Text style={[stili.menuTesto, { color: p.testo }]}>{nomeSport(valore)}</Text>
+        <Text style={[stili.menuTesto, { color: p.testoSecondario }]}>{aperto ? '▲' : '▼'}</Text>
+      </Tocco>
+      {aperto ? (
+        <View style={[stili.tendina, { backgroundColor: p.incavo }]}>
+          <TextInput
+            value={cerca}
+            onChangeText={setCerca}
+            placeholder={t('Cerca uno sport…', 'Search a sport…')}
+            placeholderTextColor={p.testoTerzo}
+            autoCorrect={false}
+            autoCapitalize="none"
+            clearButtonMode="while-editing"
+            style={[stili.cerca, { color: p.testo, borderColor: p.bordo }]}
+          />
+          <ScrollView style={{ maxHeight: 260 }} nestedScrollEnabled keyboardShouldPersistTaps="handled">
+            {trovati.length ? (
+              trovati.map((x) => (
+                <Tocco
+                  key={x.id}
+                  onPress={() => {
+                    onScegli(x.id)
+                    setAperto(false)
+                    setCerca('')
+                  }}
+                  ruolo="radio"
+                  stato={{ selected: x.id === valore }}
+                  etichetta={x.nome}
+                  style={stili.voce}
+                >
+                  <Text style={[stili.menuTesto, { color: x.id === valore ? p.accento : p.testo }]}>{x.nome}</Text>
+                </Tocco>
+              ))
+            ) : (
+              <Text style={[stili.piccola, { color: p.testoSecondario, padding: 12 }]}>{t('Nessuno sport con questo nome: scegli «Allenamento».', 'No sport with that name: pick “Workout”.')}</Text>
+            )}
+          </ScrollView>
+        </View>
+      ) : null}
+    </View>
   )
 }
 
@@ -116,11 +171,7 @@ export function AggiungiAllenamento({ disp, compatto = false }: { disp: Disposit
       <Foglio aperto={aperto} titolo={t('Aggiungi un allenamento', 'Add a workout')} onChiudi={() => setAperto(false)}>
         <View style={{ gap: spazio.tre }}>
           <Text style={[stili.etichetta, { color: p.testoSecondario }]}>{t('Che sport?', 'Which sport?')}</Text>
-          <View style={stili.griglia}>
-            {SPORT.map((s) => (
-              <Pillola key={s} testo={nomeSport(s)} scelta={s === sport} onPress={() => setSport(s)} />
-            ))}
-          </View>
+          <SceltaSport valore={sport} onScegli={setSport} />
 
           <Text style={[stili.etichetta, { color: p.testoSecondario }]}>{t('Quando?', 'When?')}</Text>
           <View style={stili.griglia}>
@@ -164,6 +215,11 @@ export function AggiungiAllenamento({ disp, compatto = false }: { disp: Disposit
 }
 
 const stili = StyleSheet.create({
+  menu: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderRadius: 14, paddingHorizontal: 14, minHeight: 48 },
+  menuTesto: { fontFamily: F.bold, fontSize: 15 },
+  tendina: { borderRadius: 14, padding: 8, gap: 6 },
+  cerca: { fontFamily: F.medio, fontSize: 15, borderWidth: 1, borderRadius: 10, paddingHorizontal: 12, minHeight: 44 },
+  voce: { minHeight: 44, justifyContent: 'center', paddingHorizontal: 10 },
   testa: { flexDirection: 'row', alignItems: 'center', gap: spazio.tre },
   titolo: { fontFamily: F.extra, fontSize: 17, letterSpacing: -0.3 },
   nota: { fontFamily: F.medio, fontSize: 14, lineHeight: 20 },
