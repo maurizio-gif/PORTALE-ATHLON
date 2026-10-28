@@ -5,7 +5,7 @@ import { t } from '@/lib/lingua'
 import { spazio } from '@/theme'
 
 import { appleSaluteAttivo } from '../dispositivi/appleSalute'
-import { dopo, FORNITORI } from '../dispositivi/comune'
+import { datiAppleSalute, dopo, FORNITORI, notaAppleSaluteDalWeb } from '../dispositivi/comune'
 import { dispositiviCollegabili, type Dispositivi } from '../dispositivi/useDispositivi'
 import { Bollino, Carta, Etichetta, Pulsante } from '../ui/kit'
 import { F, usePalette } from '../ui/tema'
@@ -24,19 +24,22 @@ export function CartaDispositivi({ disp }: { disp: Dispositivi }) {
   // Sempre al suo posto (28/10/2026): si nasconde solo in vista cliente, ai minorenni e dove non c'e' niente da collegare.
   // Se lo stato non e' ancora arrivato (o non e' arrivato) la carta c'e' lo stesso: il tocco porta alla schermata che lo rilegge.
   const noto = disp.stato?.ok ? disp.stato : null
-  if (disp.vista || (noto && !noto.maggiorenne) || (noto && !apple && !dispositiviCollegabili(disp.stato))) return null
+  const appleDalleApp = !apple ? datiAppleSalute(disp.dati) : { ha: false, ultimo: null }
+  if (disp.vista || (noto && !noto.maggiorenne) || (noto && !apple && !appleDalleApp.ha && !dispositiviCollegabili(disp.stato))) return null
 
   const collegamenti = disp.dati?.collegamenti ?? (disp.stato?.ok ? disp.stato.collegamenti : [])
   const appleAttivo = apple && appleSaluteAttivo()
+  // Dal web: Apple Salute c'e' se l'app iPhone ha mandato dati, ma si aggiorna solo quando l'app si apre.
   const righe = [
-    ...(appleAttivo
-      ? [{ id: 'apple', nome: t('Apple Salute', 'Apple Health'), attivo: true, sync: null as string | null }]
+    ...(appleAttivo || appleDalleApp.ha
+      ? [{ id: 'apple', nome: t('Apple Salute', 'Apple Health'), attivo: true, sync: null as string | null, nota: appleDalleApp.ha ? notaAppleSaluteDalWeb(appleDalleApp.ultimo) : null }]
       : []),
     ...collegamenti.map((c) => ({
       id: c.fornitore,
       nome: FORNITORI[c.fornitore]?.nome ?? c.fornitore,
       attivo: c.stato === 'attivo',
       sync: c.ultimo_sync_il,
+      nota: null as string | null,
     })),
   ]
   const collegati = righe.length > 0
@@ -62,6 +65,7 @@ export function CartaDispositivi({ disp }: { disp: Dispositivi }) {
             <View key={r.id} style={stili.riga}>
               <View style={{ flex: 1 }}>
                 <Text style={[stili.nome, { color: p.testo }]}>{r.nome}</Text>
+                {r.nota ? <Text style={[stili.piccola, { color: p.testoSecondario }]}>{r.nota}</Text> : null}
                 {r.sync ? <Text style={[stili.piccola, { color: p.testoSecondario }]}>{t(`Aggiornato ${dopo(r.sync)}`, `Updated ${dopo(r.sync)}`)}</Text> : null}
               </View>
               {r.attivo ? <Etichetta testo={t('Attivo', 'On')} tono="ok" icona="ok" /> : <Etichetta testo={t('Da ricollegare', 'Reconnect')} tono="attenzione" />}

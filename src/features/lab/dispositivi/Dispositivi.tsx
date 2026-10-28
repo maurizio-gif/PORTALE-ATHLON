@@ -13,7 +13,7 @@ import { Bollino, Carta, Entra, Etichetta, Messaggio, Pulsante, SchedeInArrivo, 
 import { Schermata } from '../ui/Schermata'
 import { F, RELAX, usePalette } from '../ui/tema'
 import { Tocco } from '../ui/Tocco'
-import { dopo, FORNITORI } from './comune'
+import { datiAppleSalute, dopo, FORNITORI, notaAppleSaluteDalWeb } from './comune'
 import { FoglioInformativa, Vetrina } from './Vetrina'
 import { useDispositivi, type Dispositivi as DatiDispositivi } from './useDispositivi'
 
@@ -321,7 +321,26 @@ function CartaAppleSalute({ d, onErrore }: { d: DatiDispositivi; onErrore: (e: s
   useEffect(() => {
     appleSaluteDisponibile().then(setDisponibile)
   }, [])
-  if (Platform.OS !== 'ios' || !disponibile) return null
+  if (Platform.OS !== 'ios') {
+    // Dal web (o da un telefono senza HealthKit) Apple Salute si vede soltanto: lo attiva e lo aggiorna l'app iPhone.
+    const apple = datiAppleSalute(d.dati)
+    if (!apple.ha) return null
+    return (
+      <Carta style={{ gap: spazio.tre }}>
+        <View style={stili.testa}>
+          <Bollino icona="orologio" tono="ok" size={46} />
+          <View style={{ flex: 1, gap: 2 }}>
+            <Text style={[stili.nome, { color: p.testo }]}>{t('Apple Salute', 'Apple Health')}</Text>
+            <Text style={[stili.nota, { color: p.testoSecondario }]}>{t('Dati dal tuo iPhone', 'Data from your iPhone')}</Text>
+          </View>
+          <Etichetta testo={t('Dall’app', 'From the app')} tono="ok" icona="ok" />
+        </View>
+        <Text style={[stili.nota, { color: p.testoSecondario }]}>{notaAppleSaluteDalWeb(apple.ultimo)}</Text>
+        <Text style={[stili.nota, { color: p.testoSecondario }]}>{t('Per attivarlo o disattivarlo apri l’app sull’iPhone.', 'To turn it on or off, open the app on your iPhone.')}</Text>
+      </Carta>
+    )
+  }
+  if (!disponibile) return null
 
   async function attiva() {
     onErrore(null)
