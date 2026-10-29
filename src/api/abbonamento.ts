@@ -41,6 +41,11 @@ export type PersonaAbbonamento = {
   firmatario: 'se_stesso' | 'genitore' | null
   inizio_min: string | null
   inizio_max: string | null
+  /**
+   * Ha un Guest Pass in corso (29/10/2026): l'abbonamento parte il giorno dopo la fine della prova, la data non si sceglie
+   * (`inizio_min` = `inizio_max`) e la quota di attivazione non e' dovuta. `fine` e' l'ultimo giorno della prova.
+   */
+  da_guest_pass?: { fine: string } | null
 }
 
 /** Un contratto firmato e non ancora pagato: si riprende da qui, senza rifirmare. */

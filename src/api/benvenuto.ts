@@ -7,7 +7,7 @@ import { t } from '@/lib/lingua'
 // se qualcosa non va, `ok: false` e la Home non mostra il messaggio (non c'e' niente da riparare per chi guarda).
 
 /** Dove porta il pulsante: l'app traduce la destinazione in un indirizzo (`home/MessaggioBenvenuto.tsx`). */
-export const DESTINAZIONI = ['pagamenti', 'prova', 'abbonamento', 'calendario', 'allenamento'] as const
+export const DESTINAZIONI = ['pagamenti', 'prova', 'abbonamento', 'calendario', 'allenamento', 'consigli', 'salute'] as const
 export type DestinazioneBenvenuto = (typeof DESTINAZIONI)[number]
 
 export type MessaggioBenvenuto = {
@@ -38,10 +38,14 @@ function leggi(m: unknown): MessaggioBenvenuto | null {
   return { id: typeof x.id === 'string' ? x.id : '', titolo: x.titolo.trim(), testo: x.testo.trim(), azione, origine: x.origine === 'ai' ? 'ai' : 'regole' }
 }
 
-/** Il messaggio per questo ritorno. `motivo`: `apertura` (l'app e' stata appena aperta) o `ritorno` (e' tornato dopo un po'). */
-export async function messaggioDiBenvenuto(motivo: 'apertura' | 'ritorno'): Promise<EsitoBenvenuto> {
+/**
+ * Il messaggio per questo ritorno. `motivo`: `apertura` (l'app e' stata appena aperta) o `ritorno` (e' tornato dopo un po').
+ * `saluteCollegabile`: questo telefono puo' collegare Apple Salute e non l'ha ancora fatto (29/10/2026): e' una cosa che sa solo
+ * l'app, e il server la usa per proporre il collegamento solo dove si puo'.
+ */
+export async function messaggioDiBenvenuto(motivo: 'apertura' | 'ritorno', saluteCollegabile = false): Promise<EsitoBenvenuto> {
   const attesa = new Promise<null>((ok) => setTimeout(() => ok(null), ATTESA_MS))
-  const r = await Promise.race([funzione('portale-lab-benvenuto', { azione: 'messaggio', motivo }), attesa])
+  const r = await Promise.race([funzione('portale-lab-benvenuto', { azione: 'messaggio', motivo, salute_collegabile: saluteCollegabile }), attesa])
   if (!r) return { ok: false, errore: t('Il messaggio non e’ arrivato in tempo.', 'The message didn’t arrive in time.') }
   if (!r.ok) return { ok: false, errore: String(r.dati.errore ?? t('Non riusciamo a leggere il messaggio adesso.', 'We can’t load the message right now.')) }
   return { ok: true, messaggio: leggi(r.dati.messaggio) }
