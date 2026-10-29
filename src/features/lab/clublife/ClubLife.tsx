@@ -18,6 +18,7 @@ import { bollinoData, cerca, dataNews, giornoEvento } from './comune'
 import { ascoltaClubLifeDaCapo } from './daCapo'
 import { useClubLife } from './dati'
 import { percorsoScheda } from './link'
+import { BloccoOrariClub } from './OrariClub'
 
 // Club Life nell'app: le news, gli eventi in arrivo e le risposte dell'Help Desk,
 // disegnati qui coi dati del sito (club-life.json) invece della pagina del sito
@@ -162,6 +163,8 @@ export function ClubLife() {
 
   return (
     <Schermata sopratitolo={t('La vita del club', 'Club life')} titolo="Club Life" sottotitolo={t("News, eventi e le risposte dell'Help Desk.", 'News, events and answers from the Help Desk.')} scorrimento={scorrimento}>
+      {/* Gli orari del club e gli avvisi in corso (chiusure, orari ridotti): sempre in cima (clublife/OrariClub). Non dipendono dal feed delle news. */}
+      <BloccoOrariClub />
       {!dati ? (
         errore ? (
           <View style={{ gap: spazio.tre }}>

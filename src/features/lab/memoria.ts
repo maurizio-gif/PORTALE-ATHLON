@@ -2,6 +2,7 @@ import { esci } from '@/api/lab'
 
 import { azzeraRimandoPush } from './notifiche/invitoPush'
 import { azzeraAssistente } from './assistente/store'
+import { azzeraOrariClub } from './clublife/useOrariClub'
 import { azzeraNotifiche } from './notifiche/store'
 import { scollegaDispositivo } from './notifiche/push'
 import { dimenticaTutteLeRisposte } from './schede/rispostePiano'
@@ -73,6 +74,7 @@ export async function esciDalLaboratorio() {
   await scollegaDispositivo()
   azzeraNotifiche()
   azzeraAssistente()
+  azzeraOrariClub()
   // Il «non ora» dell'invito alle notifiche e' del dispositivo: chi entra dopo non lo eredita.
   azzeraRimandoPush()
   dimentica()

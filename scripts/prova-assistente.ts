@@ -95,6 +95,14 @@ function rottaEsiste(pathname: string): boolean {
   assert.equal(hrefAssistente('piano', {}), '/allenamento')
   assert.deepEqual(hrefAssistente('junior', { anno: '2018' }), { pathname: '/junior', params: { anno: '2018' } })
   assert.equal(hrefAssistente('junior', { anno: 'abcd' }), '/junior')
+  // L'articolo di Club Life da cui il modello ha preso l'informazione (la funzione manda l'id vero, mai il testo del modello).
+  assert.deepEqual(hrefAssistente('club-life-voce', { voce: 'news:chiusura-29-ottobre-2026-interruzione-energia' }), { pathname: '/club-life/news/[id]', params: { id: 'chiusura-29-ottobre-2026-interruzione-energia' } })
+  assert.deepEqual(hrefAssistente('club-life-voce', { voce: 'evento:athlon-club-night-si-cambia-pista-31-ottobre' }), { pathname: '/club-life/eventi/[id]', params: { id: 'athlon-club-night-si-cambia-pista-31-ottobre' } })
+  assert.deepEqual(hrefAssistente('club-life-voce', { voce: 'scheda:adulti/sospensione' }), { pathname: '/club-life/help-desk/[...scheda]', params: { scheda: ['adulti', 'sospensione'] } })
+  assert.equal(hrefAssistente('club-life-voce', {}), '/club-life', 'senza la voce, l\'elenco')
+  for (const sporca of ['news:../../x', 'scheda:../x/y', 'scheda:solo', 'news:a b', 'altro:x', 'https://x.it', 'news:' + 'a'.repeat(200)]) {
+    assert.equal(hrefAssistente('club-life-voce', { voce: sporca }), '/club-life', 'una voce che non e una voce non entra in un indirizzo: ' + sporca)
+  }
   ok('destinazioni: i parametri si ricontrollano (data, id, anno) e non finiscono mai nell\'indirizzo se sbagliati')
 }
 
