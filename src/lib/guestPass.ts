@@ -170,13 +170,9 @@ export function fineSettimana(g: string): string {
 export const REGOLE_PRENOTAZIONE = tv(
   [
     'Le lezioni si prenotano dall’app Athlon o dal portale: la prenotazione si apre 3 giorni (72 ore) prima e resta aperta fino all’inizio.',
-    'Si disdice fino a 1 ora prima dell’inizio, così subentra chi è in lista d’attesa.',
-    'Al massimo 3 prenotazioni attive per Corsi Fitness, Aqua Fitness e Scuola Nuoto Adulti; la lista d’attesa conta come una prenotazione.',
   ],
   [
     'You book classes from the Athlon app or the portal: booking opens 3 days (72 hours) before and stays open until the start.',
-    'You can cancel up to 1 hour before the start, so someone on the waiting list can take the spot.',
-    'At most 3 active bookings for Corsi Fitness, Aqua Fitness and Scuola Nuoto Adulti; the waiting list counts as a booking.',
   ],
 )
 
