@@ -17,6 +17,7 @@ import { spazio } from '@/theme'
 import { CHIAVE_CONTRATTI, ElencoAbbonamenti } from './AbbonamentiMiei'
 import { AvvisoCertificato } from './home/AvvisoCertificato'
 import { CartaAssistente } from './home/CartaAssistente'
+import { CartaOrariClub } from './clublife/OrariClub'
 import { CartaInvita } from './home/CartaInvita'
 import { CartaNotifiche } from './home/CartaNotifiche'
 import { CartaPush } from './home/CartaPush'
@@ -441,6 +442,9 @@ export function AreaRiservata({ email }: { email: string }) {
 
       {/* Il certificato scaduto o mancante di chi ha un abbonamento: subito sotto la testata, prima di tutto il resto (home/AvvisoCertificato). */}
       <AvvisoCertificato area={area} onVai={() => vai('certificato', true)} />
+
+      {/* Gli orari del club di oggi, con l'avviso in evidenza se c'e' una chiusura o un orario ridotto (clublife/OrariClub). */}
+      <CartaOrariClub />
 
       {/* Le notifiche del club da leggere (home/CartaNotifiche): solo se ce ne sono; il centro e' il campanello della testata. */}
       <CartaNotifiche />

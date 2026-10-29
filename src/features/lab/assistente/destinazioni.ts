@@ -10,7 +10,7 @@ export const DESTINAZIONI_ASSISTENTE = [
   'home-abbonamenti', 'home-pagamenti', 'pagamenti-storico', 'metodo-pagamento', 'home-prodotti', 'home-documenti', 'home-certificato',
   'home-famiglia', 'home-profilo', 'home-tesseramento', 'calendario', 'abbonamento-scegli', 'personal', 'allenamento', 'piani', 'piano',
   'componi-piano', 'importa-piano', 'consigli', 'food', 'misure', 'dispositivi', 'classifica', 'shop', 'shop-ordini', 'junior',
-  'invita', 'notifiche', 'club-life', 'tv',
+  'invita', 'notifiche', 'club-life', 'club-life-voce', 'tv',
 ] as const
 
 export type DestinazioneAssistente = (typeof DESTINAZIONI_ASSISTENTE)[number]
@@ -31,6 +31,20 @@ const SEZIONI_HOME: Partial<Record<DestinazioneAssistente, SezioneHome>> = {
 }
 
 const GIORNO = /^\d{4}-\d{2}-\d{2}$/
+
+// Una voce di Club Life, come la dice la funzione (`_shared/assistente/club.ts`): «news:<id>», «evento:<id>», «scheda:<area>/<slug>».
+// Gli id sono quelli del sito (lettere, cifre, trattini): un'altra forma non entra in un indirizzo.
+const ID_VOCE = /^[A-Za-z0-9_-]{1,120}$/
+const ID_SCHEDA = /^[A-Za-z0-9_-]{1,60}(\/[A-Za-z0-9_-]{1,120}){1,2}$/
+
+function hrefVoce(voce: string | undefined): Href {
+  const m = /^(news|evento|scheda):(.+)$/.exec(voce ?? '')
+  if (!m) return '/club-life'
+  if (m[1] === 'news' && ID_VOCE.test(m[2])) return { pathname: '/club-life/news/[id]', params: { id: m[2] } }
+  if (m[1] === 'evento' && ID_VOCE.test(m[2])) return { pathname: '/club-life/eventi/[id]', params: { id: m[2] } }
+  if (m[1] === 'scheda' && ID_SCHEDA.test(m[2])) return { pathname: '/club-life/help-desk/[...scheda]', params: { scheda: m[2].split('/') } }
+  return '/club-life'
+}
 
 /** L'indirizzo di una destinazione, coi suoi parametri (gia' controllati dalla funzione, ma qui si ricontrolla la forma). Null se non e' una destinazione nostra. */
 export function hrefAssistente(destinazione: string, parametri: Record<string, string> = {}): Href | null {
@@ -85,6 +99,8 @@ export function hrefAssistente(destinazione: string, parametri: Record<string, s
       return '/notifiche'
     case 'club-life':
       return '/club-life'
+    case 'club-life-voce':
+      return hrefVoce(parametri.voce)
     case 'tv':
       return '/tv'
     default:
