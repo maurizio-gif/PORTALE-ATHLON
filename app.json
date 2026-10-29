@@ -97,7 +97,7 @@
       [
         "@kingstinct/react-native-healthkit",
         {
-          "NSHealthShareUsageDescription": "Athlon Club legge i tuoi passi, gli allenamenti e il sonno da Apple Salute, solo se lo autorizzi, per mostrarli nell'area Relax e nel punteggio.",
+          "NSHealthShareUsageDescription": "Athlon Club legge da Apple Salute i tuoi passi, il sonno, il battito, la variabilità del battito, le calorie di movimento e gli allenamenti, solo se lo autorizzi, per mostrarli in Recover e in Train e calcolare il tuo Athlon Health Score.",
           "NSHealthUpdateUsageDescription": "Athlon Club non scrive nulla in Apple Salute: legge soltanto i tuoi dati, se lo autorizzi.",
           "background": false
         }
