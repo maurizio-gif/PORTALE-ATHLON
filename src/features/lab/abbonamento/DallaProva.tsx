@@ -20,10 +20,11 @@ import { F, usePalette } from '../ui/tema'
 export function DallaProva({ inizio, quota, conData = false }: { inizio: string; quota: number; conData?: boolean }) {
   const p = usePalette()
   const giorno = dataLunga(inizio)
+  // La quota e' in omaggio **solo** se l'abbonamento parte il giorno dopo la fine della prova: per questo la data e' obbligatoria.
   const omaggio =
     quota > 0
-      ? t(`La quota di attivazione di ${euro(quota)} è in omaggio, perché non c’è nessuna interruzione fra la prova e l’abbonamento.`, `The ${euro(quota)} joining fee is waived, because there’s no gap between your trial and your membership.`)
-      : t('Non c’è nessuna interruzione fra la prova e l’abbonamento.', 'There’s no gap between your trial and your membership.')
+      ? t(`La quota di attivazione di ${euro(quota)} è in omaggio solo se l’abbonamento parte quel giorno: per questo la data è obbligatoria.`, `The ${euro(quota)} joining fee is waived only if your membership starts on that day: that’s why the date is mandatory.`)
+      : t('La data è obbligatoria: così non c’è nessuna interruzione fra la prova e l’abbonamento.', 'The date is mandatory: that way there’s no gap between your trial and your membership.')
   if (!conData) {
     return (
       <Messaggio tono="ok" icona="regalo" titolo={t('Dalla prova all’abbonamento', 'From your trial to a membership')}>
@@ -40,7 +41,7 @@ export function DallaProva({ inizio, quota, conData = false }: { inizio: string;
         <Text style={{ color: p.testoSecondario, fontFamily: F.medio, fontSize: 12 }}>{t('Parte il', 'Starts on')}</Text>
         <Text style={{ color: p.testo, fontFamily: F.extra, fontSize: 18, letterSpacing: -0.3 }}>{giorno}</Text>
         <Text style={{ color: p.testoSecondario, fontFamily: F.medio, fontSize: 13, lineHeight: 19 }}>
-          {t('È il giorno dopo la fine del tuo Guest Pass: la data è fissa, così continui senza interruzioni. ', 'It’s the day after your Guest Pass ends: the date is fixed, so you carry on without a break. ')}
+          {t('È il giorno dopo la fine del tuo Guest Pass: la data è obbligatoria, così continui senza interruzioni. ', 'It’s the day after your Guest Pass ends: the date is mandatory, so you carry on without a break. ')}
           {omaggio}
         </Text>
       </View>
