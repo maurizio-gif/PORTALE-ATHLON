@@ -1,4 +1,5 @@
 import { SUPABASE_URL } from '@/config'
+import { funzione } from '@/api/lab'
 import { intestazioneLingua, t } from '@/lib/lingua'
 
 // Il Guest Pass dal link: il primo passo e' l'email con la privacy, e la Edge Function `guest-pass` risponde sempre
@@ -33,6 +34,36 @@ export async function richiediGuestPass(
   const r = await chiama({ azione: 'richiedi', email, privacy: consensi.privacy, marketing: consensi.marketing, ...(invito ? { invito } : {}) })
   if (r.ok) return { ok: true }
   return { ok: false, errore: r.dati.errore ?? t('Non siamo riusciti a mandarti il link adesso.', 'We couldn’t send you the link right now.') }
+}
+
+type Aperta = { ok: true; token: string } | { ok: false; errore: string; riprovabile: boolean }
+let inVolo: { invito: string; richiesta: Promise<Aperta> } | null = null
+
+/**
+ * «Attiva la prova» da dentro l'app (29/10/2026): chi ha gia' un accesso non scrive l'email e non aspetta una posta. La funzione
+ * `guest-pass` (azione `app_apri`) apre la richiesta dalla sessione, o riprende quella in corso, e risponde col codice: con quello
+ * l'app apre `/r/<codice>`, la stessa procedura del link, senza uscire. Non parte nessuna email.
+ *
+ * Una richiesta alla volta (la schermata puo' montarsi due volte di fila: sviluppo, navigazione veloce). Un 409 dice perche' non si
+ * puo' (un abbonamento in corso, un Guest Pass gia' fatto), un 403 che qui non si apre: riprovare non serve. Il resto si puo' riprovare.
+ */
+export function apriGuestPassDallApp(invito?: string | null): Promise<Aperta> {
+  const chiave = invito ?? ''
+  if (inVolo?.invito === chiave) return inVolo.richiesta
+  const richiesta: Promise<Aperta> = funzione('guest-pass', { azione: 'app_apri', ...(invito ? { invito } : {}) })
+    .then(({ ok, stato, dati }): Aperta => {
+      if (ok && typeof dati.token === 'string') return { ok: true, token: dati.token }
+      return {
+        ok: false,
+        errore: dati.errore ?? t('Non siamo riusciti ad aprire il Guest Pass adesso. Riprova fra qualche minuto.', 'We couldn’t open the Guest Pass right now. Try again in a few minutes.'),
+        riprovabile: stato !== 409 && stato !== 403,
+      }
+    })
+    .finally(() => {
+      if (inVolo?.richiesta === richiesta) inVolo = null
+    })
+  inVolo = { invito: chiave, richiesta }
+  return richiesta
 }
 
 /**

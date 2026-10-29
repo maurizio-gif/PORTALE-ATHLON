@@ -10,6 +10,10 @@ import { Campo } from '@/components/Campo'
 import { Casella } from '@/components/Casella'
 import { Pagina } from '@/components/Pagina'
 import { Testo } from '@/components/Testo'
+import { ProvaDallApp } from '@/features/guest-pass/ProvaDallApp'
+import { InCaricamento } from '@/features/link/Stati'
+import { useSessione } from '@/features/lab/useSessione'
+import { vistaCorrente } from '@/features/lab/vista'
 import { t, tv } from '@/lib/lingua'
 import { useColori } from '@/theme'
 
@@ -36,7 +40,20 @@ const CONSENSO_FACOLTATIVO = t(
 
 export type Invito = { codice: string; nome: string | null; prezzo: number; prezzoPieno: number }
 
-export function RichiestaGuestPass({ invito, avviso }: { invito?: Invito; avviso?: string } = {}) {
+/**
+ * **Chi ha gia' un accesso all'app non scrive l'email** (29/10/2026, richiesta di Maurizio): il club sa chi e', e la procedura
+ * continua qui dentro, senza uscire e senza aspettare una posta (`ProvaDallApp`). L'email col link resta per chi arriva da fuori:
+ * il sito, un amico che apre il link dell'invito, chiunque non abbia una sessione. In vista cliente non si apre niente a nome
+ * del cliente: resta il modulo.
+ */
+export function RichiestaGuestPass(props: { invito?: Invito; avviso?: string } = {}) {
+  const sessione = useSessione()
+  if (sessione === undefined) return <InCaricamento />
+  if (sessione && vistaCorrente() === null) return <ProvaDallApp invito={props.invito?.codice} />
+  return <RichiestaConEmail {...props} />
+}
+
+function RichiestaConEmail({ invito, avviso }: { invito?: Invito; avviso?: string }) {
   const c = useColori()
   const [inviata, setInviata] = useState(false)
   const [email, setEmail] = useState('')
