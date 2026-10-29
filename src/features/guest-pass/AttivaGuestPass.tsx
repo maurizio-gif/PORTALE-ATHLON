@@ -22,6 +22,7 @@ import { Scelta } from '@/components/Scelta'
 import { Forte, Testo } from '@/components/Testo'
 import {
   CAMPI,
+  CAMPI_RICHIESTI,
   cosaComprende,
   fineSettimana,
   giornoBreve,
@@ -38,13 +39,13 @@ import {
 import { problemaCodiceFiscale } from '@/lib/codiceFiscale'
 import { t, tv } from '@/lib/lingua'
 import { apriPagamento } from '@/lib/pagamentoEsterno'
-import { capLiberoValido, pulisciCapLibero } from '@/lib/residenteEstero'
 import { spazio, tinta, useColori } from '@/theme'
 
 // Il Guest Pass dal link (in prova): una pagina sola, in quattro blocchi.
 //   1. i tuoi dati: tutti, gia' compilati (da PerfectGym e da quello che la
 //      persona ha confermato sul sito) e modificabili; quelli che mancano —
-//      codice fiscale, nascita, indirizzo — sono obbligatori. «I miei dati sono
+//      codice fiscale, nascita — sono obbligatori; l'indirizzo non si chiede (29/10/2026:
+//      e' un attrito in piu' per la prova, lo si chiede all'abbonamento). «I miei dati sono
 //      corretti»: senza, non si attiva. Le correzioni vanno su PerfectGym alla
 //      conferma, e un Lead si converte li';
 //   2. il giorno d'inizio, entro 14 giorni;
@@ -236,7 +237,7 @@ export function AttivaGuestPass({ token, nome, iniziale }: { token: string; nome
   const giorni = giorniFra(p.inizio.dal, p.inizio.al)
   const tuttiIConsensi = accetto
   const originali = daPerfectGym(p)
-  // Residente all'estero: niente codice fiscale (e niente controlli su di lui), il Paese e' obbligatorio e il CAP e' libero.
+  // Residente all'estero: niente codice fiscale (e niente controlli su di lui) e il Paese e' obbligatorio.
   const estero = dati.residente_estero === '1'
   const cambiati: Record<string, string> = Object.fromEntries(Object.entries(dati).filter(([k, v]) => v.trim() !== (originali[k] ?? '').trim()))
   if (estero) {
@@ -250,13 +251,10 @@ export function AttivaGuestPass({ token, nome, iniziale }: { token: string; nome
   // Il codice fiscale deve essere ben scritto e di questa persona (cognome, nome, nascita).
   const erroreCf = estero ? null : problemaCodiceFiscale(dati)
   const senzaPaese = estero && !dati.paese
-  const erroreCap = estero && !!dati.cap.trim() && !capLiberoValido(dati.cap)
-  const datiCompleti =
-    Object.keys(CAMPI).every((k) => (estero && k === 'codice_fiscale') || (dati[k] ?? '').trim()) && !erroreCf && !senzaPaese && !erroreCap
+  const datiCompleti = CAMPI_RICHIESTI.every((k) => (estero && k === 'codice_fiscale') || (dati[k] ?? '').trim()) && !erroreCf && !senzaPaese
 
-  // La casella cambia il tipo di CAP: tolta la spunta, un CAP che non ha cinque cifre non vale piu'.
   function cambiaEstero() {
-    setDati((x) => ({ ...x, residente_estero: x.residente_estero === '1' ? '0' : '1', cap: x.residente_estero === '1' && !/^\d{5}$/.test(x.cap) ? '' : x.cap }))
+    setDati((x) => ({ ...x, residente_estero: x.residente_estero === '1' ? '0' : '1' }))
     setConfermati(false)
     setErroreDati(null)
   }
@@ -509,20 +507,29 @@ export function AttivaGuestPass({ token, nome, iniziale }: { token: string; nome
         <Testo variante="piccolo">
           {perFiglio
             ? t(
-                `Sei tu a pagare e ad attivare il Guest Pass di ${primoFiglio ?? 'tuo figlio'} come genitore: servono i tuoi dati. Quelli che mancano — di solito codice fiscale, data di nascita e indirizzo — servono per registrarti al club.`,
-                `You pay for and activate ${primoFiglio ? `${primoFiglio}’s` : 'your child’s'} Guest Pass as the parent, so we need your details. The missing ones — usually tax code, date of birth and address — are needed to register you at the club.`,
+                `Sei tu a pagare e ad attivare il Guest Pass di ${primoFiglio ?? 'tuo figlio'} come genitore: servono i tuoi dati. Quelli che mancano — di solito codice fiscale e data di nascita — servono per registrarti al club.`,
+                `You pay for and activate ${primoFiglio ? `${primoFiglio}’s` : 'your child’s'} Guest Pass as the parent, so we need your details. The missing ones — usually tax code and date of birth — are needed to register you at the club.`,
               )
             : t(
-                'Controlla i tuoi dati e correggili se serve. Quelli che mancano — di solito codice fiscale, data di nascita e indirizzo — servono per registrarti al club.',
-                'Check your details and correct them if needed. The missing ones — usually tax code, date of birth and address — are needed to register you at the club.',
+                'Controlla i tuoi dati e correggili se serve. Quelli che mancano — di solito codice fiscale e data di nascita — servono per registrarti al club.',
+                'Check your details and correct them if needed. The missing ones — usually tax code and date of birth — are needed to register you at the club.',
               )}
         </Testo>
         {GRUPPI.map((g) => (
           <Gruppo key={g.titolo} titolo={g.titolo} due={dueColonne}>
             {[
-              // Residente all'estero: il Paese apre il gruppo dell'indirizzo.
-              ...(g.campi.includes('via') && estero
-                ? [
+              ...g.campi.flatMap((k) => {
+                const cambia = (v: string) => {
+                  setDati((x) => ({ ...x, [k]: v }))
+                  setConfermati(false)
+                  setErroreDati(null)
+                }
+                // Con la spunta il codice fiscale non c'e': resta la casella, sotto il posto che occupava.
+                const casella = k === 'codice_fiscale' ? [<CasellaResidenteEstero key="estero" spuntata={estero} onCambia={cambiaEstero} />] : []
+                // Residente all'estero: la casella e, sotto, il Paese (l'indirizzo non si chiede).
+                if (k === 'codice_fiscale' && estero) {
+                  return [
+                    ...casella,
                     <CampoPaese
                       key="paese"
                       value={dati.paese ?? ''}
@@ -535,39 +542,25 @@ export function AttivaGuestPass({ token, nome, iniziale }: { token: string; nome
                       style={{ backgroundColor: c.sfondo }}
                     />,
                   ]
-                : []),
-              ...g.campi.flatMap((k) => {
-                const cambia = (v: string) => {
-                  setDati((x) => ({ ...x, [k]: v }))
-                  setConfermati(false)
-                  setErroreDati(null)
                 }
-                // Con la spunta il codice fiscale non c'e': resta la casella, sotto il posto che occupava.
-                const casella = k === 'codice_fiscale' ? [<CasellaResidenteEstero key="estero" spuntata={estero} onCambia={cambiaEstero} />] : []
-                if (k === 'codice_fiscale' && estero) return casella
                 if (k === 'telefono') {
                   return [<CampoTelefono key={k} etichetta={CAMPI[k]} value={dati[k] ?? ''} onChange={cambia} errore={!(dati[k] ?? '').trim()} sfondo={c.sfondo} />]
                 }
                 if (k === 'nascita') {
                   return [<CampoData key={k} etichetta={CAMPI[k]} value={dati[k] ?? ''} onChange={cambia} errore={!(dati[k] ?? '').trim()} sfondo={c.sfondo} />]
                 }
-                const capLibero = k === 'cap' && estero
                 return [
                   <Campo
                     key={k}
                     etichetta={CAMPI[k]}
                     value={dati[k] ?? ''}
-                    onChangeText={k === 'codice_fiscale' ? (v) => cambia(v.toUpperCase()) : capLibero ? (v) => cambia(pulisciCapLibero(v)) : cambia}
-                    autoCapitalize={k === 'codice_fiscale' || capLibero ? 'characters' : k === 'email' ? 'none' : 'words'}
-                    keyboardType={k === 'email' ? 'email-address' : k === 'telefono' ? 'phone-pad' : k === 'cap' && !estero ? 'number-pad' : 'default'}
-                    autoComplete={
-                      ({ nome: 'given-name', cognome: 'family-name', email: 'email', telefono: 'tel', via: 'street-address', cap: 'postal-code', citta: 'address-level2' } as const)[
-                        k as 'nome'
-                      ]
-                    }
-                    maxLength={k === 'codice_fiscale' ? 16 : k === 'cap' ? (estero ? 12 : 5) : undefined}
-                    placeholder={k === 'codice_fiscale' ? 'RSSMRA80A01H501U' : k === 'telefono' ? '+39 340 123 4567' : capLibero ? 'SW1A 1AA' : undefined}
-                    errore={!(dati[k] ?? '').trim() || (k === 'codice_fiscale' && !!erroreCf) || (capLibero && erroreCap)}
+                    onChangeText={k === 'codice_fiscale' ? (v) => cambia(v.toUpperCase()) : cambia}
+                    autoCapitalize={k === 'codice_fiscale' ? 'characters' : k === 'email' ? 'none' : 'words'}
+                    keyboardType={k === 'email' ? 'email-address' : k === 'telefono' ? 'phone-pad' : 'default'}
+                    autoComplete={({ nome: 'given-name', cognome: 'family-name', email: 'email', telefono: 'tel' } as const)[k as 'nome']}
+                    maxLength={k === 'codice_fiscale' ? 16 : undefined}
+                    placeholder={k === 'codice_fiscale' ? 'RSSMRA80A01H501U' : k === 'telefono' ? '+39 340 123 4567' : undefined}
+                    errore={!(dati[k] ?? '').trim() || (k === 'codice_fiscale' && !!erroreCf)}
                     style={{ backgroundColor: c.sfondo }}
                   />,
                   ...casella,
@@ -797,13 +790,11 @@ export function AttivaGuestPass({ token, nome, iniziale }: { token: string; nome
             ? t('Controlla il codice fiscale. ', 'Check your tax code. ')
             : senzaPaese
               ? t('Scegli il Paese in cui risiedi. ', 'Choose the country you live in. ')
-              : erroreCap
-                ? t('Controlla il CAP. ', 'Check your postcode. ')
-                : !datiCompleti
-                  ? t('Completa i tuoi dati. ', 'Complete your details. ')
-                  : !confermati
-                    ? t('Conferma che i tuoi dati sono corretti. ', 'Confirm that your details are correct. ')
-                    : ''}
+              : !datiCompleti
+                ? t('Completa i tuoi dati. ', 'Complete your details. ')
+                : !confermati
+                  ? t('Conferma che i tuoi dati sono corretti. ', 'Confirm that your details are correct. ')
+                  : ''}
           {!inizio ? t('Scegli il giorno d’inizio. ', 'Choose the start day. ') : ''}
           {!metodoPronto ? t('Completa il metodo di pagamento. ', 'Complete the payment method. ') : ''}
           {!tuttiIConsensi ? t('Accetta i Termini e Condizioni, il Regolamento e le Condizioni di pagamento.', 'Accept the Terms and Conditions, the Rules and the Payment Terms.') : ''}
