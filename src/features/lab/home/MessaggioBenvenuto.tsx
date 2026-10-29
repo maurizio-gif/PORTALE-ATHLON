@@ -27,13 +27,17 @@ import { useMessaggioBenvenuto } from './useMessaggioBenvenuto'
 // - **Si puo' nascondere** (la X): resta nascosto fino al prossimo ritorno, quando ne arriva uno nuovo.
 // - **In vista cliente dello staff non c'e'**: chi guarda l'app di un socio non genera messaggi a suo nome.
 // - Il pulsante porta dove dice la destinazione: la prova e l'abbonamento sono le schermate che gia' esistono, il calendario e
-//   l'allenamento le sue schede, e i pagamenti la sezione della Home (`onSezione`).
+//   l'allenamento le sue schede, i consigli la loro schermata, `salute` il collegamento di Apple Salute (29/10/2026) e i pagamenti la
+//   sezione della Home (`onSezione`).
 
 const INDIRIZZI: Record<Exclude<DestinazioneBenvenuto, 'pagamenti'>, Href> = {
   prova: '/richiesta/guest-pass',
   abbonamento: '/abbonamento',
   calendario: '/calendario',
   allenamento: '/allenamento',
+  consigli: '/allenamento/consigli',
+  // Apple Salute: la schermata dei dispositivi apre da sola il foglio di Apple (dopo il consenso, se manca): `?attiva=apple`.
+  salute: { pathname: '/allenamento/dispositivi', params: { attiva: 'apple' } },
 }
 
 export function MessaggioBenvenuto({ email, onSezione }: { email: string; onSezione: (s: SezioneHome) => void }) {

@@ -31,6 +31,7 @@ import { spazio } from '@/theme'
 
 import { CorreggiDati } from './abbonamento/CorreggiDati'
 import { hrefSezione } from './home/sezioni'
+import { DallaProva } from './abbonamento/DallaProva'
 import { Indicatore, SchedaScelta } from './abbonamento/Passi'
 import { FORMULE, Listino } from './abbonamento/Listino'
 import { FirmaPad } from './FirmaPad'
@@ -437,6 +438,7 @@ export function Abbonamento() {
 
             {persona?.puo_comprare ? (
               <>
+                {persona.da_guest_pass && persona.inizio_min ? <DallaProva inizio={persona.inizio_min} quota={stato.quota_attivazione} /> : null}
                 <Listino piani={stato.piani} pianoId={pianoId} onScegli={setPianoId} />
                 <Text style={[stili.nota, { color: p.testoSecondario }]}>
                   {stato.quota_attivazione > 0
@@ -461,6 +463,11 @@ export function Abbonamento() {
               </Text>
             </Carta>
 
+            {persona.da_guest_pass && persona.inizio_min ? (
+              <Sezione titolo={t('Quando parte', 'When it starts')}>
+                <DallaProva inizio={persona.inizio_min} quota={stato.quota_attivazione} conData />
+              </Sezione>
+            ) : (
             <Sezione titolo={t('Quando parte', 'When it starts')}>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: spazio.due }}>
                 {giorni.map((g) => {
@@ -483,6 +490,7 @@ export function Abbonamento() {
                 {t('Puoi farlo partire oggi o fino a due settimane dopo. Si paga alla firma, ma la data decide cosa copre la prima quota.', 'You can start it today or up to two weeks later. You pay when you sign, but the start date decides what the first payment covers.')}
               </Text>
             </Sezione>
+            )}
 
             <Sezione titolo={t('Il tuo piano di pagamento', 'Your payment plan')}>
               {costi ? (
