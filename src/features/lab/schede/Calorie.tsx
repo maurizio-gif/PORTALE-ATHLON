@@ -8,12 +8,12 @@ import { spazio } from '@/theme'
 
 import { altezzaAl, dataCorta } from '../dati/calcoli'
 import { CHIAVE_MISURE } from '../dati/Misure'
+import { SceltaSesso } from '../dati/SceltaSesso'
 import { inMemoria, prendi, ricorda } from '../memoria'
 import { Foglio } from '../ui/Foglio'
 import { Icona } from '../ui/Icona'
 import { Carta, LinkSezione, Messaggio, Pulsante } from '../ui/kit'
 import { F, usePalette } from '../ui/tema'
-import { Tocco } from '../ui/Tocco'
 import { CHIAVE_STORICO } from './Storico'
 import {
   COSTANTE_SESSO,
@@ -88,35 +88,6 @@ export function useCorpo(conSedute = true): Corpo {
     }
   }, [conSedute])
   return { anagrafica, anagraficaLetta, misure, sesso, setSesso, sedute }
-}
-
-/** Uomo o donna, per la formula: due pulsanti uguali, e quello scelto pieno. */
-function SceltaSesso({ sesso, onScegli, inCorso }: { sesso: SessoCalcolo; onScegli: (s: 'm' | 'f') => void; inCorso: boolean }) {
-  const p = usePalette()
-  return (
-    <View style={{ flexDirection: 'row', gap: spazio.due }}>
-      {(
-        [
-          ['m', t('Uomo', 'Male')],
-          ['f', t('Donna', 'Female')],
-        ] as const
-      ).map(([v, testo]) => {
-        const scelto = sesso === v
-        return (
-          <Tocco
-            key={v}
-            vibra="scelta"
-            stato={{ selected: scelto, disabled: inCorso }}
-            onPress={() => !inCorso && onScegli(v)}
-            etichetta={t(`Calcola come ${testo.toLowerCase()}`, `Calculate as ${testo.toLowerCase()}`)}
-            style={[stili.scelta, { backgroundColor: scelto ? p.testo : p.carta, borderColor: scelto ? p.testo : p.linea }]}
-          >
-            <Text style={{ color: scelto ? p.fondo : p.testo, fontFamily: F.extra, fontSize: 15 }}>{testo}</Text>
-          </Tocco>
-        )
-      })}
-    </View>
-  )
 }
 
 function Cifra({ valore, etichetta, bordo }: { valore: string; etichetta: string; bordo: boolean }) {
@@ -406,6 +377,5 @@ const stili = StyleSheet.create({
   cifraValore: { fontFamily: F.extra, fontSize: 17, letterSpacing: -0.3 },
   cifraEtichetta: { fontFamily: F.semi, fontSize: 11, textAlign: 'center' },
   domanda: { gap: spazio.due + 2, borderRadius: 18, padding: spazio.tre },
-  scelta: { flex: 1, minHeight: 48, borderRadius: 999, borderWidth: StyleSheet.hairlineWidth, alignItems: 'center', justifyContent: 'center' },
   avviso: { flexDirection: 'row', gap: spazio.due, borderRadius: 16, padding: spazio.tre, alignItems: 'flex-start' },
 })

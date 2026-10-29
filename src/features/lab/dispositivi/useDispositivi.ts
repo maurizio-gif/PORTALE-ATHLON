@@ -40,9 +40,6 @@ export function relaxAperto(s: EsitoStato | null): boolean {
   return !!s && s.ok && s.maggiorenne
 }
 
-/** C'e' almeno un dispositivo che il socio puo' collegare adesso (il club ha registrato le sue applicazioni). */
-export const dispositiviCollegabili = (s: EsitoStato | null): boolean => !!s && s.ok && s.fornitori.some((f) => f.disponibile)
-
 export function useDispositivi(): Dispositivi {
   const vista = !!vistaCorrente()
   const [stato, setStato] = useState<EsitoStato | null>(() => (vista ? null : (inMemoria<EsitoStato>(CHIAVE_STATO) ?? null)))

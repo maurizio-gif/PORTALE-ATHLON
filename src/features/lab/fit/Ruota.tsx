@@ -55,7 +55,7 @@ const OMBRA_A = 58
 export const SPICCHI = [
   { nome: 'Train', colore: '#FF5701' },
   { nome: 'Food', colore: '#18A957' },
-  { nome: 'Relax', colore: '#14B8A6' },
+  { nome: 'Recover', colore: '#14B8A6' },
 ] as const
 
 const chiaro = (c: string) => mescola(c, '#FFFFFF', 0.34)
@@ -276,7 +276,7 @@ export function RuotaBenessere() {
   const scena = useDerivedValue(() => scenaDa(s.value))
 
   return (
-    <View style={stili.ruota} accessibilityRole="image" accessibilityLabel={t('Train, Food e Relax: tre frecce che si rincorrono in cerchio. Il benessere è il loro equilibrio.', 'Train, Food and Relax: three arrows chasing each other in a circle. Wellbeing is the balance between them.')}>
+    <View style={stili.ruota} accessibilityRole="image" accessibilityLabel={t('Train, Food e Recover: tre frecce che si rincorrono in cerchio. Il benessere è il loro equilibrio.', 'Train, Food and Recover: three arrows chasing each other in a circle. Wellbeing is the balance between them.')}>
       <Ombra scena={scena} scuro={p.scuro} />
       <Strato h={-3} scena={scena} figli={<Base scuro={p.scuro} />} />
       {Array.from({ length: PARETI }, (_, k) => (

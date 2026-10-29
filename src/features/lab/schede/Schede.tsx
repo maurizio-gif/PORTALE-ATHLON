@@ -1,6 +1,6 @@
 import { LinearGradient } from 'expo-linear-gradient'
 import { router, useLocalSearchParams } from 'expo-router'
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { StyleSheet, Text, useWindowDimensions, View } from 'react-native'
 
 import { elencoMisure, elencoSchede, type Misura, type RigaSchedaLab, type SedutaBreve, type StatoTest } from '@/api/lab'
@@ -20,6 +20,9 @@ import { AreaFood } from '../fit/Food'
 import { AreaRelax } from '../fit/Relax'
 import { IntroFit } from '../fit/Intro'
 import { VideoIntro } from '../fit/VideoIntro'
+import { CartaDatiDaCompilare } from '../fit/DatiDaCompilare'
+import { InvitoSaluteAllApertura } from '../fit/InvitoSalute'
+import { useDatiCorpo } from '../fit/useDatiCorpo'
 import { useFit } from '../fit/useFit'
 import { CHIAVE_MISURE } from '../dati/Misure'
 import { inMemoria, prendi } from '../memoria'
@@ -46,9 +49,15 @@ import { eDiVasca, ETICHETTA_VASCA } from './nuoto'
 //     e' il titolo di niente: sta nelle postille) e, dopo, farsi seguire da un personal trainer (porta alla prenotazione,
 //     /personal); i tuoi piani in fondo, e gli ultimi allenamenti;
 //   - Food: la porta del diario dei pasti (fit/Food.tsx);
-//   - Relax: il recupero, col sonno che il socio scrive ogni mattina e, dove ci sono, i dati dell'anello
-//     Oura o dell'orologio Polar (fit/Relax.tsx). **L'area c'e' per tutti i maggiorenni** (20/10/2026):
-//     il sonno a mano non ha bisogno di un dispositivo; i dispositivi sono un modo in piu'.
+//   - Relax (che nelle parole che si leggono e' **«Recover»** dal 29/10/2026; il codice e `?area=relax` restano): il recupero, col sonno che il
+//     socio scrive ogni mattina e quello che arriva dai suoi dispositivi tramite Apple Salute (fit/Relax.tsx). **L'area c'e' per tutti i
+//     maggiorenni** (20/10/2026): il sonno a mano non ha bisogno di un dispositivo; i dispositivi sono un modo in piu'.
+// **I dati del corpo da compilare** (29/10/2026, richiesta di Maurizio): altezza, peso e sesso. **Non bloccano la sezione** (prima la chiudevano:
+// si e' scelto il blocco morbido, perche' tutto l'uso della sezione non puo' dipendere dal consenso a dati sulla salute e il resto non li usa).
+// Finche' mancano, subito sotto il video c'e' la carta «Da compilare» (`fit/DatiDaCompilare.tsx`), e calorie e Balance restano chiusi (lo dicono
+// loro). `useDatiCorpo` rilegge a ogni ritorno sulla schermata: inseriti i dati, la carta sparisce e il contenuto si rifa' coi dati freschi.
+// **L'invito a collegare l'app Salute** compare all'apertura, una volta sola per dispositivo (`fit/InvitoSalute.tsx`); se la persona lo salta,
+// resta in evidenza la carta «Da attivare» (`fit/CartaDispositivi.tsx`).
 // L'area scelta sta nell'indirizzo (`?area=food`, `?area=relax`), cosi' tornando indietro dal
 // diario o dai dispositivi si ritrova la sua area. L'indirizzo resta /allenamento: e' quello dei link gia' dati.
 
@@ -286,6 +295,44 @@ function SchedaCarta({ s, indice }: { s: RigaSchedaLab; indice: number }) {
 
 export function Schede() {
   const { width: larghezza } = useWindowDimensions()
+  const lingua = useLingua()
+  const dati = useDatiCorpo()
+  const largo = larghezza >= LARGO
+  const daCompilare = dati.stato === 'mancano' ? dati : null
+  // Quando i dati vengono inseriti (da «Il tuo corpo», sopra questa schermata) il contenuto si rifa' da zero: `useFit` e le misure sono
+  // quelli di prima dei dati, e le schermate sotto la pila non si rifanno da capo. Si rifa' solo in quel passaggio, non alla prima lettura.
+  const [versione, setVersione] = useState(0)
+  const mancavano = useRef(false)
+  useEffect(() => {
+    if (dati.stato === 'mancano') mancavano.current = true
+    else if (mancavano.current && dati.stato === 'completi') {
+      mancavano.current = false
+      setVersione((v) => v + 1)
+    }
+  }, [dati.stato])
+  return (
+    <Schermata titolo="Athlon Health System" sottotitolo={t('Allenamento, alimentazione e recupero.', 'Training, nutrition and recovery.')}>
+      {/* In cima, il video (25/10/2026, richiesta di Maurizio): parte da solo all'apertura, comincia dalla ruota Train · Food · Relax
+          e spiega come si arriva a 100. In inglese, o se non si carica, resta la ruota (fit/VideoIntro.tsx). Sta sopra a tutto
+          e non riparte quando la carta dei dati compare o sparisce. */}
+      <Entra indice={0}>
+        <VideoIntro lingua={lingua} />
+      </Entra>
+      {daCompilare ? (
+        <Entra indice={0}>
+          <CartaDatiDaCompilare mancano={daCompilare.mancano} senzaConsenso={daCompilare.senzaConsenso} />
+        </Entra>
+      ) : null}
+      <ContenutoHub key={versione} largo={largo} corpoInCima={!!daCompilare} />
+    </Schermata>
+  )
+}
+
+/**
+ * Tutto quello che sta sotto il video (e sotto la carta dei dati, se manca). **E' un componente a parte** perche' ha i suoi dati
+ * (`useFit`, `useDispositivi`, le misure) e `Schede` lo rifa' da zero quando la persona inserisce i dati del corpo, cosi' li legge freschi.
+ */
+function ContenutoHub({ largo, corpoInCima }: { largo: boolean; /** La carta «Da compilare» e' gia' sopra, al posto di «I tuoi dati»: non si invita due volte a fare la stessa cosa. */ corpoInCima: boolean }) {
   const [dati, setDati] = useState<Dati | null>(() => inMemoria<Dati>(CHIAVE_SCHEDE) ?? null)
   const [errore, setErrore] = useState<string | null>(null)
   const [misure, setMisure] = useState<Misura[] | null>(() => inMemoria<{ misure: Misura[] }>(CHIAVE_MISURE)?.misure ?? null)
@@ -312,23 +359,15 @@ export function Schede() {
 
   const fit = useFit()
   const disp = useDispositivi()
-  const lingua = useLingua()
   const conRelax = relaxAperto(disp.stato)
   const { area: parametro } = useLocalSearchParams<{ area?: string }>()
   // Relax solo dove e' aperto; mentre non si sa ancora (stato non arrivato) l'indirizzo vale.
   const area: Area = parametro === 'food' ? 'food' : parametro === 'relax' && (conRelax || (!disp.stato && !disp.vista)) ? 'relax' : 'train'
   const scegli = (a: Area) => router.setParams({ area: a })
-  // Su schermo largo (15/10/2026), come Prenotazioni: le card in fila e le
-  // schede su piu' colonne.
-  const largo = larghezza >= LARGO
+  // Su schermo largo (15/10/2026), come Prenotazioni: le card in fila e le schede su piu' colonne (`largo`, dal genitore).
 
   return (
-    <Schermata titolo="Athlon Health System" sottotitolo={t('Allenamento, alimentazione e recupero.', 'Training, nutrition and recovery.')}>
-      {/* In cima, il video (25/10/2026, richiesta di Maurizio): parte da solo all'apertura, comincia dalla ruota Train · Food · Relax
-          e spiega come si arriva a 100. In inglese, o se non si carica, resta la ruota (fit/VideoIntro.tsx). */}
-      <Entra indice={0}>
-        <VideoIntro lingua={lingua} />
-      </Entra>
+    <>
       <Entra indice={0}>
         <CartaPunteggio fit={fit} disp={disp} />
       </Entra>
@@ -340,9 +379,11 @@ export function Schede() {
             <IntroFit relax={conRelax} />
           </Entra>
           <View style={{ flex: 1, gap: spazio.tre }}>
-            <Entra indice={1}>
-              <CartaCorpo misure={misure} senzaConsenso={senzaConsenso} />
-            </Entra>
+            {corpoInCima ? null : (
+              <Entra indice={1}>
+                <CartaCorpo misure={misure} senzaConsenso={senzaConsenso} />
+              </Entra>
+            )}
             <Entra indice={1}>
               <CartaDispositivi disp={disp} />
             </Entra>
@@ -356,9 +397,11 @@ export function Schede() {
           <Entra indice={0}>
             <IntroFit relax={conRelax} />
           </Entra>
-          <Entra indice={1}>
-            <CartaCorpo misure={misure} senzaConsenso={senzaConsenso} />
-          </Entra>
+          {corpoInCima ? null : (
+            <Entra indice={1}>
+              <CartaCorpo misure={misure} senzaConsenso={senzaConsenso} />
+            </Entra>
+          )}
           <Entra indice={1}>
             <CartaDispositivi disp={disp} />
           </Entra>
@@ -388,7 +431,8 @@ export function Schede() {
       ) : (
         <Train dati={dati} largo={largo} disp={disp} />
       )}
-    </Schermata>
+      <InvitoSaluteAllApertura disp={disp} />
+    </>
   )
 }
 
@@ -501,7 +545,7 @@ function Interruttore({ area, onScegli, relax }: { area: Area; onScegli: (a: Are
   const voci: { id: Area; nome: string; icona: NomeIcona }[] = [
     { id: 'train', nome: 'Train', icona: 'peso' },
     { id: 'food', nome: 'Food', icona: 'piatto' },
-    ...(relax ? [{ id: 'relax' as const, nome: 'Relax', icona: 'foglia' as const }] : []),
+    ...(relax ? [{ id: 'relax' as const, nome: 'Recover', icona: 'foglia' as const }] : []),
   ]
   return (
     <View style={[stili.interruttore, { backgroundColor: p.incavo }]} accessibilityRole="tablist">

@@ -22,7 +22,7 @@ import { ComeLeggere } from './Balance'
 const PARTI: { nome: string; icona: NomeIcona; colore: string; testo: string }[] = [
   { nome: 'Train', icona: 'peso', colore: '#FF5701', testo: t('allenarsi il giusto, non troppo. Qui i tuoi piani di allenamento, il registro dei pesi, il test dei massimali e le calorie che consumi.', 'training the right amount, not too much. Here you’ll find your workout plans, your weight log, the one-rep max test and the calories you burn.') },
   { nome: 'Food', icona: 'piatto', colore: '#18A957', testo: t('mangiare bene. Il diario dei pasti, la foto del piatto e i consigli; si apre dopo aver accettato la sua informativa, e i dati li vedi solo tu.', 'eating well. The meal diary, the photo of your plate and tips; it opens once you accept its privacy notice, and only you see the data.') },
-  { nome: 'Relax', icona: 'foglia', colore: '#14B8A6', testo: t('recuperare. Il sonno e i giorni di riposo fanno parte dell’allenamento: è lì che il corpo si rimette in forze.', 'recovering. Sleep and rest days are part of training: that’s when your body gets its strength back.') },
+  { nome: 'Recover', icona: 'foglia', colore: '#14B8A6', testo: t('recuperare. Il sonno e i giorni di riposo fanno parte dell’allenamento: è lì che il corpo si rimette in forze.', 'recovering. Sleep and rest days are part of training: that’s when your body gets its strength back.') },
 ]
 
 export function IntroFit({ relax = false }: { relax?: boolean }) {
@@ -43,7 +43,7 @@ export function IntroFit({ relax = false }: { relax?: boolean }) {
             <Text style={[stili.testo, { color: p.testoSecondario, flex: 1 }]}>
               <Text style={{ fontFamily: F.extra, color: p.testo }}>{`${x.nome}: `}</Text>
               {x.testo}
-              {x.nome === 'Relax' && relax ? t(' Ogni mattina scrivi quanto hai dormito, o collega un anello Oura o un orologio Polar: il sonno arriva da solo.', ' Each morning, log how long you slept, or connect an Oura ring or a Polar watch: your sleep comes in by itself.') : ''}
+              {x.nome === 'Recover' && relax ? t(' Ogni mattina scrivi quanto hai dormito, o collega il tuo orologio, il tuo anello o la tua app di fitness da Apple Salute o Health Connect: il sonno arriva da solo.', ' Each morning, log how long you slept, or connect your watch, ring or fitness app through Apple Health or Health Connect: your sleep comes in by itself.') : ''}
             </Text>
           </View>
         ))}

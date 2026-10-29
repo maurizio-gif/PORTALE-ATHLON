@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { ScrollView, StyleSheet, Text, TextInput, View } from 'react-native'
 
-import { eliminaMisura, elencoMisure, salvaMisura, type ConsensoCorpo, type Misura, type NuovaMisura } from '@/api/lab'
+import { eliminaMisura, elencoMisure, salvaMisura, salvaSessoCalcolo, type ConsensoCorpo, type Misura, type NuovaMisura, type SessoCalcolo } from '@/api/lab'
 import { CampoData } from '@/components/CampoData'
 import { t } from '@/lib/lingua'
 import { spazio } from '@/theme'
 
-import { dimentica, inMemoria, prendi } from '../memoria'
+import { dimentica, inMemoria, prendi, ricorda } from '../memoria'
 import { Foglio } from '../ui/Foglio'
 import { Icona } from '../ui/Icona'
 import { Carta, Entra, Messaggio, Numero, Pulsante, SchedeInArrivo, Sezione, Tag } from '../ui/kit'
@@ -16,6 +16,7 @@ import { colpetto, Tocco } from '../ui/Tocco'
 import { altezzaAl, bmi, dataCorta, differenza, fasciaBmi, METRICHE, numero, oggi, serie, valore, type Metrica } from './calcoli'
 import { ConsensoCorpo as PaginaConsenso, ImpostazioniCorpo } from './ConsensoCorpo'
 import { Grafico } from './Grafico'
+import { SceltaSesso } from './SceltaSesso'
 
 // Athlon Health System -> Il tuo corpo (16/10/2026; in cima dal 19/10): altezza e peso (col BMI), e se il socio
 // li ha le circonferenze e la composizione (massa grassa e magra). In cima
@@ -31,6 +32,10 @@ import { Grafico } from './Grafico'
 // restituisce (`consenso: null`) e questa schermata mostra la pagina del consenso (ConsensoCorpo.tsx) al posto dei dati;
 // con il consenso, in fondo, l'informativa e il pulsante per ritirarlo. `consenso` assente (`undefined`) e' una
 // funzione che non lo conosce ancora: la schermata e' quella di sempre, senza blocco e senza comando.
+//
+// **Il sesso si sceglie anche da qui** (29/10/2026, richiesta di Maurizio: altezza, peso e sesso sono i dati da compilare per le calorie di
+// Athlon Health System): prima lo sceglieva solo chi apriva le calorie di una scheda. Una carta con i due pulsanti, in cima e in evidenza
+// finche' manca, in fondo (cambiabile) quando c'e'. Si salva al tocco, come nelle calorie.
 
 export const CHIAVE_MISURE = 'misure:elenco'
 
@@ -271,9 +276,33 @@ function BarraBmi({ v }: { v: number }) {
   )
 }
 
+/** Il sesso per la formula delle calorie: in cima e in evidenza finche' manca (e' uno dei tre dati da compilare per le calorie). */
+function CartaSesso({ sesso, inCorso, errore, onScegli }: { sesso: SessoCalcolo; inCorso: boolean; errore: string | null; onScegli: (s: 'm' | 'f') => void }) {
+  const p = usePalette()
+  const manca = !sesso
+  return (
+    <Carta style={[{ gap: spazio.due + 2 }, manca && { borderColor: p.accento, borderWidth: 2 }]}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: spazio.due, flexWrap: 'wrap' }}>
+        <Text style={[stili.titolo, { color: p.testo }]}>{t('Sesso', 'Sex')}</Text>
+        {manca ? <Tag testo={t('Da compilare', 'To fill in')} colore={p.accento} /> : null}
+      </View>
+      <Text style={[stili.nota, { color: p.testoSecondario }]}>
+        {manca
+          ? t('Serve alla formula con cui stimiamo le calorie. Lo scegli tu, e puoi cambiarlo quando vuoi.', 'It’s needed for the formula we use to estimate calories. You choose it, and you can change it any time.')
+          : t('Serve alla formula con cui stimiamo le calorie. Puoi cambiarlo quando vuoi.', 'It’s needed for the formula we use to estimate calories. You can change it any time.')}
+      </Text>
+      <SceltaSesso sesso={sesso} onScegli={onScegli} inCorso={inCorso} />
+      {errore ? <Messaggio>{errore}</Messaggio> : null}
+    </Carta>
+  )
+}
+
 export function Misure() {
   const p = usePalette()
   const [misure, setMisure] = useState<Misura[] | null>(() => inMemoria<{ misure: Misura[] }>(CHIAVE_MISURE)?.misure ?? null)
+  const [sesso, setSesso] = useState<SessoCalcolo>(() => inMemoria<{ sesso?: SessoCalcolo }>(CHIAVE_MISURE)?.sesso ?? null)
+  const [salvandoSesso, setSalvandoSesso] = useState(false)
+  const [erroreSesso, setErroreSesso] = useState<string | null>(null)
   // null: la funzione dice che manca il consenso; undefined: non si sa (o una funzione che non lo conosce).
   const [consenso, setConsenso] = useState<ConsensoCorpo | null | undefined>(() => inMemoria<{ consenso?: ConsensoCorpo | null }>(CHIAVE_MISURE)?.consenso)
   const [errore, setErrore] = useState<string | null>(null)
@@ -285,9 +314,27 @@ export function Misure() {
     const r = await prendi(CHIAVE_MISURE, elencoMisure)
     if (r.ok) {
       setMisure(r.misure)
+      setSesso(r.sesso)
       setConsenso(r.consenso)
     } else setErrore(r.errore)
   }, [])
+
+  async function scegliSesso(s: 'm' | 'f') {
+    const prima = sesso
+    setErroreSesso(null)
+    setSesso(s)
+    setSalvandoSesso(true)
+    const r = await salvaSessoCalcolo(s)
+    setSalvandoSesso(false)
+    if (!r.ok) {
+      setSesso(prima)
+      return setErroreSesso(r.errore)
+    }
+    // Lo leggono anche Athlon Health System (il blocco dei dati obbligatori) e le calorie.
+    const m = inMemoria<{ ok: true; misure: Misura[]; sesso: SessoCalcolo; consenso?: ConsensoCorpo | null }>(CHIAVE_MISURE)
+    if (m) ricorda(CHIAVE_MISURE, { ...m, sesso: s })
+  }
+  const cartaSesso = <CartaSesso sesso={sesso} inCorso={salvandoSesso} errore={erroreSesso} onScegli={scegliSesso} />
 
   // Dopo il consenso o la revoca cambia tutto quello che dipende dalle misure (Fit, Balance, calorie): si butta la memoria.
   const rileggi = () => {
@@ -356,6 +403,7 @@ export function Misure() {
           </Text>
           <Pulsante testo={t('Aggiungi i tuoi dati', 'Add your details')} icona="piu" onPress={nuova} />
         </Carta>
+        {cartaSesso}
         {impostazioni}
         {foglio}
       </Schermata>
@@ -382,6 +430,7 @@ export function Misure() {
 
   return (
     <Schermata sopratitolo="Athlon Health System" titolo={t('Il tuo corpo', 'Your body')} indietro="/allenamento" barra={false}>
+      {!sesso ? cartaSesso : null}
       <Entra indice={0}>
         <Carta style={{ gap: spazio.tre }}>
           <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: spazio.tre }}>
@@ -506,6 +555,7 @@ export function Misure() {
         </Carta>
       </Sezione>
 
+      {sesso ? cartaSesso : null}
       {impostazioni}
       {foglio}
     </Schermata>

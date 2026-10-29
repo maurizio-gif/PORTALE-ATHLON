@@ -1,0 +1,485 @@
+[
+  {
+    "id": "applewatch",
+    "nome": "Apple Watch",
+    "categoria": "orologio",
+    "apple": {
+      "verdetto": "confermato",
+      "url": "https://support.apple.com/en-us/104997",
+      "dati": {
+        "scrive": ["attività (Activity), tracciata in automatico dall'Apple Watch"],
+        "legge": []
+      },
+      "nota": "Nativo: i dati dell'Apple Watch arrivano da soli nell'app Salute dell'iPhone. La pagina dice anche che le app dell'Apple Watch possono leggere e scrivere dati Salute. Non e' una connessione da attivare. Altri tipi di dato (frequenza cardiaca, ossigeno ecc.) non sono elencati nella pagina letta."
+    },
+    "google": {
+      "verdetto": "non supportato",
+      "url": "https://support.apple.com/en-us/109015",
+      "dati": null,
+      "nota": "Apple dice che per configurare l'Apple Watch serve un iPhone (la pagina non nomina Android: e' una deduzione dal requisito). Un Apple Watch non puo' scrivere in Health Connect."
+    },
+    "nome_app": "Salute (sull'iPhone; l'Apple Watch si gestisce con l'app Watch)"
+  },
+  {
+    "id": "garmin",
+    "nome": "Garmin",
+    "categoria": "orologio",
+    "apple": {
+      "verdetto": "confermato",
+      "url": "https://support.garmin.com/en-US/?faq=lK5FPB9iPF5PXFkIpFlFPA",
+      "dati": {
+        "scrive": ["calorie attive", "calorie a riposo", "frequenza cardiaca (tutto il giorno; per le attivita' solo valori massimo e minimo)", "analisi del sonno", "passi", "distanza camminata + corsa", "piani saliti", "peso", "massa grassa", "IMC", "acqua", "allenamenti (senza traccia GPS)"],
+        "legge": []
+      },
+      "nota": "Solo in una direzione: Garmin Connect scrive su Salute e non legge nulla da Salute ne' dall'Apple Watch. Attivazione: Garmin Connect > Altro > Impostazioni > App connesse > Apple Health > Collega, poi scegliere le categorie. Garmin Connect deve essere aperta in primo piano perche' il trasferimento avvenga. Dopo l'attivazione Salute importa fino a 2 settimane di storico. Se i dati non compaiono bisogna alzare la priorita' di Garmin Connect nelle origini dati di Salute. Gli anelli di Salute si muovono solo con l'Apple Watch. Se all'account e' associato solo un ciclocomputer Edge, Garmin Connect non compare in Salute. HRV e Body Battery non sono nell'elenco."
+    },
+    "google": {
+      "verdetto": "confermato",
+      "url": "https://support.garmin.com/en-US/?faq=JToBEy0jfe6pIygark2Ui5",
+      "dati": {
+        "scrive": ["calorie attive e totali", "cadenza di pedalata", "distanza", "dislivello positivo", "frequenza cardiaca", "velocita'", "passi (e distanza dei passi)", "bracciate nel nuoto", "massa grassa", "piani saliti", "fasi del sonno", "peso"],
+        "legge": []
+      },
+      "nota": "Solo in una direzione (Garmin non legge nulla da Health Connect). Funzione disponibile solo con Android 14 o successivo. Dopo l'attivazione i dati vanno a Health Connect a ogni sincronizzazione riuscita del dispositivo. La procedura puo' cambiare a seconda del modello di telefono Android."
+    },
+    "nome_app": "Garmin Connect"
+  },
+  {
+    "id": "fitbit",
+    "nome": "Fitbit (tracker e Fitbit Air)",
+    "categoria": "fascia",
+    "apple": {
+      "verdetto": "confermato",
+      "url": "https://support.google.com/googlehealth/answer/17037331",
+      "dati": {
+        "scrive": ["passi", "VO2 max", "piani", "calorie attive", "distanza", "esercizio e percorsi", "temperatura corporea", "sonno (sessioni e fasi)", "frequenza cardiaca", "saturazione di ossigeno", "frequenza respiratoria", "frequenza cardiaca a riposo", "glicemia", "peso e % di grasso", "nutrizione e acqua", "mindfulness", "salute del ciclo"],
+        "legge": ["come sopra, piu' temperatura cutanea e variabilita' della frequenza cardiaca (HRV)"]
+      },
+      "nota": "Da maggio 2026 l'app Fitbit si chiama Google Health. La pagina ufficiale descrive uno scambio in due direzioni con Apple Health (HRV e temperatura cutanea solo in lettura, non vengono riscritte). Serve iOS 16.4 o successivo e un account Google per adulti (un account Fitbit va prima migrato). Si attiva in Google Health > Connessioni > App e servizi > Apple Health > Inizia. Salute mostra fino a 3 mesi di storico. Dopo la disconnessione i permessi restano attivi in Salute: per toglierli si usa l'app Salute. I tracker Fitbit si configurano anche da iPhone con l'app Google Health (https://support.google.com/googlehealth/answer/14236818)."
+    },
+    "google": {
+      "verdetto": "confermato",
+      "url": "https://support.google.com/googlehealth/answer/14506680",
+      "dati": {
+        "scrive": ["passi", "VO2 max", "piani", "distanza", "esercizio (anche velocita', cadenza, dislivello, percorso)", "calorie", "frequenza cardiaca", "HRV", "frequenza cardiaca a riposo", "frequenza respiratoria", "temperatura cutanea", "glicemia", "peso e grasso", "idratazione e nutrizione", "sonno", "temperatura corporea", "ciclo (solo mestruazioni, flusso, spotting)"],
+        "legge": ["passi", "VO2 max", "piani", "distanza", "esercizio", "calorie", "frequenza cardiaca", "HRV", "frequenza cardiaca a riposo", "saturazione di ossigeno", "frequenza respiratoria", "temperatura cutanea", "glicemia", "peso e grasso", "idratazione e nutrizione", "sonno", "temperatura corporea", "ciclo", "benessere mentale", "cartelle mediche"]
+      },
+      "nota": "Scambio in due direzioni; servono Android 9 o successivo per Health Connect e un account Google per adulti. Ci vogliono i permessi su entrambi i lati (l'altra app deve poter scrivere, Google Health deve poter leggere). L'app Google Health richiede Android 11 o successivo (pagina Pixel Watch). Per i dati nuovi bisogna concedere i permessi, contrassegnati con «NUOVO». Dopo la disconnessione i permessi restano in Health Connect se non li si toglie."
+    },
+    "nome_app": "Google Health (dal 19 maggio 2026 al posto dell'app Fitbit: https://support.google.com/googlehealth/answer/17068213)"
+  },
+  {
+    "id": "pixelwatch",
+    "nome": "Google Pixel Watch",
+    "categoria": "orologio",
+    "apple": {
+      "verdetto": "non supportato",
+      "url": "https://support.google.com/googlepixelwatch/answer/12652073",
+      "dati": null,
+      "nota": "La pagina ufficiale sui requisiti dice «iPhones aren't supported»: il Pixel Watch si usa solo con telefoni Android, quindi non scrive su Apple Health."
+    },
+    "google": {
+      "verdetto": "confermato",
+      "url": "https://support.google.com/googlehealth/answer/14506680",
+      "dati": {
+        "scrive": ["gli stessi tipi di dato che l'app Google Health scambia con Health Connect (vedi la riga «fitbit»)"],
+        "legge": []
+      },
+      "nota": "Il Pixel Watch si sincronizza da solo con l'app Google Health sul telefono (https://support.google.com/googlehealth/answer/14237107, che non nomina Health Connect); l'app a sua volta scambia dati con Health Connect (pagina indicata sopra): il legame orologio -> Health Connect e' quindi dedotto da due pagine ufficiali, non scritto in una sola."
+    },
+    "nome_app": "Google Health (insieme all'app Google Pixel Watch per la configurazione)"
+  },
+  {
+    "id": "polar",
+    "nome": "Polar",
+    "categoria": "orologio",
+    "apple": {
+      "verdetto": "confermato",
+      "url": "https://support.polar.com/us-en/support/connecting_polar_flow_with_apple_health",
+      "dati": {
+        "scrive": ["energia attiva", "frequenza cardiaca (solo durante gli allenamenti)", "energia a riposo", "analisi del sonno", "passi", "peso", "allenamenti"],
+        "legge": []
+      },
+      "nota": "Solo da Polar Flow a Salute (non torna nulla). Attivazione: Polar Flow > Altro > Impostazioni generali > interruttore Apple Health, scegliere le categorie, Consenti. La frequenza cardiaca continua non viene sincronizzata. Passano solo i dati creati dopo il collegamento («Sync now» rimanda le ultime 2 settimane). Salute puo' ignorare i dati Polar se Polar Flow non e' in cima alle origini dati."
+    },
+    "google": {
+      "verdetto": "confermato",
+      "url": "https://support.polar.com/en/flow-app-health-connect",
+      "dati": {
+        "scrive": ["calorie attive", "calorie totali", "distanza", "esercizio (inizio, fine, giri)", "percorso dell'esercizio", "frequenza cardiaca (durante gli allenamenti)", "frequenza cardiaca a riposo", "altezza", "peso", "saturazione di ossigeno", "sonno (fasi)", "velocita'", "passi (giornalieri)", "VO2 max"],
+        "legge": []
+      },
+      "nota": "Solo da Polar Flow a Health Connect. Si attiva in Flow > Impostazioni generali > Health Connect (se manca, si passa dal Play Store), poi si scelgono i dati e si tocca Consenti; «Gestisci autorizzazioni» per cambiarli. Distanza, percorsi e giri compaiono solo se presenti nell'allenamento. Solo nell'app Flow per Android."
+    },
+    "nome_app": "Polar Flow"
+  },
+  {
+    "id": "oura",
+    "nome": "Oura",
+    "categoria": "anello",
+    "apple": {
+      "verdetto": "confermato",
+      "url": "https://support.ouraring.com/hc/en-us/articles/360025438734-Apple-Health-Integration",
+      "dati": {
+        "scrive": ["energia attiva", "frequenza cardiaca (intervalli di 1 minuto)", "altezza", "minuti di consapevolezza", "frequenza respiratoria (media notturna)", "sonno (durata, orari, fasi)", "passi", "peso", "percorsi degli allenamenti", "allenamenti"],
+        "legge": ["energia attiva", "pressione", "% di grasso corporeo", "fitness cardio", "data di nascita", "frequenza cardiaca", "altezza", "massa magra", "frequenza respiratoria", "energia a riposo", "sesso", "sonno", "passi", "peso", "percorsi degli allenamenti", "allenamenti"]
+      },
+      "nota": "Due direzioni. Disponibile per anello Gen2, o Gen3 e successivi con abbonamento attivo; solo iOS. Si attiva in Oura > Impostazioni > Condivisione dati > Apple Health > «Connetti a Salute». Altezza, peso, eta' e sesso importati da Salute non si modificano in Oura finche' non si scollega. Serve aprire sia Oura sia Salute almeno una volta al giorno (prima di mezzanotte): Aggiornamento app in background o Risparmio energetico possono bloccare le importazioni. La pagina non elenca la variabilita' cardiaca (HRV) fra i dati scritti su Apple Health."
+    },
+    "google": {
+      "verdetto": "confermato",
+      "url": "https://support.ouraring.com/hc/en-us/articles/10786105824531-Health-Connect-by-Android-Integration",
+      "dati": {
+        "scrive": ["calorie attive", "distanza", "esercizio", "passi", "altezza", "peso", "sonno", "frequenza cardiaca", "HRV"],
+        "legge": ["calorie attive", "distanza", "esercizio", "potenza", "passi", "calorie totali", "VO2 max", "peso", "pressione", "frequenza cardiaca"]
+      },
+      "nota": "Due direzioni. Anello Gen2, o Gen3 e successivi con abbonamento attivo; solo Android. Si attiva in Oura > Impostazioni > Condivisione dati > Health Connect e si scelgono i dati con gli interruttori. Oura registra solo le calorie attive (non il metabolismo basale). Stesso avviso di aprire le due app ogni giorno. Google Fit non e' piu' disponibile."
+    },
+    "nome_app": "Oura"
+  },
+  {
+    "id": "whoop",
+    "nome": "WHOOP",
+    "categoria": "fascia",
+    "apple": {
+      "verdetto": "confermato",
+      "url": "https://support.whoop.com/s/article/Apple-Health-Integration?language=en_US",
+      "dati": {
+        "scrive": ["allenamenti (rilevati in automatico)", "energia attiva", "frequenza cardiaca (durante sonno e attivita')", "sonno", "frequenza cardiaca a riposo", "frequenza respiratoria", "saturazione di ossigeno", "passi (se attivati nelle impostazioni WHOOP)"],
+        "legge": ["allenamenti", "percorsi", "energia attiva", "distanza", "minuti di consapevolezza", "peso e altezza", "frequenza cardiaca (durante le attivita')"]
+      },
+      "nota": "Due direzioni; pagina aggiornata il 16-apr-2026. Si attiva in WHOOP > Altro > Impostazioni app > Integrazioni > Apple Health > Connetti. WHOOP NON esporta la HRV su Apple Health (usa RMSSD, Salute usa SDNN); ECG e Blood Pressure Insights di WHOOP MG non vengono esportati. Un allenamento importato da Salute sovrascrive quello rilevato da WHOOP se si sovrappongono; per evitare doppioni si puo' spegnere «Allenamenti» fra i dati scritti. Se si reinstalla WHOOP va riattivata l'integrazione."
+    },
+    "google": {
+      "verdetto": "confermato",
+      "url": "https://support.whoop.com/s/article/Google-Health-Integration-For-Android?language=en_US",
+      "dati": {
+        "scrive": ["esercizio (attivita')", "calorie", "passi", "sonno", "frequenza cardiaca a riposo", "frequenza respiratoria", "saturazione di ossigeno"],
+        "legge": ["esercizio (attivita')", "distanza", "calorie", "peso", "altezza", "grasso corporeo", "massa magra"]
+      },
+      "nota": "Due direzioni; pagina del 6-ott-2025. Si attiva in WHOOP > Altro > Account e impostazioni > Integrazioni > Health Connect > Set Up. Disponibile a tutti i soci, ma alcuni dati dipendono dall'abbonamento (WHOOP Peak aggiunge i dati Health Monitor come frequenza a riposo e respiratoria; WHOOP Life/MG non sincronizza Heart Screener ne' Blood Pressure Insights). Non vengono sincronizzati VO2 Max, WHOOP Age, Pace of Aging. Reinstallando l'app va riattivata l'integrazione. Su forum della community alcuni utenti avevano segnalato che i passi non arrivavano: la pagina ufficiale li elenca come esportati."
+    },
+    "nome_app": "WHOOP"
+  },
+  {
+    "id": "withings",
+    "nome": "Withings",
+    "categoria": "orologio",
+    "apple": {
+      "verdetto": "confermato",
+      "url": "https://support.withings.com/hc/en-us/articles/46746224229777-Partner-Apps-Apple-Health-Exporting-Withings-data-into-Apple-Health",
+      "dati": {
+        "scrive": ["categorie di dato Withings a scelta dell'utente (la pagina non le elenca)"],
+        "legge": ["passi (solo quelli del contapassi dell'iPhone e dell'Apple Watch)", "altre categorie scelte dall'utente (non elencate nella pagina letta)"]
+      },
+      "nota": "ATTENZIONE: dall'autunno 2026 (account creati dal 13 ottobre 2026 in poi) serve un abbonamento Withings+ per esportare i dati verso app di terzi come Apple Health e Health Connect; gli account precedenti restano gratuiti (disclaimer sulla pagina ufficiale; il prezzo non e' scritto da Withings). Per un limite di iOS la sincronizzazione non e' automatica: si apre l'app Withings, poi Salute, poi si torna a Withings e si trascina verso il basso la Home per aggiornare, ogni volta. Attivazione: Withings > Profilo > Impostazioni (ingranaggio) > «Esporta dati salute su Apple Health». Per importare Salute in Withings: Condividi > Salute (pagina https://support.withings.com/hc/en-us/articles/203728916-Partner-Apps-Apple-Health-Importing-Apple-Health-data-into-the-Withings-App); da Salute passano solo i passi dell'iPhone e dell'Apple Watch, non quelli di altri tracker o scritti a mano."
+    },
+    "google": {
+      "verdetto": "confermato",
+      "url": "https://support.withings.com/hc/en-us/articles/27322856325905-Partner-Apps-Health-Connect-Exporting-Withings-data-into-Health-Connect",
+      "dati": {
+        "scrive": ["categorie di dato Withings a scelta dell'utente (la pagina non le elenca)"],
+        "legge": ["importazione descritta in una pagina separata (non aperta)"]
+      },
+      "nota": "Stessa condizione Withings+ per gli account creati dal 13 ottobre 2026 (https://support.withings.com/hc/en-us/articles/23104637348241-Partner-Apps-What-is-Health-Connect). Attivazione: Withings > Profilo > Impostazioni > «Esporta dati salute su Health Connect», poi Impostazioni Android > Modifica autorizzazioni > Withings per scegliere le categorie. I passi inseriti a mano in Health Connect non vengono importati."
+    },
+    "nome_app": "Withings (le pagine ufficiali la chiamano «Withings App»)"
+  },
+  {
+    "id": "samsung",
+    "nome": "Samsung (Galaxy Watch / Samsung Health)",
+    "categoria": "orologio",
+    "apple": {
+      "verdetto": "non supportato",
+      "url": "https://www.samsung.com/us/support/answer/ANS10004668/",
+      "dati": null,
+      "nota": "Samsung dice che Galaxy Watch4, Watch5, Watch6, Watch7, Watch Ultra e Watch FE non sono compatibili con iOS (si basano sui servizi Google Play). Funzionano con iPhone solo modelli vecchi (Galaxy Watch 2018, Active, Active2, Galaxy Fit...). Esiste un'app Samsung Health per iPhone (https://www.samsung.com/us/support/answer/ANS10003644/, iOS 9 o successivo) ma la pagina non parla di Apple Health."
+    },
+    "google": {
+      "verdetto": "confermato",
+      "url": "https://developer.samsung.com/health/health-connect-faq.html",
+      "dati": {
+        "scrive": ["attivita' (passi, esercizio)", "frequenza cardiaca", "sonno"],
+        "legge": ["attivita' (passi, esercizio)", "frequenza cardiaca", "sonno"]
+      },
+      "nota": "Scambio in entrambe le direzioni tra Samsung Health e Health Connect, dopo aver concesso i permessi (Samsung Health > Impostazioni > Health Connect > Autorizzazioni app > Samsung Health, poi «Sincronizza ora»). Dalla versione 6.22.5 (ottobre 2022). I dati del Galaxy Watch arrivano a Health Connect tramite Samsung Health sul telefono (Health Connect non e' supportato sui dispositivi Wear OS); la frequenza cardiaca continua e' trattenuta per risparmiare batteria. Pagina per sviluppatori."
+    },
+    "nome_app": "Samsung Health (con Galaxy Wearable per l'orologio)"
+  },
+  {
+    "id": "huawei",
+    "nome": "Huawei",
+    "categoria": "orologio",
+    "apple": {
+      "verdetto": "non chiaro",
+      "url": "https://consumer.huawei.com/en/community/details/topicId-147760/",
+      "dati": null,
+      "nota": "Nessuna pagina di documentazione ufficiale trovata. Il thread della community Huawei (non e' documentazione) riporta una risposta di «HUAWEI Service» del 2021 secondo cui Huawei Health condivide dati fitness e salute con Salute (Privacy > App > Huawei Health), ma altre risposte della community, sempre di Huawei, dicono che l'app non e' compatibile con app di terzi; gli utenti riferiscono sincronizzazioni parziali."
+    },
+    "google": {
+      "verdetto": "non verificato",
+      "url": null,
+      "dati": null,
+      "nota": null
+    },
+    "nome_app": "Huawei Health"
+  },
+  {
+    "id": "xiaomi",
+    "nome": "Xiaomi (Smart Band)",
+    "categoria": "fascia",
+    "apple": {
+      "verdetto": "confermato",
+      "url": "https://www.mi.com/global/support/faq/details/KA-728033/",
+      "dati": null,
+      "nota": "Pagina di assistenza specifica per Xiaomi Smart Band 11 Active (altre pagine mi.com analoghe per Band 8 Pro, 9, 10). Passi: Mi Fitness > Profilo > Dati di terze parti > Salute e scegliere le voci; poi Salute > Sfoglia > icona profilo > Privacy > App > Mi Fitness. Elenco dei tipi di dato non presente nella pagina. Nota: le pagine sono per singolo modello."
+    },
+    "google": {
+      "verdetto": "confermato",
+      "url": "https://www.mi.com/global/support/faq/details/KA-728033/",
+      "dati": null,
+      "nota": "Dalla stessa pagina (Smart Band 11 Active, domanda 25): Mi Fitness supporta l'integrazione con Health Connect e Strava, ma serve attivare la sincronizzazione con il cloud (Profilo > Impostazioni app > Sincronizza con il cloud) e poi Profilo > Dati di terze parti > Health Connect > Collega. La pagina non elenca i tipi di dato e vale per quel modello: per le altre fasce e' da verificare."
+    },
+    "nome_app": "Mi Fitness"
+  },
+  {
+    "id": "amazfit",
+    "nome": "Amazfit",
+    "categoria": "orologio",
+    "apple": {
+      "verdetto": "confermato",
+      "url": "https://in.amazfit.com/pages/faq/what-apps-can-the-zepp-app-sync-with",
+      "dati": null,
+      "nota": "FAQ generica del sito Amazfit: l'app Zepp si sincronizza con Strava, adidas Running, TrainingPeaks, komoot, Relive, Google Fit e Apple Health (Samsung Health e MyFitnessPal non sono supportate). Nessun elenco di tipi di dato ne' passi di attivazione in questa pagina."
+    },
+    "google": {
+      "verdetto": "non chiaro",
+      "url": null,
+      "dati": null,
+      "nota": "La FAQ ufficiale cita Google Fit ma non Health Connect. Solo fonti secondarie (articoli di stampa) dicono che Zepp ha aggiunto Health Connect (Profilo > Account di terze parti > Health Connect): nessuna pagina ufficiale trovata."
+    },
+    "nome_app": "Zepp (Zepp Life per le fasce Xiaomi/Mi Band piu' vecchie)"
+  },
+  {
+    "id": "coros",
+    "nome": "COROS",
+    "categoria": "orologio",
+    "apple": {
+      "verdetto": "confermato",
+      "url": "https://support.coros.com/hc/en-us/articles/360041549551-Connecting-Apple-Health-with-COROS-App",
+      "dati": {
+        "scrive": ["distanza in bici", "frequenza cardiaca", "analisi del sonno", "passi", "distanza a nuoto", "distanza camminata + corsa"],
+        "legge": []
+      },
+      "nota": "Attivazione: app COROS > Profilo > Impostazioni > App di terze parti > Data Sync > Apple Health, poi scegliere i tipi di dato (modificabili in Salute > Privacy > App > COROS). Direzione: la pagina parla solo di dati dall'app COROS a Salute. Pagina aggiornata circa un anno fa."
+    },
+    "google": {
+      "verdetto": "confermato",
+      "url": "https://support.coros.com/hc/en-us/articles/360040256531-Supported-3rd-Party-Apps",
+      "dati": null,
+      "nota": "La pagina ufficiale elenca «Health Connect (for Android users)» fra i partner collegati e dice di collegarlo da app COROS > Profilo > Impostazioni > App di terze parti > Data Sync. Non elenca ne' tipi di dato ne' la direzione."
+    },
+    "nome_app": "COROS"
+  },
+  {
+    "id": "suunto",
+    "nome": "Suunto",
+    "categoria": "orologio",
+    "apple": {
+      "verdetto": "non chiaro",
+      "url": null,
+      "dati": null,
+      "nota": "Nessuna pagina di assistenza ufficiale trovata. Solo thread del forum Suunto (forum.suunto.com): l'app puo' scrivere su Salute (Impostazioni > Salva su Apple Health) ma, secondo gli utenti, in modo parziale (sonno, VO2max, tracce GPS assenti)."
+    },
+    "google": {
+      "verdetto": "non chiaro",
+      "url": null,
+      "dati": null,
+      "nota": "Nessuna pagina ufficiale. Una pagina di un fornitore terzo (Sahha) parla di «Save to Health Connect» nell'app Suunto, mentre un vecchio post del forum dice che Suunto non lo supportava: informazioni contraddittorie."
+    },
+    "nome_app": "Suunto"
+  },
+  {
+    "id": "wahoo",
+    "nome": "Wahoo",
+    "categoria": "attrezzatura",
+    "apple": {
+      "verdetto": "confermato",
+      "url": "https://support.wahoofitness.com/hc/en-us/articles/14467471126802-Authorized-Apps-Wahoo-app",
+      "dati": {
+        "scrive": ["allenamenti (condivisione degli allenamenti completati)"],
+        "legge": []
+      },
+      "nota": "La pagina elenca «Apple Health (iOS only)» fra le app di terzi per la condivisione degli allenamenti. Autorizzazione dalla pagina «Il mio account» dell'app Wahoo; si puo' attivare la condivisione automatica. La pagina non elenca altri tipi di dato."
+    },
+    "google": {
+      "verdetto": "confermato",
+      "url": "https://support.wahoofitness.com/hc/en-us/articles/14467471126802-Authorized-Apps-Wahoo-app",
+      "dati": {
+        "scrive": ["allenamenti (condivisione degli allenamenti completati)"],
+        "legge": []
+      },
+      "nota": "La pagina elenca «Google Health Connect (android only)» fra le app di terzi per la condivisione degli allenamenti, con condivisione automatica opzionale. Se non condivide: scollegare e riautorizzare."
+    },
+    "nome_app": "Wahoo"
+  },
+  {
+    "id": "strava",
+    "nome": "Strava",
+    "categoria": "app",
+    "apple": {
+      "verdetto": "confermato",
+      "url": "https://support.strava.com/hc/en-us/articles/216917527-Health-App-and-Strava",
+      "dati": {
+        "scrive": ["percorso", "tipo di attivita'", "distanza", "tempo", "calorie"],
+        "legge": ["solo gli allenamenti registrati con l'app Allenamento di Apple negli ultimi 30 giorni"]
+      },
+      "nota": "Attivazione: Strava > scheda Tu > Impostazioni > Gestisci app e dispositivi > Salute > + > Collega, poi abilitare «Workouts & Routes». Le attivita' registrate con app di altre aziende non passano da Salute a Strava. Il percorso di Garmin o Zwift non va su Salute tramite Strava."
+    },
+    "google": {
+      "verdetto": "confermato",
+      "url": "https://support.strava.com/hc/en-us/articles/43440435267597-Health-Connect-and-Strava",
+      "dati": {
+        "scrive": ["tempo", "distanza", "calorie (solo da attivita' GPS)"],
+        "legge": ["peso"]
+      },
+      "nota": "Integrazione disponibile solo nell'app Strava per Android. Con Android 13 o precedente va prima installata l'app Health Connect. Si collega da Strava > scheda Tu > ingranaggio > Gestisci app e dispositivi. Se le attivita' non arrivano bisogna verificare che Strava abbia i permessi su «Consenti» in Health Connect. La pagina non cita i passi."
+    },
+    "nome_app": "Strava"
+  },
+  {
+    "id": "technogym",
+    "nome": "Technogym",
+    "categoria": "attrezzatura",
+    "apple": {
+      "verdetto": "confermato",
+      "url": "https://www.technogym.com/en-US/support/product/technogym-app/?tab=faq",
+      "dati": null,
+      "nota": "La FAQ ufficiale dell'app Technogym dice che si possono collegare Strava, Garmin, Fitbit, Apple Health, Google Fit, Samsung Health e fasce cardio Bluetooth LE. Nessun elenco di tipi di dato ne' direzione."
+    },
+    "google": {
+      "verdetto": "non chiaro",
+      "url": "https://www.technogym.com/en-US/support/product/technogym-app/?tab=faq",
+      "dati": null,
+      "nota": "La FAQ ufficiale cita Google Fit e Samsung Health per Android ma non Health Connect. Solo un fornitore terzo (Sahha) dice che l'app Technogym si collega a Health Connect: nessuna conferma ufficiale."
+    },
+    "nome_app": "Technogym"
+  },
+  {
+    "id": "peloton",
+    "nome": "Peloton",
+    "categoria": "attrezzatura",
+    "apple": {
+      "verdetto": "confermato",
+      "url": "https://support.onepeloton.com/s/article/360022843811-Apple-Health?language=en_GB",
+      "dati": {
+        "scrive": ["allenamenti Peloton"],
+        "legge": ["attivita' di altre app presenti in Salute (importazione automatica o manuale)"]
+      },
+      "nota": "Due direzioni, scelte con i permessi di lettura e scrittura. Attivazione: Peloton > Profilo > menu > App e dispositivi collegati > Apple Health > Connetti. Si cambia in Salute (la pagina Peloton indica Condivisione > App; Apple descrive Privacy > App). Serve tenere aperta l'app mentre si sincronizza. Se si collegano piu' app, Peloton elimina i duplicati."
+    },
+    "google": {
+      "verdetto": "confermato",
+      "url": "https://support.onepeloton.com/s/article/10883732748180-Android-Health-Connect-mit-der-Peloton-App?language=de",
+      "dati": {
+        "scrive": ["metriche degli allenamenti Peloton (la pagina non le elenca)"],
+        "legge": []
+      },
+      "nota": "Pagina ufficiale Peloton in tedesco (non ho trovato l'equivalente in inglese). Attivazione: Peloton > «Einrichten» (Imposta), poi scegliere i dati a cui Health Connect puo' accedere; si spegne da Altro > Add-ons. Health Connect puo' quindi vedere gli allenamenti Peloton; la pagina non dice che Peloton legga dati da Health Connect."
+    },
+    "nome_app": "Peloton"
+  },
+  {
+    "id": "ultrahuman",
+    "nome": "Ultrahuman",
+    "categoria": "anello",
+    "apple": {
+      "verdetto": "confermato",
+      "url": "https://www.ultrahuman.com/blog/how-to-access-your-hrv-data-on-apple-health/",
+      "dati": {
+        "scrive": ["variabilita' della frequenza cardiaca (HRV)", "temperatura", "dispendio energetico", "glicemia (solo con Ultrahuman M1)"],
+        "legge": []
+      },
+      "nota": "E' un articolo del blog ufficiale, non una pagina di assistenza, e riguarda l'anello Ultrahuman Ring AIR. Attivazione: Salute > icona profilo > Privacy > App > Ultrahuman > Attiva tutte le categorie. L'articolo dice che i dati si sincronizzano fra le due piattaforme ma non conferma esplicitamente la lettura."
+    },
+    "google": {
+      "verdetto": "non chiaro",
+      "url": "https://www.ultrahuman.com/blog/ultrahuman-cycle-and-ovulation-powerplug/",
+      "dati": null,
+      "nota": "L'unica menzione ufficiale e' nel blog sul PowerPlug del ciclo (sincronizzazione di dati del ciclo da app terze come Clue, Apple Health e Health Connect): non e' una pagina sul collegamento dell'anello. Nessuna pagina di assistenza trovata."
+    },
+    "nome_app": "Ultrahuman"
+  },
+  {
+    "id": "myfitnesspal",
+    "nome": "MyFitnessPal",
+    "categoria": "app",
+    "apple": {
+      "verdetto": "confermato",
+      "url": "https://support.myfitnesspal.com/hc/en-us/articles/360032271092-Apple-Health-connection-and-syncing",
+      "dati": {
+        "scrive": ["alimentazione (riepilogo dei pasti e nutrienti; non caffeina, vitamina A, orari)", "peso"],
+        "legge": ["esercizio", "sonno", "peso"]
+      },
+      "nota": "L'esercizio registrato in MyFitnessPal NON va su Salute (solo da Salute a MyFitnessPal). Attivazione: Altro > Impostazioni > Condivisione e privacy > Condivisione HealthKit. Per cambiare i permessi dopo: Impostazioni iPhone > Salute > Accesso dati e dispositivi > MyFitnessPal. Solo i dati registrati dopo il collegamento. Non collegare su un iPhone condiviso fra piu' account."
+    },
+    "google": {
+      "verdetto": "confermato",
+      "url": "https://support.myfitnesspal.com/hc/en-us/articles/10553948248973-Health-Connect-FAQ-and-Troubleshooting",
+      "dati": {
+        "scrive": ["calorie assunte (riepilogo del pasto)", "esercizio cardio", "acqua"],
+        "legge": ["passi", "esercizio cardio da app di terzi (con durata e calorie)", "sonno", "glicemia (Dexcom G6)"]
+      },
+      "nota": "Serve Android 10 o successivo e MyFitnessPal Android 22.22.0 o successivo; non esiste per iOS. Attivazione: Menu > App e dispositivi > Health Connect > Connetti. L'esercizio registrato tramite Garmin o Polar non va a Health Connect passando da MyFitnessPal. L'acqua si sincronizza in una sola direzione."
+    },
+    "nome_app": "MyFitnessPal"
+  },
+  {
+    "id": "yazio",
+    "nome": "YAZIO",
+    "categoria": "app",
+    "apple": {
+      "verdetto": "confermato",
+      "url": "https://help.yazio.com/hc/en-us/articles/360018833998-Yazio-and-Apple-Health",
+      "dati": {
+        "scrive": ["attivita' e allenamenti", "valori corporei", "macro e micronutrienti"],
+        "legge": ["attivita' e allenamenti", "peso", "circonferenza vita", "glicemia"]
+      },
+      "nota": "Serve iOS 16 o successivo e YAZIO 7.2.0 o successivo. Permessi: Impostazioni > App > Salute > Accesso dati e dispositivi > YAZIO, attivando lettura e scrittura (soprattutto energia attiva). Attivazione: scheda Profilo > Tracciamento automatico > Apple Health > Collega."
+    },
+    "google": {
+      "verdetto": "confermato",
+      "url": "https://help.yazio.com/hc/en-us/articles/50068039509905-Yazio-and-Health-Connect",
+      "dati": {
+        "scrive": [],
+        "legge": ["calorie totali bruciate", "passi", "esercizio", "distanza"]
+      },
+      "nota": "Solo da Health Connect a YAZIO: YAZIO non scrive su Health Connect. Attivazione: Profilo > Tracciamento automatico > Health Connect > Collega > Consenti tutto. Android 14 o successivo ha Health Connect integrato; prima va installata dal Play Store. YAZIO si collega a una sola app alla volta."
+    },
+    "nome_app": "YAZIO"
+  },
+  {
+    "id": "hevy",
+    "nome": "Hevy",
+    "categoria": "app",
+    "apple": {
+      "verdetto": "confermato",
+      "url": "https://help.hevyapp.com/hc/en-us/articles/36957445562775-Hevy-Not-Syncing-to-Apple-Health-Step-by-Step-Troubleshooting-Guide",
+      "dati": {
+        "scrive": ["allenamenti (a fine allenamento, con l'opzione «Sincronizza con» attiva nella schermata di salvataggio)"],
+        "legge": []
+      },
+      "nota": "E' una pagina di risoluzione problemi: del corpo ho potuto leggere solo i titoli dei passi (controllare i permessi di Salute, verificare «Sync with» al salvataggio dell'allenamento). I tipi di dato non sono elencati. Dalla ricerca: i permessi si controllano in Salute > Accesso dati e dispositivi > Hevy (non letto direttamente nella pagina)."
+    },
+    "google": {
+      "verdetto": "confermato",
+      "url": "https://help.hevyapp.com/hc/en-us/articles/36957110114455-Health-Connect-Not-Receiving-Hevy-Data-Here-s-How-to-Fix-It",
+      "dati": {
+        "scrive": ["allenamenti"],
+        "legge": []
+      },
+      "nota": "Pagina di risoluzione problemi: Hevy > Profilo > ingranaggio > Integrazioni > Gestisci (apre Health Connect) > Autorizzazioni app > Hevy. Gli allenamenti di Hevy compaiono in Health Connect e possono essere condivisi con altre app. Tipi di dato non elencati."
+    },
+    "nome_app": "Hevy"
+  }
+]

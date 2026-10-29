@@ -14,7 +14,7 @@ import { Tocco } from '../ui/Tocco'
 import { CONSENSO, INFORMATIVA, VERSIONE_INFORMATIVA } from './informativa'
 
 // La vetrina dei dispositivi (19/10/2026): quello che si ottiene scrivendo il sonno o collegando
-// un anello Oura o un orologio Polar (20/10/2026: il sonno scritto a mano e' per tutti), e sotto il consenso. **Senza il consenso niente si collega** (richiesta
+// un orologio, un anello o un'app di fitness tramite Apple Salute o Health Connect (20/10/2026: il sonno scritto a mano e' per tutti; 29/10/2026: Oura e Polar diretti non ci sono piu'), e sotto il consenso. **Senza il consenso niente si collega** (richiesta
 // del club): il pulsante si accende solo con la casella spuntata, e la funzione rifiuta ogni
 // azione finche' il consenso non e' registrato. L'informativa completa si apre in un foglio.
 
@@ -54,7 +54,7 @@ export function Vetrina({ onConsenso }: { onConsenso: () => void }) {
             <Text style={stili.novitaTesto}>{t('NOVITÀ', 'NEW')}</Text>
           </View>
           <Text style={stili.eroeTitolo}>{t('Il recupero fa parte dell’allenamento', 'Recovery is part of training')}</Text>
-          <Text style={stili.eroeTesto}>{t('Scrivi quanto dormi, o collega il tuo anello Oura o il tuo orologio Polar: nell’app vedi il sonno accanto a quello che fai nel club.', 'Log how much you sleep, or connect your Oura ring or Polar watch: in the app you see your sleep next to what you do at the club.')}</Text>
+          <Text style={stili.eroeTesto}>{t('Scrivi quanto dormi, o collega il tuo orologio, il tuo anello o la tua app di fitness da Apple Salute o Health Connect: nell’app vedi il sonno accanto a quello che fai nel club.', 'Log how much you sleep, or connect your watch, ring or fitness app through Apple Health or Health Connect: in the app you see your sleep next to what you do at the club.')}</Text>
         </LinearGradient>
       </Entra>
 
@@ -103,7 +103,7 @@ export function Vetrina({ onConsenso }: { onConsenso: () => void }) {
             </View>
           </Tocco>
           {errore ? <Messaggio>{errore}</Messaggio> : null}
-          <Pulsante testo={t('Attiva Relax', 'Turn on Relax')} icona="avanti" onPress={attiva} disabilitato={!spunta} inCorso={inCorso} />
+          <Pulsante testo={t('Attiva Recover', 'Turn on Recover')} icona="avanti" onPress={attiva} disabilitato={!spunta} inCorso={inCorso} />
         </Carta>
       </Entra>
 

@@ -249,6 +249,49 @@ export function impostaAppleSalute(attivo: boolean) {
   }
 }
 
+/**
+ * Da quale app Salute del telefono si puo' leggere: oggi solo Apple Salute su iPhone. **Google Salute (Health Connect) si
+ * aggiungera' qui** (29/10/2026, richiesta di Maurizio: l'invito e la carta «da attivare» devono valere anche per lui): chi
+ * decide se mostrare l'invito chiede a questa funzione, non a `Platform.OS`.
+ */
+export function appSaluteDelTelefono(): 'apple' | null {
+  return Platform.OS === 'ios' ? 'apple' : null
+}
+
+// L'invito a collegare l'app Salute, all'apertura di Athlon Health System (29/10/2026): compare una volta sola per dispositivo,
+// anche se la persona lo salta. Dopo, a ricordarlo resta la carta «Da attivare» in evidenza (fit/CartaDispositivi.tsx).
+// Sul telefono il segno e' un file nella cartella dell'app, come quello dell'attivazione; nel browser, il `localStorage`.
+const CHIAVE_INVITO = 'athlon:apple-salute-invito'
+/** Mostrato in questa esecuzione dell'app: vale anche se il segno non si riesce a scrivere (niente invito ogni volta). */
+let invitoMostrato = false
+
+export function invitoSaluteVisto(): boolean {
+  if (invitoMostrato) return true
+  try {
+    if (Platform.OS === 'web') return globalThis.localStorage?.getItem(CHIAVE_INVITO) === '1'
+    const { File, Paths } = require('expo-file-system') as typeof import('expo-file-system')
+    return new File(Paths.document, 'apple-salute-invito.txt').exists
+  } catch {
+    // Senza memoria non si sa: meglio non insistere.
+    return true
+  }
+}
+
+export function segnaInvitoSaluteVisto() {
+  invitoMostrato = true
+  try {
+    if (Platform.OS === 'web') {
+      globalThis.localStorage?.setItem(CHIAVE_INVITO, '1')
+      return
+    }
+    const { File, Paths } = require('expo-file-system') as typeof import('expo-file-system')
+    const f = new File(Paths.document, 'apple-salute-invito.txt')
+    if (!f.exists) f.create()
+  } catch {
+    // resta il segno in memoria, valido fino alla chiusura dell'app
+  }
+}
+
 const CHIAVE_PERMESSI = 'athlon:apple-salute-v2'
 function permessiEstesi(): boolean {
   try {

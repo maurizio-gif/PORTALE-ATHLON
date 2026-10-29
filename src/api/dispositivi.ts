@@ -2,15 +2,15 @@ import { funzione } from './lab'
 import { t } from '@/lib/lingua'
 
 // I dispositivi personali (19/10/2026): la funzione portale-lab-dispositivi di APP-ATHLON.
-// Oura e Polar si collegano con un OAuth: `collega` chiede l'indirizzo del fornitore, il
-// socio autorizza, il fornitore lo rimanda a /allenamento/dispositivi?code=…&state=… e
-// `completaCollegamento` manda codice e state alla funzione, che scambia il codice (il
-// segreto sta li') e fa il primo giro di lettura. Ogni azione fuori da `stato` e `consenso`
-// vuole il consenso all'informativa: senza, la funzione risponde 403 con `consenso: false`.
-// I token non arrivano mai qui.
+// **Dal 29/10/2026 i dispositivi arrivano solo da Apple Salute e, quando ci sara', da Health Connect** (richiesta di Maurizio:
+// un collegamento diretto per ogni marchio e' troppo per l'app di una palestra). Oura e Polar con OAuth non si offrono piu':
+// `collega`, `completaCollegamento`, `scollega` e `aggiornaDispositivi` sono stati tolti da qui, e la funzione le ha ancora (resta
+// com'e' finche' non si decide di toglierla: chi si era collegato in prova ha ancora i suoi dati, che si leggono come prima).
+// Ogni azione fuori da `stato` e `consenso` vuole il consenso all'informativa: senza, la funzione risponde 403 con `consenso: false`.
 
 type Esito<T> = ({ ok: true } & T) | { ok: false; errore: string; senzaConsenso?: boolean }
 
+/** I collegamenti diretti che la funzione conosce ancora (solo per chi si era collegato in prova: l'app non ne offre di nuovi). */
 export type IdFornitore = 'oura' | 'polar'
 
 export type Fornitore = { id: IdFornitore; nome: string; disponibile: boolean }
@@ -105,37 +105,10 @@ export async function revocaConsensoDispositivi(): Promise<Esito<object>> {
   return errore(dati, t('Non siamo riusciti a revocare il consenso. Riprova.', 'We couldn’t withdraw your consent. Try again.'))
 }
 
-/** L'indirizzo del fornitore a cui mandare il socio per autorizzare il club. */
-export async function collega(fornitore: IdFornitore): Promise<Esito<{ url: string }>> {
-  const { ok, dati } = await chiama({ azione: 'connetti', fornitore })
-  if (ok && typeof dati.url === 'string') return { ok: true, url: dati.url }
-  return errore(dati, t('Non riusciamo ad avviare il collegamento adesso. Riprova.', 'We can’t start the connection right now. Try again.'))
-}
-
-/** Chiude il collegamento col codice e lo state che il fornitore ha rimandato all'app. */
-export async function completaCollegamento(codice: string, state: string): Promise<Esito<DatiDispositivi & { fornitore: IdFornitore }>> {
-  const { ok, dati } = await chiama({ azione: 'completa', codice, state })
-  if (ok) return { ok: true, fornitore: dati.fornitore, ...dei(dati) }
-  return errore(dati, t('Non siamo riusciti a completare il collegamento. Riprova dal pulsante «Collega».', 'We couldn’t complete the connection. Try again from the «Connect» button.'))
-}
-
-export async function scollega(fornitore: IdFornitore): Promise<Esito<DatiDispositivi>> {
-  const { ok, dati } = await chiama({ azione: 'scollega', fornitore })
-  if (ok) return { ok: true, ...dei(dati) }
-  return errore(dati, t('Non siamo riusciti a scollegare il dispositivo. Riprova.', 'We couldn’t disconnect the device. Try again.'))
-}
-
 export async function datiDispositivi(): Promise<Esito<DatiDispositivi>> {
   const { ok, dati } = await chiama({ azione: 'dati' })
   if (ok) return { ok: true, ...dei(dati) }
   return errore(dati, t('Non riusciamo a leggere i dati dei dispositivi adesso.', 'We can’t load your device data right now.'))
-}
-
-/** Rilegge subito dal fornitore (la funzione non lo fa piu' di una volta ogni due minuti). */
-export async function aggiornaDispositivi(): Promise<Esito<DatiDispositivi & { aggiornati: number }>> {
-  const { ok, dati } = await chiama({ azione: 'aggiorna' })
-  if (ok) return { ok: true, aggiornati: Number(dati.aggiornati ?? 0), ...dei(dati) }
-  return errore(dati, t('Non siamo riusciti ad aggiornare adesso. Riprova fra poco.', 'We couldn’t refresh right now. Try again shortly.'))
 }
 
 /**

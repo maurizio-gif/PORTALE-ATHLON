@@ -151,7 +151,7 @@ export function SezioneLivelli({ stato }: { stato: StatoLivelli }) {
               <View style={{ flex: 1, gap: 2 }}>
                 <Text style={[stili.settimanaNome, { color: p.testo }]}>{t(`Settimana del ${breve(s.settimana)}`, `Week of ${breve(s.settimana)}`)}</Text>
                 <Text style={[stili.piccola, { color: p.testoSecondario }]}>
-                  {[`Train ${s.train}`, s.food ? `Food ${s.food}` : null, s.relax ? `Relax ${s.relax}` : null, s.costanza ? t(`costanza +${s.costanza}`, `consistency +${s.costanza}`) : null, s.equilibrio ? t(`equilibrio +${s.equilibrio}`, `balance +${s.equilibrio}`) : null].filter(Boolean).join(' · ')}
+                  {[`Train ${s.train}`, s.food ? `Food ${s.food}` : null, s.relax ? `Recover ${s.relax}` : null, s.costanza ? t(`costanza +${s.costanza}`, `consistency +${s.costanza}`) : null, s.equilibrio ? t(`equilibrio +${s.equilibrio}`, `balance +${s.equilibrio}`) : null].filter(Boolean).join(' · ')}
                 </Text>
               </View>
               <Text style={[stili.settimanaPunti, { color: p.testo }]}>{`+${s.totale}`}</Text>
@@ -181,8 +181,8 @@ export function SezioneLivelli({ stato }: { stato: StatoLivelli }) {
         <Text style={[stili.titoletto, { color: p.testo }]}>{t('Come si guadagnano i punti', 'How you earn points')}</Text>
         <Text style={[stili.nota, { color: p.testoSecondario }]}>
           {t(
-            'Ogni settimana finita (da lunedì a domenica) dà i punti dei tre pilastri: Train fino a 70, Food fino a 15 e Relax fino a 15. Un solo allenamento fa comunque 28 punti, e con 2–4 giorni si prendono tutti i 70.',
-            'Each completed week (Monday to Sunday) gives you points from the three pillars: Train up to 70, Food up to 15 and Relax up to 15. Even a single workout is worth 28 points, and with 2–4 days you get the full 70.',
+            'Ogni settimana finita (da lunedì a domenica) dà i punti dei tre pilastri: Train fino a 70, Food fino a 15 e Recover fino a 15. Un solo allenamento fa comunque 28 punti, e con 2–4 giorni si prendono tutti i 70.',
+            'Each completed week (Monday to Sunday) gives you points from the three pillars: Train up to 70, Food up to 15 and Recover up to 15. Even a single workout is worth 28 points, and with 2–4 days you get the full 70.',
           )}
         </Text>
         <Text style={[stili.nota, { color: p.testoSecondario }]}>

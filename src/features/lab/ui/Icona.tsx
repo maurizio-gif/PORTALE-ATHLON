@@ -93,6 +93,10 @@ const ICONE = {
   riproduci: ['play.fill', 'play_arrow'],
   pausa: ['pause.fill', 'pause'],
   muto: ['speaker.slash.fill', 'volume_off'],
+  // L'invito a collegare Apple Salute (29/10/2026): il cuore, i passi e il sonno.
+  cuore: ['heart.fill', 'favorite'],
+  passi: ['figure.walk', 'directions_walk'],
+  luna: ['moon.zzz.fill', 'bedtime'],
 } as const satisfies Record<string, readonly [SFSymbol, AndroidSymbol]>
 
 export type NomeIcona = keyof typeof ICONE

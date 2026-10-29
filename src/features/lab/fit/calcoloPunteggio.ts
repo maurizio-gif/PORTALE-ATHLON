@@ -250,7 +250,7 @@ export type StatoPilastro = 'attivo' | 'spento' | 'escluso' | 'nonDisponibile'
 
 export type Pilastro = {
   id: IdPilastro
-  nome: 'Train' | 'Food' | 'Relax'
+  nome: 'Train' | 'Food' | 'Recover'
   max: number
   stato: StatoPilastro
   /** I punti interi guadagnati, 0..max. */
@@ -349,10 +349,10 @@ export function calcolaPunteggio(i: Ingressi): Punteggio {
         ? { id: 'food', nome: 'Food', max: PUNTI.food, stato: 'attivo', punti: Math.round(food.quota * PUNTI.food), quota: food.quota, settimane: contate(food.settimane), frase: fraseFood(food) }
         : { id: 'food', nome: 'Food', max: PUNTI.food, stato: 'spento', punti: 0, quota: null, settimane: 0, frase: null }
   const pilastroRelax: Pilastro = !i.relax
-    ? { id: 'relax', nome: 'Relax', max: PUNTI.relax, stato: 'nonDisponibile', punti: 0, quota: null, settimane: 0, frase: null }
+    ? { id: 'relax', nome: 'Recover', max: PUNTI.relax, stato: 'nonDisponibile', punti: 0, quota: null, settimane: 0, frase: null }
     : relax
-      ? { id: 'relax', nome: 'Relax', max: PUNTI.relax, stato: 'attivo', punti: Math.round(relax.quota * PUNTI.relax), quota: relax.quota, settimane: contate(relax.settimane), frase: fraseRelax(relax) }
-      : { id: 'relax', nome: 'Relax', max: PUNTI.relax, stato: 'spento', punti: 0, quota: null, settimane: 0, frase: null }
+      ? { id: 'relax', nome: 'Recover', max: PUNTI.relax, stato: 'attivo', punti: Math.round(relax.quota * PUNTI.relax), quota: relax.quota, settimane: contate(relax.settimane), frase: fraseRelax(relax) }
+      : { id: 'relax', nome: 'Recover', max: PUNTI.relax, stato: 'spento', punti: 0, quota: null, settimane: 0, frase: null }
 
   const tutti = [pilastroTrain, pilastroFood, pilastroRelax]
   const inGioco = tutti.filter((p) => p.stato === 'attivo' || p.stato === 'spento')
