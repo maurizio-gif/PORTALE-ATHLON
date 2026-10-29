@@ -4,7 +4,7 @@ import { locale, t } from '@/lib/lingua'
 import { spazio } from '@/theme'
 
 import { oggiRoma } from '../alimentazione/conti'
-import { giornoBreve, nomeSport, piuRecenti, quando, durata, ultimoMovimento } from '../dispositivi/comune'
+import { giornoBreve, nomeFonte, nomeSport, piuRecenti, quando, durata, ultimoMovimento } from '../dispositivi/comune'
 import type { Dispositivi } from '../dispositivi/useDispositivi'
 import { spostaGiorno } from '../schede/contatoreCalorie'
 import { Bollino, Carta, Sezione } from '../ui/kit'
@@ -44,7 +44,7 @@ export function CartaMovimento({ disp }: { disp: Dispositivi }) {
                 <Text style={[stili.nome, { color: p.testo }]}>{nomeSport(a.sport)}</Text>
                 <Text style={[stili.piccola, { color: p.testoSecondario }]}>{`${quando(a.inizio, oggi, ieri)} · ${pezzi.join(' · ')}`}</Text>
               </View>
-              <Text style={[stili.piccola, { color: p.testoTerzo }]}>{a.fornitore === 'oura' ? 'Oura' : a.fornitore === 'apple_salute' ? t('Apple Salute', 'Apple Health') : 'Polar'}</Text>
+              <Text style={[stili.piccola, { color: p.testoTerzo }]}>{nomeFonte(a.origine) ?? (a.fornitore === 'manuale' ? t('Scritto da te', 'Logged by you') : a.fornitore === 'apple_salute' ? t('Apple Salute', 'Apple Health') : a.fornitore === 'oura' ? 'Oura' : 'Polar')}</Text>
             </View>
           )
         })}

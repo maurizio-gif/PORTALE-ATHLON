@@ -4,13 +4,14 @@ import { useState } from 'react'
 import { StyleSheet, Text, View } from 'react-native'
 import Svg, { Circle } from 'react-native-svg'
 
-import { aggiornaDispositivi, type GiornoDispositivo } from '@/api/dispositivi'
+import type { GiornoDispositivo } from '@/api/dispositivi'
 import { t } from '@/lib/lingua'
 import { spazio } from '@/theme'
 
 import { oggiRoma } from '../alimentazione/conti'
-import { dopo, durata, giornoBreve, giorniUnici, inizialeGiorno, recupero } from '../dispositivi/comune'
-import { dispositiviCollegabili, type Dispositivi } from '../dispositivi/useDispositivi'
+import { appleSaluteAttivo, appSaluteDelTelefono, sincronizzaSalute } from '../dispositivi/appleSalute'
+import { datiAppleSalute, durata, giornoBreve, giorniUnici, inizialeGiorno } from '../dispositivi/comune'
+import type { Dispositivi } from '../dispositivi/useDispositivi'
 import { spostaGiorno } from '../schede/contatoreCalorie'
 import { useProgresso } from '../schede/ContatoreCalorie'
 import { Icona, type NomeIcona } from '../ui/Icona'
@@ -19,8 +20,9 @@ import { F, RELAX, usePalette } from '../ui/tema'
 import { Tocco } from '../ui/Tocco'
 import { CheckInSonno } from './CheckInSonno'
 
-// L'area Relax di Fit (19/10/2026): il recupero, con quello che dicono l'anello Oura e gli
-// orologi Polar del socio. Dal 20/10/2026 **il sonno si scrive anche a mano** (CheckInSonno.tsx:
+// L'area Relax di Fit (19/10/2026), **dal 29/10/2026 «Recover»** nelle parole che si leggono (il codice, l'indirizzo `?area=relax` e i
+// nomi dei file restano com'erano): il recupero, col sonno che il socio scrive e quello che arriva dai suoi dispositivi tramite Apple Salute
+// (e, quando ci sara', Health Connect). Non ci sono piu' i collegamenti diretti con Oura e Polar ne' il «recupero» in parole che ne veniva. Dal 20/10/2026 **il sonno si scrive anche a mano** (CheckInSonno.tsx:
 // una domanda al mattino), perche' Relax e' il terzo pilastro dell'Athlon Health Score e non puo'
 // dipendere dal possedere un dispositivo: l'area c'e' per tutti i maggiorenni. Senza consenso e' la
 // porta per attivarla (il consenso e i collegamenti stanno in /allenamento/dispositivi); col consenso
@@ -33,9 +35,9 @@ import { CheckInSonno } from './CheckInSonno'
 
 const apriDispositivi = () => router.push('/allenamento/dispositivi')
 
-const cose = (collegabili: boolean): { icona: NomeIcona; testo: string }[] => [
+const cose = (): { icona: NomeIcona; testo: string }[] => [
   { icona: 'foglia', testo: t('Il tuo sonno: lo scrivi in dieci secondi ogni mattina, e conta nel tuo Athlon Health Score.', 'Your sleep: log it in ten seconds each morning, and it counts toward your Athlon Health Score.') },
-  ...(collegabili ? [{ icona: 'cronometro' as const, testo: t('Con un anello Oura o un orologio Polar il sonno, il recupero e gli allenamenti arrivano da soli.', 'With an Oura ring or a Polar watch, your sleep, recovery and workouts come in by themselves.') }] : []),
+  { icona: 'cronometro', testo: t('Con il tuo orologio, il tuo anello o la tua app di fitness collegati ad Apple Salute o a Health Connect, sonno e allenamenti arrivano da soli.', 'With your watch, ring or fitness app connected to Apple Health or Health Connect, your sleep and workouts come in by themselves.') },
   { icona: 'lucchetto', testo: t('Li vedi solo tu, e togli il permesso quando vuoi.', 'Only you see them, and you can withdraw permission whenever you like.') },
 ]
 
@@ -46,7 +48,7 @@ export function AreaRelax({ disp }: { disp: Dispositivi }) {
   if (disp.vista) {
     return (
       <Messaggio tono="attenzione" titolo={t('Non visibile nella vista cliente', 'Not visible in client view')}>
-        {t('Relax contiene dati sulla salute: lo vede solo il socio, dalla sua app.', 'Relax contains health data: only the member can see it, from their own app.')}
+        {t('Recover contiene dati sulla salute: lo vede solo il socio, dalla sua app.', 'Recover contains health data: only the member can see it, from their own app.')}
       </Messaggio>
     )
   }
@@ -55,7 +57,7 @@ export function AreaRelax({ disp }: { disp: Dispositivi }) {
   if (!stato.maggiorenne) {
     return (
       <Carta style={{ gap: spazio.due }}>
-        <Text style={[stili.titoletto, { color: p.testo }]}>{t('Relax è per i maggiorenni', 'Relax is for adults only')}</Text>
+        <Text style={[stili.titoletto, { color: p.testo }]}>{t('Recover è per i maggiorenni', 'Recover is for adults only')}</Text>
         <Text style={[stili.nota, { color: p.testoSecondario }]}>{t('Se nella tua scheda del club manca la data di nascita, chiedi al desk di aggiungerla.', 'If your date of birth is missing from your club profile, ask the front desk to add it.')}</Text>
       </Carta>
     )
@@ -64,12 +66,12 @@ export function AreaRelax({ disp }: { disp: Dispositivi }) {
   if (!stato.consenso) {
     return (
       <Entra indice={0}>
-        <Tocco onPress={apriDispositivi} etichetta={t('Attiva Relax', 'Turn on Relax')} scala={0.985}>
+        <Tocco onPress={apriDispositivi} etichetta={t('Attiva Recover', 'Turn on Recover')} scala={0.985}>
           <LinearGradient colors={RELAX} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={stili.vetrina}>
             <Text style={stili.vetrinaTitolo}>{t('Recuperare fa parte dell’allenamento', 'Recovery is part of training')}</Text>
             <Text style={stili.vetrinaTesto}>{t('Scrivi quanto dormi e vedi qui come stai recuperando:', 'Log how much you sleep and see here how you’re recovering:')}</Text>
             <View style={{ gap: spazio.due }}>
-              {cose(dispositiviCollegabili(stato)).map((c) => (
+              {cose().map((c) => (
                 <View key={c.icona} style={stili.riga}>
                   <View style={stili.bollo}>
                     <Icona nome={c.icona} size={16} colore="#fff" />
@@ -80,7 +82,7 @@ export function AreaRelax({ disp }: { disp: Dispositivi }) {
             </View>
             <Text style={stili.vetrinaPiccola}>{t('Prima di cominciare si legge e si accetta l’informativa: i dati sono tuoi, e li vedi solo tu.', 'Before you start, you read and accept the privacy notice: the data is yours, and only you see it.')}</Text>
             <View style={stili.vetrinaPulsante}>
-              <Text style={stili.vetrinaPulsanteTesto}>{t('Attiva Relax', 'Turn on Relax')}</Text>
+              <Text style={stili.vetrinaPulsanteTesto}>{t('Attiva Recover', 'Turn on Recover')}</Text>
               <Icona nome="avanti" size={16} colore={RELAX[2]} />
             </View>
           </LinearGradient>
@@ -128,30 +130,23 @@ function Dati({ disp }: { disp: Dispositivi }) {
   // Solo i giorni con il sonno (28/10/2026): passi, calorie e allenamenti stanno in Train, e Apple Salute li elenca in «I tuoi dispositivi».
   const giorni = giorniUnici(dati.giorni.filter((g) => g.sonno_minuti !== null))
   const notte = giorni.find((g) => g.sonno_minuti !== null) ?? null
-  const rec = notte ? recupero(notte.recupero_scala, notte.recupero_valore) : null
-  const riautorizza = dati.collegamenti.filter((c) => c.stato === 'da_riautorizzare')
-  const ultimaLettura = dati.collegamenti.map((c) => c.ultimo_sync_il).filter((x): x is string => !!x).sort().at(-1) ?? null
-  const collegati = dati.collegamenti.length > 0
-  const collegabili = dispositiviCollegabili(disp.stato)
+  // I dispositivi arrivano da Apple Salute (e, quando ci sara', da Health Connect): «collegati» vuol dire che qualcosa e' arrivato o che sul
+  // telefono e' attivo. Non c'e' piu' il «recupero» in parole di Oura e Polar (29/10/2026): il pilastro descrive il sonno.
+  const apple = datiAppleSalute(dati)
+  const sulTelefono = appSaluteDelTelefono() === 'apple' && appleSaluteAttivo()
+  const collegati = apple.ha || sulTelefono
 
   async function aggiorna() {
     setInCorso(true)
     setErrore(null)
-    const r = await aggiornaDispositivi()
+    const r = await sincronizzaSalute(true)
     setInCorso(false)
-    if (r.ok) disp.imposta(r)
-    else setErrore(r.errore)
+    if (r) disp.imposta(r)
+    else setErrore(t('Non abbiamo letto niente da Apple Salute. Controlla che la condivisione sia attiva per sonno, passi e allenamenti.', 'We read nothing from Apple Health. Check that sharing is on for sleep, steps and workouts.'))
   }
 
   return (
     <View style={{ gap: spazio.tre }}>
-      {riautorizza.map((c) => (
-        <Messaggio key={c.fornitore} tono="attenzione" titolo={t(`${c.fornitore === 'oura' ? 'Oura' : 'Polar'} va ricollegato`, `${c.fornitore === 'oura' ? 'Oura' : 'Polar'} needs to be reconnected`)}>
-          {c.ultimo_errore ?? t('Il dispositivo ha tolto l’accesso: collegalo di nuovo.', 'The device removed access: connect it again.')}
-        </Messaggio>
-      ))}
-      {riautorizza.length ? <Pulsante testo={t('Ricollega', 'Reconnect')} icona="avanti" variante="secondario" onPress={apriDispositivi} /> : null}
-
       <Entra indice={0}>
         <CheckInSonno disp={disp} giorni={dati.giorni} />
       </Entra>
@@ -162,7 +157,6 @@ function Dati({ disp }: { disp: Dispositivi }) {
             <Text style={stili.notteEtichetta}>{(notte.data === oggi ? t('Questa notte', 'Last night') : notte.data === ieri ? t('La notte scorsa', 'The night before') : t(`Notte del ${giornoBreve(notte.data)}`, `Night of ${giornoBreve(notte.data)}`)).toUpperCase()}</Text>
             <View style={stili.anelli}>
               <Anello quota={(notte.sonno_minuti ?? 0) / 600} centro={durata(notte.sonno_minuti ?? 0)} sotto={notte.sonno_punteggio !== null ? t(`Sonno · punteggio ${notte.sonno_punteggio}`, `Sleep · score ${notte.sonno_punteggio}`) : t('Sonno', 'Sleep')} colore="#fff" />
-              {rec ? <Anello quota={rec.quota} centro={rec.parole} sotto={t(`Recupero · ${rec.valore}`, `Recovery · ${rec.valore}`)} colore="#FFD166" /> : null}
             </View>
             {particolari(notte) ? <Text style={stili.notteTesto}>{particolari(notte)}</Text> : null}
           </LinearGradient>
@@ -170,20 +164,20 @@ function Dati({ disp }: { disp: Dispositivi }) {
       ) : collegati ? (
         <Carta style={{ gap: spazio.due }}>
           <Text style={[stili.titoletto, { color: p.testo }]}>{t('Ancora niente da mostrare', 'Nothing to show yet')}</Text>
-          <Text style={[stili.nota, { color: p.testoSecondario }]}>{t('I dati arrivano quando il dispositivo ha sincronizzato col telefono: di solito entro la mezz’ora.', 'The data comes in once the device has synced with your phone: usually within half an hour.')}</Text>
+          <Text style={[stili.nota, { color: p.testoSecondario }]}>{t('Il sonno arriva quando il tuo dispositivo l’ha condiviso con Apple Salute: di solito entro la mezz’ora, e lo leggiamo quando apri l’app.', 'Your sleep comes in once your device has shared it with Apple Health: usually within half an hour, and we read it when you open the app.')}</Text>
         </Carta>
       ) : null}
 
-      {!collegati && collegabili ? (
+      {!collegati ? (
         <Carta style={{ gap: spazio.tre }}>
           <View style={stili.riga}>
             <Bollino icona="orologio" tono="neutro" size={46} />
             <View style={{ flex: 1, gap: 2 }}>
-              <Text style={[stili.titoletto, { color: p.testo }]}>{t('Hai un anello o un orologio?', 'Do you have a ring or a watch?')}</Text>
-              <Text style={[stili.nota, { color: p.testoSecondario }]}>{t('Oura o Polar: il sonno e il recupero arrivano da soli, senza scriverli.', 'Oura or Polar: your sleep and recovery come in by themselves, no logging needed.')}</Text>
+              <Text style={[stili.titoletto, { color: p.testo }]}>{t('Hai un orologio, un anello o un’app di fitness?', 'Do you have a watch, a ring or a fitness app?')}</Text>
+              <Text style={[stili.nota, { color: p.testoSecondario }]}>{t('Collegali ad Apple Salute o a Health Connect: il sonno arriva da solo, senza scriverlo.', 'Connect them to Apple Health or Health Connect: your sleep comes in by itself, no logging needed.')}</Text>
             </View>
           </View>
-          <Pulsante testo={t('Collega', 'Connect')} icona="avanti" variante="secondario" onPress={apriDispositivi} />
+          <Pulsante testo={t('Come si fa', 'How to')} icona="avanti" variante="secondario" onPress={apriDispositivi} />
         </Carta>
       ) : null}
 
@@ -201,17 +195,17 @@ function Dati({ disp }: { disp: Dispositivi }) {
       {errore ? <Messaggio>{errore}</Messaggio> : null}
       <Text style={[stili.piccola, { color: p.testoTerzo, paddingHorizontal: 2 }]}>
         {collegati
-          ? t(`Aggiornato ${dopo(ultimaLettura)}. Valori indicativi del tuo dispositivo: non sono un parere medico.`, `Updated ${dopo(ultimaLettura)}. Approximate values from your device: not medical advice.`)
+          ? t('Valori indicativi del tuo dispositivo: non sono un parere medico.', 'Approximate values from your device: not medical advice.')
           : t('Il sonno che hai scritto tu. Sono valori indicativi: non sono un parere medico.', 'The sleep you logged yourself. These are approximate values: not medical advice.')}
       </Text>
       <View style={stili.azioni}>
-        {collegati ? (
+        {sulTelefono ? (
           <View style={{ flex: 1 }}>
             <Pulsante testo={t('Aggiorna', 'Refresh')} icona="aggiorna" variante="secondario" piccolo inCorso={inCorso} onPress={aggiorna} />
           </View>
         ) : null}
         <View style={{ flex: 1 }}>
-          <Pulsante testo={collegati || collegabili ? t('I dispositivi', 'Devices') : t('Consenso e dati', 'Consent and data')} icona={collegati || collegabili ? 'orologio' : 'lucchetto'} variante="contorno" piccolo onPress={apriDispositivi} />
+          <Pulsante testo={t('I dispositivi', 'Devices')} icona="orologio" variante="contorno" piccolo onPress={apriDispositivi} />
         </View>
       </View>
     </View>

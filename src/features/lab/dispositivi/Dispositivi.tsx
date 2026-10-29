@@ -1,76 +1,41 @@
-import { LinearGradient } from 'expo-linear-gradient'
 import { router, useLocalSearchParams } from 'expo-router'
 import { useEffect, useRef, useState } from 'react'
-import { Linking, Platform, StyleSheet, Text, View } from 'react-native'
+import { StyleSheet, Text, View } from 'react-native'
 
-import { appleSaluteAttivo, appleSaluteDisponibile, chiediPermessoSalute, impostaAppleSalute, sincronizzaSalute, ultimoErroreSalute } from './appleSalute'
-import { scollegaSalute, aggiornaDispositivi, collega, completaCollegamento, revocaConsensoDispositivi, scollega, type Collegamento, type Fornitore, type IdFornitore } from '@/api/dispositivi'
+import { appleSaluteAttivo, appleSaluteDisponibile, appSaluteDelTelefono, chiediPermessoSalute, impostaAppleSalute, sincronizzaSalute, ultimoErroreSalute } from './appleSalute'
+import { scollegaSalute, revocaConsensoDispositivi } from '@/api/dispositivi'
 import { t } from '@/lib/lingua'
 import { spazio } from '@/theme'
 
-import { Icona } from '../ui/Icona'
-import { Bollino, Carta, Entra, Etichetta, Messaggio, Pulsante, SchedeInArrivo, Sezione } from '../ui/kit'
+import { Bollino, Carta, Etichetta, Messaggio, Pulsante, SchedeInArrivo, Sezione } from '../ui/kit'
 import { Schermata } from '../ui/Schermata'
-import { F, RELAX, usePalette } from '../ui/tema'
+import { F, usePalette } from '../ui/tema'
 import { Tocco } from '../ui/Tocco'
-import { datiAppleSalute, dopo, FORNITORI, notaAppleSaluteDalWeb } from './comune'
+import { datiAppleSalute, fontiRicevute, notaAppleSaluteDalWeb } from './comune'
+import { GuidaCollegamento } from './GuidaCollegamento'
 import { FoglioInformativa, Vetrina } from './Vetrina'
 import { useDispositivi, type Dispositivi as DatiDispositivi } from './useDispositivi'
 
-// La schermata dei dispositivi (/allenamento/dispositivi, 19/10/2026): si collegano e si
-// scollegano l'anello Oura e gli orologi Polar, e da qui si revoca il consenso. In
-// quest'ordine, e ogni passo chiude quelli dopo:
+// La schermata dei dispositivi (/allenamento/dispositivi, 19/10/2026): il consenso, l'attivazione di Apple Salute e la guida a
+// collegare il proprio dispositivo. **Dal 29/10/2026 i dispositivi arrivano solo da Apple Salute e, quando ci sara', da Health
+// Connect** (richiesta di Maurizio: un collegamento diretto per ogni marchio e' troppo per l'app di una palestra; Oura e Polar con
+// OAuth sono stati tolti, e con loro il ritorno `?code=…&state=…`). In quest'ordine, e ogni passo chiude quelli dopo:
 //   1. la vetrina col consenso all'informativa (Vetrina.tsx): senza, niente;
-//   2. i fornitori, ognuno con il suo stato e i suoi comandi;
-//   3. in fondo, la revoca del consenso, che scollega tutto e cancella i dati.
-// **Il ritorno dal fornitore** arriva qui: Oura e Polar rimandano il socio a
-// `/allenamento/dispositivi?code=…&state=…`. La schermata manda codice e state alla funzione
-// (che li verifica con la SESSIONE del socio: lo state porta chi ha iniziato) e subito dopo
-// toglie i parametri dall'indirizzo, perche' il codice vale una volta sola e non deve restare
-// nella barra. Se il socio ha annullato, il fornitore rimanda `error`.
+//   2. Apple Salute: attivarlo, aggiornare, vedere da chi arrivano i dati (`CartaAppleSalute`);
+//   3. la guida «come collegare il tuo dispositivo», con la procedura e i marchi (`GuidaCollegamento.tsx`);
+//   4. in fondo, la revoca del consenso, che cancella i dati.
 // Nella vista cliente dello staff la schermata non si apre: sono dati sulla salute.
+// **`?attiva=apple`** (29/10/2026): e' dove porta «Continua» dell'invito di Athlon Health System e il pulsante «Attiva Apple
+// Salute» della carta in evidenza. Prima viene l'informativa (la vetrina, se il consenso non c'e'), e appena la carta di Apple
+// Salute compare apre da sola il foglio di Apple dove la persona sceglie cosa condividere; il parametro si toglie subito.
 
 const primo = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v)
 
-type Avviso = { tono: 'ok' | 'attenzione' | 'errore'; testo: string }
-
 export function Dispositivi() {
   const d = useDispositivi()
-  const params = useLocalSearchParams<{ code?: string; state?: string; error?: string }>()
-  const [avviso, setAvviso] = useState<Avviso | null>(null)
-  const [completando, setCompletando] = useState(false)
-  const partito = useRef(false)
+  const params = useLocalSearchParams<{ attiva?: string }>()
 
-  useEffect(() => {
-    if (d.vista || partito.current) return
-    const code = primo(params.code)
-    const state = primo(params.state)
-    const errore = primo(params.error)
-    if (!code && !errore) return
-    partito.current = true
-    // Via subito dall'indirizzo, qualunque sia l'esito. Con setParams la schermata resta quella di prima
-    // (un replace la rifarebbe da capo e l'avviso del risultato andrebbe perso).
-    router.setParams({ code: undefined, state: undefined, error: undefined, error_description: undefined, scope: undefined })
-    if (!code) {
-      setAvviso({ tono: 'attenzione', testo: t('Il collegamento è stato annullato: non abbiamo letto nessun dato.', 'The connection was canceled: we haven’t read any data.') })
-      return
-    }
-    setCompletando(true)
-    completaCollegamento(code, state ?? '').then((r) => {
-      setCompletando(false)
-      if (r.ok) {
-        d.imposta(r)
-        setAvviso({ tono: 'ok', testo: t(`${FORNITORI[r.fornitore].nome} collegato. I primi dati sono già qui.`, `${FORNITORI[r.fornitore].nome} connected. The first data is already here.`) })
-      } else {
-        setAvviso({ tono: 'errore', testo: r.errore })
-        d.rileggi()
-      }
-    })
-    // Si parte una volta sola, dai parametri con cui la schermata e' stata aperta.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [d.vista, params.code, params.state, params.error])
-
-  const testata = { sopratitolo: 'Relax', titolo: t('I tuoi dispositivi', 'Your devices'), indietro: '/allenamento?area=relax' as const, barra: false as const }
+  const testata = { sopratitolo: 'Recover', titolo: t('I tuoi dispositivi', 'Your devices'), indietro: '/allenamento' as const, barra: false as const }
   const stato = d.stato
 
   if (d.vista) {
@@ -85,7 +50,6 @@ export function Dispositivi() {
   if (!stato) {
     return (
       <Schermata {...testata}>
-        {completando ? <Messaggio tono="attenzione">{t('Stiamo completando il collegamento…', 'Completing the connection…')}</Messaggio> : null}
         <SchedeInArrivo quante={2} />
       </Schermata>
     )
@@ -104,33 +68,39 @@ export function Dispositivi() {
   if (!stato.consenso) {
     return (
       <Schermata {...testata}>
-        {avviso ? <Messaggio tono={avviso.tono}>{avviso.testo}</Messaggio> : null}
+        {/* Arrivati dall'invito ad Apple Salute: si dice perche' si passa da qui, e cosa succede subito dopo il consenso. */}
+        {primo(params.attiva) === 'apple' ? (
+          <Messaggio tono="attenzione" icona="cuore" titolo={t('Prima il tuo consenso', 'Your consent first')}>
+            {t(
+              'Per collegare Apple Salute serve il consenso ai dati sulla salute: lo dai qui sotto, e subito dopo si apre il foglio di Apple dove scegli cosa condividere.',
+              'To connect Apple Health we need your consent to health data: you give it below, and right after that Apple’s sheet opens where you choose what to share.',
+            )}
+          </Messaggio>
+        ) : null}
         <Vetrina onConsenso={d.rileggi} />
       </Schermata>
     )
   }
   return (
     <Schermata {...testata}>
-      {completando ? <Messaggio tono="attenzione">{t('Stiamo completando il collegamento…', 'Completing the connection…')}</Messaggio> : null}
-      {avviso ? <Messaggio tono={avviso.tono}>{avviso.testo}</Messaggio> : null}
-      <Gestione d={d} fornitori={stato.fornitori} collegamenti={stato.collegamenti} onRevocato={() => setAvviso(null)} />
+      <Gestione d={d} attivaSubito={primo(params.attiva) === 'apple'} />
     </Schermata>
   )
 }
 
-function Minorenni({ testata }: { testata: { sopratitolo: string; titolo: string; indietro: '/allenamento?area=relax'; barra: false } }) {
+function Minorenni({ testata }: { testata: { sopratitolo: string; titolo: string; indietro: '/allenamento'; barra: false } }) {
   const p = usePalette()
   return (
     <Schermata {...testata}>
       <Carta style={{ gap: spazio.due }}>
         <Text style={[stili.titoletto, { color: p.testo }]}>{t('Una sezione per i maggiorenni', 'A section for adults')}</Text>
-        <Text style={[stili.nota, { color: p.testoSecondario }]}>{t('I dispositivi sono pensati per gli adulti. Se nella tua scheda del club manca la data di nascita, chiedi al desk di aggiungerla.', 'Devices are designed for adults. If your date of birth is missing from your club profile, ask the front desk to add it.')}</Text>
+        <Text style={[stili.nota, { color: p.testoSecondario }]}>{t('I dispositivi sono pensati per gli adulti. Se nella tua scheda del club manca la data di nascita, non è possibile attivarli.', 'Devices are designed for adults. If your date of birth is missing from your club profile, they can’t be turned on.')}</Text>
       </Carta>
     </Schermata>
   )
 }
 
-function Gestione({ d, fornitori, collegamenti, onRevocato }: { d: DatiDispositivi; fornitori: Fornitore[]; collegamenti: Collegamento[]; onRevocato: () => void }) {
+function Gestione({ d, attivaSubito }: { d: DatiDispositivi; attivaSubito: boolean }) {
   const p = usePalette()
   const [errore, setErrore] = useState<string | null>(null)
   const [informativa, setInformativa] = useState(false)
@@ -145,7 +115,7 @@ function Gestione({ d, fornitori, collegamenti, onRevocato }: { d: DatiDispositi
       return
     }
     // Il «collegato» di prima non ha piu' senso: la sezione si richiude.
-    onRevocato()
+    impostaAppleSalute(false)
     d.rileggi()
   }
 
@@ -153,26 +123,20 @@ function Gestione({ d, fornitori, collegamenti, onRevocato }: { d: DatiDispositi
     <>
       <Text style={[stili.nota, { color: p.testoSecondario, paddingHorizontal: 2 }]}>
         {t(
-          'Collega il tuo anello o il tuo orologio: i dati compaiono in Relax, e si aggiornano da soli quando il dispositivo ha sincronizzato col telefono. Senza un dispositivo il sonno lo scrivi tu, da Relax.',
-          'Connect your ring or watch: the data shows up in Relax, and updates by itself when the device has synced with your phone. Without a device you log your sleep yourself, from Relax.',
+          'Orologio, anello o app di fitness: li colleghi al tuo telefono, e il telefono ci passa quello che scegli di condividere. I dati compaiono in Recover e in Train, e li leggiamo quando apri l’app. Senza un dispositivo il sonno lo scrivi tu, da Recover.',
+          'Watch, ring or fitness app: you connect them to your phone, and your phone passes us what you choose to share. The data shows up in Recover and in Train, and we read it when you open the app. Without a device you log your sleep yourself, from Recover.',
         )}
       </Text>
       {errore ? <Messaggio>{errore}</Messaggio> : null}
-      <CartaAppleSalute d={d} onErrore={setErrore} />
-      <View style={{ gap: spazio.tre }}>
-        {fornitori.map((f, i) => (
-          <Entra key={f.id} indice={i}>
-            <CartaFornitore f={f} collegamento={collegamenti.find((c) => c.fornitore === f.id) ?? null} d={d} onErrore={setErrore} />
-          </Entra>
-        ))}
-      </View>
+      <CartaAppleSalute d={d} onErrore={setErrore} attivaSubito={attivaSubito} />
+      <GuidaCollegamento />
 
       <Sezione titolo={t('I tuoi dati', 'Your data')}>
         <Carta style={{ gap: spazio.tre }}>
           <Text style={[stili.nota, { color: p.testoSecondario }]}>
             {t(
-              'Li vedi solo tu, nemmeno lo staff. Teniamo gli ultimi 90 giorni; se scolleghi un dispositivo cancelliamo subito i suoi dati. Il sonno che scrivi tu si cancella con la revoca.',
-              'Only you see it, not even staff. We keep the last 90 days; if you disconnect a device we delete its data straight away. The sleep you log yourself is deleted when you withdraw consent.',
+              'Li vedi solo tu, nemmeno lo staff. Teniamo gli ultimi 90 giorni; se disattivi Apple Salute cancelliamo subito i suoi dati. Il sonno che scrivi tu si cancella con la revoca.',
+              'Only you see it, not even staff. We keep the last 90 days; if you turn off Apple Health we delete its data straight away. The sleep you log yourself is deleted when you withdraw consent.',
             )}
           </Text>
           <Tocco onPress={() => setInformativa(true)} etichetta={t('Leggi l’informativa', 'Read the privacy notice')} ruolo="link" style={{ alignSelf: 'flex-start' }}>
@@ -184,8 +148,8 @@ function Gestione({ d, fornitori, collegamenti, onRevocato }: { d: DatiDispositi
             <View style={{ gap: spazio.due }}>
               <Text style={[stili.nota, { color: p.testo }]}>
                 {t(
-                  'Scolleghiamo tutti i dispositivi e cancelliamo subito i loro dati, e la sezione si richiude. Resta solo la registrazione del consenso e della revoca.',
-                  'We disconnect all devices and delete their data straight away, and the section closes again. Only the record of your consent and its withdrawal is kept.',
+                  'Cancelliamo subito i dati dei dispositivi e quelli che hai scritto tu, e la sezione si richiude. Resta solo la registrazione del consenso e della revoca.',
+                  'We delete your device data and the data you logged yourself straight away, and the section closes again. Only the record of your consent and its withdrawal is kept.',
                 )}
               </Text>
               <View style={stili.azioni}>
@@ -205,105 +169,6 @@ function Gestione({ d, fornitori, collegamenti, onRevocato }: { d: DatiDispositi
   )
 }
 
-function CartaFornitore({ f, collegamento, d, onErrore }: { f: Fornitore; collegamento: Collegamento | null; d: DatiDispositivi; onErrore: (e: string | null) => void }) {
-  const p = usePalette()
-  const info = FORNITORI[f.id]
-  const [fase, setFase] = useState<'no' | 'collega' | 'aggiorna' | 'chiedi' | 'scollega'>('no')
-  const riautorizza = collegamento?.stato === 'da_riautorizzare'
-
-  async function collegaOra() {
-    onErrore(null)
-    setFase('collega')
-    const r = await collega(f.id as IdFornitore)
-    if (!r.ok) {
-      setFase('no')
-      onErrore(r.errore)
-      return
-    }
-    // Si lascia l'app per il sito del fornitore: da li' torna a questa stessa schermata.
-    if (Platform.OS === 'web') window.location.assign(r.url)
-    else {
-      await Linking.openURL(r.url)
-      setFase('no')
-    }
-  }
-
-  async function aggiorna() {
-    onErrore(null)
-    setFase('aggiorna')
-    const r = await aggiornaDispositivi()
-    setFase('no')
-    if (r.ok) d.imposta(r)
-    else onErrore(r.errore)
-  }
-
-  async function scollegaOra() {
-    onErrore(null)
-    setFase('scollega')
-    const r = await scollega(f.id as IdFornitore)
-    setFase('no')
-    if (r.ok) d.imposta(r)
-    else onErrore(r.errore)
-  }
-
-  return (
-    <Carta style={{ gap: spazio.tre }}>
-      <View style={stili.testa}>
-        <Bollino icona="orologio" tono="neutro" size={46} />
-        <View style={{ flex: 1, gap: 2 }}>
-          <Text style={[stili.nome, { color: p.testo }]}>{info.nome}</Text>
-          <Text style={[stili.nota, { color: p.testoSecondario }]}>{info.cosa}</Text>
-        </View>
-        {!f.disponibile ? (
-          <Etichetta testo={t('Non ancora attivo', 'Not available yet')} />
-        ) : riautorizza ? (
-          <Etichetta testo={t('Da ricollegare', 'To reconnect')} tono="attenzione" />
-        ) : collegamento ? (
-          <Etichetta testo={t('Collegato', 'Connected')} tono="ok" icona="ok" />
-        ) : (
-          <Etichetta testo={t('Non collegato', 'Not connected')} />
-        )}
-      </View>
-      <Text style={[stili.nota, { color: p.testoSecondario }]}>{info.testo}</Text>
-
-      {collegamento && !riautorizza ? (
-        <Text style={[stili.piccola, { color: p.testoTerzo }]}>
-          {collegamento.ultimo_sync_il ? t(`Ultima lettura ${dopo(collegamento.ultimo_sync_il)}.`, `Last read ${dopo(collegamento.ultimo_sync_il)}.`) : t('Non abbiamo ancora letto niente.', 'We haven’t read anything yet.')}
-          {collegamento.ultimo_errore ? ` ${collegamento.ultimo_errore}` : ''}
-        </Text>
-      ) : null}
-      {riautorizza ? (
-        <Messaggio tono="attenzione">{collegamento?.ultimo_errore ?? t('Il dispositivo ha tolto l’accesso: collegalo di nuovo.', 'The device removed access: connect it again.')}</Messaggio>
-      ) : null}
-
-      {fase === 'chiedi' || fase === 'scollega' ? (
-        <View style={{ gap: spazio.due }}>
-          <Text style={[stili.nota, { color: p.testo }]}>{t(`Togliamo il permesso a ${info.nome} e cancelliamo subito i dati letti da lì.`, `We remove ${info.nome}’s permission and delete the data read from it straight away.`)}</Text>
-          <View style={stili.azioni}>
-            <View style={{ flex: 1 }}>
-              <Pulsante testo={t('Annulla', 'Cancel')} variante="secondario" piccolo onPress={() => setFase('no')} />
-            </View>
-            <View style={{ flex: 1 }}>
-              <Pulsante testo={t('Scollega', 'Disconnect')} variante="pericolo" piccolo inCorso={fase === 'scollega'} onPress={scollegaOra} />
-            </View>
-          </View>
-        </View>
-      ) : !collegamento || riautorizza ? (
-        <Pulsante testo={riautorizza ? t(`Ricollega ${info.nome}`, `Reconnect ${info.nome}`) : t(`Collega ${info.nome}`, `Connect ${info.nome}`)} icona="avanti" disabilitato={!f.disponibile} inCorso={fase === 'collega'} onPress={collegaOra} />
-      ) : (
-        <View style={stili.azioni}>
-          <View style={{ flex: 1 }}>
-            <Pulsante testo={t('Aggiorna ora', 'Refresh now')} icona="aggiorna" variante="secondario" piccolo inCorso={fase === 'aggiorna'} onPress={aggiorna} />
-          </View>
-          <View style={{ flex: 1 }}>
-            <Pulsante testo={t('Scollega', 'Disconnect')} variante="contorno" piccolo onPress={() => setFase('chiedi')} />
-          </View>
-        </View>
-      )}
-    </Carta>
-  )
-}
-
 /** Perche' Apple Salute non ha dato niente, in parole: il motivo vero se c'e', e dove guardare. */
 function motivoSalute(): string {
   const base = t(
@@ -313,7 +178,7 @@ function motivoSalute(): string {
   return ultimoErroreSalute ? `${base} (${ultimoErroreSalute})` : base
 }
 
-function CartaAppleSalute({ d, onErrore }: { d: DatiDispositivi; onErrore: (e: string | null) => void }) {
+function CartaAppleSalute({ d, onErrore, attivaSubito }: { d: DatiDispositivi; onErrore: (e: string | null) => void; attivaSubito: boolean }) {
   const p = usePalette()
   const [disponibile, setDisponibile] = useState(false)
   const [attivo, setAttivo] = useState(appleSaluteAttivo())
@@ -321,17 +186,27 @@ function CartaAppleSalute({ d, onErrore }: { d: DatiDispositivi; onErrore: (e: s
   useEffect(() => {
     appleSaluteDisponibile().then(setDisponibile)
   }, [])
-  if (Platform.OS !== 'ios') {
-    // Dal web (o da un telefono senza HealthKit) Apple Salute si vede soltanto: lo attiva e lo aggiorna l'app iPhone.
-    const apple = datiAppleSalute(d.dati)
+  // Arrivati dall'invito o dalla carta «Da attivare»: si apre il foglio di Apple senza un altro tocco (una volta sola).
+  const partita = useRef(false)
+  useEffect(() => {
+    if (!attivaSubito || partita.current || !disponibile) return
+    partita.current = true
+    router.setParams({ attiva: undefined })
+    if (!attivo) attiva()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [attivaSubito, disponibile])
+  const apple = datiAppleSalute(d.dati)
+  const fonti = fontiRicevute(d.dati)
+  if (appSaluteDelTelefono() !== 'apple') {
+    // Dal web, da Android (dove Health Connect non c'e' ancora) o da un telefono senza HealthKit Apple Salute si vede soltanto: lo attiva e lo aggiorna l'app iPhone.
     if (!apple.ha) return null
     return (
       <Carta style={{ gap: spazio.tre }}>
         <View style={stili.testa}>
-          <Bollino icona="orologio" tono="ok" size={46} />
+          <Bollino icona="cuore" tono="ok" size={46} />
           <View style={{ flex: 1, gap: 2 }}>
             <Text style={[stili.nome, { color: p.testo }]}>{t('Apple Salute', 'Apple Health')}</Text>
-            <Text style={[stili.nota, { color: p.testoSecondario }]}>{t('Dati dal tuo iPhone', 'Data from your iPhone')}</Text>
+            <Text style={[stili.nota, { color: p.testoSecondario }]}>{fonti.length ? t(`Dati dal tuo iPhone: ${fonti.join(', ')}`, `Data from your iPhone: ${fonti.join(', ')}`) : t('Dati dal tuo iPhone', 'Data from your iPhone')}</Text>
           </View>
           <Etichetta testo={t('Dall’app', 'From the app')} tono="ok" icona="ok" />
         </View>
@@ -378,24 +253,36 @@ function CartaAppleSalute({ d, onErrore }: { d: DatiDispositivi; onErrore: (e: s
     } else onErrore(r.errore)
   }
 
+  const senzaDati = attivo && !!d.dati && !apple.ha
   return (
     <Carta style={{ gap: spazio.tre }}>
       <View style={stili.testa}>
-        <Bollino icona="orologio" tono="neutro" size={46} />
+        <Bollino icona="cuore" tono={attivo ? (senzaDati ? 'attenzione' : 'ok') : 'neutro'} size={46} />
         <View style={{ flex: 1, gap: 2 }}>
           <Text style={[stili.nome, { color: p.testo }]}>{t('Apple Salute', 'Apple Health')}</Text>
-          <Text style={[stili.nota, { color: p.testoSecondario }]}>{t('Passi, sonno e allenamenti dal tuo iPhone', 'Steps, sleep and workouts from your iPhone')}</Text>
+          <Text style={[stili.nota, { color: p.testoSecondario }]}>{attivo && fonti.length ? t(`Ricevi da: ${fonti.join(', ')}`, `Receiving from: ${fonti.join(', ')}`) : t('Dal tuo iPhone e dai dispositivi collegati', 'From your iPhone and your connected devices')}</Text>
         </View>
-        {attivo ? <Etichetta testo={t('Attivo', 'On')} tono="ok" icona="ok" /> : <Etichetta testo={t('Non attivo', 'Off')} />}
+        {attivo ? senzaDati ? <Etichetta testo={t('Senza dati', 'No data')} tono="attenzione" /> : <Etichetta testo={t('Attivo', 'On')} tono="ok" icona="ok" /> : <Etichetta testo={t('Da attivare', 'To turn on')} tono="attenzione" />}
       </View>
       <Text style={[stili.nota, { color: p.testoSecondario }]}>
         {t(
-          'Scegli tu cosa condividere: l’app legge solo passi, sonno e allenamenti, e solo quando la apri. Il sonno e gli allenamenti di Apple Salute compaiono in Relax.',
-          'You choose what to share: the app only reads steps, sleep and workouts, and only when you open it. Sleep and workouts from Apple Health show up in Relax.',
+          'Scegli tu cosa condividere: l’app legge solo passi, sonno, battito e allenamenti, e solo quando la apri. Il sonno compare in Recover, gli allenamenti e i passi in Train.',
+          'You choose what to share: the app only reads steps, sleep, heart rate and workouts, and only when you open it. Sleep shows up in Recover, workouts and steps in Train.',
         )}
       </Text>
+      {senzaDati ? (
+        <Messaggio tono="attenzione">
+          {t(
+            'È attivo, ma non è arrivato niente. Qui sotto trovi cosa controllare: di solito manca la condivisione nell’app del tuo dispositivo.',
+            'It’s on, but nothing has come in. Below you’ll find what to check: usually the sharing is off in your device’s app.',
+          )}
+        </Messaggio>
+      ) : null}
       {!attivo ? (
-        <Pulsante testo={t('Attiva Apple Salute', 'Turn on Apple Health')} icona="avanti" inCorso={fase === 'attiva'} onPress={attiva} />
+        <>
+          <Pulsante testo={t('Attiva Apple Salute', 'Turn on Apple Health')} icona="avanti" inCorso={fase === 'attiva'} onPress={attiva} />
+          <Text style={[stili.piccola, { color: p.testoTerzo }]}>{t('Consigliato, non obbligatorio.', 'Recommended, not required.')}</Text>
+        </>
       ) : (
         <View style={stili.azioni}>
           <View style={{ flex: 1 }}>

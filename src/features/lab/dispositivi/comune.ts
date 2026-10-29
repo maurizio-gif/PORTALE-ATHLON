@@ -1,39 +1,10 @@
-import type { AllenamentoDispositivo, GiornoDispositivo, IdFornitore, ScalaRecupero } from '@/api/dispositivi'
+import type { AllenamentoDispositivo, GiornoDispositivo } from '@/api/dispositivi'
 import { locale, t } from '@/lib/lingua'
 
 // Quello che le schermate dei dispositivi (Dispositivi.tsx, fit/Relax.tsx) hanno in
-// comune: i fornitori, il recupero in parole nostre, gli sport in italiano, i giorni.
-// Niente qui parla con la rete.
-
-export const FORNITORI: Record<IdFornitore, { nome: string; cosa: string; testo: string }> = {
-  oura: { nome: 'Oura', cosa: t('Anello', 'Ring'), testo: t('Sonno, recupero, battito e variabilità dalla notte, passi e allenamenti.', 'Sleep, recovery, heart rate and variability from the night, steps and workouts.') },
-  polar: { nome: 'Polar', cosa: t('Orologi e fasce', 'Watches and bands'), testo: t('Sonno, recupero notturno, battito e variabilità, e gli allenamenti con il battito.', 'Sleep, overnight recovery, heart rate and variability, and workouts with heart rate.') },
-}
-
-export type Recupero = {
-  /** In parole morbide, nostre: il fornitore ha le sue («Optimal», «Pay attention»). */
-  parole: string
-  /** 0-1, per un anello o una barra. */
-  quota: number
-  /** Il numero del fornitore, com'e': «88 su 100», «4 su 6». */
-  valore: string
-}
-
-/**
- * Il recupero del dispositivo in parole. Le soglie sono nostre (le due scale non si somigliano):
- * Oura «prontezza» 0-100 da 85 in su e' ottimo, da 70 buono, da 60 discreto; Polar «Nightly
- * Recharge» 1-6: 6 ottimo, 5 buono, 4 discreto. Sotto, «da ricaricare»: mai una parola che
- * allarmi, e niente consigli sul cosa fare. Il numero del fornitore resta sempre accanto.
- */
-export function recupero(scala: ScalaRecupero | null, valore: number | null): Recupero | null {
-  if (scala === null || valore === null) return null
-  if (scala === 'oura_prontezza') {
-    const parole = valore >= 85 ? t('Ottimo', 'Excellent') : valore >= 70 ? t('Buono', 'Good') : valore >= 60 ? t('Discreto', 'Fair') : t('Da ricaricare', 'Needs recharging')
-    return { parole, quota: Math.max(0, Math.min(1, valore / 100)), valore: t(`${Math.round(valore)} su 100`, `${Math.round(valore)} out of 100`) }
-  }
-  const parole = valore >= 6 ? t('Ottimo', 'Excellent') : valore >= 5 ? t('Buono', 'Good') : valore >= 4 ? t('Discreto', 'Fair') : t('Da ricaricare', 'Needs recharging')
-  return { parole, quota: Math.max(0, Math.min(1, valore / 6)), valore: t(`${Math.round(valore)} su 6`, `${Math.round(valore)} out of 6`) }
-}
+// comune: gli sport in italiano, i giorni, da chi arrivano i dati. Niente qui parla con la rete.
+// **Dal 29/10/2026 non ci sono piu' i fornitori Oura e Polar ne' il «recupero» in parole** (era la prontezza di Oura e il Nightly
+// Recharge di Polar: da Apple Salute e Health Connect non arrivano): il pilastro Recover descrive il sonno, non da' un giudizio.
 
 const quantiDati = (g: GiornoDispositivo) => Object.entries(g).filter(([k, v]) => k !== 'data' && k !== 'fornitore' && v !== null).length
 
@@ -181,4 +152,28 @@ export function riepilogoAppleSalute(d: DatiDisp | null | undefined): VoceApple[
       giorno: w.length ? giornoDi(w[0].inizio) : null,
     },
   ]
+}
+
+/**
+ * Il nome di chi ha scritto un dato su Apple Salute, ripulito: HealthKit da' alla fonte il nome del dispositivo con quello della
+ * persona («Apple Watch di Marco»), e qui interessa solo il dispositivo o l'app («Apple Watch», «Garmin Connect», «Oura»).
+ */
+export function nomeFonte(origine: string | null | undefined): string | null {
+  const o = (origine ?? '').trim()
+  if (!o) return null
+  const nativo = /^(iphone|ipad|apple watch)\b/i.exec(o)
+  if (nativo) return nativo[1].toLowerCase() === 'iphone' ? 'iPhone' : nativo[1].toLowerCase() === 'ipad' ? 'iPad' : 'Apple Watch'
+  return o.length > 40 ? `${o.slice(0, 39)}…` : o
+}
+
+/** Da chi arrivano i dati di Apple Salute: i nomi delle fonti, i piu' frequenti prima, al massimo sei. Serve a dire «ricevi da…». */
+export function fontiRicevute(d: { giorni: GiornoDispositivo[]; allenamenti: AllenamentoDispositivo[] } | null | undefined): string[] {
+  const conta = new Map<string, number>()
+  const aggiungi = (o: string | null | undefined) => {
+    const n = nomeFonte(o)
+    if (n) conta.set(n, (conta.get(n) ?? 0) + 1)
+  }
+  for (const g of d?.giorni ?? []) if (g.fornitore === 'apple_salute') aggiungi(g.origine)
+  for (const a of d?.allenamenti ?? []) if (a.fornitore === 'apple_salute') aggiungi(a.origine)
+  return [...conta.entries()].sort((x, y) => y[1] - x[1] || x[0].localeCompare(y[0])).slice(0, 6).map(([n]) => n)
 }
