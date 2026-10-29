@@ -102,12 +102,17 @@ export const CAMPI: Record<string, string> = {
   citta: t('Città', 'City'),
 }
 
-/** I dati del primo passo, in tre gruppi: chi sei, come ti troviamo, dove abiti. */
+/**
+ * I dati del primo passo, in due gruppi: chi sei, come ti troviamo. L'indirizzo non si chiede per la prova
+ * (decisione del 29/10/2026: e' un attrito in piu'): lo si chiede all'abbonamento.
+ */
 export const GRUPPI: { titolo: string; campi: string[] }[] = [
   { titolo: t('Chi sei', 'About you'), campi: ['nome', 'cognome', 'nascita', 'codice_fiscale'] },
   { titolo: t('Contatti', 'Contact details'), campi: ['email', 'telefono'] },
-  { titolo: t('Residenza', 'Home address'), campi: ['via', 'cap', 'citta'] },
 ]
+
+/** I dati che la persona deve avere compilati per attivare: quelli che si mostrano. */
+export const CAMPI_RICHIESTI: string[] = GRUPPI.flatMap((g) => g.campi)
 
 /** Le pagine del sito coi testi completi: si aprono in un'altra scheda. */
 export const REGOLAMENTO_URL = 'https://www.athlonroma.it/regolamento/'
