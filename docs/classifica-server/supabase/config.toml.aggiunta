@@ -1,0 +1,5 @@
+# Da aggiungere a supabase/config.toml di APP-ATHLON (accanto a [functions.portale-lab-livelli]).
+# verify_jwt = false: la funzione si difende da sola (CORS, sessione del portale, elenco dei tester), come le altre portale-lab-*.
+
+[functions.portale-lab-classifica]
+verify_jwt = false

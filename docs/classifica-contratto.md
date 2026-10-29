@@ -1,6 +1,6 @@
 # Classifica mensile dell'Athlon Health Score: contratto per il server (29/10/2026)
 
-**Stato.** L'app (PORTALE-ATHLON) è scritta e provata contro un backend finto: riga nella carta del punteggio, schermata, consenso, foto e motto, segnalazione, uscita. **Il server (APP-ATHLON) non c'è ancora.** Finché la funzione non risponde (404) l'app non mostra niente della classifica e il punteggio resta com'è: si può pubblicare l'app prima del server senza rompere niente.
+**Stato.** L'app (PORTALE-ATHLON) è scritta e provata contro un backend finto: riga nella carta del punteggio, schermata, consenso, foto e motto, segnalazione, uscita. **Il server è scritto e provato in `docs/classifica-server/` (migrazione, funzione, calcolo: vedi `LEGGIMI.md`), ma non è pubblicato e manca la pagina del CRM.** Finché la funzione non risponde (404) l'app non mostra niente della classifica e il punteggio resta com'è: si può pubblicare l'app prima del server senza rompere niente.
 
 Questo documento è il compito per chi scrive il server: tabelle, funzione `portale-lab-classifica`, calcolo dei punti, moderazione e pagina del CRM. I tipi esatti sono in `src/api/classifica.ts`.
 
