@@ -1340,7 +1340,7 @@ Richiesta di Maurizio. Lato server (profili, passi, testi, migrazione, regole): 
 - **Provato.** `npx tsc --noEmit` senza errori nei sorgenti (restano quelli di `docs/classifica-server`, che non sono nostri); **in Chromium** (bundle web esportato con `EXPO_PUBLIC_SUPABASE_URL` finto, funzioni simulate con `page.route`, 390 px con touch):
   i quattro pulsanti nuovi o cambiati del messaggio portano dove dicono e segnano il tocco, la richiesta del messaggio porta `salute_collegabile: false` fuori da iPhone nativo, il passo 1 con l'avviso e la data del 3 novembre 2026, il passo 2 con la carta «Parte il» e senza le pillole dei giorni, il riepilogo dei costi
   che parte con `data_inizio` del giorno dopo la fine della prova, e senza Guest Pass nessun avviso e le pillole di prima. **Non provato**: un iPhone vero (`salute_collegabile: true` e il foglio di Apple), la procedura fino alla firma e al pagamento con un Guest Pass vero, l'inglese e il tema scuro a schermo.
-- **Da pubblicare**: dopo la funzione (APP-ATHLON: migrazione, `portale-lab-benvenuto`, `portale-abbonamento`).
+- **Pubblicato il 29/10/2026**, su richiesta di Maurizio («Fai merge poi»): prima il lato server (APP-ATHLON: migrazione, `portale-lab-benvenuto`, `portale-abbonamento`, `guest-pass`), poi questa app.
 
 ## La sezione Junior: i gruppi dei corsi per bambini e ragazzi, per anno di nascita, con i posti liberi (21/10/2026)
 
