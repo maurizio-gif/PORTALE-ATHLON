@@ -15,6 +15,9 @@ import { Casella } from '@/components/Casella'
 import { Pagina } from '@/components/Pagina'
 import { GuestPassAttivo } from '@/features/guest-pass/GuestPassAttivo'
 import { PerChi } from '@/features/guest-pass/PerChi'
+import { scorda } from '@/features/lab/memoria'
+import { useSessione } from '@/features/lab/useSessione'
+import { vistaCorrente } from '@/features/lab/vista'
 import { Scelta } from '@/components/Scelta'
 import { Forte, Testo } from '@/components/Testo'
 import {
@@ -148,6 +151,16 @@ export function AttivaGuestPass({ token, nome, iniziale }: { token: string; nome
   const [erroreDati, setErroreDati] = useState<string | null>(null)
   const [avviso, setAvviso] = useState<{ testo: string; tono: 'ok' | 'attenzione' | 'errore' } | null>(null)
   const giaFatto = useRef(false)
+  // Chi sta leggendo la pagina e' dentro l'app con l'account di questa richiesta (29/10/2026): non gli si dice di scaricarla e di
+  // accedere, e a Guest Pass attivato la Home deve rileggere il suo account (altrimenti per mezz'ora offre ancora «Attiva la prova»).
+  const sessione = useSessione()
+  const dallApp = !!sessione?.user.email && vistaCorrente() === null && sessione.user.email.trim().toLowerCase() === (p.persona.email ?? '').trim().toLowerCase()
+  const attivato = p.stato === 'attivato'
+  useEffect(() => {
+    if (!dallApp || !attivato) return
+    scorda('area')
+    scorda('benvenuto')
+  }, [dallApp, attivato])
 
   async function ricarica() {
     const { ok, dati: d } = await chiamaLink(token, 'pagina')
@@ -401,6 +414,7 @@ export function AttivaGuestPass({ token, nome, iniziale }: { token: string; nome
           avviso={avviso}
           figlio={perFiglio ? { nome: nomeFiglio || null, primo: primoFiglio } : null}
           dopo={unAltroGuestPass}
+          dallApp={dallApp}
         />
       )
     }

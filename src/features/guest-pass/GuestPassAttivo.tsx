@@ -1,3 +1,4 @@
+import { router } from 'expo-router'
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { Animated, Easing, Linking, Platform, Pressable, StyleSheet, Text, View } from 'react-native'
 
@@ -120,6 +121,30 @@ function Accesso({ email, nuovoAccount }: { email: string | null; nuovoAccount: 
   )
 }
 
+/**
+ * Chi ha fatto la procedura da dentro l'app (29/10/2026) ha gia' l'accesso: niente «scarica l'app» ne' reset della password,
+ * ma il Guest Pass che e' gia' sul suo account e la strada per prenotare.
+ */
+function GiaNellApp({ figlio }: { figlio: { nome: string | null; primo: string | null } | null }) {
+  return (
+    <Scheda titolo={t('Il Guest Pass è già nella tua app', 'The Guest Pass is already in your app')}>
+      <Testo>
+        {figlio
+          ? t(
+              `Sei già dentro l’app Athlon Club: il Guest Pass di ${figlio.primo ?? 'tuo figlio'} è sul tuo account e le sue lezioni le prenoti da qui, scegliendolo fra le persone della tua famiglia.`,
+              `You’re already in the Athlon Club app: ${figlio.primo ? `${figlio.primo}’s` : 'your child’s'} Guest Pass is on your account and you book their classes from here, choosing them among your family members.`,
+            )
+          : t(
+              'Sei già dentro l’app Athlon Club: il Guest Pass è sul tuo account, non devi fare altro per entrare. Da qui prenoti le lezioni.',
+              'You’re already in the Athlon Club app: the Guest Pass is on your account, there’s nothing else to do to get in. You book your classes from here.',
+            )}
+      </Testo>
+      <Bottone testo={t('Vai alla Home', 'Go to Home')} onPress={() => router.replace('/')} />
+      <Bottone testo={t('Prenota una lezione', 'Book a class')} variante="contorno" onPress={() => router.navigate('/calendario')} />
+    </Scheda>
+  )
+}
+
 export function GuestPassAttivo({
   email,
   nuovoAccount,
@@ -132,6 +157,7 @@ export function GuestPassAttivo({
   avviso,
   figlio = null,
   dopo = null,
+  dallApp = false,
 }: {
   email: string | null
   /** L'account e' nato in questa procedura: la password l'ha appena scelta. */
@@ -151,6 +177,8 @@ export function GuestPassAttivo({
   figlio?: { nome: string | null; primo: string | null } | null
   /** In fondo, prima del saluto: «Attiva un altro Guest Pass». */
   dopo?: ReactNode
+  /** La procedura e' stata fatta da dentro l'app, con la sessione di chi la sta leggendo. */
+  dallApp?: boolean
 }) {
   const c = useColori()
   const chi = `${nome ?? ''} ${cognome ?? ''}`.trim()
@@ -187,9 +215,7 @@ export function GuestPassAttivo({
         </Entra>
       ) : null}
 
-      <Entra indice={i++}>
-        <Accesso email={email} nuovoAccount={nuovoAccount} />
-      </Entra>
+      <Entra indice={i++}>{dallApp ? <GiaNellApp figlio={figlio} /> : <Accesso email={email} nuovoAccount={nuovoAccount} />}</Entra>
 
       {figlio ? (
         <Entra indice={i++}>
