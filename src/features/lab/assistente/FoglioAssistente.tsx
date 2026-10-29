@@ -1,0 +1,226 @@
+import { router } from 'expo-router'
+import { useRef, useState } from 'react'
+import { KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
+
+import { pulsanteToccato, type AzioneAssistente } from '@/api/assistente'
+import { t, tv } from '@/lib/lingua'
+import { spazio } from '@/theme'
+
+import { Icona } from '../ui/Icona'
+import { Messaggio } from '../ui/kit'
+import { F, usePalette } from '../ui/tema'
+import { Tocco } from '../ui/Tocco'
+import { hrefAssistente } from './destinazioni'
+import type { Battuta } from './store'
+import { CARATTERI_MAX, mandaDomanda, ricominciaChat, useAssistente, votaRisposta } from './useAssistente'
+
+// Il foglio dell'assistente (29/10/2026): la chat. Sale dalla carta in Home («Cerchi qualcosa?»). La persona scrive, la risposta arriva a pezzi
+// e, dove serve, porta uno o due pulsanti che la portano nel punto giusto dell'app: **l'assistente non prenota, non annulla e non paga**, dice
+// dove si fa e cosa toccare. Sotto ogni risposta un voto («Utile» / «Non utile»), che il club legge insieme alle domande.
+//
+// **Dice sempre due cose**: che e' un assistente automatico che puo' sbagliare, e che le domande e le risposte vengono lette dal club per
+// migliorarlo (si conservano e le vede chi apre la tua scheda in segreteria). L'invito a non scrivere dati sulla salute sta nella stessa riga:
+// non si possono impedire, ma si puo' dire.
+
+const ESEMPI = () =>
+  tv(
+    ['Dove vedo i miei pagamenti?', 'Come annullo una lezione?', 'Quando scade il mio certificato?', 'Dove sono i miei piani di allenamento?'],
+    ['Where can I see my payments?', 'How do I cancel a class?', 'When does my certificate expire?', 'Where are my workout plans?'],
+  )
+
+function Pulsanti({ azioni, messaggioId, onVai }: { azioni: AzioneAssistente[]; messaggioId: string | null; onVai: () => void }) {
+  const p = usePalette()
+  return (
+    <View style={stili.azioni}>
+      {azioni.map((a, i) => {
+        const href = hrefAssistente(a.destinazione, a.parametri)
+        if (!href) return null
+        return (
+          <Tocco
+            key={`${a.destinazione}${i}`}
+            etichetta={a.etichetta}
+            onPress={() => {
+              if (messaggioId) pulsanteToccato(messaggioId, a.destinazione)
+              onVai()
+              router.navigate(href)
+            }}
+            style={[stili.azione, { backgroundColor: p.accento }]}
+          >
+            <Text style={[stili.azioneTesto]} numberOfLines={1}>
+              {a.etichetta}
+            </Text>
+            <Icona nome="avanti" size={14} colore="#fff" />
+          </Tocco>
+        )
+      })}
+    </View>
+  )
+}
+
+function Fumetto({ b, onVai }: { b: Battuta; onVai: () => void }) {
+  const p = usePalette()
+  const socio = b.ruolo === 'socio'
+  const attesa = b.stato === 'scrive' && !b.testo
+  return (
+    <View style={[stili.riga, socio ? stili.destra : stili.sinistra]}>
+      <View style={[stili.fumetto, socio ? { backgroundColor: p.accento } : { backgroundColor: p.incavo }]}>
+        {attesa ? (
+          <Text style={[stili.testo, { color: p.testoSecondario }]}>{t('Sto cercando…', 'Looking…')}</Text>
+        ) : (
+          <Text style={[stili.testo, { color: socio ? '#fff' : p.testo }]} selectable>
+            {b.testo}
+            {b.stato === 'interrotta' ? t(' … (la connessione si è interrotta)', ' … (the connection dropped)') : ''}
+          </Text>
+        )}
+      </View>
+      {!socio && b.stato === 'fatto' && b.azioni.length > 0 ? <Pulsanti azioni={b.azioni} messaggioId={b.messaggioId} onVai={onVai} /> : null}
+      {!socio && b.stato === 'fatto' && b.messaggioId ? (
+        <View style={stili.voti}>
+          {(['su', 'giu'] as const).map((v) => (
+            <Tocco
+              key={v}
+              onPress={() => votaRisposta(b.id, v)}
+              vibra="scelta"
+              etichetta={v === 'su' ? t('Risposta utile', 'Helpful answer') : t('Risposta non utile', 'Unhelpful answer')}
+              stato={{ selected: b.valutazione === v }}
+              style={[stili.voto, { borderColor: b.valutazione === v ? p.accento : p.linea, backgroundColor: b.valutazione === v ? p.incavo : 'transparent' }]}
+            >
+              <Text style={[stili.votoTesto, { color: b.valutazione === v ? p.accento : p.testoSecondario }]}>{v === 'su' ? t('Utile', 'Helpful') : t('Non utile', 'Not helpful')}</Text>
+            </Tocco>
+          ))}
+        </View>
+      ) : null}
+    </View>
+  )
+}
+
+export function FoglioAssistente({ aperto, schermata, onChiudi }: { aperto: boolean; schermata: string | null; onChiudi: () => void }) {
+  const p = usePalette()
+  const ins = useSafeAreaInsets()
+  const s = useAssistente()
+  const [testo, setTesto] = useState('')
+  const scorri = useRef<ScrollView>(null)
+  const puoMandare = !s.inCorso && testo.trim().length > 0 && testo.length <= CARATTERI_MAX
+
+  const manda = (domanda: string) => {
+    mandaDomanda(domanda, schermata)
+    setTesto('')
+  }
+
+  return (
+    <Modal visible={aperto} transparent animationType="slide" onRequestClose={onChiudi}>
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={stili.velo}>
+        <Pressable style={StyleSheet.absoluteFill} onPress={onChiudi} accessibilityLabel={t('Chiudi', 'Close')} />
+        <View style={[stili.foglio, { backgroundColor: p.carta, paddingBottom: ins.bottom + spazio.due }]} accessibilityViewIsModal>
+          <View style={[stili.maniglia, { backgroundColor: p.incavo }]} />
+          <View style={stili.testata}>
+            <View style={{ flex: 1, gap: 2 }}>
+              <Text style={[stili.titolo, { color: p.testo }]} accessibilityRole="header">
+                {t('Cerchi qualcosa?', 'Looking for something?')}
+              </Text>
+              <Text style={[stili.sotto, { color: p.testoSecondario }]}>{t('Chiedimi dove trovare le cose o cosa risulta sul tuo account.', 'Ask me where to find things or what shows on your account.')}</Text>
+            </View>
+            {s.battute.length > 0 ? (
+              <Tocco onPress={ricominciaChat} etichetta={t('Ricomincia la conversazione', 'Start over')} style={[stili.icona, { backgroundColor: p.incavo }]}>
+                <Icona nome="aggiorna" size={16} colore={p.testo} />
+              </Tocco>
+            ) : null}
+            <Tocco onPress={onChiudi} etichetta={t('Chiudi', 'Close')} style={[stili.icona, { backgroundColor: p.incavo }]}>
+              <Icona nome="chiudi" size={17} colore={p.testo} />
+            </Tocco>
+          </View>
+
+          <ScrollView
+            ref={scorri}
+            style={{ flex: 1 }}
+            contentContainerStyle={{ gap: spazio.tre, padding: spazio.tre + 4, paddingBottom: spazio.tre }}
+            keyboardShouldPersistTaps="handled"
+            onContentSizeChange={() => scorri.current?.scrollToEnd({ animated: true })}
+          >
+            {s.battute.length === 0 ? (
+              <View style={{ gap: spazio.tre }}>
+                <Text style={[stili.testo, { color: p.testoSecondario }]}>{t('Per esempio:', 'For example:')}</Text>
+                <View style={{ gap: spazio.due }}>
+                  {ESEMPI().map((e) => (
+                    <Tocco key={e} onPress={() => manda(e)} etichetta={e} style={[stili.esempio, { borderColor: p.linea, backgroundColor: p.fondo }]}>
+                      <Text style={[stili.testo, { color: p.testo, flex: 1 }]}>{e}</Text>
+                      <Icona nome="avanti" size={14} colore={p.testoTerzo} />
+                    </Tocco>
+                  ))}
+                </View>
+              </View>
+            ) : null}
+            {s.battute.map((b) => (
+              <Fumetto key={b.id} b={b} onVai={onChiudi} />
+            ))}
+            {s.errore ? <Messaggio tono={s.nonAttivo ? 'attenzione' : 'errore'}>{s.errore}</Messaggio> : null}
+          </ScrollView>
+
+          <View style={stili.fondo}>
+            <View style={[stili.campo, { borderColor: p.linea, backgroundColor: p.fondo }]}>
+              <TextInput
+                value={testo}
+                onChangeText={setTesto}
+                placeholder={t('Scrivi qui…', 'Write here…')}
+                placeholderTextColor={p.testoTerzo}
+                multiline
+                numberOfLines={1}
+                maxLength={CARATTERI_MAX}
+                returnKeyType="send"
+                submitBehavior="submit"
+                onSubmitEditing={() => puoMandare && manda(testo)}
+                // Sul web un campo su piu' righe va a capo con Invio: qui Invio manda, Maiusc+Invio va a capo.
+                onKeyPress={(e) => {
+                  const n = e.nativeEvent as unknown as { key?: string; shiftKey?: boolean }
+                  if (Platform.OS === 'web' && n.key === 'Enter' && !n.shiftKey) {
+                    e.preventDefault()
+                    if (puoMandare) manda(testo)
+                  }
+                }}
+                accessibilityLabel={t('La tua domanda', 'Your question')}
+                style={[stili.input, { color: p.testo }, Platform.OS === 'web' ? ({ outlineStyle: 'none' } as object) : null]}
+              />
+              <Tocco onPress={() => puoMandare && manda(testo)} spento={!puoMandare} etichetta={t('Invia', 'Send')} style={[stili.invia, { backgroundColor: puoMandare ? p.accento : p.incavo }]}>
+                <Icona nome="invia" size={16} colore={puoMandare ? '#fff' : p.testoTerzo} />
+              </Tocco>
+            </View>
+            <Text style={[stili.postilla, { color: p.testoTerzo }]}>
+              {t(
+                'Assistente automatico: può sbagliare e non fa niente al posto tuo. Le domande e le risposte vengono lette dal club per migliorarlo: non scrivere dati sulla salute.',
+                'Automated assistant: it can make mistakes and doesn’t do anything on your behalf. Questions and answers are read by the club to improve it: don’t write health information.',
+              )}
+            </Text>
+          </View>
+        </View>
+      </KeyboardAvoidingView>
+    </Modal>
+  )
+}
+
+const stili = StyleSheet.create({
+  velo: { flex: 1, backgroundColor: 'rgba(0,0,0,0.55)', justifyContent: 'flex-end', alignItems: 'center' },
+  foglio: { width: '100%', maxWidth: 560, height: '88%', borderTopLeftRadius: 34, borderTopRightRadius: 34 },
+  maniglia: { width: 44, height: 5, borderRadius: 3, alignSelf: 'center', marginTop: 10, marginBottom: 6 },
+  testata: { flexDirection: 'row', alignItems: 'flex-start', gap: spazio.due, paddingHorizontal: spazio.quattro - 4, paddingTop: spazio.due },
+  titolo: { fontFamily: F.extra, fontSize: 22, letterSpacing: -0.6 },
+  sotto: { fontFamily: F.medio, fontSize: 13.5, lineHeight: 19 },
+  icona: { width: 38, height: 38, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
+  riga: { gap: 8, maxWidth: '100%' },
+  destra: { alignItems: 'flex-end' },
+  sinistra: { alignItems: 'flex-start' },
+  fumetto: { maxWidth: '88%', paddingHorizontal: 14, paddingVertical: 10, borderRadius: 18 },
+  testo: { fontFamily: F.medio, fontSize: 15, lineHeight: 21 },
+  azioni: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, maxWidth: '100%' },
+  azione: { flexDirection: 'row', alignItems: 'center', gap: 6, height: 38, paddingHorizontal: 14, borderRadius: 999 },
+  azioneTesto: { fontFamily: F.semi, fontSize: 14, color: '#fff', maxWidth: 240 },
+  voti: { flexDirection: 'row', gap: 8 },
+  voto: { height: 28, paddingHorizontal: 11, borderRadius: 999, borderWidth: 1, justifyContent: 'center' },
+  votoTesto: { fontFamily: F.semi, fontSize: 12 },
+  esempio: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 14, paddingVertical: 12, borderRadius: 16, borderWidth: 1 },
+  fondo: { paddingHorizontal: spazio.quattro - 4, gap: 8, paddingTop: 4 },
+  campo: { flexDirection: 'row', alignItems: 'flex-end', gap: 8, borderWidth: 1, borderRadius: 22, paddingLeft: 14, paddingRight: 6, paddingVertical: 6 },
+  input: { flex: 1, fontFamily: F.medio, fontSize: 15, lineHeight: 20, minHeight: 32, maxHeight: 110, paddingTop: 6, paddingBottom: 6 },
+  invia: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
+  postilla: { fontFamily: F.medio, fontSize: 11.5, lineHeight: 16 },
+})

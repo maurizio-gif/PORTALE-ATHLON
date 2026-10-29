@@ -16,6 +16,7 @@ import { spazio } from '@/theme'
 
 import { CHIAVE_CONTRATTI, ElencoAbbonamenti } from './AbbonamentiMiei'
 import { AvvisoCertificato } from './home/AvvisoCertificato'
+import { CartaAssistente } from './home/CartaAssistente'
 import { CartaInvita } from './home/CartaInvita'
 import { CartaNotifiche } from './home/CartaNotifiche'
 import { CartaPush } from './home/CartaPush'
@@ -446,6 +447,9 @@ export function AreaRiservata({ email }: { email: string }) {
 
       {/* Il messaggio di benvenuto: scritto a ogni ritorno nell'app, spinge verso il prossimo passo (home/MessaggioBenvenuto). */}
       <MessaggioBenvenuto email={email} onSezione={(s) => vai(s, true)} />
+
+      {/* L'assistente: chiedi dove trovare le cose o cosa risulta sul tuo account, ti porta nel punto giusto (home/CartaAssistente). */}
+      <CartaAssistente />
 
       {/* L'invito ad attivare le notifiche push: solo dove c'e' una cosa da fare, «Non ora» rimanda di tre giorni (home/CartaPush). */}
       <CartaPush />
