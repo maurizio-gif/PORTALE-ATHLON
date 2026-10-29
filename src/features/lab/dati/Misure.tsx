@@ -2,8 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { ScrollView, StyleSheet, Text, TextInput, View } from 'react-native'
 
 import { eliminaMisura, elencoMisure, salvaMisura, salvaSessoCalcolo, type ConsensoCorpo, type Misura, type NuovaMisura, type SessoCalcolo } from '@/api/lab'
-import { CampoData } from '@/components/CampoData'
-import { t } from '@/lib/lingua'
+import { locale, t } from '@/lib/lingua'
 import { spazio } from '@/theme'
 
 import { dimentica, inMemoria, prendi, ricorda } from '../memoria'
@@ -132,11 +131,12 @@ function FoglioMisura({
   async function salva() {
     if (!b) return
     setErrore(null)
-    if (!b.data) return setErrore(t('Scrivi la data della misurazione.', 'Enter the date of the measurement.'))
     if (!altezza && !daTesto(b.altezza_cm)) return setErrore(t('Scrivi la tua altezza: la segni solo questa volta.', 'Enter your height: you only log it this once.'))
     if (!daTesto(b.peso_kg)) return setErrore(t('Scrivi il peso.', 'Enter your weight.'))
     setInCorso(true)
-    const corpo: NuovaMisura = { data: b.data }
+    // La data non si sceglie (30/10/2026, richiesta di Maurizio): una misurazione nuova e' di oggi, una che si modifica resta del suo giorno.
+    // Per una nuova si legge adesso e non all'apertura del foglio: a cavallo della mezzanotte e' il giorno in cui si preme «Salva».
+    const corpo: NuovaMisura = { data: esiste ? b.data : oggi() }
     // Con l'altezza gia' segnata non la si manda: resta quella della prima volta.
     const campi = [...(altezza ? [] : ['altezza_cm']), 'peso_kg', ...CIRCONFERENZE.map((c) => c.chiave), 'massa_grassa_pct', 'massa_magra_kg'] as Campo[]
     for (const k of campi) corpo[k] = daTesto(b[k])
@@ -173,10 +173,12 @@ function FoglioMisura({
       onChiudi={onChiudi}
     >
       <View style={{ gap: spazio.tre }}>
-        {/* In riga: in colonna il flex del campo lo schiaccerebbe sopra i campi sotto. */}
-        <View style={{ flexDirection: 'row' }}>
-          <CampoData etichetta={t('Data', 'Date')} value={b.data} onChange={(v) => cambia('data', v)} min="2000-01-01" max={oggi()} annoIniziale={new Date().getFullYear()} sfondo={p.incavo} />
-        </View>
+        {/* La data non si sceglie: una misurazione nuova e' di oggi. Chi ne modifica una vede di quale giorno e' (sola lettura). */}
+        {esiste ? (
+          <Text style={[stili.piccola, { color: p.testoSecondario }]}>
+            {t('Misurazione del', 'Measurement of')} {new Date(`${b.data}T12:00:00`).toLocaleDateString(locale(), { day: 'numeric', month: 'long', year: 'numeric' })}
+          </Text>
+        ) : null}
         {altezza ? (
           <>
             <View style={stili.griglia}>
