@@ -9,7 +9,6 @@
     "userInterfaceStyle": "automatic",
     "ios": {
       "associatedDomains": [
-        "applinks:app.athlonroma.it",
         "applinks:app.athlonroma.it"
       ],
       "bundleIdentifier": "com.netpulse.centrosportivoathlon",
@@ -26,21 +25,6 @@
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "intentFilters": [
-        {
-          "action": "VIEW",
-          "autoVerify": true,
-          "data": [
-            {
-              "scheme": "https",
-              "host": "app.athlonroma.it",
-              "pathPrefix": "/r/"
-            }
-          ],
-          "category": [
-            "BROWSABLE",
-            "DEFAULT"
-          ]
-        },
         {
           "action": "VIEW",
           "autoVerify": true,
