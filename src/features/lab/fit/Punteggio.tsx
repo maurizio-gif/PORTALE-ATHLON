@@ -1,11 +1,14 @@
 import { LinearGradient } from 'expo-linear-gradient'
 import { router } from 'expo-router'
+import type { ReactNode } from 'react'
 import { StyleSheet, Text, View } from 'react-native'
 import Svg, { Circle } from 'react-native-svg'
 
 import { locale, t, tv } from '@/lib/lingua'
 import { spazio } from '@/theme'
 
+import { RigaClassificaNellaCarta } from '../classifica/RigaNellaCarta'
+import { useClassifica } from '../classifica/useClassifica'
 import { useDispositivi, type Dispositivi } from '../dispositivi/useDispositivi'
 import { useProgresso, useVisibile } from '../schede/ContatoreCalorie'
 import { Icona, type NomeIcona } from '../ui/Icona'
@@ -24,7 +27,8 @@ import { usePunteggio } from './usePunteggio'
 // schermata (/allenamento/punteggio) spiega com'e' fatto: ogni pilastro con la sua riga, le ultime
 // quattro settimane di allenamento e le regole. Il calcolo sta in calcoloPunteggio.ts (puro).
 // **Descrive, non giudica**: le bande sono parole morbide («Si comincia», «Buon ritmo»), niente
-// confronti con altri soci, niente traguardi che dicano cosa fare.
+// traguardi che dicano cosa fare. **L'unico confronto con altri soci e' la classifica del mese** (29/10/2026,
+// `classifica/`), e solo per chi sceglie di entrarci: il punteggio in se' non confronta niente.
 
 const COLORI: Record<IdPilastro, string> = { train: FUOCO[1], food: ORTO[1], relax: RELAX[1] }
 const ICONE: Record<IdPilastro, NomeIcona> = { train: 'peso', food: 'piatto', relax: 'foglia' }
@@ -129,6 +133,8 @@ function RigaPilastro({ x }: { x: Pilastro }) {
 export function CartaPunteggio({ fit, disp, apri = true }: { fit: DatiFit; disp: Dispositivi; apri?: boolean }) {
   const p = usePunteggio(fit, disp)
   const livelli = useLivelli(fit, disp, p)
+  // La classifica del mese (29/10/2026): una riga sotto il livello, che c'e' solo dove la funzione c'e' e la persona e' maggiorenne.
+  const classifica = useClassifica(fit.vista)
   // Le lezioni con la presenza segnata dalla reception nelle stesse quattro settimane del punteggio: e' quello che c'e'
   // anche per chi non ha mai scritto un dato (il «da dove arriva» le nomina e dice quante sono).
   const lezioni = (() => {
@@ -137,7 +143,7 @@ export function CartaPunteggio({ fit, disp, apri = true }: { fit: DatiFit; disp:
     if (!da || !fino || !fit.sessioni) return undefined
     return fit.sessioni.filter((x) => x.fonte === 'lezione' && x.giorno >= da && x.giorno <= fino).length
   })()
-  return <CartaPunteggioVista p={p} livelli={livelli} apri={apri} lezioni={lezioni} />
+  return <CartaPunteggioVista p={p} livelli={livelli} apri={apri} lezioni={lezioni} classifica={<RigaClassificaNellaCarta c={classifica} />} />
 }
 
 /** «Da dove arriva» (24/10/2026): una riga, subito sotto il titolo, che dice cosa conta e che non c'e' niente da inserire. */
@@ -161,9 +167,9 @@ function DaDoveArriva({ p, lezioni }: { p: Punteggio | null; lezioni?: number })
 }
 
 /** Quello che si vede: separato dai dati perche' la schermata del dettaglio li legge una volta sola e li passa anche alla sezione dei livelli. */
-export function CartaPunteggioVista({ p, livelli, apri = true, lezioni }: { p: Punteggio | null; livelli: Livelli; apri?: boolean; /** Le lezioni con la presenza segnata nelle ultime quattro settimane: se c'e', la riga «da dove arriva» le conta. */ lezioni?: number }) {
-  const dentro = (
-    <LinearGradient colors={NOTTE} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={stili.cornice}>
+export function CartaPunteggioVista({ p, livelli, apri = true, lezioni, classifica }: { p: Punteggio | null; livelli: Livelli; apri?: boolean; /** La riga della classifica del mese (29/10/2026), sotto il livello: manca dove la classifica non c'e'. */ classifica?: ReactNode; /** Le lezioni con la presenza segnata nelle ultime quattro settimane: se c'e', la riga «da dove arriva» le conta. */ lezioni?: number }) {
+  const contenuto = (
+    <View style={{ gap: spazio.tre }}>
       {apri ? (
         <View style={stili.testa}>
           <LinearGradient colors={[FUOCO[1], ORTO[1]]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={stili.icona}>
@@ -215,14 +221,26 @@ export function CartaPunteggioVista({ p, livelli, apri = true, lezioni }: { p: P
           ) : null}
         </>
       )}
-    </LinearGradient>
+    </View>
   )
-  return apri && p ? (
-    <Tocco onPress={apriPunteggio} etichetta={t(`Athlon Health Score: ${p.totale} su ${p.su}. ${p.banda}. Apri il dettaglio`, `Athlon Health Score: ${p.totale} out of ${p.su}. ${nomeBanda(p.banda)}. Open details`)} scala={0.985}>
-      {dentro}
-    </Tocco>
-  ) : (
-    dentro
+  // **La riga della classifica sta fuori dal tocco che apre il dettaglio** (29/10/2026): un comando dentro un altro, sul web, e' un `<button>` dentro
+  // un `<button>` (non valido: in alcuni browser il tocco interno non parte). Il fondo scuro e' di tutta la carta; il tocco copre tutto tranne la riga.
+  return (
+    <LinearGradient colors={NOTTE} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={stili.cornice}>
+      {apri && p ? (
+        <Tocco onPress={apriPunteggio} etichetta={t(`Athlon Health Score: ${p.totale} su ${p.su}. ${p.banda}. Apri il dettaglio`, `Athlon Health Score: ${p.totale} out of ${p.su}. ${nomeBanda(p.banda)}. Open details`)} scala={0.985}>
+          {contenuto}
+        </Tocco>
+      ) : (
+        contenuto
+      )}
+      {apri && p && classifica ? (
+        <>
+          <View style={stili.separatore} />
+          {classifica}
+        </>
+      ) : null}
+    </LinearGradient>
   )
 }
 

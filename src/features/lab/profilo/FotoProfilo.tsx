@@ -2,11 +2,14 @@ import { Image } from 'expo-image'
 import { useEffect, useState } from 'react'
 import { StyleSheet, Text, View } from 'react-native'
 
+import type { StatoClassifica } from '@/api/classifica'
 import { caricaFotoProfilo, type Anagrafica } from '@/api/lab'
 import { fotocameraDisponibile, preparaFotoProfilo, scegliFotoProfilo, type FotoProfiloPronta, type OrigineFoto } from '@/lib/fotoProfilo'
 import { t } from '@/lib/lingua'
 import { spazio } from '@/theme'
 
+import { CHIAVE_CLASSIFICA } from '../classifica/useClassifica'
+import { inMemoria } from '../memoria'
 import { Foglio } from '../ui/Foglio'
 import { Icona } from '../ui/Icona'
 import { Entra, Messaggio, Pulsante } from '../ui/kit'
@@ -125,6 +128,7 @@ export function FoglioFoto({
   const [attesa, setAttesa] = useState<OrigineFoto | 'invio' | null>(null)
   const [errore, setErrore] = useState<string | null>(null)
   const conCamera = fotocameraDisponibile()
+  const inClassifica = !!inMemoria<StatoClassifica>(CHIAVE_CLASSIFICA)?.consenso
   const occupato = attesa !== null
 
   async function scegli(da: OrigineFoto) {
@@ -154,7 +158,12 @@ export function FoglioFoto({
     <Foglio
       aperto
       titolo={t('La tua foto', 'Your photo')}
-      sottotitolo={t('Una foto del tuo viso, ben illuminata. La vede solo il club: gli altri soci no.', 'A well-lit photo of your face. Only the club sees it, not other members.')}
+      sottotitolo={
+        // Chi e' in classifica puo' scegliere di mostrarla agli altri soci (29/10/2026): il testo non puo' piu' dire «gli altri soci no».
+        inClassifica
+          ? t('Una foto del tuo viso, ben illuminata. La vede il club; gli altri soci solo se scegli di mostrarla in classifica.', 'A well-lit photo of your face. The club sees it; other members only if you choose to show it on the leaderboard.')
+          : t('Una foto del tuo viso, ben illuminata. La vede solo il club: gli altri soci no.', 'A well-lit photo of your face. Only the club sees it, not other members.')
+      }
       // Chiudere a metà invio lascerebbe la schermata ferma alla foto di prima, con la nuova già partita.
       onChiudi={attesa === 'invio' ? () => undefined : onChiudi}
     >

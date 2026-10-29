@@ -97,6 +97,8 @@ const ICONE = {
   cuore: ['heart.fill', 'favorite'],
   passi: ['figure.walk', 'directions_walk'],
   luna: ['moon.zzz.fill', 'bedtime'],
+  // La classifica mensile (29/10/2026).
+  trofeo: ['trophy.fill', 'emoji_events'],
 } as const satisfies Record<string, readonly [SFSymbol, AndroidSymbol]>
 
 export type NomeIcona = keyof typeof ICONE
