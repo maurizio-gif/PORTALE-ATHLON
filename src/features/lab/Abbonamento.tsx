@@ -281,6 +281,14 @@ export function Abbonamento() {
   }, [persona?.inizio_min, persona?.inizio_max, persona])
   const giorni = useMemo(() => (persona?.inizio_min && persona.inizio_max ? giorniFra(persona.inizio_min, persona.inizio_max) : []), [persona])
 
+  // Nel cambio non si propone l'abbonamento che si ha gia' (stesso livello e stessa formula): il nome del contratto, «Premium - Mensile Flex», dice l'uno e l'altra.
+  const eQuelloCheHai = (x: PianoAbbonamento): boolean => {
+    const nome = infoCambio?.piano ?? ''
+    const livello = (n: string) => (/premium/i.test(n) ? 'premium' : /smart/i.test(n) ? 'smart' : null)
+    const formulaDi = (n: string) => (/soluzione unica/i.test(n) ? 'annuale-unico' : /rateizz/i.test(n) ? 'annuale-rate' : /flex|mensile/i.test(n) ? 'flex' : null)
+    return livello(nome) !== null && livello(nome) === livello(x.abbonamento) && formulaDi(nome) === x.formula
+  }
+
   function scelta(): SceltaAbbonamento | null {
     if (!persona || !pianoId || !inizio) return null
     return { member_id: persona.member_id, piano_id: pianoId, data_inizio: inizio, ...(cambioId ? { cambio_contract_id: cambioId } : {}) }
@@ -506,7 +514,7 @@ export function Abbonamento() {
               <>
                 {persona.da_guest_pass && persona.inizio_min ? <DallaProva inizio={persona.inizio_min} quota={stato.quota_attivazione} /> : null}
                 {infoCambio ? <DaCambio fine={infoCambio.fine} inizio={infoCambio.nuovo_inizio} piano={infoCambio.piano} /> : null}
-                <Listino piani={stato.piani} pianoId={pianoId} onScegli={setPianoId} />
+                <Listino piani={infoCambio ? stato.piani.filter((x) => !eQuelloCheHai(x)) : stato.piani} pianoId={pianoId} onScegli={setPianoId} />
                 <Text style={[stili.nota, { color: p.testoSecondario }]}>
                   {stato.quota_attivazione > 0 && !infoCambio
                     ? t(`A ogni abbonamento si aggiunge la quota di attivazione di ${euro(stato.quota_attivazione)}, che non si paga se il nuovo abbonamento parte il giorno dopo la scadenza del precedente. `, `A joining fee of ${euro(stato.quota_attivazione)} is added to every membership; it isn’t charged if the new membership starts the day after the previous one ends. `)
