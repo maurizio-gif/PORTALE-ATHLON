@@ -1753,3 +1753,22 @@ Richiesta di Maurizio. Funzione `portale-gestione-abbonamento` (APP-ATHLON, rego
 - **In vista cliente** `stato` e le due anteprime sono letture; sospendere, annullare e disdire rispondono 403 e il foglio mostra l'errore.
 - **Provato.** `tsc` senza errori nuovi (43 di base). **In Chromium** (bundle web esportato con `EXPO_PUBLIC_SUPABASE_URL` locale, funzioni simulate con `page.route`, 390 e 1280 px, tema chiaro), 32 controlli: pulsante e Guest Pass con promozione e quota, foglio con Sospendi e Cambia spento, novembre non disponibile col motivo, i due tipi di sospensione, conferma spenta senza consensi e riepilogo con la carta •••• 2365, la richiesta `sospendi` con mese, tipo e costo giusti, l'esito col credito, la sospensione programmata con «Annulla», la disdetta con data asteriscata, rate e ultimo giorno, la richiesta `disdici` con l'impronta del riepilogo e il motivo, nessuno scorrimento orizzontale, nessun errore di pagina. **Non provato**: una scrittura vera su PerfectGym (le funzioni erano simulate: nessuna scheda di prova ha un contratto a pagamento), un telefono vero, il tema scuro, l'inglese a schermo, «riduci movimento», la vista cliente, e l'annullo di una sospensione dalla schermata (provato solo che il comando compare).
 - **Da pubblicare**: la funzione `portale-gestione-abbonamento` e' gia' in produzione (APP-ATHLON #483): prima la funzione, poi l'app.
+
+## «Scrivi al team»: l'assistente passa a una persona, e la persona decide (31/10/2026)
+
+Richiesta di Maurizio: l'assistente fa una prima assistenza e, se non basta, apre un ticket per il team. Regole, funzione, tabella, compito in Agenda ed email al desk: `CLAUDE.md` di APP-ATHLON,
+«L'assistente fa la prima assistenza e poi apre un ticket per il team». Qui cosa fa l'app (`assistente/teamDaChat.ts`, `ScriviAlTeam.tsx`, `scriviAlTeam` in `api/assistente.ts`, `FoglioAssistente.tsx`).
+
+- **L'assistente propone, la persona decide.** La funzione manda il pulsante come `{ destinazione: 'scrivi-team', parametri: {}, etichetta: 'Scrivi al team' }`: **non e' una destinazione** (non sta in
+  `DESTINAZIONI_ASSISTENTE`, l'elenco chiuso uguale a quello della funzione) ma apre una carta nella chat, come `prenota-lezione` e `paga-quote`. Compare quando la persona e' arrabbiata, insiste dopo un
+  «non e' possibile» o ha un caso suo, e **una volta per conversazione**.
+- **La carta dice cosa arriva al team** prima di mandarlo: la conversazione con l'assistente e, se la persona vuole, due righe sue (fino a 1000 caratteri), e che il team **risponde via email**. Dice anche di
+  non scrivere dati sulla salute (li leggono persone del club). **Niente parte da solo**: la conversazione va al team solo con «Invia al team». Dopo l'invio: «Fatto: il team ha ricevuto la conversazione e ti
+  risponde via email». Nessuna promessa sui tempi.
+- **Chi e' lo sa la sessione**: nome ed email non si chiedono (a differenza dell'assistente del sito). La conversazione la rilegge il server dal suo registro: dall'app parte solo l'id. Con la funzione non ancora
+  aggiornata («Azione sconosciuta.») la carta dice che il team non e' raggiungibile da qui e lascia riprovare. Tre al giorno: oltre, il messaggio della funzione.
+- **In vista cliente non c'e'** (l'assistente non c'e' e la funzione non e' fra le letture).
+- **Provato**: `npx tsx scripts/prova-assistente.ts` (5 gruppi, con la parte pura di `teamDaChat`) e `npx tsc --noEmit` (restano due errori che non sono di questa modifica, in `abbonamento.ts` e `Gestisci.tsx`,
+  piu' quelli di `docs/classifica-server`). **Non guardata renderizzata** (390 e 1280 px, chiaro e scuro, italiano e inglese), **non provata su un telefono** e **non provata con la funzione vera**.
+- **Da pubblicare dopo la funzione** (APP-ATHLON: migrazione `20261031a`, poi `portale-lab-assistente`): senza, il pulsante non compare mai.
+
