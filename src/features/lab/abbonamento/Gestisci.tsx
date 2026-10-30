@@ -752,7 +752,11 @@ export function FoglioGestisci({ contratto: c, aperto, onChiudi, onCambiato }: {
     vai('c1')
   }
 
-  const tuttiIPiani = [...(piani ?? [])].sort((a, b) => Number(a.formula === 'flex') - Number(b.formula === 'flex') || rangoAbbonamento(b.abbonamento, b.formula === 'annuale-unico') - rangoAbbonamento(a.abbonamento, a.formula === 'annuale-unico'))
+  // Non si propone l'abbonamento che si ha gia': stesso livello (Premium o Smart) e stessa formula. Il Flex del contratto e' «mensile», quello del listino «flex».
+  const livello = (nome: string) => (/premium/i.test(nome) ? 'premium' : /smart/i.test(nome) ? 'smart' : null)
+  const formulaListino: Record<string, string> = { mensile: 'flex', 'annuale-unico': 'annuale-unico', 'annuale-rate': 'annuale-rate' }
+  const eQuelloCheHai = (x: PianoAbbonamento) => livello(c.piano) !== null && livello(c.piano) === livello(x.abbonamento) && formulaListino[c.formula] === x.formula
+  const tuttiIPiani = [...(piani ?? [])].filter((x) => !eQuelloCheHai(x)).sort((a, b) => Number(a.formula === 'flex') - Number(b.formula === 'flex') || rangoAbbonamento(b.abbonamento, b.formula === 'annuale-unico') - rangoAbbonamento(a.abbonamento, a.formula === 'annuale-unico'))
   const pianoCambio = tuttiIPiani.find((x) => x.piano_id === pianoScelto)
 
   async function inviaCambio() {
