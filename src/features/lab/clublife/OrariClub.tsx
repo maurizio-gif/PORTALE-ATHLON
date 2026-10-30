@@ -1,7 +1,7 @@
 import { router } from 'expo-router'
 import { StyleSheet, Text, View } from 'react-native'
 
-import { idNewsDaAvviso, type AvvisoClub, type OrariClub } from '@/api/club'
+import { idNewsDaAvviso, type AvvisoClub, type EccezioneClub, type OrariClub } from '@/api/club'
 import { t } from '@/lib/lingua'
 import { spazio } from '@/theme'
 
@@ -60,6 +60,36 @@ function Avvisi({ avvisi, compatto }: { avvisi: AvvisoClub[]; compatto?: boolean
   )
 }
 
+/** Una riga: «domenica 1 novembre · Chiuso · Tutti i Santi», o «giovedì 24 dicembre · Chiude alle 18:00 · Vigilia di Natale». */
+function testoEccezione(e: EccezioneClub): string {
+  const stato = e.tipo === 'chiuso' ? t('Chiuso', 'Closed') : t(`Chiude alle ${ora(e.a!)}`, `Closes at ${ora(e.a!)}`)
+  return [e.giorno, stato, e.nome].filter(Boolean).join(' · ')
+}
+
+/**
+ * Le chiusure per festivita' e gli orari ridotti dei prossimi 7 giorni, in evidenza (30/10/2026, richiesta di Maurizio): rosso per «Chiuso», ambra per
+ * «orario ridotto». Li calcola la funzione dai giorni che il club ha scritto sul sito; qui si mostrano soltanto. In Home ne compaiono due, in Club Life tutti.
+ */
+function Eccezioni({ eccezioni, compatto }: { eccezioni: EccezioneClub[]; compatto?: boolean }) {
+  const p = usePalette()
+  if (!eccezioni.length) return null
+  const mostrate = compatto ? eccezioni.slice(0, 2) : eccezioni
+  return (
+    <View style={[stili.eccezioni, { borderColor: eccezioni.some((e) => e.tipo === 'chiuso') ? p.errore : p.attenzione, backgroundColor: velo(p, eccezioni.some((e) => e.tipo === 'chiuso') ? 'errore' : 'attenzione', p.scuro ? 0.14 : 0.08) }]} accessibilityRole="alert">
+      <Text style={[stili.occhiello, { color: eccezioni.some((e) => e.tipo === 'chiuso') ? p.errore : p.attenzione }]}>{t('NEI PROSSIMI 7 GIORNI', 'IN THE NEXT 7 DAYS')}</Text>
+      {mostrate.map((e) => (
+        <View key={e.data} style={stili.rigaEccezione}>
+          <Icona nome={e.tipo === 'chiuso' ? 'attenzione' : 'orologio'} size={17} colore={e.tipo === 'chiuso' ? p.errore : p.attenzione} />
+          <Text style={[stili.testoEccezione, { color: p.testo }]}>{testoEccezione(e)}</Text>
+        </View>
+      ))}
+      {compatto && eccezioni.length > mostrate.length ? (
+        <Text style={[stili.sotto, { color: p.testoSecondario }]}>{t(`E altri ${eccezioni.length - mostrate.length} in Club Life.`, `And ${eccezioni.length - mostrate.length} more in Club Life.`)}</Text>
+      ) : null}
+    </View>
+  )
+}
+
 /** L'orario di oggi, grande: e' la risposta a «a che ora apre?». */
 function OggiGrande({ o, conAvviso }: { o: OrariClub['oggi']; conAvviso: boolean }) {
   const p = usePalette()
@@ -92,6 +122,7 @@ export function CartaOrariClub() {
     <Entra indice={1}>
       <View style={{ gap: spazio.due }}>
         <Avvisi avvisi={dati.avvisi} compatto />
+        <Eccezioni eccezioni={dati.prossimi} compatto />
         <Carta onPress={() => router.push('/club-life')} style={{ gap: spazio.tre }}>
           <View accessibilityRole="summary" accessibilityLabel={t(`Orario di oggi: ${testoOrarioOggi(dati.oggi)}`, `Today’s hours: ${testoOrarioOggi(dati.oggi)}`)}>
             <OggiGrande o={dati.oggi} conAvviso={dati.avvisi.length > 0} />
@@ -114,6 +145,7 @@ export function BloccoOrariClub() {
   return (
     <Sezione titolo={t('Orari del club', 'Club hours')}>
       <Avvisi avvisi={dati.avvisi} />
+      <Eccezioni eccezioni={dati.prossimi} />
       <Carta style={{ gap: spazio.tre }}>
         <OggiGrande o={dati.oggi} conAvviso={dati.avvisi.length > 0} />
         {dati.settimana.length ? (
@@ -141,6 +173,9 @@ export function BloccoOrariClub() {
 
 const stili = StyleSheet.create({
   avviso: { borderWidth: 1.5, padding: spazio.tre },
+  eccezioni: { borderWidth: 1.5, borderRadius: 18, padding: spazio.tre, gap: 6 },
+  rigaEccezione: { flexDirection: 'row', alignItems: 'center', gap: spazio.due },
+  testoEccezione: { flex: 1, fontFamily: F.semi, fontSize: 14.5, lineHeight: 20 },
   rigaAvviso: { flexDirection: 'row', alignItems: 'center', gap: spazio.tre },
   occhiello: { fontFamily: F.extra, fontSize: 11, letterSpacing: 1.1 },
   titoloAvviso: { fontFamily: F.extra, fontSize: 15.5, lineHeight: 20, letterSpacing: -0.2 },
