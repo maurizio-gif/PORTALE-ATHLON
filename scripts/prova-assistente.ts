@@ -12,6 +12,7 @@ import { join } from 'node:path'
 
 import { DESTINAZIONI_ASSISTENTE, eDestinazioneAssistente, hrefAssistente, schermataAssistente } from '../src/features/lab/assistente/destinazioni'
 import { LettoreSse } from '../src/features/lab/assistente/sse'
+import { AZIONE_TEAM, MESSAGGIO_TEAM_MAX, teamDaAzione } from '../src/features/lab/assistente/teamDaChat'
 
 let passi = 0
 const ok = (nome: string) => {
@@ -147,6 +148,18 @@ function rottaEsiste(pathname: string): boolean {
     assert.ok(s === null || eDestinazioneAssistente(s), p)
   }
   ok('schermataAssistente: dove si trova la persona, solo con chiavi della mappa')
+}
+
+{
+  // «Scrivi al team» (31/10/2026): un pulsante che apre una carta, non una destinazione dell'app.
+  assert.equal(AZIONE_TEAM, 'scrivi-team')
+  assert.deepEqual(teamDaAzione({ destinazione: 'scrivi-team', etichetta: 'Scrivi al team' }), { etichetta: 'Scrivi al team' })
+  assert.deepEqual(teamDaAzione({ destinazione: 'scrivi-team', etichetta: '' }), { etichetta: 'Scrivi al team' }, 'senza etichetta ce n e una di ripiego')
+  assert.equal(teamDaAzione({ destinazione: 'calendario', etichetta: 'Apri il calendario' }), null, 'le altre destinazioni non sono il team')
+  assert.equal(eDestinazioneAssistente('scrivi-team'), false, 'non e una destinazione della mappa (l elenco chiuso uguale a quello della funzione)')
+  assert.equal(hrefAssistente('scrivi-team', {}), null, 'e non porta in nessuna schermata')
+  assert.equal(MESSAGGIO_TEAM_MAX, 1000, 'lo stesso tetto della funzione')
+  ok('scrivi-team: una carta nella chat, non una destinazione; tetto del messaggio uguale alla funzione')
 }
 
 console.log(`\n${passi} gruppi di prove: ok`)

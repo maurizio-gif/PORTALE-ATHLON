@@ -122,3 +122,17 @@ export function valutaRisposta(messaggioId: string, valutazione: 'su' | 'giu' | 
 export function pulsanteToccato(messaggioId: string, destinazione: string): void {
   funzione('portale-lab-assistente', { azione: 'toccato', messaggio_id: messaggioId, destinazione }).catch(() => undefined)
 }
+
+/**
+ * «Scrivi al team» (31/10/2026): la persona ha toccato Invia sulla carta che l'assistente le ha proposto. La funzione manda al desk la conversazione (le ultime battute, lette dal
+ * registro del server) e quello che la persona ha aggiunto: email a desk@, compito in Agenda sulla sua scheda. Non solleva mai.
+ */
+export async function scriviAlTeam(conversazioneId: string, messaggio: string): Promise<{ ok: true } | { ok: false; errore: string }> {
+  const { ok, stato, dati } = await funzione('portale-lab-assistente', { azione: 'ticket', conversazione_id: conversazioneId, messaggio })
+  if (ok) return { ok: true }
+  // Una funzione non ancora aggiornata risponde «Azione sconosciuta.»: non e' una cosa da leggere alla persona.
+  if (dati.errore === 'Azione sconosciuta.' || dati.errore === 'Unknown action.' || stato === 404) {
+    return { ok: false, errore: t('Il team non è ancora raggiungibile da qui: riprova fra qualche giorno.', 'The team can’t be reached from here yet: try again in a few days.') }
+  }
+  return { ok: false, errore: typeof dati.errore === 'string' && dati.errore ? dati.errore : t('Non siamo riusciti a mandarla adesso. Riprova fra qualche minuto.', 'We couldn’t send it right now. Please try again in a few minutes.') }
+}

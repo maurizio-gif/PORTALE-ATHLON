@@ -17,6 +17,8 @@ import { PagaDaChat } from './PagaDaChat'
 import { pagaDaAzione } from './pagaDaChat'
 import { PrenotaDaChat } from './PrenotaDaChat'
 import { prenotaDaAzione } from './prenotaDaChat'
+import { ScriviAlTeam } from './ScriviAlTeam'
+import { teamDaAzione } from './teamDaChat'
 import type { Battuta } from './store'
 import { CARATTERI_MAX, mandaDomanda, ricominciaChat, useAssistente, votaRisposta } from './useAssistente'
 import { useDettatura } from './useDettatura'
@@ -71,6 +73,9 @@ function Pulsanti({ azioni, messaggioId, onVai }: { azioni: AzioneAssistente[]; 
         // Il pagamento delle quote scadute (30/10/2026): apre la carta «Da pagare» nella chat, e paga solo chi tocca il pulsante di pagamento.
         const pagamento = pagaDaAzione(a)
         if (pagamento) return <PagaDaChat key={`${a.destinazione}${i}`} proposta={pagamento} messaggioId={messaggioId} />
+        // «Scrivi al team» (31/10/2026): apre una carta nella chat, e la conversazione va al team solo quando la persona preme Invia.
+        const team = teamDaAzione(a)
+        if (team) return <ScriviAlTeam key={`${a.destinazione}${i}`} proposta={team} messaggioId={messaggioId} />
         const href = hrefAssistente(a.destinazione, a.parametri)
         if (!href) return null
         return (
