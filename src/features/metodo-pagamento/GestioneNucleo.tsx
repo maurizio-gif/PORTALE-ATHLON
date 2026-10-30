@@ -1,4 +1,4 @@
-import { useState, type ComponentType, type ReactNode } from 'react'
+import { useEffect, useState, type ComponentType, type ReactNode } from 'react'
 import { StyleSheet, View } from 'react-native'
 
 import { chiamaLink } from '@/api/link'
@@ -9,9 +9,10 @@ import { InfoAdyen } from '@/components/InfoAdyen'
 import { Pagina } from '@/components/Pagina'
 import { Forte, Testo } from '@/components/Testo'
 import { vaiA } from '@/lib/esterno'
-import { metodoDaSistemare, type ContrattoNucleo, type EsitoContratto } from '@/lib/metodoPagamento'
+import { meseAnno, metodoDaSistemare, ultimeCifre, type ContrattoNucleo, type EsitoContratto } from '@/lib/metodoPagamento'
 import { spazio } from '@/theme'
 
+import { ElencoMetodi, type MetodoSalvato } from './ElencoMetodi'
 import { ModuloIban, type DatiConto } from './ModuloIban'
 import { ElencoEsiti, MetodoAttualeBadge, chi, dateContratto, statoLeggibile } from './Metodo'
 import { t, tv } from '@/lib/lingua'
@@ -37,6 +38,7 @@ export function GestioneNucleo({
   iniziali,
   evidenziato = null,
   Cornice = Pagina,
+  sopra = null,
 }: {
   Cornice?: Cornice
   token: string
@@ -44,18 +46,39 @@ export function GestioneNucleo({
   nomeTitolare: string
   iniziali: ContrattoNucleo[]
   evidenziato?: number | null
+  /** Sopra il riepilogo, quando tutti gli abbonamenti hanno gia' un metodo: nell'app, le quote da pagare. */
+  sopra?: ReactNode
 }) {
   const daSistemare = (lista: ContrattoNucleo[]) => {
     if (evidenziato != null && lista.some((c) => c.contract_id === evidenziato)) return new Set([evidenziato])
     return new Set(lista.filter((c) => metodoDaSistemare(c.metodo)).map((c) => c.contract_id))
   }
+  // Se nessun abbonamento ha bisogno di un metodo (tutti ne hanno uno valido) e nessuno e' stato nominato
+  // dall'email del desk, non c'e' niente da scegliere: si dice com'e', e il cambio e' un comando a parte.
+  const inOrdine = (lista: ContrattoNucleo[]) => evidenziato == null && lista.length > 0 && !lista.some((c) => metodoDaSistemare(c.metodo))
   const [contratti, setContratti] = useState(iniziali)
   const [scelti, setScelti] = useState<Set<number>>(() => daSistemare(iniziali))
+  const [riepilogo, setRiepilogo] = useState(() => inOrdine(iniziali))
   const [schermata, setSchermata] = useState<Schermata>('elenco')
   const [risultati, setRisultati] = useState<EsitoContratto[]>([])
   const [finale, setFinale] = useState('')
   const [errore, setErrore] = useState('')
   const [attesa, setAttesa] = useState(false)
+  // Le carte e i conti gia' salvati, da cui scegliere senza registrarne uno nuovo: si leggono quando si apre la scelta.
+  const [salvati, setSalvati] = useState<MetodoSalvato[]>([])
+  const [inUsoDi, setInUsoDi] = useState<number | null>(null)
+
+  useEffect(() => {
+    if (riepilogo || schermata !== 'elenco' || contratti.length === 0) return
+    let fermo = false
+    chiamaLink(token, 'metodi').then(({ ok, dati }) => {
+      if (!fermo && ok && Array.isArray(dati.metodi)) setSalvati(dati.metodi as MetodoSalvato[])
+    })
+    return () => {
+      fermo = true
+    }
+    // Una lettura ogni volta che si torna alla scelta; `contratti` cambia solo dopo un salvataggio.
+  }, [riepilogo, schermata, contratti.length, token])
 
   const selezionati = contratti.filter((c) => scelti.has(c.contract_id))
 
@@ -99,9 +122,43 @@ export function GestioneNucleo({
       // Dopo un salvataggio si riparte da quello che resta da sistemare, non
       // dal contratto dell'email: quello, di solito, e' appena fatto.
       setScelti(new Set(nuovi.filter((c) => metodoDaSistemare(c.metodo)).map((c) => c.contract_id)))
+      setRiepilogo(nuovi.length > 0 && !nuovi.some((c) => metodoDaSistemare(c.metodo)))
     }
     setAttesa(false)
     setSchermata('elenco')
+  }
+
+  /** Un metodo gia' salvato sugli abbonamenti scelti: niente pagina di Adyen, niente IBAN da riscrivere. */
+  async function usaMetodo(m: MetodoSalvato) {
+    setErrore('')
+    setInUsoDi(m.fonte_id)
+    const { ok, dati } = await chiamaLink(token, 'usa_metodo', { contratti: [...scelti], fonte_id: m.fonte_id })
+    setInUsoDi(null)
+    if (!ok || !Array.isArray(dati.risultati)) {
+      setErrore(dati.errore ?? t('Non siamo riusciti a salvarlo adesso. Riprova fra qualche minuto.', 'We couldn’t save it right now. Try again in a few minutes.'))
+      return
+    }
+    setRisultati(dati.risultati as EsitoContratto[])
+    // «Il conto che finisce con…» ha senso solo per un conto; per una carta si dice «il metodo di pagamento».
+    setFinale(m.tipo === 'DirectDebit' ? (m.finale ?? '') : '')
+    setSchermata('esito')
+  }
+
+  /** Il metodo e' gia' quello di tutti gli abbonamenti scelti (tipo, ultime cifre e scadenza). */
+  const eGiaInUso = (m: MetodoSalvato) =>
+    selezionati.length > 0 &&
+    selezionati.every((c) => {
+      const x = c.metodo
+      if (!x) return false
+      const stessoTipo = x.tipo.toLowerCase() === m.tipo.toLowerCase()
+      const stessaScadenza = m.tipo === 'DirectDebit' || meseAnno(x.scadenza) === meseAnno(m.scadenza)
+      return stessoTipo && ultimeCifre(x.finale) === m.finale && stessaScadenza
+    })
+
+  /** Dal riepilogo al cambio: con un solo abbonamento e' quello, con piu' abbonamenti sceglie la persona. */
+  function cambiaMetodo() {
+    setScelti(contratti.length === 1 ? new Set(contratti.map((c) => c.contract_id)) : new Set())
+    setRiepilogo(false)
   }
 
   if (schermata === 'esito') {
@@ -159,6 +216,36 @@ export function GestioneNucleo({
     )
   }
 
+  if (riepilogo) {
+    return (
+      <Cornice titolo={nome ? t(`Ciao ${nome}`, `Hi ${nome}`) : t('I tuoi abbonamenti', 'Your memberships')}>
+        <Testo>
+          {contratti.length === 1
+            ? t('Questo abbonamento ha già un metodo di pagamento.', 'This membership already has a payment method.')
+            : t('I tuoi abbonamenti hanno già un metodo di pagamento.', 'Your memberships already have a payment method.')}
+        </Testo>
+        {sopra}
+        <View style={stili.elenco}>
+          {contratti.map((c) => (
+            <View key={c.contract_id} style={{ gap: 2 }}>
+              <Testo style={{ fontWeight: '700' }}>{chi(c)}</Testo>
+              <Testo variante="piccolo">
+                {c.piano ?? t('Abbonamento', 'Membership')} · {statoLeggibile(c)}
+              </Testo>
+              <View style={{ marginTop: spazio.uno + 2 }}>
+                <MetodoAttualeBadge metodo={c.metodo} />
+              </View>
+            </View>
+          ))}
+        </View>
+        <Testo variante="piccolo">
+          {t('Se non vuoi cambiarlo non devi fare altro: le prossime quote vengono addebitate su questo metodo.', 'If you don’t want to change it there’s nothing else to do: the next fees will be charged to this method.')}
+        </Testo>
+        <Bottone testo={t('Cambia metodo di pagamento', 'Change payment method')} variante="contorno" onPress={cambiaMetodo} />
+      </Cornice>
+    )
+  }
+
   return (
     <Cornice titolo={nome ? t(`Ciao ${nome}`, `Hi ${nome}`) : t('I tuoi abbonamenti', 'Your memberships')}>
       {contratti.length === 0 ? (
@@ -201,6 +288,19 @@ export function GestioneNucleo({
 
           {errore ? <Avviso>{errore}</Avviso> : null}
 
+          {salvati.length > 0 ? (
+            <View style={{ gap: spazio.due }}>
+              <Testo style={{ fontWeight: '700' }}>{t('Usa un metodo già salvato', 'Use a saved method')}</Testo>
+              <Testo variante="piccolo">
+                {selezionati.length === 0
+                  ? t('Seleziona gli abbonamenti, poi scegli un metodo.', 'Select the memberships, then choose a method.')
+                  : t('Si collega agli abbonamenti selezionati, senza inserire niente di nuovo.', 'It’s linked to the selected memberships, without entering anything new.')}
+              </Testo>
+              <ElencoMetodi metodi={salvati} inUso={eGiaInUso} occupato={attesa || inUsoDi !== null || selezionati.length === 0} inCorso={inUsoDi} onScegli={usaMetodo} />
+              <Testo variante="piccolo">{t('Oppure aggiungine uno nuovo:', 'Or add a new one:')}</Testo>
+            </View>
+          ) : null}
+
           <Bottone
             testo={t('Conto corrente (IBAN)', 'Bank account (IBAN)')}
             disabilitato={attesa || selezionati.length === 0}
@@ -216,6 +316,7 @@ export function GestioneNucleo({
             onPress={vaiAllaCarta}
           />
           {selezionati.length === 0 ? <Testo variante="piccolo">{t('Seleziona almeno un abbonamento.', 'Select at least one membership.')}</Testo> : null}
+          {inOrdine(contratti) ? <Bottone testo={t('Lascia com’è', 'Leave as it is')} variante="contorno" onPress={() => setRiepilogo(true)} /> : null}
           <Testo variante="piccolo">
             {tv(
               <>

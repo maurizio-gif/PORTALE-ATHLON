@@ -1,7 +1,7 @@
 import { StyleSheet, Text, View } from 'react-native'
 
 import { Avviso } from '@/components/Avviso'
-import { dataBreve, meseAnno, type ContrattoNucleo, type EsitoContratto, type MetodoAttuale } from '@/lib/metodoPagamento'
+import { dataBreve, meseAnno, ultimeCifre, type ContrattoNucleo, type EsitoContratto, type MetodoAttuale } from '@/lib/metodoPagamento'
 import { spazio, stileTono, useColori, type Tono } from '@/theme'
 import { t } from '@/lib/lingua'
 
@@ -27,7 +27,7 @@ export function MetodoAttualeBadge({ metodo }: { metodo: MetodoAttuale | null })
   if (!metodo || tipo === 'cash') return <Etichetta tono="attenzione">{t('Nessun metodo salvato', 'No method saved')}</Etichetta>
   if (tipo === 'creditcard') {
     const quando = meseAnno(metodo.scadenza)
-    const cifre = metodo.finale ? ` •••• ${metodo.finale}` : ''
+    const cifre = ultimeCifre(metodo.finale) ? ` •••• ${ultimeCifre(metodo.finale)}` : ''
     if (metodo.scaduta) {
       return (
         <Etichetta tono="errore">
@@ -44,7 +44,7 @@ export function MetodoAttualeBadge({ metodo }: { metodo: MetodoAttuale | null })
       </Etichetta>
     )
   }
-  if (tipo === 'directdebit') return <Etichetta tono="ok">{t('Conto corrente', 'Bank account')}{metodo.finale ? ` •••• ${metodo.finale}` : ''}</Etichetta>
+  if (tipo === 'directdebit') return <Etichetta tono="ok">{t('Conto corrente', 'Bank account')}{ultimeCifre(metodo.finale) ? ` •••• ${ultimeCifre(metodo.finale)}` : ''}</Etichetta>
   return <Etichetta tono="attenzione">{t('Altro metodo', 'Other method')} ({metodo.tipo})</Etichetta>
 }
 
@@ -87,7 +87,7 @@ export function ElencoEsiti({ contratti, risultati }: { contratti: ContrattoNucl
               </Text>
               {x?.piano ? ` · ${x.piano}` : ''}
               {'\n'}
-              {r.ok ? t('Salvato.', 'Saved.') : r.errore || t('Non salvato.', 'Not saved.')}
+              {r.ok ? (r.invariato ? t('Aveva già questo metodo: non è cambiato niente.', 'It already had this method: nothing changed.') : t('Salvato.', 'Saved.')) : r.errore || t('Non salvato.', 'Not saved.')}
             </Text>
           </Avviso>
         )

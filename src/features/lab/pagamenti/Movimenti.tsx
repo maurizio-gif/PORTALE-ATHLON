@@ -300,6 +300,8 @@ export function DaPagare({ elenco, carta, onApri, onAggiorna, verificaSubito }: 
         <Icona nome={fase === 'pagato' ? 'spunta' : 'attenzione'} size={20} colore={fase === 'pagato' ? p.ok : p.errore} />
         <Text style={[stili.titoletto, { color: p.testo, flex: 1 }]}>{fase === 'pagato' ? t(`Pagato: ${soldi(totale)}`, `Paid: ${soldi(totale)}`) : t(`Da pagare: ${soldi(totale)}`, `Due now: ${soldi(totale)}`)}</Text>
       </View>
+      {/* Un errore del pagamento sta subito sotto il titolo, dove l'occhio e' gia': non in fondo, sopra i pulsanti. */}
+      {errore ? <Messaggio>{errore}</Messaggio> : null}
       {fase !== 'pagato' ? (
         <Text style={[stili.nota, { color: p.testoSecondario }]}>
           {spiegazione} {vista ? '' : t('Puoi pagare adesso, con la carta.', 'You can pay now, by card.')}
@@ -318,7 +320,6 @@ export function DaPagare({ elenco, carta, onApri, onAggiorna, verificaSubito }: 
       ) : fase === 'attesa-lunga' ? (
         <Messaggio tono="attenzione">{t('Non vediamo ancora il pagamento. Se è andato a buon fine compare qui fra qualche minuto; se sei tornato indietro senza pagare, non è stato addebitato niente.', 'We can’t see the payment yet. If it went through it’ll show up here in a few minutes; if you went back without paying, nothing was charged.')}</Messaggio>
       ) : null}
-      {errore ? <Messaggio>{errore}</Messaggio> : null}
 
       {!vista && fase !== 'pagato' && fase !== 'verifica' ? (
         <View style={{ gap: spazio.due }}>

@@ -7,6 +7,7 @@ import { GestioneNucleo } from '@/features/metodo-pagamento/GestioneNucleo'
 import type { ContrattoNucleo } from '@/lib/metodoPagamento'
 
 import { hrefSezione } from '../home/sezioni'
+import { DaPagare, useMovimenti } from '../pagamenti/Movimenti'
 import { Messaggio, Pulsante, SchedeInArrivo } from '../ui/kit'
 import { Schermata } from '../ui/Schermata'
 
@@ -33,6 +34,8 @@ type Stato =
 
 export function MetodoPagamento() {
   const [stato, setStato] = useState<Stato>({ fase: 'carica' })
+  // Le quote scadute del nucleo: se ce ne sono, qui si propone di pagarle, prima di parlare di cambiare metodo.
+  const { dati: pagamenti, rileggi } = useMovimenti()
 
   const apri = useCallback(async () => {
     setStato({ fase: 'carica' })
@@ -48,7 +51,17 @@ export function MetodoPagamento() {
   }, [apri])
 
   if (stato.fase === 'pronto') {
-    return <GestioneNucleo Cornice={CorniceLab} token={stato.token} nome={stato.nome} nomeTitolare={stato.nomeTitolare} iniziali={stato.contratti} />
+    const daSaldare = pagamenti?.daSaldare ?? []
+    return (
+      <GestioneNucleo
+        Cornice={CorniceLab}
+        token={stato.token}
+        nome={stato.nome}
+        nomeTitolare={stato.nomeTitolare}
+        iniziali={stato.contratti}
+        sopra={daSaldare.length ? <DaPagare elenco={daSaldare} carta={pagamenti?.cartaSaldo ?? null} onAggiorna={rileggi} verificaSubito={false} /> : null}
+      />
+    )
   }
   return (
     <CorniceLab titolo={t('Metodo di pagamento', 'Payment method')}>
