@@ -79,8 +79,10 @@ const ICONE = {
   cestino: ['trash', 'delete'],
   // Le notifiche del club (20/10/2026).
   campanello: ['bell.fill', 'notifications'],
-  // Il feedback dei tester (20/10/2026): il fumetto con le righe, per il pulsante in alto a destra.
+  // Il feedback dei tester (20/10/2026): il fumetto con le righe (dal 30/10/2026 sulla carta della Home).
   feedback: ['text.bubble.fill', 'rate_review'],
+  // L'assistente virtuale (30/10/2026): le scintille, per il pulsante in alto a destra.
+  assistente: ['sparkles', 'auto_awesome'],
   // Lo shop (18/10/2026).
   carrello: ['cart.fill', 'shopping_cart'],
   sacchetto: ['bag.fill', 'shopping_bag'],

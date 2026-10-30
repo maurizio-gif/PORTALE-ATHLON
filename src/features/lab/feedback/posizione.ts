@@ -1,6 +1,6 @@
 import { useEffect, useSyncExternalStore } from 'react'
 
-// Dove sta il pulsante «Feedback»: in alto a destra, nel posto in cui le schermate mettono il loro comando (il carrello
+// Dove sta il pulsante «Assistente virtuale» (fino al 30/10/2026 era quello del «Feedback»): in alto a destra, nel posto in cui le schermate mettono il loro comando (il carrello
 // dello shop, per esempio). Quasi tutte quel posto lo lasciano libero; quelle che lo usano lo dicono con
 // `useSegnaAzioneInAlto` (lo fa `Schermata`, quando riceve `destra`) e il pulsante si sposta di un bottone a sinistra,
 // invece di coprirlo. E' un conteggio e non un valore: due schermate nella pila possono dirlo insieme.
@@ -16,7 +16,7 @@ function cambia(delta: number) {
   ascoltatori.forEach((f) => f())
 }
 
-/** La schermata che si vede ha un comando in alto a destra: finche' e' montata e in vista, il pulsante «Feedback» gli fa posto. */
+/** La schermata che si vede ha un comando in alto a destra: finche' e' montata e in vista, il pulsante «Assistente virtuale» gli fa posto. */
 export function useSegnaAzioneInAlto(presente: boolean, visibile: boolean) {
   const attivo = presente && visibile
   useEffect(() => {

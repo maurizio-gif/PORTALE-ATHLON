@@ -77,7 +77,7 @@ export function FoglioFeedback({ aperto, f, schermata, onChiudi }: { aperto: boo
       {f.fatto ? (
         <>
           <Messaggio tono="ok" titolo={t('Il tuo messaggio ci è arrivato', 'We got your message')}>
-            {t('Lo leggeremo con attenzione. Se ti viene in mente altro, il pulsante «Feedback» è sempre lì.', 'We’ll read it carefully. If you think of anything else, the “Feedback” button is always there.')}
+            {t('Lo leggeremo con attenzione. Se ti viene in mente altro, la carta «Aiutaci a migliorare l’app» è sempre in Home.', 'We’ll read it carefully. If you think of anything else, the “Help us improve the app” card is always on the Home screen.')}
           </Messaggio>
           <Pulsante testo={t('Chiudi', 'Close')} onPress={chiudi} />
         </>

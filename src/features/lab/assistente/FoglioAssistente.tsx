@@ -17,7 +17,7 @@ import { prenotaDaAzione } from './prenotaDaChat'
 import type { Battuta } from './store'
 import { CARATTERI_MAX, mandaDomanda, ricominciaChat, useAssistente, votaRisposta } from './useAssistente'
 
-// Il foglio dell'assistente (29/10/2026): la chat. Sale dalla carta in Home («Cerchi qualcosa?»). La persona scrive, la risposta arriva a pezzi
+// Il foglio dell'assistente (29/10/2026): la chat. Sale dal pulsante «Assistente virtuale» in alto a destra (`PulsanteAssistente`, sempre visibile; fino al 30/10/2026 era la carta «Cerchi qualcosa?» in Home). La persona scrive, la risposta arriva a pezzi
 // e, dove serve, porta uno o due pulsanti che la portano nel punto giusto dell'app: **l'assistente non annulla e non paga**, dice
 // dove si fa e cosa toccare. **Una prenotazione la puo' proporre** (30/10/2026, `PrenotaDaChat`): una carta con la lezione letta dal calendario e gli stessi
 // pulsanti del Calendario, e la prenotazione parte solo quando la persona tocca «Prenota». Sotto ogni risposta un voto («Utile» / «Non utile»), che il club legge insieme alle domande.
@@ -123,7 +123,7 @@ export function FoglioAssistente({ aperto, schermata, onChiudi }: { aperto: bool
           <View style={stili.testata}>
             <View style={{ flex: 1, gap: 2 }}>
               <Text style={[stili.titolo, { color: p.testo }]} accessibilityRole="header">
-                {t('Cerchi qualcosa?', 'Looking for something?')}
+                {t('Assistente virtuale', 'Virtual assistant')}
               </Text>
               <Text style={[stili.sotto, { color: p.testoSecondario }]}>{t('Chiedimi dove trovare le cose o cosa risulta sul tuo account.', 'Ask me where to find things or what shows on your account.')}</Text>
             </View>

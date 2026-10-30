@@ -82,7 +82,7 @@ export function Schermata({
   const ins = useSafeAreaInsets()
   const { width } = useWindowDimensions()
   const maxWidth = width < LARGO ? 640 : LARGHEZZA_APP
-  // Il pulsante «Feedback» sta in alto a destra, nel posto di `destra`: se qui c'e' un comando, gli si fa posto
+  // Il pulsante «Assistente virtuale» sta in alto a destra, nel posto di `destra`: se qui c'e' un comando, gli si fa posto
   // (solo finche' la schermata e' quella che si vede, vedi feedback/posizione.ts).
   useSegnaAzioneInAlto(!!destra, useIsFocused())
   const y = useSharedValue(0)
