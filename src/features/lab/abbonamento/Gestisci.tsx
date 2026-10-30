@@ -29,8 +29,10 @@ import { locale, t } from '@/lib/lingua'
 import { spazio } from '@/theme'
 
 import { useSessione } from '../useSessione'
+import { vistaCorrente } from '../vista'
 import { Richiamo } from '../profilo/Richiamo'
 import { CampoTesto, Scelte } from '../ui/Campi'
+import { SchedaScelta } from './Passi'
 import { Foglio } from '../ui/Foglio'
 import { Icona } from '../ui/Icona'
 import { Carta, Etichetta, Messaggio, Pulsante } from '../ui/kit'
@@ -647,11 +649,23 @@ export function FoglioGestisci({ contratto: c, aperto, onChiudi, onCambiato }: {
   const oggiRoma = new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Rome' })
   const rangoAttuale = rangoAbbonamento(c.piano, c.formula === 'annuale-unico')
   // Solo verso l'alto, e mai verso un Flex (il Flex si sceglie con il cambio, senza disdetta, nella finestra).
+  // Da un annuale che si paga in un'unica soluzione (anche i vecchi annuali pagati ogni anno) non si passa a un rateizzato, ma solo a un altro
+  // in soluzione unica di valore piu' alto (30/10/2026, Maurizio). Un vecchio abbonamento fuori dalla gerarchia sale solo a un annuale che costa di piu' all'anno.
+  const costoAnno = (importo: number, periodo: string) => importo * (/anno|year/i.test(periodo) ? 1 : 12)
+  const eUnico = c.formula === 'annuale-unico' || pagaAnnuale(c)
+  const costoAttuale = c.canone ? costoAnno(c.canone, pagaAnnuale(c) || c.formula === 'annuale-unico' ? 'anno' : 'mese') : 0
   const destinazioni = (piani ?? [])
-    .filter((x) => x.formula !== 'flex' && rangoAbbonamento(x.abbonamento, x.formula === 'annuale-unico') > rangoAttuale)
+    .filter((x) => {
+      if (x.formula === 'flex') return false
+      if (rangoAbbonamento(x.abbonamento, x.formula === 'annuale-unico') <= rangoAttuale) return false
+      if (eUnico && x.formula !== 'annuale-unico') return false
+      if (rangoAttuale === 0 && costoAnno(x.importo, x.periodo) <= costoAttuale) return false
+      return true
+    })
     .sort((a, b) => rangoAbbonamento(b.abbonamento, b.formula === 'annuale-unico') - rangoAbbonamento(a.abbonamento, a.formula === 'annuale-unico'))
   const pianoUp = destinazioni.find((x) => x.piano_id === pianoScelto)
-  const testoPiano = (x: PianoAbbonamento) => `${x.abbonamento} · ${x.etichetta} · ${euro(x.importo)}${x.periodo ? ` ${x.periodo}` : ''}`
+  const prezzoPiano = (x: PianoAbbonamento) => (/anno|year/i.test(x.periodo) ? t(`${euro(x.importo)} all’anno`, `${euro(x.importo)} a year`) : t(`${euro(x.importo)} al mese`, `${euro(x.importo)} a month`))
+  const testoPiano = (x: PianoAbbonamento) => `${x.etichetta} · ${prezzoPiano(x)}`
 
   async function inviaUpgrade() {
     const email = sessione?.user?.email
@@ -678,13 +692,7 @@ export function FoglioGestisci({ contratto: c, aperto, onChiudi, onCambiato }: {
     <>
       <Titolo>{t('Upgrade dell’abbonamento', 'Upgrade your membership')}</Titolo>
       <Messaggio tono="ok" icona="info" titolo={t('Come funziona', 'How it works')}>
-        <View style={{ gap: spazio.due }}>
-          <Text style={[stili.nota, { color: p.testo }]}>{t('Con l’upgrade passi a un abbonamento di valore più alto. La segreteria calcola il credito residuo del tuo abbonamento attuale e lo scala dal nuovo: te lo scrive per email, e solo dopo la tua conferma chiude il vecchio contratto.', 'With an upgrade you move to a higher-value membership. The front desk works out the remaining credit on your current membership and deducts it from the new one: they email you the figure, and only after your confirmation do they close the old contract.')}</Text>
-          <Text style={[stili.nota, { color: p.testo }]}>{t('Dal più alto: Premium annuale in soluzione unica, Premium annuale rateizzato, Smart annuale in soluzione unica, Smart annuale rateizzato. Si può solo salire: non si passa a un abbonamento di valore più basso né a un Flex.', 'From the highest: Premium annual single payment, Premium annual instalments, Smart annual single payment, Smart annual instalments. You can only move up: you can’t move to a lower-value membership or to a Flex.')}</Text>
-          {finestra && finestra.stato !== 'non_calcolabile' && finestra.stato !== 'chiusa' ? (
-            <Text style={[stili.nota, { color: p.testo }]}>{t(`Per scegliere un abbonamento di valore più basso o un Flex, senza disdire: puoi cambiare dal ${dataLunga(finestra.apre_il)} al ${dataLunga(finestra.ultimo_giorno)}. Il nuovo parte il ${dataLunga(finestra.nuovo_inizio)}.`, `To choose a lower-value membership or a Flex without cancelling: you can change from ${dataLunga(finestra.apre_il)} to ${dataLunga(finestra.ultimo_giorno)}. The new one starts on ${dataLunga(finestra.nuovo_inizio)}.`)}</Text>
-          ) : null}
-        </View>
+        {t('Con l’upgrade passi a un abbonamento di valore più alto. La segreteria calcola il credito residuo del tuo abbonamento attuale e lo scala dal nuovo: te lo scrive per email, e solo dopo la tua conferma chiude il vecchio contratto.', 'With an upgrade you move to a higher-value membership. The front desk works out the remaining credit on your current membership and deducts it from the new one: they email you the figure, and only after your confirmation do they close the old contract.')}
       </Messaggio>
       {errorePiani ? <Messaggio tono="attenzione">{errorePiani}</Messaggio> : null}
       {!piani && !errorePiani ? <Nota>{t('Un attimo…', 'One moment…')}</Nota> : null}
@@ -692,12 +700,21 @@ export function FoglioGestisci({ contratto: c, aperto, onChiudi, onCambiato }: {
       {piani && !destinazioni.length ? <Messaggio tono="attenzione">{t('Non ci sono abbonamenti di valore più alto a cui passare.', 'There are no higher-value memberships to move to.')}</Messaggio> : null}
       {destinazioni.length ? (
         <>
-          <Nota>{t('A quale abbonamento vuoi passare?', 'Which membership do you want to move to?')}</Nota>
-          <Scelte valori={destinazioni.map((x) => ({ valore: x.piano_id, testo: testoPiano(x) }))} scelto={pianoScelto} onScegli={(v) => setPianoScelto(v)} />
-          <CampoData etichetta={t('Da quando vuoi far partire il nuovo abbonamento?', 'When should the new membership start?')} value={decorrenza} onChange={setDecorrenza} min={oggiRoma} max={`${Number(oggiRoma.slice(0, 4)) + 1}${oggiRoma.slice(4)}`} annoIniziale={Number(oggiRoma.slice(0, 4))} />
-          <CampoTesto etichetta={t('Vuoi aggiungere qualcosa?', 'Want to add anything?')} value={noteUp} onChangeText={setNoteUp} maxLength={500} multiline placeholder={t('Scrivi qui (facoltativo)', 'Write here (optional)')} />
+          <Titolo>{t('A quale abbonamento vuoi passare?', 'Which membership do you want to move to?')}</Titolo>
+          <View style={{ gap: spazio.due }} accessibilityRole="radiogroup">
+            {destinazioni.map((x) => (
+              <SchedaScelta key={x.piano_id} attiva={pianoScelto === x.piano_id} etichetta={testoPiano(x)} titolo={x.etichetta} sotto={prezzoPiano(x)} onPress={() => setPianoScelto(x.piano_id)} />
+            ))}
+          </View>
+          <View style={{ gap: spazio.due }}>
+            <CampoData etichetta={t('Da quando vuoi far partire il nuovo abbonamento?', 'When should the new membership start?')} value={decorrenza} onChange={setDecorrenza} min={oggiRoma} max={`${Number(oggiRoma.slice(0, 4)) + 1}${oggiRoma.slice(4)}`} annoIniziale={Number(oggiRoma.slice(0, 4))} />
+          </View>
+          <View style={{ gap: spazio.due }}>
+            <CampoTesto etichetta={t('Vuoi aggiungere qualcosa?', 'Want to add anything?')} value={noteUp} onChangeText={setNoteUp} maxLength={500} multiline placeholder={t('Scrivi qui (facoltativo)', 'Write here (optional)')} />
+          </View>
+          {vistaCorrente() ? <Messaggio tono="attenzione">{t('Sei in vista cliente: la richiesta non si può inviare.', 'You’re in client view: the request can’t be sent.')}</Messaggio> : null}
           {errore ? <Messaggio>{errore}</Messaggio> : null}
-          <Pulsante testo={t('Invia la richiesta', 'Send the request')} icona="avanti" disabilitato={!pianoUp || !decorrenza || !sessione?.user?.email} inCorso={inCorso} onPress={inviaUpgrade} />
+          <Pulsante testo={t('Invia la richiesta', 'Send the request')} icona="avanti" disabilitato={!pianoUp || !decorrenza || !sessione?.user?.email || Boolean(vistaCorrente())} inCorso={inCorso} onPress={inviaUpgrade} />
         </>
       ) : null}
       <Pulsante testo={t('Indietro', 'Back')} variante="fantasma" piccolo onPress={() => vai('menu')} />
