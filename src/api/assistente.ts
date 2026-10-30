@@ -127,8 +127,8 @@ export function pulsanteToccato(messaggioId: string, destinazione: string): void
  * «Scrivi al team» (31/10/2026): la persona ha toccato Invia sulla carta che l'assistente le ha proposto. La funzione manda al desk la conversazione (le ultime battute, lette dal
  * registro del server) e quello che la persona ha aggiunto: email a desk@, compito in Agenda sulla sua scheda. Non solleva mai.
  */
-export async function scriviAlTeam(conversazioneId: string, messaggio: string): Promise<{ ok: true } | { ok: false; errore: string }> {
-  const { ok, stato, dati } = await funzione('portale-lab-assistente', { azione: 'ticket', conversazione_id: conversazioneId, messaggio })
+export async function scriviAlTeam(conversazioneId: string, messaggio: string, allegato?: { nome: string; base64: string } | null): Promise<{ ok: true } | { ok: false; errore: string }> {
+  const { ok, stato, dati } = await funzione('portale-lab-assistente', { azione: 'ticket', conversazione_id: conversazioneId, messaggio, ...(allegato ? { allegato: { nome: allegato.nome, base64: allegato.base64 } } : {}) })
   if (ok) return { ok: true }
   // Una funzione non ancora aggiornata risponde «Azione sconosciuta.»: non e' una cosa da leggere alla persona.
   if (dati.errore === 'Azione sconosciuta.' || dati.errore === 'Unknown action.' || stato === 404) {
