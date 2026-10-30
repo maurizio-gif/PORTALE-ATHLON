@@ -15,6 +15,7 @@ import { CartaCorpo } from '../fit/Corpo'
 import { AggiungiAllenamento } from '../fit/AggiungiAllenamento'
 import { CartaMovimento } from '../fit/CartaMovimento'
 import { CartaDispositivi } from '../fit/CartaDispositivi'
+import { CartaMese } from '../fit/Mese'
 import { CartaPunteggio } from '../fit/Punteggio'
 import { AreaFood } from '../fit/Food'
 import { AreaRelax } from '../fit/Relax'
@@ -371,6 +372,8 @@ function ContenutoHub({ largo, corpoInCima }: { largo: boolean; /** La carta «D
       <Entra indice={0}>
         <CartaPunteggio fit={fit} disp={disp} />
       </Entra>
+      {/* «Il tuo mese in Athlon» (30/10/2026): compare solo quando c'e' un mese da mostrare, e subito sotto il punteggio. */}
+      <CartaMese />
       {/* Dopo il punteggio, nell'ordine: cos'e' l'Athlon Health System (24/10/2026, richiesta di Maurizio: la descrizione e' la seconda
           carta), «Il tuo corpo» compresso e il Balance. Su schermo largo la descrizione sta a sinistra e, a destra, corpo e Balance in colonna. */}
       {largo ? (

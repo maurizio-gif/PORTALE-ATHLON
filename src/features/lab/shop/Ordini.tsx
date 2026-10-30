@@ -9,6 +9,7 @@ import { spazio } from '@/theme'
 import { Carta, Etichetta, Messaggio, Pulsante, SchedeInArrivo } from '../ui/kit'
 import { Schermata } from '../ui/Schermata'
 import { F, usePalette } from '../ui/tema'
+import { CodiceRitiro } from './CodiceRitiro'
 import { RigheOrdine } from './RigheOrdine'
 
 // I miei ordini: quelli pagati, da ritirare in segreteria o gia' ritirati, e quello che si sta ancora pagando.
@@ -66,6 +67,7 @@ export function Ordini() {
               )}
             </View>
             <RigheOrdine ordine={o} />
+            <CodiceRitiro ordine={o} size={148} />
             {o.stato === 'avviato' ? (
               <Pulsante testo={t('Controlla il pagamento', 'Check the payment')} variante="secondario" piccolo icona="aggiorna" onPress={() => router.push({ pathname: '/shop/ordine/[id]', params: { id: o.ordine_id } })} />
             ) : null}

@@ -130,7 +130,7 @@ export function schermataAssistente(percorso: string, sezione?: string | null): 
   if (p === '/allenamento/misure') return 'misure'
   if (p === '/allenamento/dispositivi') return 'dispositivi'
   if (p === '/allenamento/classifica') return 'classifica'
-  if (/^\/allenamento\/[^/]+(\/[^/]+)?$/.test(p) && !['/allenamento/balance', '/allenamento/calorie', '/allenamento/nuova', '/allenamento/punteggio', '/allenamento/storico', '/allenamento/test', '/allenamento/training', '/allenamento/percorso'].some((x) => p.startsWith(x))) return 'piano'
+  if (/^\/allenamento\/[^/]+(\/[^/]+)?$/.test(p) && !['/allenamento/balance', '/allenamento/calorie', '/allenamento/nuova', '/allenamento/punteggio', '/allenamento/storico', '/allenamento/test', '/allenamento/training', '/allenamento/mese', '/allenamento/percorso'].some((x) => p.startsWith(x))) return 'piano'
   if (p === '/shop/ordini') return 'shop-ordini'
   if (p.startsWith('/shop')) return 'shop'
   if (p === '/junior') return 'junior'

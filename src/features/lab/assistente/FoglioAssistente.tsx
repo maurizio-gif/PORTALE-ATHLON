@@ -12,12 +12,15 @@ import { Messaggio } from '../ui/kit'
 import { F, usePalette } from '../ui/tema'
 import { Tocco } from '../ui/Tocco'
 import { hrefAssistente } from './destinazioni'
+import { PrenotaDaChat } from './PrenotaDaChat'
+import { prenotaDaAzione } from './prenotaDaChat'
 import type { Battuta } from './store'
 import { CARATTERI_MAX, mandaDomanda, ricominciaChat, useAssistente, votaRisposta } from './useAssistente'
 
 // Il foglio dell'assistente (29/10/2026): la chat. Sale dalla carta in Home («Cerchi qualcosa?»). La persona scrive, la risposta arriva a pezzi
-// e, dove serve, porta uno o due pulsanti che la portano nel punto giusto dell'app: **l'assistente non prenota, non annulla e non paga**, dice
-// dove si fa e cosa toccare. Sotto ogni risposta un voto («Utile» / «Non utile»), che il club legge insieme alle domande.
+// e, dove serve, porta uno o due pulsanti che la portano nel punto giusto dell'app: **l'assistente non annulla e non paga**, dice
+// dove si fa e cosa toccare. **Una prenotazione la puo' proporre** (30/10/2026, `PrenotaDaChat`): una carta con la lezione letta dal calendario e gli stessi
+// pulsanti del Calendario, e la prenotazione parte solo quando la persona tocca «Prenota». Sotto ogni risposta un voto («Utile» / «Non utile»), che il club legge insieme alle domande.
 //
 // **Dice sempre due cose**: che e' un assistente automatico che puo' sbagliare, e che le domande e le risposte vengono lette dal club per
 // migliorarlo (si conservano e le vede chi apre la tua scheda in segreteria). L'invito a non scrivere dati sulla salute sta nella stessa riga:
@@ -34,6 +37,9 @@ function Pulsanti({ azioni, messaggioId, onVai }: { azioni: AzioneAssistente[]; 
   return (
     <View style={stili.azioni}>
       {azioni.map((a, i) => {
+        // La proposta di una prenotazione non porta altrove: apre una carta nella chat, e prenota solo chi tocca «Prenota» (30/10/2026).
+        const proposta = prenotaDaAzione(a)
+        if (proposta) return <PrenotaDaChat key={`${a.destinazione}${i}`} proposta={proposta} messaggioId={messaggioId} onVai={onVai} />
         const href = hrefAssistente(a.destinazione, a.parametri)
         if (!href) return null
         return (
