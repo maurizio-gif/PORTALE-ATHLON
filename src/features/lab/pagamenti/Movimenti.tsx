@@ -80,7 +80,7 @@ export function useMovimenti() {
 }
 
 /** Una riga di pagamento: la data, a cosa corrisponde, per chi e come, l'importo. */
-function RigaMovimento({ m, prima, onPress }: { m: Movimento; prima: boolean; onPress: () => void }) {
+function RigaMovimento({ m, prima, onPress }: { m: Movimento; prima: boolean; onPress?: () => void }) {
   const p = usePalette()
   const e = ESITI[m.esito]
   const sotto = [m.per ? t(`per ${m.per}`, `for ${m.per}`) : null, m.voci[0]?.dettaglio, m.metodo].filter(Boolean).join(' · ')
@@ -199,7 +199,7 @@ type Fase = 'pronto' | 'invio-carta' | 'invio-altra' | 'verifica' | 'pagato' | '
  * quota che scade oggi non e' ancora stata addebitata, e il nostro dato non dice se un addebito e' fallito. Si dice che
  * risulta da pagare, e si paga.
  */
-function DaPagare({ elenco, carta, onApri, onAggiorna, verificaSubito }: { elenco: Movimento[]; carta: CartaSaldo | null; onApri: (m: Movimento) => void; onAggiorna: () => void; verificaSubito: boolean }) {
+export function DaPagare({ elenco, carta, onApri, onAggiorna, verificaSubito }: { elenco: Movimento[]; carta: CartaSaldo | null; /** Senza, le righe non si aprono (nella chat dell'assistente non c'e' il foglio del dettaglio). */ onApri?: (m: Movimento) => void; onAggiorna: () => void; verificaSubito: boolean }) {
   const p = usePalette()
   const totale = Math.round(elenco.reduce((t, m) => t + m.importo, 0) * 100) / 100
   const vista = vistaCorrente() !== null
@@ -307,7 +307,7 @@ function DaPagare({ elenco, carta, onApri, onAggiorna, verificaSubito }: { elenc
       ) : null}
       <View>
         {elenco.map((m, i) => (
-          <RigaMovimento key={m.id} m={m} prima={i === 0} onPress={() => onApri(m)} />
+          <RigaMovimento key={m.id} m={m} prima={i === 0} onPress={onApri ? () => onApri(m) : undefined} />
         ))}
       </View>
 

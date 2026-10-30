@@ -7,12 +7,14 @@ import { pulsanteToccato, type AzioneAssistente } from '@/api/assistente'
 import { t, tv } from '@/lib/lingua'
 import { spazio } from '@/theme'
 
-import { Icona } from '../ui/Icona'
+import { Icona, type NomeIcona } from '../ui/Icona'
 import { Richiamo } from '../profilo/Richiamo'
 import { Messaggio } from '../ui/kit'
 import { F, usePalette } from '../ui/tema'
 import { Tocco } from '../ui/Tocco'
 import { hrefAssistente } from './destinazioni'
+import { PagaDaChat } from './PagaDaChat'
+import { pagaDaAzione } from './pagaDaChat'
 import { PrenotaDaChat } from './PrenotaDaChat'
 import { prenotaDaAzione } from './prenotaDaChat'
 import type { Battuta } from './store'
@@ -42,10 +44,20 @@ function adattaAltezza(el: unknown) {
   campo.style.height = `${Math.min(campo.scrollHeight, ALTEZZA_MAX)}px`
 }
 
+// I suggerimenti all'apertura (30/10/2026, richiesta di Maurizio). **Prima le cose che l'assistente sa fare con un tocco** (prenotare una lezione, pagare una quota
+// scaduta, aggiungere il metodo di pagamento: sono le funzioni da promuovere), poi due domande per sapere dove sono le cose. Toccarne uno manda quella frase come domanda.
+type Funzione = { icona: NomeIcona; testo: string; sotto: string }
+
+const FUNZIONI = (): Funzione[] => [
+  { icona: 'calendario', testo: t('Aiutami a prenotare una lezione', 'Help me book a class'), sotto: t('Ti propongo una lezione e prenoti con un tocco', 'I’ll suggest one and you book with a tap') },
+  { icona: 'carta', testo: t('Voglio pagare una rata scaduta', 'I want to pay an overdue instalment'), sotto: t('Vedi le quote e paghi da qui', 'See what’s due and pay from here') },
+  { icona: 'wallet', testo: t('Voglio aggiungere il metodo di pagamento', 'I want to add a payment method'), sotto: t('Ti porto subito alla pagina giusta', 'I’ll take you straight to the right page') },
+]
+
 const ESEMPI = () =>
   tv(
-    ['Dove vedo i miei pagamenti?', 'Come annullo una lezione?', 'Quando scade il mio certificato?', 'Dove sono i miei piani di allenamento?'],
-    ['Where can I see my payments?', 'How do I cancel a class?', 'When does my certificate expire?', 'Where are my workout plans?'],
+    ['Dove vedo i miei pagamenti?', 'Come annullo una lezione?'],
+    ['Where can I see my payments?', 'How do I cancel a class?'],
   )
 
 function Pulsanti({ azioni, messaggioId, onVai }: { azioni: AzioneAssistente[]; messaggioId: string | null; onVai: () => void }) {
@@ -56,6 +68,9 @@ function Pulsanti({ azioni, messaggioId, onVai }: { azioni: AzioneAssistente[]; 
         // La proposta di una prenotazione non porta altrove: apre una carta nella chat, e prenota solo chi tocca «Prenota» (30/10/2026).
         const proposta = prenotaDaAzione(a)
         if (proposta) return <PrenotaDaChat key={`${a.destinazione}${i}`} proposta={proposta} messaggioId={messaggioId} onVai={onVai} />
+        // Il pagamento delle quote scadute (30/10/2026): apre la carta «Da pagare» nella chat, e paga solo chi tocca il pulsante di pagamento.
+        const pagamento = pagaDaAzione(a)
+        if (pagamento) return <PagaDaChat key={`${a.destinazione}${i}`} proposta={pagamento} messaggioId={messaggioId} />
         const href = hrefAssistente(a.destinazione, a.parametri)
         if (!href) return null
         return (
@@ -172,7 +187,22 @@ export function FoglioAssistente({ aperto, schermata, onChiudi }: { aperto: bool
           >
             {s.battute.length === 0 ? (
               <View style={{ gap: spazio.tre }}>
-                <Text style={[stili.testo, { color: p.testoSecondario }]}>{t('Per esempio:', 'For example:')}</Text>
+                <Text style={[stili.testo, { color: p.testoSecondario }]}>{t('Posso fare per te:', 'I can do this for you:')}</Text>
+                <View style={{ gap: spazio.due }}>
+                  {FUNZIONI().map((f) => (
+                    <Tocco key={f.testo} onPress={() => manda(f.testo)} etichetta={f.testo} style={[stili.funzione, { borderColor: p.accento, backgroundColor: p.fondo }]}>
+                      <View style={[stili.funzioneIcona, { backgroundColor: p.accento }]}>
+                        <Icona nome={f.icona} size={17} colore="#fff" />
+                      </View>
+                      <View style={{ flex: 1, gap: 1 }}>
+                        <Text style={[stili.testo, { color: p.testo, fontFamily: F.semi }]}>{f.testo}</Text>
+                        <Text style={[stili.funzioneSotto, { color: p.testoSecondario }]}>{f.sotto}</Text>
+                      </View>
+                      <Icona nome="avanti" size={14} colore={p.testoTerzo} />
+                    </Tocco>
+                  ))}
+                </View>
+                <Text style={[stili.testo, { color: p.testoSecondario }]}>{t('Oppure chiedimi, per esempio:', 'Or ask me, for example:')}</Text>
                 <View style={{ gap: spazio.due }}>
                   {ESEMPI().map((e) => (
                     <Tocco key={e} onPress={() => manda(e)} etichetta={e} style={[stili.esempio, { borderColor: p.linea, backgroundColor: p.fondo }]}>
@@ -270,6 +300,9 @@ const stili = StyleSheet.create({
   voti: { flexDirection: 'row', gap: 8 },
   voto: { height: 28, paddingHorizontal: 11, borderRadius: 999, borderWidth: 1, justifyContent: 'center' },
   votoTesto: { fontFamily: F.semi, fontSize: 12 },
+  funzione: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 12, paddingVertical: 11, borderRadius: 16, borderWidth: 1.5 },
+  funzioneIcona: { width: 34, height: 34, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+  funzioneSotto: { fontFamily: F.medio, fontSize: 12.5, lineHeight: 17 },
   esempio: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 14, paddingVertical: 12, borderRadius: 16, borderWidth: 1 },
   fondo: { paddingHorizontal: spazio.quattro - 4, gap: 8, paddingTop: 4 },
   campo: { flexDirection: 'row', alignItems: 'flex-end', gap: 8, borderWidth: 1, borderRadius: 22, paddingLeft: 14, paddingRight: 6, paddingVertical: 6 },
