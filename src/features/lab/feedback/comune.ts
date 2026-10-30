@@ -1,5 +1,6 @@
-// Il feedback dei tester (20/10/2026): le regole che non hanno bisogno della schermata. Il pulsante «Feedback» in alto
-// a destra, il foglio per scrivere e il caricamento degli allegati stanno negli altri file di questa cartella; qui
+// Il feedback dei tester (20/10/2026): le regole che non hanno bisogno della schermata. La carta in Home che lo chiede
+// (`home/CartaFeedback`, dal 30/10/2026: prima era una pillola in alto a destra), il foglio per scrivere e il caricamento
+// degli allegati stanno negli altri file; qui
 // restano i limiti, i tipi di messaggio e il controllo dei file, cosi' si provano senza React.
 //
 // **I limiti ripetono quelli della funzione** (`supabase/functions/_shared/feedback.ts` di APP-ATHLON: tre allegati, 5 MB
@@ -76,13 +77,13 @@ export function schermataDa(percorso: string | null | undefined): string {
 }
 
 /**
- * Quanto sposta a sinistra il pulsante quando la schermata ha gia' un comando in alto a destra (il carrello dello shop, per
- * esempio): un bottone tondo da 44 e uno spazio da 8. Senza, il pulsante sta dove di solito sta quel comando.
+ * Quanto sposta a sinistra il pulsante «Assistente virtuale» quando la schermata ha gia' un comando in alto a destra (il carrello dello
+ * shop, per esempio): un bottone tondo da 44 e uno spazio da 8. Senza, il pulsante sta dove di solito sta quel comando.
  */
 export const SPOSTA_SE_OCCUPATO = 52
 
 /**
- * Sotto questa larghezza (e dove la schermata ha gia' un comando in alto a destra) il pulsante e' solo l'icona: con
- * la freccia indietro, il marchio e un comando a destra, la pillola con la scritta finirebbe sul marchio.
+ * Da questa larghezza in su il pulsante «Assistente virtuale» ha la scritta; sotto (e dove la schermata ha gia' un comando in alto a
+ * destra) e' solo l'icona: con la freccia indietro e il marchio a sinistra, la pillola con la scritta finirebbe sul marchio.
  */
-export const LARGHEZZA_COMPATTA = 440
+export const LARGHEZZA_CON_SCRITTA = 390

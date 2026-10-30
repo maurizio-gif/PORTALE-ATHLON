@@ -9,8 +9,8 @@ import {
 import { Stack } from 'expo-router'
 import { View } from 'react-native'
 
+import { PulsanteAssistente } from '@/features/lab/assistente/PulsanteAssistente'
 import { Avvio } from '@/features/lab/avvio/Avvio'
-import { PulsanteFeedback } from '@/features/lab/feedback/PulsanteFeedback'
 import { Notifiche } from '@/features/lab/notifiche/Notifiche'
 import { BannerVista } from '@/features/lab/ui/BannerVista'
 import { BarraSchede } from '@/features/lab/ui/BarraSchede'
@@ -75,9 +75,10 @@ export default function LayoutLaboratorio() {
       {/* Le notifiche del club (features/lab/notifiche): il giro che le legge e la finestra che compare appena ne arriva una. Solo per
           chi e' entrato, e mai in vista cliente: chi guarda l'app di un socio non deve segnare come viste le sue notifiche. */}
       {sessione && !vistaCorrente() ? <Notifiche /> : null}
-      {/* Il pulsante «Feedback» dei tester, in alto a destra (features/lab/feedback): solo con una sessione, e prima
-          dell'avvio animato, che lo copre. In vista cliente non si disegna. */}
-      {sessione ? <PulsanteFeedback /> : null}
+      {/* Il pulsante «Assistente virtuale», in alto a destra e sempre visibile (features/lab/assistente): apre la chat, che resta
+          montata qui e non si perde cambiando schermata. Solo con una sessione, e prima dell'avvio animato, che lo copre. In vista
+          cliente non si disegna. Il feedback dei tester e' una carta della Home (home/CartaFeedback). */}
+      {sessione ? <PulsanteAssistente /> : null}
       {/* L'avvio animato: una volta a ogni apertura, sopra tutto (features/lab/avvio). */}
       <Avvio />
     </View>

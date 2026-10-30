@@ -76,7 +76,7 @@ export function PassiVasca({ saltaDove, onDove }: { saltaDove: boolean; onDove: 
   const [frase, setFrase] = useState(0)
   const [errore, setErrore] = useState<string | null>(null)
   const scorri = useRef<ScrollView>(null)
-  // L'anello sta in alto a destra, dove di solito sta il pulsante «Feedback»: gli si dice di farsi da parte (resta la sola icona, accanto).
+  // L'anello sta in alto a destra, dove di solito sta il pulsante «Assistente virtuale»: gli si dice di farsi da parte (resta la sola icona, accanto).
   // Durante l'attesa l'anello non c'e': il pulsante torna al suo posto.
   useSegnaAzioneInAlto(!inCorso, useIsFocused())
 
