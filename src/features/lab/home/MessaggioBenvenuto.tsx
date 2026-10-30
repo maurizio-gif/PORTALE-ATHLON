@@ -116,7 +116,7 @@ function CartaMessaggio({ m, onSezione, onNascondi }: { m: MessaggioDato; onSezi
 
 /**
  * L'invito alla prova (30/10/2026): carta scura con l'arancio che sale da un angolo, il marchio in filigrana, «Prova tutto il club per
- * una settimana» in grande, e «19 €» come l'argomento. Il titolo e il prezzo sono fissi e scritti qui: il testo che arriva dal server
+ * una settimana» in grande, e «7 giorni» come l'argomento, con «a 19 € · senza impegno» accanto. Il titolo e il prezzo sono fissi e scritti qui: il testo che arriva dal server
  * (l'AI, o quello di riserva) resta il corpo, piu' pesante di prima, e continua a non nominare soldi: lo garantisce il controllo del
  * server, che qui non e' cambiato. Scura in tutti e due i temi, come le altre schede «carbone».
  */
@@ -145,13 +145,17 @@ function CartaProva({ m, onVai, onNascondi }: { m: MessaggioDato; onVai: () => v
           {t('Prova tutto il club per una settimana', 'Try the whole club for a week')}
         </Text>
 
-        <View style={stili.provePrezzo} accessible accessibilityLabel={t(`${PREZZO_PROVA} euro, una volta sola, senza rinnovo`, `${PREZZO_PROVA} euros, one time only, no renewal`)}>
+        <View style={stili.provePrezzo} accessible accessibilityLabel={t(`7 giorni a ${PREZZO_PROVA} euro, senza impegno`, `7 days for ${PREZZO_PROVA} euros, no commitment`)}>
           <Text style={stili.proveNumero} accessibilityElementsHidden importantForAccessibility="no">
-            {PREZZO_PROVA}
+            7
           </Text>
-          <View style={{ paddingBottom: 12, gap: 2 }} accessibilityElementsHidden importantForAccessibility="no">
-            <Text style={stili.proveEuro}>€</Text>
-            <Text style={stili.proveNota}>{t('una volta sola · senza rinnovo', 'one time only · no renewal')}</Text>
+          <View style={{ paddingBottom: 10, gap: 2 }} accessibilityElementsHidden importantForAccessibility="no">
+            <Text style={stili.proveGiorni}>{t('giorni', 'days')}</Text>
+            <Text style={stili.proveNota}>
+              {t('a ', 'for ')}
+              <Text style={stili.provePrezzoNota}>{PREZZO_PROVA} €</Text>
+              {t(' · senza impegno', ' · no commitment')}
+            </Text>
           </View>
         </View>
 
@@ -181,8 +185,9 @@ const stili = StyleSheet.create({
   proveTitolo: { fontFamily: F.extra, fontSize: 29, lineHeight: 33, letterSpacing: -0.8, color: '#FFFFFF' },
   provePrezzo: { flexDirection: 'row', alignItems: 'flex-end', gap: spazio.due },
   proveNumero: { fontFamily: F.extra, fontSize: 84, lineHeight: 84, letterSpacing: -3, color: '#FF6A1F' },
-  proveEuro: { fontFamily: F.extra, fontSize: 30, lineHeight: 30, color: '#FF6A1F' },
-  proveNota: { fontFamily: F.bold, fontSize: 12.5, color: 'rgba(255,255,255,0.75)' },
+  proveGiorni: { fontFamily: F.extra, fontSize: 30, lineHeight: 32, letterSpacing: -0.6, color: '#FF6A1F' },
+  proveNota: { fontFamily: F.bold, fontSize: 14, color: 'rgba(255,255,255,0.78)' },
+  provePrezzoNota: { fontFamily: F.extra, color: '#FFFFFF' },
   proveTesto: { fontFamily: F.bold, fontSize: 16, lineHeight: 24, color: 'rgba(255,255,255,0.92)' },
 
   testata: { flexDirection: 'row', alignItems: 'center', gap: spazio.due + 2 },
