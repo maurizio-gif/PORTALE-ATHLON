@@ -1,5 +1,5 @@
 import { router } from 'expo-router'
-import { useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
@@ -8,6 +8,7 @@ import { t, tv } from '@/lib/lingua'
 import { spazio } from '@/theme'
 
 import { Icona } from '../ui/Icona'
+import { Richiamo } from '../profilo/Richiamo'
 import { Messaggio } from '../ui/kit'
 import { F, usePalette } from '../ui/tema'
 import { Tocco } from '../ui/Tocco'
@@ -16,6 +17,7 @@ import { PrenotaDaChat } from './PrenotaDaChat'
 import { prenotaDaAzione } from './prenotaDaChat'
 import type { Battuta } from './store'
 import { CARATTERI_MAX, mandaDomanda, ricominciaChat, useAssistente, votaRisposta } from './useAssistente'
+import { useDettatura } from './useDettatura'
 
 // Il foglio dell'assistente (29/10/2026): la chat. Sale dal pulsante «Assistente virtuale» in alto a destra (`PulsanteAssistente`, sempre visibile; fino al 30/10/2026 era la carta «Cerchi qualcosa?» in Home). La persona scrive, la risposta arriva a pezzi
 // e, dove serve, porta uno o due pulsanti che la portano nel punto giusto dell'app: **l'assistente non annulla e non paga**, dice
@@ -25,6 +27,20 @@ import { CARATTERI_MAX, mandaDomanda, ricominciaChat, useAssistente, votaRispost
 // **Dice sempre due cose**: che e' un assistente automatico che puo' sbagliare, e che le domande e le risposte vengono lette dal club per
 // migliorarlo (si conservano e le vede chi apre la tua scheda in segreteria). L'invito a non scrivere dati sulla salute sta nella stessa riga:
 // non si possono impedire, ma si puo' dire.
+
+// Il campo si allarga con il testo, fino a quest'altezza: oltre, scorre. Su telefono lo fa da solo; sul web un campo su piu' righe
+// resta alto quanto la sua prima riga, quindi l'altezza si ricalcola a ogni cambio (`adattaAltezza`).
+const ALTEZZA_MAX = 110
+
+type ElementoCampo = { style: { height: string }; scrollHeight: number }
+function adattaAltezza(el: unknown) {
+  if (Platform.OS !== 'web') return
+  const campo = el as ElementoCampo | null
+  if (!campo?.style) return
+  // Prima si lascia che torni alta una riga, o togliendo testo non si accorcerebbe mai.
+  campo.style.height = 'auto'
+  campo.style.height = `${Math.min(campo.scrollHeight, ALTEZZA_MAX)}px`
+}
 
 const ESEMPI = () =>
   tv(
@@ -107,12 +123,22 @@ export function FoglioAssistente({ aperto, schermata, onChiudi }: { aperto: bool
   const s = useAssistente()
   const [testo, setTesto] = useState('')
   const scorri = useRef<ScrollView>(null)
+  const campo = useRef<TextInput>(null)
+  const voce = useDettatura(setTesto)
   const puoMandare = !s.inCorso && testo.trim().length > 0 && testo.length <= CARATTERI_MAX
 
   const manda = (domanda: string) => {
+    // Se il microfono sta ancora ascoltando si butta quello che arriva: la domanda parte com'e' e il campo resta vuoto.
+    voce.annulla()
     mandaDomanda(domanda, schermata)
     setTesto('')
   }
+
+  useLayoutEffect(() => adattaAltezza(campo.current), [testo, aperto])
+  // Chiuso il foglio non si resta in ascolto.
+  useEffect(() => {
+    if (!aperto) voce.annulla()
+  }, [aperto, voce.annulla])
 
   return (
     <Modal visible={aperto} transparent animationType="slide" onRequestClose={onChiudi}>
@@ -166,11 +192,17 @@ export function FoglioAssistente({ aperto, schermata, onChiudi }: { aperto: bool
           <View style={stili.fondo}>
             <View style={[stili.campo, { borderColor: p.linea, backgroundColor: p.fondo }]}>
               <TextInput
+                // Il riferimento serve sul web: appena il campo compare, anche con una bozza gia' scritta, si porta alla sua altezza.
+                ref={(el) => {
+                  campo.current = el
+                  adattaAltezza(el)
+                }}
                 value={testo}
                 onChangeText={setTesto}
-                placeholder={t('Scrivi qui…', 'Write here…')}
+                placeholder={voce.ascolto ? t('Ti ascolto…', 'Listening…') : t('Scrivi qui…', 'Write here…')}
                 placeholderTextColor={p.testoTerzo}
                 multiline
+                // Una riga di partenza: sul web react-native-web ne darebbe due. Poi cresce `adattaAltezza`.
                 numberOfLines={1}
                 maxLength={CARATTERI_MAX}
                 returnKeyType="send"
@@ -187,15 +219,30 @@ export function FoglioAssistente({ aperto, schermata, onChiudi }: { aperto: bool
                 accessibilityLabel={t('La tua domanda', 'Your question')}
                 style={[stili.input, { color: p.testo }, Platform.OS === 'web' ? ({ outlineStyle: 'none' } as object) : null]}
               />
+              {voce.disponibile ? (
+                <Tocco
+                  onPress={() => voce.tocca(testo)}
+                  etichetta={voce.ascolto ? t('Smetti di dettare', 'Stop dictating') : t('Detta la domanda con la voce', 'Dictate your question')}
+                  stato={{ selected: voce.ascolto }}
+                  style={[stili.invia, { backgroundColor: voce.ascolto ? p.accento : p.incavo }]}
+                >
+                  {voce.ascolto ? <Richiamo raggio={18} colore={p.accento} ingrandimento={1.45} finoAlFatto /> : null}
+                  <Icona nome="microfono" size={17} colore={voce.ascolto ? '#fff' : p.accento} />
+                </Tocco>
+              ) : null}
               <Tocco onPress={() => puoMandare && manda(testo)} spento={!puoMandare} etichetta={t('Invia', 'Send')} style={[stili.invia, { backgroundColor: puoMandare ? p.accento : p.incavo }]}>
                 <Icona nome="invia" size={16} colore={puoMandare ? '#fff' : p.testoTerzo} />
               </Tocco>
             </View>
+            {voce.errore ? <Text style={[stili.postilla, { color: p.testoSecondario }]}>{voce.errore}</Text> : null}
             <Text style={[stili.postilla, { color: p.testoTerzo }]}>
               {t(
                 'Assistente automatico: può sbagliare e non fa niente al posto tuo. Le domande e le risposte vengono lette dal club per migliorarlo: non scrivere dati sulla salute.',
                 'Automated assistant: it can make mistakes and doesn’t do anything on your behalf. Questions and answers are read by the club to improve it: don’t write health information.',
               )}
+              {voce.disponibile
+                ? t(' Il microfono trascrive la voce con il servizio del tuo browser: puoi rileggere e correggere il testo prima di inviarlo.', ' The microphone transcribes your voice with your browser’s service: you can review and edit the text before sending it.')
+                : ''}
             </Text>
           </View>
         </View>
