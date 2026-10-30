@@ -160,9 +160,9 @@ function statoCertificatoBase(ce: CertificatoArea | undefined, nascita?: string 
   return base
 }
 
-/** «Proroga temporanea concessa fino al 13/11/2026»: il testo della proroga che la segreteria ha concesso (30/10/2026, Maurizio: non «certificato temporaneo attivo»). */
+/** La scritta semplice della proroga concessa dalla segreteria (30/10/2026, Maurizio: non «certificato temporaneo attivo»): «C'è una proroga temporanea che scade il 13/11/2026». */
 export function testoProroga(fine: string): string {
-  return t(`Proroga temporanea concessa fino al ${dataBreve(fine)}`, `Temporary extension granted until ${dataBreve(fine)}`)
+  return t(`C’è una proroga temporanea che scade il ${dataBreve(fine)}`, `There’s a temporary extension that expires on ${dataBreve(fine)}`)
 }
 
 /**
