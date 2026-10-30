@@ -104,7 +104,7 @@ function RichiestaConEmail({ invito, avviso }: { invito?: Invito; avviso?: strin
 
   return (
     <Pagina
-      titolo={invito ? (invito.nome ? t(`${invito.nome} ti invita da Athlon`, `${invito.nome} invites you to Athlon`) : t('Sei invitato da Athlon', 'You’re invited to Athlon')) : 'Guest Pass'}
+      titolo={invito ? (invito.nome ? t(`${invito.nome} ti invita da Athlon`, `${invito.nome} invites you to Athlon`) : t('Sei invitato da Athlon', 'You’re invited to Athlon')) : t('Prova tutto il club per una settimana', 'Try the whole club for a week')}
       sottotitolo={
         invito
           ? t(
@@ -112,8 +112,8 @@ function RichiestaConEmail({ invito, avviso }: { invito?: Invito; avviso?: strin
               `With this invitation you try the club for a week for just ${invito.prezzo} € instead of ${invito.prezzoPieno}, or you join right away. Enter your email: we’ll send you the link to get started. The invitation is valid for 30 days from when you accept it, for anyone who hasn’t had a membership or Guest Pass in the last 3 years.`,
             )
           : t(
-              'Una settimana al club a 19 €, per chi non ha avuto abbonamenti o Guest Pass negli ultimi 3 anni: per te o per un figlio dai 13 ai 17 anni. Scrivi la tua email: ti mandiamo il link per attivarlo.',
-              'A week at the club for 19 €, for anyone who hasn’t had a membership or Guest Pass in the last 3 years: for you or a child aged 13 to 17. Enter your email: we’ll send you the link to activate it.',
+              'Il Guest Pass Premium: sala, corsi e vasche per 7 giorni a 19 €, senza impegno e senza rinnovo. Per chi non ha avuto abbonamenti o Guest Pass negli ultimi 3 anni, per te o per un figlio dai 13 ai 17 anni. Scrivi la tua email: ti mandiamo il link per attivarlo.',
+              'The Premium Guest Pass: gym floor, classes and pools for 7 days at 19 €, with no commitment and no renewal. For anyone who hasn’t had a membership or Guest Pass in the last 3 years, for you or a child aged 13 to 17. Enter your email: we’ll send you the link to activate it.',
             )
       }
     >
