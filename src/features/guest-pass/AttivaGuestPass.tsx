@@ -34,6 +34,7 @@ import {
   problemaPassword,
   REGOLAMENTO_URL,
   REGOLE_PRENOTAZIONE,
+  ATTIVITA_PROVA,
   type PaginaGuestPass,
 } from '@/lib/guestPass'
 
@@ -506,7 +507,21 @@ export function AttivaGuestPass({ token, nome, iniziale }: { token: string; nome
 
       {scelta ? (
         <Blocco numero={1} titolo={t('Per chi è il Guest Pass', 'Who the Guest Pass is for')} fatto={!!scelta.per}>
-          <PerChi token={token} scelta={scelta} onScelto={ricarica} />
+          <PerChi
+            token={token}
+            scelta={scelta}
+            onScelto={ricarica}
+            titolare={[dati.nome, dati.cognome].filter(Boolean).join(' ')}
+            comprende={t(
+              `Tutte le attività del Premium: ${[...ATTIVITA_PROVA.map((a) => a.nome), 'Athlon TV'].join(', ')}.`,
+              `All the Premium activities: ${[...ATTIVITA_PROVA.map((a) => a.nome), 'Athlon TV'].join(', ')}.`,
+            )}
+            quando={
+              inizio
+                ? t(`7 giorni, dal ${giornoLungo(inizio)} al ${giornoLungo(fineSettimana(inizio))} compresi.`, `7 days, from ${giornoLungo(inizio)} to ${giornoLungo(fineSettimana(inizio))} inclusive.`)
+                : t(`7 giorni consecutivi dal giorno che scegli, fra ${giornoLungo(p.inizio.dal)} e ${giornoLungo(p.inizio.al)}.`, `7 consecutive days from the day you choose, between ${giornoLungo(p.inizio.dal)} and ${giornoLungo(p.inizio.al)}.`)
+            }
+          />
         </Blocco>
       ) : null}
 

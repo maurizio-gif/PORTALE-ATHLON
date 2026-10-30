@@ -49,7 +49,23 @@ function sceltaDi(s: SceltaGuestPass): string | null {
   return null
 }
 
-export function PerChi({ token, scelta, onScelto }: { token: string; scelta: SceltaGuestPass; onScelto: () => Promise<unknown> }) {
+export function PerChi({
+  token,
+  scelta,
+  onScelto,
+  titolare,
+  comprende,
+  quando,
+}: {
+  token: string
+  scelta: SceltaGuestPass
+  onScelto: () => Promise<unknown>
+  /** Nome e cognome di chi ha l'email: si leggono sotto «Per te». */
+  titolare?: string
+  /** Cosa comprende il Pass e quando vale: le due righe sotto la scelta (30/10/2026). */
+  comprende?: string
+  quando?: string
+}) {
   const c = useColori()
   const [aperto, setAperto] = useState(!scelta.per)
   const [modo, setModo] = useState<string | null>(sceltaDi(scelta))
@@ -107,9 +123,12 @@ export function PerChi({ token, scelta, onScelto }: { token: string; scelta: Sce
     return (
       <View style={{ gap: spazio.due }}>
         {scelta.per === 'me' ? (
-          <Testo>
-            {t('Per', 'For')} <Text style={{ fontWeight: '700' }}>{t('te', 'you')}</Text>.
-          </Testo>
+          <>
+            <Testo>
+              {t('Per', 'For')} <Text style={{ fontWeight: '700' }}>{t('te', 'you')}</Text>.
+            </Testo>
+            {titolare ? <Text style={{ color: c.testo, fontSize: 18, fontWeight: '800' }}>{titolare}</Text> : null}
+          </>
         ) : (
           <>
             <Testo>
@@ -126,6 +145,22 @@ export function PerChi({ token, scelta, onScelto }: { token: string; scelta: Sce
             </Testo>
           </>
         )}
+        {comprende || quando ? (
+          <View style={[stili.riquadro, { borderColor: c.bordo, backgroundColor: c.sfondo, gap: spazio.due }]}>
+            {comprende ? (
+              <View style={{ gap: 2 }}>
+                <Text style={[stili.etichetta, { color: c.accento }]}>{t('COSA COMPRENDE', 'WHAT’S INCLUDED')}</Text>
+                <Testo variante="piccolo" style={{ color: c.testo }}>{comprende}</Testo>
+              </View>
+            ) : null}
+            {quando ? (
+              <View style={{ gap: 2 }}>
+                <Text style={[stili.etichetta, { color: c.accento }]}>{t('QUANDO', 'WHEN')}</Text>
+                <Testo variante="piccolo" style={{ color: c.testo }}>{quando}</Testo>
+              </View>
+            ) : null}
+          </View>
+        ) : null}
         <Bottone testo={t('Cambia', 'Change')} variante="contorno" onPress={() => setAperto(true)} />
       </View>
     )
@@ -225,4 +260,5 @@ export function PerChi({ token, scelta, onScelto }: { token: string; scelta: Sce
 
 const stili = StyleSheet.create({
   riquadro: { borderWidth: 1, borderRadius: 12, padding: spazio.tre, gap: spazio.tre },
+  etichetta: { fontSize: 11, fontWeight: '800', letterSpacing: 1.2 },
 })
