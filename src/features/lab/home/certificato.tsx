@@ -83,6 +83,8 @@ export type StatoCertificato = {
   inVerifica: boolean
   /** L'ultimo certificato caricato e' stato rifiutato: il motivo scritto dalla segreteria, se c'e'. */
   rifiutato: { motivo: string | null } | null
+  /** Ha una proroga temporanea concessa dalla segreteria (il «temporaneo» del CRM) ancora in corso, e il certificato non e' in regola. */
+  proroga?: { fine: string } | null
 }
 
 /**
@@ -116,7 +118,7 @@ function statoDelleDate(ce: CertificatoArea | undefined, nascita?: string | null
  * allo stesso modo, dice perche' e **rimette la situazione di prima** (scaduto, mancante, in scadenza). Con un certificato valido (o sotto i 6 anni) nessuno dei
  * due conta: lo stato resta quello di PerfectGym.
  */
-export function statoCertificato(ce: CertificatoArea | undefined, nascita?: string | null): StatoCertificato {
+function statoCertificatoBase(ce: CertificatoArea | undefined, nascita?: string | null): StatoCertificato {
   const base = statoDelleDate(ce, nascita)
   const c = ce?.caricamento
   // Solo se il certificato serve: con uno valido (o sotto i 6 anni) lo stato resta quello di PerfectGym.
@@ -156,6 +158,22 @@ export function statoCertificato(ce: CertificatoArea | undefined, nascita?: stri
     }
   }
   return base
+}
+
+/** La scritta semplice della proroga concessa dalla segreteria (30/10/2026, Maurizio: non «certificato temporaneo attivo»): «C'è una proroga temporanea che scade il 13/11/2026». */
+export function testoProroga(fine: string): string {
+  return t(`C’è una proroga temporanea che scade il ${dataBreve(fine)}`, `There’s a temporary extension that expires on ${dataBreve(fine)}`)
+}
+
+/**
+ * Lo stato che si mostra, con la **proroga temporanea** concessa dalla segreteria (30/10/2026): la scadenza resta quella del definitivo, e la
+ * proroga si dice a parte, solo se e' ancora in corso e solo dove il certificato non e' in regola (con uno valido non serve).
+ */
+export function statoCertificato(ce: CertificatoArea | undefined, nascita?: string | null): StatoCertificato {
+  const s = statoCertificatoBase(ce, nascita)
+  const g = giorniA(ce?.proroga?.fine ?? null)
+  if (ce?.proroga && g !== null && g >= 0 && (s.scadutoOMancante || s.daConsegnare || s.tono === 'attenzione' || s.tono === 'errore')) return { ...s, proroga: { fine: ce.proroga.fine } }
+  return s
 }
 
 /** Quanto e' urgente un certificato: piu' alto e', prima si mostra (scaduto, mai consegnato, da consegnare, in scadenza). */
@@ -249,6 +267,7 @@ export function RigaCertificato({
           <View style={{ gap: 6, alignItems: 'flex-start' }}>
             <Text style={[stili.piccolo, { color: p.testoSecondario, fontSize: 13.5, lineHeight: 19 }]}>{s.dettaglio}</Text>
             <Etichetta testo={s.testo} tono={s.tono} />
+            {s.proroga ? <Etichetta testo={testoProroga(s.proroga.fine)} tono="ok" /> : null}
             {puoCaricare ? (
               <Pulsante
                 testo={s.rifiutato ? t('Carica un certificato nuovo', 'Upload a new certificate') : s.daConsegnare ? t('Carica il certificato', 'Upload certificate') : t('Carica quello nuovo', 'Upload the new one')}

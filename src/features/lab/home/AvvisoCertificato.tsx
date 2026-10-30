@@ -7,7 +7,7 @@ import { t } from '@/lib/lingua'
 import { Bollino, Carta, Entra, Pulsante } from '../ui/kit'
 import { F, usePalette, velo } from '../ui/tema'
 import { vistaCorrente } from '../vista'
-import { nome, statoCertificato, urgenzaCertificato, type StatoCertificato } from './certificato'
+import { nome, statoCertificato, testoProroga, urgenzaCertificato, type StatoCertificato } from './certificato'
 import { personeConAbbonamento } from './regolarita'
 
 // L'avviso del certificato medico, subito sotto la testata della Home (20/10/2026, richiesta del club).
@@ -68,6 +68,7 @@ export function AvvisoCertificato({ area, onVai }: { area: AreaTrovata; onVai: (
               <View key={a.persona.member_id} style={{ gap: 1 }}>
                 <Text style={{ color: p.testo, fontFamily: F.semi, fontSize: 13.5 }}>{unico ? chi(a) : `${chi(a)} · ${a.s.testo}`}</Text>
                 <Text style={[stili.sotto, { color: p.testoSecondario }]}>{a.s.dettaglio}</Text>
+                {a.s.proroga ? <Text style={{ color: p.testo, fontFamily: F.semi, fontSize: 13.5 }}>{testoProroga(a.s.proroga.fine)}</Text> : null}
               </View>
             ))}
           </View>
