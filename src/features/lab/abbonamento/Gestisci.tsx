@@ -22,7 +22,7 @@ import {
   type MotivoDisdetta,
   type OpzioneSospensione,
 } from '@/api/gestioneAbbonamento'
-import { statoAbbonamento, type PianoAbbonamento } from '@/api/abbonamento'
+import { statoAbbonamento, statoCambioAbbonamento, type PianoAbbonamento } from '@/api/abbonamento'
 import { CampoData } from '@/components/CampoData'
 import { euro } from '@/lib/eventi'
 import { locale, t } from '@/lib/lingua'
@@ -348,7 +348,7 @@ export function FoglioGestisci({ contratto: c, aperto, onChiudi, onCambiato }: {
       <View style={{ flexDirection: 'row', gap: spazio.due }}>
         <Pulsante testo={t('Sospendi', 'Suspend')} icona="orologio" variante="secondario" disabilitato={!c.azioni?.sospendi.disponibile || (!sosp && !erroreSosp)} onPress={() => vai('s1')} />
         {inFinestra ? (
-          <Pulsante testo={t('Cambia abbonamento', 'Change membership')} icona="rinnovo" onPress={apriCambio} />
+          <Pulsante testo={t('Cambia abbonamento', 'Change membership')} icona="rinnovo" onPress={apriCambio} inCorso={inCorso} />
         ) : (
           <Pulsante testo={t('Upgrade', 'Upgrade')} icona="rinnovo" disabilitato={!upgrade?.possibile} onPress={() => { caricaPiani(); vai('u1') }} />
         )}
@@ -523,7 +523,7 @@ export function FoglioGestisci({ contratto: c, aperto, onChiudi, onCambiato }: {
           <View style={{ gap: spazio.due }}>
             <Text style={[stili.nota, { color: p.testo }]}>{t(`Stai per disdire ${etichettaPiano(c)}. Invece puoi passare a un altro abbonamento, Smart o Premium o uno degli altri in vigore, scegliendo quello che preferisci: così dai continuità ai tuoi allenamenti, senza disdetta e senza nessun buco.`, `You’re about to cancel ${etichettaPiano(c)}. Instead you can move to another membership, Smart or Premium or any other currently on sale, whichever you prefer: this keeps your training going, with no cancellation and no gap.`)}</Text>
             <Text style={[stili.nota, { color: p.testo }]}>{t(`Il tuo abbonamento attuale finisce il ${dataLunga(finestra.fine)} e il nuovo parte il ${dataLunga(finestra.nuovo_inizio)}. La quota di attivazione è in omaggio.`, `Your current membership ends on ${dataLunga(finestra.fine)} and the new one starts on ${dataLunga(finestra.nuovo_inizio)}. The joining fee is waived.`)}</Text>
-            <Pulsante testo={t('Cambia abbonamento', 'Change membership')} icona="rinnovo" piccolo onPress={apriCambio} />
+            <Pulsante testo={t('Cambia abbonamento', 'Change membership')} icona="rinnovo" piccolo onPress={apriCambio} inCorso={inCorso} />
           </View>
         </Messaggio>
       ) : null}
@@ -718,7 +718,17 @@ export function FoglioGestisci({ contratto: c, aperto, onChiudi, onCambiato }: {
   // Finche' la procedura che crea il nuovo contratto non c'e', il cambio arriva alla segreteria con lo stesso modulo dell'upgrade: la data di
   // partenza e' fissa (il giorno dopo la fine del vecchio) e la quota di attivazione e' in omaggio.
 
-  function apriCambio() {
+  // Se il server consente il cambio per questo contratto si apre la procedura vera (data fissa, firma, il vecchio si chiude da solo);
+  // altrimenti resta la richiesta alla segreteria.
+  async function apriCambio() {
+    setInCorso(true)
+    const r = await statoCambioAbbonamento(c.contract_id)
+    setInCorso(false)
+    if (r.ok) {
+      onChiudi()
+      router.push({ pathname: '/abbonamento', params: { cambio: String(c.contract_id) } })
+      return
+    }
     setPianoScelto(null)
     setNoteUp('')
     caricaPiani()
