@@ -88,15 +88,17 @@ export type AnteprimaDisdetta = {
   fine: string | null
   ultimo_giorno: string | null
   rate: { quante: number; totale: number }
+  /** Quote scadute e non pagate: finche' ce ne sono la disdetta non si fa, prima si saldano (Pagamenti → Da pagare). */
+  quote_scadute?: { quante: number; totale: number }
   motivi: string[]
   /** Si rimanda alla conferma: se cambia qualcosa nel frattempo il server non scrive. */
   impronta: string
 }
 
-export type EsitoGestione<T> = { ok: true; dati: T } | { ok: false; errore: string; cambiato?: boolean; oltreTermine?: boolean; giaDisdetto?: boolean }
+export type EsitoGestione<T> = { ok: true; dati: T } | { ok: false; errore: string; cambiato?: boolean; oltreTermine?: boolean; giaDisdetto?: boolean; quoteScadute?: boolean }
 
 function errore<T>(dati: Record<string, any>, ripiego: string): EsitoGestione<T> {
-  return { ok: false, errore: dati.errore ?? ripiego, cambiato: dati.cambiato === true, oltreTermine: dati.oltre_termine === true, giaDisdetto: dati.gia_disdetto === true }
+  return { ok: false, errore: dati.errore ?? ripiego, cambiato: dati.cambiato === true, oltreTermine: dati.oltre_termine === true, giaDisdetto: dati.gia_disdetto === true, quoteScadute: dati.quote_scadute === true }
 }
 
 export async function anteprimaDisdetta(contractId: number): Promise<EsitoGestione<AnteprimaDisdetta>> {

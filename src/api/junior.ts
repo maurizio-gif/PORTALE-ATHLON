@@ -444,7 +444,7 @@ export async function disdiciCorso(d: { memberId: number; contractId: number }):
     giaDisdetto: dati.gia_disdetto === true,
     errore:
       stato === 400 && dati.errore === "Azione sconosciuta."
-        ? t("La disdetta dall’app non è ancora attiva: scrivi a disdetta@athlonroma.it.", "Cancelling from the app isn’t active yet: write to disdetta@athlonroma.it.")
+        ? t("La disdetta dall’app non è ancora attiva: scrivi al team dall’assistente virtuale.", "Cancelling from the app isn’t active yet: write to the team from the virtual assistant.")
         : (dati.errore ?? t("Non riusciamo a disdire adesso. Riprova fra qualche minuto.", "We can’t cancel right now. Try again in a few minutes.")),
   };
 }
