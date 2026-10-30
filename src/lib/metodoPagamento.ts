@@ -105,7 +105,8 @@ export type ContrattoNucleo = {
   metodo: MetodoAttuale | null
 }
 
-export type EsitoContratto = { contract_id: number; ok: boolean; errore: string | null }
+/** `invariato`: l'abbonamento aveva gia' questa carta, e non si e' scritto niente. */
+export type EsitoContratto = { contract_id: number; ok: boolean; errore: string | null; invariato?: boolean }
 
 /** Un metodo «da sistemare»: nessuno, contanti, o una carta scaduta. */
 export function metodoDaSistemare(m: MetodoAttuale | null): boolean {
@@ -113,6 +114,12 @@ export function metodoDaSistemare(m: MetodoAttuale | null): boolean {
   const t = m.tipo.toLowerCase()
   if (t === 'cash') return true
   return t === 'creditcard' && m.scaduta
+}
+
+/** Le ultime quattro cifre di un metodo: PerfectGym scrive «**** **** **** 1587», alla persona bastano le ultime. */
+export function ultimeCifre(finale: string | null | undefined): string | null {
+  const s = String(finale ?? '').replace(/[^0-9A-Za-z]/g, '')
+  return s ? s.slice(-4) : null
 }
 
 /** Mese e anno di una scadenza di carta: «08/2027». */

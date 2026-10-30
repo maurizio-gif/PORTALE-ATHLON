@@ -11,7 +11,18 @@ import { t, tv } from '@/lib/lingua'
 // Il motivo, quando c'e', viene dalla banca (tradotto dalla funzione). Quando
 // non c'e' si dicono i motivi per cui succede quasi sempre, ciascuno con cosa
 // fare. Il conto corrente si offre sempre: non passa dal 3D Secure.
-export function CartaNonSalvata({ motivo, onRiprova }: { motivo?: string | null; onRiprova: () => void }) {
+export function CartaNonSalvata({ motivo, giaPresente = false, onRiprova }: { motivo?: string | null; /** La verifica e' riuscita, ma la carta era gia' fra quelle salvate e non si sa quale: il motivo lo dice. */ giaPresente?: boolean; onRiprova: () => void }) {
+  if (giaPresente && motivo) {
+    return (
+      <>
+        <Testo variante="sottotitolo">{t('La verifica è andata a buon fine', 'The check went through')}</Testo>
+        <Avviso>
+          <Testo>{motivo}</Testo>
+        </Avviso>
+        <Bottone testo={t('Torna ai tuoi abbonamenti', 'Back to your memberships')} onPress={onRiprova} />
+      </>
+    )
+  }
   return (
     <>
       <Testo variante="sottotitolo">{t('La carta non risulta salvata', 'The card doesn’t appear to be saved')}</Testo>
