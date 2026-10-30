@@ -1,4 +1,4 @@
-import { router, useLocalSearchParams } from 'expo-router'
+import { router, useFocusEffect, useLocalSearchParams } from 'expo-router'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Linking, Platform, ScrollView, StyleSheet, Text, View, type NativeScrollEvent, type NativeSyntheticEvent } from 'react-native'
 import type Animated from 'react-native-reanimated'
@@ -10,6 +10,7 @@ import {
   pagaAbbonamento,
   riepilogoAbbonamento,
   statoAbbonamento,
+  statoCambioAbbonamento,
   type AnteprimaContratto,
   type Blocco,
   type EsitoContratto,
@@ -21,6 +22,7 @@ import {
   type PianoAbbonamento,
   type SceltaAbbonamento,
   type StatoAbbonamento,
+  type StatoCambio,
 } from '@/api/abbonamento'
 import { Casella } from '@/components/Casella'
 import { ModuloIban, type DatiConto } from '@/features/metodo-pagamento/ModuloIban'
@@ -31,6 +33,7 @@ import { spazio } from '@/theme'
 
 import { CorreggiDati } from './abbonamento/CorreggiDati'
 import { hrefSezione } from './home/sezioni'
+import { DaCambio } from './abbonamento/DaCambio'
 import { DallaProva } from './abbonamento/DallaProva'
 import { Indicatore, SchedaScelta } from './abbonamento/Passi'
 import { FORMULE, Listino } from './abbonamento/Listino'
@@ -194,7 +197,7 @@ type Firmato = { numero: string; importi: ImportiContratto; piano: string; nome:
 
 export function Abbonamento() {
   const p = usePalette()
-  const { contratto } = useLocalSearchParams<{ contratto?: string }>()
+  const { contratto, cambio } = useLocalSearchParams<{ contratto?: string; cambio?: string }>()
   // L'ordine, scelto dal club: abbonamento, data, dati e firma, e solo poi il
   // pagamento. Il contratto non dice con cosa si paga: il metodo si sceglie dopo.
   const [passo, setPasso] = useState<1 | 2 | 3 | 4>(1)
@@ -227,23 +230,51 @@ export function Abbonamento() {
   const [costiInCorso, setCostiInCorso] = useState(false)
   const giroCosti = useRef(0)
 
+  // Cambio senza disdetta (30/10/2026): la data e' fissa e la decide il server; il metodo di pagamento si sceglie PRIMA della firma; niente pagamento.
+  const cambioId = typeof cambio === 'string' && /^\d+$/.test(cambio) ? Number(cambio) : null
+  const [infoCambio, setInfoCambio] = useState<StatoCambio | null>(null)
+  const [metodoCambio, setMetodoCambio] = useState<'carta' | 'conto' | null>(null)
+  const [cambioFatto, setCambioFatto] = useState<{ fine_vecchio: string; inizio_nuovo: string } | null>(null)
+  const caricaCambio = useCallback(async () => {
+    if (!cambioId) return
+    const r = await statoCambioAbbonamento(cambioId)
+    if (!r.ok) return setErrore(r.errore)
+    setInfoCambio(r.stato)
+    setMembro(r.stato.member_id)
+    // Il metodo si sceglie fra quelli gia' salvati; se ce n'e' uno solo parte scelto.
+    setMetodoCambio((m) => (m && (m === 'carta' ? r.stato.metodi.carta : r.stato.metodi.conto) ? m : r.stato.metodi.carta ? 'carta' : r.stato.metodi.conto ? 'conto' : null))
+  }, [cambioId])
+  // Anche al ritorno da «Aggiungi il metodo di pagamento»: la schermata resta in pila e il metodo nuovo si rilegge.
+  useFocusEffect(
+    useCallback(() => {
+      caricaCambio()
+    }, [caricaCambio]),
+  )
+
   const carica = useCallback(async () => {
     const r = await statoAbbonamento()
     if (!r.ok) return setErrore(r.errore)
     setStato(r.stato)
-    setMembro((m) => m ?? r.stato.persone.find((x) => x.puo_comprare)?.member_id ?? r.stato.persone[0]?.member_id ?? null)
+    setMembro((m) => m ?? (cambioId ? null : r.stato.persone.find((x) => x.puo_comprare)?.member_id) ?? r.stato.persone[0]?.member_id ?? null)
     // Firmato e non pagato: si riprende dal pagamento, senza rifirmare.
-    const d = r.stato.da_pagare
+    const d = cambioId ? null : r.stato.da_pagare
     if (d) {
       setFirmato({ numero: d.numero, importi: d.importi, piano: d.piano, nome: d.nome, errore: d.errore })
       setPasso(4)
     }
-  }, [])
+  }, [cambioId])
   useEffect(() => {
     if (!numero) carica()
   }, [carica, numero])
 
-  const persona: PersonaAbbonamento | undefined = stato?.persone.find((x) => x.member_id === membro)
+  const personaBase: PersonaAbbonamento | undefined = stato?.persone.find((x) => x.member_id === membro)
+  // Nel cambio la persona e' quella del contratto e la data e' una sola (il giorno dopo la fine del vecchio): lo dice `cambio_stato`.
+  const persona: PersonaAbbonamento | undefined =
+    cambioId && infoCambio && personaBase
+      ? { ...personaBase, puo_comprare: true, motivo: null, inizio_min: infoCambio.nuovo_inizio, inizio_max: infoCambio.nuovo_inizio, da_guest_pass: null }
+      : cambioId
+        ? undefined
+        : personaBase
   const piano: PianoAbbonamento | undefined = stato?.piani.find((x) => x.piano_id === pianoId)
   useEffect(() => {
     if (persona?.inizio_min) setInizio((i) => (i && persona.inizio_min! <= i && i <= persona.inizio_max! ? i : persona.inizio_min))
@@ -252,7 +283,7 @@ export function Abbonamento() {
 
   function scelta(): SceltaAbbonamento | null {
     if (!persona || !pianoId || !inizio) return null
-    return { member_id: persona.member_id, piano_id: pianoId, data_inizio: inizio }
+    return { member_id: persona.member_id, piano_id: pianoId, data_inizio: inizio, ...(cambioId ? { cambio_contract_id: cambioId } : {}) }
   }
 
   // Il riepilogo dei costi si ricalcola a ogni cambio di piano o di data.
@@ -338,7 +369,8 @@ export function Abbonamento() {
     if (!s || !anteprima || !firmaPng || !piano) return
     setErroreFirma(null)
     setFirmando(true)
-    const r = await firmaAbbonamento(s, anteprima.impronta, consensi, firmaPng)
+    if (cambioId && !metodoCambio) return setErroreFirma(t('Prima scegli o aggiungi il metodo di pagamento.', 'First choose or add a payment method.'))
+    const r = await firmaAbbonamento(s, anteprima.impronta, consensi, firmaPng, cambioId ? (metodoCambio ?? undefined) : undefined)
     if (!r.ok) {
       setFirmando(false)
       colpetto('errore')
@@ -347,6 +379,14 @@ export function Abbonamento() {
     colpetto('ok')
     setFoglio(false)
     setFirmando(false)
+    if (cambioId) {
+      // Fatto: il vecchio e' chiuso e il nuovo e' in coda. Niente pagamento da qui: lo gestisce la segreteria. Le letture in memoria sono vecchie.
+      scorda('abbonamenti:contratti')
+      scorda('area')
+      setAnteprima(null)
+      setCambioFatto(r.esito.cambio ?? (infoCambio ? { fine_vecchio: infoCambio.fine, inizio_nuovo: infoCambio.nuovo_inizio } : null))
+      return
+    }
     setFirmato({ numero: r.esito.numero, importi: anteprima.importi, piano: `${piano.abbonamento} · ${FORMULE[piano.formula].titolo}`, nome: persona?.nome ?? null, errore: null })
     setAnteprima(null)
     vai(4)
@@ -380,8 +420,34 @@ export function Abbonamento() {
     setNumero(r.esito.numero)
   }
 
+  if (cambioFatto) {
+    return (
+      <Schermata titolo={t('Cambio abbonamento', 'Change membership')} indietro={hrefSezione('abbonamenti')}>
+        <View style={{ gap: spazio.quattro }}>
+          <Messaggio tono="ok" titolo={t('Cambio registrato', 'Change recorded')} icona="ok">
+            {t(
+              `Il tuo abbonamento attuale finisce il ${dataLunga(cambioFatto.fine_vecchio)} e il nuovo parte il ${dataLunga(cambioFatto.inizio_nuovo)}. Non c’è nessun pagamento da fare adesso: della parte economica si occupa la segreteria.`,
+              `Your current membership ends on ${dataLunga(cambioFatto.fine_vecchio)} and the new one starts on ${dataLunga(cambioFatto.inizio_nuovo)}. There’s nothing to pay now: the front desk takes care of the payment side.`,
+            )}
+          </Messaggio>
+          <Pulsante testo={t('Vai ai miei abbonamenti', 'Go to my memberships')} onPress={() => router.replace(hrefSezione('abbonamenti'))} />
+        </View>
+      </Schermata>
+    )
+  }
   if (numero) return <EsitoContrattoVista numero={numero} onFine={() => router.replace(hrefSezione('abbonamenti'))} onRiprova={() => setNumero(null)} />
   if (!stato && !errore) return <SchermataInArrivo titolo={t('Abbonamento', 'Membership')} />
+  if (cambioId && !infoCambio && errore) {
+    return (
+      <Schermata titolo={t('Cambio abbonamento', 'Change membership')} indietro={hrefSezione('abbonamenti')}>
+        <View style={{ gap: spazio.quattro }}>
+          <Messaggio tono="attenzione">{errore}</Messaggio>
+          <Pulsante testo={t('Torna agli abbonamenti', 'Back to memberships')} variante="secondario" onPress={() => router.replace(hrefSezione('abbonamenti'))} />
+        </View>
+      </Schermata>
+    )
+  }
+  if (cambioId && !infoCambio) return <SchermataInArrivo titolo={t('Cambio abbonamento', 'Change membership')} />
 
   const pronto = !!scelta()
   const NOMI_PASSI = [t('Abbonamento', 'Membership'), t('Data', 'Date'), t('Dati e firma', 'Details and signature'), t('Pagamento', 'Payment')]
@@ -409,7 +475,7 @@ export function Abbonamento() {
 
         {passo === 1 && stato ? (
           <>
-            {stato.persone.length > 1 ? (
+            {stato.persone.length > 1 && !cambioId ? (
               <Sezione titolo={t('Per chi', 'Who for')}>
                 <View style={{ gap: spazio.due }}>
                   {stato.persone.map((x) => {
@@ -439,9 +505,10 @@ export function Abbonamento() {
             {persona?.puo_comprare ? (
               <>
                 {persona.da_guest_pass && persona.inizio_min ? <DallaProva inizio={persona.inizio_min} quota={stato.quota_attivazione} /> : null}
+                {infoCambio ? <DaCambio fine={infoCambio.fine} inizio={infoCambio.nuovo_inizio} piano={infoCambio.piano} /> : null}
                 <Listino piani={stato.piani} pianoId={pianoId} onScegli={setPianoId} />
                 <Text style={[stili.nota, { color: p.testoSecondario }]}>
-                  {stato.quota_attivazione > 0
+                  {stato.quota_attivazione > 0 && !infoCambio
                     ? t(`A ogni abbonamento si aggiunge la quota di attivazione di ${euro(stato.quota_attivazione)}, che non si paga se il nuovo abbonamento parte il giorno dopo la scadenza del precedente. `, `A joining fee of ${euro(stato.quota_attivazione)} is added to every membership; it isn’t charged if the new membership starts the day after the previous one ends. `)
                     : ''}
                   {t('Tutto quello che scegli lo rivedi prima di firmare.', 'You’ll review everything you choose before signing.')}
@@ -463,7 +530,11 @@ export function Abbonamento() {
               </Text>
             </Carta>
 
-            {persona.da_guest_pass && persona.inizio_min ? (
+            {infoCambio ? (
+              <Sezione titolo={t('Quando parte', 'When it starts')}>
+                <DaCambio fine={infoCambio.fine} inizio={infoCambio.nuovo_inizio} piano={infoCambio.piano} conData />
+              </Sezione>
+            ) : persona.da_guest_pass && persona.inizio_min ? (
               <Sezione titolo={t('Quando parte', 'When it starts')}>
                 <DallaProva inizio={persona.inizio_min} quota={stato.quota_attivazione} conData />
               </Sezione>
@@ -549,13 +620,50 @@ export function Abbonamento() {
               ) : null}
             </Sezione>
 
+            {infoCambio ? (
+              <Sezione titolo={t('Metodo di pagamento', 'Payment method')}>
+                {infoCambio.metodi.carta || infoCambio.metodi.conto ? (
+                  <View style={{ gap: spazio.due }} accessibilityRole="radiogroup">
+                    {infoCambio.metodi.carta ? (
+                      <SchedaScelta
+                        attiva={metodoCambio === 'carta'}
+                        etichetta={t('Usa la carta salvata', 'Use the saved card')}
+                        icona="carta"
+                        titolo={t(`Carta${infoCambio.metodi.carta.finale ? ` •••• ${infoCambio.metodi.carta.finale}` : ''}`, `Card${infoCambio.metodi.carta.finale ? ` •••• ${infoCambio.metodi.carta.finale}` : ''}`)}
+                        sotto={t('La carta già salvata: le quote si addebitano su questa.', 'Your saved card: payments are charged to it.')}
+                        onPress={() => setMetodoCambio('carta')}
+                      />
+                    ) : null}
+                    {infoCambio.metodi.conto ? (
+                      <SchedaScelta
+                        attiva={metodoCambio === 'conto'}
+                        etichetta={t('Usa il conto salvato', 'Use the saved account')}
+                        icona="banca"
+                        titolo={t(`Conto corrente${infoCambio.metodi.conto.finale ? ` •••• ${infoCambio.metodi.conto.finale}` : ''}`, `Bank account${infoCambio.metodi.conto.finale ? ` •••• ${infoCambio.metodi.conto.finale}` : ''}`)}
+                        sotto={t('Il conto già salvato, con il mandato SEPA già firmato.', 'Your saved account, with the SEPA mandate already signed.')}
+                        onPress={() => setMetodoCambio('conto')}
+                      />
+                    ) : null}
+                  </View>
+                ) : (
+                  <Messaggio tono="attenzione" titolo={t('Manca il metodo di pagamento', 'No payment method yet')}>
+                    {t('Aggiungi una carta o un conto corrente: poi torna qui e riprendi dal contratto.', 'Add a card or a bank account: then come back here and carry on from the contract.')}
+                  </Messaggio>
+                )}
+                <Pulsante testo={infoCambio.metodi.carta || infoCambio.metodi.conto ? t('Aggiungi un altro metodo', 'Add another method') : t('Aggiungi il metodo di pagamento', 'Add a payment method')} icona="carta" variante={infoCambio.metodi.carta || infoCambio.metodi.conto ? 'fantasma' : 'secondario'} piccolo={!!(infoCambio.metodi.carta || infoCambio.metodi.conto)} onPress={() => router.push('/metodo-pagamento')} />
+                <Text style={[stili.nota, { color: p.testoSecondario }]}>{t('Non addebitiamo niente adesso: il metodo serve solo per le quote future, che gestisce la segreteria.', 'We don’t charge anything now: the method is only for future payments, which the front desk handles.')}</Text>
+              </Sezione>
+            ) : null}
+
             <Messaggio tono="attenzione" titolo={t('Adesso il contratto', 'Now the contract')} icona="documento">
-              {persona.firmatario === 'genitore'
+              {infoCambio
+                ? t('Lo leggi, spunti le dichiarazioni e firmi con il dito o con il mouse. Alla firma il tuo abbonamento attuale viene chiuso alla sua scadenza e il nuovo parte il giorno dopo. Non c’è nessun pagamento adesso.', 'You read it, tick the declarations and sign with a finger or a mouse. When you sign, your current membership is closed at its end date and the new one starts the day after. There’s no payment now.')
+                : persona.firmatario === 'genitore'
                 ? t('Lo leggi, spunti le dichiarazioni e firma il genitore, con il dito o con il mouse. Il pagamento viene dopo: carta o conto corrente, lo scegli allora.', 'You read it, tick the declarations and the parent signs, with a finger or a mouse. Payment comes next: you choose card or bank account then.')
                 : t('Lo leggi, spunti le dichiarazioni e firmi con il dito o con il mouse. Il pagamento viene dopo: carta o conto corrente, lo scegli allora.', 'You read it, tick the declarations and sign with a finger or a mouse. Payment comes next: you choose card or bank account then.')}
             </Messaggio>
 
-            <Pulsante testo={t('Leggi il contratto e firma', 'Read the contract and sign')} icona="documento" onPress={apriFoglio} disabilitato={!anteprima || !datiOk} />
+            <Pulsante testo={t('Leggi il contratto e firma', 'Read the contract and sign')} icona="documento" onPress={apriFoglio} disabilitato={!anteprima || !datiOk || (!!infoCambio && !metodoCambio)} />
             {anteprima && !datiOk ? <Text style={[stili.nota, { color: p.testoSecondario }]}>{t('Conferma i tuoi dati per continuare.', 'Confirm your details to continue.')}</Text> : null}
             <Pulsante testo={t('Indietro', 'Back')} variante="fantasma" piccolo pieno={false} onPress={() => vai(2)} />
           </>

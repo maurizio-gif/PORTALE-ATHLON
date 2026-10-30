@@ -1,4 +1,6 @@
 import { funzione } from '@/api/lab'
+import { SUPABASE_URL } from '@/config'
+import { vistaCorrente } from '@/features/lab/vista'
 import { t } from '@/lib/lingua'
 
 // «Gestisci abbonamento» (30/10/2026): sospendere e disdire un abbonamento dall'app.
@@ -18,6 +20,23 @@ export type ModoDisdetta = 'rinnovo' | 'mensile' | 'annuale' | 'oltre_termine' |
 export const pagaAnnuale = (x: { ciclo_mesi?: number | null }): boolean => (x.ciclo_mesi ?? 0) >= 12
 
 export type DisdettaStato = { modo: ModoDisdetta; fine: string | null; ultimo_giorno?: string | null }
+
+/** La finestra del cambio senza disdetta (da 30 a 10 giorni prima della fine dell'impegno), calcolata dal server. */
+export type FinestraCambio =
+  | { stato: 'aperta' | 'non_ancora' | 'chiusa'; fine: string; apre_il: string; ultimo_giorno: string; nuovo_inizio: string; chiusura_vecchio: 'spegni_rinnovo' | 'metti_fine' | 'nessuna' }
+  | { stato: 'non_calcolabile'; motivo: string }
+
+export type UpgradeContratto = { possibile: boolean; motivo: 'massimo' | null; rango: number }
+
+/**
+ * La gerarchia dell'upgrade, dal piu' alto: Premium soluzione unica (4), Premium rateizzato (3), Smart soluzione unica (2), Smart rateizzato (1);
+ * gli altri (vecchi annuali, Flex) valgono 0. Stessa regola di `_shared/cambio-abbonamento.ts` di APP-ATHLON: si cambia nei due posti.
+ */
+export function rangoAbbonamento(nome: string | null | undefined, soluzioneUnica: boolean): number {
+  const n = String(nome ?? '')
+  const livello = /premium/i.test(n) ? 3 : /smart/i.test(n) ? 1 : 0
+  return livello === 0 ? 0 : livello + (soluzioneUnica ? 1 : 0)
+}
 
 export type ContrattoGestione = {
   contract_id: number
@@ -39,7 +58,7 @@ export type ContrattoGestione = {
   guest_pass: { fine: string | null } | null
   azioni?: {
     sospendi: { disponibile: boolean }
-    cambia: { disponibile: boolean; motivo?: string }
+    cambia: { disponibile: boolean; motivo?: string; finestra?: FinestraCambio; upgrade?: UpgradeContratto }
     disdici: DisdettaStato
   }
 }
@@ -135,4 +154,26 @@ export async function annullaSospensione(contractId: number, freezeId: number): 
   const { ok, dati } = await gestione({ azione: 'sospendi_annulla', contract_id: contractId, freeze_id: freezeId })
   if (ok) return { ok: true, dati: { credito: dati.credito ?? null } }
   return errore(dati, t('Non siamo riusciti ad annullare la sospensione adesso. Riprova fra qualche minuto.', 'We couldn’t cancel the suspension right now. Try again in a few minutes.'))
+}
+
+// --- Upgrade --------------------------------------------------------------
+
+/**
+ * La richiesta di upgrade arriva alla segreteria con lo stesso modulo del sito (`sito-cambio-abbonamento`: la riga in
+ * `richieste_cambio_abbonamento` e l'avviso a desk@, che risponde con il conteggio del credito residuo). In vista cliente non si manda.
+ */
+export async function richiediUpgrade(d: { email: string; abbonamento: string; decorrenza: string; note: string }): Promise<EsitoGestione<Record<string, never>>> {
+  if (vistaCorrente()) return { ok: false, errore: t('In vista cliente non si possono mandare richieste.', 'You can’t send requests in client view.') }
+  try {
+    const r = await fetch(`${SUPABASE_URL}/functions/v1/sito-cambio-abbonamento`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: d.email, abbonamento: d.abbonamento, decorrenza: d.decorrenza, richiesteExtra: d.note, pagina: 'app/gestisci-abbonamento' }),
+    })
+    const dati = ((await r.json().catch(() => null)) ?? {}) as { ok?: boolean; errore?: string }
+    if (r.ok && dati.ok) return { ok: true, dati: {} }
+    return { ok: false, errore: dati.errore ?? t('Non siamo riusciti a mandare la richiesta adesso. Riprova fra qualche minuto.', 'We couldn’t send the request right now. Try again in a few minutes.') }
+  } catch {
+    return { ok: false, errore: t('Connessione non riuscita. Controlla la rete e riprova.', 'Connection failed. Check your network and try again.') }
+  }
 }

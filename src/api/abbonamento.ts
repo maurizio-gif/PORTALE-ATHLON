@@ -152,7 +152,30 @@ export type MetodoAbbonamento =
   | { metodo: 'conto'; conto_salvato: true }
   | { metodo: 'conto'; iban: string; intestatario: string; via: string; cap: string; citta: string }
 
-export type SceltaAbbonamento = { member_id: number; piano_id: number; data_inizio: string }
+export type SceltaAbbonamento = {
+  member_id: number
+  piano_id: number
+  data_inizio: string
+  /** Cambio senza disdetta: il contratto che si sta cambiando. La data e' fissa e la decide il server. */
+  cambio_contract_id?: number
+}
+
+/** Cosa serve per il cambio di un abbonamento (`cambio_stato`): se si puo', le date fisse e i metodi di pagamento gia' salvati. */
+export type StatoCambio = {
+  contract_id: number
+  member_id: number
+  piano: string
+  fine: string
+  nuovo_inizio: string
+  ultimo_giorno: string
+  metodi: { carta: { id: number; finale: string | null; scadenza: string | null } | null; conto: { id: number; finale: string | null } | null }
+}
+
+export async function statoCambioAbbonamento(contractId: number): Promise<{ ok: true; stato: StatoCambio } | { ok: false; errore: string }> {
+  const { ok, dati } = await abbonamento({ azione: 'cambio_stato', contract_id: contractId })
+  if (ok && dati.consentito) return { ok: true, stato: dati as unknown as StatoCambio }
+  return { ok: false, errore: dati.errore ?? t('Non riusciamo a preparare il cambio adesso.', 'We can’t set up the change right now.') }
+}
 
 export async function anteprimaAbbonamento(
   s: SceltaAbbonamento,
@@ -186,16 +209,22 @@ export async function salvaDatiAbbonamento(memberId: number, cambi: CambiDati): 
 }
 
 export type StatoContratto = 'firmato' | 'contratto_creato' | 'completato' | 'errore'
-export type EsitoFirma = { numero: string; stato: StatoContratto; totale_oggi: number }
+export type EsitoFirma = { numero: string; stato: StatoContratto; totale_oggi: number; cambio: { fine_vecchio: string; inizio_nuovo: string } | null }
 
 export async function firmaAbbonamento(
   s: SceltaAbbonamento,
   impronta: string,
   consensi: Record<string, boolean>,
   firmaPng: string,
-): Promise<{ ok: true; esito: EsitoFirma } | { ok: false; errore: string }> {
-  const { ok, dati } = await abbonamento({ azione: 'firma', ...s, dati_confermati: true, impronta, consensi, firma_png: firmaPng })
-  if (ok && dati.numero) return { ok: true, esito: { numero: String(dati.numero), stato: dati.stato as StatoContratto, totale_oggi: Number(dati.totale_oggi ?? 0) } }
+  /** Solo nel cambio: il metodo di pagamento gia' salvato da collegare al nuovo contratto. */
+  metodoCambio?: 'carta' | 'conto',
+): Promise<{ ok: true; esito: EsitoFirma } | { ok: false; errore: string; serveMetodo?: boolean }> {
+  const { ok, dati } = await abbonamento({ azione: 'firma', ...s, dati_confermati: true, impronta, consensi, firma_png: firmaPng, ...(metodoCambio ? { metodo: metodoCambio } : {}) })
+  if (ok && dati.numero) {
+    const c = dati.cambio && typeof dati.cambio === 'object' ? (dati.cambio as { fine_vecchio?: string; inizio_nuovo?: string }) : null
+    return { ok: true, esito: { numero: String(dati.numero), stato: dati.stato as StatoContratto, totale_oggi: Number(dati.totale_oggi ?? 0), cambio: c?.fine_vecchio && c.inizio_nuovo ? { fine_vecchio: c.fine_vecchio, inizio_nuovo: c.inizio_nuovo } : null } }
+  }
+  if (dati.serve_metodo) return { ok: false, serveMetodo: true, errore: dati.errore ?? t('Prima aggiungi o scegli il metodo di pagamento.', 'First add or choose a payment method.') }
   return { ok: false, errore: dati.errore ?? t('Non siamo riusciti a registrare il contratto adesso.', 'We couldn’t register the contract right now.') }
 }
 
