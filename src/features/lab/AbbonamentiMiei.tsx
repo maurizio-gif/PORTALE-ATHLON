@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { StyleSheet, Text, View } from 'react-native'
 
 import { contrattiAbbonamento, documentoAbbonamento, type AddebitoContratto, type ContrattoElenco } from '@/api/abbonamento'
+import { statoGestione, type ContrattoGestione } from '@/api/gestioneAbbonamento'
 import type { Area } from '@/api/lab'
 import { euro } from '@/lib/eventi'
 import { locale, t } from '@/lib/lingua'
@@ -11,7 +12,8 @@ import { spazio } from '@/theme'
 import { regolaritaContratto, type Regolarita } from './home/regolarita'
 import type { SezioneHome } from './home/sezioni'
 import { useApriPdf } from './apriPdf'
-import { inMemoria, prendi } from './memoria'
+import { CartaProva, PulsanteGestisci } from './abbonamento/Gestisci'
+import { inMemoria, prendi, scorda } from './memoria'
 import { Carta, Etichetta, Messaggio, Pulsante, SchedeInArrivo, Sezione } from './ui/kit'
 import { F, usePalette } from './ui/tema'
 import { Tocco } from './ui/Tocco'
@@ -87,7 +89,7 @@ function DaSistemare({ regolarita, onSezione }: { regolarita: Regolarita; onSezi
   )
 }
 
-function SchedaContratto({ c, conPersona, regolarita, onSezione }: { c: ContrattoElenco; conPersona: boolean; regolarita: Regolarita | null; onSezione: (s: SezioneHome) => void }) {
+function SchedaContratto({ c, conPersona, regolarita, onSezione, gestione, onCambiato }: { c: ContrattoElenco; conPersona: boolean; regolarita: Regolarita | null; onSezione: (s: SezioneHome) => void; gestione?: ContrattoGestione; onCambiato: () => void }) {
   const p = usePalette()
   const [aperta, setAperta] = useState(false)
   const [scarico, setScarico] = useState(false)
@@ -188,6 +190,7 @@ function SchedaContratto({ c, conPersona, regolarita, onSezione }: { c: Contratt
             {avviso}
           </>
         ) : null}
+        {gestione?.gestibile && c.in_vigore ? <PulsanteGestisci contratto={gestione} onCambiato={onCambiato} /> : null}
       </View>
     </Carta>
   )
@@ -216,6 +219,24 @@ export function ElencoAbbonamenti({ area, onSezione }: { area: Extract<Area, { t
     carica()
   }, [carica])
 
+  // «Gestisci abbonamento» (30/10/2026): cosa si puo' fare su ogni contratto lo dice la funzione. Se non risponde
+  // (o non e' ancora pubblicata) l'elenco e' quello di sempre, senza comandi.
+  const [gestione, setGestione] = useState<ContrattoGestione[]>([])
+  const caricaGestione = useCallback(async () => {
+    const r = await statoGestione()
+    if (r.ok) setGestione(r.contratti)
+  }, [])
+  useEffect(() => {
+    caricaGestione()
+  }, [caricaGestione])
+  // Dopo una sospensione o una disdetta le letture in memoria sono vecchie: si buttano e si rileggono.
+  const cambiato = useCallback(async () => {
+    scorda(CHIAVE_CONTRATTI)
+    scorda('area')
+    await Promise.all([carica(), caricaGestione()])
+  }, [carica, caricaGestione])
+  const inProva = gestione.filter((g) => g.guest_pass && g.stato !== 'Ended')
+
   const vigore = (elenco ?? []).filter((c) => c.in_vigore)
   const piuPersone = new Set(vigore.map((c) => c.member_id)).size > 1
   // La regolarita' viene dai dati della Home (l'area): il metodo e il debito sono li'.
@@ -233,7 +254,16 @@ export function ElencoAbbonamenti({ area, onSezione }: { area: Extract<Area, { t
         </>
       ) : null}
       {!elenco && !errore ? <SchedeInArrivo quante={1} /> : null}
-      {elenco && !vigore.length ? (
+      {inProva.length ? (
+        <Sezione titolo={t('In prova', 'On trial')} conteggio={inProva.length}>
+          <View style={{ gap: spazio.tre }}>
+            {inProva.map((g) => (
+              <CartaProva key={g.contract_id} contratto={g} />
+            ))}
+          </View>
+        </Sezione>
+      ) : null}
+      {elenco && !vigore.length && !inProva.length ? (
         <Carta piatta>
           <Text style={{ color: p.testo, fontFamily: F.semi, fontSize: 15, lineHeight: 22 }}>{t('Non troviamo abbonamenti in corso su questa scheda.', 'We can’t find any current memberships on this profile.')}</Text>
         </Carta>
@@ -242,7 +272,7 @@ export function ElencoAbbonamenti({ area, onSezione }: { area: Extract<Area, { t
         <Sezione titolo={t('In vigore', 'Active')} conteggio={vigore.length}>
           <View style={{ gap: spazio.tre }}>
             {vigore.map((c) => (
-              <SchedaContratto key={c.contract_id} c={c} conPersona={piuPersone} regolarita={regolarita(c)} onSezione={onSezione} />
+              <SchedaContratto key={c.contract_id} c={c} conPersona={piuPersone} regolarita={regolarita(c)} onSezione={onSezione} gestione={gestione.find((g) => g.contract_id === c.contract_id)} onCambiato={cambiato} />
             ))}
           </View>
         </Sezione>
