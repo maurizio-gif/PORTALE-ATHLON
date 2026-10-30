@@ -115,7 +115,14 @@ function SchedaContratto({ c, conPersona, regolarita, onSezione, gestione, onCam
 
   // Del dettaglio si mostra solo cio' che c'e' ancora da pagare: gli addebiti pagati o annullati e i
   // pagamenti ricevuti non servono a chi sta guardando il contratto (17/10/2026).
-  const daPagare = c.addebiti.filter((a) => a.stato === 'da_pagare')
+  // Il Flex (ciclo mensile, senza fine) ha gia' le quote dei mesi futuri nel gestionale: mostrarle tutte lo farebbe sembrare un annuale. Si vedono solo
+  // quelle fino alla fine del periodo in cui si puo' ancora disdire (la fine dell'impegno, o del mese: `finestra.fine`), e i totali si riducono di conseguenza.
+  const finestraFlex = gestione?.azioni?.cambia.finestra
+  const limiteFlex = !c.data_fine && gestione && (gestione.ciclo_mesi ?? 1) <= 1 && finestraFlex && finestraFlex.stato !== 'non_calcolabile' ? finestraFlex.fine : null
+  const tutteDaPagare = c.addebiti.filter((a) => a.stato === 'da_pagare')
+  const daPagare = limiteFlex ? tutteDaPagare.filter((a) => (a.scadenza ?? '') <= limiteFlex) : tutteDaPagare
+  const nascosto = limiteFlex ? tutteDaPagare.filter((a) => (a.scadenza ?? '') > limiteFlex).reduce((somma, a) => somma + a.da_pagare, 0) : 0
+  const totali = { addebitato: c.totali.addebitato - nascosto, pagato: c.totali.pagato, da_pagare: c.totali.da_pagare - nascosto }
 
   return (
     <Carta>
@@ -149,17 +156,23 @@ function SchedaContratto({ c, conPersona, regolarita, onSezione, gestione, onCam
         <View style={stili.totali}>
           <View style={[stili.cella, { backgroundColor: p.incavo, borderColor: p.testo + '1F' }]}>
             <Text style={[stili.etichettaCella, { color: p.testo }]}>{t('Addebitato', 'Charged')}</Text>
-            <Text style={[stili.totale, { color: p.testo }]}>{euro(c.totali.addebitato)}</Text>
+            <Text style={[stili.totale, { color: p.testo }]}>{euro(totali.addebitato)}</Text>
           </View>
           <View style={[stili.cella, { backgroundColor: p.incavo, borderColor: p.ok }]}>
             <Text style={[stili.etichettaCella, { color: p.testo }]}>{t('Pagato', 'Paid')}</Text>
-            <Text style={[stili.totale, { color: p.ok }]}>{euro(c.totali.pagato)}</Text>
+            <Text style={[stili.totale, { color: p.ok }]}>{euro(totali.pagato)}</Text>
           </View>
-          <View style={[stili.cella, { backgroundColor: p.incavo, borderColor: c.totali.da_pagare > 0 ? p.accento : p.testo + '1F' }]}>
+          <View style={[stili.cella, { backgroundColor: p.incavo, borderColor: totali.da_pagare > 0 ? p.accento : p.testo + '1F' }]}>
             <Text style={[stili.etichettaCella, { color: p.testo }]}>{t('Da pagare', 'Due')}</Text>
-            <Text style={[stili.totale, { color: c.totali.da_pagare > 0 ? p.accento : p.testo }]}>{euro(c.totali.da_pagare)}</Text>
+            <Text style={[stili.totale, { color: totali.da_pagare > 0 ? p.accento : p.testo }]}>{euro(totali.da_pagare)}</Text>
           </View>
         </View>
+
+        {limiteFlex ? (
+          <Text style={[stili.nome, { color: p.testo, opacity: 0.78, fontFamily: F.semi }]}>
+            {t('Il Flex si rinnova ogni mese e puoi disdire: qui vedi solo la quota fino alla fine del periodo.', 'Flex renews every month and you can cancel: here you only see the payment up to the end of the period.')}
+          </Text>
+        ) : null}
 
         {daPagare.length ? (
           <>
