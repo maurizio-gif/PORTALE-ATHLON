@@ -3,7 +3,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { StyleSheet, Text, View } from 'react-native'
 
 import { contrattiAbbonamento, documentoAbbonamento, type AddebitoContratto, type ContrattoElenco } from '@/api/abbonamento'
-import { statoGestione, type ContrattoGestione } from '@/api/gestioneAbbonamento'
+import { pagaAnnuale, statoGestione, type ContrattoGestione } from '@/api/gestioneAbbonamento'
 import type { Area } from '@/api/lab'
 import { euro } from '@/lib/eventi'
 import { locale, t } from '@/lib/lingua'
@@ -61,7 +61,7 @@ function Riga({ nome, valore, colore }: { nome: string; valore: string; colore?:
   const p = usePalette()
   return (
     <View style={stili.riga}>
-      <Text style={[stili.nome, { color: p.testoSecondario }]}>{nome}</Text>
+      <Text style={[stili.nome, { color: p.testo, opacity: 0.78, fontFamily: F.semi }]}>{nome}</Text>
       <Text style={[stili.valore, { color: colore ?? p.testo }]}>{valore}</Text>
     </View>
   )
@@ -98,6 +98,8 @@ function SchedaContratto({ c, conPersona, regolarita, onSezione, gestione, onCam
   // Il flag `automaticRenew` di PerfectGym, letto dal server come `si_rinnova`:
   // si accende solo per un contratto in vigore, e sparisce con la disdetta.
   const rinnovoAutomatico = c.in_vigore && c.si_rinnova
+  // Annuale senza fine (vecchi abbonamenti): si paga una volta l'anno e si rinnova da solo, non e' un mensile.
+  const annuale = !c.data_fine && Boolean(gestione && pagaAnnuale(gestione))
   const irregolare = Boolean(regolarita?.motivi.length)
 
   async function scarica() {
@@ -121,7 +123,7 @@ function SchedaContratto({ c, conPersona, regolarita, onSezione, gestione, onCam
         <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: spazio.due }}>
           <View style={{ flex: 1, gap: 2 }}>
             <Text style={{ color: p.testo, fontFamily: F.extra, fontSize: 18, letterSpacing: -0.4 }}>{c.piano}</Text>
-            {conPersona && c.persona ? <Text style={[stili.nome, { color: p.testoSecondario }]}>{c.persona}</Text> : null}
+            {conPersona && c.persona ? <Text style={[stili.nome, { color: p.testo, opacity: 0.78, fontFamily: F.semi }]}>{c.persona}</Text> : null}
           </View>
           <Etichetta testo={s.testo} tono={s.tono} />
         </View>
@@ -129,31 +131,32 @@ function SchedaContratto({ c, conPersona, regolarita, onSezione, gestione, onCam
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'flex-start', gap: spazio.due }}>
             {irregolare ? <Etichetta testo={t('Irregolare', 'Irregular')} tono={regolarita?.tono ?? 'attenzione'} /> : null}
             {c.categoria !== 'principale' ? <Etichetta testo={c.categoria === 'junior' ? t('Corso per bambini', 'Kids’ course') : t('Abbonamento aggiuntivo', 'Add-on membership')} tono="neutro" /> : null}
-            {rinnovoAutomatico ? <Etichetta testo={t('Rinnovo automatico attivo', 'Auto-renewal on')} tono="ok" /> : null}
+            {rinnovoAutomatico ? <Etichetta testo={annuale ? t('Si rinnova ogni anno', 'Renews every year') : t('Rinnovo automatico attivo', 'Auto-renewal on')} tono="ok" /> : null}
           </View>
         ) : null}
         {irregolare && regolarita ? <DaSistemare regolarita={regolarita} onSezione={onSezione} /> : null}
 
-        <View style={{ gap: 6 }}>
+        <View style={[stili.box, { backgroundColor: p.incavo, borderColor: p.testo + '1F' }]}>
           <Riga nome={t('Sottoscritto il', 'Signed on')} valore={data(c.data_firma)} />
           <Riga nome={t('Inizio', 'Start')} valore={data(c.data_inizio)} />
-          <Riga nome={t('Fine', 'End')} valore={c.data_fine ? data(c.data_fine) : t('Si rinnova ogni mese', 'Renews every month')} />
+          <Riga nome={t('Fine', 'End')} valore={c.data_fine ? data(c.data_fine) : annuale ? t('Si rinnova ogni anno', 'Renews every year') : t('Si rinnova ogni mese', 'Renews every month')} />
           {c.in_vigore && c.si_rinnova && c.data_fine ? <Riga nome={t('Si rinnova il', 'Renews on')} valore={data(giornoDopo(c.data_fine))} /> : null}
           {c.data_disdetta ? <Riga nome={t('Disdetto il', 'Canceled on')} valore={data(c.data_disdetta)} /> : null}
-          {c.canone ? <Riga nome={t('Quota', 'Fee')} valore={euro(c.canone)} /> : null}
+          {!c.data_fine && annuale && gestione?.prossimo_addebito ? <Riga nome={t('Prossimo addebito', 'Next charge')} valore={data(gestione.prossimo_addebito)} /> : null}
+          {c.canone ? <Riga nome={t('Quota', 'Fee')} valore={annuale ? t(`${euro(c.canone)} all’anno`, `${euro(c.canone)} per year`) : euro(c.canone)} /> : null}
         </View>
 
-        <View style={[stili.totali, { backgroundColor: p.incavo }]}>
-          <View style={{ flex: 1 }}>
-            <Text style={[stili.nome, { color: p.testoSecondario }]}>{t('Addebitato', 'Charged')}</Text>
+        <View style={stili.totali}>
+          <View style={[stili.cella, { backgroundColor: p.incavo, borderColor: p.testo + '1F' }]}>
+            <Text style={[stili.etichettaCella, { color: p.testo }]}>{t('Addebitato', 'Charged')}</Text>
             <Text style={[stili.totale, { color: p.testo }]}>{euro(c.totali.addebitato)}</Text>
           </View>
-          <View style={{ flex: 1 }}>
-            <Text style={[stili.nome, { color: p.testoSecondario }]}>{t('Pagato', 'Paid')}</Text>
+          <View style={[stili.cella, { backgroundColor: p.incavo, borderColor: p.ok }]}>
+            <Text style={[stili.etichettaCella, { color: p.testo }]}>{t('Pagato', 'Paid')}</Text>
             <Text style={[stili.totale, { color: p.ok }]}>{euro(c.totali.pagato)}</Text>
           </View>
-          <View style={{ flex: 1 }}>
-            <Text style={[stili.nome, { color: p.testoSecondario }]}>{t('Da pagare', 'Due')}</Text>
+          <View style={[stili.cella, { backgroundColor: p.incavo, borderColor: c.totali.da_pagare > 0 ? p.accento : p.testo + '1F' }]}>
+            <Text style={[stili.etichettaCella, { color: p.testo }]}>{t('Da pagare', 'Due')}</Text>
             <Text style={[stili.totale, { color: c.totali.da_pagare > 0 ? p.accento : p.testo }]}>{euro(c.totali.da_pagare)}</Text>
           </View>
         </View>
@@ -181,7 +184,7 @@ function SchedaContratto({ c, conPersona, regolarita, onSezione, gestione, onCam
             ) : null}
           </>
         ) : (
-          <Text style={[stili.nome, { color: p.testoSecondario }]}>{t('Niente da pagare su questo contratto.', 'Nothing to pay on this contract.')}</Text>
+          <Text style={[stili.nome, { color: p.testo, opacity: 0.78, fontFamily: F.semi }]}>{t('Niente da pagare su questo contratto.', 'Nothing to pay on this contract.')}</Text>
         )}
 
         {c.firmato?.pdf ? (
@@ -238,6 +241,7 @@ export function ElencoAbbonamenti({ area, onSezione }: { area: Extract<Area, { t
   const inProva = gestione.filter((g) => g.guest_pass && g.stato !== 'Ended')
 
   const vigore = (elenco ?? []).filter((c) => c.in_vigore)
+  const haPrincipale = vigore.some((c) => c.categoria === 'principale')
   const piuPersone = new Set(vigore.map((c) => c.member_id)).size > 1
   // La regolarita' viene dai dati della Home (l'area): il metodo e il debito sono li'.
   const regolarita = (c: ContrattoElenco): Regolarita | null => {
@@ -246,7 +250,8 @@ export function ElencoAbbonamenti({ area, onSezione }: { area: Extract<Area, { t
   }
   return (
     <View style={{ gap: spazio.quattro }}>
-      <Pulsante testo={t('Scegli un abbonamento', 'Choose a membership')} icona="avanti" onPress={() => router.navigate('/abbonamento')} />
+      {/* Con un abbonamento principale attivo non si offre di sceglierne un altro: si vede solo quello. */}
+      {!haPrincipale ? <Pulsante testo={t('Scegli un abbonamento', 'Choose a membership')} icona="avanti" onPress={() => router.navigate('/abbonamento')} /> : null}
       {errore && !elenco ? (
         <>
           <Messaggio>{errore}</Messaggio>
@@ -283,9 +288,12 @@ export function ElencoAbbonamenti({ area, onSezione }: { area: Extract<Area, { t
 
 const stili = StyleSheet.create({
   riga: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: spazio.tre },
-  nome: { fontFamily: F.medio, fontSize: 13, lineHeight: 18 },
-  valore: { fontFamily: F.bold, fontSize: 14, textAlign: 'right' },
-  totali: { flexDirection: 'row', gap: spazio.due, padding: spazio.tre, borderRadius: 16 },
-  totale: { fontFamily: F.extra, fontSize: 17, letterSpacing: -0.3 },
+  nome: { fontFamily: F.medio, fontSize: 14, lineHeight: 20 },
+  valore: { fontFamily: F.extra, fontSize: 15, textAlign: 'right' },
+  box: { gap: 8, padding: spazio.tre, borderRadius: 16, borderWidth: 1 },
+  totali: { flexDirection: 'row', gap: spazio.due },
+  cella: { flex: 1, gap: 2, padding: spazio.tre, borderRadius: 16, borderWidth: 1.5 },
+  etichettaCella: { fontFamily: F.semi, fontSize: 13, lineHeight: 18, opacity: 0.78 },
+  totale: { fontFamily: F.extra, fontSize: 19, letterSpacing: -0.3 },
   sezione: { fontFamily: F.bold, fontSize: 12, letterSpacing: 0.6, textTransform: 'uppercase' },
 })
