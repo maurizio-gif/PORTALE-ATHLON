@@ -15,6 +15,7 @@ import { Casella } from '@/components/Casella'
 import { Pagina } from '@/components/Pagina'
 import { GuestPassAttivo } from '@/features/guest-pass/GuestPassAttivo'
 import { PerChi } from '@/features/guest-pass/PerChi'
+import { AttivitaComprese, PrezzoProva } from '@/features/guest-pass/ProvaTuttoIlClub'
 import { scorda } from '@/features/lab/memoria'
 import { useSessione } from '@/features/lab/useSessione'
 import { vistaCorrente } from '@/features/lab/vista'
@@ -33,6 +34,7 @@ import {
   problemaPassword,
   REGOLAMENTO_URL,
   REGOLE_PRENOTAZIONE,
+  ATTIVITA_PROVA,
   type PaginaGuestPass,
 } from '@/lib/guestPass'
 
@@ -480,24 +482,46 @@ export function AttivaGuestPass({ token, nome, iniziale }: { token: string; nome
     <Pagina
       titolo={
         perFiglio && primoFiglio
-          ? t(`Attiva il Guest Pass di ${primoFiglio}`, `Activate ${primoFiglio}’s Guest Pass`)
+          ? t(`Fai provare tutto il club a ${primoFiglio}`, `Let ${primoFiglio} try the whole club`)
           : !sceltoPerChi
             ? nome
               ? t(`Ciao ${nome}, per chi è il Guest Pass?`, `Hi ${nome}, who is the Guest Pass for?`)
               : t('Per chi è il Guest Pass?', 'Who is the Guest Pass for?')
             : nome
-              ? t(`Ciao ${nome}, attiva il tuo Guest Pass`, `Hi ${nome}, activate your Guest Pass`)
-              : t('Attiva il tuo Guest Pass', 'Activate your Guest Pass')
+              ? t(`Ciao ${nome}, prova tutto il club per una settimana`, `Hi ${nome}, try the whole club for a week`)
+              : t('Prova tutto il club per una settimana', 'Try the whole club for a week')
       }
-      sottotitolo={t(`Una settimana al club a ${p.prezzo} €.`, `A week at the club for ${p.prezzo} €.`)}
+      sottotitolo={t(
+        'Pochi passi e la tua settimana è pronta: controlla i dati, scegli quando cominciare e paga.',
+        'A few steps and your week is ready: check your details, choose when to start and pay.',
+      )}
     >
       {avviso ? <Avviso tono={avviso.tono}>{avviso.testo}</Avviso> : null}
       {/* Un'anagrafica simile: finche' la segreteria non risponde (per email) non si conferma. */}
       {p.verifica ? <Avviso tono={p.verifica.stato === 'bloccata' ? 'errore' : 'attenzione'}>{p.verifica.testo}</Avviso> : null}
 
+      {/* La prova in vetrina (30/10/2026): il prezzo e, sotto, tutto quello che il Pass apre, a fisarmonica. Chi torna dalla
+          pagina di pagamento o ha gia' confermato i dati trova l'elenco chiuso: sta solo finendo, e non va spinto sotto la piega. */}
+      <PrezzoProva prezzo={p.prezzo} />
+      <AttivitaComprese ridotta={!!iniziale.scelte.dati_confermati || !!tornatoCarta || !!tornatoPagato} />
+
       {scelta ? (
         <Blocco numero={1} titolo={t('Per chi è il Guest Pass', 'Who the Guest Pass is for')} fatto={!!scelta.per}>
-          <PerChi token={token} scelta={scelta} onScelto={ricarica} />
+          <PerChi
+            token={token}
+            scelta={scelta}
+            onScelto={ricarica}
+            titolare={[dati.nome, dati.cognome].filter(Boolean).join(' ')}
+            comprende={t(
+              `Tutte le attività del Premium: ${[...ATTIVITA_PROVA.map((a) => a.nome), 'Athlon TV'].join(', ')}.`,
+              `All the Premium activities: ${[...ATTIVITA_PROVA.map((a) => a.nome), 'Athlon TV'].join(', ')}.`,
+            )}
+            quando={
+              inizio
+                ? t(`7 giorni, dal ${giornoLungo(inizio)} al ${giornoLungo(fineSettimana(inizio))} compresi.`, `7 days, from ${giornoLungo(inizio)} to ${giornoLungo(fineSettimana(inizio))} inclusive.`)
+                : t(`7 giorni consecutivi dal giorno che scegli, fra ${giornoLungo(p.inizio.dal)} e ${giornoLungo(p.inizio.al)}.`, `7 consecutive days from the day you choose, between ${giornoLungo(p.inizio.dal)} and ${giornoLungo(p.inizio.al)}.`)
+            }
+          />
         </Blocco>
       ) : null}
 
