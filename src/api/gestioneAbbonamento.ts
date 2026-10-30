@@ -34,6 +34,8 @@ export type UpgradeContratto = { possibile: boolean; motivo: 'massimo' | null; r
  */
 export function rangoAbbonamento(nome: string | null | undefined, soluzioneUnica: boolean): number {
   const n = String(nome ?? '')
+  // I mensili (Flex) non sono annuali: stanno fuori dalla gerarchia, anche se si chiamano Premium o Smart.
+  if (/flex|mensile/i.test(n)) return 0
   const livello = /premium/i.test(n) ? 3 : /smart/i.test(n) ? 1 : 0
   return livello === 0 ? 0 : livello + (soluzioneUnica ? 1 : 0)
 }
