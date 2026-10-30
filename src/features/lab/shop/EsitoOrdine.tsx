@@ -11,6 +11,7 @@ import { Schermata } from '../ui/Schermata'
 import { F, usePalette } from '../ui/tema'
 import { colpetto } from '../ui/Tocco'
 import { svuotaCarrello } from './carrello'
+import { CodiceRitiro } from './CodiceRitiro'
 import { RigheOrdine } from './RigheOrdine'
 
 // Il ritorno dal pagamento (`/shop/ordine/<id>`): la pagina di Adyen riporta qui, e si chiede com'e' andata finche'
@@ -82,6 +83,7 @@ export function EsitoOrdine({ id }: { id: string }) {
         <Messaggio tono="ok" titolo={ordine.consegnato_il ? t('Ritirato', 'Picked up') : t('Da ritirare in segreteria', 'To pick up at reception')}>
           {ordine.consegnato_il ? t('Questo ordine è già stato consegnato.', 'This order has already been picked up.') : t('Passa in segreteria, negli orari di apertura del club: ti consegniamo gli articoli.', 'Come to reception during the club’s opening hours: we’ll hand you the items.')}
         </Messaggio>
+        <CodiceRitiro ordine={ordine} />
         <Carta style={{ paddingVertical: spazio.due }}>
           <RigheOrdine ordine={ordine} />
         </Carta>
