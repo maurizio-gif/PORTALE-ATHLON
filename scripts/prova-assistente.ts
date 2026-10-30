@@ -13,6 +13,7 @@ import { join } from 'node:path'
 import { DESTINAZIONI_ASSISTENTE, eDestinazioneAssistente, hrefAssistente, schermataAssistente } from '../src/features/lab/assistente/destinazioni'
 import { LettoreSse } from '../src/features/lab/assistente/sse'
 import { AZIONE_TEAM, MESSAGGIO_TEAM_MAX, teamDaAzione } from '../src/features/lab/assistente/teamDaChat'
+import { AZIONE_CHIAMATA, chiamataDaAzione } from '../src/features/lab/assistente/chiamataDaChat'
 
 let passi = 0
 const ok = (nome: string) => {
@@ -65,8 +66,12 @@ const RADICE = join(import.meta.dirname, '..')
 
 /** La rotta esiste in `src/app/(portale)`? Un percorso come «/allenamento/[scheda]» o «/pagamenti/storico». */
 function rottaEsiste(pathname: string): boolean {
-  const base = join(RADICE, 'src/app/(portale)', pathname === '/' ? 'index' : pathname.replace(/^\//, ''))
-  return existsSync(`${base}.tsx`) || existsSync(join(base, 'index.tsx'))
+  // Quasi tutte stanno in `(portale)`; la pagina pubblica della prova (`/richiesta/guest-pass`, 31/10/2026) sta fuori: con una sessione prosegue dentro l'app.
+  for (const cartella of ['src/app/(portale)', 'src/app']) {
+    const base = join(RADICE, cartella, pathname === '/' ? 'index' : pathname.replace(/^\//, ''))
+    if (existsSync(`${base}.tsx`) || existsSync(join(base, 'index.tsx'))) return true
+  }
+  return false
 }
 
 {
@@ -160,6 +165,19 @@ function rottaEsiste(pathname: string): boolean {
   assert.equal(hrefAssistente('scrivi-team', {}), null, 'e non porta in nessuna schermata')
   assert.equal(MESSAGGIO_TEAM_MAX, 1000, 'lo stesso tetto della funzione')
   ok('scrivi-team: una carta nella chat, non una destinazione; tetto del messaggio uguale alla funzione')
+}
+
+{
+  // La telefonata col desk (31/10/2026): una carta nella chat, non una destinazione. La prova (Guest Pass) invece e' una destinazione vera.
+  assert.equal(AZIONE_CHIAMATA, 'prenota-chiamata')
+  assert.deepEqual(chiamataDaAzione({ destinazione: 'prenota-chiamata', etichetta: 'Prenota una chiamata' }), { etichetta: 'Prenota una chiamata' })
+  assert.deepEqual(chiamataDaAzione({ destinazione: 'prenota-chiamata', etichetta: '' }), { etichetta: 'Prenota una chiamata' }, 'senza etichetta ce n e una di ripiego')
+  assert.equal(chiamataDaAzione({ destinazione: 'scrivi-team', etichetta: 'Scrivi al team' }), null, 'il team e un altro pulsante')
+  assert.equal(eDestinazioneAssistente('prenota-chiamata'), false, 'non e una destinazione della mappa')
+  assert.equal(hrefAssistente('prenota-chiamata', {}), null, 'e non porta in nessuna schermata')
+  assert.equal(eDestinazioneAssistente('prova'), true, 'la prova e una destinazione (la 32esima chiave, come nella funzione)')
+  assert.equal(hrefAssistente('prova'), '/richiesta/guest-pass', 'porta alla pagina del Guest Pass, che con una sessione prosegue dentro l app')
+  ok('prenota-chiamata: una carta nella chat, non una destinazione; prova: porta al Guest Pass')
 }
 
 console.log(`\n${passi} gruppi di prove: ok`)

@@ -54,6 +54,24 @@ export function useStatoAssistente(): StatoAssistente {
   )
 }
 
+// Aprire la chat da fuori (31/10/2026: il bottone «Richiedi assistenza» di Club Life). Il foglio sta in `PulsanteAssistente`, montato nel layout: lui si registra qui e chi vuole aprire la chat
+// chiama `apriAssistente`. Senza un pulsante montato (vista cliente, nessuna sessione) non si apre niente e lo si sa (`false`): chi lo chiama non deve mostrare un comando che non risponde.
+let apertura: ((schermata: string | null) => void) | null = null
+
+export function registraApertura(f: (schermata: string | null) => void): () => void {
+  apertura = f
+  return () => {
+    if (apertura === f) apertura = null
+  }
+}
+
+/** Apre la chat. `schermata` e' la chiave della schermata in cui si e' (se e' nella mappa), cosi' l'assistente sa dove la persona sta guardando. */
+export function apriAssistente(schermata: string | null = null): boolean {
+  if (!apertura) return false
+  apertura(schermata)
+  return true
+}
+
 /** Si butta tutto: all'uscita dall'app, o per ricominciare. Una domanda ancora in volo, quando arriva, non trova piu' la sua battuta e non scrive niente. */
 export function azzeraAssistente() {
   stato = STATO_VUOTO

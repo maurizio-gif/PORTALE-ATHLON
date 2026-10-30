@@ -13,6 +13,8 @@ import { Messaggio } from '../ui/kit'
 import { F, usePalette } from '../ui/tema'
 import { Tocco } from '../ui/Tocco'
 import { hrefAssistente } from './destinazioni'
+import { chiamataDaAzione } from './chiamataDaChat'
+import { ChiamataDaChat } from './ChiamataDaChat'
 import { PagaDaChat } from './PagaDaChat'
 import { pagaDaAzione } from './pagaDaChat'
 import { PrenotaDaChat } from './PrenotaDaChat'
@@ -76,6 +78,9 @@ function Pulsanti({ azioni, messaggioId, onVai }: { azioni: AzioneAssistente[]; 
         // «Scrivi al team» (31/10/2026): apre una carta nella chat, e la conversazione va al team solo quando la persona preme Invia.
         const team = teamDaAzione(a)
         if (team) return <ScriviAlTeam key={`${a.destinazione}${i}`} proposta={team} messaggioId={messaggioId} />
+        // La telefonata col desk (31/10/2026): per chi non e' iscritto, apre il calendario del desk nella chat. L'orario lo sceglie e lo conferma la persona.
+        const chiamata = chiamataDaAzione(a)
+        if (chiamata) return <ChiamataDaChat key={`${a.destinazione}${i}`} proposta={chiamata} messaggioId={messaggioId} />
         const href = hrefAssistente(a.destinazione, a.parametri)
         if (!href) return null
         return (

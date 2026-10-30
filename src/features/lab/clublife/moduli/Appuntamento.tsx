@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useState, type ReactNode } from 'react'
 import { ScrollView, StyleSheet, Text, View } from 'react-native'
 
 import type { Calendario, GiornoPrenotabile } from '@/api/appuntamenti'
@@ -38,6 +38,23 @@ const TESTI: Record<Calendario, { sopra: string; titolo: string; sotto: string; 
 }
 
 const ALTRO = '__altro'
+
+/**
+ * Il guscio del modulo. Di norma e' la schermata (`Cornice`, con la freccia che torna a Club Life); **dentro la chat dell'assistente** (31/10/2026, la telefonata col desk che l'assistente
+ * propone) e' una carta nella conversazione: stesso modulo, stessi campi e stesse regole, ma senza una schermata intera e senza il comando che porta fuori dalla chat.
+ */
+function Guscio({ incorporato, sopratitolo, titolo, sottotitolo, children }: { incorporato: boolean; sopratitolo: string; titolo: string; sottotitolo?: string; children: ReactNode }) {
+  const p = usePalette()
+  if (!incorporato) return <Cornice sopratitolo={sopratitolo} titolo={titolo} sottotitolo={sottotitolo}>{children}</Cornice>
+  return (
+    <View style={{ gap: spazio.tre, width: '100%', minWidth: 0 }}>
+      {inVista() ? <Messaggio tono="attenzione">{t('Sei in vista cliente: i moduli non si possono inviare da qui.', 'You’re in client view: forms can’t be sent from here.')}</Messaggio> : null}
+      <Text style={[stili.titoloInc, { color: p.testo }]} accessibilityRole="header">{titolo}</Text>
+      {sottotitolo ? <Text style={[stili.nota, { color: p.testoSecondario }]}>{sottotitolo}</Text> : null}
+      {children}
+    </View>
+  )
+}
 
 function Giorni({ giorni, scelto, onScegli }: { giorni: GiornoPrenotabile[]; scelto: string | null; onScegli: (d: string) => void }) {
   const p = usePalette()
@@ -97,7 +114,7 @@ function Orari({ slot, scelto, onScegli }: { slot: string[]; scelto: string | nu
   )
 }
 
-export function Appuntamento({ calendario, emailAccesso, oggettoIniziale = '' }: { calendario: Calendario; emailAccesso?: string | null; oggettoIniziale?: string }) {
+export function Appuntamento({ calendario, emailAccesso, oggettoIniziale = '', incorporato = false }: { calendario: Calendario; emailAccesso?: string | null; oggettoIniziale?: string; incorporato?: boolean }) {
   const testi = TESTI[calendario]
   const pal = usePalette()
   const identita = useIdentita(emailAccesso)
@@ -171,16 +188,21 @@ export function Appuntamento({ calendario, emailAccesso, oggettoIniziale = '' }:
 
   if (fatto) {
     return (
-      <Cornice sopratitolo={testi.sopra} titolo={testi.titolo}>
-        <Fatto titolo={t('Appuntamento fissato', 'Appointment booked')}>
-          {t(`${giornoEvento(`${fatto.data}T00:00:00Z`)} alle ${fatto.ora}. Ti mandiamo la conferma a ${identita?.email ?? 'la tua email'}, con il link per spostarlo o annullarlo.`, `${giornoEvento(`${fatto.data}T00:00:00Z`)} at ${fatto.ora}. We’ll send a confirmation to ${identita?.email ?? 'your email'}, with a link to reschedule or cancel.`)}
-        </Fatto>
-      </Cornice>
+      <Guscio incorporato={incorporato} sopratitolo={testi.sopra} titolo={testi.titolo}>
+        {incorporato ? (
+          // Nella chat: la conferma sta nella conversazione, senza il comando «Torna a Club Life» (porterebbe fuori dalla chat).
+          <Messaggio tono="ok">{t(`Appuntamento fissato: ${giornoEvento(`${fatto.data}T00:00:00Z`)} alle ${fatto.ora}. Ti mandiamo la conferma a ${identita?.email ?? 'la tua email'}, con il link per spostarlo o annullarlo.`, `Appointment booked: ${giornoEvento(`${fatto.data}T00:00:00Z`)} at ${fatto.ora}. We’ll send a confirmation to ${identita?.email ?? 'your email'}, with a link to reschedule or cancel.`)}</Messaggio>
+        ) : (
+          <Fatto titolo={t('Appuntamento fissato', 'Appointment booked')}>
+            {t(`${giornoEvento(`${fatto.data}T00:00:00Z`)} alle ${fatto.ora}. Ti mandiamo la conferma a ${identita?.email ?? 'la tua email'}, con il link per spostarlo o annullarlo.`, `${giornoEvento(`${fatto.data}T00:00:00Z`)} at ${fatto.ora}. We’ll send a confirmation to ${identita?.email ?? 'your email'}, with a link to reschedule or cancel.`)}
+          </Fatto>
+        )}
+      </Guscio>
     )
   }
 
   return (
-    <Cornice sopratitolo={testi.sopra} titolo={testi.titolo} sottotitolo={testi.sotto}>
+    <Guscio incorporato={incorporato} sopratitolo={testi.sopra} titolo={testi.titolo} sottotitolo={testi.sotto}>
       {erroreOrari ? (
         <View style={{ gap: spazio.tre }}>
           <Messaggio>{erroreOrari}</Messaggio>
@@ -234,7 +256,7 @@ export function Appuntamento({ calendario, emailAccesso, oggettoIniziale = '' }:
           <Pulsante testo={t('Fissa l’appuntamento', 'Book the appointment')} icona="avanti" onPress={invia} inCorso={inCorso} disabilitato={inVista()} />
         </>
       )}
-    </Cornice>
+    </Guscio>
   )
 }
 
@@ -247,4 +269,5 @@ const stili = StyleSheet.create({
   ora: { borderWidth: 1.5, borderRadius: raggio.piccolo, minWidth: 76, minHeight: 44, alignItems: 'center', justifyContent: 'center', paddingHorizontal: spazio.tre - 4 },
   oraTesto: { fontFamily: F.bold, fontSize: 15 },
   nota: { fontFamily: F.medio, fontSize: 13.5, lineHeight: 19 },
+  titoloInc: { fontFamily: F.semi, fontSize: 16, lineHeight: 22 },
 })
