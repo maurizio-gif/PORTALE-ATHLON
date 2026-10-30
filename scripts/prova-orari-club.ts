@@ -15,6 +15,7 @@ const BUONA = {
   ok: true,
   oggi: { data: '2026-10-29', giorno: 'giovedì 29 ottobre', chiuso: false, festivo: false, da: '06:00', a: '22:00', ridotto: false },
   settimana: [{ giorni: 'Lunedì – Venerdì', da: '06:00', a: '22:00' }, { giorni: 'Sabato', da: '08:00', a: '20:00' }],
+  prossimi: [{ data: '2026-11-01', giorno: 'domenica 1 novembre', tipo: 'chiuso', a: null, nome: 'Tutti i Santi' }, { data: '2026-12-24', giorno: 'giovedì 24 dicembre', tipo: 'ridotto', a: '18:00', nome: 'Vigilia di Natale' }, { data: 'boh', tipo: 'chiuso' }, { data: '2026-12-31', giorno: 'giovedì 31 dicembre', tipo: 'ridotto', a: 'tardi' }],
   avvisi: [{ id: 'news:chiusura-29-ottobre', titolo: ' Il club chiude dalle 8:30 ', categoria: 'Struttura', data: '2026-10-26' }],
 }
 
@@ -23,6 +24,8 @@ const BUONA = {
   assert.equal(o.oggi.da, '06:00')
   assert.equal(o.settimana.length, 2)
   assert.equal(o.avvisi[0].titolo, 'Il club chiude dalle 8:30', 'il titolo ripulito')
+  assert.deepEqual(o.prossimi.map((e) => [e.data, e.tipo, e.a, e.nome]), [['2026-11-01', 'chiuso', null, 'Tutti i Santi'], ['2026-12-24', 'ridotto', '18:00', 'Vigilia di Natale']], 'le eccezioni dei prossimi 7 giorni, senza quelle sporche')
+  assert.deepEqual(orariClubDa({ ...BUONA, prossimi: undefined })!.prossimi, [], 'una funzione di prima: nessuna eccezione, niente di rotto')
   ok('una risposta buona si legge intera')
 }
 {
