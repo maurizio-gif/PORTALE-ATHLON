@@ -36,6 +36,7 @@ import { SezionePagamenti } from './home/SezionePagamenti'
 import { SezioneProdotti, useProdotti } from './home/SezioneProdotti'
 import { SezioneTesseramento, useTesseramenti } from './home/SezioneTesseramento'
 import { giorni, nome, oggi, statoCertificato, urgenzaCertificato } from './home/certificato'
+import { dataBreve } from '@/lib/metodoPagamento'
 import { riepilogoAbbonamenti } from './home/regolarita'
 import { SEZIONI, SEZIONE_INIZIALE, sezioneDa, type SezioneHome } from './home/sezioni'
 import { inMemoria, precarica, prendi, ricorda } from './memoria'
@@ -189,8 +190,9 @@ function riquadroCertificato(area: AreaTrovata): VoceRiquadro {
   const quando = s.giorni != null ? (s.giorni < 0 ? t(`scaduto da ${giorni(-s.giorni)}`, `expired ${giorni(-s.giorni)} ago`) : s.giorni === 0 ? t('scade oggi', 'expires today') : t(`ancora ${giorni(s.giorni)}`, `${giorni(s.giorni)} left`)) : s.breve
   return {
     valore: s.testo,
-    nota: [chi, quando].filter(Boolean).join(' · '),
-    allerta: s.tono === 'errore' ? 'errore' : s.daConsegnare || s.tono === 'attenzione' ? 'attenzione' : undefined,
+    nota: [chi, quando, s.proroga ? t(`proroga fino al ${dataBreve(s.proroga.fine)}`, `extension until ${dataBreve(s.proroga.fine)}`) : null].filter(Boolean).join(' · '),
+    allerta: s.proroga ? 'attenzione' : s.tono === 'errore' ? 'errore' : s.daConsegnare || s.tono === 'attenzione' ? 'attenzione' : undefined,
+    tag: s.proroga ? { testo: t('Proroga concessa', 'Extension granted'), tono: 'ok' } : undefined,
   }
 }
 

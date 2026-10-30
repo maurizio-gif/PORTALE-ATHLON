@@ -91,6 +91,8 @@ export type CertificatoArea = {
   stato: string | null
   /** Manca finche' la funzione del database non e' aggiornata. */
   caricamento?: CaricamentoArea | null
+  /** La proroga temporanea concessa dalla segreteria (il «temporaneo» del CRM), se e' ancora in corso. Manca finche' la funzione del database non e' aggiornata. */
+  proroga?: { inizio: string | null; fine: string } | null
 }
 
 export type Area =
