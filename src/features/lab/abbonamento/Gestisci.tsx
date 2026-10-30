@@ -506,6 +506,12 @@ export function FoglioGestisci({ contratto: c, aperto, onChiudi, onCambiato }: {
   // --- Disdetta ---------------------------------------------------------
 
   const attesaDisdetta = !dis && !erroreDis
+  // Con quote scadute non si disdice (Maurizio, 30/10/2026): prima si saldano. Lo decide anche il server, che rifiuta la conferma.
+  const bloccataDaQuote = !!dis && (dis.modo === 'rinnovo' || dis.modo === 'mensile' || dis.modo === 'annuale') && (dis.quote_scadute?.quante ?? 0) > 0
+  function vaiAiPagamenti() {
+    onChiudi()
+    router.navigate({ pathname: '/', params: { sezione: 'pagamenti' } })
+  }
 
   const passo1Disdetta = (
     <>
@@ -517,10 +523,23 @@ export function FoglioGestisci({ contratto: c, aperto, onChiudi, onCambiato }: {
       {dis && dis.modo === 'gia_disdetto' ? <Messaggio tono="attenzione">{t(`Questo abbonamento è già disdetto: finisce il ${dataLunga(dis.fine)}.`, `This membership is already cancelled: it ends on ${dataLunga(dis.fine)}.`)}</Messaggio> : null}
       {dis && dis.modo === 'oltre_termine' ? (
         <Messaggio tono="attenzione" titolo={t('Il termine è passato', 'The deadline has passed')}>
-          {t(`Il termine per disdire era il ${dataLunga(dis.ultimo_giorno)}. Per questo abbonamento scrivi a disdetta@athlonroma.it: la segreteria ti dice come procedere.`, `The deadline to cancel was ${dataLunga(dis.ultimo_giorno)}. For this membership write to disdetta@athlonroma.it and the front desk will tell you how to proceed.`)}
+          {t(`Il termine per disdire era il ${dataLunga(dis.ultimo_giorno)}: da qui non si può più disdire. L’abbonamento si rinnova secondo il tuo piano e la disdetta vale per la scadenza successiva.`, `The deadline to cancel was ${dataLunga(dis.ultimo_giorno)}: you can no longer cancel from here. The membership renews according to your plan and the cancellation applies to the next expiry.`)}
         </Messaggio>
       ) : null}
-      {dis && inFinestra && finestra && finestra.stato === 'aperta' && (dis.modo === 'rinnovo' || dis.modo === 'mensile' || dis.modo === 'annuale') ? (
+      {bloccataDaQuote && dis ? (
+        <Messaggio tono="attenzione" icona="attenzione" titolo={t('Prima va saldata la quota scaduta', 'Please pay the overdue payment first')}>
+          <View style={{ gap: spazio.due }}>
+            <Text style={[stili.nota, { color: p.testo }]}>
+              {t(
+                `Hai ${dis.quote_scadute!.quante === 1 ? 'una quota scaduta' : `${dis.quote_scadute!.quante} quote scadute`} da pagare (${euro(dis.quote_scadute!.totale)}). Finché non la salderai non puoi disdire: la trovi in Pagamenti, sotto «Da pagare». Dopo il pagamento potrai disdire da qui.`,
+                `You have ${dis.quote_scadute!.quante === 1 ? 'an overdue payment' : `${dis.quote_scadute!.quante} overdue payments`} to pay (${euro(dis.quote_scadute!.totale)}). You can’t cancel until ${dis.quote_scadute!.quante === 1 ? 'it is' : 'they are'} paid: you’ll find ${dis.quote_scadute!.quante === 1 ? 'it' : 'them'} in Payments, under “To pay”. After paying, you can cancel from here.`,
+              )}
+            </Text>
+            <Pulsante testo={t('Vai ai pagamenti', 'Go to payments')} icona="avanti" piccolo onPress={vaiAiPagamenti} />
+          </View>
+        </Messaggio>
+      ) : null}
+      {dis && !bloccataDaQuote && inFinestra && finestra && finestra.stato === 'aperta' && (dis.modo === 'rinnovo' || dis.modo === 'mensile' || dis.modo === 'annuale') ? (
         <Messaggio tono="ok" icona="rinnovo" titolo={t('Vuoi cambiare abbonamento invece di disdire?', 'Want to change membership instead of cancelling?')}>
           <View style={{ gap: spazio.due }}>
             <Text style={[stili.nota, { color: p.testo }]}>{t(`Stai per disdire ${etichettaPiano(c)}. Invece puoi passare a un altro abbonamento, Smart o Premium o uno degli altri in vigore, scegliendo quello che preferisci: così dai continuità ai tuoi allenamenti, senza disdetta e senza nessun buco.`, `You’re about to cancel ${etichettaPiano(c)}. Instead you can move to another membership, Smart or Premium or any other currently on sale, whichever you prefer: this keeps your training going, with no cancellation and no gap.`)}</Text>
@@ -529,7 +548,7 @@ export function FoglioGestisci({ contratto: c, aperto, onChiudi, onCambiato }: {
           </View>
         </Messaggio>
       ) : null}
-      {dis && (dis.modo === 'rinnovo' || dis.modo === 'mensile' || dis.modo === 'annuale') ? (
+      {dis && !bloccataDaQuote && (dis.modo === 'rinnovo' || dis.modo === 'mensile' || dis.modo === 'annuale') ? (
         <>
           <View style={{ gap: spazio.tre }}>
             <View style={stili.tappa}>
