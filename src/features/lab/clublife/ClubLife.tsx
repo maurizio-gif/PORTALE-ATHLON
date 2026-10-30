@@ -9,6 +9,7 @@ import { LARGO } from '@/components/Pagina'
 import { t } from '@/lib/lingua'
 import { spazio } from '@/theme'
 
+import { RichiediAssistenza } from '../assistente/RichiediAssistenza'
 import { CampoTesto } from '../ui/Campi'
 import { Icona } from '../ui/Icona'
 import { Carta, Entra, Messaggio, Pulsante, Riga, SchedeInArrivo, Sezione } from '../ui/kit'
@@ -165,6 +166,8 @@ export function ClubLife() {
     <Schermata sopratitolo={t('La vita del club', 'Club life')} titolo="Club Life" sottotitolo={t("News, eventi e le risposte dell'Help Desk.", 'News, events and answers from the Help Desk.')} scorrimento={scorrimento}>
       {/* Gli orari del club e gli avvisi in corso (chiusure, orari ridotti): sempre in cima (clublife/OrariClub). Non dipendono dal feed delle news. */}
       <BloccoOrariClub />
+      {/* «Richiedi assistenza»: apre sempre la chat dell'assistente (assistente/RichiediAssistenza), dopo gli orari. */}
+      <RichiediAssistenza />
       {!dati ? (
         errore ? (
           <View style={{ gap: spazio.tre }}>

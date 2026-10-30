@@ -10,7 +10,7 @@ export const DESTINAZIONI_ASSISTENTE = [
   'home-abbonamenti', 'home-pagamenti', 'pagamenti-storico', 'metodo-pagamento', 'home-prodotti', 'home-documenti', 'home-certificato',
   'home-famiglia', 'home-profilo', 'home-tesseramento', 'calendario', 'abbonamento-scegli', 'personal', 'allenamento', 'piani', 'piano',
   'componi-piano', 'importa-piano', 'consigli', 'food', 'misure', 'dispositivi', 'classifica', 'shop', 'shop-ordini', 'junior',
-  'invita', 'notifiche', 'club-life', 'club-life-voce', 'tv',
+  'prova', 'invita', 'notifiche', 'club-life', 'club-life-voce', 'tv',
 ] as const
 
 export type DestinazioneAssistente = (typeof DESTINAZIONI_ASSISTENTE)[number]
@@ -93,6 +93,9 @@ export function hrefAssistente(destinazione: string, parametri: Record<string, s
       return '/shop/ordini'
     case 'junior':
       return /^(19|20)\d{2}$/.test(parametri.anno ?? '') ? { pathname: '/junior', params: { anno: parametri.anno } } : '/junior'
+    // La prova (31/10/2026): il Guest Pass si attiva dall'app. Con una sessione la pagina prosegue dentro, senza email (`ProvaDallApp`). La funzione la propone solo a chi puo' averla.
+    case 'prova':
+      return '/richiesta/guest-pass'
     case 'invita':
       return '/invita'
     case 'notifiche':
