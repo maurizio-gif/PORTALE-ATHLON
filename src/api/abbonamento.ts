@@ -354,6 +354,6 @@ export async function firmaIscrizione(
 ): Promise<{ ok: true; esito: EsitoFirma } | { ok: false; errore: string }> {
   const { baby, ...resto } = s
   const { ok, dati } = await abbonamento({ azione: baby ? 'baby_firma' : 'junior_firma', ...resto, dati_confermati: true, impronta, consensi, firma_png: firmaPng })
-  if (ok && dati.numero) return { ok: true, esito: { numero: String(dati.numero), stato: dati.stato as StatoContratto, totale_oggi: Number(dati.totale_oggi ?? 0) } }
+  if (ok && dati.numero) return { ok: true, esito: { numero: String(dati.numero), stato: dati.stato as StatoContratto, totale_oggi: Number(dati.totale_oggi ?? 0), cambio: null } }
   return { ok: false, errore: dati.errore ?? t('Non siamo riusciti a registrare il contratto adesso.', 'We couldn’t record the contract right now.') }
 }

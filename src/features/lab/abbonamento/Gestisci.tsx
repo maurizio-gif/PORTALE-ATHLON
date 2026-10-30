@@ -677,7 +677,7 @@ export function FoglioGestisci({ contratto: c, aperto, onChiudi, onCambiato }: {
   const passoUpgrade = (
     <>
       <Titolo>{t('Upgrade dell’abbonamento', 'Upgrade your membership')}</Titolo>
-      <Messaggio tono="info" icona="info" titolo={t('Come funziona', 'How it works')}>
+      <Messaggio tono="ok" icona="info" titolo={t('Come funziona', 'How it works')}>
         <View style={{ gap: spazio.due }}>
           <Text style={[stili.nota, { color: p.testo }]}>{t('Con l’upgrade passi a un abbonamento di valore più alto. La segreteria calcola il credito residuo del tuo abbonamento attuale e lo scala dal nuovo: te lo scrive per email, e solo dopo la tua conferma chiude il vecchio contratto.', 'With an upgrade you move to a higher-value membership. The front desk works out the remaining credit on your current membership and deducts it from the new one: they email you the figure, and only after your confirmation do they close the old contract.')}</Text>
           <Text style={[stili.nota, { color: p.testo }]}>{t('Dal più alto: Premium annuale in soluzione unica, Premium annuale rateizzato, Smart annuale in soluzione unica, Smart annuale rateizzato. Si può solo salire: non si passa a un abbonamento di valore più basso né a un Flex.', 'From the highest: Premium annual single payment, Premium annual instalments, Smart annual single payment, Smart annual instalments. You can only move up: you can’t move to a lower-value membership or to a Flex.')}</Text>
