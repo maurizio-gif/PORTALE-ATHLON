@@ -31,6 +31,13 @@ function data(iso: string | null): string {
   return new Intl.DateTimeFormat(locale(), { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' }).format(new Date(Date.UTC(a, m - 1, g)))
 }
 
+/** «1 novembre 2026», per le date del gestionale. */
+function dataLunga(iso: string | null): string {
+  if (!iso) return '—'
+  const [a, m, g] = iso.slice(0, 10).split('-').map(Number)
+  return new Intl.DateTimeFormat(locale(), { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' }).format(new Date(Date.UTC(a, m - 1, g)))
+}
+
 function giornoDopo(iso: string): string {
   const [a, m, g] = iso.slice(0, 10).split('-').map(Number)
   return new Date(Date.UTC(a, m - 1, g + 1)).toISOString().slice(0, 10)
@@ -115,7 +122,14 @@ function SchedaContratto({ c, conPersona, regolarita, onSezione, gestione, onCam
 
   // Del dettaglio si mostra solo cio' che c'e' ancora da pagare: gli addebiti pagati o annullati e i
   // pagamenti ricevuti non servono a chi sta guardando il contratto (17/10/2026).
-  const daPagare = c.addebiti.filter((a) => a.stato === 'da_pagare')
+  // Il Flex (ciclo mensile, senza fine) ha gia' le quote dei mesi futuri nel gestionale: mostrarle tutte lo farebbe sembrare un annuale. Si vedono solo
+  // quelle fino alla fine del periodo in cui si puo' ancora disdire (la fine dell'impegno, o del mese: `finestra.fine`), e i totali si riducono di conseguenza.
+  const finestraFlex = gestione?.azioni?.cambia.finestra
+  const limiteFlex = !c.data_fine && gestione && (gestione.ciclo_mesi ?? 1) <= 1 && finestraFlex && finestraFlex.stato !== 'non_calcolabile' ? finestraFlex.fine : null
+  const tutteDaPagare = c.addebiti.filter((a) => a.stato === 'da_pagare')
+  const daPagare = limiteFlex ? tutteDaPagare.filter((a) => (a.scadenza ?? '') <= limiteFlex) : tutteDaPagare
+  const nascosto = limiteFlex ? tutteDaPagare.filter((a) => (a.scadenza ?? '') > limiteFlex).reduce((somma, a) => somma + a.da_pagare, 0) : 0
+  const totali = { addebitato: c.totali.addebitato - nascosto, pagato: c.totali.pagato, da_pagare: c.totali.da_pagare - nascosto }
 
   return (
     <Carta>
@@ -146,45 +160,65 @@ function SchedaContratto({ c, conPersona, regolarita, onSezione, gestione, onCam
           {c.canone ? <Riga nome={t('Quota', 'Fee')} valore={annuale ? t(`${euro(c.canone)} all’anno`, `${euro(c.canone)} per year`) : euro(c.canone)} /> : null}
         </View>
 
-        <View style={stili.totali}>
-          <View style={[stili.cella, { backgroundColor: p.incavo, borderColor: p.testo + '1F' }]}>
-            <Text style={[stili.etichettaCella, { color: p.testo }]}>{t('Addebitato', 'Charged')}</Text>
-            <Text style={[stili.totale, { color: p.testo }]}>{euro(c.totali.addebitato)}</Text>
+        {limiteFlex ? (
+          // Il Flex si rinnova ogni mese e si puo' disdire: non si mostra il piano di tutte le quote caricate dal gestionale (sembrerebbe un annuale),
+          // solo la prossima rata fino alla fine del periodo (30/10/2026, Maurizio).
+          <View style={[stili.box, { backgroundColor: p.incavo, borderColor: p.accento }]}>
+            <Text style={[stili.etichettaCella, { color: p.testo }]}>{daPagare.length > 1 ? t('Prossime rate', 'Next payments') : t('Prossima rata', 'Next payment')}</Text>
+            {daPagare.length ? (
+              daPagare.map((a, i) => (
+                <View key={i} style={stili.riga}>
+                  <Text style={[stili.valore, { color: p.testo, textAlign: 'left' }]}>{dataLunga(a.scadenza)}</Text>
+                  <Text style={[stili.totale, { color: p.accento }]}>{euro(a.da_pagare)}</Text>
+                </View>
+              ))
+            ) : (
+              <Text style={[stili.nome, { color: p.testo, opacity: 0.78, fontFamily: F.semi }]}>{t('Nessuna rata in sospeso.', 'No payment due.')}</Text>
+            )}
           </View>
-          <View style={[stili.cella, { backgroundColor: p.incavo, borderColor: p.ok }]}>
-            <Text style={[stili.etichettaCella, { color: p.testo }]}>{t('Pagato', 'Paid')}</Text>
-            <Text style={[stili.totale, { color: p.ok }]}>{euro(c.totali.pagato)}</Text>
-          </View>
-          <View style={[stili.cella, { backgroundColor: p.incavo, borderColor: c.totali.da_pagare > 0 ? p.accento : p.testo + '1F' }]}>
-            <Text style={[stili.etichettaCella, { color: p.testo }]}>{t('Da pagare', 'Due')}</Text>
-            <Text style={[stili.totale, { color: c.totali.da_pagare > 0 ? p.accento : p.testo }]}>{euro(c.totali.da_pagare)}</Text>
-          </View>
-        </View>
-
-        {daPagare.length ? (
-          <>
-            <Tocco ruolo="button" etichetta={aperta ? t('Nascondi le quote da pagare', 'Hide due payments') : t('Mostra le quote da pagare', 'Show due payments')} onPress={() => setAperta((v) => !v)} style={{ alignSelf: 'flex-start', paddingVertical: 4 }}>
-              <Text style={{ color: p.accento, fontFamily: F.bold, fontSize: 14 }}>{aperta ? t('Nascondi il dettaglio', 'Hide details') : t(`Quote da pagare (${daPagare.length})  ›`, `Due payments (${daPagare.length})  ›`)}</Text>
-            </Tocco>
-            {aperta ? (
-              <View style={{ gap: 8 }}>
-                {daPagare.map((a, i) => (
-                  <View key={i} style={stili.riga}>
-                    <View style={{ flex: 1 }}>
-                      <Text style={[stili.valore, { color: p.testo, textAlign: 'left' }]}>{nomeAddebito(a)}</Text>
-                      <Text style={[stili.nome, { color: p.testoSecondario }]}>{t(`Scade il ${data(a.scadenza)}`, `Due on ${data(a.scadenza)}`)}</Text>
-                    </View>
-                    <View style={{ alignItems: 'flex-end' }}>
-                      <Text style={[stili.valore, { color: p.testo }]}>{euro(a.da_pagare)}</Text>
-                      <Text style={{ color: p.accento, fontFamily: F.bold, fontSize: 12 }}>{t('Da pagare', 'Due')}</Text>
-                    </View>
-                  </View>
-                ))}
-              </View>
-            ) : null}
-          </>
         ) : (
-          <Text style={[stili.nome, { color: p.testo, opacity: 0.78, fontFamily: F.semi }]}>{t('Niente da pagare su questo contratto.', 'Nothing to pay on this contract.')}</Text>
+          <>
+          <View style={stili.totali}>
+            <View style={[stili.cella, { backgroundColor: p.incavo, borderColor: p.testo + '1F' }]}>
+              <Text style={[stili.etichettaCella, { color: p.testo }]}>{t('Addebitato', 'Charged')}</Text>
+              <Text style={[stili.totale, { color: p.testo }]}>{euro(totali.addebitato)}</Text>
+            </View>
+            <View style={[stili.cella, { backgroundColor: p.incavo, borderColor: p.ok }]}>
+              <Text style={[stili.etichettaCella, { color: p.testo }]}>{t('Pagato', 'Paid')}</Text>
+              <Text style={[stili.totale, { color: p.ok }]}>{euro(totali.pagato)}</Text>
+            </View>
+            <View style={[stili.cella, { backgroundColor: p.incavo, borderColor: totali.da_pagare > 0 ? p.accento : p.testo + '1F' }]}>
+              <Text style={[stili.etichettaCella, { color: p.testo }]}>{t('Da pagare', 'Due')}</Text>
+              <Text style={[stili.totale, { color: totali.da_pagare > 0 ? p.accento : p.testo }]}>{euro(totali.da_pagare)}</Text>
+            </View>
+          </View>
+
+          {daPagare.length ? (
+            <>
+              <Tocco ruolo="button" etichetta={aperta ? t('Nascondi le quote da pagare', 'Hide due payments') : t('Mostra le quote da pagare', 'Show due payments')} onPress={() => setAperta((v) => !v)} style={{ alignSelf: 'flex-start', paddingVertical: 4 }}>
+                <Text style={{ color: p.accento, fontFamily: F.bold, fontSize: 14 }}>{aperta ? t('Nascondi il dettaglio', 'Hide details') : t(`Quote da pagare (${daPagare.length})  ›`, `Due payments (${daPagare.length})  ›`)}</Text>
+              </Tocco>
+              {aperta ? (
+                <View style={{ gap: 8 }}>
+                  {daPagare.map((a, i) => (
+                    <View key={i} style={stili.riga}>
+                      <View style={{ flex: 1 }}>
+                        <Text style={[stili.valore, { color: p.testo, textAlign: 'left' }]}>{nomeAddebito(a)}</Text>
+                        <Text style={[stili.nome, { color: p.testoSecondario }]}>{t(`Scade il ${data(a.scadenza)}`, `Due on ${data(a.scadenza)}`)}</Text>
+                      </View>
+                      <View style={{ alignItems: 'flex-end' }}>
+                        <Text style={[stili.valore, { color: p.testo }]}>{euro(a.da_pagare)}</Text>
+                        <Text style={{ color: p.accento, fontFamily: F.bold, fontSize: 12 }}>{t('Da pagare', 'Due')}</Text>
+                      </View>
+                    </View>
+                  ))}
+                </View>
+              ) : null}
+            </>
+          ) : (
+            <Text style={[stili.nome, { color: p.testo, opacity: 0.78, fontFamily: F.semi }]}>{t('Niente da pagare su questo contratto.', 'Nothing to pay on this contract.')}</Text>
+          )}
+          </>
         )}
 
         {c.firmato?.pdf ? (
