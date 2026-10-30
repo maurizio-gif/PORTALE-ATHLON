@@ -83,6 +83,8 @@ const ICONE = {
   feedback: ['text.bubble.fill', 'rate_review'],
   // L'assistente virtuale (30/10/2026): le scintille, per il pulsante in alto a destra.
   assistente: ['sparkles', 'auto_awesome'],
+  // La dettatura vocale dell'assistente (30/10/2026).
+  microfono: ['mic.fill', 'mic'],
   // Lo shop (18/10/2026).
   carrello: ['cart.fill', 'shopping_cart'],
   sacchetto: ['bag.fill', 'shopping_bag'],

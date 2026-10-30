@@ -28,3 +28,15 @@ Dentro `azioni` della risposta (evento `fine`, e nel `sostituisci`), un elemento
 ## Cosa non è provato
 
 Nessuna risposta vera del modello con questa azione (la funzione non la manda). Lato app è provato con funzioni simulate (vedi `CLAUDE.md`, «L'assistente propone una prenotazione»).
+
+## Aggiunta 30/10/2026: pagare le quote scadute dalla chat (`paga-quote`)
+
+Stesso schema della prenotazione, un secondo pulsante che non è una destinazione. **Lato server è fatto in APP-ATHLON** (`_shared/assistente/pagamento.ts`, `validazione.ts`, `contesto.ts`, prompt regole 13 e 14, prova `_prove/assistente-paga.ts`); lato app `assistente/pagaDaChat.ts` e `PagaDaChat.tsx`.
+
+```json
+{ "destinazione": "paga-quote", "parametri": {}, "etichetta": "Paga la quota · 21,00 €" }
+```
+
+- **Nessun parametro**, e nessun importo di cui fidarsi: l'etichetta (con il totale) la scrive il codice dalle quote lette in quella richiesta (`movimenti` di `portale-lab-pagamenti`, `da_saldare`), ma l'app apre una carta che **rilegge le quote** e l'addebito parte solo dai pulsanti della carta, dopo che `salda` ha riletto da PerfectGym e ha confrontato il totale.
+- La funzione manda l'azione **solo se** le quote scadute sono state lette (`saldo` del contesto: `daSaldare` non vuoto), per un adulto, **una sola per risposta**, e la mette per prima (il tetto di due pulsanti non la fa cadere). `toccato` la accetta come la prenotazione.
+- Il metodo di pagamento **non è un'azione nuova**: è la destinazione `metodo-pagamento` della mappa.
