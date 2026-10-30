@@ -16,6 +16,7 @@ import {
   type Formula,
   type MeseSospendibile,
   type MetodoPagamento,
+  pagaAnnuale,
   type MotivoDisdetta,
   type OpzioneSospensione,
 } from '@/api/gestioneAbbonamento'
@@ -66,7 +67,7 @@ const FORMULA: Record<Formula, () => string> = {
 }
 
 function etichettaPiano(c: ContrattoGestione): string {
-  const f = FORMULA[c.formula]()
+  const f = c.formula === 'annuale-rate' && pagaAnnuale(c) ? t('Annuale, si paga ogni anno', 'Annual, paid every year') : FORMULA[c.formula]()
   return f ? `${c.piano} · ${f}` : c.piano
 }
 
@@ -245,7 +246,7 @@ export function FoglioGestisci({ contratto: c, aperto, onChiudi, onCambiato }: {
   }
 
   async function confermaDisdetta() {
-    if (!dis) return
+    if (!dis || !motivo) return
     setInCorso(true)
     setErrore(null)
     const r = await disdici(c.contract_id, dis.impronta, motivo, commento.trim())
@@ -284,9 +285,10 @@ export function FoglioGestisci({ contratto: c, aperto, onChiudi, onCambiato }: {
             <Etichetta testo={c.stato === 'Freezed' ? t('Sospeso', 'Frozen') : t('Attivo', 'Active')} tono={c.stato === 'Freezed' ? 'attenzione' : 'ok'} />
           </View>
           <View style={{ gap: 6 }}>
-            {c.canone ? <Riga nome={t('Quota', 'Fee')} valore={c.formula === 'annuale-unico' ? euro(c.canone) : t(`${euro(c.canone)} al mese`, `${euro(c.canone)} per month`)} /> : null}
+            {c.canone ? <Riga nome={t('Quota', 'Fee')} valore={c.formula === 'annuale-unico' ? euro(c.canone) : pagaAnnuale(c) ? t(`${euro(c.canone)} all’anno`, `${euro(c.canone)} per year`) : t(`${euro(c.canone)} al mese`, `${euro(c.canone)} per month`)} /> : null}
             {c.data_fine ? <Riga nome={t('Scade il', 'Ends on')} valore={dataLunga(c.data_fine)} /> : null}
-            <Riga nome={t('Rinnovo', 'Renewal')} valore={c.si_rinnova ? (c.data_fine ? t('Automatico', 'Automatic') : t('Ogni mese, salvo disdetta', 'Every month unless cancelled')) : t('Disattivato', 'Off')} />
+            {!c.data_fine && pagaAnnuale(c) && c.prossimo_addebito ? <Riga nome={t('Prossimo addebito', 'Next charge')} valore={dataLunga(c.prossimo_addebito)} /> : null}
+            <Riga nome={t('Rinnovo', 'Renewal')} valore={c.si_rinnova ? (c.data_fine ? t('Automatico', 'Automatic') : pagaAnnuale(c) ? t('Ogni anno, salvo disdetta', 'Every year unless cancelled') : t('Ogni mese, salvo disdetta', 'Every month unless cancelled')) : t('Disattivato', 'Off')} />
             {metodo ? <Riga nome={t('Pagamento', 'Payment')} valore={metodo} /> : null}
           </View>
         </View>
@@ -479,7 +481,7 @@ export function FoglioGestisci({ contratto: c, aperto, onChiudi, onCambiato }: {
           {t(`Il termine per disdire era il ${dataLunga(dis.ultimo_giorno)}. Per questo abbonamento scrivi a disdetta@athlonroma.it: la segreteria ti dice come procedere.`, `The deadline to cancel was ${dataLunga(dis.ultimo_giorno)}. For this membership write to disdetta@athlonroma.it and the front desk will tell you how to proceed.`)}
         </Messaggio>
       ) : null}
-      {dis && (dis.modo === 'rinnovo' || dis.modo === 'mensile') ? (
+      {dis && (dis.modo === 'rinnovo' || dis.modo === 'mensile' || dis.modo === 'annuale') ? (
         <>
           <View style={{ gap: spazio.tre }}>
             <View style={stili.tappa}>
@@ -488,7 +490,7 @@ export function FoglioGestisci({ contratto: c, aperto, onChiudi, onCambiato }: {
             </View>
             <View style={stili.tappa}>
               <Text style={[stili.tappaQuando, { color: p.testoSecondario }]}>{t('Fino alla scadenza', 'Until the end date')}</Text>
-              <Text style={[stili.tappaTesto, { color: p.testo }]}>{dis.modo === 'rinnovo' ? t('L’abbonamento resta attivo, puoi usarlo e le rate restano dovute', 'The membership stays active, you can use it and the instalments remain due') : t('L’abbonamento resta attivo e puoi usarlo fino a fine mese', 'The membership stays active and you can use it until the end of the month')}</Text>
+              <Text style={[stili.tappaTesto, { color: p.testo }]}>{dis.modo === 'rinnovo' ? t('L’abbonamento resta attivo, puoi usarlo e le rate restano dovute', 'The membership stays active, you can use it and the instalments remain due') : dis.modo === 'annuale' ? t('L’abbonamento resta attivo e puoi usarlo fino al giorno prima del prossimo addebito', 'The membership stays active and you can use it until the day before the next charge') : t('L’abbonamento resta attivo e puoi usarlo fino a fine mese', 'The membership stays active and you can use it until the end of the month')}</Text>
             </View>
             <View style={stili.tappa}>
               <Text style={[stili.tappaQuando, { color: p.testo }]}>{`${dataLunga(dis.fine)}*`}</Text>
@@ -505,8 +507,8 @@ export function FoglioGestisci({ contratto: c, aperto, onChiudi, onCambiato }: {
           </Carta>
           <Messaggio tono="attenzione" icona="attenzione">
             {t(
-              `Perdi le condizioni attuali dell’abbonamento${dis.canone ? `, compreso il prezzo di ${euro(dis.canone)}${c.formula === 'annuale-unico' ? '' : ' al mese'}` : ''}. Se in futuro ti iscrivi di nuovo si applica il listino di quel momento e si paga di nuovo la quota di iscrizione.`,
-              `You lose the membership’s current terms${dis.canone ? `, including the price of ${euro(dis.canone)}${c.formula === 'annuale-unico' ? '' : ' per month'}` : ''}. If you sign up again later, the price list of that moment applies and you pay the joining fee again.`,
+              `Perdi le condizioni attuali dell’abbonamento${dis.canone ? `, compreso il prezzo di ${euro(dis.canone)}${c.formula === 'annuale-unico' ? '' : dis.modo === 'annuale' ? ' all’anno' : ' al mese'}` : ''}. Se in futuro ti iscrivi di nuovo si applica il listino di quel momento e si paga di nuovo la quota di iscrizione.`,
+              `You lose the membership’s current terms${dis.canone ? `, including the price of ${euro(dis.canone)}${c.formula === 'annuale-unico' ? '' : dis.modo === 'annuale' ? ' per year' : ' per month'}` : ''}. If you sign up again later, the price list of that moment applies and you pay the joining fee again.`,
             )}
           </Messaggio>
           {c.azioni?.sospendi.disponibile ? (
@@ -523,11 +525,13 @@ export function FoglioGestisci({ contratto: c, aperto, onChiudi, onCambiato }: {
   )
 
   const MOTIVI: Record<MotivoDisdetta, string> = {
-    costo: t('Costo', 'Cost'),
     tempo: t('Non ho tempo', 'I don’t have time'),
     trasferimento: t('Mi trasferisco', 'I’m moving'),
+    non_uso: t('Non ho più motivazione', 'I’ve lost motivation'),
+    altra_struttura: t('Passo a un altro club o sport', 'I’m switching to another club or sport'),
     salute: t('Problemi di salute', 'Health issues'),
-    non_uso: t('Non uso il club', 'I don’t use the club'),
+    costo: t('Difficoltà economica', 'Financial difficulty'),
+    attivita: t('Poche attività che mi interessano', 'Not enough activities I like'),
     altro: t('Altro', 'Other'),
   }
 
@@ -535,21 +539,11 @@ export function FoglioGestisci({ contratto: c, aperto, onChiudi, onCambiato }: {
     <>
       <Passo n={2} di={3} />
       <Titolo>{t('Ci dici perché?', 'Can you tell us why?')}</Titolo>
-      <Nota>{t('Facoltativo. Ci aiuta a migliorare.', 'Optional. It helps us improve.')}</Nota>
-      <Scelte valori={MOTIVI_DISDETTA.map((m) => ({ valore: m, testo: MOTIVI[m] }))} scelto={motivo} onScegli={(m) => setMotivo((v) => (v === m ? null : m))} />
+      <Nota>{t('Scegli il motivo principale: ci aiuta a migliorare.', 'Choose the main reason: it helps us improve.')}</Nota>
+      <Scelte valori={MOTIVI_DISDETTA.map((m) => ({ valore: m, testo: MOTIVI[m] }))} scelto={motivo} onScegli={(m) => setMotivo(m)} />
       <CampoTesto etichetta={t('Vuoi aggiungere qualcosa?', 'Want to add anything?')} value={commento} onChangeText={setCommento} maxLength={300} multiline placeholder={t('Scrivi qui (facoltativo)', 'Write here (optional)')} />
       <Nota>{t('Non scrivere dati sulla salute.', 'Please don’t write health information.')}</Nota>
-      <Pulsante testo={t('Continua', 'Continue')} icona="avanti" onPress={() => vai('d3')} />
-      <Pulsante
-        testo={t('Salta', 'Skip')}
-        variante="fantasma"
-        piccolo
-        onPress={() => {
-          setMotivo(null)
-          setCommento('')
-          vai('d3')
-        }}
-      />
+      <Pulsante testo={t('Continua', 'Continue')} icona="avanti" disabilitato={!motivo} onPress={() => vai('d3')} />
     </>
   )
 

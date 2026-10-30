@@ -11,8 +11,11 @@ const gestione = (corpo: Record<string, unknown>) => funzione('portale-gestione-
 
 export type Formula = 'annuale-unico' | 'annuale-rate' | 'mensile' | 'altro'
 
-/** Come si disdice: col rinnovo spento (`rinnovo`), a fine mese (`mensile`), o non si puo' piu' da qui. */
-export type ModoDisdetta = 'rinnovo' | 'mensile' | 'oltre_termine' | 'gia_disdetto'
+/** Come si disdice: col rinnovo spento (`rinnovo`), a fine mese (`mensile`), il giorno prima del prossimo addebito di un annuale senza fine (`annuale`), o non si puo' piu' da qui. */
+export type ModoDisdetta = 'rinnovo' | 'mensile' | 'annuale' | 'oltre_termine' | 'gia_disdetto'
+
+/** Si paga una volta l'anno (`paymentInterval` del piano su PerfectGym, 12 mesi)? Il Flex e le rate mensili no. */
+export const pagaAnnuale = (x: { ciclo_mesi?: number | null }): boolean => (x.ciclo_mesi ?? 0) >= 12
 
 export type DisdettaStato = { modo: ModoDisdetta; fine: string | null; ultimo_giorno?: string | null }
 
@@ -27,6 +30,9 @@ export type ContrattoGestione = {
   data_fine: string | null
   canone: number | null
   si_rinnova: boolean
+  /** Ogni quanti mesi si paga (12 = annuale), e la prossima quota. Con una funzione di prima non ci sono. */
+  ciclo_mesi?: number | null
+  prossimo_addebito?: string | null
   gestibile: boolean
   /** Perche' non e' gestibile: `guest_pass`, `a_zero`, `aggiuntivo`, `junior`, `non_in_vigore`, `altro`. */
   motivo: string | null
@@ -46,7 +52,9 @@ export async function statoGestione(): Promise<{ ok: true; contratti: ContrattoG
 
 // --- Disdetta -------------------------------------------------------------
 
-export const MOTIVI_DISDETTA = ['costo', 'tempo', 'trasferimento', 'salute', 'non_uso', 'altro'] as const
+// I motivi ricorrenti nelle cancellazioni dei contratti di Athlon (`pgm_contratti.motivo_annullamento`, i `CancelReasons` di PerfectGym), raggruppati.
+// Stesse chiavi di `MOTIVI_DISDETTA` in `_shared/gestione-abbonamento.ts` di APP-ATHLON.
+export const MOTIVI_DISDETTA = ['tempo', 'trasferimento', 'non_uso', 'altra_struttura', 'salute', 'costo', 'attivita', 'altro'] as const
 export type MotivoDisdetta = (typeof MOTIVI_DISDETTA)[number]
 
 export type AnteprimaDisdetta = {
@@ -54,6 +62,7 @@ export type AnteprimaDisdetta = {
   piano: string
   formula: Formula
   canone: number | null
+  ciclo_mesi?: number | null
   modo: ModoDisdetta
   fine: string | null
   ultimo_giorno: string | null
@@ -75,7 +84,7 @@ export async function anteprimaDisdetta(contractId: number): Promise<EsitoGestio
   return errore(dati, t('Non riusciamo a leggere la disdetta adesso.', 'We can’t load the cancellation right now.'))
 }
 
-export async function disdici(contractId: number, impronta: string, motivo: MotivoDisdetta | null, commento: string): Promise<EsitoGestione<{ modo: ModoDisdetta; fine: string | null; confermata: boolean }>> {
+export async function disdici(contractId: number, impronta: string, motivo: MotivoDisdetta, commento: string): Promise<EsitoGestione<{ modo: ModoDisdetta; fine: string | null; confermata: boolean }>> {
   const { ok, dati } = await gestione({ azione: 'disdici', contract_id: contractId, impronta, motivo, commento })
   if (ok) return { ok: true, dati: { modo: dati.modo, fine: dati.fine ?? null, confermata: dati.confermata === true } }
   return errore(dati, t('Non siamo riusciti a registrare la disdetta adesso. Riprova fra qualche minuto.', 'We couldn’t record the cancellation right now. Try again in a few minutes.'))
