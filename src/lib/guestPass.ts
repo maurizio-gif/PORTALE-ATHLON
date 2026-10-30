@@ -209,6 +209,9 @@ export const ATTIVITA_GUEST_PASS: { nome: string; url: string }[] = [
   { nome: 'Group Reformer', url: `${SITO}/reformer/` },
 ]
 
+/** Il prezzo del Guest Pass senza invito (con l'invito di un socio la richiesta porta il suo, 5 €): per i testi che non hanno una richiesta davanti. Cambia insieme al piano su PerfectGym. */
+export const PREZZO_PROVA = 19
+
 /**
  * Cosa c'e' dentro ogni attivita' del Guest Pass, per la lista a fisarmonica in cima alla pagina di attivazione (30/10/2026,
  * richiesta di Maurizio: «prova tutto il club per una settimana», sul modello della pagina /prova del sito).
