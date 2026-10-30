@@ -20,18 +20,15 @@ import { F, usePalette } from '../ui/tema'
 export function DallaProva({ inizio, quota, conData = false }: { inizio: string; quota: number; conData?: boolean }) {
   const p = usePalette()
   const giorno = dataLunga(inizio)
-  // La quota e' in omaggio **solo** se l'abbonamento parte il giorno dopo la fine della prova: per questo la data e' obbligatoria.
-  const omaggio =
+  // Testo corto (30/10/2026, Maurizio): niente ragionamento, solo la data e il vantaggio. La quota e' in omaggio solo se parte quel giorno: la data e' obbligatoria.
+  const vantaggio =
     quota > 0
-      ? t(`La quota di attivazione di ${euro(quota)} è in omaggio solo se l’abbonamento parte quel giorno: per questo la data è obbligatoria.`, `The ${euro(quota)} joining fee is waived only if your membership starts on that day: that’s why the date is mandatory.`)
-      : t('La data è obbligatoria: così non c’è nessuna interruzione fra la prova e l’abbonamento.', 'The date is mandatory: that way there’s no gap between your trial and your membership.')
+      ? t(`in questo modo avrai la quota di attivazione di ${euro(quota)} in omaggio.`, `this way you get the ${euro(quota)} joining fee for free.`)
+      : t('in questo modo non c’è nessuna interruzione.', 'this way there’s no gap.')
   if (!conData) {
     return (
       <Messaggio tono="ok" icona="regalo" titolo={t('Dalla prova all’abbonamento', 'From your trial to a membership')}>
-        {t(
-          `Ti iscrivi durante la prova: l’abbonamento parte il ${giorno}, il giorno dopo la fine del tuo Guest Pass, e non perdi nemmeno un giorno. ${omaggio}`,
-          `You’re joining during your trial: your membership starts on ${giorno}, the day after your Guest Pass ends, so you don’t lose a single day. ${omaggio}`,
-        )}
+        {t(`Il tuo abbonamento partirà il ${giorno}, il giorno dopo la fine della prova: ${vantaggio}`, `Your membership will start on ${giorno}, the day after your trial ends: ${vantaggio}`)}
       </Messaggio>
     )
   }
@@ -41,8 +38,8 @@ export function DallaProva({ inizio, quota, conData = false }: { inizio: string;
         <Text style={{ color: p.testoSecondario, fontFamily: F.medio, fontSize: 12 }}>{t('Parte il', 'Starts on')}</Text>
         <Text style={{ color: p.testo, fontFamily: F.extra, fontSize: 18, letterSpacing: -0.3 }}>{giorno}</Text>
         <Text style={{ color: p.testoSecondario, fontFamily: F.medio, fontSize: 13, lineHeight: 19 }}>
-          {t('È il giorno dopo la fine del tuo Guest Pass: la data è obbligatoria, così continui senza interruzioni. ', 'It’s the day after your Guest Pass ends: the date is mandatory, so you carry on without a break. ')}
-          {omaggio}
+          {t('Il giorno dopo la fine della prova: ', 'The day after your trial ends: ')}
+          {vantaggio}
         </Text>
       </View>
     </Carta>
