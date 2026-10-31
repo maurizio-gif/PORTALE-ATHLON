@@ -6,7 +6,6 @@ import { StyleSheet, Text, useWindowDimensions, View } from 'react-native'
 import { elencoMisure, elencoSchede, type Misura, type RigaSchedaLab, type SedutaBreve, type StatoTest } from '@/api/lab'
 import { LARGO } from '@/components/Pagina'
 import { t } from '@/lib/lingua'
-import { useLingua } from '@/lib/lingua-react'
 import { spazio } from '@/theme'
 
 import { relaxAperto, useDispositivi, type Dispositivi } from '../dispositivi/useDispositivi'
@@ -22,7 +21,6 @@ import { CartaPunteggio } from '../fit/Punteggio'
 import { AreaFood } from '../fit/Food'
 import { AreaRelax } from '../fit/Relax'
 import { IntroFit } from '../fit/Intro'
-import { VideoIntro } from '../fit/VideoIntro'
 import { CartaDatiDaCompilare } from '../fit/DatiDaCompilare'
 import { InvitoSaluteAllApertura } from '../fit/InvitoSalute'
 import { useDatiCorpo } from '../fit/useDatiCorpo'
@@ -298,7 +296,6 @@ function SchedaCarta({ s, indice }: { s: RigaSchedaLab; indice: number }) {
 
 export function Schede() {
   const { width: larghezza } = useWindowDimensions()
-  const lingua = useLingua()
   const dati = useDatiCorpo()
   const largo = larghezza >= LARGO
   const daCompilare = dati.stato === 'mancano' ? dati : null
@@ -315,12 +312,6 @@ export function Schede() {
   }, [dati.stato])
   return (
     <Schermata titolo="Athlon Health System" sottotitolo={t('Allenamento, alimentazione e recupero.', 'Training, nutrition and recovery.')}>
-      {/* In cima, il video (25/10/2026, richiesta di Maurizio): parte da solo all'apertura, comincia dalla ruota Train · Food · Relax
-          e spiega come si arriva a 100. In inglese, o se non si carica, resta la ruota (fit/VideoIntro.tsx). Sta sopra a tutto
-          e non riparte quando la carta dei dati compare o sparisce. */}
-      <Entra indice={0}>
-        <VideoIntro lingua={lingua} />
-      </Entra>
       {daCompilare ? (
         <Entra indice={0}>
           <CartaDatiDaCompilare mancano={daCompilare.mancano} senzaConsenso={daCompilare.senzaConsenso} />
@@ -332,7 +323,7 @@ export function Schede() {
 }
 
 /**
- * Tutto quello che sta sotto il video (e sotto la carta dei dati, se manca). **E' un componente a parte** perche' ha i suoi dati
+ * Tutto quello che sta sotto il titolo (e sotto la carta dei dati, se manca). **E' un componente a parte** perche' ha i suoi dati
  * (`useFit`, `useDispositivi`, le misure) e `Schede` lo rifa' da zero quando la persona inserisce i dati del corpo, cosi' li legge freschi.
  */
 function ContenutoHub({ largo, corpoInCima }: { largo: boolean; /** La carta «Da compilare» e' gia' sopra, al posto di «I tuoi dati»: non si invita due volte a fare la stessa cosa. */ corpoInCima: boolean }) {
