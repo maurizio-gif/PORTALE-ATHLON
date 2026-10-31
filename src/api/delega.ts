@@ -6,7 +6,8 @@ import { intestazioneLingua, t } from '@/lib/lingua'
 // apre si registra (nome, cognome, email, cellulare, data di nascita) e da quel momento vede e gestisce i figli come lui.
 // Due funzioni di APP-ATHLON, il contratto e' in `docs/delega-nucleo.md`:
 //   - `portale-lab-delega` (con la sessione del titolare): `stato`, `crea`, `revoca`;
-//   - `delega-invito` (pubblica, senza sessione): `leggi` e `accetta`, per la pagina /delega/<codice>.
+//   - `delega-invito` (pubblica, senza sessione): `leggi` e `accetta` (il modulo, che manda l'email) per /delega/<codice>; `conferma_leggi` e
+//     `conferma` per /delega/conferma/<token>, il link nell'email: **solo la conferma dalla propria casella abbina la persona**.
 // L'app non decide niente: chi puo' dare una delega, quanti link, la scadenza, i controlli sulle anagrafiche e cosa si scrive su
 // PerfectGym sono della funzione.
 
@@ -20,6 +21,8 @@ export type DelegaAttiva = {
 export type LinkDelega = {
   id: string
   link: string
+  /** Qualcuno ha compilato il modulo e deve ancora confermare dalla sua email: il link non e' ancora usato. */
+  in_attesa: boolean
   scade_il: string
   oggetto: string
   messaggio: string
@@ -50,6 +53,7 @@ function linkDa(d: Record<string, any> | null | undefined): LinkDelega | null {
   return {
     id: String(d.id),
     link: d.link,
+    in_attesa: d.in_attesa === true,
     scade_il: String(d.scade_il ?? ''),
     oggetto: String(d.oggetto ?? t('Ti do accesso ai miei figli su Athlon', 'I’m giving you access to my kids on Athlon')),
     messaggio: String(d.messaggio ?? d.link),
@@ -121,20 +125,40 @@ export type DatiDelegato = {
 }
 
 /**
- * Chi apre il link si registra. La funzione controlla tutto (maggiorenne, link valido e non usato, che la persona non sia gia' al club
- * con dati diversi) e, se la persona e' nuova, la crea su PerfectGym come Guest; poi la collega al titolare e ai figli.
- * `scaduto` dice che il link non vale piu' (riprovare non serve).
+ * Chi apre il link compila il modulo: **non e' ancora fatta**. La funzione ricontrolla il link e i dati (maggiorenne, privacy) e manda
+ * un'email a quell'indirizzo con il link per terminare (`/delega/conferma/<token>`). **La risposta e' sempre la stessa**, che la persona
+ * sia gia' al club o no: la pagina non deve dire chi e' iscritto. Il link della delega non si consuma qui (un errore di battitura
+ * nell'email si corregge rifacendo il modulo); si consuma alla conferma. `scaduto` dice che il link non vale piu'.
  */
-export async function accettaDelega(
+export async function richiediConfermaDelega(
   codice: string,
   d: DatiDelegato,
   privacy: boolean,
-): Promise<{ ok: true; nome: string } | { ok: false; errore: string; scaduto: boolean }> {
+): Promise<{ ok: true } | { ok: false; errore: string; scaduto: boolean }> {
   const r = await chiamaPubblica({ azione: 'accetta', codice, ...d, email: d.email.trim().toLowerCase(), privacy })
-  if (r.ok) return { ok: true, nome: String(r.dati.nome ?? d.nome) }
+  if (r.ok) return { ok: true }
   return {
     ok: false,
-    errore: r.dati.errore ?? t('Non siamo riusciti a completare adesso. Riprova fra qualche minuto.', 'We couldn’t complete this right now. Try again in a few minutes.'),
+    errore: r.dati.errore ?? t('Non siamo riusciti a mandarti l’email adesso. Riprova fra qualche minuto.', 'We couldn’t send you the email right now. Try again in a few minutes.'),
     scaduto: r.dati.scaduto === true,
   }
+}
+
+export type AnteprimaConferma = { valido: boolean; nome: string | null; delegato: string | null }
+
+/** La pagina del link nell'email: chi ti da' la delega e il tuo nome, per dire cosa stai per confermare. Non conferma niente. */
+export async function leggiConfermaDelega(token: string): Promise<AnteprimaConferma> {
+  const r = await chiamaPubblica({ azione: 'conferma_leggi', token })
+  return { valido: r.ok && r.dati.valido === true, nome: r.dati.nome ? String(r.dati.nome) : null, delegato: r.dati.delegato ? String(r.dati.delegato) : null }
+}
+
+/**
+ * Il tocco su «Conferma»: **qui** si abbina. Se la persona e' gia' al club (stessa email) la scheda che c'e' si usa com'e', senza
+ * riscriverla; se e' nuova la funzione la crea su PerfectGym come Guest. Poi la collega al titolare e ai figli. Il link della delega
+ * si consuma adesso. Un tocco e non l'apertura della pagina: i programmi che controllano i link delle email non devono confermare al posto suo.
+ */
+export async function confermaDelega(token: string): Promise<{ ok: true; nome: string } | { ok: false; errore: string }> {
+  const r = await chiamaPubblica({ azione: 'conferma', token })
+  if (r.ok) return { ok: true, nome: String(r.dati.nome ?? '') }
+  return { ok: false, errore: r.dati.errore ?? t('Non siamo riusciti a completare adesso. Riprova fra qualche minuto.', 'We couldn’t complete this right now. Try again in a few minutes.') }
 }

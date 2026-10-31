@@ -2,7 +2,7 @@ import { router } from 'expo-router'
 import { useEffect, useState } from 'react'
 import { Linking, Text } from 'react-native'
 
-import { accettaDelega, leggiInvitoDelega, type InvitoDelega } from '@/api/delega'
+import { leggiInvitoDelega, richiediConfermaDelega, type InvitoDelega } from '@/api/delega'
 import { emailValida } from '@/api/richieste'
 import { Avviso } from '@/components/Avviso'
 import { Bottone } from '@/components/Bottone'
@@ -23,9 +23,10 @@ import { maggiorenne, mancanti } from './regole'
 // /invito/<codice>: chi lo apre scrive nome, cognome, email, cellulare e data di nascita, accetta la privacy e basta. **Niente
 // password e niente codice fiscale**: la persona entra poi nell'app con la sua email, come tutti.
 //
-// Cosa succede lo fa `delega-invito` (APP-ATHLON, `docs/delega-nucleo.md`): ricontrolla che il link valga e non sia stato usato, che
-// la persona sia maggiorenne e che non sia gia' al club con dati diversi; se e' nuova la crea su PerfectGym come Guest; poi la collega
-// al titolare e ai figli. **Dai figli non si mostra niente prima di accettare** (nemmeno i nomi): il link e' un segreto, ma chi lo
+// **Il modulo non abbina nessuno**: manda un'email con il link per terminare (`ConfermaDelega`, /delega/conferma/<token>) e dice
+// «controlla la tua email», sempre allo stesso modo. Solo la conferma dalla propria casella collega la persona (se e' gia' al club si
+// usa la sua scheda, se e' nuova la crea `delega-invito` su PerfectGym come Guest; poi la collega al titolare e ai figli). Cosi' un
+// indirizzo scritto a caso non crea niente e non tocca la scheda di nessuno (APP-ATHLON, `docs/delega-nucleo.md`). **Dai figli non si mostra niente prima di accettare** (nemmeno i nomi): il link e' un segreto, ma chi lo
 // gira a un altro non deve regalare i nomi di due bambini. Si dice solo chi da' la delega e quanti figli sono.
 
 const PRIVACY =
@@ -43,7 +44,7 @@ export function AccettaDelega({ codice }: { codice: string }) {
   const [errore, setErrore] = useState<string | null>(null)
   const [scaduto, setScaduto] = useState(false)
   const [attesa, setAttesa] = useState(false)
-  const [fatto, setFatto] = useState<string | null>(null)
+  const [inviata, setInviata] = useState(false)
 
   useEffect(() => {
     let vivo = true
@@ -66,32 +67,32 @@ export function AccettaDelega({ codice }: { codice: string }) {
     if (minorenne) return setErrore(t('Per avere accesso ai figli di un altro serve essere maggiorenni.', 'You must be an adult to get access to someone else’s children.'))
     if (!privacy) return setErrore(t('Serve il consenso al trattamento dei dati.', 'You need to consent to data processing.'))
     setAttesa(true)
-    const r = await accettaDelega(codice, { ...d, nome: d.nome.trim(), cognome: d.cognome.trim() }, privacy)
+    const r = await richiediConfermaDelega(codice, { ...d, nome: d.nome.trim(), cognome: d.cognome.trim() }, privacy)
     setAttesa(false)
     if (!r.ok) {
       setScaduto(r.scaduto)
       return setErrore(r.errore)
     }
-    setFatto(r.nome)
+    setInviata(true)
   }
 
   if (invito === undefined) return <InCaricamento testo={t('Stiamo aprendo il tuo invito…', 'We’re opening your invitation…')} />
 
-  if (fatto) {
+  if (inviata) {
     return (
       <Pagina
-        titolo={t(`Fatto, ${fatto}`, `Done, ${fatto}`)}
-        sottotitolo={t('Ora puoi vedere e gestire i figli di chi ti ha invitato.', 'You can now see and manage the children of the person who invited you.')}
+        titolo={t('Controlla la tua email', 'Check your email')}
+        sottotitolo={t(`Abbiamo mandato un link a ${d.email.trim().toLowerCase()}: toccalo per completare.`, `We’ve sent a link to ${d.email.trim().toLowerCase()}: tap it to finish.`)}
         indietro={false}
       >
         <Testo>
           {t(
-            `Entra nell’app con ${d.email.trim().toLowerCase()}: ti mandiamo il codice per accedere. Trovi i bambini nella sezione Famiglia della Home e puoi prenotare, disdire e pagare per loro.`,
-            `Sign in to the app with ${d.email.trim().toLowerCase()}: we’ll send you the code to get in. You’ll find the children in the Family section of the Home screen and you can book, cancel and pay for them.`,
+            'Serve a essere sicuri che l’email sia tua. Quando tocchi «Conferma» nel link ti colleghiamo ai bambini: se sei già iscritto al club useremo la tua scheda, altrimenti la creiamo noi.',
+            'This is to make sure the email is yours. When you tap “Confirm” in the link we link you to the children: if you’re already a club member we’ll use your existing profile, otherwise we’ll create one.',
           )}
         </Testo>
-        <Testo variante="attenuato">{t('Se i bambini non compaiono subito, riprova fra qualche minuto: il club aggiorna i dati ogni poco.', 'If the children don’t show up right away, try again in a few minutes: the club updates its data regularly.')}</Testo>
-        <Bottone testo={t('Entra nell’app', 'Open the app')} onPress={() => router.replace('/')} />
+        <Testo variante="attenuato">{t('Non lo trovi? Guarda nella posta indesiderata. Il link vale 24 ore. Finché non lo tocchi non succede niente.', 'Can’t find it? Check your spam folder. The link is valid for 24 hours. Nothing happens until you tap it.')}</Testo>
+        <Bottone testo={t('Ho sbagliato email', 'I used the wrong email')} variante="contorno" onPress={() => setInviata(false)} />
       </Pagina>
     )
   }
@@ -131,7 +132,7 @@ export function AccettaDelega({ codice }: { codice: string }) {
       </Text>
       {errore ? <Avviso>{errore}</Avviso> : null}
       {scaduto ? <Testo variante="attenuato">{t('Chiedi a chi te l’ha mandato di crearne uno nuovo.', 'Ask the person who sent it to create a new one.')}</Testo> : null}
-      <Bottone testo={t('Accetta e registrati', 'Accept and sign up')} onPress={manda} inCorso={attesa} disabilitato={scaduto || vuoti.length > 0 || minorenne || !privacy} />
+      <Bottone testo={t('Continua', 'Continue')} onPress={manda} inCorso={attesa} disabilitato={scaduto || vuoti.length > 0 || minorenne || !privacy} />
     </Pagina>
   )
 }

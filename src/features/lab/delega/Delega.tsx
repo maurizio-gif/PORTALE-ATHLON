@@ -167,6 +167,9 @@ export function Delega() {
               ) : null}
             </View>
             <Pulsante testo={t('Copia il link', 'Copy the link')} icona="copia" variante="contorno" onPress={() => premi('copia')} inCorso={canale === 'copia'} />
+            {stato.aperto.in_attesa ? (
+              <Messaggio tono="attenzione">{t('Qualcuno ha già compilato il modulo: deve solo confermare dal link che gli arriva per email. Il link resta valido finché non lo fa.', 'Someone has already filled in the form: they just need to confirm from the link sent to their email. The link stays valid until they do.')}</Messaggio>
+            ) : null}
             <Text style={[stili.piccolo, { color: p.testoTerzo }]}>
               {t(`Vale per una persona sola${stato.aperto.scade_il ? ` e fino al ${giorno(stato.aperto.scade_il)}` : ''}. Mandalo solo a chi ti fidi: chi lo apre potrà vedere i tuoi figli.`, `It works for one person only${stato.aperto.scade_il ? ` and until ${giorno(stato.aperto.scade_il)}` : ''}. Only send it to someone you trust: whoever opens it will be able to see your children.`)}
             </Text>
@@ -210,12 +213,12 @@ export function Delega() {
           {tv([
             'Crei il link e lo mandi alla persona: un genitore, un nonno, chi accompagna i tuoi figli.',
             'Lei lo apre dal telefono e scrive nome, cognome, email, cellulare e data di nascita. Deve essere maggiorenne.',
-            `Se non è già al club, la registriamo noi. Poi la colleghiamo a te e ai tuoi figli. Il link funziona per una persona sola e per ${stato.giorni} giorni.`,
+            `Le mandiamo un’email con un link per confermare: serve a essere sicuri che l’indirizzo sia suo. Se è già iscritta al club la colleghiamo con la sua scheda, altrimenti la registriamo noi. Il link che mandi tu funziona per una persona sola e per ${stato.giorni} giorni.`,
             'Entra nell’app con la sua email e vede i tuoi figli: li vede e può prenotare, disdire e pagare per loro, come te. Tu puoi togliere l’accesso quando vuoi.',
           ], [
             'You create the link and send it to the person: a parent, a grandparent, whoever takes your children to the club.',
             'They open it on their phone and enter first name, last name, email, mobile and date of birth. They must be an adult.',
-            `If they’re not already at the club, we register them. Then we link them to you and to your children. The link works for one person only and for ${stato.giorni} days.`,
+            `We email them a link to confirm: it makes sure the address is really theirs. If they’re already a club member we link their existing profile, otherwise we register them. The link you send works for one person only and for ${stato.giorni} days.`,
             'They sign in to the app with their email and see your children: they can book, cancel and pay for them, just like you. You can remove their access whenever you like.',
           ]).map((x, i) => (
             <View key={i} style={stili.punto}>

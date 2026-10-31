@@ -2,8 +2,11 @@
 
 Richiesta di Maurizio: in **Home › Famiglia** e in **Junior**, «Aggiungi un componente» offre due strade: **un figlio** (com'era, con il controllo di
 duplicazione e il blocco con evidenza nel CRM) e **un altro adulto**, a cui il titolare dà la **delega a vedere e agire** sui figli. Funziona come il referral:
-il titolare genera un link e lo manda (WhatsApp, SMS, email, copia); chi lo apre si registra con nome, cognome, email, cellulare e data di nascita, e viene
-collegato come *spouse* al titolare e come *parent* ai bambini (creato su PerfectGym come Guest se nuovo).
+il titolare genera un link e lo manda (WhatsApp, SMS, email, copia); chi lo apre compila nome, cognome, email, cellulare e data di nascita, **conferma dalla sua email**,
+e viene collegato come *spouse* al titolare e come *parent* ai bambini (creato su PerfectGym come Guest se nuovo; **se esiste già si usa la sua scheda e basta**).
+
+**Aggiornamento (31/10/2026, seconda richiesta di Maurizio):** (1) se il genitore invitato **esiste già** al club, non si blocca niente: si conferma e si abbina; (2) il modulo **non abbina nessuno**,
+manda un'email con un link per terminare la procedura. Le due cose si tengono: l'email verificata è ciò che rende sicuro abbinare una scheda esistente.
 
 **Questo file è il contratto che l'app (PORTALE-ATHLON) già usa. Il lato server (APP-ATHLON) non è scritto.** Finché le due funzioni non rispondono, la
 schermata `/delega` dice «non è ancora attiva» (404) e la pagina `/delega/<codice>` dice che il link non è valido: niente si rompe, ma nemmeno funziona.
@@ -59,7 +62,7 @@ POST { azione: 'stato' }
        massimo: 2,                          // deleghe attive insieme (scelta nostra, da confermare)
        giorni: 7,                           // validità del link
        attive: [{ id, nome: 'Laura R.', dal: 'AAAA-MM-GG' }],
-       aperto: null | { id, link, scade_il, oggetto, messaggio } }
+       aperto: null | { id, link, in_attesa, scade_il, oggetto, messaggio } }   // `in_attesa`: qualcuno ha compilato il modulo e non ha ancora confermato
 
 POST { azione: 'crea' }
   <- { ok, id, link, scade_il, oggetto, messaggio }      // un link nuovo; se ce n'era uno aperto lo revoca: ne esiste uno solo
@@ -77,33 +80,61 @@ POST { azione: 'revoca', id, cosa: 'link' | 'delega' }
 
 ## `delega-invito` (pubblica, senza sessione)
 
+Due tempi: **il modulo** (che manda l'email) e **la conferma** (che abbina).
+
 ```
 POST { azione: 'leggi', codice }
   <- { ok, valido: true, nome: 'Marco', figli: 2 } | { ok, valido: false }     // solo il primo nome di chi invita e quanti figli: MAI i nomi dei bambini
 
 POST { azione: 'accetta', codice, nome, cognome, email, telefono: '+39…', nascita: 'AAAA-MM-GG', privacy: true }
-  <- { ok: true, nome }
-   | { ok: false, errore, scaduto?: true }                                      // `scaduto`: link usato o scaduto, riprovare non serve
+  <- { ok: true }                                                              // SEMPRE la stessa risposta: l'email e' partita (o no), senza dire se la persona e' gia' al club
+   | { ok: false, errore, scaduto?: true }                                      // `scaduto`: link della delega usato, scaduto o revocato
+
+POST { azione: 'conferma_leggi', token }                                       // la pagina del link nell'email: non conferma niente
+  <- { ok, valido: true, nome: 'Marco', delegato: 'Laura' } | { ok, valido: false }
+
+POST { azione: 'conferma', token }                                             // il tocco su «Conferma»: QUI si abbina
+  <- { ok: true, nome: 'Laura' } | { ok: false, errore }
 ```
 
-**Controlli** (come `aggiungi` di `portale-lab-junior`, con le stesse parole di blocco):
+### Il modulo (`accetta`)
 
-1. **Il link** esiste, non è scaduto né usato né revocato. Si **consuma nella stessa transazione** (due richieste insieme: una sola vince).
-2. **Maggiorenne** (`anniAl(nascita, oggi) >= 18`); email valida; telefono; `privacy` vera (consenso 23 di PerfectGym).
-3. **Duplicazione**, con il blocco per email contro la corsa (`conBlocco`, `chiavePersona`, migrazione `20261031k`):
-   - email **già di una persona al club**: se nome, cognome e data di nascita **coincidono**, la si usa (nessuna scheda nuova); **se non coincidono** si blocca con
-     «C'è già una scheda con questa email: passa in segreteria» e la riga `delega_rifiutata` (motivo `email_gia_al_club`) **compare nella Dashboard del CRM** come per i figli (`componente_rifiutato`);
-   - stessa persona per nome, cognome e data di nascita ma con un'altra email: stesso blocco (motivo `gia_al_club`);
-   - **mai** dire di chi è la scheda trovata.
-   - Se PerfectGym non risponde non si crea niente.
-4. **Anti-abuso**: pochi tentativi al giorno per IP e per link (un link sbagliato non deve poter essere indovinato: 8 caratteri su 31 simboli bastano, ma si limita comunque).
-5. **Il delegato non è il titolare** né un figlio del nucleo.
+1. **Il link** esiste, non è scaduto né usato né revocato. **Non si consuma qui**: un errore di battitura nell'email si corregge rifacendo il modulo (la richiesta in sospeso si **sostituisce**).
+2. **Maggiorenne** (`anniAl(nascita, oggi) >= 18`), email valida, telefono, `privacy` vera. L'app lo controlla prima; il server **ricontrolla**.
+3. Salva i dati in `delega_richieste` (vedi sotto) con un **token** nuovo (valido **24 ore**, uso unico) e **manda l'email** a quell'indirizzo con il link
+   `https://app.athlonroma.it/delega/conferma/<token>`. L'invio come per il Guest Pass (vista in `*_da_mandare` + workflow n8n, o direttamente con SendGrid): da scegliere in APP-ATHLON.
+4. **Risposta sempre uguale**, esista o no la scheda: la pagina non deve diventare il modo di sapere chi è iscritto al club. Niente PerfectGym in questo passo: **non si crea e non si cerca niente**.
+5. **Anti-abuso**: pochi moduli al giorno per link e per IP, e un solo invio di email ogni minuto per indirizzo (qualcuno non deve poter riempire una casella altrui).
 
-**Poi, in ordine**: crea il Guest su PerfectGym se nuovo (`creaGuest`, `marketing: false`, niente `parentMemberId`); aggiunge la delega (`nucleo_deleghe`: titolare, delegato, figli **di quel momento**); aggiunge l'email ai
-tester; rilegge nel mirror (`rileggiNelMirror`); scrive `delega_accettata`; **manda un'email al titolare** («Laura R. ha accettato: ora vede i tuoi figli. Se non la conosci, togli l'accesso
-dall'app»); e crea il **compito per la segreteria** (Dashboard/Agenda) con titolare, delegato, figli e cosa scrivere su PerfectGym.
+### La conferma (`conferma`)
 
-**Figli aggiunti dopo.** La delega vale per i figli del titolare **al momento dell'accettazione e per quelli aggiunti dopo** (decisione da confermare: l'alternativa è chiedere di nuovo).
+Il token è valido, non usato, non scaduto, e il link della delega è ancora valido. **Poi, nell'ordine**, dentro il blocco per email (`conBlocco`, `chiavePersona`, migrazione `20261031k`):
+
+1. **Cerca la persona** su PerfectGym **per email** (dal vivo, non dal mirror, che può essere indietro; se PerfectGym non risponde non si fa niente e si può riprovare).
+   - **Esiste → si abbina e basta**, con la sua scheda **così com'è**: **mai riscrivere** nome, cognome, data o cellulare con quello che ha scritto nel modulo. Se i dati del modulo
+     sono diversi da quelli della scheda (nome o data di nascita) si abbina lo stesso e si **segnala nel compito per la segreteria** («scheda esistente: PerfectGym dice X, il modulo Y»).
+   - **Non esiste → si crea** su PerfectGym come Guest (`creaGuest`, `marketing: false`, niente `parentMemberId`), con i dati del modulo. **Si cerca solo per email**: il modulo non ha il codice fiscale, e un'omonimia con un'altra
+     email non si rileva (la verifica della casella è la garanzia). Il rischio è una seconda scheda per la stessa persona con un'altra email: la segreteria la vede nel compito.
+2. **Pochi casi in cui non si abbina**, con un messaggio che non dice di chi è la scheda e la riga `delega_rifiutata` (motivo, id) nella Dashboard del CRM come per i figli:
+   - la scheda trovata **è minorenne** (nella scheda, non nel modulo);
+   - è **il titolare stesso** o **uno dei suoi figli**;
+   - è **già delegato** di quel titolare (non è un errore: si risponde ok senza ripetere niente).
+3. **Abbina**: scrive la delega (`nucleo_deleghe`: titolare, delegato, figli **di quel momento**, stato attivo), aggiunge l'email ai tester, rilegge nel mirror (`rileggiNelMirror`), **consuma il link della delega**
+   e il token, scrive `delega_accettata`, **manda un'email al titolare** («Laura R. ha accettato: ora vede i tuoi figli. Se non la conosci, togli l'accesso dall'app») e crea il **compito per la segreteria**
+   (relazione da scrivere a mano su PerfectGym: vedi sopra).
+4. La conferma è **idempotente**: un secondo tocco sullo stesso token dà un messaggio di link già usato, ma non duplica né la delega né la scheda.
+
+**Perché la conferma è un tocco e non l'apertura del link**: i programmi che controllano i link delle email (antivirus, anteprime) li aprono. La pagina non fa nessuna scrittura al caricamento: `conferma_leggi` legge, `conferma` parte solo dal pulsante.
+
+**Perché l'email verificata basta a rendere sicuro abbinare una scheda esistente**: l'accesso al portale è con l'email (codice monouso). Chi riceve il link nella casella è chi può entrare con quella email: abbinare quella scheda ai figli
+non dà accesso a nessun altro. Senza la verifica, un indirizzo scritto a caso collegherebbe ai bambini una persona che non ha mai dato il consenso.
+
+**Figli aggiunti dopo.** La delega vale per i figli del titolare **al momento della conferma e per quelli aggiunti dopo** (decisione da confermare: l'alternativa è chiedere di nuovo).
+
+### Tabella `delega_richieste`
+
+`id`, `delega_id` (il link del titolare), `token_hash` (**solo l'hash**, come i link di `portale-link`), `nome`, `cognome`, `email`, `telefono`, `nascita`, `privacy_il`, `creata_il`, `scade_il` (+24 h),
+`email_il`, `confermata_il`, `ip_hash`. Solo `service_role`, nessuna policy. Si cancellano i dati personali alla conferma o alla scadenza (restano id e date nel registro).
 
 ## CRM (APP-ATHLON, `app/`)
 
@@ -116,7 +147,8 @@ dall'app»); e crea il **compito per la segreteria** (Dashboard/Agenda) con tito
 - `src/api/delega.ts`: il client delle due funzioni.
 - `src/features/lab/famiglia/AggiungiComponente.tsx`: il pulsante e la scelta «Un figlio» / «Un altro adulto», usato da **Home › Famiglia** (`SezioneFamiglia`) e da **Junior**. Mai in vista cliente.
 - `src/features/lab/delega/Delega.tsx`, rotta `/delega`: link, WhatsApp / email / SMS / copia (`invita/condividi.ts`, lo stesso del referral), chi ha accesso con «Togli», conferme.
-- `src/features/delega/AccettaDelega.tsx`, rotta pubblica `/delega/<codice>`: il modulo (nome, cognome, email, cellulare, data di nascita, privacy). **Niente codice fiscale né password.**
+- `src/features/delega/AccettaDelega.tsx`, rotta pubblica `/delega/<codice>`: il modulo (nome, cognome, email, cellulare, data di nascita, privacy). **Niente codice fiscale né password.** Finisce con «Controlla la tua email» (nessuno è abbinato).
+- `src/features/delega/ConfermaDelega.tsx`, rotta pubblica `/delega/conferma/<token>` (il link nell'email): dice chi dà la delega e chiede un tocco su «Conferma»; **la pagina non conferma da sola**.
 - Con la funzione assente l'app non mostra errori strani: 404 → «non è ancora attiva», link non valido → «Questo link non è più valido».
 
 ## Provato / non provato
