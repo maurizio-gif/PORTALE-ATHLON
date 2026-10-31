@@ -6,7 +6,6 @@ import { StyleSheet, Text, useWindowDimensions, View } from 'react-native'
 import { elencoMisure, elencoSchede, type Misura, type RigaSchedaLab, type SedutaBreve, type StatoTest } from '@/api/lab'
 import { LARGO } from '@/components/Pagina'
 import { t } from '@/lib/lingua'
-import { useLingua } from '@/lib/lingua-react'
 import { spazio } from '@/theme'
 
 import { relaxAperto, useDispositivi, type Dispositivi } from '../dispositivi/useDispositivi'
@@ -17,11 +16,11 @@ import { AggiungiAllenamento } from '../fit/AggiungiAllenamento'
 import { CartaMovimento } from '../fit/CartaMovimento'
 import { CartaDispositivi } from '../fit/CartaDispositivi'
 import { CartaMese } from '../fit/Mese'
+import { CartaSettimana } from '../fit/Settimana'
 import { CartaPunteggio } from '../fit/Punteggio'
 import { AreaFood } from '../fit/Food'
 import { AreaRelax } from '../fit/Relax'
 import { IntroFit } from '../fit/Intro'
-import { VideoIntro } from '../fit/VideoIntro'
 import { CartaDatiDaCompilare } from '../fit/DatiDaCompilare'
 import { InvitoSaluteAllApertura } from '../fit/InvitoSalute'
 import { useDatiCorpo } from '../fit/useDatiCorpo'
@@ -56,7 +55,7 @@ import { eDiVasca, ETICHETTA_VASCA } from './nuoto'
 //     maggiorenni** (20/10/2026): il sonno a mano non ha bisogno di un dispositivo; i dispositivi sono un modo in piu'.
 // **I dati del corpo da compilare** (29/10/2026, richiesta di Maurizio): altezza, peso e sesso. **Non bloccano la sezione** (prima la chiudevano:
 // si e' scelto il blocco morbido, perche' tutto l'uso della sezione non puo' dipendere dal consenso a dati sulla salute e il resto non li usa).
-// Finche' mancano, subito sotto il video c'e' la carta «Da compilare» (`fit/DatiDaCompilare.tsx`), e calorie e Balance restano chiusi (lo dicono
+// Finche' mancano, subito sotto il titolo c'e' la carta «Da compilare» (`fit/DatiDaCompilare.tsx`), e calorie e Balance restano chiusi (lo dicono
 // loro). `useDatiCorpo` rilegge a ogni ritorno sulla schermata: inseriti i dati, la carta sparisce e il contenuto si rifa' coi dati freschi.
 // **L'invito a collegare l'app Salute** compare all'apertura, una volta sola per dispositivo (`fit/InvitoSalute.tsx`); se la persona lo salta,
 // resta in evidenza la carta «Da attivare» (`fit/CartaDispositivi.tsx`).
@@ -297,7 +296,6 @@ function SchedaCarta({ s, indice }: { s: RigaSchedaLab; indice: number }) {
 
 export function Schede() {
   const { width: larghezza } = useWindowDimensions()
-  const lingua = useLingua()
   const dati = useDatiCorpo()
   const largo = larghezza >= LARGO
   const daCompilare = dati.stato === 'mancano' ? dati : null
@@ -314,12 +312,6 @@ export function Schede() {
   }, [dati.stato])
   return (
     <Schermata titolo="Athlon Health System" sottotitolo={t('Allenamento, alimentazione e recupero.', 'Training, nutrition and recovery.')}>
-      {/* In cima, il video (25/10/2026, richiesta di Maurizio): parte da solo all'apertura, comincia dalla ruota Train · Food · Relax
-          e spiega come si arriva a 100. In inglese, o se non si carica, resta la ruota (fit/VideoIntro.tsx). Sta sopra a tutto
-          e non riparte quando la carta dei dati compare o sparisce. */}
-      <Entra indice={0}>
-        <VideoIntro lingua={lingua} />
-      </Entra>
       {daCompilare ? (
         <Entra indice={0}>
           <CartaDatiDaCompilare mancano={daCompilare.mancano} senzaConsenso={daCompilare.senzaConsenso} />
@@ -331,7 +323,7 @@ export function Schede() {
 }
 
 /**
- * Tutto quello che sta sotto il video (e sotto la carta dei dati, se manca). **E' un componente a parte** perche' ha i suoi dati
+ * Tutto quello che sta sotto il titolo (e sotto la carta dei dati, se manca). **E' un componente a parte** perche' ha i suoi dati
  * (`useFit`, `useDispositivi`, le misure) e `Schede` lo rifa' da zero quando la persona inserisce i dati del corpo, cosi' li legge freschi.
  */
 function ContenutoHub({ largo, corpoInCima }: { largo: boolean; /** La carta «Da compilare» e' gia' sopra, al posto di «I tuoi dati»: non si invita due volte a fare la stessa cosa. */ corpoInCima: boolean }) {
@@ -374,6 +366,7 @@ function ContenutoHub({ largo, corpoInCima }: { largo: boolean; /** La carta «D
         <CartaPunteggio fit={fit} disp={disp} />
       </Entra>
       {/* «Il tuo mese in Athlon» (30/10/2026): compare solo quando c'e' un mese da mostrare, e subito sotto il punteggio. */}
+      <CartaSettimana />
       <CartaMese />
       {/* «Le tue abitudini» (31/10/2026): camminare, muoversi e dormire, che si spuntano da sole con Apple Salute o Health Connect. Dove non
           sono collegati (PWA, browser) la carta spinge a installare l'app e a collegarli; dove lo sono mostra i risultati. */}

@@ -22,13 +22,13 @@ function scarica(blob: Blob, nome: string) {
   setTimeout(() => URL.revokeObjectURL(url), 10_000)
 }
 
-export async function condividiMese(r: RiepilogoMese, soloScarica = false): Promise<EsitoCondivisione> {
+/** Condivide (o scarica) un'immagine con il suo testo, nel modo che la piattaforma sa fare. Non solleva mai. Serve a tutte le schede condivisibili. */
+export async function condividiImmagine(crea: () => Promise<Blob | null>, nome: string, testo: string, soloScarica = false): Promise<EsitoCondivisione> {
   try {
-    const testo = testoCondivisione(r)
     if (immagineDisponibile()) {
-      const blob = await immagineMese(r)
+      const blob = await crea()
       if (!blob) return 'errore'
-      const file = new File([blob], nomeFile(r), { type: 'image/png' })
+      const file = new File([blob], nome, { type: 'image/png' })
       const nav = navigator as Navigator & { canShare?: (d: ShareData) => boolean }
       if (!soloScarica && typeof nav.share === 'function' && nav.canShare?.({ files: [file] })) {
         try {
@@ -39,7 +39,7 @@ export async function condividiMese(r: RiepilogoMese, soloScarica = false): Prom
           // Il foglio non si e' aperto: si scarica il file.
         }
       }
-      scarica(blob, nomeFile(r))
+      scarica(blob, nome)
       return 'scaricato'
     }
     const esito = await Share.share({ message: testo })
@@ -48,3 +48,6 @@ export async function condividiMese(r: RiepilogoMese, soloScarica = false): Prom
     return 'errore'
   }
 }
+
+export const condividiMese = (r: RiepilogoMese, soloScarica = false): Promise<EsitoCondivisione> =>
+  condividiImmagine(() => immagineMese(r), nomeFile(r), testoCondivisione(r), soloScarica)
