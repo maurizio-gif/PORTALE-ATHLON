@@ -490,7 +490,7 @@ export function AreaRiservata({ email }: { email: string }) {
         {sezione === 'prodotti' ? <SezioneProdotti /> : null}
         {sezione === 'documenti' ? <SezioneDocumenti /> : null}
         {sezione === 'certificato' ? <SezioneCertificato area={area} onAggiorna={carica} /> : null}
-        {sezione === 'famiglia' ? <SezioneFamiglia area={area} /> : null}
+        {sezione === 'famiglia' ? <SezioneFamiglia area={area} onAggiorna={carica} /> : null}
         {sezione === 'profilo' ? <ProfiloContenuto onAnagrafica={aggiornaAnagrafica} /> : null}
         {sezione === 'tesseramento' && tesseramenti ? <SezioneTesseramento tessere={tesseramenti} /> : null}
       </Entra>

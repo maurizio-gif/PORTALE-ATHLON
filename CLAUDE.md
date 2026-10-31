@@ -1916,3 +1916,23 @@ Il pulsante «Vedi come cliente» del CRM apre ora `/?come=<email cliente>#th=<t
 ## «Cambia abbonamento»: nessun modulo, solo la procedura (31/10/2026)
 
 Richiesta di Maurizio. Nella finestra del cambio (`Gestisci.tsx`, `apriCambio`) il pulsante chiede `cambio_stato` a `portale-abbonamento`: se il cambio è possibile apre `/abbonamento?cambio=<contratto>` (data fissa, metodo di pagamento, contratto e firma, poi il vecchio si chiude e il nuovo parte il giorno dopo); **se non lo è mostra il motivo che dà il server** («C'è già un abbonamento in coda…», «Il termine per il cambio è passato…») **e non ricade più sul modulo per la segreteria** (era il ripiego quando la funzione non era aperta). I passi `c1`/`cEsito` del foglio e l'invio con `richiediUpgrade` per il cambio sono stati tolti. **L'upgrade** (fuori dalla finestra) resta com'era, con la richiesta alla segreteria. Lato server e ordine delle scritture: `CLAUDE.md` di APP-ATHLON, stessa data. **Pubblicare prima `portale-abbonamento`.** `tsc` senza nomi non definiti nel file toccato; **non guardato in un browser**, e il cambio vero non è mai stato provato con PerfectGym.
+
+## «Aggiungi un componente» in Famiglia e in Junior, e la delega sui figli a un altro adulto (31/10/2026)
+
+Richiesta di Maurizio. Contratto completo, scelte da prendere e cosa deve fare il server: **`docs/delega-nucleo.md`**. **Il lato server non è scritto** (APP-ATHLON): l'app è pronta e, finché le funzioni
+`portale-lab-delega` e `delega-invito` non rispondono, dice «non è ancora attiva». **Pubblicare prima il server, poi l'app.**
+
+- **Un solo pulsante, due strade** (`lab/famiglia/AggiungiComponente.tsx`): lo stesso in **Home › Famiglia** (`SezioneFamiglia`, in fondo) e in **Junior** (dove c'era già, e ora è questo). Il foglio «Chi vuoi
+  aggiungere?» offre **«Un figlio»** (`FoglioComponente`, **com'era**: dati per intero, dichiarazione di genitore o tutore, controllo che non sia già al club con il messaggio di blocco e la riga nella Dashboard del
+  CRM) e **«Un altro adulto»** (porta a `/delega`). Mai in vista cliente. Dopo un figlio aggiunto dalla Home si buttano `area` e `junior:gruppi` e si rilegge.
+- **La delega** (`lab/delega/Delega.tsx`, `/delega`, `api/delega.ts`): il titolare crea un link (`crea`), lo manda da WhatsApp, email, SMS o lo copia (`invita/condividi.ts`, lo stesso del referral), vede chi ha
+  accesso e lo toglie («Togli», con conferma; anche il link aperto si annulla). **A differenza del referral il link è per una persona sola e scade** (la funzione dice quanti giorni): dà accesso a dei bambini, e un
+  codice fisso e riusabile sarebbe un rischio. Un link aperto per volta. Chi può dare la delega (titolare maggiorenne con un figlio minorenne), quante ne può avere (`massimo`) e il testo del messaggio **li decide la funzione**.
+- **La pagina pubblica** (`features/delega/AccettaDelega.tsx`, `/delega/<codice>`, senza accesso e senza la cornice dell'app, come `/invito/<codice>`): nome, cognome, email, cellulare (tendina del prefisso), data
+  di nascita, consenso privacy. Maggiorenne (`regole.ts`, puro). **Niente codice fiscale né password**: dopo si entra nell'app con l'email. **Prima di accettare non si mostrano i nomi dei figli** (solo chi invita e quanti
+  sono). Se il link non vale più, la pagina lo dice e rimanda a chi l'ha mandato.
+- **⚠️ PerfectGym non permette di scrivere le relazioni** fra schede esistenti (nel file `perfectgym_api_v2.2.json` c'è solo la lettura di `MemberRelations`; il solo modo è `parentMemberId` in `AddGuestMember`, alla nascita di
+  un figlio), e **il portale ricava il nucleo da quelle relazioni** (`metodo_nucleo_da_email`: `FamilyChild` e `LegalGuardian`, il coniuge escluso di proposito). Il «spouse al titolare e parent ai bambini» chiesto **non si può
+  fare via API**: il documento propone tre strade, **la consigliata è tenere la delega nel nostro database (unita al nucleo) e mandare alla segreteria un compito per scrivere la relazione a mano su PerfectGym**. Va deciso con Maurizio prima del server.
+- **Provato**: `tsc` pulito; regole pure con `node --experimental-strip-types`; in Chromium (bundle web esportato, funzioni simulate con `page.route`, 390 e 1280 px) la pagina pubblica e la schermata del titolare
+  (vedi il documento). **Non provato**: le funzioni vere (non esistono), PerfectGym, il foglio di scelta dentro Home › Famiglia e Junior (non guardato renderizzato), un telefono, l'app nativa, tema scuro e inglese a schermo.
