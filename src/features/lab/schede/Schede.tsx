@@ -17,6 +17,7 @@ import { AggiungiAllenamento } from '../fit/AggiungiAllenamento'
 import { CartaMovimento } from '../fit/CartaMovimento'
 import { CartaDispositivi } from '../fit/CartaDispositivi'
 import { CartaMese } from '../fit/Mese'
+import { CartaSettimana } from '../fit/Settimana'
 import { CartaPunteggio } from '../fit/Punteggio'
 import { AreaFood } from '../fit/Food'
 import { AreaRelax } from '../fit/Relax'
@@ -374,6 +375,7 @@ function ContenutoHub({ largo, corpoInCima }: { largo: boolean; /** La carta «D
         <CartaPunteggio fit={fit} disp={disp} />
       </Entra>
       {/* «Il tuo mese in Athlon» (30/10/2026): compare solo quando c'e' un mese da mostrare, e subito sotto il punteggio. */}
+      <CartaSettimana />
       <CartaMese />
       {/* «Le tue abitudini» (31/10/2026): camminare, muoversi e dormire, che si spuntano da sole con Apple Salute o Health Connect. Dove non
           sono collegati (PWA, browser) la carta spinge a installare l'app e a collegarli; dove lo sono mostra i risultati. */}
