@@ -55,7 +55,7 @@ import { eDiVasca, ETICHETTA_VASCA } from './nuoto'
 //     maggiorenni** (20/10/2026): il sonno a mano non ha bisogno di un dispositivo; i dispositivi sono un modo in piu'.
 // **I dati del corpo da compilare** (29/10/2026, richiesta di Maurizio): altezza, peso e sesso. **Non bloccano la sezione** (prima la chiudevano:
 // si e' scelto il blocco morbido, perche' tutto l'uso della sezione non puo' dipendere dal consenso a dati sulla salute e il resto non li usa).
-// Finche' mancano, subito sotto il video c'e' la carta «Da compilare» (`fit/DatiDaCompilare.tsx`), e calorie e Balance restano chiusi (lo dicono
+// Finche' mancano, subito sotto il titolo c'e' la carta «Da compilare» (`fit/DatiDaCompilare.tsx`), e calorie e Balance restano chiusi (lo dicono
 // loro). `useDatiCorpo` rilegge a ogni ritorno sulla schermata: inseriti i dati, la carta sparisce e il contenuto si rifa' coi dati freschi.
 // **L'invito a collegare l'app Salute** compare all'apertura, una volta sola per dispositivo (`fit/InvitoSalute.tsx`); se la persona lo salta,
 // resta in evidenza la carta «Da attivare» (`fit/CartaDispositivi.tsx`).
