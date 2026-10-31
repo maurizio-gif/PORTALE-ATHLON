@@ -44,7 +44,7 @@ export function CartaMovimento({ disp }: { disp: Dispositivi }) {
                 <Text style={[stili.nome, { color: p.testo }]}>{nomeSport(a.sport)}</Text>
                 <Text style={[stili.piccola, { color: p.testoSecondario }]}>{`${quando(a.inizio, oggi, ieri)} · ${pezzi.join(' · ')}`}</Text>
               </View>
-              <Text style={[stili.piccola, { color: p.testoTerzo }]}>{nomeFonte(a.origine) ?? (a.fornitore === 'manuale' ? t('Scritto da te', 'Logged by you') : a.fornitore === 'apple_salute' ? t('Apple Salute', 'Apple Health') : a.fornitore === 'oura' ? 'Oura' : 'Polar')}</Text>
+              <Text style={[stili.piccola, { color: p.testoTerzo }]}>{nomeFonte(a.origine) ?? (a.fornitore === 'manuale' ? t('Scritto da te', 'Logged by you') : a.fornitore === 'apple_salute' ? t('Apple Salute', 'Apple Health') : a.fornitore === 'google_salute' ? 'Health Connect' : a.fornitore === 'oura' ? 'Oura' : 'Polar')}</Text>
             </View>
           )
         })}

@@ -2,7 +2,7 @@ import { router, useLocalSearchParams } from 'expo-router'
 import { useEffect, useRef, useState } from 'react'
 import { StyleSheet, Text, View } from 'react-native'
 
-import { appleSaluteAttivo, appleSaluteDisponibile, appSaluteDelTelefono, chiediPermessoSalute, impostaAppleSalute, sincronizzaSalute, ultimoErroreSalute } from './appleSalute'
+import { appleSaluteAttivo, appleSaluteDisponibile, appSaluteDelTelefono, chiediPermessoSalute, impostaAppleSalute, nomeAppSalute, sincronizzaSalute, ultimoErroreSalute } from './appleSalute'
 import { scollegaSalute, revocaConsensoDispositivi } from '@/api/dispositivi'
 import { t } from '@/lib/lingua'
 import { spazio } from '@/theme'
@@ -171,10 +171,16 @@ function Gestione({ d, attivaSubito }: { d: DatiDispositivi; attivaSubito: boole
 
 /** Perche' Apple Salute non ha dato niente, in parole: il motivo vero se c'e', e dove guardare. */
 function motivoSalute(): string {
-  const base = t(
-    'Non abbiamo letto niente da Apple Salute. Controlla in Impostazioni › Salute › Accesso ai dati e dispositivi › Athlon Club che passi, sonno e allenamenti siano attivi.',
-    'We read nothing from Apple Health. Check in Settings › Health › Data Access & Devices › Athlon Club that steps, sleep and workouts are turned on.',
-  )
+  const base =
+    appSaluteDelTelefono() === 'google'
+      ? t(
+          'Non abbiamo letto niente da Health Connect. Controlla in Impostazioni › Health Connect › Autorizzazioni delle app › Athlon Club che passi, sonno e allenamenti siano attivi.',
+          'We read nothing from Health Connect. Check in Settings › Health Connect › App permissions › Athlon Club that steps, sleep and workouts are turned on.',
+        )
+      : t(
+          'Non abbiamo letto niente da Apple Salute. Controlla in Impostazioni › Salute › Accesso ai dati e dispositivi › Athlon Club che passi, sonno e allenamenti siano attivi.',
+          'We read nothing from Apple Health. Check in Settings › Health › Data Access & Devices › Athlon Club that steps, sleep and workouts are turned on.',
+        )
   return ultimoErroreSalute ? `${base} (${ultimoErroreSalute})` : base
 }
 
@@ -197,21 +203,21 @@ function CartaAppleSalute({ d, onErrore, attivaSubito }: { d: DatiDispositivi; o
   }, [attivaSubito, disponibile])
   const apple = datiAppleSalute(d.dati)
   const fonti = fontiRicevute(d.dati)
-  if (appSaluteDelTelefono() !== 'apple') {
-    // Dal web, da Android (dove Health Connect non c'e' ancora) o da un telefono senza HealthKit Apple Salute si vede soltanto: lo attiva e lo aggiorna l'app iPhone.
+  if (appSaluteDelTelefono() === null) {
+    // Dal web (o da un telefono senza un'app Salute) si vede soltanto: lo attiva e lo aggiorna l'app, su iPhone con Apple Salute e su Android con Health Connect.
     if (!apple.ha) return null
     return (
       <Carta style={{ gap: spazio.tre }}>
         <View style={stili.testa}>
           <Bollino icona="cuore" tono="ok" size={46} />
           <View style={{ flex: 1, gap: 2 }}>
-            <Text style={[stili.nome, { color: p.testo }]}>{t('Apple Salute', 'Apple Health')}</Text>
-            <Text style={[stili.nota, { color: p.testoSecondario }]}>{fonti.length ? t(`Dati dal tuo iPhone: ${fonti.join(', ')}`, `Data from your iPhone: ${fonti.join(', ')}`) : t('Dati dal tuo iPhone', 'Data from your iPhone')}</Text>
+            <Text style={[stili.nome, { color: p.testo }]}>{t('Apple Salute / Health Connect', 'Apple Health / Health Connect')}</Text>
+            <Text style={[stili.nota, { color: p.testoSecondario }]}>{fonti.length ? t(`Dati dal tuo telefono: ${fonti.join(', ')}`, `Data from your phone: ${fonti.join(', ')}`) : t('Dati dal tuo telefono', 'Data from your phone')}</Text>
           </View>
           <Etichetta testo={t('Dall’app', 'From the app')} tono="ok" icona="ok" />
         </View>
         <Text style={[stili.nota, { color: p.testoSecondario }]}>{notaAppleSaluteDalWeb(apple.ultimo)}</Text>
-        <Text style={[stili.nota, { color: p.testoSecondario }]}>{t('Per attivarlo o disattivarlo apri l’app sull’iPhone.', 'To turn it on or off, open the app on your iPhone.')}</Text>
+        <Text style={[stili.nota, { color: p.testoSecondario }]}>{t('Per attivarlo o disattivarlo apri l’app sul telefono.', 'To turn it on or off, open the app on your phone.')}</Text>
       </Carta>
     )
   }
@@ -280,7 +286,7 @@ function CartaAppleSalute({ d, onErrore, attivaSubito }: { d: DatiDispositivi; o
       ) : null}
       {!attivo ? (
         <>
-          <Pulsante testo={t('Attiva Apple Salute', 'Turn on Apple Health')} icona="avanti" inCorso={fase === 'attiva'} onPress={attiva} />
+          <Pulsante testo={t(`Attiva ${nomeAppSalute()}`, `Turn on ${nomeAppSalute()}`)} icona="avanti" inCorso={fase === 'attiva'} onPress={attiva} />
           <Text style={[stili.piccola, { color: p.testoTerzo }]}>{t('Consigliato, non obbligatorio.', 'Recommended, not required.')}</Text>
         </>
       ) : (

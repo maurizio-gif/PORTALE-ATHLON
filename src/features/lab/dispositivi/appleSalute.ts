@@ -1,8 +1,16 @@
 // Apple Salute (HealthKit): sola lettura di passi, sonno e allenamenti, solo su iPhone.
-// Altrove (web, Android) ogni funzione risponde "non disponibile" senza sollevare.
+// **Dal 31/10/2026 questo file e' anche il punto d'ingresso di Google Salute (Health Connect, `healthConnect.ts`) su Android**: le
+// funzioni che le schermate gia' usano (`appSaluteDelTelefono`, `appleSaluteDisponibile`, `chiediPermessoSalute`, `sincronizzaSalute`)
+// scelgono da sole l'app Salute del telefono, cosi' invito, carta «Da attivare» e guida non cambiano. I nomi restano «apple…» per non
+// toccare ogni chiamata; il segno «attivo» (un file o il `localStorage`) vale per qualunque app Salute: un telefono ne ha una sola.
+// Altrove (web) ogni funzione risponde "non disponibile" senza sollevare.
 import { Platform } from 'react-native';
 
+import { t } from '@/lib/lingua';
+
 import { importaSalute, type DatiDispositivi } from '@/api/dispositivi';
+
+import { chiediPermessoHealthConnect, healthConnectDisponibile, leggiHealthConnect } from './healthConnect';
 
 export type GiornoSalute = {
   data: string; // AAAA-MM-GG, giorno di Roma/dispositivo
@@ -56,6 +64,7 @@ const LETTURE = [
 ] as const;
 
 export async function appleSaluteDisponibile(): Promise<boolean> {
+  if (Platform.OS === 'android') return healthConnectDisponibile();
   const hk = carica();
   if (!hk) return false;
   try {
@@ -67,6 +76,7 @@ export async function appleSaluteDisponibile(): Promise<boolean> {
 
 /** Mostra il foglio di Apple: l'utente sceglie cosa condividere. Non dice cosa ha scelto. */
 export async function chiediPermessoSalute(): Promise<boolean> {
+  if (Platform.OS === 'android') return chiediPermessoHealthConnect();
   const hk = carica();
   if (!hk) return false;
   try {
@@ -250,12 +260,17 @@ export function impostaAppleSalute(attivo: boolean) {
 }
 
 /**
- * Da quale app Salute del telefono si puo' leggere: oggi solo Apple Salute su iPhone. **Google Salute (Health Connect) si
- * aggiungera' qui** (29/10/2026, richiesta di Maurizio: l'invito e la carta «da attivare» devono valere anche per lui): chi
- * decide se mostrare l'invito chiede a questa funzione, non a `Platform.OS`.
+ * Da quale app Salute del telefono si puo' leggere: Apple Salute su iPhone e, dal 31/10/2026, Health Connect su Android
+ * (richiesta di Maurizio: l'invito e la carta «da attivare» devono valere anche per lui). Chi decide se mostrare l'invito
+ * chiede a questa funzione, non a `Platform.OS`.
  */
-export function appSaluteDelTelefono(): 'apple' | null {
-  return Platform.OS === 'ios' ? 'apple' : null
+export function appSaluteDelTelefono(): 'apple' | 'google' | null {
+  return Platform.OS === 'ios' ? 'apple' : Platform.OS === 'android' ? 'google' : null
+}
+
+/** Come si chiama l'app Salute di questo telefono, per i testi («Apple Salute», «Health Connect»); Apple se non si sa. */
+export function nomeAppSalute(): string {
+  return appSaluteDelTelefono() === 'google' ? t('Health Connect', 'Health Connect') : t('Apple Salute', 'Apple Health')
 }
 
 // L'invito a collegare l'app Salute, all'apertura di Athlon Health System (29/10/2026): compare una volta sola per dispositivo,
@@ -317,24 +332,29 @@ export let ultimoErroreSalute: string | null = null
 
 /** Legge da Apple Salute e manda al club. Al massimo una volta ogni 10 minuti, salvo `subito`. Non solleva mai. */
 export async function sincronizzaSalute(subito = false): Promise<DatiDispositivi | null> {
-  if (Platform.OS !== 'ios' || !appleSaluteAttivo()) return null
+  const app = appSaluteDelTelefono()
+  if (!app || !appleSaluteAttivo()) return null
   if (!subito && Date.now() - ultimaLettura < ogni) return null
   ultimaLettura = Date.now()
   // Chi aveva attivato Apple Salute con l'elenco di prima non ha dato i permessi nuovi (battito, HRV, calorie): si chiedono una volta.
-  if (!permessiEstesi()) {
+  // (Solo su iPhone: Health Connect e' nato con l'elenco intero.)
+  if (app === 'apple' && !permessiEstesi()) {
     await chiediPermessoSalute()
     segnaPermessiEstesi()
   }
-  const l = await leggiSalute(14)
+  const l = app === 'google' ? await leggiHealthConnect(14) : await leggiSalute(14)
   if (!l) return null
   if (!l.giorni.length && !l.allenamenti.length) {
     ultimoErroreSalute = 'nessun dato negli ultimi giorni'
     return null
   }
-  const r = await importaSalute({
-    giorni: l.giorni,
-    allenamenti: l.allenamenti.map((a) => ({ inizio: a.inizio, fine: a.fine, tipo: a.tipo, calorie: a.calorie, fc_media: a.fc_media, fc_max: a.fc_max, origine: a.origine })),
-  })
+  const r = await importaSalute(
+    {
+      giorni: l.giorni,
+      allenamenti: l.allenamenti.map((a) => ({ inizio: a.inizio, fine: a.fine, tipo: a.tipo, calorie: a.calorie, fc_media: a.fc_media, fc_max: a.fc_max, origine: a.origine })),
+    },
+    app === 'google' ? 'google_salute' : 'apple_salute',
+  )
   if (!r.ok) ultimoErroreSalute = r.errore
   return r.ok ? r : null
 }

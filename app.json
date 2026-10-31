@@ -42,7 +42,15 @@
         }
       ],
       "package": "it.athlonroma.app",
-      "versionCode": 1
+      "versionCode": 1,
+      "permissions": [
+        "android.permission.health.READ_STEPS",
+        "android.permission.health.READ_SLEEP",
+        "android.permission.health.READ_EXERCISE",
+        "android.permission.health.READ_RESTING_HEART_RATE",
+        "android.permission.health.READ_HEART_RATE",
+        "android.permission.health.READ_ACTIVE_CALORIES_BURNED"
+      ]
     },
     "web": {
       "output": "single",
@@ -84,6 +92,17 @@
           "NSHealthShareUsageDescription": "Athlon Club legge da Apple Salute i tuoi passi, il sonno, il battito, la variabilità del battito, le calorie di movimento e gli allenamenti, solo se lo autorizzi, per mostrarli in Recover e in Train e calcolare il tuo Athlon Health Score.",
           "NSHealthUpdateUsageDescription": "Athlon Club non scrive nulla in Apple Salute: legge soltanto i tuoi dati, se lo autorizzi.",
           "background": false
+        }
+      ],
+      "react-native-health-connect",
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "compileSdkVersion": 36,
+            "targetSdkVersion": 36,
+            "minSdkVersion": 26
+          }
         }
       ]
     ],

@@ -6,6 +6,9 @@ import { locale, t } from '@/lib/lingua'
 // **Dal 29/10/2026 non ci sono piu' i fornitori Oura e Polar ne' il «recupero» in parole** (era la prontezza di Oura e il Nightly
 // Recharge di Polar: da Apple Salute e Health Connect non arrivano): il pilastro Recover descrive il sonno, non da' un giudizio.
 
+/** I dati che spinge il telefono: Apple Salute (iPhone) o Google Salute / Health Connect (Android). */
+export const eDaSalute = (fornitore: string): boolean => fornitore === 'apple_salute' || fornitore === 'google_salute'
+
 const quantiDati = (g: GiornoDispositivo) => Object.entries(g).filter(([k, v]) => k !== 'data' && k !== 'fornitore' && v !== null).length
 
 /** Un giorno solo per data: con due dispositivi vale quello che ha piu' dati. Dal piu' recente. */
@@ -103,8 +106,8 @@ export function dopo(iso: string | null, adesso = Date.now()): string {
 export function datiAppleSalute(d: { giorni: GiornoDispositivo[]; allenamenti: AllenamentoDispositivo[] } | null | undefined): { ha: boolean; ultimo: string | null } {
   if (!d) return { ha: false, ultimo: null }
   const giorni = [
-    ...d.giorni.filter((g) => g.fornitore === 'apple_salute').map((g) => g.data),
-    ...d.allenamenti.filter((a) => a.fornitore === 'apple_salute').map((a) => giornoDi(a.inizio)),
+    ...d.giorni.filter((g) => eDaSalute(g.fornitore)).map((g) => g.data),
+    ...d.allenamenti.filter((a) => eDaSalute(a.fornitore)).map((a) => giornoDi(a.inizio)),
   ].sort()
   return { ha: giorni.length > 0, ultimo: giorni.at(-1) ?? null }
 }
@@ -113,8 +116,8 @@ export function datiAppleSalute(d: { giorni: GiornoDispositivo[]; allenamenti: A
 export function notaAppleSaluteDalWeb(ultimo: string | null): string {
   const quale = ultimo ? t(` (ultimo giorno ricevuto: ${giornoBreve(ultimo)})`, ` (last day received: ${giornoBreve(ultimo)})`) : ''
   return t(
-    `I dati di Apple Salute sono quelli dell’ultima volta che hai aperto l’app sull’iPhone${quale}. Da qui non si aggiornano da soli: per sincronizzarli usa sempre l’app, aprendola ogni tanto.`,
-    `Apple Health data is as of the last time you opened the app on your iPhone${quale}. It doesn’t refresh from here: to keep it in sync, always use the app and open it every now and then.`,
+    `I dati di Apple Salute o Health Connect sono quelli dell’ultima volta che hai aperto l’app sul telefono${quale}. Da qui non si aggiornano da soli: per sincronizzarli usa sempre l’app, aprendola ogni tanto.`,
+    `Apple Health or Health Connect data is as of the last time you opened the app on your phone${quale}. It doesn’t refresh from here: to keep it in sync, always use the app and open it every now and then.`,
   )
 }
 
@@ -133,8 +136,8 @@ export type VoceApple = { id: string; etichetta: string; valore: string | null; 
 
 /** Tutto quello che arriva da Apple Salute, una voce per dato, con l'ultimo valore e il giorno; `valore` nullo = non ancora ricevuto. */
 export function riepilogoAppleSalute(d: DatiDisp | null | undefined): VoceApple[] {
-  const g = (d?.giorni ?? []).filter((x) => x.fornitore === 'apple_salute').sort((a, b) => b.data.localeCompare(a.data))
-  const w = (d?.allenamenti ?? []).filter((x) => x.fornitore === 'apple_salute').sort((a, b) => b.inizio.localeCompare(a.inizio))
+  const g = (d?.giorni ?? []).filter((x) => eDaSalute(x.fornitore)).sort((a, b) => b.data.localeCompare(a.data))
+  const w = (d?.allenamenti ?? []).filter((x) => eDaSalute(x.fornitore)).sort((a, b) => b.inizio.localeCompare(a.inizio))
   const ultimo = (f: (x: GiornoDispositivo) => number | null, fmt: (n: number) => string): { valore: string | null; giorno: string | null } => {
     const r = g.find((x) => f(x) !== null)
     return r ? { valore: fmt(f(r) as number), giorno: r.data } : { valore: null, giorno: null }
@@ -173,7 +176,7 @@ export function fontiRicevute(d: { giorni: GiornoDispositivo[]; allenamenti: All
     const n = nomeFonte(o)
     if (n) conta.set(n, (conta.get(n) ?? 0) + 1)
   }
-  for (const g of d?.giorni ?? []) if (g.fornitore === 'apple_salute') aggiungi(g.origine)
-  for (const a of d?.allenamenti ?? []) if (a.fornitore === 'apple_salute') aggiungi(a.origine)
+  for (const g of d?.giorni ?? []) if (eDaSalute(g.fornitore)) aggiungi(g.origine)
+  for (const a of d?.allenamenti ?? []) if (eDaSalute(a.fornitore)) aggiungi(a.origine)
   return [...conta.entries()].sort((x, y) => y[1] - x[1] || x[0].localeCompare(y[0])).slice(0, 6).map(([n]) => n)
 }

@@ -27,7 +27,7 @@ const PASSI: Record<Piattaforma, () => { titolo: string; testo: string }[]> = {
   google: () => [
     { titolo: t('Apri l’app del tuo dispositivo', 'Open your device’s app'), testo: t('Quella che usi per vedere sonno e allenamenti: Garmin Connect, Oura, Polar Flow, Google Health, Samsung Health…', 'The one you use to see your sleep and workouts: Garmin Connect, Oura, Polar Flow, Google Health, Samsung Health…') },
     { titolo: t('Attiva la condivisione con Health Connect', 'Turn on sharing with Health Connect'), testo: t('Nelle impostazioni dell’app cerca «Health Connect» e scegli cosa condividere: sonno, passi, battito e allenamenti.', 'In the app’s settings look for “Health Connect” and choose what to share: sleep, steps, heart rate and workouts.') },
-    { titolo: t('L’app del club legge da Health Connect', 'The club app reads from Health Connect'), testo: t('In arrivo: appena c’è, ti basterà dare il permesso e i dati compaiono qui. Intanto puoi preparare il collegamento dal tuo dispositivo.', 'Coming soon: as soon as it’s ready, you’ll just give permission and the data shows up here. Meanwhile you can set up the connection from your device.') },
+    { titolo: t('L’app del club legge da Health Connect', 'The club app reads from Health Connect'), testo: t('Apri l’app Athlon Club per Android (aggiornata all’ultima versione), tocca «Attiva Health Connect» e dai il permesso: i dati compaiono qui. Dal browser o dalla PWA non si può: serve l’app.', 'Open the Athlon Club app for Android (updated to the latest version), tap “Turn on Health Connect” and give permission: the data shows up here. It can’t be done from the browser or the PWA: you need the app.') },
   ],
 }
 
@@ -93,8 +93,8 @@ export function GuidaCollegamento() {
       </View>
 
       {piattaforma === 'google' ? (
-        <Messaggio tono="attenzione" titolo={t('Health Connect: in arrivo', 'Health Connect: coming soon')}>
-          {t('Nell’app del club la lettura da Health Connect non c’è ancora. Intanto puoi scrivere il sonno a mano.', 'Reading from Health Connect isn’t in the club app yet. Meanwhile you can log your sleep by hand.')}
+        <Messaggio tono="attenzione" titolo={t('Serve l’app per Android', 'You need the Android app')}>
+          {t('Health Connect si legge solo dall’app Athlon Club installata sul telefono, non dal browser. Se non puoi installarla, puoi scrivere il sonno a mano.', 'Health Connect can only be read by the Athlon Club app installed on your phone, not by the browser. If you can’t install it, you can log your sleep by hand.')}
         </Messaggio>
       ) : null}
 

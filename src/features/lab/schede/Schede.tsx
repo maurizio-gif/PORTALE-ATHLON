@@ -10,6 +10,7 @@ import { useLingua } from '@/lib/lingua-react'
 import { spazio } from '@/theme'
 
 import { relaxAperto, useDispositivi, type Dispositivi } from '../dispositivi/useDispositivi'
+import { CartaAbitudini } from '../fit/Abitudini'
 import { CartaBalance } from '../fit/Balance'
 import { CartaCorpo } from '../fit/Corpo'
 import { AggiungiAllenamento } from '../fit/AggiungiAllenamento'
@@ -374,6 +375,11 @@ function ContenutoHub({ largo, corpoInCima }: { largo: boolean; /** La carta «D
       </Entra>
       {/* «Il tuo mese in Athlon» (30/10/2026): compare solo quando c'e' un mese da mostrare, e subito sotto il punteggio. */}
       <CartaMese />
+      {/* «Le tue abitudini» (31/10/2026): camminare, muoversi e dormire, che si spuntano da sole con Apple Salute o Health Connect. Dove non
+          sono collegati (PWA, browser) la carta spinge a installare l'app e a collegarli; dove lo sono mostra i risultati. */}
+      <Entra indice={1}>
+        <CartaAbitudini disp={disp} />
+      </Entra>
       {/* Dopo il punteggio, nell'ordine: cos'e' l'Athlon Health System (24/10/2026, richiesta di Maurizio: la descrizione e' la seconda
           carta), «Il tuo corpo» compresso e il Balance. Su schermo largo la descrizione sta a sinistra e, a destra, corpo e Balance in colonna. */}
       {largo ? (

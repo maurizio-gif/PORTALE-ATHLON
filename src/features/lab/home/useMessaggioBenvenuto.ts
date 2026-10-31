@@ -46,7 +46,7 @@ let inVolo: { email: string; richiesta: Promise<Memoria> } | null = null
 async function scrivi(motivo: 'apertura' | 'ritorno', email: string): Promise<Memoria> {
   if (inVolo?.email === email) return inVolo.richiesta
   // Solo l'app sa se questo telefono ha un'app Salute da collegare e se l'ha gia' fatto: il server propone il collegamento solo cosi'.
-  const saluteCollegabile = appSaluteDelTelefono() !== null && !appleSaluteAttivo()
+  const saluteCollegabile = appSaluteDelTelefono() === 'apple' && !appleSaluteAttivo()
   const richiesta: Promise<Memoria> = messaggioDiBenvenuto(motivo, saluteCollegabile)
     .then((r): Memoria => ({ email, messaggio: r.ok ? r.messaggio : null, il: Date.now(), fallita: !r.ok, chiuso: false }))
     .then((m) => {
