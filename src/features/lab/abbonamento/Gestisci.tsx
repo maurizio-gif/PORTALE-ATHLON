@@ -126,7 +126,7 @@ function Consenso({ spuntato, onCambia, testo }: { spuntato: boolean; onCambia: 
 
 // ---------------------------------------------------------------------------
 
-type PassoFoglio = 'menu' | 's1' | 's2' | 's3' | 'sEsito' | 'd1' | 'd2' | 'd3' | 'dEsito' | 'u1' | 'uEsito' | 'c1' | 'cEsito'
+type PassoFoglio = 'menu' | 's1' | 's2' | 's3' | 'sEsito' | 'd1' | 'd2' | 'd3' | 'dEsito' | 'u1' | 'uEsito'
 
 /**
  * Il foglio di un abbonamento: il riepilogo con le azioni, e i due percorsi (sospendere, disdire) a passi.
@@ -540,6 +540,7 @@ export function FoglioGestisci({ contratto: c, aperto, onChiudi, onCambiato }: {
         </Messaggio>
       ) : null}
       {dis && !bloccataDaQuote && inFinestra && finestra && finestra.stato === 'aperta' && (dis.modo === 'rinnovo' || dis.modo === 'mensile' || dis.modo === 'annuale') ? (
+        <>
         <Messaggio tono="ok" icona="rinnovo" titolo={t('Vuoi cambiare abbonamento invece di disdire?', 'Want to change membership instead of cancelling?')}>
           <View style={{ gap: spazio.due }}>
             <Text style={[stili.nota, { color: p.testo }]}>{t(`Stai per disdire ${etichettaPiano(c)}. Invece puoi passare a un altro abbonamento, Smart o Premium o uno degli altri in vigore, scegliendo quello che preferisci: così dai continuità ai tuoi allenamenti, senza disdetta e senza nessun buco.`, `You’re about to cancel ${etichettaPiano(c)}. Instead you can move to another membership, Smart or Premium or any other currently on sale, whichever you prefer: this keeps your training going, with no cancellation and no gap.`)}</Text>
@@ -547,6 +548,8 @@ export function FoglioGestisci({ contratto: c, aperto, onChiudi, onCambiato }: {
             <Pulsante testo={t('Cambia abbonamento', 'Change membership')} icona="rinnovo" piccolo onPress={apriCambio} inCorso={inCorso} />
           </View>
         </Messaggio>
+        {errore ? <Messaggio tono="attenzione">{errore}</Messaggio> : null}
+        </>
       ) : null}
       {dis && !bloccataDaQuote && (dis.modo === 'rinnovo' || dis.modo === 'mensile' || dis.modo === 'annuale') ? (
         <>
@@ -751,13 +754,12 @@ export function FoglioGestisci({ contratto: c, aperto, onChiudi, onCambiato }: {
 
 
   // --- Cambio senza disdetta (nella finestra) ------------------------------
-  // Finche' la procedura che crea il nuovo contratto non c'e', il cambio arriva alla segreteria con lo stesso modulo dell'upgrade: la data di
-  // partenza e' fissa (il giorno dopo la fine del vecchio) e la quota di attivazione e' in omaggio.
-
-  // Se il server consente il cambio per questo contratto si apre la procedura vera (data fissa, firma, il vecchio si chiude da solo);
-  // altrimenti resta la richiesta alla segreteria.
+  // Si fa tutto dal portale (31/10/2026, Maurizio): niente modulo per la segreteria. Il server decide se il cambio e' possibile per questo
+  // contratto (`cambio_stato`); se si', si apre la procedura vera (data fissa, metodo di pagamento, firma) e solo a firma fatta il vecchio si
+  // chiude e il nuovo parte il giorno dopo. Se no, **si dice il motivo che da' il server**, senza ricadere su una richiesta alla segreteria.
   async function apriCambio() {
     setInCorso(true)
+    setErrore(null)
     const r = await statoCambioAbbonamento(c.contract_id)
     setInCorso(false)
     if (r.ok) {
@@ -765,81 +767,11 @@ export function FoglioGestisci({ contratto: c, aperto, onChiudi, onCambiato }: {
       router.push({ pathname: '/abbonamento', params: { cambio: String(c.contract_id) } })
       return
     }
-    setPianoScelto(null)
-    setNoteUp('')
-    caricaPiani()
-    vai('c1')
-  }
-
-  // Non si propone l'abbonamento che si ha gia': stesso livello (Premium o Smart) e stessa formula. Il Flex del contratto e' «mensile», quello del listino «flex».
-  const livello = (nome: string) => (/premium/i.test(nome) ? 'premium' : /smart/i.test(nome) ? 'smart' : null)
-  const formulaListino: Record<string, string> = { mensile: 'flex', 'annuale-unico': 'annuale-unico', 'annuale-rate': 'annuale-rate' }
-  const eQuelloCheHai = (x: PianoAbbonamento) => livello(c.piano) !== null && livello(c.piano) === livello(x.abbonamento) && formulaListino[c.formula] === x.formula
-  const tuttiIPiani = [...(piani ?? [])].filter((x) => !eQuelloCheHai(x)).sort((a, b) => Number(a.formula === 'flex') - Number(b.formula === 'flex') || rangoAbbonamento(b.abbonamento, b.formula === 'annuale-unico') - rangoAbbonamento(a.abbonamento, a.formula === 'annuale-unico'))
-  const pianoCambio = tuttiIPiani.find((x) => x.piano_id === pianoScelto)
-
-  async function inviaCambio() {
-    const email = sessione?.user?.email
-    if (!pianoCambio || !finestra || finestra.stato === 'non_calcolabile' || !email) return
-    setInCorso(true)
-    setErrore(null)
-    const r = await richiediUpgrade({
-      email,
-      abbonamento: testoPiano(pianoCambio),
-      decorrenza: finestra.nuovo_inizio,
-      note: [
-        c.persona ? `${t('Per', 'For')}: ${c.persona}` : '',
-        `CAMBIO ABBONAMENTO SENZA DISDETTA, ${t('non è un upgrade', 'not an upgrade')}. ${t('Contratto', 'Contract')} ${c.contract_id} (${etichettaPiano(c)}).`,
-        t(`Il vecchio finisce il ${finestra.fine}, il nuovo parte il ${finestra.nuovo_inizio}. Quota di attivazione in omaggio.`, `The old one ends on ${finestra.fine}, the new one starts on ${finestra.nuovo_inizio}. Joining fee waived.`),
-        t('Richiesta dall’app (Gestisci abbonamento).', 'Requested from the app (Manage membership).'),
-        noteUp.trim(),
-      ].filter(Boolean).join('\n'),
-    })
-    setInCorso(false)
-    if (r.ok) {
-      colpetto('ok')
-      setPasso('cEsito')
-      return
-    }
     colpetto('errore')
     setErrore(r.errore)
   }
 
-  const passoCambio = finestra && finestra.stato !== 'non_calcolabile' ? (
-    <>
-      <Titolo>{t('Cambia abbonamento', 'Change membership')}</Titolo>
-      <Messaggio tono="ok" icona="rinnovo" titolo={t('Senza disdetta, senza buchi', 'No cancellation, no gap')}>
-        <View style={{ gap: spazio.due }}>
-          <Text style={[stili.nota, { color: p.testo }]}>{t(`Il tuo abbonamento attuale finisce il ${dataLunga(finestra.fine)} e il nuovo parte il ${dataLunga(finestra.nuovo_inizio)}: dai continuità ai tuoi allenamenti. La quota di attivazione è in omaggio e sei libero di scegliere l’abbonamento che preferisci.`, `Your current membership ends on ${dataLunga(finestra.fine)} and the new one starts on ${dataLunga(finestra.nuovo_inizio)}: your training carries on. The joining fee is waived and you’re free to choose the membership you prefer.`)}</Text>
-          <Text style={[stili.nota, { color: p.testo }]}>{t('La richiesta arriva alla segreteria, che ti scrive per email per confermare. Non cambia niente finché non confermi.', 'The request goes to the front desk, who will email you to confirm. Nothing changes until you confirm.')}</Text>
-        </View>
-      </Messaggio>
-      {errorePiani ? <Messaggio tono="attenzione">{errorePiani}</Messaggio> : null}
-      {!piani && !errorePiani ? <Nota>{t('Un attimo…', 'One moment…')}</Nota> : null}
-      {errorePiani ? <Pulsante testo={t('Riprova', 'Try again')} icona="aggiorna" variante="secondario" piccolo onPress={caricaPiani} /> : null}
-      {tuttiIPiani.length ? (
-        <>
-          <Nota>{t('A quale abbonamento vuoi passare?', 'Which membership do you want to move to?')}</Nota>
-          <Scelte valori={tuttiIPiani.map((x) => ({ valore: x.piano_id, testo: testoPiano(x) }))} scelto={pianoScelto} onScegli={(v) => setPianoScelto(v)} />
-          <CampoTesto etichetta={t('Vuoi aggiungere qualcosa?', 'Want to add anything?')} value={noteUp} onChangeText={setNoteUp} maxLength={500} multiline placeholder={t('Scrivi qui (facoltativo)', 'Write here (optional)')} />
-          {errore ? <Messaggio>{errore}</Messaggio> : null}
-          <Pulsante testo={t('Invia la richiesta', 'Send the request')} icona="avanti" disabilitato={!pianoCambio || !sessione?.user?.email} inCorso={inCorso} onPress={inviaCambio} />
-        </>
-      ) : null}
-      <Pulsante testo={t('Indietro', 'Back')} variante="fantasma" piccolo onPress={() => vai('menu')} />
-    </>
-  ) : null
-
-  const esitoCambio = (
-    <>
-      <Messaggio tono="ok" titolo={t('Richiesta inviata', 'Request sent')}>
-        {t('La segreteria ti scrive per email per confermare il cambio. Il tuo abbonamento attuale non viene disdetto e continua fino alla sua fine.', 'The front desk will email you to confirm the change. Your current membership is not cancelled and carries on until its end date.')}
-      </Messaggio>
-      <Pulsante testo={t('Torna agli abbonamenti', 'Back to memberships')} variante="secondario" onPress={onChiudi} />
-    </>
-  )
-
-  const titolo = passo.startsWith('c') ? t('Cambia abbonamento', 'Change membership') : passo.startsWith('u') ? t('Upgrade', 'Upgrade') : passo.startsWith('s') ? t('Sospendi', 'Suspend') : passo.startsWith('d') ? t('Disdici', 'Cancel') : t('Gestisci abbonamento', 'Manage membership')
+  const titolo = passo.startsWith('u') ? t('Upgrade', 'Upgrade') : passo.startsWith('s') ? t('Sospendi', 'Suspend') : passo.startsWith('d') ? t('Disdici', 'Cancel') : t('Gestisci abbonamento', 'Manage membership')
 
   return (
     <Foglio aperto={aperto} titolo={titolo} sottotitolo={passo === 'menu' ? undefined : etichettaPiano(c)} onChiudi={onChiudi}>
@@ -854,8 +786,6 @@ export function FoglioGestisci({ contratto: c, aperto, onChiudi, onCambiato }: {
       {passo === 'dEsito' ? esitoDisdetta : null}
       {passo === 'u1' ? passoUpgrade : null}
       {passo === 'uEsito' ? esitoUpgrade : null}
-      {passo === 'c1' ? passoCambio : null}
-      {passo === 'cEsito' ? esitoCambio : null}
     </Foglio>
   )
 }
