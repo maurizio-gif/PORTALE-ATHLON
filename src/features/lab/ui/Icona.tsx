@@ -101,6 +101,8 @@ const ICONE = {
   cuore: ['heart.fill', 'favorite'],
   passi: ['figure.walk', 'directions_walk'],
   luna: ['moon.zzz.fill', 'bedtime'],
+  // Le abitudini (31/10/2026): la luce del giorno.
+  sole: ['sun.max.fill', 'wb_sunny'],
   // La classifica mensile (29/10/2026).
   trofeo: ['trophy.fill', 'emoji_events'],
 } as const satisfies Record<string, readonly [SFSymbol, AndroidSymbol]>

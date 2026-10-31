@@ -9,17 +9,21 @@ import { spazio } from '@/theme'
 
 import { oggiRoma } from '../alimentazione/conti'
 import { appleSaluteAttivo, appSaluteDelTelefono, nomeAppSalute } from '../dispositivi/appleSalute'
-import { durata, fontiRicevute, giornoBreve } from '../dispositivi/comune'
+import { fontiRicevute, giornoBreve } from '../dispositivi/comune'
 import type { Dispositivi } from '../dispositivi/useDispositivi'
 import { lunediDi, spostaGiorno } from '../schede/contatoreCalorie'
-import { Icona, type NomeIcona } from '../ui/Icona'
+import { Icona } from '../ui/Icona'
 import { Tocco } from '../ui/Tocco'
 import { Bollino, Carta, Etichetta, Pulsante, Sezione } from '../ui/kit'
 import { F, usePalette, type Palette } from '../ui/tema'
-import { calcolaAbitudini, GIORNI_VISTI, statoCollegamento, type Abitudine, type IdAbitudine, type StatoGiorno } from './abitudini'
+import { calcolaAbitudini, GIORNI_VISTI, statoCollegamento, type Abitudine, type StatoGiorno } from './abitudini'
+import { FoglioRegistra } from './RegistraAbitudine'
+import { formatoValore, ICONE_ABITUDINI, nomeAbitudine, titoloAbitudine } from './testiAbitudini'
+import { useAbitudiniScelte } from './useAbitudiniScelte'
 
-// «Le tue abitudini» (31/10/2026, richiesta di Maurizio): tre abitudini — camminare, muoversi, dormire — che **si spuntano da sole** con
-// i dati che arrivano da Apple Salute (iPhone) o da Health Connect (Android). Il calcolo e' in `abitudini.ts` (puro); qui c'e' solo
+// «Le tue abitudini» (31/10/2026, richiesta di Maurizio): le abitudini — di partenza camminare, muoversi, dormire; poi **le sceglie la persona** fra dieci
+// (`PersonalizzaAbitudini.tsx`), anche come sfida a obiettivo crescente — che **si spuntano da sole** con i dati che arrivano da Apple Salute (iPhone) o
+// da Health Connect (Android); quelle che il telefono non misura (plank, squat, piegamenti) si scrivono qui col cronometro o il contatore (`RegistraAbitudine.tsx`). Il calcolo e' in `abitudini.ts` (puro); qui c'e' solo
 // quello che si vede, in base a **a che punto e' il collegamento** (`statoCollegamento`):
 //   - **collegato**: i risultati (la settimana in sette quadratini, «4 giorni su 5», le settimane di fila, gli ultimi 28 giorni);
 //   - **da installare** (PWA o browser): si spinge a installare l'app nativa e a collegare l'app Salute del telefono; chi l'ha gia'
@@ -28,30 +32,28 @@ import { calcolaAbitudini, GIORNI_VISTI, statoCollegamento, type Abitudine, type
 // Non compare nella vista cliente dello staff (sono dati sulla salute), ai minorenni e mentre non si sa ancora (niente invito prima del
 // tempo). **Descrive, non giudica**: un giorno senza dati non e' un giorno saltato, oggi non e' finito, nessun confronto e nessun punto.
 
-const ICONE: Record<IdAbitudine, NomeIcona> = { passi: 'passi', movimento: 'cronometro', sonno: 'luna' }
 const apriDispositivi = () => router.push({ pathname: '/allenamento/dispositivi', params: { attiva: 'apple' } })
 const apriGuida = () => router.push('/allenamento/dispositivi')
+const apriScelta = () => router.push('/allenamento/abitudini')
 
-function titolo(a: Abitudine): string {
-  if (a.id === 'passi') return t(`Cammina almeno ${a.soglia.toLocaleString(locale())} passi`, `Walk at least ${a.soglia.toLocaleString(locale())} steps`)
-  if (a.id === 'movimento') return t(`Muoviti almeno ${a.soglia} minuti`, `Move for at least ${a.soglia} minutes`)
-  return t(`Dormi almeno ${a.soglia / 60} ore`, `Sleep at least ${a.soglia / 60} hours`)
-}
-
-/** «4 giorni su 5 questa settimana», con il verbo giusto per sonno e movimento. */
+/** «4 / 5 giorni questa settimana», con il verbo giusto per sonno e coricamento. */
 function riga(a: Abitudine): string {
   const q = `${a.fatti} / ${a.obiettivo}`
-  return a.id === 'sonno'
-    ? t(`${q} notti questa settimana`, `${q} nights this week`)
-    : t(`${q} giorni questa settimana`, `${q} days this week`)
+  return a.id === 'sonno' || a.id === 'coricamento' ? t(`${q} notti questa settimana`, `${q} nights this week`) : t(`${q} giorni questa settimana`, `${q} days this week`)
 }
 
 function ultimo(a: Abitudine, oggi: string): string | null {
   if (!a.ultimo) return null
   const quando = a.ultimo.data === oggi ? t('oggi', 'today') : a.ultimo.data === spostaGiorno(oggi, -1) ? t('ieri', 'yesterday') : giornoBreve(a.ultimo.data)
-  const v = a.ultimo.valore
-  const cosa = a.id === 'passi' ? t(`${v.toLocaleString(locale())} passi`, `${v.toLocaleString(locale())} steps`) : a.id === 'movimento' ? durata(v) : durata(v)
-  return `${quando}: ${cosa}`
+  return `${quando}: ${formatoValore(a.id, a.ultimo.valore)}`
+}
+
+/** Dov'e' la sfida: il giorno e l'obiettivo di oggi, o com'e' finita. Descrive, non giudica. */
+function rigaSfida(a: Abitudine): string | null {
+  const f = a.sfida
+  if (!f || f.nonIniziata) return null
+  if (f.finita) return t(`Sfida conclusa: l’obiettivo finale era ${formatoValore(a.id, f.a)}.`, `Challenge over: the final goal was ${formatoValore(a.id, f.a)}.`)
+  return t(`Sfida · giorno ${f.giorno} di ${f.giorni} · oggi ${formatoValore(a.id, a.soglia)}, si arriva a ${formatoValore(a.id, f.a)}`, `Challenge · day ${f.giorno} of ${f.giorni} · today ${formatoValore(a.id, a.soglia)}, building up to ${formatoValore(a.id, f.a)}`)
 }
 
 function Quadratino({ stato, p, piccolo }: { stato: StatoGiorno; p: Palette; piccolo?: boolean }) {
@@ -69,7 +71,7 @@ function Quadratino({ stato, p, piccolo }: { stato: StatoGiorno; p: Palette; pic
   return <View style={[{ width: lato, height: lato, borderRadius: piccolo ? 4 : 7 }, stile]} />
 }
 
-function Riga({ a, oggi, aperto }: { a: Abitudine; oggi: string; aperto: boolean }) {
+function Riga({ a, oggi, aperto, onRegistra }: { a: Abitudine; oggi: string; aperto: boolean; onRegistra: () => void }) {
   const p = usePalette()
   const lunedi = lunediDi(oggi)
   const perData = new Map(a.giorni.map((g) => [g.data, g.stato]))
@@ -78,11 +80,11 @@ function Riga({ a, oggi, aperto }: { a: Abitudine; oggi: string; aperto: boolean
   return (
     <View style={{ gap: spazio.due }}>
       <View style={stili.riga}>
-        <Bollino icona={ICONE[a.id]} tono={a.inRitmo ? 'ok' : 'accento'} size={40} />
+        <Bollino icona={ICONE_ABITUDINI[a.id]} tono={a.inRitmo ? 'ok' : 'accento'} size={40} />
         <View style={{ flex: 1, gap: 2 }}>
-          <Text style={[stili.nome, { color: p.testo }]}>{titolo(a)}</Text>
+          <Text style={[stili.nome, { color: p.testo }]}>{a.sfida && !a.sfida.finita ? nomeAbitudine(a.id) : titoloAbitudine(a.id, a.soglia)}</Text>
           <Text style={[stili.piccola, { color: p.testoSecondario }]}>
-            {a.conDati ? riga(a) : t('Non è ancora arrivato niente', 'Nothing has come in yet')}
+            {a.conDati || a.manuale ? riga(a) : t('Non è ancora arrivato niente', 'Nothing has come in yet')}
             {a.inRitmo ? ` · ${t('nel ritmo', 'on track')}` : !a.raggiungibile && a.conDati ? ` · ${t('questa settimana è andata così', 'that’s this week’s count')}` : ''}
           </Text>
         </View>
@@ -93,7 +95,13 @@ function Riga({ a, oggi, aperto }: { a: Abitudine; oggi: string; aperto: boolean
           <Quadratino key={i} stato={s} p={p} />
         ))}
       </View>
+      {rigaSfida(a) ? <Text style={[stili.piccola, { color: p.accento, paddingLeft: 40 + spazio.tre }]}>{rigaSfida(a)}</Text> : null}
       {u ? <Text style={[stili.piccola, { color: p.testoTerzo }]}>{u}</Text> : null}
+      {a.manuale ? (
+        <View style={{ paddingLeft: 40 + spazio.tre, alignItems: 'flex-start' }}>
+          <Pulsante testo={a.oggi !== null ? t(`Oggi ${formatoValore(a.id, a.oggi)} · aggiungi`, `Today ${formatoValore(a.id, a.oggi)} · add`) : t('Registra oggi', 'Log today')} icona={a.id === 'plank' ? 'cronometro' : 'peso'} variante="secondario" piccolo pieno={false} onPress={onRegistra} />
+        </View>
+      ) : null}
       {aperto ? (
         <View style={stili.griglia}>
           {a.giorni.map((g) => (
@@ -108,9 +116,12 @@ function Riga({ a, oggi, aperto }: { a: Abitudine; oggi: string; aperto: boolean
 export function CartaAbitudini({ disp }: { disp: Dispositivi }) {
   const p = usePalette()
   const [aperto, setAperto] = useState(false)
+  const [registra, setRegistra] = useState<Abitudine | null>(null)
   const noto = disp.stato?.ok ? disp.stato : null
   const oggi = oggiRoma()
-  const abitudini = useMemo(() => (disp.dati ? calcolaAbitudini(disp.dati, oggi) : []), [disp.dati, oggi])
+  // Le abitudini scelte (sul server, sotto il consenso): senza, o con una funzione di prima, valgono le tre di partenza.
+  const sc = useAbitudiniScelte(!disp.vista && !!disp.dati)
+  const abitudini = useMemo(() => (disp.dati ? calcolaAbitudini(disp.dati, oggi, sc.config) : []), [disp.dati, oggi, sc.config])
   // Vista cliente dello staff (dati sulla salute), minorenni e fino a quando non si sa chi e': niente.
   if (disp.vista || !noto || !noto.maggiorenne) return null
 
@@ -120,7 +131,9 @@ export function CartaAbitudini({ disp }: { disp: Dispositivi }) {
     attivo: appleSaluteAttivo(),
     dati: disp.dati,
   })
-  if (stato === 'niente') return null
+  // Quelle che si scrivono a mano servono anche senza un'app Salute: chi le ha scelte le vede.
+  const haManuali = abitudini.some((a) => a.manuale && a.scelta)
+  if (stato === 'niente' && !haManuali) return null
 
   const nome = nomeAppSalute()
   const telefono = telefonoDelBrowser()
@@ -130,11 +143,11 @@ export function CartaAbitudini({ disp }: { disp: Dispositivi }) {
   return (
     <Sezione titolo={t('Le tue abitudini', 'Your habits')}>
       <Carta style={{ gap: spazio.tre }}>
-        {stato === 'collegato' ? (
+        {stato === 'collegato' || haManuali ? (
           <>
             <View style={{ gap: spazio.quattro - 4 }}>
               {abitudini.map((a) => (
-                <Riga key={a.id} a={a} oggi={oggi} aperto={aperto} />
+                <Riga key={a.id} a={a} oggi={oggi} aperto={aperto} onRegistra={() => setRegistra(a)} />
               ))}
             </View>
             <Tocco onPress={() => setAperto((v) => !v)} ruolo="button" etichetta={aperto ? t('Nascondi gli ultimi giorni', 'Hide the last days') : t(`Vedi gli ultimi ${GIORNI_VISTI} giorni`, `See the last ${GIORNI_VISTI} days`)} scala={1}>
@@ -147,6 +160,7 @@ export function CartaAbitudini({ disp }: { disp: Dispositivi }) {
               {fonti.length ? t(`Si spuntano da sole con i dati di ${fonti.join(', ')}. `, `They tick themselves off with data from ${fonti.join(', ')}. `) : t('Si spuntano da sole con i dati del tuo telefono. ', 'They tick themselves off with data from your phone. ')}
               {t('Un giorno senza dati non conta come saltato, e oggi non è ancora finito.', 'A day without data doesn’t count as missed, and today isn’t over yet.')}
             </Text>
+            {sc.disponibile ? <Pulsante testo={t('Scegli le tue abitudini', 'Choose your habits')} variante="fantasma" piccolo icona="modifica" onPress={apriScelta} /> : null}
           </>
         ) : (
           <>
@@ -160,9 +174,9 @@ export function CartaAbitudini({ disp }: { disp: Dispositivi }) {
               </View>
             </View>
             <View style={{ gap: spazio.due }}>
-              {([['passi', t('Camminare', 'Walking')], ['movimento', t('Muoverti', 'Moving')], ['sonno', t('Dormire', 'Sleeping')]] as [IdAbitudine, string][]).map(([id, testo]) => (
+              {([['passi', t('Camminare', 'Walking')], ['movimento', t('Muoverti', 'Moving')], ['sonno', t('Dormire', 'Sleeping')]] as const).map(([id, testo]) => (
                 <View key={id} style={stili.voce}>
-                  <Icona nome={ICONE[id]} size={18} colore={p.accento} />
+                  <Icona nome={ICONE_ABITUDINI[id]} size={18} colore={p.accento} />
                   <Text style={[stili.nota, { color: p.testo }]}>{testo}</Text>
                 </View>
               ))}
@@ -199,9 +213,11 @@ export function CartaAbitudini({ disp }: { disp: Dispositivi }) {
               <Pulsante testo={t('Controlla il collegamento', 'Check the connection')} variante="secondario" onPress={apriGuida} />
             )}
             {stato === 'da-installare' ? <Pulsante testo={t('Come si collega', 'How to connect')} variante="fantasma" piccolo onPress={apriGuida} /> : null}
+            {sc.disponibile ? <Pulsante testo={t('Scegli le tue abitudini', 'Choose your habits')} variante="fantasma" piccolo icona="modifica" onPress={apriScelta} /> : null}
           </>
         )}
       </Carta>
+      {registra ? <FoglioRegistra aperto tipo={registra.id} soglia={registra.soglia} valoreOggi={registra.oggi} onChiudi={() => setRegistra(null)} onSalvato={sc.imposta} /> : null}
     </Sezione>
   )
 }

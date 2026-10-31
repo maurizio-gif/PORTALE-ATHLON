@@ -23,9 +23,32 @@ export type GiornoSalute = {
   hrv_ms: number | null;
   /** Calorie attive del giorno (senza il metabolismo di riposo). */
   calorie_attive: number | null;
+  /** Nuovi il 31/10/2026, per le abitudini che si spuntano da sole. */
+  esercizio_minuti: number | null;
+  /** Ore in piedi (anello Stand): solo Apple. */
+  ore_in_piedi: number | null;
+  mindfulness_minuti: number | null;
+  /** Minuti alla luce del giorno (iOS 17 e Apple Watch): solo Apple. */
+  luce_minuti: number | null;
+  /** Quando ci si e' coricati, in minuti dopo le 18:00. */
+  coricamento_min: number | null;
   /** Da quale app o dispositivo arrivano il sonno e gli altri dati («Oura», «Apple Watch»). */
   origine: string | null;
 };
+
+/** Un giorno vuoto: tutti i campi nulli. */
+export const giornoVuoto = (data: string): GiornoSalute => ({
+  data, passi: null, sonno_minuti: null, sonno_profondo_minuti: null, sonno_rem_minuti: null, fc_notte: null, hrv_ms: null, calorie_attive: null,
+  esercizio_minuti: null, ore_in_piedi: null, mindfulness_minuti: null, luce_minuti: null, coricamento_min: null, origine: null,
+});
+
+/** Un orario di coricamento in minuti dopo le 18:00 (0-1080), o null se cade fuori dalla fascia 18:00-12:00 (un riposino non e' il coricamento). */
+export function coricamentoDa(ms: number): number | null {
+  const d = new Date(ms);
+  const m = d.getHours() * 60 + d.getMinutes();
+  const v = (m < 12 * 60 ? m + 1440 : m) - 1080;
+  return v >= 0 && v <= 1080 ? v : null;
+}
 
 export type AllenamentoSalute = {
   inizio: string; // ISO
@@ -61,6 +84,11 @@ const LETTURE = [
   'HKQuantityTypeIdentifierHeartRateVariabilitySDNN',
   'HKQuantityTypeIdentifierHeartRate',
   'HKQuantityTypeIdentifierActiveEnergyBurned',
+  // Nuovi il 31/10/2026 (abitudini): minuti di esercizio, ore in piedi, mindfulness, luce del giorno.
+  'HKQuantityTypeIdentifierAppleExerciseTime',
+  'HKCategoryTypeIdentifierAppleStandHour',
+  'HKCategoryTypeIdentifierMindfulSession',
+  'HKQuantityTypeIdentifierTimeInDaylight',
 ] as const;
 
 export async function appleSaluteDisponibile(): Promise<boolean> {
@@ -109,7 +137,7 @@ export async function leggiSalute(giorni = 14): Promise<LetturaSalute | null> {
     inizio.setDate(inizio.getDate() - (n - 1));
     const per: Record<string, GiornoSalute> = {};
     const giorno = (d: Date) =>
-      (per[chiaveGiorno(d)] ??= { data: chiaveGiorno(d), passi: null, sonno_minuti: null, sonno_profondo_minuti: null, sonno_rem_minuti: null, fc_notte: null, hrv_ms: null, calorie_attive: null, origine: null });
+      (per[chiaveGiorno(d)] ??= giornoVuoto(chiaveGiorno(d)));
     const opz = { filter: { date: { startDate: inizio, endDate: fine } } };
 
     // Una lettura che non riesce (permesso negato per quel dato) non ferma le altre.
@@ -131,6 +159,28 @@ export async function leggiSalute(giorni = 14): Promise<LetturaSalute | null> {
     await perGiorno('HKQuantityTypeIdentifierActiveEnergyBurned', 'cumulativeSum', 'sumQuantity', (g, v) => (g.calorie_attive = Math.round(v)));
     await perGiorno('HKQuantityTypeIdentifierRestingHeartRate', 'discreteAverage', 'averageQuantity', (g, v) => (g.fc_notte = Math.round(v)));
     await perGiorno('HKQuantityTypeIdentifierHeartRateVariabilitySDNN', 'discreteAverage', 'averageQuantity', (g, v) => (g.hrv_ms = Math.round(v)));
+    // Abitudini (31/10/2026): i minuti dell'anello Esercizio e la luce del giorno, in minuti (l'unita' di default di HealthKit per tutti e due).
+    await perGiorno('HKQuantityTypeIdentifierAppleExerciseTime', 'cumulativeSum', 'sumQuantity', (g, v) => (g.esercizio_minuti = Math.round(v)));
+    await perGiorno('HKQuantityTypeIdentifierTimeInDaylight', 'cumulativeSum', 'sumQuantity', (g, v) => (g.luce_minuti = Math.round(v)));
+
+    // Ore in cui ci si e' alzati in piedi: un campione per ora, valore 0 = in piedi, 1 = fermo. Si contano gli «in piedi» (le ore distinte del giorno).
+    const piedi = await sicuro(() => hk.queryCategorySamples('HKCategoryTypeIdentifierAppleStandHour' as any, { filter: { date: { startDate: inizio, endDate: fine } }, limit: 0 }) as Promise<any[]>, []);
+    const oreInPiedi: Record<string, Set<number>> = {};
+    for (const x of piedi) {
+      if (x.value !== 0) continue;
+      const i = new Date(x.startDate);
+      (oreInPiedi[chiaveGiorno(i)] ??= new Set()).add(i.getHours());
+    }
+    for (const [k, ore] of Object.entries(oreInPiedi)) giorno(new Date(`${k}T12:00:00`)).ore_in_piedi = ore.size;
+
+    // Mindfulness: i periodi di meditazione si uniscono (due app non contano due volte lo stesso minuto), giorno in cui finiscono.
+    const mente = await sicuro(() => hk.queryCategorySamples('HKCategoryTypeIdentifierMindfulSession' as any, { filter: { date: { startDate: inizio, endDate: fine } }, limit: 0 }) as Promise<any[]>, []);
+    const sessioniMente: Record<string, [number, number][]> = {};
+    for (const x of mente) {
+      const i = new Date(x.startDate).getTime();
+      const f = new Date(x.endDate).getTime();
+      if (f > i) (sessioniMente[chiaveGiorno(new Date(f))] ??= []).push([i, f]);
+    }
 
     // Sonno: piu' app possono scrivere la stessa notte (l'anello e il telefono). I periodi si uniscono, cosi' un minuto
     // non conta due volte; profondo e REM contano solo dove c'e' un'app che li distingue. Giorno del risveglio.
@@ -171,8 +221,14 @@ export async function leggiSalute(giorni = 14): Promise<LetturaSalute | null> {
       const n = nomeFonte(x);
       if (n) g.fonti[n] = (g.fonti[n] ?? 0) + (f - i);
     }
+    for (const [k, v] of Object.entries(sessioniMente)) {
+      const minuti = Math.round(unione(v) / 60_000);
+      if (minuti > 0) giorno(new Date(`${k}T12:00:00`)).mindfulness_minuti = minuti;
+    }
     for (const [k, g] of Object.entries(gruppi)) {
       const d = per[k] ?? (giorno(new Date(`${k}T12:00:00`)));
+      // Quando ci si e' coricati: l'inizio del primo periodo di sonno della notte (un solo punto di partenza, anche con piu' app).
+      d.coricamento_min = g.tutto.length ? coricamentoDa(Math.min(...g.tutto.map(([i]) => i))) : null;
       d.sonno_minuti = Math.round(unione(g.tutto) / 60_000);
       const p = Math.round(unione(g.prof) / 60_000);
       const r = Math.round(unione(g.rem) / 60_000);
@@ -307,12 +363,12 @@ export function segnaInvitoSaluteVisto() {
   }
 }
 
-const CHIAVE_PERMESSI = 'athlon:apple-salute-v2'
+const CHIAVE_PERMESSI = 'athlon:apple-salute-v3'
 function permessiEstesi(): boolean {
   try {
     if (Platform.OS === 'web') return globalThis.localStorage?.getItem(CHIAVE_PERMESSI) === '1'
     const { File, Paths } = require('expo-file-system') as typeof import('expo-file-system')
-    return new File(Paths.document, 'apple-salute-permessi-v2.txt').exists
+    return new File(Paths.document, 'apple-salute-permessi-v3.txt').exists
   } catch {
     return true
   }
@@ -320,7 +376,7 @@ function permessiEstesi(): boolean {
 function segnaPermessiEstesi() {
   try {
     const { File, Paths } = require('expo-file-system') as typeof import('expo-file-system')
-    const f = new File(Paths.document, 'apple-salute-permessi-v2.txt')
+    const f = new File(Paths.document, 'apple-salute-permessi-v3.txt')
     if (!f.exists) f.create()
   } catch {
     // al giro dopo si richiede
@@ -336,7 +392,7 @@ export async function sincronizzaSalute(subito = false): Promise<DatiDispositivi
   if (!app || !appleSaluteAttivo()) return null
   if (!subito && Date.now() - ultimaLettura < ogni) return null
   ultimaLettura = Date.now()
-  // Chi aveva attivato Apple Salute con l'elenco di prima non ha dato i permessi nuovi (battito, HRV, calorie): si chiedono una volta.
+  // Chi aveva attivato Apple Salute con l'elenco di prima non ha dato i permessi nuovi (battito, HRV, calorie; dal 31/10/2026 anche esercizio, ore in piedi, mindfulness, luce): si chiedono una volta.
   // (Solo su iPhone: Health Connect e' nato con l'elenco intero.)
   if (app === 'apple' && !permessiEstesi()) {
     await chiediPermessoSalute()

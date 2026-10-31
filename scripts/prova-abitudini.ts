@@ -3,7 +3,10 @@
 import assert from 'node:assert/strict'
 
 import type { AllenamentoDispositivo, GiornoDispositivo } from '../src/api/dispositivi'
-import { calcolaAbitudini, haDatiDaSalute, statoCollegamento, statoDelGiorno, SOGLIA_PASSI } from '../src/features/lab/fit/abitudini'
+import { readFileSync, existsSync } from 'node:fs'
+
+import { calcolaAbitudini, haDatiDaSalute, statoCollegamento, statoDelGiorno, SOGLIA_PASSI, valoriDelTipo } from '../src/features/lab/fit/abitudini'
+import { ABITUDINI_MASSIME, CATALOGO, coricamentoDaOra, DI_PARTENZA, oraDaCoricamento, puntoDiPartenza, sceltePredefinite, sfidaValida, sogliaDelGiorno, statoSfida, TIPI } from '../src/features/lab/fit/catalogoAbitudini'
 
 let n = 0
 const ok = (nome: string, f: () => void) => {
@@ -154,6 +157,187 @@ ok('collegamento: PWA senza app Salute -> da installare; nativo -> da collegare 
 
 ok('soglie: sono quelle del punteggio e dichiarate', () => {
   assert.equal(SOGLIA_PASSI, 6000)
+})
+
+// ---------------------------------------------------------------------------------------------------------------------------------
+// Abitudini personalizzabili, sfida e nuovi dati (31/10/2026)
+const sc = (tipo, extra = {}) => ({ tipo, soglia: CATALOGO[tipo].predefinita.soglia, giorni: 3, dal: '2026-10-01', sfida: null, ...extra })
+const cfg = (scelte, registri = []) => ({ scelte, registri })
+
+ok('senza scelte salvate valgono le tre di partenza; con scelte, solo quelle', () => {
+  assert.deepEqual(calcolaAbitudini({ giorni: [], allenamenti: [] }, OGGI, cfg([])).map((x) => x.id), ['passi', 'movimento', 'sonno'])
+  assert.deepEqual(calcolaAbitudini({ giorni: [], allenamenti: [] }, OGGI, null).map((x) => x.id), ['passi', 'movimento', 'sonno'])
+  const r = calcolaAbitudini({ giorni: [], allenamenti: [] }, OGGI, cfg([sc('luce'), sc('plank')]))
+  assert.deepEqual(r.map((x) => x.id), ['luce', 'plank'])
+  assert.equal(r[0].scelta.tipo, 'luce')
+  assert.equal(calcolaAbitudini({ giorni: [], allenamenti: [] }, OGGI)[0].scelta, null) // di partenza: non salvata
+  assert.deepEqual(sceltePredefinite().map((x) => x.tipo), [...DI_PARTENZA])
+})
+
+ok('la soglia scelta e i giorni a settimana valgono per quella abitudine', () => {
+  const giorni = ['2026-10-26', '2026-10-27'].map((d) => g(d, { passi: 4500 }))
+  const p = calcolaAbitudini({ giorni, allenamenti: [] }, OGGI, cfg([sc('passi', { soglia: 4000, giorni: 2 })]))[0]
+  assert.equal(p.soglia, 4000)
+  assert.equal(p.obiettivo, 2)
+  assert.equal(p.fatti, 2)
+  assert.equal(p.inRitmo, true)
+})
+
+ok('sfida: la soglia sale in linea retta da da ad a, e dopo la fine resta ad a', () => {
+  const f = { giorni: 30, da: 4000, a: 8000, inizio: '2026-10-01' }
+  const s = { tipo: 'passi', soglia: 6000, sfida: f }
+  assert.equal(sogliaDelGiorno(s, '2026-10-01'), 4000) // il primo giorno
+  assert.equal(sogliaDelGiorno(s, '2026-09-20'), 4000) // prima dell'inizio: da
+  assert.equal(sogliaDelGiorno(s, '2026-10-30'), 8000) // l'ultimo giorno
+  assert.equal(sogliaDelGiorno(s, '2026-12-01'), 8000) // dopo la fine
+  const meta = sogliaDelGiorno(s, '2026-10-15')
+  assert.ok(meta > 5000 && meta < 7000, String(meta))
+  let prima = 0
+  for (let d = 1; d <= 30; d++) {
+    const v = sogliaDelGiorno(s, `2026-10-${String(d).padStart(2, '0')}`)
+    assert.ok(v >= prima, 'non scende mai')
+    assert.equal(v % 50, 0, 'i passi si arrotondano a 50')
+    prima = v
+  }
+  // Senza sfida e' sempre la soglia scelta.
+  assert.equal(sogliaDelGiorno({ tipo: 'passi', soglia: 6000, sfida: null }, '2026-10-15'), 6000)
+})
+
+ok('sfida: che giorno e', () => {
+  const f = { giorni: 30, da: 4000, a: 8000, inizio: '2026-10-01' }
+  assert.deepEqual(statoSfida({ sfida: f }, '2026-10-01'), { giorno: 1, giorni: 30, da: 4000, a: 8000, finita: false, nonIniziata: false })
+  assert.equal(statoSfida({ sfida: f }, '2026-10-29').giorno, 29)
+  assert.equal(statoSfida({ sfida: f }, '2026-10-30').finita, false) // il giorno 30 e' l'ultimo, ancora in corso
+  assert.equal(statoSfida({ sfida: f }, '2026-10-31').finita, true)
+  assert.equal(statoSfida({ sfida: f }, '2026-10-31').giorno, 30)
+  assert.equal(statoSfida({ sfida: f }, '2026-09-30').nonIniziata, true)
+  assert.equal(statoSfida({ sfida: null }, OGGI), null)
+})
+
+ok('sfida: ogni giorno si giudica con la soglia di quel giorno, non con quella di oggi', () => {
+  // Inizio il 26: soglia 1000 il giorno 1 e 8000 il giorno 30. Lunedi' 26 con 1500 passi e' fatto, oggi (giorno 4) ne servono ~1.800.
+  const sfida = { giorni: 30, da: 1000, a: 8000, inizio: '2026-10-26' }
+  const r = calcolaAbitudini({ giorni: [g('2026-10-26', { passi: 1500 }), g(OGGI, { passi: 1500 })], allenamenti: [] }, OGGI, cfg([sc('passi', { soglia: 4000, sfida })]))[0]
+  assert.equal(r.giorni.find((x) => x.data === '2026-10-26').stato, 'fatto')
+  assert.equal(r.giorni.find((x) => x.data === OGGI).stato, 'in-corso') // sotto la soglia di oggi, ma oggi non e' finito
+  assert.ok(r.soglia > 1500 && r.soglia < 4000, String(r.soglia))
+  assert.equal(r.sfida.giorno, 4)
+})
+
+ok('punto di partenza della sfida: sotto quello che gia fa, e sale', () => {
+  const p = puntoDiPartenza('passi', [7000, 8000, 9000, 6000, 10000])
+  assert.ok(p.da < 8000 && p.da > 6000, JSON.stringify(p))
+  assert.ok(p.a > 8000 && p.a <= 30000)
+  assert.equal(p.giorni, 30)
+  assert.ok(sfidaValida('passi', p))
+  // Pochi dati o nessuno: dalla meta' alla soglia di partenza.
+  const v = puntoDiPartenza('passi', [])
+  assert.deepEqual([v.da, v.a], [3000, 6000])
+  assert.deepEqual(puntoDiPartenza('passi', [5000, 6000]), v)
+  assert.equal(puntoDiPartenza('sonno', [420, 430, 440]), null) // il sonno non ha la sfida
+  assert.equal(puntoDiPartenza('coricamento', [300, 310, 320]), null)
+  // Sempre valida e che sale, per ogni tipo con la sfida e per qualunque storia.
+  for (const t of TIPI.filter((x) => CATALOGO[x].sfida)) {
+    for (const storia of [[], [1, 2, 3], [CATALOGO[t].max, CATALOGO[t].max, CATALOGO[t].max], [CATALOGO[t].min, CATALOGO[t].min, CATALOGO[t].min], [0, 0, 0]]) {
+      const x = puntoDiPartenza(t, storia)
+      assert.ok(x && sfidaValida(t, x), `${t} ${storia}: ${JSON.stringify(x)}`)
+      assert.ok(x.a > x.da)
+    }
+  }
+})
+
+ok('sfidaValida: come il server', () => {
+  assert.equal(sfidaValida('passi', { giorni: 30, da: 4000, a: 8000 }), true)
+  assert.equal(sfidaValida('passi', { giorni: 6, da: 4000, a: 8000 }), false)
+  assert.equal(sfidaValida('passi', { giorni: 91, da: 4000, a: 8000 }), false)
+  assert.equal(sfidaValida('passi', { giorni: 30, da: 8000, a: 4000 }), false)
+  assert.equal(sfidaValida('passi', { giorni: 30, da: 500, a: 4000 }), false)
+  assert.equal(sfidaValida('sonno', { giorni: 30, da: 300, a: 400 }), false)
+})
+
+ok('movimento: vale il maggiore fra gli allenamenti e l anello Esercizio, mai la somma', () => {
+  const dati = { giorni: [g('2026-10-27', { esercizio_minuti: 40 }), g('2026-10-28', { esercizio_minuti: 10 })], allenamenti: [a('2026-10-27T08:00:00Z', 25), a('2026-10-28T08:00:00Z', 15)] }
+  const v = valoriDelTipo('movimento', dati)
+  assert.equal(v.get('2026-10-27'), 40)
+  assert.equal(v.get('2026-10-28'), 15)
+})
+
+ok('coricamento: si vince andando a letto non oltre l orario, dal telefono o dalla notte scritta a mano', () => {
+  assert.equal(oraDaCoricamento(330), '23:30')
+  assert.equal(oraDaCoricamento(435), '01:15')
+  assert.equal(oraDaCoricamento(0), '18:00')
+  assert.equal(coricamentoDaOra('23:30'), 330)
+  assert.equal(coricamentoDaOra('01:15'), 435)
+  assert.equal(coricamentoDaOra('00:00'), 360)
+  assert.equal(coricamentoDaOra('14:00'), null) // un riposino non e' il coricamento
+  assert.equal(coricamentoDaOra('25:00'), null)
+  const giorni = [g('2026-10-27', { coricamento_min: 300 }), g('2026-10-28', { coricamento_min: 360 }), g('2026-10-26', { sonno_a_letto: '23:00', sonno_sveglia: '07:00', sonno_minuti: 480 }, 'manuale')]
+  const r = calcolaAbitudini({ giorni, allenamenti: [] }, OGGI, cfg([sc('coricamento', { soglia: 330 })]))[0]
+  assert.equal(r.inverso, true)
+  assert.equal(r.giorni.find((x) => x.data === '2026-10-27').stato, 'fatto') // 23:00
+  assert.equal(r.giorni.find((x) => x.data === '2026-10-28').stato, 'no') // mezzanotte, oltre 23:30
+  assert.equal(r.giorni.find((x) => x.data === '2026-10-26').stato, 'fatto') // dalla notte scritta a mano: 23:00
+  assert.equal(r.giorni.find((x) => x.data === '2026-10-25').stato, 'senza-dato')
+  // Due righe per la stessa notte: vale la piu' tarda; il dispositivo vince sulla notte a mano.
+  const v = valoriDelTipo('coricamento', { giorni: [g('2026-10-27', { coricamento_min: 300 }), g('2026-10-27', { coricamento_min: 340 }, 'google_salute'), g('2026-10-27', { sonno_a_letto: '21:00', sonno_sveglia: '05:00' }, 'manuale')], allenamenti: [] })
+  assert.equal(v.get('2026-10-27'), 340)
+})
+
+ok('manuali: un giorno senza valore e un no solo da quando la segui, oggi e in corso', () => {
+  const registri = [{ tipo: 'plank', data: '2026-10-27', valore: 75 }, { tipo: 'plank', data: '2026-10-28', valore: 40 }]
+  const r = calcolaAbitudini({ giorni: [], allenamenti: [] }, OGGI, cfg([sc('plank', { soglia: 60, dal: '2026-10-26' })], registri))[0]
+  assert.equal(r.manuale, true)
+  assert.equal(r.giorni.find((x) => x.data === '2026-10-25').stato, 'senza-dato') // prima che la seguissi
+  assert.equal(r.giorni.find((x) => x.data === '2026-10-26').stato, 'no') // la seguivi e non l'hai fatta
+  assert.equal(r.giorni.find((x) => x.data === '2026-10-27').stato, 'fatto')
+  assert.equal(r.giorni.find((x) => x.data === '2026-10-28').stato, 'no') // 40 < 60
+  assert.equal(r.giorni.find((x) => x.data === OGGI).stato, 'in-corso')
+  assert.equal(r.fatti, 1)
+  assert.equal(r.oggi, null)
+  // Un valore di oggi si vede, e se arriva alla soglia e' fatto.
+  const r2 = calcolaAbitudini({ giorni: [], allenamenti: [] }, OGGI, cfg([sc('squat', { soglia: 30, dal: '2026-10-26' })], [{ tipo: 'squat', data: OGGI, valore: 35 }]))[0]
+  assert.equal(r2.oggi, 35)
+  assert.equal(r2.giorni.at(-1).stato, 'fatto')
+  // I valori di un altro tipo non si mescolano.
+  assert.equal(calcolaAbitudini({ giorni: [], allenamenti: [] }, OGGI, cfg([sc('squat', { dal: '2026-10-26' })], registri))[0].conDati, false)
+})
+
+ok('mindfulness, ore in piedi e luce: dal telefono; nessuna sessione e un no solo per la meditazione dove il telefono parlava', () => {
+  const giorni = [g('2026-10-27', { passi: 100, mindfulness_minuti: 10, ore_in_piedi: 9, luce_minuti: 45 }), g('2026-10-28', { passi: 100, ore_in_piedi: 4, luce_minuti: 10 })]
+  const r = calcolaAbitudini({ giorni, allenamenti: [] }, OGGI, cfg([sc('mindfulness', { soglia: 5 }), sc('in_piedi', { soglia: 8 }), sc('luce', { soglia: 30 })]))
+  const [m, p, l] = r
+  assert.equal(m.giorni.find((x) => x.data === '2026-10-27').stato, 'fatto')
+  assert.equal(m.giorni.find((x) => x.data === '2026-10-28').stato, 'no') // il telefono parlava, nessuna meditazione
+  assert.equal(m.giorni.find((x) => x.data === '2026-10-20').stato, 'senza-dato')
+  assert.equal(p.giorni.find((x) => x.data === '2026-10-27').stato, 'fatto')
+  assert.equal(p.giorni.find((x) => x.data === '2026-10-28').stato, 'no')
+  assert.equal(p.giorni.find((x) => x.data === '2026-10-26').stato, 'senza-dato') // niente Watch: non si sa
+  assert.equal(l.giorni.find((x) => x.data === '2026-10-28').stato, 'no')
+})
+
+ok('catalogo: limiti coerenti, copia del server uguale', () => {
+  for (const t of TIPI) {
+    const v = CATALOGO[t]
+    assert.ok(v.min >= 1 && v.max > v.min && v.passo >= 1, t)
+    assert.ok(v.predefinita.soglia >= v.min && v.predefinita.soglia <= v.max, `${t}: la soglia di partenza sta nei limiti`)
+    assert.ok(v.predefinita.giorni >= 1 && v.predefinita.giorni <= 7)
+    if (v.manuale) assert.ok(v.sfida, t)
+  }
+  assert.ok(ABITUDINI_MASSIME >= 3 && ABITUDINI_MASSIME <= 6)
+  assert.equal(CATALOGO.passi.predefinita.soglia, SOGLIA_PASSI)
+  // Se i due repository stanno affiancati, il catalogo del server dice le stesse cose.
+  const srv = '../APP-ATHLON/supabase/functions/_shared/dispositivi/abitudini.ts'
+  if (existsSync(srv)) {
+    const testo = readFileSync(srv, 'utf8')
+    for (const t of TIPI) {
+      const m = new RegExp(`${t}: \\{ min: (\\d+), max: (\\d+), sfida: (true|false), manuale: (true|false) \\}`).exec(testo)
+      assert.ok(m, `${t} manca nel catalogo del server`)
+      const v = CATALOGO[t]
+      assert.deepEqual([Number(m[1]), Number(m[2]), m[3] === 'true', m[4] === 'true'], [v.min, v.max, v.sfida, v.manuale], `${t}: il server dice un'altra cosa`)
+    }
+    assert.ok(new RegExp(`ABITUDINI_MASSIME = ${ABITUDINI_MASSIME}\\b`).test(testo))
+    console.log('   (catalogo confrontato con quello del server)')
+  }
 })
 
 console.log(`${n} gruppi passati`)

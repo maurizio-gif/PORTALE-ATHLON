@@ -49,6 +49,15 @@ export type GiornoDispositivo = {
   hrv_ms: number | null
   passi: number | null
   calorie_attive: number | null
+  /** Nuovi il 31/10/2026 (per le abitudini): arrivano solo da Apple Salute / Health Connect; con una funzione di prima mancano. */
+  esercizio_minuti?: number | null
+  /** Ore in cui ci si e' alzati in piedi (anello Stand di Apple). Da Google non c'e'. */
+  ore_in_piedi?: number | null
+  mindfulness_minuti?: number | null
+  /** Minuti alla luce del giorno (Apple). Da Google non c'e'. */
+  luce_minuti?: number | null
+  /** Quando ci si e' coricati, in minuti dopo le 18:00 (0 = le 18:00, 1080 = le 12:00 del giorno dopo). */
+  coricamento_min?: number | null
   origine?: string | null
 }
 
@@ -136,6 +145,11 @@ export type GiornoDaSalute = {
   fc_notte?: number | null
   hrv_ms?: number | null
   calorie_attive?: number | null
+  esercizio_minuti?: number | null
+  ore_in_piedi?: number | null
+  mindfulness_minuti?: number | null
+  luce_minuti?: number | null
+  coricamento_min?: number | null
   origine?: string | null
 }
 export type AllenamentoDaSalute = { inizio: string; fine: string; tipo: string; calorie: number | null; fc_media?: number | null; fc_max?: number | null; origine?: string | null }
@@ -172,4 +186,52 @@ export async function scollegaSalute(): Promise<Esito<DatiDispositivi>> {
   const { ok, dati } = await chiama({ azione: 'scollega_salute' })
   if (ok) return { ok: true, ...dei(dati) }
   return errore(dati, t('Non siamo riusciti a scollegare Apple Salute. Riprova.', 'We couldn’t disconnect Apple Health. Try again.'))
+}
+
+// ---------------------------------------------------------------------------------------------------------------------------------
+// Le abitudini scelte (31/10/2026): quali seguire, con che soglia e a quanti giorni a settimana, e l'eventuale sfida a obiettivo crescente.
+// Stanno sul server, sotto lo stesso consenso dei dispositivi (la revoca le cancella): cosi' seguono l'account da PWA a app. Regole e limiti:
+// `_shared/dispositivi/abitudini.ts` di APP-ATHLON, copiati in `fit/catalogoAbitudini.ts`. La data d'inizio della sfida la mette il server.
+
+export type TipoAbitudine = 'passi' | 'movimento' | 'sonno' | 'coricamento' | 'in_piedi' | 'mindfulness' | 'luce' | 'plank' | 'squat' | 'flessioni'
+
+export type SfidaAbitudine = { giorni: number; da: number; a: number }
+export type SceltaAbitudine = {
+  tipo: TipoAbitudine
+  soglia: number
+  /** A quanti giorni della settimana (lunedi'-domenica) va raggiunta. */
+  giorni: number
+  /** Da quando la segui (AAAA-MM-GG, Roma). Prima di allora un'abitudine che si scrive a mano non e' un «no». */
+  dal?: string
+  sfida: (SfidaAbitudine & { inizio: string }) | null
+}
+export type RegistroAbitudine = { tipo: TipoAbitudine; data: string; valore: number }
+export type DatiAbitudini = { massime: number; scelte: SceltaAbitudine[]; registri: RegistroAbitudine[] }
+
+const abitudini = (dati: Record<string, any>): DatiAbitudini => ({ massime: Number(dati.massime) || 5, scelte: dati.scelte ?? [], registri: dati.registri ?? [] })
+
+/** Le abitudini scelte e i valori scritti a mano negli ultimi 35 giorni. Con una funzione di prima («Azione sconosciuta.») la risposta e' un errore: l'app resta sulle tre di partenza. */
+export async function elencoAbitudini(): Promise<Esito<DatiAbitudini>> {
+  const { ok, dati } = await chiama({ azione: 'abitudini_elenco' })
+  if (ok) return { ok: true, ...abitudini(dati) }
+  return errore(dati, t('Non riusciamo a leggere le tue abitudini adesso.', 'We can’t load your habits right now.'))
+}
+
+export async function salvaAbitudine(a: { tipo: TipoAbitudine; soglia: number; giorni: number; sfida: SfidaAbitudine | null }): Promise<Esito<DatiAbitudini>> {
+  const { ok, dati } = await chiama({ azione: 'abitudine_salva', ...a })
+  if (ok) return { ok: true, ...abitudini(dati) }
+  return errore(dati, t('Non siamo riusciti a salvare l’abitudine. Riprova.', 'We couldn’t save the habit. Try again.'))
+}
+
+export async function togliAbitudine(tipo: TipoAbitudine): Promise<Esito<DatiAbitudini>> {
+  const { ok, dati } = await chiama({ azione: 'abitudine_togli', tipo })
+  if (ok) return { ok: true, ...abitudini(dati) }
+  return errore(dati, t('Non siamo riusciti a togliere l’abitudine. Riprova.', 'We couldn’t remove the habit. Try again.'))
+}
+
+/** Il valore del giorno di un'abitudine che si scrive a mano (secondi di plank, ripetizioni): riscriverlo lo corregge. `data` di partenza: oggi. */
+export async function registraAbitudine(tipo: TipoAbitudine, valore: number, data?: string): Promise<Esito<DatiAbitudini>> {
+  const { ok, dati } = await chiama({ azione: 'abitudine_registra', tipo, valore, ...(data ? { data } : {}) })
+  if (ok) return { ok: true, ...abitudini(dati) }
+  return errore(dati, t('Non siamo riusciti a salvare il risultato. Riprova.', 'We couldn’t save the result. Try again.'))
 }

@@ -12,7 +12,7 @@
 // stessa colonna (`hrv_ms`): un confronto fra persone o nel tempo sarebbe falso. Si aggiunge quando c'e' una colonna per ciascuna.
 import { Platform } from 'react-native'
 
-import type { AllenamentoSalute, GiornoSalute, LetturaSalute } from './appleSalute'
+import { coricamentoDa, giornoVuoto, type AllenamentoSalute, type GiornoSalute, type LetturaSalute } from './appleSalute'
 
 type HC = typeof import('react-native-health-connect')
 
@@ -26,6 +26,8 @@ function carica(): HC | null {
 }
 
 const LETTURE = ['Steps', 'SleepSession', 'ExerciseSession', 'RestingHeartRate', 'ActiveCaloriesBurned', 'HeartRate'] as const
+// Aggiunta il 31/10/2026 (abitudini): la meditazione. Si chiede a parte e senza fermarsi se non va: non tutte le versioni di Health Connect la conoscono.
+const LETTURE_EXTRA = ['MindfulnessSession'] as const
 
 export async function healthConnectDisponibile(): Promise<boolean> {
   const hc = carica()
@@ -45,6 +47,11 @@ export async function chiediPermessoHealthConnect(): Promise<boolean> {
   try {
     if (!(await hc.initialize())) return false
     await hc.requestPermission(LETTURE.map((recordType) => ({ accessType: 'read' as const, recordType })))
+    try {
+      await hc.requestPermission(LETTURE_EXTRA.map((recordType) => ({ accessType: 'read' as const, recordType })))
+    } catch {
+      // senza meditazione le altre abitudini funzionano lo stesso
+    }
     return true
   } catch {
     return false
@@ -92,7 +99,7 @@ export async function leggiHealthConnect(giorni = 14): Promise<LetturaSalute | n
     inizio.setDate(inizio.getDate() - (n - 1))
     const per: Record<string, GiornoSalute> = {}
     const giorno = (d: Date) =>
-      (per[chiaveGiorno(d)] ??= { data: chiaveGiorno(d), passi: null, sonno_minuti: null, sonno_profondo_minuti: null, sonno_rem_minuti: null, fc_notte: null, hrv_ms: null, calorie_attive: null, origine: null })
+      (per[chiaveGiorno(d)] ??= giornoVuoto(chiaveGiorno(d)))
     const intervallo = { operator: 'between' as const, startTime: inizio.toISOString(), endTime: fine.toISOString() }
     const periodo = { period: 'DAYS' as const, length: 1 }
 
@@ -151,18 +158,19 @@ export async function leggiHealthConnect(giorni = 14): Promise<LetturaSalute | n
       return a < 0 ? 0 : tot + (b - a)
     }
     const S = hc.SleepStageType
-    const notti: Record<string, { tutto: Per[]; prof: Per[]; rem: Per[]; fonti: Record<string, number> }> = {}
+    const notti: Record<string, { tutto: Per[]; prof: Per[]; rem: Per[]; inizi: number[]; fonti: Record<string, number> }> = {}
     for (const s of sessioni.records) {
       const fineSessione = new Date(s.endTime).getTime()
       if (!(fineSessione > new Date(s.startTime).getTime())) continue
       const k = chiaveGiorno(new Date(fineSessione))
-      const g = (notti[k] ??= { tutto: [], prof: [], rem: [], fonti: {} })
+      const g = (notti[k] ??= { tutto: [], prof: [], rem: [], inizi: [], fonti: {} })
       const fasi: any[] = Array.isArray(s.stages) && s.stages.length ? s.stages : [{ startTime: s.startTime, endTime: s.endTime, stage: S.SLEEPING }]
       for (const f of fasi) {
         const i = new Date(f.startTime).getTime()
         const e = new Date(f.endTime).getTime()
         if (!(e > i) || f.stage === S.AWAKE || f.stage === S.OUT_OF_BED || f.stage === S.UNKNOWN) continue
         g.tutto.push([i, e])
+        g.inizi.push(i)
         if (f.stage === S.DEEP) g.prof.push([i, e])
         if (f.stage === S.REM) g.rem.push([i, e])
       }
@@ -178,10 +186,35 @@ export async function leggiHealthConnect(giorni = 14): Promise<LetturaSalute | n
       const r = Math.round(unione(g.rem) / 60_000)
       d.sonno_profondo_minuti = p > 0 ? p : null
       d.sonno_rem_minuti = r > 0 ? r : null
+      // Quando ci si e' coricati: l'inizio del primo periodo di sonno della notte.
+      d.coricamento_min = g.inizi.length ? coricamentoDa(Math.min(...g.inizi)) : null
       d.origine = Object.entries(g.fonti).sort((x, y) => y[1] - x[1])[0]?.[0] ?? d.origine
     }
 
     const lavori = await sicuro(() => hc.readRecords('ExerciseSession', { timeRangeFilter: intervallo }) as Promise<{ records: any[] }>, { records: [] })
+    // Minuti di esercizio per giorno (nuovo il 31/10/2026): le sessioni si uniscono, cosi' due app che scrivono lo stesso allenamento non contano due volte.
+    const perEsercizio: Record<string, Per[]> = {}
+    for (const w of lavori.records) {
+      const i = new Date(w.startTime).getTime()
+      const e = new Date(w.endTime).getTime()
+      if (e > i) (perEsercizio[chiaveGiorno(new Date(i))] ??= []).push([i, e])
+    }
+    for (const [k, v] of Object.entries(perEsercizio)) {
+      const minuti = Math.round(unione(v) / 60_000)
+      if (minuti > 0) giorno(new Date(`${k}T12:00:00`)).esercizio_minuti = minuti
+    }
+    // Mindfulness: stesso criterio.
+    const mente = await sicuro(() => hc.readRecords('MindfulnessSession', { timeRangeFilter: intervallo }) as Promise<{ records: any[] }>, { records: [] })
+    const perMente: Record<string, Per[]> = {}
+    for (const m of mente.records) {
+      const i = new Date(m.startTime).getTime()
+      const e = new Date(m.endTime).getTime()
+      if (e > i) (perMente[chiaveGiorno(new Date(e))] ??= []).push([i, e])
+    }
+    for (const [k, v] of Object.entries(perMente)) {
+      const minuti = Math.round(unione(v) / 60_000)
+      if (minuti > 0) giorno(new Date(`${k}T12:00:00`)).mindfulness_minuti = minuti
+    }
     // Il battito di ogni allenamento (media e massimo), come per Apple: al massimo 40, i piu' recenti.
     const recenti = [...lavori.records].sort((a, b) => String(b.startTime).localeCompare(String(a.startTime)))
     const allenamenti: AllenamentoSalute[] = await Promise.all(

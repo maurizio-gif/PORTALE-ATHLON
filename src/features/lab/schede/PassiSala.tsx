@@ -4,7 +4,7 @@ import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { ActivityIndicator, ScrollView, StyleSheet, Text, TextInput, useWindowDimensions, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
-import { chiediSchedaAi, elencoSchede, videoCapacita, type VideoCapacita } from '@/api/lab'
+import { chiediSchedaAi, elencoSchede } from '@/api/lab'
 import { ultimiConsigli } from '@/api/percorso'
 import { t, tv } from '@/lib/lingua'
 import { spazio, tinta } from '@/theme'
@@ -24,6 +24,7 @@ import { abitudineNota, ricordaAbitudine } from './abitudineMemoria'
 import { AnelloPassi } from './AnelloPassi'
 import { CHIAVE_ELENCO_PIANI } from './comune'
 import { MediaEsercizio } from './MediaEsercizio'
+import { useVideoCapacita } from './useVideoCapacita'
 import { Griglia, OpzioneCarta } from './PassiUI'
 import { aggiornaProfilo, daConsigli, daSala, daSalaCambiate, giaCercato, inSala, leggiProfilo, livelloDaSala, momentoDaVisiteAlPosto, profiloEffettivo, salaDaProfilo, segnaCercato, senzaToccate, soloMancanti, type CampoSala } from './profiloComune'
 import {
@@ -502,23 +503,6 @@ const stili = StyleSheet.create({
   notaSalto: { fontFamily: F.medio, fontSize: 14, lineHeight: 20, marginTop: spazio.tre },
 })
 
-
-// Il video che spiega il movimento di un test (squat, piegamenti, plank): chi non sa cosa
-// sono lo vede prima di rispondere. Una lettura sola per apertura dell'app, in memoria; se
-// non arriva (funzione non aggiornata, rete) non si vede niente e il passo e' quello di prima.
-let videoInMemoria: Promise<VideoCapacita> | null = null
-function useVideoCapacita(): VideoCapacita | null {
-  const [v, setV] = useState<VideoCapacita | null>(null)
-  useEffect(() => {
-    let vivo = true
-    if (!videoInMemoria) videoInMemoria = videoCapacita().then((x) => (Object.keys(x).length ? x : ((videoInMemoria = null), x)))
-    void videoInMemoria.then((x) => vivo && setV(x))
-    return () => {
-      vivo = false
-    }
-  }, [])
-  return v
-}
 
 function VideoTest({ nome }: { nome: NomeTest }) {
   const v = useVideoCapacita()?.[nome]
