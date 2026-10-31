@@ -49,7 +49,8 @@
         "android.permission.health.READ_EXERCISE",
         "android.permission.health.READ_RESTING_HEART_RATE",
         "android.permission.health.READ_HEART_RATE",
-        "android.permission.health.READ_ACTIVE_CALORIES_BURNED"
+        "android.permission.health.READ_ACTIVE_CALORIES_BURNED",
+        "android.permission.health.READ_MINDFULNESS"
       ]
     },
     "web": {
@@ -89,7 +90,7 @@
       [
         "@kingstinct/react-native-healthkit",
         {
-          "NSHealthShareUsageDescription": "Athlon Club legge da Apple Salute i tuoi passi, il sonno, il battito, la variabilità del battito, le calorie di movimento e gli allenamenti, solo se lo autorizzi, per mostrarli in Recover e in Train e calcolare il tuo Athlon Health Score.",
+          "NSHealthShareUsageDescription": "Athlon Club legge da Apple Salute i tuoi passi, il sonno, il battito, la variabilità del battito, le calorie di movimento, i minuti di esercizio, le ore in piedi, la meditazione, il tempo alla luce del giorno e gli allenamenti, solo se lo autorizzi, per mostrarli in Recover e in Train, calcolare il tuo Athlon Health Score e spuntare le tue abitudini.",
           "NSHealthUpdateUsageDescription": "Athlon Club non scrive nulla in Apple Salute: legge soltanto i tuoi dati, se lo autorizzi.",
           "background": false
         }
