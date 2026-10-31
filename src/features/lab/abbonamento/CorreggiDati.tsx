@@ -4,6 +4,7 @@ import { Text, View } from 'react-native'
 import { salvaDatiAbbonamento, type CambiDati, type PersonaDati } from '@/api/abbonamento'
 import { CampoPaese } from '@/components/CampoPaese'
 import { CasellaResidenteEstero } from '@/components/CasellaResidenteEstero'
+import { problemaCodiceFiscale } from '@/lib/codiceFiscale'
 import { t } from '@/lib/lingua'
 import { capLiberoValido, ITALIA, pulisciCapLibero } from '@/lib/residenteEstero'
 import { spazio } from '@/theme'
@@ -73,6 +74,17 @@ export function CorreggiDati({
     } else if (cfNuovo !== (persona.codice_fiscale ?? '').toUpperCase() || persona.senza_codice_fiscale) {
       if (!cfNuovo) {
         setErrore(t('Scrivi il codice fiscale, oppure spunta che sei residente all’estero.', 'Enter your Italian tax code, or tick that you live abroad.'))
+        return
+      }
+      // Il codice fiscale si controlla qui, prima di toccare il contratto (30/10/2026): sedici caratteri, il carattere
+      // di controllo e la coerenza con nome, cognome e data di nascita. Quello che non regge non parte.
+      if (cfNuovo.length !== 16) {
+        setErrore(t('Il codice fiscale ha 16 caratteri: controllalo.', 'The tax code has 16 characters: please check it.'))
+        return
+      }
+      const problemaCf = problemaCodiceFiscale({ codice_fiscale: cfNuovo, nome: persona.nome ?? '', cognome: persona.cognome ?? '', nascita: persona.data_nascita ?? '' })
+      if (problemaCf) {
+        setErrore(problemaCf)
         return
       }
       cambi.codice_fiscale = cfNuovo
