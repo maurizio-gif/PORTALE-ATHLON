@@ -102,6 +102,8 @@ const ICONE = {
   passi: ['figure.walk', 'directions_walk'],
   luna: ['moon.zzz.fill', 'bedtime'],
   // Le abitudini (31/10/2026): la luce del giorno.
+  // La mobilita' (31/10/2026): le sessioni guidate e l'abitudine dei minuti di mobilita'.
+  mobilita: ['figure.flexibility', 'self_improvement'],
   sole: ['sun.max.fill', 'wb_sunny'],
   // La classifica mensile (29/10/2026).
   trofeo: ['trophy.fill', 'emoji_events'],

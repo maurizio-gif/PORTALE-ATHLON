@@ -832,6 +832,8 @@ export type SchedaLab = {
   origine?: 'creata' | 'importata' | 'ai' | 'club' | null
   /** `vasca` se e' un piano di nuoto: si legge in vasca e non si registra (il server rifiuta `inizia`). */
   ambiente?: 'sala' | 'vasca'
+  /** Il ciclo a settimane di un piano proprio (31/10/2026): durata e giorno d'inizio (lo mette il server). I numeri di ogni settimana li ricava l'app (`schede/progressione.ts`). */
+  progressione?: { settimane: number; inizio: string } | null
   giorni: GiornoSchedaLab[]
 }
 
@@ -925,6 +927,21 @@ export async function leggiSchedaLab(id: string): Promise<Esito<{ scheda: Scheda
     }
   }
   return { ok: false, errore: dati.errore ?? t('Non riusciamo ad aprire il piano adesso.', 'We can’t open the plan right now.') }
+}
+
+/**
+ * Il ciclo a settimane di un piano proprio: `settimane` da 3 a 8 lo accende (o lo cambia), `null` lo toglie; `riparti` lo fa ricominciare da oggi. Il giorno d'inizio lo
+ * mette il server. Serve la funzione aggiornata (`progressione`): una vecchia risponde «Azione sconosciuta» e il piano resta com'e'.
+ */
+export async function impostaProgressione(id: string, settimane: number | null, riparti = false): Promise<Esito<{ progressione: { settimane: number; inizio: string } | null }>> {
+  try {
+    const { ok, dati } = await schedeLab({ azione: 'progressione', id, settimane, ...(riparti ? { riparti: true } : {}) })
+    if (ok) return { ok: true, progressione: dati.progressione ?? null }
+    const nonConosciuta = typeof dati?.errore === 'string' && /sconosciuta|unknown/i.test(dati.errore)
+    return { ok: false, errore: nonConosciuta ? t('La progressione a settimane non è ancora attiva: riprova fra qualche giorno.', 'Weekly progression isn’t available yet: try again in a few days.') : (dati?.errore ?? t('Non siamo riusciti a salvare. Riprova.', 'We couldn’t save. Try again.')) }
+  } catch {
+    return { ok: false, errore: t('Non siamo riusciti a salvare. Controlla la connessione e riprova.', 'We couldn’t save. Check your connection and try again.') }
+  }
 }
 
 export async function iniziaSeduta(schedaId: string, giornoId: string): Promise<Esito<{ allenamento: { id: string; inizio: string }; serie: SerieSeduta[] }>> {
@@ -1171,6 +1188,34 @@ export async function videoCapacita(): Promise<VideoCapacita> {
     return ok && dati.video && typeof dati.video === 'object' ? (dati.video as VideoCapacita) : {}
   } catch {
     return {}
+  }
+}
+
+/** Un esercizio di una sessione di mobilita' a richiesta (31/10/2026): un minuto, con poster e video (link firmati dalla funzione). */
+export type PassoMobilita = {
+  id: string
+  nome: string
+  tipo: 'mobilita' | 'stretching'
+  secondi: number
+  descrizione: string
+  istruzioni: string[]
+  immagini: string[]
+  video: string | null
+}
+export type SessioneMobilita = { focus: string; /** I minuti veri: meno di quelli chiesti se la libreria adatta non basta. */ minuti: number; esercizi: PassoMobilita[] }
+
+/**
+ * Una sessione di mobilita' a richiesta: la funzione sceglie gli esercizi della libreria (mobilita' e stretching, a corpo libero, un minuto ciascuno).
+ * I fastidi (`zone`, facoltativi) servono solo a togliere i movimenti che li caricano e **non si conservano**. Con una funzione di prima o senza rete: un errore, mai un crash.
+ */
+export async function sessioneMobilita(r: { focus: string; minuti: number; zone?: string[]; variante?: number }): Promise<{ ok: true; sessione: SessioneMobilita } | { ok: false; errore: string }> {
+  try {
+    const { ok, dati } = await schedeLab({ azione: 'mobilita_sessione', focus: r.focus, minuti: r.minuti, ...(r.zone?.length ? { zone: r.zone } : {}), ...(r.variante ? { variante: r.variante } : {}) })
+    if (ok && dati.sessione && Array.isArray(dati.sessione.esercizi)) return { ok: true, sessione: dati.sessione as SessioneMobilita }
+    const nonConosciuta = typeof dati?.errore === 'string' && /sconosciuta|unknown/i.test(dati.errore)
+    return { ok: false, errore: nonConosciuta ? t('Le sessioni di mobilità non sono ancora attive: riprova fra qualche giorno.', 'Mobility sessions aren’t available yet: try again in a few days.') : (dati?.errore ?? t('Non siamo riusciti a preparare la sessione. Riprova.', 'We couldn’t put the session together. Try again.')) }
+  } catch {
+    return { ok: false, errore: t('Non siamo riusciti a preparare la sessione. Controlla la connessione e riprova.', 'We couldn’t put the session together. Check your connection and try again.') }
   }
 }
 

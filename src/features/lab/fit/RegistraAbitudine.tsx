@@ -18,9 +18,13 @@ import { formatoValore, nomeAbitudine } from './testiAbitudini'
 // Il foglio con cui si scrive il risultato di un'abitudine che il telefono non misura (31/10/2026): il **cronometro** del plank e il **contatore** di
 // squat e piegamenti, con il video MoveKit che mostra il movimento (gli stessi dei test del questionario di sala: `useVideoCapacita`, link firmati dalla
 // funzione; senza, il foglio e' quello senza video). **Niente parte da solo**: il valore si salva solo con «Salva». Plank: conta il migliore del giorno
-// (una tenuta piu' breve non toglie quella di prima). Squat e piegamenti: si sommano nel giorno. I valori si riscrivono, e si correggono con «−» e «+».
+// (una tenuta piu' breve non toglie quella di prima). Squat, piegamenti, **bicchieri d'acqua e minuti di mobilita'** (31/10/2026, questi ultimi due senza video):
+// si sommano nel giorno. I valori si riscrivono, e si correggono con «−» e «+».
 
 const chiaveVideo = (tipo: TipoAbitudine): 'plank' | 'squat' | 'flessioni' | null => (tipo === 'plank' || tipo === 'squat' || tipo === 'flessioni' ? tipo : null)
+
+/** I tocchi rapidi del contatore: ripetizioni di uno, bicchieri di uno o due, minuti di mobilita' a cinque. */
+const SCATTI: Partial<Record<TipoAbitudine, [number, number, number]>> = { acqua: [1, 2, 3], mobilita: [5, 10, 15] }
 
 export function FoglioRegistra({
   aperto,
@@ -44,6 +48,16 @@ export function FoglioRegistra({
   const k = chiaveVideo(tipo)
   const v = k ? video?.[k] : undefined
   const plank = tipo === 'plank'
+  const scatti = SCATTI[tipo] ?? [1, 5, 10]
+  // Quello che si conta: ripetizioni, bicchieri o minuti (per le etichette sotto il numero).
+  const cosa = tipo === 'acqua' ? t('Bicchieri da aggiungere', 'Glasses to add') : tipo === 'mobilita' ? t('Minuti da aggiungere', 'Minutes to add') : t('Ripetizioni da aggiungere', 'Reps to add')
+  const sottotitolo = plank
+    ? t('Tieni la posizione e premi Ferma quando finisci.', 'Hold the position and press Stop when you’re done.')
+    : tipo === 'acqua'
+      ? t('Aggiungi i bicchieri che hai bevuto e salva il totale di oggi.', 'Add the glasses you drank and save today’s total.')
+      : tipo === 'mobilita'
+        ? t('Aggiungi i minuti di mobilità e salva il totale di oggi.', 'Add your mobility minutes and save today’s total.')
+        : t('Conta le ripetizioni e salva il totale di oggi.', 'Count your reps and save today’s total.')
   const [valore, setValore] = useState(0)
   const [inCorso, setInCorso] = useState(false)
   const [invio, setInvio] = useState(false)
@@ -109,7 +123,7 @@ export function FoglioRegistra({
       aperto={aperto}
       onChiudi={onChiudi}
       titolo={nomeAbitudine(tipo)}
-      sottotitolo={plank ? t('Tieni la posizione e premi Ferma quando finisci.', 'Hold the position and press Stop when you’re done.') : t('Conta le ripetizioni e salva il totale di oggi.', 'Count your reps and save today’s total.')}
+      sottotitolo={sottotitolo}
     >
       {v && (v.video || v.immagini.length) ? (
         <View accessible accessibilityLabel={t('Video che mostra il movimento', 'Video showing the movement')}>
@@ -122,11 +136,11 @@ export function FoglioRegistra({
           {plank ? formatoValore('plank', valore) : String(valore)}
         </Text>
         <Text style={[stili.sotto, { color: p.testoSecondario }]}>
-          {plank ? t('Questa tenuta', 'This hold') : t('Ripetizioni da aggiungere', 'Reps to add')}
+          {plank ? t('Questa tenuta', 'This hold') : cosa}
         </Text>
         {valoreOggi !== null ? (
           <Text style={[stili.sotto, { color: p.testoTerzo }]}>
-            {plank ? t(`Già scritto per oggi: ${formatoValore(tipo, valoreOggi)} (vale la migliore)`, `Already saved for today: ${formatoValore(tipo, valoreOggi)} (the best one counts)`) : t(`Già scritte oggi: ${valoreOggi}`, `Already saved today: ${valoreOggi}`)}
+            {plank ? t(`Già scritto per oggi: ${formatoValore(tipo, valoreOggi)} (vale la migliore)`, `Already saved for today: ${formatoValore(tipo, valoreOggi)} (the best one counts)`) : t(`Già scritto oggi: ${formatoValore(tipo, valoreOggi)}`, `Already saved today: ${formatoValore(tipo, valoreOggi)}`)}
           </Text>
         ) : null}
         <Text style={[stili.sotto, { color: totale >= soglia ? p.accento : p.testoTerzo }]}>
@@ -148,17 +162,17 @@ export function FoglioRegistra({
         </View>
       ) : (
         <View style={stili.contatore}>
-          <Tocco onPress={() => cambia(-1)} etichetta={t('Togli uno', 'Remove one')} style={[stili.tondo, { backgroundColor: p.incavo }]}>
+          <Tocco onPress={() => cambia(-scatti[0])} etichetta={t('Togli uno', 'Remove one')} style={[stili.tondo, { backgroundColor: p.incavo }]}>
             <Icona nome="meno" size={20} colore={p.testo} />
           </Tocco>
           <View style={{ flex: 1 }}>
-            <Pulsante testo="+1" onPress={() => cambia(1)} />
+            <Pulsante testo={`+${scatti[0]}`} onPress={() => cambia(scatti[0])} />
           </View>
           <View style={{ flex: 1 }}>
-            <Pulsante testo="+5" variante="secondario" onPress={() => cambia(5)} />
+            <Pulsante testo={`+${scatti[1]}`} variante="secondario" onPress={() => cambia(scatti[1])} />
           </View>
           <View style={{ flex: 1 }}>
-            <Pulsante testo="+10" variante="secondario" onPress={() => cambia(10)} />
+            <Pulsante testo={`+${scatti[2]}`} variante="secondario" onPress={() => cambia(scatti[2])} />
           </View>
         </View>
       )}

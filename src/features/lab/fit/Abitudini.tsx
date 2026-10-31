@@ -98,8 +98,9 @@ function Riga({ a, oggi, aperto, onRegistra }: { a: Abitudine; oggi: string; ape
       {rigaSfida(a) ? <Text style={[stili.piccola, { color: p.accento, paddingLeft: 40 + spazio.tre }]}>{rigaSfida(a)}</Text> : null}
       {u ? <Text style={[stili.piccola, { color: p.testoTerzo }]}>{u}</Text> : null}
       {a.manuale ? (
-        <View style={{ paddingLeft: 40 + spazio.tre, alignItems: 'flex-start' }}>
-          <Pulsante testo={a.oggi !== null ? t(`Oggi ${formatoValore(a.id, a.oggi)} · aggiungi`, `Today ${formatoValore(a.id, a.oggi)} · add`) : t('Registra oggi', 'Log today')} icona={a.id === 'plank' ? 'cronometro' : 'peso'} variante="secondario" piccolo pieno={false} onPress={onRegistra} />
+        <View style={{ paddingLeft: 40 + spazio.tre, alignItems: 'flex-start', gap: spazio.due }}>
+          <Pulsante testo={a.oggi !== null ? t(`Oggi ${formatoValore(a.id, a.oggi)} · aggiungi`, `Today ${formatoValore(a.id, a.oggi)} · add`) : t('Registra oggi', 'Log today')} icona={ICONE_ABITUDINI[a.id]} variante="secondario" piccolo pieno={false} onPress={onRegistra} />
+          {a.id === 'mobilita' ? <Pulsante testo={t('Fai una sessione guidata', 'Do a guided session')} icona="avanti" variante="fantasma" piccolo pieno={false} onPress={() => router.push('/allenamento/mobilita')} /> : null}
         </View>
       ) : null}
       {aperto ? (

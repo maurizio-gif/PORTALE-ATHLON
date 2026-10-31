@@ -6,7 +6,9 @@ import { eliminaSchedaMia, leggiSchedaLab, salvaSchedaMia, type EsercizioScheda,
 import { t, tv } from '@/lib/lingua'
 import { spazio } from '@/theme'
 
-import { dimentica, inMemoria, prendi } from '../memoria'
+import { oggiRoma } from '../alimentazione/conti'
+import { dimentica, inMemoria, prendi, ricorda } from '../memoria'
+import { vistaCorrente } from '../vista'
 import { Foglio } from '../ui/Foglio'
 import { Icona } from '../ui/Icona'
 import { Carta, Entra, Messaggio, Pulsante, SchedeInArrivo, Tag } from '../ui/kit'
@@ -18,6 +20,8 @@ import { comeDaSalvare } from './copia'
 import { etichettaPiano, giornoTest, gruppo, indicazione, LIVELLI, muscoli, recupero, SPIEGA_STIMA, SPIEGA_TARATURA, testDaRifare } from './comune'
 import { MediaEsercizio } from './MediaEsercizio'
 import { condividiPiano, stampaPiano, type EsitoEsporta } from './esportaVasca'
+import { CartaProgressione } from './ProgressioneCarta'
+import { applicaProgressione, type Progressione } from './progressione'
 import { COSA_FAI_IN_VASCA, eDiVasca, ETICHETTA_VASCA, inMetri, metriDelGiorno, nomeIntensita, nomeParte, parteDa, SPIEGA_SOLO_LETTURA } from './nuoto'
 
 // Un piano: la descrizione, i giorni come schede, e gli esercizi del giorno
@@ -183,8 +187,15 @@ export function Scheda() {
     )
   }
 
-  const s = dati.scheda
+  // La progressione a cicli (31/10/2026): `grezza` e' il piano di base (quello dell'editor), `s` quello di questa settimana (carichi e serie del ciclo).
+  const grezza = dati.scheda
+  const { scheda: s, settimana } = applicaProgressione(grezza, oggiRoma())
   const vasca = eDiVasca(s)
+  const cambiaProgressione = (progressione: Progressione | null) => {
+    const nuovi = { ...dati, scheda: { ...dati.scheda, progressione } }
+    setDati(nuovi)
+    ricorda(chiave, { ok: true, ...nuovi })
+  }
 
   async function elimina() {
     setErroreElimina(null)
@@ -279,6 +290,8 @@ export function Scheda() {
           </View>
         </Carta>
       ) : null}
+
+      <CartaProgressione scheda={grezza} settimana={settimana} vista={!!vistaCorrente()} onCambiata={cambiaProgressione} />
 
       {inPercentuale.length ? (
         <Carta style={{ gap: spazio.due }}>
