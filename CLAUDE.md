@@ -1860,7 +1860,7 @@ Lato server (migrazione `20261031f`, azioni di `portale-lab-dispositivi`, tetti 
 
 ## Acqua e mobilità fra le abitudini, sessioni di mobilità a richiesta, e la progressione a cicli dei piani (31/10/2026)
 
-Richiesta di Maurizio, seguito delle abitudini (sezione sopra): «abitudini manuali (acqua…)», «sessioni di mobilità on-demand» e «piani pluri-settimanali con scarico». Lato server (migrazioni `20261031g` e `20261031h`, `portale-lab-dispositivi`, `portale-lab-schede`, regole in `_shared/`): `CLAUDE.md` di APP-ATHLON, stessa data.
+Richiesta di Maurizio, seguito delle abitudini (sezione sopra): «abitudini manuali (acqua…)», «sessioni di mobilità on-demand» e «piani pluri-settimanali con scarico». Lato server (migrazioni `20261031i` e `20261031j`, `portale-lab-dispositivi`, `portale-lab-schede`, regole in `_shared/`): `CLAUDE.md` di APP-ATHLON, stessa data.
 
 ### Due abitudini che si scrivono a mano: acqua e mobilità
 
