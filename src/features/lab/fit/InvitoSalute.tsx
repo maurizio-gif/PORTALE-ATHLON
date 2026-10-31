@@ -7,7 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { t } from '@/lib/lingua'
 import { spazio } from '@/theme'
 
-import { appleSaluteAttivo, appleSaluteDisponibile, appSaluteDelTelefono, invitoSaluteVisto, segnaInvitoSaluteVisto } from '../dispositivi/appleSalute'
+import { appleSaluteAttivo, appleSaluteDisponibile, appSaluteDelTelefono, invitoSaluteVisto, nomeAppSalute, segnaInvitoSaluteVisto } from '../dispositivi/appleSalute'
 import type { Dispositivi } from '../dispositivi/useDispositivi'
 import { Icona, type NomeIcona } from '../ui/Icona'
 import { Pulsante, Tag } from '../ui/kit'
@@ -24,8 +24,8 @@ import { F, FUOCO, NOTTE } from '../ui/tema'
 // Compare solo dove c'e' un'app Salute da cui leggere (oggi Apple Salute su iPhone: `appSaluteDelTelefono`), per i
 // maggiorenni, se non e' gia' attiva e mai in vista cliente.
 
-/** Cosa dice l'invito sull'app Salute del telefono: il nome cambia con la piattaforma (oggi solo Apple). */
-const NOME_APP_SALUTE = () => t('Apple Salute', 'Apple Health')
+/** Cosa dice l'invito sull'app Salute del telefono: il nome cambia con la piattaforma (Apple Salute su iPhone, Health Connect su Android). */
+const NOME_APP_SALUTE = () => nomeAppSalute()
 
 function Voce({ icona, testo }: { icona: NomeIcona; testo: string }) {
   return (

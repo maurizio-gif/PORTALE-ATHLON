@@ -5,7 +5,7 @@ import { StyleSheet, Text, View } from 'react-native'
 import { t } from '@/lib/lingua'
 import { spazio } from '@/theme'
 
-import { appleSaluteAttivo, appleSaluteDisponibile, appSaluteDelTelefono, sincronizzaSalute } from '../dispositivi/appleSalute'
+import { appleSaluteAttivo, appleSaluteDisponibile, appSaluteDelTelefono, nomeAppSalute, sincronizzaSalute } from '../dispositivi/appleSalute'
 import { datiAppleSalute, fontiRicevute, giornoBreve, notaAppleSaluteDalWeb, riepilogoAppleSalute } from '../dispositivi/comune'
 import type { Dispositivi } from '../dispositivi/useDispositivi'
 import { Richiamo } from '../profilo/Richiamo'
@@ -39,7 +39,8 @@ export function CartaDispositivi({ disp }: { disp: Dispositivi }) {
   const [disponibile, setDisponibile] = useState(false)
   const [inCorso, setInCorso] = useState(false)
   const [errore, setErrore] = useState<string | null>(null)
-  const apple = appSaluteDelTelefono() === 'apple'
+  const apple = appSaluteDelTelefono() !== null // c'e' un'app Salute su questo telefono: Apple Salute (iPhone) o Health Connect (Android)
+  const nome = nomeAppSalute()
   useEffect(() => {
     if (apple) appleSaluteDisponibile().then(setDisponibile)
   }, [apple])
@@ -59,7 +60,7 @@ export function CartaDispositivi({ disp }: { disp: Dispositivi }) {
     const r = await sincronizzaSalute(true)
     setInCorso(false)
     if (r) disp.imposta(r)
-    else setErrore(t('Non abbiamo letto niente da Apple Salute. Controlla che la condivisione sia attiva per sonno, passi e allenamenti.', 'We read nothing from Apple Health. Check that sharing is on for sleep, steps and workouts.'))
+    else setErrore(t(`Non abbiamo letto niente da ${nome}. Controlla che la condivisione sia attiva per sonno, passi e allenamenti.`, `We read nothing from ${nome}. Check that sharing is on for sleep, steps and workouts.`))
   }
 
   const evidenza = faccia === 'da-attivare'
@@ -74,9 +75,9 @@ export function CartaDispositivi({ disp }: { disp: Dispositivi }) {
           <View style={stili.titoloRiga}>
             <Text style={[stili.titolo, { color: p.testo }]}>
               {faccia === 'da-attivare'
-                ? t('Collega Apple Salute', 'Connect Apple Health')
+                ? t(`Collega ${nome}`, `Connect ${nome}`)
                 : faccia === 'senza-dati'
-                  ? t('Apple Salute: non arriva niente', 'Apple Health: nothing coming in')
+                  ? t(`${nome}: non arriva niente`, `${nome}: nothing coming in`)
                   : faccia === 'collegato'
                     ? t('I tuoi dispositivi', 'Your devices')
                     : t('Collega i tuoi dispositivi', 'Connect your devices')}
@@ -101,8 +102,8 @@ export function CartaDispositivi({ disp }: { disp: Dispositivi }) {
                     ? t(`Ricevi da: ${fonti.join(', ')}.`, `You’re receiving from: ${fonti.join(', ')}.`)
                     : t('Sonno, passi e allenamenti che arrivano dal telefono.', 'Sleep, steps and workouts coming from your phone.')
                   : t(
-                      'Orologio, anello o app di fitness: si collegano dall’app, su iPhone tramite Apple Salute e su Android tramite Health Connect (in arrivo). Sonno, passi e allenamenti arrivano da soli.',
-                      'Watch, ring or fitness app: you connect them from the app, through Apple Health on iPhone and Health Connect on Android (coming soon). Sleep, steps and workouts come in by themselves.',
+                      'Orologio, anello o app di fitness: si collegano dall’app, su iPhone tramite Apple Salute e su Android tramite Health Connect. Sonno, passi e allenamenti arrivano da soli.',
+                      'Watch, ring or fitness app: you connect them from the app, through Apple Health on iPhone and Health Connect on Android. Sleep, steps and workouts come in by themselves.',
                     )}
           </Text>
         </View>
@@ -136,7 +137,7 @@ export function CartaDispositivi({ disp }: { disp: Dispositivi }) {
 
       {faccia === 'da-attivare' ? (
         <>
-          <Pulsante testo={t('Attiva Apple Salute', 'Turn on Apple Health')} icona="cuore" onPress={apriEAttiva} />
+          <Pulsante testo={t(`Attiva ${nome}`, `Turn on ${nome}`)} icona="cuore" onPress={apriEAttiva} />
           <Text style={[stili.piccola, { color: p.testoTerzo }]}>{t('Consigliato, non obbligatorio. Scegli tu cosa condividere e puoi toglierlo quando vuoi.', 'Recommended, not required. You choose what to share and you can turn it off whenever you like.')}</Text>
           <Pulsante testo={t('Come collegare il tuo dispositivo', 'How to connect your device')} variante="fantasma" piccolo onPress={apri} />
         </>

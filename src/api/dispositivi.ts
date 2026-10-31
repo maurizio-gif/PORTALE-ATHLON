@@ -28,7 +28,7 @@ export type Collegamento = {
 export type ScalaRecupero = 'oura_prontezza' | 'polar_recharge'
 
 /** Da dove viene il riassunto di un giorno: un fornitore, o «manuale» (il sonno che il socio scrive, 20/10/2026). */
-export type FonteGiorno = IdFornitore | 'manuale' | 'apple_salute'
+export type FonteGiorno = IdFornitore | 'manuale' | 'apple_salute' | 'google_salute'
 
 export type GiornoDispositivo = {
   fornitore: FonteGiorno
@@ -54,7 +54,7 @@ export type GiornoDispositivo = {
 
 export type AllenamentoDispositivo = {
   id: string
-  fornitore: IdFornitore | 'apple_salute' | 'manuale'
+  fornitore: IdFornitore | 'apple_salute' | 'google_salute' | 'manuale'
   inizio: string
   durata_minuti: number
   /** Da quale app o dispositivo arriva (Apple Salute fa da hub: «Oura», «Apple Watch»…). Null per i dati scritti a mano. */
@@ -140,10 +140,14 @@ export type GiornoDaSalute = {
 }
 export type AllenamentoDaSalute = { inizio: string; fine: string; tipo: string; calorie: number | null; fc_media?: number | null; fc_max?: number | null; origine?: string | null }
 
-export async function importaSalute(lettura: { giorni: GiornoDaSalute[]; allenamenti: AllenamentoDaSalute[] }): Promise<Esito<DatiDispositivi>> {
-  const { ok, dati } = await chiama({ azione: 'importa', giorni: lettura.giorni, allenamenti: lettura.allenamenti })
+export async function importaSalute(
+  lettura: { giorni: GiornoDaSalute[]; allenamenti: AllenamentoDaSalute[] },
+  /** Da quale app Salute del telefono arrivano (31/10/2026: Health Connect su Android). La funzione di prima non conosce `fonte` e scrive «apple_salute». */
+  fonte: 'apple_salute' | 'google_salute' = 'apple_salute',
+): Promise<Esito<DatiDispositivi>> {
+  const { ok, dati } = await chiama({ azione: 'importa', fonte, giorni: lettura.giorni, allenamenti: lettura.allenamenti })
   if (ok) return { ok: true, ...dei(dati) }
-  return errore(dati, t('Non siamo riusciti a leggere Apple Salute adesso. Riprova.', 'We couldn’t read Apple Health right now. Try again.'))
+  return errore(dati, t('Non siamo riusciti a leggere i dati di Salute adesso. Riprova.', 'We couldn’t read your Health data right now. Try again.'))
 }
 
 /** L'id di uno sport dell'elenco (`elencoSport`): minuscolo, cifre e trattino basso. La funzione ricontrolla la forma. */

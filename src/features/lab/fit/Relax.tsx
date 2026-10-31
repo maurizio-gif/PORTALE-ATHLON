@@ -133,7 +133,7 @@ function Dati({ disp }: { disp: Dispositivi }) {
   // I dispositivi arrivano da Apple Salute (e, quando ci sara', da Health Connect): «collegati» vuol dire che qualcosa e' arrivato o che sul
   // telefono e' attivo. Non c'e' piu' il «recupero» in parole di Oura e Polar (29/10/2026): il pilastro descrive il sonno.
   const apple = datiAppleSalute(dati)
-  const sulTelefono = appSaluteDelTelefono() === 'apple' && appleSaluteAttivo()
+  const sulTelefono = appSaluteDelTelefono() !== null && appleSaluteAttivo()
   const collegati = apple.ha || sulTelefono
 
   async function aggiorna() {
