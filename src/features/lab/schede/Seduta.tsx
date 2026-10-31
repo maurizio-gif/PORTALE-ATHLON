@@ -6,6 +6,7 @@ import { chiudiSeduta, iniziaSeduta, leggiSchedaLab, segnaSerie, togliSerie, typ
 import { locale, t } from '@/lib/lingua'
 import { spazio } from '@/theme'
 
+import { oggiRoma } from '../alimentazione/conti'
 import { dimentica, inMemoria, prendi } from '../memoria'
 import { Icona } from '../ui/Icona'
 import { Barra, Carta, Messaggio, Numero, Pulsante, SchedeInArrivo } from '../ui/kit'
@@ -15,6 +16,7 @@ import { colpetto, Tocco } from '../ui/Tocco'
 import { aTempo, descriviPasso, dopo, gruppo, indicazione, recupero, SPIEGA_TARATURA, type Passo } from './comune'
 import { MediaEsercizio } from './MediaEsercizio'
 import { Nota, serieInRiga } from './Scheda'
+import { applicaProgressione } from './progressione'
 import { TimerRecupero } from './TimerRecupero'
 import { CHIAVE_SCHEDE } from './Schede'
 
@@ -124,7 +126,9 @@ function RigaSerie({
 export function Seduta() {
   const p = usePalette()
   const { scheda: schedaId, giorno: giornoId } = useLocalSearchParams<{ scheda: string; giorno: string }>()
-  const [scheda, setScheda] = useState<SchedaLab | null>(() => inMemoria<{ scheda: SchedaLab }>(`schede:${schedaId}`)?.scheda ?? null)
+  // Il piano di base resta nello stato; quello che si fa e' il piano di questa settimana (31/10/2026, progressione a cicli: carichi e serie del ciclo).
+  const [schedaBase, setScheda] = useState<SchedaLab | null>(() => inMemoria<{ scheda: SchedaLab }>(`schede:${schedaId}`)?.scheda ?? null)
+  const scheda = useMemo(() => (schedaBase ? applicaProgressione(schedaBase, oggiRoma()).scheda : null), [schedaBase])
   const [precedenti, setPrecedenti] = useState<Precedente[]>(() => inMemoria<{ precedenti: Precedente[] }>(`schede:${schedaId}`)?.precedenti ?? [])
   const [massimali, setMassimali] = useState<Massimale[]>(() => inMemoria<{ massimali: Massimale[] }>(`schede:${schedaId}`)?.massimali ?? [])
   const [seduta, setSeduta] = useState<{ id: string; inizio: string } | null>(null)
@@ -154,7 +158,7 @@ export function Seduta() {
     for (const x of r.serie) m.set(chiaveSerie(x.scheda_esercizio_id, x.numero), { ripetizioni: x.ripetizioni, kg: x.kg, secondi: x.secondi })
     setFatte(m)
     // Si riparte dal primo passo non fatto.
-    const g = s.scheda.giorni.find((x) => x.id === giornoId)
+    const g = applicaProgressione(s.scheda, oggiRoma()).scheda.giorni.find((x) => x.id === giornoId)
     if (g) {
       let passo: Passo | null = { indice: 0, serie: 1 }
       for (let k = 0; passo && k < 500 && m.has(chiaveSerie(g.esercizi[passo.indice].id, passo.serie)); k++) passo = dopo(g, passo.indice, passo.serie).prossimo

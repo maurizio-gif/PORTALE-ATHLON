@@ -19,8 +19,8 @@ import { descrizioneAbitudine, formatoValore, giorniOnotti, ICONE_ABITUDINI, nom
 import { useAbitudiniScelte } from './useAbitudiniScelte'
 
 // «Scegli le tue abitudini» (31/10/2026, richiesta di Maurizio: abitudini personalizzabili e sfida di 30 giorni). Si scelgono fino a cinque abitudini fra
-// dieci, ognuna con la sua soglia e i giorni a settimana in cui va raggiunta; le piu' «allenabili» (passi, minuti di movimento, ore in piedi, meditazione,
-// luce, plank, squat, piegamenti) si possono trasformare in una **sfida a obiettivo crescente**: la soglia sale ogni giorno da dove si parte a dove si
+// dodici, ognuna con la sua soglia e i giorni a settimana in cui va raggiunta; le piu' «allenabili» (passi, minuti di movimento, ore in piedi, meditazione,
+// luce, plank, squat, piegamenti, mobilità; l'acqua no) si possono trasformare in una **sfida a obiettivo crescente**: la soglia sale ogni giorno da dove si parte a dove si
 // vuole arrivare, in 30 giorni, a partire da un punto di partenza suggerito dai valori recenti (si cambia). **Niente si salva da solo**: si salva con
 // «Salva le abitudini». Si descrive, non si giudica: nessun punto, nessun confronto con altri. Le scelte stanno sul server, sotto il consenso dei dispositivi.
 

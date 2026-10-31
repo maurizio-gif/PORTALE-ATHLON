@@ -193,7 +193,7 @@ export async function scollegaSalute(): Promise<Esito<DatiDispositivi>> {
 // Stanno sul server, sotto lo stesso consenso dei dispositivi (la revoca le cancella): cosi' seguono l'account da PWA a app. Regole e limiti:
 // `_shared/dispositivi/abitudini.ts` di APP-ATHLON, copiati in `fit/catalogoAbitudini.ts`. La data d'inizio della sfida la mette il server.
 
-export type TipoAbitudine = 'passi' | 'movimento' | 'sonno' | 'coricamento' | 'in_piedi' | 'mindfulness' | 'luce' | 'plank' | 'squat' | 'flessioni'
+export type TipoAbitudine = 'passi' | 'movimento' | 'sonno' | 'coricamento' | 'in_piedi' | 'mindfulness' | 'luce' | 'plank' | 'squat' | 'flessioni' | 'acqua' | 'mobilita'
 
 export type SfidaAbitudine = { giorni: number; da: number; a: number }
 export type SceltaAbitudine = {
@@ -229,9 +229,12 @@ export async function togliAbitudine(tipo: TipoAbitudine): Promise<Esito<DatiAbi
   return errore(dati, t('Non siamo riusciti a togliere l’abitudine. Riprova.', 'We couldn’t remove the habit. Try again.'))
 }
 
-/** Il valore del giorno di un'abitudine che si scrive a mano (secondi di plank, ripetizioni): riscriverlo lo corregge. `data` di partenza: oggi. */
-export async function registraAbitudine(tipo: TipoAbitudine, valore: number, data?: string): Promise<Esito<DatiAbitudini>> {
-  const { ok, dati } = await chiama({ azione: 'abitudine_registra', tipo, valore, ...(data ? { data } : {}) })
+/**
+ * Il valore del giorno di un'abitudine che si scrive a mano (secondi di plank, ripetizioni, bicchieri, minuti): riscriverlo lo corregge. `data` di partenza: oggi.
+ * Con `aggiungi` il valore si **somma** a quello gia' scritto per il giorno (lo fa il server, senza che l'app lo legga prima): lo usa la sessione di mobilita'.
+ */
+export async function registraAbitudine(tipo: TipoAbitudine, valore: number, opzioni: { data?: string; aggiungi?: boolean } = {}): Promise<Esito<DatiAbitudini>> {
+  const { ok, dati } = await chiama({ azione: 'abitudine_registra', tipo, valore, ...(opzioni.data ? { data: opzioni.data } : {}), ...(opzioni.aggiungi ? { aggiungi: true } : {}) })
   if (ok) return { ok: true, ...abitudini(dati) }
   return errore(dati, t('Non siamo riusciti a salvare il risultato. Riprova.', 'We couldn’t save the result. Try again.'))
 }

@@ -151,6 +151,17 @@ function Dati({ disp }: { disp: Dispositivi }) {
         <CheckInSonno disp={disp} giorni={dati.giorni} />
       </Entra>
 
+      <Entra indice={0}>
+        <Carta onPress={() => router.push('/allenamento/mobilita')} style={stili.riga}>
+          <Bollino icona="mobilita" tono="accento" size={46} />
+          <View style={{ flex: 1, gap: 2 }}>
+            <Text style={[stili.titoletto, { color: p.testo }]}>{t('Sessione di mobilità', 'Mobility session')}</Text>
+            <Text style={[stili.nota, { color: p.testoSecondario }]}>{t('5, 10 o 15 minuti di esercizi guidati per sciogliere il corpo, con i video. Scegli tu su cosa lavorare.', '5, 10 or 15 minutes of guided exercises to loosen up, with videos. You choose where to work.')}</Text>
+          </View>
+          <Icona nome="avanti" size={18} colore={p.testoTerzo} />
+        </Carta>
+      </Entra>
+
       {notte ? (
         <Entra indice={0}>
           <LinearGradient colors={RELAX} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={stili.notte}>

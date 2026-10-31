@@ -20,6 +20,8 @@ export const ICONE_ABITUDINI: Record<TipoAbitudine, NomeIcona> = {
   plank: 'cronometro',
   squat: 'peso',
   flessioni: 'peso',
+  acqua: 'goccia',
+  mobilita: 'mobilita',
 }
 
 /** Il nome corto, per l'elenco in cui si sceglie. */
@@ -35,6 +37,8 @@ export function nomeAbitudine(tipo: TipoAbitudine): string {
     case 'plank': return t('Plank', 'Plank')
     case 'squat': return t('Squat', 'Squats')
     case 'flessioni': return t('Piegamenti', 'Push-ups')
+    case 'acqua': return t('Acqua', 'Water')
+    case 'mobilita': return t('Mobilità', 'Mobility')
   }
 }
 
@@ -51,6 +55,8 @@ export function descrizioneAbitudine(tipo: TipoAbitudine): string {
     case 'plank': return t('Lo fai col cronometro: parte da qui, con il video che mostra come si fa.', 'You time it here, with a video showing how it’s done.')
     case 'squat': return t('Lo conti qui, con il video che mostra come si fa.', 'You count them here, with a video showing how it’s done.')
     case 'flessioni': return t('Li conti qui, con il video che mostra come si fanno.', 'You count them here, with a video showing how it’s done.')
+    case 'acqua': return t('Conti qui i bicchieri che bevi: il numero lo scegli tu, non c’è una quantità giusta per tutti.', 'You count the glasses you drink here: you pick the number, there is no right amount for everyone.')
+    case 'mobilita': return t('I minuti di mobilità: li scrivi qui, o si sommano da soli quando finisci una sessione guidata.', 'Minutes of mobility: you log them here, or they add up on their own when you finish a guided session.')
   }
 }
 
@@ -66,6 +72,7 @@ export function formatoValore(tipo: TipoAbitudine, v: number): string {
     case 'plank': return v >= 120 ? `${Math.floor(v / 60)}:${String(v % 60).padStart(2, '0')}` : `${v} s`
     case 'squat': return t(`${v} squat`, `${v} squats`)
     case 'flessioni': return t(`${v} piegamenti`, `${v} push-ups`)
+    case 'acqua': return t(v === 1 ? '1 bicchiere' : `${v} bicchieri`, v === 1 ? '1 glass' : `${v} glasses`)
     default: return durata(v)
   }
 }
@@ -84,6 +91,8 @@ export function titoloAbitudine(tipo: TipoAbitudine, soglia: number): string {
     case 'plank': return t(`Plank da almeno ${v}`, `Plank for at least ${v}`)
     case 'squat': return t(`Almeno ${v}`, `At least ${v}`)
     case 'flessioni': return t(`Almeno ${v}`, `At least ${v}`)
+    case 'acqua': return t(`Bevi almeno ${v}`, `Drink at least ${v}`)
+    case 'mobilita': return t(`Mobilità per almeno ${v}`, `Mobility for at least ${v}`)
   }
 }
 

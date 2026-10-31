@@ -41,6 +41,10 @@ export const CATALOGO: Record<TipoAbitudine, VoceCatalogo> = {
   plank: { min: 5, max: 600, passo: 5, sfida: true, manuale: true, inverso: false, pilastro: 'train', predefinita: { soglia: 60, giorni: 3 }, arrotonda: 5 },
   squat: { min: 1, max: 200, passo: 5, sfida: true, manuale: true, inverso: false, pilastro: 'train', predefinita: { soglia: 30, giorni: 3 }, arrotonda: 1 },
   flessioni: { min: 1, max: 200, passo: 5, sfida: true, manuale: true, inverso: false, pilastro: 'train', predefinita: { soglia: 15, giorni: 3 }, arrotonda: 1 },
+  // Bicchieri d'acqua: un contatore, niente sfida (bere di piu' ogni giorno non e' un obiettivo che si fa crescere) e niente numero «giusto»: 6 e' un punto di
+  // partenza che la persona cambia (non c'e' un nutrizionista nel club: nessun «devi bere N litri»). Minuti di mobilita': si scrivono qui, o li somma una sessione guidata.
+  acqua: { min: 1, max: 20, passo: 1, sfida: false, manuale: true, inverso: false, pilastro: 'recover', predefinita: { soglia: 6, giorni: 5 }, arrotonda: 1 },
+  mobilita: { min: 1, max: 120, passo: 5, sfida: true, manuale: true, inverso: false, pilastro: 'recover', predefinita: { soglia: 10, giorni: 3 }, arrotonda: 1 },
 }
 
 export const TIPI = Object.keys(CATALOGO) as TipoAbitudine[]

@@ -321,7 +321,7 @@ ok('catalogo: limiti coerenti, copia del server uguale', () => {
     assert.ok(v.min >= 1 && v.max > v.min && v.passo >= 1, t)
     assert.ok(v.predefinita.soglia >= v.min && v.predefinita.soglia <= v.max, `${t}: la soglia di partenza sta nei limiti`)
     assert.ok(v.predefinita.giorni >= 1 && v.predefinita.giorni <= 7)
-    if (v.manuale) assert.ok(v.sfida, t)
+    if (v.manuale && t !== 'acqua') assert.ok(v.sfida, t)
   }
   assert.ok(ABITUDINI_MASSIME >= 3 && ABITUDINI_MASSIME <= 6)
   assert.equal(CATALOGO.passi.predefinita.soglia, SOGLIA_PASSI)
@@ -338,6 +338,25 @@ ok('catalogo: limiti coerenti, copia del server uguale', () => {
     assert.ok(new RegExp(`ABITUDINI_MASSIME = ${ABITUDINI_MASSIME}\\b`).test(testo))
     console.log('   (catalogo confrontato con quello del server)')
   }
+})
+
+ok('acqua e mobilita: si scrivono a mano, partono da quando si seguono, l\'acqua non ha la sfida', () => {
+  assert.equal(CATALOGO.acqua.manuale, true)
+  assert.equal(CATALOGO.acqua.sfida, false)
+  assert.equal(CATALOGO.mobilita.manuale, true)
+  assert.equal(CATALOGO.mobilita.sfida, true)
+  const registri = [{ tipo: 'acqua', data: '2026-10-27', valore: 7 }, { tipo: 'acqua', data: '2026-10-28', valore: 3 }, { tipo: 'mobilita', data: OGGI, valore: 12 }]
+  const [acqua] = calcolaAbitudini({ giorni: [], allenamenti: [] }, OGGI, cfg([sc('acqua', { soglia: 6, dal: '2026-10-26' })], registri))
+  assert.equal(acqua.manuale, true)
+  assert.equal(acqua.giorni.find((g) => g.data === '2026-10-27')?.stato, 'fatto')
+  assert.equal(acqua.giorni.find((g) => g.data === '2026-10-28')?.stato, 'no') // 3 bicchieri, sotto i 6
+  assert.equal(acqua.giorni.find((g) => g.data === '2026-10-26')?.stato, 'no') // da quando la segue, un giorno senza valore e un no
+  assert.equal(acqua.giorni.find((g) => g.data === '2026-10-25')?.stato, 'senza-dato') // prima non c'era
+  const [mob] = calcolaAbitudini({ giorni: [], allenamenti: [] }, OGGI, cfg([sc('mobilita', { soglia: 10, dal: '2026-10-26' })], registri))
+  assert.equal(mob.oggi, 12)
+  assert.equal(mob.giorni.find((g) => g.data === OGGI)?.stato, 'fatto')
+  // I due non si confondono: i registri di un tipo non contano per l'altro.
+  assert.equal(acqua.oggi, null)
 })
 
 console.log(`${n} gruppi passati`)
