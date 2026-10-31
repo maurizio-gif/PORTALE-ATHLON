@@ -8,11 +8,15 @@ e viene collegato come *spouse* al titolare e come *parent* ai bambini (creato s
 **Aggiornamento (31/10/2026, seconda richiesta di Maurizio):** (1) se il genitore invitato **esiste già** al club, non si blocca niente: si conferma e si abbina; (2) il modulo **non abbina nessuno**,
 manda un'email con un link per terminare la procedura. Le due cose si tengono: l'email verificata è ciò che rende sicuro abbinare una scheda esistente.
 
-**Questo file è il contratto che l'app (PORTALE-ATHLON) già usa. Il lato server (APP-ATHLON) non è scritto.** Finché le due funzioni non rispondono, la
-schermata `/delega` dice «non è ancora attiva» (404) e la pagina `/delega/<codice>` dice che il link non è valido: niente si rompe, ma nemmeno funziona.
-**Pubblicare prima il server, poi l'app.**
+**Stato (31/10/2026).** Maurizio ha scelto la **strada A** (la delega vive nel nostro database, la relazione su PerfectGym la scrive a mano la segreteria da un compito) e ha deciso che
+**il delegato può fare tutto** come un genitore. **Il lato server è scritto** in APP-ATHLON (`maurizio-gif/APP-ATHLON#512`: migrazione `20261031m`, `portale-lab-delega`, `delega-invito`) e provato su un
+PostgreSQL vero con PerfectGym finto; **non è pubblicato né provato con PerfectGym vero**. Questo file resta il contratto che l'app usa; la descrizione completa del server è nel `CLAUDE.md` di APP-ATHLON.
+**Ordine di pubblicazione: migrazione, funzioni, poi l'app.** Finché le funzioni non rispondono, la schermata `/delega` dice «non è ancora attiva» (404) e la pagina `/delega/<codice>` dice che il link non è valido.
 
-## ⚠️ Da decidere prima di scrivere il server: PerfectGym non permette di scrivere le relazioni
+**Numeri scelti (da confermare):** link di 12 caratteri, per una persona sola, 7 giorni, uno aperto per titolare; al massimo **2 deleghe** per titolare; token dell'email 24 ore; freni sui moduli (5 per link, 3 per indirizzo, 10 per provenienza, all'ora).
+**Cosa copre:** i figli **minorenni** (data di nascita nota) del titolare per relazione diretta su PerfectGym, anche quelli aggiunti dopo. Un delegato non può delegare a sua volta.
+
+## PerfectGym non permette di scrivere le relazioni: perché la strada A (scelta)
 
 Letto il file `docs/perfectgym_api_v2.2.json` di APP-ATHLON:
 
@@ -35,14 +39,14 @@ Letto il file `docs/perfectgym_api_v2.2.json` di APP-ATHLON:
 | **B. Chiedere a PerfectGym** | Se il supporto di PerfectGym ha un endpoint non documentato per creare `Spouse`/`FamilyChild`/`LegalGuardian`, il server lo chiama e il mirror lo rilegge. | Una sola fonte di verità (PerfectGym), nessun compito manuale. | Non esiste nella documentazione; tempi e esito incerti. Va fatto **prima** di scegliere. |
 | **C. Solo segreteria** | L'app raccoglie i dati e manda un compito; la delega parte quando la segreteria ha scritto la relazione e il mirror l'ha letta. | Nessuna modifica al nucleo. | Non è «automatica»; il delegato aspetta; il titolare non può togliere l'accesso da solo. |
 
-Consiglio: **A**, e intanto **B** come domanda a PerfectGym (se risponde sì, il compito manuale si sostituisce con la chiamata, senza toccare l'app).
+**Scelta: A.** Resta consigliato fare anche **B**, cioè la domanda a PerfectGym (se risponde sì, il compito manuale si sostituisce con la chiamata, senza toccare l'app).
 
-### Conseguenze di A da confermare
+### Conseguenze di A
 
 1. **Cosa può fare il delegato.** Con il nucleo unito, il delegato (adulto con la sua email) può fare per i figli **tutto quello che fa un genitore** nell'app: prenotare e
    disdire, pagare le quote scadute, **cambiare il metodo di pagamento** e **disdire l'abbonamento** dei figli, caricare il certificato, iscriverli a un gruppo Junior,
-   **aggiungere altri figli** al nucleo. È «vedere ed agire» come richiesto, ma disdetta e cambio carta sono azioni pesanti: se si vuole un livello «solo prenotazioni»
-   si limita nella funzione, non nell'app.
+   **aggiungere altri figli** al nucleo. **Deciso da Maurizio: il delegato può fare tutto.** Disdetta e cambio carta sono azioni pesanti: se un giorno si vuole un livello «solo prenotazioni»
+   si limita nella funzione, non nell'app. **Da sapere**: se il delegato usa «Aggiungi un componente», il figlio nasce sotto di lui (`aggiungi` aggancia al titolare *della sessione*), non sotto il titolare.
 2. **Il delegato non è un titolare con gli stessi dati**: non vede l'abbonamento, i pagamenti né i dati del titolare (il coniuge resta escluso dal nucleo, com'è oggi).
    Vede i figli, e il suo nucleo è lui + i figli.
 3. **Il portale oggi è aperto solo ai tester** (`ammessoAlPortale`): chi accetta una delega va **aggiunto ai tester** nello stesso passo, o riceverà 403 al primo accesso.

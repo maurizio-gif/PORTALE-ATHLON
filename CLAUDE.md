@@ -1919,8 +1919,8 @@ Richiesta di Maurizio. Nella finestra del cambio (`Gestisci.tsx`, `apriCambio`) 
 
 ## «Aggiungi un componente» in Famiglia e in Junior, e la delega sui figli a un altro adulto (31/10/2026)
 
-Richiesta di Maurizio. Contratto completo, scelte da prendere e cosa deve fare il server: **`docs/delega-nucleo.md`**. **Il lato server non è scritto** (APP-ATHLON): l'app è pronta e, finché le funzioni
-`portale-lab-delega` e `delega-invito` non rispondono, dice «non è ancora attiva». **Pubblicare prima il server, poi l'app.**
+Richiesta di Maurizio. Contratto completo: **`docs/delega-nucleo.md`**. **Il lato server è scritto ma non pubblicato** (APP-ATHLON#512: migrazione `20261031m`, `portale-lab-delega`, `delega-invito`; il suo `CLAUDE.md` lo descrive): finché le funzioni
+non rispondono l'app dice «non è ancora attiva». **Pubblicare prima la migrazione e le funzioni, poi l'app.** Maurizio ha scelto la **strada A** e che **il delegato può fare tutto**.
 
 - **Un solo pulsante, due strade** (`lab/famiglia/AggiungiComponente.tsx`): lo stesso in **Home › Famiglia** (`SezioneFamiglia`, in fondo) e in **Junior** (dove c'era già, e ora è questo). Il foglio «Chi vuoi
   aggiungere?» offre **«Un figlio»** (`FoglioComponente`, **com'era**: dati per intero, dichiarazione di genitore o tutore, controllo che non sia già al club con il messaggio di blocco e la riga nella Dashboard del
@@ -1936,6 +1936,6 @@ Richiesta di Maurizio. Contratto completo, scelte da prendere e cosa deve fare i
   Il link dell'email vale 24 ore; un link della delega non si consuma finché non c'è la conferma (e il titolare, nella sua schermata, vede «Qualcuno ha già compilato il modulo»).
 - **⚠️ PerfectGym non permette di scrivere le relazioni** fra schede esistenti (nel file `perfectgym_api_v2.2.json` c'è solo la lettura di `MemberRelations`; il solo modo è `parentMemberId` in `AddGuestMember`, alla nascita di
   un figlio), e **il portale ricava il nucleo da quelle relazioni** (`metodo_nucleo_da_email`: `FamilyChild` e `LegalGuardian`, il coniuge escluso di proposito). Il «spouse al titolare e parent ai bambini» chiesto **non si può
-  fare via API**: il documento propone tre strade, **la consigliata è tenere la delega nel nostro database (unita al nucleo) e mandare alla segreteria un compito per scrivere la relazione a mano su PerfectGym**. Va deciso con Maurizio prima del server.
+  fare via API**: **scelta la strada A**: la delega sta nel nostro database (unita al nucleo da `metodo_nucleo_da_email`) e alla segreteria arriva **un compito in Agenda** per scrivere la relazione a mano su PerfectGym.
 - **Provato**: `tsc` pulito; regole pure con `node --experimental-strip-types`; in Chromium (bundle web esportato, funzioni simulate con `page.route`, 390 e 1280 px) il modulo pubblico, la pagina di conferma e la schermata del titolare
   (vedi il documento). **Non provato**: le funzioni vere (non esistono), PerfectGym, il foglio di scelta dentro Home › Famiglia e Junior (non guardato renderizzato), un telefono, l'app nativa, tema scuro e inglese a schermo.
