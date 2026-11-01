@@ -15,6 +15,8 @@ export type DelegaAttiva = {
   id: string
   /** Nome e iniziale del cognome, mai l'email («Laura R.»). */
   nome: string
+  /** Nome e cognome interi («Laura Rossi»): chi da' la delega sa a chi l'ha data. Una funzione di prima non lo manda (resta `nome`). */
+  nome_completo?: string
   dal: string
 }
 
