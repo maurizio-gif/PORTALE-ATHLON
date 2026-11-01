@@ -77,7 +77,10 @@ export type AllenamentoDispositivo = {
   fc_max: number | null
 }
 
-export type DatiDispositivi = { collegamenti: Collegamento[]; giorni: GiornoDispositivo[]; allenamenti: AllenamentoDispositivo[] }
+/** I minuti di mobilita' e di foam roller di un giorno (02/11/2026): le sessioni dell'app, per il punteggio di Recover. Mancano con una funzione di prima. */
+export type GiornoRecupero = { data: string; mobilita: number; rilascio: number }
+
+export type DatiDispositivi = { collegamenti: Collegamento[]; giorni: GiornoDispositivo[]; allenamenti: AllenamentoDispositivo[]; recupero?: GiornoRecupero[] }
 
 export type StatoDispositivi = {
   versione: string
@@ -93,7 +96,7 @@ function errore(dati: Record<string, any>, ripiego: string) {
   return { ok: false as const, errore: (dati.errore as string) ?? ripiego, senzaConsenso: dati.consenso === false }
 }
 
-const dei = (dati: Record<string, any>): DatiDispositivi => ({ collegamenti: dati.collegamenti ?? [], giorni: dati.giorni ?? [], allenamenti: dati.allenamenti ?? [] })
+const dei = (dati: Record<string, any>): DatiDispositivi => ({ collegamenti: dati.collegamenti ?? [], giorni: dati.giorni ?? [], allenamenti: dati.allenamenti ?? [], recupero: Array.isArray(dati.recupero) ? dati.recupero : [] })
 
 export async function statoDispositivi(): Promise<Esito<StatoDispositivi>> {
   const { ok, dati } = await chiama({ azione: 'stato' })
@@ -130,6 +133,18 @@ export async function salvaSonno(data: string, ore: { letto: string; sveglia: st
   const { ok, dati } = await chiama({ azione: 'sonno', data, letto: ore ? ore.letto : null, sveglia: ore ? ore.sveglia : null })
   if (ok) return { ok: true, ...dei(dati) }
   return errore(dati, t('Non siamo riusciti a salvare adesso. Riprova.', 'We couldn’t save right now. Try again.'))
+}
+
+/**
+ * I minuti di una sessione di mobilita' o di foam roller appena finita (02/11/2026): il server li somma a oggi, per il punteggio di Recover. Non servono
+ * un'abitudine scelta. Risponde con i dati aggiornati. **Con una funzione di prima** («Azione sconosciuta.») un errore dolce: la sessione si puo' registrare piu' tardi.
+ */
+export async function aggiungiRecupero(tipo: 'mobilita' | 'rilascio', minuti: number): Promise<Esito<DatiDispositivi>> {
+  const { ok, dati } = await chiama({ azione: 'recupero_aggiungi', tipo, minuti })
+  if (ok) return { ok: true, ...dei(dati) }
+  const nonConosciuta = typeof dati?.errore === 'string' && /sconosciuta|unknown/i.test(dati.errore)
+  if (nonConosciuta) return { ok: false, errore: t('La registrazione delle sessioni non è ancora attiva: riprova fra qualche giorno.', 'Session logging isn’t available yet: try again in a few days.') }
+  return errore(dati, t('Non siamo riusciti a registrare la sessione. Riprova.', 'We couldn’t log the session. Try again.'))
 }
 
 /**

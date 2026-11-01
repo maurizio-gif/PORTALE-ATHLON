@@ -37,7 +37,7 @@ export function usePunteggio(fit: DatiFit, disp: Dispositivi): Punteggio | null 
       if (disp.stato.ok && disp.stato.maggiorenne) {
         const consenso = !!disp.stato.consenso
         if (consenso && !disp.dati) return null
-        relax = { consenso, giorni: disp.dati?.giorni ?? [] }
+        relax = { consenso, giorni: disp.dati?.giorni ?? [], recupero: disp.dati?.recupero ?? [] }
       }
     }
 

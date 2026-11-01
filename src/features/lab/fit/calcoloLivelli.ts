@@ -1,9 +1,9 @@
 import type { VoceDiario } from '@/api/alimentazione'
-import type { GiornoDispositivo } from '@/api/dispositivi'
+import type { GiornoDispositivo, GiornoRecupero } from '@/api/dispositivi'
 
 import { spostaGiorno } from '../schede/contatoreCalorie'
 import { t } from '../../../lib/lingua'
-import { CURVA_TRAIN, GIORNI_FOOD, giorniBuoniFood, minutiPerGiorno, nottiDa, NOTTI_RELAX, PUNTI, quotaNotte, MINUTI_GIORNO_ATTIVO, type Punteggio, type SessioneBase } from './calcoloPunteggio'
+import { CURVA_TRAIN, curaDa, GIORNI_FOOD, giorniBuoniFood, giorniCuraDi, minutiPerGiorno, nottiDa, PUNTI, quotaNotte, quotaRecover, MINUTI_GIORNO_ATTIVO, type Punteggio, type SessioneBase } from './calcoloPunteggio'
 
 // I livelli dell'Athlon Health Score (richiesta del club, 20/10/2026): Legno, Bronzo, Argento, Oro,
 // Platino, Diamante. Il punteggio (calcoloPunteggio.ts) dice come stai andando adesso; i livelli sono
@@ -68,6 +68,8 @@ export function puntiSettimana(
   sessioni: SessioneBase[],
   food: { diario: VoceDiario[]; senzaColazione: boolean } | null,
   giorni: GiornoDispositivo[] | null,
+  /** I minuti di mobilita' e foam roller per giorno (02/11/2026): una quota piccola di Relax, come nel punteggio (`quotaRecover`). */
+  recupero: GiornoRecupero[] | null = null,
 ): SettimanaPunti {
   const w = nei7(lunedi)
   const minutiPer = minutiPerGiorno(sessioni.filter((s) => w.has(s.giorno)))
@@ -77,11 +79,12 @@ export function puntiSettimana(
   const buoni = food ? giorniBuoniFood(food.diario, food.senzaColazione).filter((g) => w.has(g)).length : 0
   const notti = giorni ? [...nottiDa(giorni)].filter(([g]) => w.has(g)) : []
   const sonno = notti.reduce((s, [, m]) => s + quotaNotte(m), 0)
+  const giorniCura = recupero ? giorniCuraDi(curaDa(recupero), (g) => w.has(g)) : 0
   return {
     settimana: lunedi,
     train,
     food: Math.round(Math.min(1, buoni / GIORNI_FOOD) * PUNTI.food),
-    relax: Math.round(Math.min(1, sonno / NOTTI_RELAX) * PUNTI.relax),
+    relax: Math.round(quotaRecover(sonno, giorniCura) * PUNTI.relax),
     giorni_attivi: Math.min(7, attivi),
     minuti: Math.min(5000, minuti),
   }

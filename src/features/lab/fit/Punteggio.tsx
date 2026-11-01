@@ -16,7 +16,7 @@ import { Barra, Carta, Entra, Messaggio, Pulsante, Scheletro, Sezione } from '..
 import { Schermata } from '../ui/Schermata'
 import { F, FUOCO, NOTTE, ORTO, RELAX, usePalette } from '../ui/tema'
 import { Tocco } from '../ui/Tocco'
-import { CURVA_TRAIN, GIORNI_FOOD, MINUTI_GIORNO_ATTIVO, NOTTI_RELAX, PESI, PUNTI, type Banda, type IdPilastro, type Pilastro, type Punteggio, type Settimana } from './calcoloPunteggio'
+import { CURA_GIORNI, CURA_MINUTI_GIORNO, CURA_QUOTA, CURVA_TRAIN, GIORNI_FOOD, MINUTI_GIORNO_ATTIVO, NOTTI_RELAX, PESI, PUNTI, type Banda, type IdPilastro, type Pilastro, type Punteggio, type Settimana } from './calcoloPunteggio'
 import { useFit, type DatiFit } from './useFit'
 import { RigaLivello, SezioneLivelli } from './Livelli'
 import { useLivelli, type Livelli } from './useLivelli'
@@ -251,7 +251,7 @@ function CartaPilastro({ x, onAzione }: { x: Pilastro; onAzione: (x: Pilastro) =
   const pal = usePalette()
   if (x.stato === 'nonDisponibile' || x.stato === 'escluso') return null
   const attivo = x.stato === 'attivo'
-  const spiegazione = x.id === 'train' ? t('giorni di allenamento', 'training days') : x.id === 'food' ? t('regolarità dei pasti', 'regular meals') : t('notti di sonno', 'nights of sleep')
+  const spiegazione = x.id === 'train' ? t('giorni di allenamento', 'training days') : x.id === 'food' ? t('regolarità dei pasti', 'regular meals') : t('sonno e cura del corpo', 'sleep and body care')
   const invito = x.id === 'food' ? t('Scrivi i pasti', 'Log your meals') : t('Scrivi il sonno', 'Log your sleep')
   return (
     <Carta style={{ gap: spazio.tre }}>
@@ -335,13 +335,13 @@ function RegoleSpiegate() {
     { titolo: 'Tre pilastri', testo: `Train vale fino a ${PUNTI.train} punti, Food ${PUNTI.food} e Recover ${PUNTI.relax}: il 100 si raggiunge con tutti e tre. Un pilastro che non usi non toglie niente, semplicemente non aggiunge.` },
     { titolo: 'Regolarità, non quantità', testo: `Train conta i giorni in cui ti sei allenato (almeno ${MINUTI_GIORNO_ATTIVO} minuti fra i piani chiusi nell’app e le lezioni con la presenza segnata): più lezioni nello stesso giorno valgono una volta sola. Da 2 a 4 giorni su 7 è il ritmo da punti pieni, con un solo giorno prendi il ${Math.round(CURVA_TRAIN[1] * 100)}%, e oltre i quattro scende piano (con sette giorni su sette è il ${Math.round(CURVA_TRAIN[7] * 100)}%): un giorno di riposo fa parte dell’allenamento.` },
     { titolo: 'Food guarda i pasti, non le calorie', testo: `Un giorno vale se nel diario ci sono colazione, pranzo e cena (chi non fa colazione, pranzo e cena), e ${GIORNI_FOOD} giorni su 7 danno il massimo. Oggi non conta, non è finito. Se hai scelto di nascondere i numeri Food esce dal punteggio.` },
-    { titolo: 'Recover guarda le notti', testo: `Ogni notte scritta (o letta dal tuo dispositivo) vale in base alle ore, e da 7 ore in su è piena; ${NOTTI_RELAX} notti su 7 danno il massimo. Una notte più lunga non costa punti.` },
+    { titolo: 'Recover guarda il sonno e la cura del corpo', testo: `Ogni notte scritta (o letta dal tuo dispositivo) vale in base alle ore, e da 7 ore in su è piena; ${NOTTI_RELAX} notti su 7 danno il massimo. Una notte più lunga non costa punti. In più, mobilità e foam roller: un giorno vale con almeno ${CURA_MINUTI_GIORNO} minuti (di una o dell’altra), e ${CURA_GIORNI} giorni su 7 danno fino a ${Math.round(CURA_QUOTA * PUNTI.relax)} punti. Di più non serve e non dà niente: chi dorme come serve arriva al massimo anche senza.` },
     { titolo: 'Le ultime quattro settimane', testo: `Ogni pilastro è la media di quattro settimane mobili, la più recente pesa il ${Math.round(PESI[0] * 100)}%, poi ${Math.round(PESI[1] * 100)}, ${Math.round(PESI[2] * 100)} e ${Math.round(PESI[3] * 100)}. Una settimana storta non azzera tutto. Le settimane prima della tua prima attività non contano.` },
   ], [
     { titolo: 'Three pillars', testo: `Train is worth up to ${PUNTI.train} points, Food ${PUNTI.food} and Recover ${PUNTI.relax}: you reach 100 with all three. A pillar you don’t use takes nothing away, it just doesn’t add.` },
     { titolo: 'Consistency, not quantity', testo: `Train counts the days you trained (at least ${MINUTI_GIORNO_ATTIVO} minutes between plans finished in the app and classes with attendance marked): several classes on the same day count once. 2 to 4 days out of 7 is the full-points pace, with a single day you get ${Math.round(CURVA_TRAIN[1] * 100)}%, and past four it goes down slowly (seven days out of seven is ${Math.round(CURVA_TRAIN[7] * 100)}%): a rest day is part of training.` },
     { titolo: 'Food looks at meals, not calories', testo: `A day counts if the diary has breakfast, lunch and dinner (lunch and dinner if you skip breakfast), and ${GIORNI_FOOD} days out of 7 give you the maximum. Today doesn’t count, it isn’t over. If you chose to hide the numbers, Food leaves the score.` },
-    { titolo: 'Recover looks at your nights', testo: `Each night you log (or your device reads) counts by the hours, and from 7 hours up it’s full; ${NOTTI_RELAX} nights out of 7 give you the maximum. A longer night doesn’t cost points.` },
+    { titolo: 'Recover looks at your sleep and body care', testo: `Each night you log (or your device reads) counts by the hours, and from 7 hours up it’s full; ${NOTTI_RELAX} nights out of 7 give you the maximum. A longer night doesn’t cost points. On top of that, mobility and foam rolling: a day counts with at least ${CURA_MINUTI_GIORNO} minutes (of either), and ${CURA_GIORNI} days out of 7 give you up to ${Math.round(CURA_QUOTA * PUNTI.relax)} points. More isn’t needed and earns nothing: if you sleep as you need to, you reach the maximum without it.` },
     { titolo: 'The last four weeks', testo: `Each pillar is the average of four rolling weeks: the most recent weighs ${Math.round(PESI[0] * 100)}%, then ${Math.round(PESI[1] * 100)}, ${Math.round(PESI[2] * 100)} and ${Math.round(PESI[3] * 100)}. One bad week doesn’t wipe everything out. Weeks before your first activity don’t count.` },
   ])
   return (

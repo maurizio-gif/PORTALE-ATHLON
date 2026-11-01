@@ -24,6 +24,8 @@ cima a Fit, l'anello a tre settori e la schermata `/allenamento/punteggio`), `Ch
 - **Relax guarda le notti**: ogni notte (scritta a mano o letta dal dispositivo) vale in base alle ore (7 o più = 1; 6 = 0,7; 5 = 0,4; meno = 0,2; una
   notte più lunga non costa punti) e 5 notti su 7 danno il massimo. Per la stessa notte vale il dispositivo, non quella scritta a mano. **Il pilastro
   si chiama ancora Relax** (la ruota, l'introduzione e l'indirizzo lo usano): il sonno è il suo primo strumento, non il suo nome.
+- **Dal 02/11/2026 Recover ha anche la «cura del corpo»** (mobilità e foam roller, sezione 83): fino a 3 punti su 15, **che si sommano al sonno senza toglierlo**. Un giorno vale con almeno
+  10 minuti di sessioni, 3 giorni su 7 bastano, **di più non dà niente** (richiesta di Maurizio: «senza spingere a utilizzarlo troppo»). Chi dorme come serve arriva a 15 anche senza.
 - **Il check-in del sonno** (`CheckInSonno.tsx`, in cima a Relax): «a che ora sei andato a dormire e a che ora ti sei svegliato?», due tasti a un quarto
   d'ora che **tenuti premuti scorrono** (e passano la mezzanotte), la notte fra le ultime sette, di partenza le ore dell'ultima notte scritta (o 23:00 e
   07:00): **niente si salva da solo**, conta quando si preme «Salva». **La durata si ricava dalle due ore** (la ricalcola anche la funzione; da 2 a 16
