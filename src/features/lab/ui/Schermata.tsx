@@ -10,7 +10,9 @@ import { LARGO } from '@/components/Pagina'
 import { spazio } from '@/theme'
 import { t } from '@/lib/lingua'
 
-import { useSegnaAzioneInAlto } from '../feedback/posizione'
+import { LARGHEZZA_CON_SCRITTA, LARGHEZZA_PILLOLA, LARGHEZZA_PILLOLA_COMPATTA, SPOSTA_SE_OCCUPATO } from '../feedback/comune'
+import { useAzioneInAltoPresente, useSegnaAzioneInAlto } from '../feedback/posizione'
+import { vistaCorrente } from '../vista'
 import { ingombroBarra } from './BarraSchede'
 import { Icona } from './Icona'
 import { F, usePalette } from './tema'
@@ -85,6 +87,12 @@ export function Schermata({
   // Il pulsante «Assistente virtuale» sta in alto a destra, nel posto di `destra`: se qui c'e' un comando, gli si fa posto
   // (solo finche' la schermata e' quella che si vede, vedi feedback/posizione.ts).
   useSegnaAzioneInAlto(!!destra, useIsFocused())
+  // Lo spazio che la pillola «Richiedi assistenza» prende a destra della testata sottile: il titolo piccolo sta fra il marchio e lei (non sotto di lei). In vista cliente la pillola non c'e'.
+  const occupato = useAzioneInAltoPresente()
+  const colonnaPillola = width < LARGO ? 640 : LARGHEZZA_APP
+  const riservaDestra = vistaCorrente()
+    ? 64
+    : Math.max(0, (width - colonnaPillola) / 2) + spazio.tre + 2 + (occupato ? SPOSTA_SE_OCCUPATO : 0) + (occupato || width < LARGHEZZA_CON_SCRITTA ? LARGHEZZA_PILLOLA_COMPATTA : LARGHEZZA_PILLOLA) + spazio.due
   const y = useSharedValue(0)
   const onScroll = useAnimatedScrollHandler((e) => {
     y.value = e.contentOffset.y
@@ -153,9 +161,12 @@ export function Schermata({
         <View style={[stili.marchioTestata, { top: ins.top }]}>
           <Marchio piccolo />
         </View>
-        <Animated.Text numberOfLines={1} style={[stili.titoloPiccolo, { color: p.testo }, titoloPiccolo]}>
-          {titolo}
-        </Animated.Text>
+        {/* A sinistra, subito dopo il marchio, e si ferma prima della pillola dell'assistenza (a destra, nella testata): non si sovrappongono mai. */}
+        <View pointerEvents="none" style={[stili.zonaTitolo, { top: ins.top, left: 54, right: riservaDestra }]}>
+          <Animated.Text numberOfLines={1} style={[stili.titoloPiccolo, { color: p.testo }, titoloPiccolo]}>
+            {titolo}
+          </Animated.Text>
+        </View>
       </Animated.View>
     </View>
   )
@@ -188,5 +199,6 @@ const stili = StyleSheet.create({
   sottotitolo: { fontSize: 15.5, lineHeight: 22, fontFamily: F.medio },
   contenuto: { marginTop: spazio.quattro, gap: spazio.quattro + 4 },
   testata: { position: 'absolute', top: 0, left: 0, right: 0, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
-  titoloPiccolo: { fontSize: 16, fontFamily: F.extra, letterSpacing: -0.3, paddingHorizontal: 64 },
+  zonaTitolo: { position: 'absolute', height: 52, alignItems: 'flex-start', justifyContent: 'center' },
+  titoloPiccolo: { fontSize: 16, fontFamily: F.extra, letterSpacing: -0.3 },
 })
