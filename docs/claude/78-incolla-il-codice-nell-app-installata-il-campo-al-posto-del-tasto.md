@@ -1,0 +1,10 @@
+## «Incolla il codice» nell'app installata: il campo al posto del tasto (02/11/2026)
+
+Segnalazione di Maurizio (02/11/2026, schermata «Controlla la posta», app salvata in Home come PWA su iPhone): «copio il codice, tocco "Incolla il codice" e si apre un altro campo sotto dove devo incollare: non è fluido». File: `features/lab/ui/Campi.tsx` (`IncollaCodice`), usato da `Accesso.tsx`.
+
+- **Perché**: nell'app installata `navigator.clipboard.readText()` viene rifiutata (vedi il commento di `IncollaCodice`, 17/10/2026), quindi il tasto falliva **sempre** e solo dopo compariva il campo, sotto, da cercare e toccare. Un passo in più che non poteva riuscire.
+- **Ora, nell'app installata** (`appInstallata()`: `navigator.standalone` su iPhone, `display-mode: standalone` altrove) **il tasto non c'è**: il campo «Incolla il codice» è al suo posto fin dall'inizio, con «Tieni premuto qui e scegli «Incolla»». Niente tentativo che fallisce, niente campo che compare sotto, niente scorrimento (tolto lo `scrollIntoView`). Non prende il fuoco da solo, per non portarlo via alle caselle.
+- **Nel browser** il tasto resta (lì la lettura può riuscire: un tocco e la bolla «Incolla» di iOS). Se la lettura fallisce, **il campo prende il posto del tasto** (prima si metteva sotto, con il tasto ancora lì) e prende il fuoco.
+- **Un incolla vale ovunque cada**: `IncollaCodice` ascolta `paste` su `document`; se dentro c'è un codice di 8 cifre lo prende, ferma l'incolla (`preventDefault`, così il campo non lo manda una seconda volta) e fa entrare. Vale anche per un incolla sulle caselle e per la tastiera fisica (Cmd/Ctrl+V sul computer o sull'iPad), senza campo né tasto.
+- **Il minimo su iPhone resta due gesti** (tenere premuto sul campo, scegliere «Incolla»): la conferma di iOS non si può togliere dal web. Prima erano tre o quattro.
+- **Non provato su un iPhone**, e `tsc` non si è potuto lanciare (le dipendenze non si installano dal container): da guardare sul telefono, soprattutto se tenere premuto sul campo apre subito il menu «Incolla» o serve un tocco in più.

@@ -113,3 +113,4 @@ chiamata diretta al gestionale. Esempio: la sezione Prodotti usa l'azione `prodo
 - [Il portale aperto a chi si registra: nessun cambio nell'app (02/11/2026)](docs/claude/75-il-portale-aperto-a-chi-si-registra-nessun-cambio-nell-app.md) · 1 KB
 - [«Elimina account» nel Profilo: anonimizzazione, contratti e pagamenti restano (02/11/2026)](docs/claude/76-elimina-account-nel-profilo-anonimizzazione-contratti-e-paga.md) · 2 KB
 - [L'invito a registrarsi in vista nella pagina d'accesso (02/11/2026)](docs/claude/77-l-invito-a-registrarsi-in-vista-nella-pagina-d-accesso.md) · 2 KB
+- [«Incolla il codice» nell'app installata: il campo al posto del tasto (02/11/2026)](docs/claude/78-incolla-il-codice-nell-app-installata-il-campo-al-posto-del-tasto.md) · 2 KB

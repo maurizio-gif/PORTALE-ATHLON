@@ -186,6 +186,12 @@ export function CampoCodice({
   )
 }
 
+/** Aperta dalla schermata Home (iPhone: `navigator.standalone`, il resto: display-mode). */
+function appInstallata(): boolean {
+  if (Platform.OS !== 'web' || typeof window === 'undefined') return false
+  return Boolean(window.matchMedia?.('(display-mode: standalone)').matches) || (navigator as Navigator & { standalone?: boolean }).standalone === true
+}
+
 /**
  * «Incolla il codice», solo sul web (nell'app la tastiera propone il codice da sola).
  *
@@ -198,17 +204,36 @@ export function CampoCodice({
  * campo cosi' il menu «Incolla» del telefono c'e' sempre. Quello che ci si
  * incolla passa dallo stesso estrattore delle caselle, quindi anche una riga
  * intera dell'email («Il tuo codice e' 12345678») va bene.
+ *
+ * Il campo prende il posto del tasto (02/11/2026, «non e' fluido»: nell'app
+ * installata si toccava il tasto, che falliva sempre, e solo allora compariva
+ * il campo sotto, da cercare e toccare). Nell'app installata la lettura e'
+ * rifiutata in partenza, quindi il tasto non c'e' proprio: il campo e' li' dal
+ * primo momento, dove c'era il tasto. Ogni incolla, da qualunque parte arrivi
+ * (campo, caselle, tastiera fisica), passa dall'ascolto di `paste` sulla pagina.
  */
 export function IncollaCodice({ cifre = CIFRE, onCodice, disabilitato = false }: { cifre?: number; onCodice: (codice: string) => void; disabilitato?: boolean }) {
   const p = usePalette()
-  const [aMano, setAMano] = useState(false)
+  const installata = appInstallata()
+  const [aMano, setAMano] = useState(installata)
   const [testo, setTesto] = useState('')
   const [avviso, setAvviso] = useState<string | null>(null)
-  const riquadro = useRef<View>(null)
-  // Il campo compare sotto le caselle, con la tastiera gia' aperta: va portato in vista, o chi guarda non lo trova.
+
+  // Un incolla con dentro il codice vale ovunque cada: lo si prende qui e non si lascia
+  // che il campo lo scriva (altrimenti il codice partirebbe due volte).
   useEffect(() => {
-    if (aMano) (riquadro.current as unknown as HTMLElement | null)?.scrollIntoView?.({ behavior: 'smooth', block: 'center' })
-  }, [aMano])
+    if (Platform.OS !== 'web' || typeof document === 'undefined' || disabilitato) return
+    const alIncolla = (e: ClipboardEvent) => {
+      const codice = estraiCodice(e.clipboardData?.getData('text') ?? '', cifre)
+      if (codice.length !== cifre) return
+      e.preventDefault()
+      setTesto('')
+      setAvviso(null)
+      onCodice(codice)
+    }
+    document.addEventListener('paste', alIncolla)
+    return () => document.removeEventListener('paste', alIncolla)
+  }, [cifre, onCodice, disabilitato])
 
   if (Platform.OS !== 'web') return null
 
@@ -239,23 +264,24 @@ export function IncollaCodice({ cifre = CIFRE, onCodice, disabilitato = false }:
 
   return (
     <View style={{ gap: spazio.due + 2 }}>
-      <Pulsante testo={t('Incolla il codice', 'Paste the code')} icona="documento" variante="secondario" piccolo onPress={incolla} disabilitato={disabilitato} />
       {aMano ? (
-        <View ref={riquadro} style={{ gap: spazio.due }}>
-          <CampoTesto
-            etichetta={t('Incolla qui il codice', 'Paste the code here')}
-            icona="copia"
-            value={testo}
-            onChangeText={cambiaTesto}
-            placeholder={t('Incolla qui', 'Paste here')}
-            autoCapitalize="none"
-            autoCorrect={false}
-            spellCheck={false}
-            errore={!!avviso}
-          />
-          <Text style={[stili.nota, { color: p.testoSecondario }]}>{t('Il telefono non ci lascia leggere gli appunti da soli: tieni premuto sul campo e scegli «Incolla».', 'Your phone won’t let us read the clipboard ourselves: press and hold the field and choose “Paste”.')}</Text>
-        </View>
-      ) : null}
+        <CampoTesto
+          etichetta={t('Incolla il codice', 'Paste the code')}
+          icona="copia"
+          value={testo}
+          onChangeText={cambiaTesto}
+          placeholder={t('Tieni premuto qui e scegli «Incolla»', 'Press and hold here and choose “Paste”')}
+          autoCapitalize="none"
+          autoCorrect={false}
+          spellCheck={false}
+          // Nell'app installata il campo e' li' da subito, accanto alle caselle che hanno gia' il fuoco: non si ruba.
+          autoFocus={!installata}
+          editable={!disabilitato}
+          errore={!!avviso}
+        />
+      ) : (
+        <Pulsante testo={t('Incolla il codice', 'Paste the code')} icona="documento" variante="secondario" piccolo onPress={incolla} disabilitato={disabilitato} />
+      )}
       {avviso ? <Messaggio>{avviso}</Messaggio> : null}
     </View>
   )
