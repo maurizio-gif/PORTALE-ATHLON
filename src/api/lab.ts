@@ -548,7 +548,7 @@ export type SessioneAdyen = {
   sessione: { id: string; sessionData: string }
 }
 
-type Esito<T> = ({ ok: true } & T) | { ok: false; errore: string }
+type Esito<T> = ({ ok: true } & T) | { ok: false; errore: string; /** La funzione ha risposto 404: la cosa chiesta non c'e' (per questa persona), e riprovare non cambia niente. */ nonTrovato?: boolean }
 
 const pagamenti = (corpo: Record<string, unknown>) => funzione('portale-lab-pagamenti', corpo)
 
@@ -565,9 +565,9 @@ export async function avviaPagamento(pianoId: string): Promise<Esito<SessioneAdy
 }
 
 export async function statoPagamento(riferimento: string): Promise<Esito<{ pagamento: StatoDelPagamento }>> {
-  const { ok, dati } = await pagamenti({ azione: 'stato', riferimento })
+  const { ok, stato, dati } = await pagamenti({ azione: 'stato', riferimento })
   if (ok) return { ok: true, pagamento: dati.pagamento }
-  return { ok: false, errore: dati.errore ?? t('Non riusciamo a leggere il pagamento adesso.', 'We can’t load the payment right now.') }
+  return { ok: false, errore: dati.errore ?? t('Non riusciamo a leggere il pagamento adesso.', 'We can’t load the payment right now.'), nonTrovato: stato === 404 }
 }
 
 /** Chiede ad Adyen, dal server, come e' andata la sessione: il browser non fa fede. */

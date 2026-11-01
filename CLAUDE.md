@@ -114,3 +114,4 @@ chiamata diretta al gestionale. Esempio: la sezione Prodotti usa l'azione `prodo
 - [«Elimina account» nel Profilo: anonimizzazione, contratti e pagamenti restano (02/11/2026)](docs/claude/76-elimina-account-nel-profilo-anonimizzazione-contratti-e-paga.md) · 2 KB
 - [L'invito a registrarsi in vista nella pagina d'accesso (02/11/2026)](docs/claude/77-l-invito-a-registrarsi-in-vista-nella-pagina-d-accesso.md) · 2 KB
 - [«Incolla il codice» nell'app installata: il campo al posto del tasto (02/11/2026)](docs/claude/78-incolla-il-codice-nell-app-installata-il-campo-al-posto-del-tasto.md) · 2 KB
+- [«Pagamento non trovato»: dopo l'accesso si va alla Home, non su un pagamento di un altro accesso (02/11/2026)](docs/claude/79-pagamento-non-trovato-niente-vicolo-cieco-02-11-2026.md) · 2 KB
