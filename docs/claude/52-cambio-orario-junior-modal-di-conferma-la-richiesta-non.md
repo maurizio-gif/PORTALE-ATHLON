@@ -1,0 +1,4 @@
+## Cambio orario Junior: modal di conferma, la richiesta non è automatica (25/10/2026)
+
+Richiesta di Maurizio. Scegliendo un turno in «Cambio orario» (`junior/CambioOrario.tsx`) si apre il foglio di conferma, che dice: la richiesta **non è automatica**, la segreteria la controlla e la approva o la rifiuta; solo dopo l'approvazione il bambino cambia turno, **dalla prima lezione utile** dopo la data comunicata (fino ad allora resta nel turno di adesso); l'esito arriva per email; e si **raccomanda di chiedere il cambio solo se strettamente necessario**, per la continuità didattica. Pulsanti «Ho capito, manda la richiesta» e «Annulla». Anche l'introduzione e il messaggio «Richiesta inviata» dicono che l'esito arriva dopo. Lato server (tabella, avviso in Dashboard, email al desk e al genitore): `CLAUDE.md` di APP-ATHLON. `tsc` pulito; **non guardato in un browser**.
+

@@ -1,0 +1,17 @@
+## Il messaggio di benvenuto su misura e l'iscrizione dalla prova (29/10/2026)
+
+Richiesta di Maurizio. Lato server (profili, passi, testi, migrazione, regole): `CLAUDE.md` di APP-ATHLON, «Dalla prova all'abbonamento e il «prossimo passo» del benvenuto». Qui cosa fa l'app.
+
+- **Il messaggio della Home** (`home/MessaggioBenvenuto.tsx`) conosce **due destinazioni in piu'**: `consigli` → `/allenamento/consigli`, e `salute` → `/allenamento/dispositivi?attiva=apple` (la schermata apre da sola il foglio di Apple, dopo il consenso se manca: lo stesso
+  percorso dell'invito e della carta «Da attivare»). Le altre sono quelle di prima (`prova` «Prova ora», `abbonamento` «Iscriviti ora», `calendario`, `allenamento`, `pagamenti`). L'etichetta del pulsante la scrive il server.
+- **L'app dice al server se puo' collegare Apple Salute** (`messaggioDiBenvenuto(motivo, saluteCollegabile)`, campo `salute_collegabile`): vero solo su iPhone nativo e se l'attivazione non e' gia' fatta (`appSaluteDelTelefono() !== null && !appleSaluteAttivo()`); su web e Android e' falso e
+  il server non propone il collegamento. **Health Connect si aggiunge in `appSaluteDelTelefono()` e il passo funziona da solo.**
+- **Chi ha un Guest Pass in corso e si iscrive non sceglie la data** (`Abbonamento.tsx`, `abbonamento/DallaProva.tsx`): se la persona ha `da_guest_pass` (`inizio_min` = `inizio_max`): nel primo passo c'e' l'avviso verde **«Dalla prova all'abbonamento»** (l'abbonamento parte il <data>, il giorno dopo la fine del
+  Guest Pass, senza perdere un giorno, e **la quota di attivazione di <cifra> e' in omaggio solo se l'abbonamento parte quel giorno: per questo la data e' obbligatoria**, 29/10/2026 su indicazione di Maurizio), nel secondo passo al posto delle pillole dei giorni c'e' la carta **«Parte il <data>»** con la stessa spiegazione, e il piano di pagamento mostra la quota «non dovuta». La data la decide il server e la ricontrolla alla firma:
+  l'app non offre un giorno diverso. Senza Guest Pass la schermata e' quella di sempre. **Il messaggio di benvenuto non parla di soldi**: la quota in omaggio si legge solo qui, nella procedura (richiesta di Maurizio).
+- **Con la funzione `portale-abbonamento` di prima** `da_guest_pass` non c'e' e l'app mostra la scelta del giorno; con la funzione nuova e l'app di prima la scelta del giorno si riduce a un giorno solo, che e' quello giusto.
+- **Provato.** `npx tsc --noEmit` senza errori nei sorgenti (restano quelli di `docs/classifica-server`, che non sono nostri); **in Chromium** (bundle web esportato con `EXPO_PUBLIC_SUPABASE_URL` finto, funzioni simulate con `page.route`, 390 px con touch):
+  i quattro pulsanti nuovi o cambiati del messaggio portano dove dicono e segnano il tocco, la richiesta del messaggio porta `salute_collegabile: false` fuori da iPhone nativo, il passo 1 con l'avviso e la data del 3 novembre 2026, il passo 2 con la carta «Parte il» e senza le pillole dei giorni, il riepilogo dei costi
+  che parte con `data_inizio` del giorno dopo la fine della prova, e senza Guest Pass nessun avviso e le pillole di prima. **Non provato**: un iPhone vero (`salute_collegabile: true` e il foglio di Apple), la procedura fino alla firma e al pagamento con un Guest Pass vero, l'inglese e il tema scuro a schermo.
+- **Pubblicato il 29/10/2026**, su richiesta di Maurizio («Fai merge poi»): prima il lato server (APP-ATHLON: migrazione, `portale-lab-benvenuto`, `portale-abbonamento`, `guest-pass`), poi questa app.
+

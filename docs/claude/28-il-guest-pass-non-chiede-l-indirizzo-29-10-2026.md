@@ -1,0 +1,4 @@
+## Il Guest Pass non chiede l'indirizzo (29/10/2026)
+
+Decisione di Maurizio: l'indirizzo e' un attrito in piu' per la prova, e si chiede quando si sottoscrive l'abbonamento. Nel primo blocco della pagina del link (`AttivaGuestPass.tsx`) restano «Chi sei» (nome, cognome, nascita, codice fiscale) e «Contatti» (email, cellulare): `GRUPPI` in `src/lib/guestPass.ts` non ha piu' «Residenza», e quello che serve per attivare e' `CAMPI_RICHIESTI`. Chi vive all'estero sceglie ancora il Paese, sotto la casella «Risiedo all'estero». **Resta l'indirizzo dell'intestatario nell'addebito su conto (IBAN)**: e' del conto e lo chiede quel metodo, non e' la residenza. Lato server (`validaPersona` con l'indirizzo facoltativo, cosa si manda a PerfectGym, cosa non e' provato): `CLAUDE.md` di APP-ATHLON, stessa data. **Pubblicare prima `guest-pass`, poi l'app.** `tsc` senza errori nuovi; la schermata non e' stata guardata a video.
+

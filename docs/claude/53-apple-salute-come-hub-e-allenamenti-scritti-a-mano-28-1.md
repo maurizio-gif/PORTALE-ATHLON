@@ -1,0 +1,9 @@
+## Apple Salute come hub e allenamenti scritti a mano (28/10/2026)
+
+Richiesta di Maurizio: invece di collegare ogni wearable, si legge da Apple Salute (dove scrivono Apple Watch, Oura, Garmin, Fitbit…) e si può scrivere a mano un allenamento («tre ore in bici»). Lato server (migrazione `20261028a`, `portale-lab-dispositivi`, informativa `2026-10-28`): `CLAUDE.md` di APP-ATHLON.
+
+- **Lettura** (`dispositivi/appleSalute.ts`): passi, calorie attive, battito a riposo, HRV, sonno con fasi (periodi uniti fra app diverse, per non contare due volte un minuto), allenamenti con battito medio/massimo, e il nome dell'app o del dispositivo (`origine`). Chi aveva attivato Apple Salute con l'elenco di prima riceve la richiesta dei permessi nuovi una volta (segno `apple-salute-permessi-v2.txt`). Serve una build nativa nuova.
+- **Punteggio e calorie** (`dispositivi/allenamentiDispositivo.ts`, puro): gli allenamenti dei dispositivi e quelli a mano contano come giorni attivi (`fonte: 'dispositivo'`) e nel contatore delle calorie, **solo se non si sovrappongono (oltre la metà) a una seduta o lezione già contata**, e fra loro si tiene quello con più dati. Calorie: misurate dal dispositivo → dal battito (Keytel 2005, sopra i 90 bpm) → MET per sport e intensità (valori ricordati, da far validare). La schermata dice quale. Servono i dati del corpo per le ultime due; senza, conta solo per il punteggio. Keytel tende a sovrastimare a battiti medi: è una stima.
+- **Inserimento a mano** (`fit/AggiungiAllenamento.tsx`, in Train sotto «I tuoi dispositivi»): sport, giorno, ora, durata, intensità, battito facoltativo; le calorie le calcola l'app e la funzione le controlla; si può togliere. Serve il consenso ai dispositivi.
+- Provato: `tsc` pulito e le regole pure con `npx tsx` (sport, i tre metodi, sovrapposizioni). **Non provato**: HealthKit vero (le letture di battito/HRV/fonti sono scritte secondo la documentazione della libreria), la schermata a video, un telefono.
+
