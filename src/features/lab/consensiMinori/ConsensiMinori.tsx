@@ -1,3 +1,4 @@
+import { useRouter } from 'expo-router'
 import { useCallback, useEffect, useState } from 'react'
 import { StyleSheet, Text, View } from 'react-native'
 
@@ -25,7 +26,7 @@ import { PARAGRAFI_INFORMATIVA, TESTI_AMBITO, TITOLO_INFORMATIVA } from './infor
 // nella sezione Famiglia. Per ogni figlio quattro consensi **disgiunti** (Food, Recover, il corpo, i piani con l'AI): il genitore li
 // concede tutti con «Concedi tutti» o uno alla volta, e li toglie uno alla volta. Niente parte da solo: le scelte si salvano con
 // «Salva» e, se si concede qualcosa, dopo aver spuntato la presa visione dell'informativa. Il genitore vede anche i dati del figlio
-// (decisione di Maurizio), e l'informativa lo dice. **Qui si registra il consenso e basta**: le funzioni del figlio non lo leggono ancora.
+// (decisione di Maurizio, 02/11/2026: «Vedi i dati» porta a `/dati-figlio/<id>`, in sola lettura), e l'informativa lo dice. Le funzioni del figlio non leggono ancora i consensi.
 // Chi puo' darlo, l'eta' del figlio e la registrazione sono della funzione `portale-lab-consensi-minori` (APP-ATHLON). In vista cliente niente.
 
 type Scelte = Record<AmbitoMinore, boolean>
@@ -40,6 +41,7 @@ const daStato = (f: FiglioConsensi): Scelte => ({
 export function ConsensiMinori() {
   const p = usePalette()
   const vista = vistaCorrente()
+  const router = useRouter()
   const [stato, setStato] = useState<StatoConsensiMinori | undefined>(undefined)
   const [scelte, setScelte] = useState<Record<number, Scelte>>({})
   const [letta, setLetta] = useState(false)
@@ -176,6 +178,10 @@ export function ConsensiMinori() {
                 </View>
               </Casella>
             ))}
+
+            {AMBITI.some((a) => attivi[a]) ? (
+              <Pulsante testo={t('Vedi i dati', 'See the data')} icona="avanti" variante="secondario" onPress={() => router.push(`/dati-figlio/${f.member_id}` as never)} />
+            ) : null}
 
             <Pulsante
               testo={tutti ? t('Togli tutti', 'Clear all') : t('Concedi tutti', 'Grant all')}
