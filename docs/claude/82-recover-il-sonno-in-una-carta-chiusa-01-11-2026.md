@@ -11,7 +11,7 @@ solo il titolo e una riga: l'ultima notte («Questa notte: 6 h 40») o, se non c
   «valori indicativi, non un parere medico» e i comandi «Aggiorna» (sul telefono) e «I dispositivi».
 - **Sempre chiusa all'apertura**, a ogni visita: lo stato non si ricorda. Chi arriva da un invito a scrivere il sonno trova la carta chiusa e la apre
   con un tocco (nessun collegamento della Home o del punteggio apriva il check-in da sé: portano all'area).
-- **Fuori dalla carta restano** la sessione di mobilità e il Foam roller, sotto il sonno. Il resto del comportamento (la notte scritta a mano
+- **Fuori dalla carta restano** la sessione di mobilità, il Foam roller e, dal 01/11/2026, il Respiro (sezione 84), ognuno con la sua carta, sotto il sonno. Il resto del comportamento (la notte scritta a mano
   che cede al dato del dispositivo, la durata calcolata dalle due ore, le sette notti tra cui scegliere) è quello del check-in, invariato.
 - **Verifica**: `tsc` pulito; guardato nel browser a 390 px con dati finti (carta chiusa, aperta con cinque notti, aperta senza notti); **non
   guardato con dati veri né su un telefono**.
