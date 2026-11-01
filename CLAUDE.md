@@ -110,3 +110,4 @@ chiamata diretta al gestionale. Esempio: la sezione Prodotti usa l'azione `prodo
 - [La registrazione: email → codice → «Completa il profilo» → dentro (01/11/2026)](docs/claude/72-la-registrazione-email-codice-completa-il-profilo-dentr.md) · 3 KB
 - [I consensi del genitore per un figlio da 13 a 17 anni: una pagina sola, consensi disgiunti (01/11/2026)](docs/claude/73-i-consensi-del-genitore-per-un-figlio-da-13-a-17-anni-u.md) · 2 KB
 - [Il genitore vede i dati del figlio: «Vedi i dati» e la pagina `/dati-figlio/<id>` (02/11/2026)](docs/claude/74-il-genitore-vede-i-dati-del-figlio-vedi-i-dati-e-la-pagina.md) · 1 KB
+- [Il portale aperto a chi si registra: nessun cambio nell'app (02/11/2026)](docs/claude/75-il-portale-aperto-a-chi-si-registra-nessun-cambio-nell-app.md) · 1 KB
