@@ -1919,8 +1919,13 @@ Richiesta di Maurizio. Nella finestra del cambio (`Gestisci.tsx`, `apriCambio`) 
 
 ## «Aggiungi un componente» in Famiglia e in Junior, e la delega sui figli a un altro adulto (31/10/2026)
 
-Richiesta di Maurizio. Contratto completo: **`docs/delega-nucleo.md`**. **Il lato server è scritto ma non pubblicato** (APP-ATHLON#512: migrazione `20261031m`, `portale-lab-delega`, `delega-invito`; il suo `CLAUDE.md` lo descrive): finché le funzioni
-non rispondono l'app dice «non è ancora attiva». **Pubblicare prima la migrazione e le funzioni, poi l'app.** Maurizio ha scelto la **strada A** e che **il delegato può fare tutto**.
+Richiesta di Maurizio. Contratto completo: **`docs/delega-nucleo.md`**. **Stato (01/11/2026): in produzione, server e app.** Il lato server (APP-ATHLON#512: migrazione `20261031m`, `portale-lab-delega`, `delega-invito`; il suo `CLAUDE.md` lo descrive) è
+stato pubblicato **prima** dell'app (questa, PR #196, fusa su `main` il 01/11/2026): migrazione applicata a mano dall'editor SQL (lo strumento MCP va in timeout sui `drop`), funzioni pubblicate con `verify_jwt` spento. Con la funzione assente l'app dice «non è ancora attiva».
+Maurizio ha scelto la **strada A** e che **il delegato può fare tutto**.
+- **Anche il delegato può usare «Aggiungi un componente»** (decisione di Maurizio, 01/11/2026): il figlio che crea risulta **sotto di lui**, non sotto il titolare che gli ha dato la delega (`aggiungi` aggancia il figlio al titolare *della sessione*). Il titolare non lo vede nel proprio nucleo, a meno che
+  la segreteria non scriva la relazione su PerfectGym. **Non è un blocco da aggiungere**: se un giorno non va bene, è un controllo in `portale-lab-junior` (`aggiungi`) e nel pulsante.
+- **Provato in produzione solo il perimetro**: dal database con `pg_net` senza sessione `portale-lab-delega` risponde 401 (in inglese con `en-x-athlon`) e `delega-invito` risponde `valido: false` / 410 / 400 a un codice inventato, a un token inventato e a un'azione sconosciuta (quindi le tabelle nuove si leggono). **Non è stata fatta nessuna delega vera**: la prima,
+  da un titolare con un figlio minorenne verso un'altra email, dice se arriva l'email di conferma e se compare il compito per la segreteria.
 
 - **Un solo pulsante, due strade** (`lab/famiglia/AggiungiComponente.tsx`): lo stesso in **Home › Famiglia** (`SezioneFamiglia`, in fondo) e in **Junior** (dove c'era già, e ora è questo). Il foglio «Chi vuoi
   aggiungere?» offre **«Un figlio»** (`FoglioComponente`, **com'era**: dati per intero, dichiarazione di genitore o tutore, controllo che non sia già al club con il messaggio di blocco e la riga nella Dashboard del
@@ -1938,4 +1943,4 @@ non rispondono l'app dice «non è ancora attiva». **Pubblicare prima la migraz
   un figlio), e **il portale ricava il nucleo da quelle relazioni** (`metodo_nucleo_da_email`: `FamilyChild` e `LegalGuardian`, il coniuge escluso di proposito). Il «spouse al titolare e parent ai bambini» chiesto **non si può
   fare via API**: **scelta la strada A**: la delega sta nel nostro database (unita al nucleo da `metodo_nucleo_da_email`) e alla segreteria arriva **un compito in Agenda** per scrivere la relazione a mano su PerfectGym.
 - **Provato**: `tsc` pulito; regole pure con `node --experimental-strip-types`; in Chromium (bundle web esportato, funzioni simulate con `page.route`, 390 e 1280 px) il modulo pubblico, la pagina di conferma e la schermata del titolare
-  (vedi il documento). **Non provato**: le funzioni vere (non esistono), PerfectGym, il foglio di scelta dentro Home › Famiglia e Junior (non guardato renderizzato), un telefono, l'app nativa, tema scuro e inglese a schermo.
+  (vedi il documento). **Non provato**: una delega vera dall'inizio alla fine (le funzioni sono pubblicate ma nessun titolare ha ancora creato un link), PerfectGym vero (`birthdate` di `Members`, creazione di un Guest), l'arrivo dell'email di conferma in una casella, il foglio di scelta dentro Home › Famiglia e Junior (non guardato renderizzato), un telefono, l'app nativa, tema scuro e inglese a schermo.
