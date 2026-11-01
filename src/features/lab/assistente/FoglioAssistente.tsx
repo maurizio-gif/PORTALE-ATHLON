@@ -14,6 +14,7 @@ import { F, usePalette } from '../ui/tema'
 import { Tocco } from '../ui/Tocco'
 import { hrefAssistente } from './destinazioni'
 import { chiamataDaAzione } from './chiamataDaChat'
+import { chiarimentoDaAzione } from './chiarimentoDaChat'
 import { ChiamataDaChat } from './ChiamataDaChat'
 import { PagaDaChat } from './PagaDaChat'
 import { pagaDaAzione } from './pagaDaChat'
@@ -64,7 +65,7 @@ const ESEMPI = () =>
     ['Where can I see my payments?', 'How do I cancel a class?'],
   )
 
-function Pulsanti({ azioni, messaggioId, onVai }: { azioni: AzioneAssistente[]; messaggioId: string | null; onVai: () => void }) {
+function Pulsanti({ azioni, messaggioId, onVai, onManda }: { azioni: AzioneAssistente[]; messaggioId: string | null; onVai: () => void; onManda: (domanda: string) => void }) {
   const p = usePalette()
   return (
     <View style={stili.azioni}>
@@ -81,6 +82,25 @@ function Pulsanti({ azioni, messaggioId, onVai }: { azioni: AzioneAssistente[]; 
         // La telefonata col desk (31/10/2026): per chi non e' iscritto, apre il calendario del desk nella chat. L'orario lo sceglie e lo conferma la persona.
         const chiamata = chiamataDaAzione(a)
         if (chiamata) return <ChiamataDaChat key={`${a.destinazione}${i}`} proposta={chiamata} messaggioId={messaggioId} />
+        // Un chiarimento (01/11/2026): la funzione ha chiesto «intendevi…?» e ogni opzione e' un pulsante che manda la sua domanda completa. Non porta altrove: la risposta arriva qui.
+        const chiarimento = chiarimentoDaAzione(a)
+        if (chiarimento) {
+          return (
+            <Tocco
+              key={`${a.destinazione}${i}`}
+              etichetta={chiarimento.etichetta}
+              onPress={() => {
+                if (messaggioId) pulsanteToccato(messaggioId, a.destinazione)
+                onManda(chiarimento.testo)
+              }}
+              style={[stili.opzione, { borderColor: p.accento, backgroundColor: p.fondo }]}
+            >
+              <Text style={[stili.opzioneTesto, { color: p.accento }]} numberOfLines={1}>
+                {chiarimento.etichetta}
+              </Text>
+            </Tocco>
+          )
+        }
         const href = hrefAssistente(a.destinazione, a.parametri)
         if (!href) return null
         return (
@@ -105,7 +125,7 @@ function Pulsanti({ azioni, messaggioId, onVai }: { azioni: AzioneAssistente[]; 
   )
 }
 
-function Fumetto({ b, onVai }: { b: Battuta; onVai: () => void }) {
+function Fumetto({ b, onVai, onManda }: { b: Battuta; onVai: () => void; onManda: (domanda: string) => void }) {
   const p = usePalette()
   const socio = b.ruolo === 'socio'
   const attesa = b.stato === 'scrive' && !b.testo
@@ -121,7 +141,7 @@ function Fumetto({ b, onVai }: { b: Battuta; onVai: () => void }) {
           </Text>
         )}
       </View>
-      {!socio && b.stato === 'fatto' && b.azioni.length > 0 ? <Pulsanti azioni={b.azioni} messaggioId={b.messaggioId} onVai={onVai} /> : null}
+      {!socio && b.stato === 'fatto' && b.azioni.length > 0 ? <Pulsanti azioni={b.azioni} messaggioId={b.messaggioId} onVai={onVai} onManda={onManda} /> : null}
       {!socio && b.stato === 'fatto' && b.messaggioId ? (
         <View style={stili.voti}>
           {(['su', 'giu'] as const).map((v) => (
@@ -224,7 +244,7 @@ export function FoglioAssistente({ aperto, schermata, onChiudi }: { aperto: bool
               </View>
             ) : null}
             {s.battute.map((b) => (
-              <Fumetto key={b.id} b={b} onVai={onChiudi} />
+              <Fumetto key={b.id} b={b} onVai={onChiudi} onManda={manda} />
             ))}
             {s.errore ? <Messaggio tono={s.nonAttivo ? 'attenzione' : 'errore'}>{s.errore}</Messaggio> : null}
           </ScrollView>
@@ -307,6 +327,8 @@ const stili = StyleSheet.create({
   azioni: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, maxWidth: '100%' },
   azione: { flexDirection: 'row', alignItems: 'center', gap: 6, height: 38, paddingHorizontal: 14, borderRadius: 999 },
   azioneTesto: { fontFamily: F.semi, fontSize: 14, color: '#fff', maxWidth: 240 },
+  opzione: { height: 38, paddingHorizontal: 14, borderRadius: 999, borderWidth: 1.5, justifyContent: 'center' },
+  opzioneTesto: { fontFamily: F.semi, fontSize: 14, maxWidth: 240 },
   voti: { flexDirection: 'row', gap: 8 },
   voto: { height: 28, paddingHorizontal: 11, borderRadius: 999, borderWidth: 1, justifyContent: 'center' },
   votoTesto: { fontFamily: F.semi, fontSize: 12 },
