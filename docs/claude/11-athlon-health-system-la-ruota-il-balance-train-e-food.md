@@ -99,8 +99,8 @@ l'allenamento, l'alimentazione e il recupero dell'adulto in un posto solo. Nel c
 - **Poi l'introduzione, come seconda carta** (`fit/Intro.tsx`; 24/10/2026, richiesta di Maurizio: la descrizione dell'Athlon Health System viene subito
   dopo il punteggio): il benessere come equilibrio di allenamento giusto (Train), buona
   alimentazione (Food) e recupero (Relax: sonno e giorni di riposo, senza una sezione sua), cosa fa il Balance e, in un pannello che si apre, come leggere i
-  numeri (`ComeLeggere` in `fit/Balance.tsx`, lo stesso testo in fondo alla schermata di Balance). **L'ordine su Fit** (`schede/Schede.tsx`) è: ruota, punteggio,
-  introduzione, «Il tuo corpo», Balance. Su schermo largo (da 900 px) l'introduzione sta a sinistra e, a destra, corpo e Balance in colonna.
+  numeri (`ComeLeggere` in `fit/Balance.tsx`, lo stesso testo in fondo alla schermata di Balance). **L'ordine su Fit** (`schede/Schede.tsx`) è: ruota, punteggio, «Il tuo mese» e «La tua settimana» (quando ci sono),
+  introduzione, «Il tuo corpo», «I tuoi dispositivi», **«Le tue abitudini» (spostata sotto i dispositivi il 01/11/2026, richiesta di Maurizio: prima stava sotto il punteggio)**, Balance. Su schermo largo (da 900 px) l'introduzione sta a sinistra e, a destra, corpo e Balance in colonna.
 - **Poi «Il tuo corpo»** (`fit/Corpo.tsx`, dettaglio in `/allenamento/misure`). **Su Fit si presenta compresso** (24/10/2026, richiesta di Maurizio, come il Balance):
   il titolo e una riga che dice cosa c'è di là («Qui trovi le tue misure: aggiornale e consulta come cambiano nel tempo»); **le cifre compaiono toccando**
   (la carta si apre e si chiude, la freccia gira) e, aperta, c'è il tasto «Apri il dettaglio». **Senza misure non si apre: è una call to action** (24/10/2026, richiesta
