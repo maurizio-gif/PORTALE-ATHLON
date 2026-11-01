@@ -116,26 +116,19 @@ export async function leggiInvitoDelega(codice: string): Promise<InvitoDelega> {
   return { valido: r.ok && r.dati.valido === true, nome: r.dati.nome ? String(r.dati.nome) : null, figli: Number(r.dati.figli ?? 0) }
 }
 
-export type DatiDelegato = {
-  nome: string
-  cognome: string
-  email: string
-  telefono: string
-  nascita: string
-}
-
 /**
- * Chi apre il link compila il modulo: **non e' ancora fatta**. La funzione ricontrolla il link e i dati (maggiorenne, privacy) e manda
- * un'email a quell'indirizzo con il link per terminare (`/delega/conferma/<token>`). **La risposta e' sempre la stessa**, che la persona
- * sia gia' al club o no: la pagina non deve dire chi e' iscritto. Il link della delega non si consuma qui (un errore di battitura
- * nell'email si corregge rifacendo il modulo); si consuma alla conferma. `scaduto` dice che il link non vale piu'.
+ * Chi apre il link scrive **solo l'email** e accetta la privacy (01/11/2026, come ogni registrazione dell'app: se e' gia' al club non si
+ * chiedono dati). **Non e' ancora fatta**: la funzione ricontrolla il link e manda un'email a quell'indirizzo con il link per terminare
+ * (`/delega/conferma/<token>`). **La risposta e' sempre la stessa**, che la persona sia gia' al club o no: la pagina non deve dire chi e'
+ * iscritto. I dati che mancano si chiedono dopo, dal link dell'email. Il link della delega non si consuma qui (un errore di battitura
+ * nell'email si corregge rifacendo il passo); si consuma alla conferma. `scaduto` dice che il link non vale piu'.
  */
 export async function richiediConfermaDelega(
   codice: string,
-  d: DatiDelegato,
+  email: string,
   privacy: boolean,
 ): Promise<{ ok: true } | { ok: false; errore: string; scaduto: boolean }> {
-  const r = await chiamaPubblica({ azione: 'accetta', codice, ...d, email: d.email.trim().toLowerCase(), privacy })
+  const r = await chiamaPubblica({ azione: 'accetta', codice, email: email.trim().toLowerCase(), privacy })
   if (r.ok) return { ok: true }
   return {
     ok: false,
@@ -144,12 +137,22 @@ export async function richiediConfermaDelega(
   }
 }
 
-export type AnteprimaConferma = { valido: boolean; nome: string | null; delegato: string | null }
+/** I dati che la conferma puo' chiedere: li decide la funzione dalla scheda che c'e' (`campi`), la pagina mostra solo quelli. */
+export type CampoDelega = 'nome' | 'cognome' | 'nascita' | 'telefono'
+export type DatiConferma = Partial<Record<CampoDelega, string>>
 
-/** La pagina del link nell'email: chi ti da' la delega e il tuo nome, per dire cosa stai per confermare. Non conferma niente. */
+export type AnteprimaConferma = { valido: boolean; nome: string | null; delegato: string | null; campi: CampoDelega[] }
+
+const CAMPI: CampoDelega[] = ['nome', 'cognome', 'nascita', 'telefono']
+/** I campi che la funzione chiede, ricontrollati; se la risposta e' sporca si chiede tutto (la funzione ricontrolla alla conferma). */
+function campiDa(v: unknown): CampoDelega[] {
+  return Array.isArray(v) ? CAMPI.filter((c) => v.includes(c)) : [...CAMPI]
+}
+
+/** La pagina del link nell'email: chi ti da' la delega, il tuo nome se c'e' gia' una scheda e **quali dati servono** (spesso nessuno). Non conferma niente. */
 export async function leggiConfermaDelega(token: string): Promise<AnteprimaConferma> {
   const r = await chiamaPubblica({ azione: 'conferma_leggi', token })
-  return { valido: r.ok && r.dati.valido === true, nome: r.dati.nome ? String(r.dati.nome) : null, delegato: r.dati.delegato ? String(r.dati.delegato) : null }
+  return { valido: r.ok && r.dati.valido === true, nome: r.dati.nome ? String(r.dati.nome) : null, delegato: r.dati.delegato ? String(r.dati.delegato) : null, campi: campiDa(r.dati.campi) }
 }
 
 /**
@@ -157,8 +160,16 @@ export async function leggiConfermaDelega(token: string): Promise<AnteprimaConfe
  * riscriverla; se e' nuova la funzione la crea su PerfectGym come Guest. Poi la collega al titolare e ai figli. Il link della delega
  * si consuma adesso. Un tocco e non l'apertura della pagina: i programmi che controllano i link delle email non devono confermare al posto suo.
  */
-export async function confermaDelega(token: string): Promise<{ ok: true; nome: string } | { ok: false; errore: string }> {
-  const r = await chiamaPubblica({ azione: 'conferma', token })
+export async function confermaDelega(
+  token: string,
+  dati: DatiConferma = {},
+): Promise<{ ok: true; nome: string } | { ok: false; errore: string; serve: CampoDelega[] | null }> {
+  const r = await chiamaPubblica({ azione: 'conferma', token, ...dati })
   if (r.ok) return { ok: true, nome: String(r.dati.nome ?? '') }
-  return { ok: false, errore: r.dati.errore ?? t('Non siamo riusciti a completare adesso. Riprova fra qualche minuto.', 'We couldn’t complete this right now. Try again in a few minutes.') }
+  return {
+    ok: false,
+    errore: r.dati.errore ?? t('Non siamo riusciti a completare adesso. Riprova fra qualche minuto.', 'We couldn’t complete this right now. Try again in a few minutes.'),
+    // Se la funzione dice quali dati mancano (e non e' stato scritto niente) la pagina li mostra; altrimenti e' un errore e basta.
+    serve: Array.isArray(r.dati.serve) ? campiDa(r.dati.serve) : null,
+  }
 }
