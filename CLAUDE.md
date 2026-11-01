@@ -117,3 +117,4 @@ chiamata diretta al gestionale. Esempio: la sezione Prodotti usa l'azione `prodo
 - [«Pagamento non trovato»: dopo l'accesso si va alla Home, non su un pagamento di un altro accesso (02/11/2026)](docs/claude/79-pagamento-non-trovato-niente-vicolo-cieco-02-11-2026.md) · 2 KB
 - [«Capire il cibo»: sei letture di cultura alimentare nell'area Food (01/11/2026)](docs/claude/80-capire-il-cibo-cultura-alimentare-nell-area-food-01-11-2026.md) · 3 KB
 - [«Foam roller»: la sessione di rilascio in Recover, con i video ancora da girare (01/11/2026)](docs/claude/81-foam-roller-rilascio-miofasciale-in-recover-01-11-2026.md) · 4 KB
+- [Recover: il sonno in una carta chiusa, con dentro inserimento, ultima notte e ultimi sette giorni (01/11/2026)](docs/claude/82-recover-il-sonno-in-una-carta-chiusa-01-11-2026.md) · 2 KB
