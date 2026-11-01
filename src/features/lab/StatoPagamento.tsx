@@ -79,6 +79,9 @@ export function StatoPagamento() {
   const [errore, setErrore] = useState<string | null>(null)
   const [adyen, setAdyen] = useState<string | null>(null)
   const [nota, setNota] = useState<string | null>(null)
+  // Il pagamento non e' di questo accesso (404): riprovare non puo' cambiare niente, quindi non si offre (02/11/2026).
+  const [nonTrovato, setNonTrovato] = useState(false)
+  const [riprovando, setRiprovando] = useState(false)
   const avviato = useRef(false)
 
   const leggi = useCallback(async () => {
@@ -86,8 +89,19 @@ export function StatoPagamento() {
     if (r.ok) {
       setP(r.pagamento)
       setErrore(null)
-    } else setErrore(r.errore)
+      setNonTrovato(false)
+    } else {
+      setErrore(r.errore)
+      setNonTrovato(r.nonTrovato === true)
+    }
   }, [riferimento])
+
+  // «Riprova» deve dare un segno: con la risposta uguale a prima (la rete, per esempio) sembrava non fare niente.
+  const riprova = useCallback(async () => {
+    setRiprovando(true)
+    await leggi()
+    setRiprovando(false)
+  }, [leggi])
 
   // Il ritorno: prima l'esito da Adyen (dal server), poi via i parametri
   // dall'indirizzo, cosi' resta quello stabile del riferimento.
@@ -138,8 +152,18 @@ export function StatoPagamento() {
   if (errore && !pag) {
     return (
       <Schermata titolo={t('Pagamento', 'Payment')} indietro={hrefSezione('pagamenti')} barra={false}>
-        <Messaggio>{errore}</Messaggio>
-        <Pulsante testo={t('Riprova', 'Try again')} icona="aggiorna" onPress={leggi} />
+        {nonTrovato ? (
+          <>
+            {/* Succede se l'indirizzo di un pagamento resta aperto dopo un cambio di accesso (un altro account entra sullo stesso dispositivo): il pagamento e' di chi c'era prima. */}
+            <Messaggio>{t('Questo pagamento non è nel tuo account: forse è rimasta aperta la pagina di un altro accesso.', 'This payment isn’t in your account: the page may have been left open from another login.')}</Messaggio>
+            <Pulsante testo={t('Vai ai pagamenti', 'Go to payments')} icona="avanti" onPress={() => router.replace(hrefSezione('pagamenti'))} />
+          </>
+        ) : (
+          <>
+            <Messaggio>{errore}</Messaggio>
+            <Pulsante testo={t('Riprova', 'Try again')} icona="aggiorna" onPress={riprova} inCorso={riprovando} />
+          </>
+        )}
       </Schermata>
     )
   }

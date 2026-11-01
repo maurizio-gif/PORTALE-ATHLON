@@ -1,0 +1,10 @@
+## «Pagamento non trovato»: niente vicolo cieco, e «Riprova» dà un segno (02/11/2026)
+
+Segnalazione di Maurizio (02/11/2026, app installata su iPhone, account di prova «Maurizio EMP Taruggi»): subito dopo aver messo il codice compariva la schermata **«Pagamento — Pagamento non trovato.»** con un pulsante «Riprova» che non faceva niente; si usciva solo con la freccia in alto a sinistra. File: `features/lab/StatoPagamento.tsx`, `api/lab.ts` (`statoPagamento`).
+
+- **Cosa dicono i registri della funzione** (`portale-lab-pagamenti`, 01/11/2026 18:47–18:49 UTC): prima dell'accesso la pagina chiamava la funzione e otteneva 200; un secondo dopo la verifica del codice (`portale-registrazione`) la stessa schermata ha chiesto un pagamento e ha avuto **404**; i tre 404 seguenti sono i tocchi su «Riprova», tutti con la stessa risposta; poi 200 quando si è tornati indietro. Quindi **la pagina `/pagamenti/<riferimento>` era già aperta** all'accesso e il riferimento non era di questo account: la funzione cerca il pagamento solo fra quelli creati da chi è entrato (`pagamentoSuo`).
+- **Perché «Riprova» non faceva niente**: rileggeva lo stesso pagamento e riceveva lo stesso 404, senza nessun segno di lavoro.
+- **Cosa non so**: **come** quella pagina sia rimasta aperta (la normale uscita dal Profilo torna a `/`, vedi `ui/Uscita.tsx`). Il sospetto è un indirizzo di pagamento rimasto nell'app installata da un accesso precedente; non l'ho riprodotto.
+- **Cosa cambia**: se la funzione risponde 404 (`nonTrovato`), la schermata dice «Questo pagamento non è nel tuo account: forse è rimasta aperta la pagina di un altro accesso» e offre **«Vai ai pagamenti»**, senza «Riprova» (non può servire). Per gli altri errori (la rete, per esempio) «Riprova» resta, ma **mostra l'attesa** mentre rilegge.
+- **Non cambia**: il resto della pagina di stato, il ritorno da Adyen e la 3D Secure.
+- **Provato**: controllo di sintassi con TypeScript dei due file. **Non provato**: `tsc` completo (le dipendenze non si installano dal container), e **nessuna prova su un iPhone**: da guardare riaprendo un indirizzo `/pagamenti/LAB-…` di un altro account.
