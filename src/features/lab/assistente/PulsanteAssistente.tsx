@@ -7,8 +7,6 @@ import { LARGO } from '@/components/Pagina'
 import { t } from '@/lib/lingua'
 import { spazio } from '@/theme'
 
-import { LARGHEZZA_CON_SCRITTA, SPOSTA_SE_OCCUPATO } from '../feedback/comune'
-import { useAzioneInAltoPresente } from '../feedback/posizione'
 import { Icona } from '../ui/Icona'
 import { LARGHEZZA_APP } from '../ui/Schermata'
 import { F, usePalette } from '../ui/tema'
@@ -17,6 +15,11 @@ import { vistaCorrente } from '../vista'
 import { schermataAssistente } from './destinazioni'
 import { FoglioAssistente } from './FoglioAssistente'
 import { registraApertura } from './store'
+
+// **Sta appena sotto la testata** (31/10/2026, richiesta di Maurizio: dentro la fascia della testata sottile era «troppo attaccato» e copriva il titolo che compare scorrendo):
+// la testata e' alta `ins.top + 52`, la pillola comincia 10 punti sotto. Non e' piu' nella riga del marchio, quindi non si sposta per il carrello o il salvataggio che stanno a
+// destra in quella riga, e ha sempre la scritta (non puo' piu' finire sul marchio).
+const SOTTO_TESTATA = 52 + 10 - 5 // altezza della testata, aria, e i 5 punti fra l'area che si tocca (44) e la pillola (34)
 
 // Il pulsante «Richiedi assistenza» (30/10/2026, richiesta di Maurizio; fino al 31/10/2026 si chiamava «Assistente virtuale»: il foglio che apre si intitola ancora cosi', e dice chi risponde): una pillola in alto a destra, sopra ogni schermata dell'app, sempre
 // visibile. Tocca e sale la chat (`FoglioAssistente`). Sta qui, montata nel layout, e non in una schermata, perche' deve esserci **ovunque**: se
@@ -37,7 +40,6 @@ export function PulsanteAssistente() {
   const { width } = useWindowDimensions()
   const percorso = usePathname()
   const { sezione } = useGlobalSearchParams<{ sezione?: string }>()
-  const occupato = useAzioneInAltoPresente()
   const [aperto, setAperto] = useState(false)
   // La schermata in cui si e' toccato il pulsante, non quella di quando si preme «Invia»: e' li' che la persona stava guardando.
   const schermata = useRef<string | null>(null)
@@ -55,8 +57,7 @@ export function PulsanteAssistente() {
 
   // La stessa colonna delle schermate: 640 sul telefono e sul tablet stretto, 1180 sullo schermo largo, centrata.
   const colonna = width < LARGO ? 640 : LARGHEZZA_APP
-  const destra = Math.max(0, (width - colonna) / 2) + spazio.tre + 2 + (occupato ? SPOSTA_SE_OCCUPATO : 0)
-  const compatto = occupato || width < LARGHEZZA_CON_SCRITTA
+  const destra = Math.max(0, (width - colonna) / 2) + spazio.tre + 2
 
   return (
     <>
@@ -68,11 +69,11 @@ export function PulsanteAssistente() {
         }}
         etichetta={t('Richiedi assistenza: chiedi dove trovare le cose', 'Get support: ask where to find things')}
         scala={0.95}
-        style={[stili.area, { top: ins.top + spazio.tre, right: destra }]}
+        style={[stili.area, { top: ins.top + SOTTO_TESTATA, right: destra }]}
       >
-        <View style={[stili.pillola, compatto && stili.compatta, { backgroundColor: p.vetro, borderColor: p.linea }]}>
-          <Icona nome="assistente" size={compatto ? 17 : 15} colore={p.accento} />
-          {compatto ? null : <Text style={[stili.testo, { color: p.testo }]}>{t('Richiedi assistenza', 'Get support')}</Text>}
+        <View style={[stili.pillola, { backgroundColor: p.vetro, borderColor: p.linea }]}>
+          <Icona nome="assistente" size={15} colore={p.accento} />
+          <Text style={[stili.testo, { color: p.testo }]}>{t('Richiedi assistenza', 'Get support')}</Text>
         </View>
       </Tocco>
       <FoglioAssistente aperto={aperto} schermata={schermata.current} onChiudi={() => setAperto(false)} />
@@ -92,7 +93,5 @@ const stili = StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth,
     boxShadow: '0 4px 14px rgba(18, 19, 22, 0.08)',
   },
-  // Solo l'icona: un cerchio da 34, come l'altezza della pillola.
-  compatta: { width: 34, paddingHorizontal: 0, justifyContent: 'center' },
   testo: { fontFamily: F.semi, fontSize: 12.5, letterSpacing: -0.1 },
 })

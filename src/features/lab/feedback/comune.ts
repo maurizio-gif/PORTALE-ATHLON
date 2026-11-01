@@ -87,10 +87,3 @@ export const SPOSTA_SE_OCCUPATO = 52
  * destra) e' solo l'icona: con la freccia indietro e il marchio a sinistra, la pillola con la scritta finirebbe sul marchio.
  */
 export const LARGHEZZA_CON_SCRITTA = 390
-
-/**
- * Quanto e' larga la pillola «Richiedi assistenza» (31/10/2026): con la scritta (stima per l'italiano, che e' la piu' lunga) o solo l'icona. Serve alla testata sottile
- * delle schermate, che scorrendo mostra il titolo piccolo: lo lascia fuori dallo spazio della pillola, o ci finirebbe sotto («Ciao, Maurizi» tagliato).
- */
-export const LARGHEZZA_PILLOLA = 160
-export const LARGHEZZA_PILLOLA_COMPATTA = 34
