@@ -15,7 +15,7 @@ import type { Dispositivi } from '../dispositivi/useDispositivi'
 import { spostaGiorno } from '../schede/contatoreCalorie'
 import { useProgresso } from '../schede/ContatoreCalorie'
 import { Icona, type NomeIcona } from '../ui/Icona'
-import { Bollino, Carta, Entra, Messaggio, Pulsante, SchedeInArrivo, Sezione } from '../ui/kit'
+import { Bollino, Carta, Entra, Messaggio, Pulsante, SchedeInArrivo } from '../ui/kit'
 import { F, RELAX, usePalette } from '../ui/tema'
 import { Tocco } from '../ui/Tocco'
 import { CheckInSonno } from './CheckInSonno'
@@ -148,7 +148,7 @@ function Dati({ disp }: { disp: Dispositivi }) {
   return (
     <View style={{ gap: spazio.tre }}>
       <Entra indice={0}>
-        <CheckInSonno disp={disp} giorni={dati.giorni} />
+        <CartaSonno disp={disp} tutti={dati.giorni} giorni={giorni} notte={notte} oggi={oggi} ieri={ieri} collegati={collegati} sulTelefono={sulTelefono} inCorso={inCorso} errore={errore} onAggiorna={aggiorna} />
       </Entra>
 
       <Entra indice={0}>
@@ -172,65 +172,130 @@ function Dati({ disp }: { disp: Dispositivi }) {
           <Icona nome="avanti" size={18} colore={p.testoTerzo} />
         </Carta>
       </Entra>
-
-      {notte ? (
-        <Entra indice={0}>
-          <LinearGradient colors={RELAX} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={stili.notte}>
-            <Text style={stili.notteEtichetta}>{(notte.data === oggi ? t('Questa notte', 'Last night') : notte.data === ieri ? t('La notte scorsa', 'The night before') : t(`Notte del ${giornoBreve(notte.data)}`, `Night of ${giornoBreve(notte.data)}`)).toUpperCase()}</Text>
-            <View style={stili.anelli}>
-              <Anello quota={(notte.sonno_minuti ?? 0) / 600} centro={durata(notte.sonno_minuti ?? 0)} sotto={notte.sonno_punteggio !== null ? t(`Sonno · punteggio ${notte.sonno_punteggio}`, `Sleep · score ${notte.sonno_punteggio}`) : t('Sonno', 'Sleep')} colore="#fff" />
-            </View>
-            {particolari(notte) ? <Text style={stili.notteTesto}>{particolari(notte)}</Text> : null}
-          </LinearGradient>
-        </Entra>
-      ) : collegati ? (
-        <Carta style={{ gap: spazio.due }}>
-          <Text style={[stili.titoletto, { color: p.testo }]}>{t('Ancora niente da mostrare', 'Nothing to show yet')}</Text>
-          <Text style={[stili.nota, { color: p.testoSecondario }]}>{t('Il sonno arriva quando il tuo dispositivo l’ha condiviso con Apple Salute: di solito entro la mezz’ora, e lo leggiamo quando apri l’app.', 'Your sleep comes in once your device has shared it with Apple Health: usually within half an hour, and we read it when you open the app.')}</Text>
-        </Carta>
-      ) : null}
-
-      {!collegati ? (
-        <Carta style={{ gap: spazio.tre }}>
-          <View style={stili.riga}>
-            <Bollino icona="orologio" tono="neutro" size={46} />
-            <View style={{ flex: 1, gap: 2 }}>
-              <Text style={[stili.titoletto, { color: p.testo }]}>{t('Hai un orologio, un anello o un’app di fitness?', 'Do you have a watch, a ring or a fitness app?')}</Text>
-              <Text style={[stili.nota, { color: p.testoSecondario }]}>{t('Collegali ad Apple Salute o a Health Connect: il sonno arriva da solo, senza scriverlo.', 'Connect them to Apple Health or Health Connect: your sleep comes in by itself, no logging needed.')}</Text>
-            </View>
-          </View>
-          <Pulsante testo={t('Come si fa', 'How to')} icona="avanti" variante="secondario" onPress={apriDispositivi} />
-        </Carta>
-      ) : null}
-
-      {giorni.length > 1 || notte ? (
-        <Entra indice={1}>
-          <Sezione titolo={t('Gli ultimi sette giorni', 'The last seven days')}>
-            <Carta style={{ gap: spazio.tre }}>
-              <Settimana giorni={giorni} oggi={oggi} />
-              <Text style={[stili.piccola, { color: p.testoTerzo }]}>{t('Ore di sonno per notte. Il giorno è quello del risveglio.', 'Hours of sleep per night. The day is the one you woke up.')}</Text>
-            </Carta>
-          </Sezione>
-        </Entra>
-      ) : null}
-
-      {errore ? <Messaggio>{errore}</Messaggio> : null}
-      <Text style={[stili.piccola, { color: p.testoTerzo, paddingHorizontal: 2 }]}>
-        {collegati
-          ? t('Valori indicativi del tuo dispositivo: non sono un parere medico.', 'Approximate values from your device: not medical advice.')
-          : t('Il sonno che hai scritto tu. Sono valori indicativi: non sono un parere medico.', 'The sleep you logged yourself. These are approximate values: not medical advice.')}
-      </Text>
-      <View style={stili.azioni}>
-        {sulTelefono ? (
-          <View style={{ flex: 1 }}>
-            <Pulsante testo={t('Aggiorna', 'Refresh')} icona="aggiorna" variante="secondario" piccolo inCorso={inCorso} onPress={aggiorna} />
-          </View>
-        ) : null}
-        <View style={{ flex: 1 }}>
-          <Pulsante testo={t('I dispositivi', 'Devices')} icona="orologio" variante="contorno" piccolo onPress={apriDispositivi} />
-        </View>
-      </View>
     </View>
+  )
+}
+
+/**
+ * La carta «Sonno» (01/11/2026, richiesta di Maurizio): **chiusa**, con una riga che dice l'ultima notte. Aperta, in quest'ordine: il sonno scritto a
+ * mano (con il suggerimento di collegare Apple Salute o Health Connect, per chi non l'ha fatto), l'ultima notte registrata e gli ultimi sette giorni,
+ * poi l'avviso e i comandi per aggiornare o per i dispositivi. Prima erano carte separate, in fila sopra la mobilita'.
+ */
+function CartaSonno({
+  disp,
+  tutti,
+  giorni,
+  notte,
+  oggi,
+  ieri,
+  collegati,
+  sulTelefono,
+  inCorso,
+  errore,
+  onAggiorna,
+}: {
+  disp: Dispositivi
+  /** Tutti i giorni (il check-in sa cosa c'e' gia' scritto) e, in `giorni`, solo quelli con il sonno. */
+  tutti: GiornoDispositivo[]
+  giorni: GiornoDispositivo[]
+  notte: GiornoDispositivo | null
+  oggi: string
+  ieri: string
+  collegati: boolean
+  sulTelefono: boolean
+  inCorso: boolean
+  errore: string | null
+  onAggiorna: () => void
+}) {
+  const p = usePalette()
+  const [aperto, setAperto] = useState(false)
+  const quando = notte ? (notte.data === oggi ? t('Questa notte', 'Last night') : notte.data === ieri ? t('La notte scorsa', 'The night before') : t(`Notte del ${giornoBreve(notte.data)}`, `Night of ${giornoBreve(notte.data)}`)) : null
+  const riassunto = notte ? `${quando}: ${durata(notte.sonno_minuti ?? 0)}` : t('Scrivi come hai dormito: conta nel tuo Athlon Health Score.', 'Log how you slept: it counts toward your Athlon Health Score.')
+  const linea = { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: p.linea, paddingTop: spazio.tre, gap: spazio.tre }
+
+  return (
+    <Carta style={{ gap: spazio.tre }}>
+      <Tocco onPress={() => setAperto((a) => !a)} etichetta={t('Sonno', 'Sleep')} stato={{ expanded: aperto }} scala={0.99}>
+        <View style={stili.riga}>
+          <View style={[stili.iconaSonno, { backgroundColor: RELAX[1] }]}>
+            <Icona nome="luna" size={22} colore="#fff" />
+          </View>
+          <View style={{ flex: 1, gap: 2 }}>
+            <Text style={[stili.titoletto, { color: p.testo }]}>{t('Sonno', 'Sleep')}</Text>
+            <Text style={[stili.nota, { color: p.testoSecondario }]}>{riassunto}</Text>
+          </View>
+          <Icona nome={aperto ? 'su' : 'giu'} size={18} colore={p.testoTerzo} />
+        </View>
+      </Tocco>
+
+      {aperto ? (
+        <>
+          <View style={linea}>
+            <CheckInSonno disp={disp} giorni={tutti} dentro />
+            {!collegati ? (
+              <View style={[stili.suggerimento, { backgroundColor: p.incavo }]}>
+                <Bollino icona="orologio" tono="neutro" size={40} />
+                <View style={{ flex: 1, gap: 2 }}>
+                  <Text style={[stili.nome, { color: p.testo }]}>{t('Hai un orologio, un anello o un’app di fitness?', 'Do you have a watch, a ring or a fitness app?')}</Text>
+                  <Text style={[stili.piccola, { color: p.testoSecondario }]}>{t('Collegali ad Apple Salute o a Health Connect: il sonno arriva da solo, senza scriverlo.', 'Connect them to Apple Health or Health Connect: your sleep comes in by itself, no logging needed.')}</Text>
+                  <View style={{ marginTop: spazio.due }}>
+                    <Pulsante testo={t('Come si fa', 'How to')} icona="avanti" variante="secondario" piccolo pieno={false} onPress={apriDispositivi} />
+                  </View>
+                </View>
+              </View>
+            ) : null}
+          </View>
+
+          <View style={linea}>
+            <Text style={[stili.sottoTitolo, { color: p.testo }]}>{t('L’ultima notte registrata', 'Your last recorded night')}</Text>
+            {notte ? (
+              <LinearGradient colors={RELAX} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[stili.notte, { borderRadius: 22 }]}>
+                <Text style={stili.notteEtichetta}>{(quando ?? '').toUpperCase()}</Text>
+                <View style={stili.anelli}>
+                  <Anello quota={(notte.sonno_minuti ?? 0) / 600} centro={durata(notte.sonno_minuti ?? 0)} sotto={notte.sonno_punteggio !== null ? t(`Sonno · punteggio ${notte.sonno_punteggio}`, `Sleep · score ${notte.sonno_punteggio}`) : t('Sonno', 'Sleep')} colore="#fff" />
+                </View>
+                {particolari(notte) ? <Text style={stili.notteTesto}>{particolari(notte)}</Text> : null}
+              </LinearGradient>
+            ) : collegati ? (
+              <Text style={[stili.nota, { color: p.testoSecondario }]}>{t('Ancora niente da mostrare: il sonno arriva quando il tuo dispositivo l’ha condiviso con Apple Salute o Health Connect, di solito entro la mezz’ora, e lo leggiamo quando apri l’app.', 'Nothing to show yet: your sleep comes in once your device has shared it with Apple Health or Health Connect, usually within half an hour, and we read it when you open the app.')}</Text>
+            ) : (
+              <Text style={[stili.nota, { color: p.testoSecondario }]}>{t('Ancora nessuna notte: scrivi la prima qui sopra.', 'No night yet: log your first one above.')}</Text>
+            )}
+          </View>
+
+          <View style={linea}>
+            <Text style={[stili.sottoTitolo, { color: p.testo }]}>{t('Gli ultimi sette giorni', 'The last seven days')}</Text>
+            {giorni.length > 1 || notte ? (
+              <>
+                <Settimana giorni={giorni} oggi={oggi} />
+                <Text style={[stili.piccola, { color: p.testoTerzo }]}>{t('Ore di sonno per notte. Il giorno è quello del risveglio.', 'Hours of sleep per night. The day is the one you woke up.')}</Text>
+              </>
+            ) : (
+              <Text style={[stili.nota, { color: p.testoSecondario }]}>{t('Quando avrai scritto qualche notte compare qui il tuo storico.', 'Once you’ve logged a few nights your history will show up here.')}</Text>
+            )}
+          </View>
+
+          <View style={linea}>
+            {errore ? <Messaggio>{errore}</Messaggio> : null}
+            <Text style={[stili.piccola, { color: p.testoTerzo }]}>
+              {collegati
+                ? t('Valori indicativi del tuo dispositivo: non sono un parere medico.', 'Approximate values from your device: not medical advice.')
+                : t('Il sonno che hai scritto tu. Sono valori indicativi: non sono un parere medico.', 'The sleep you logged yourself. These are approximate values: not medical advice.')}
+            </Text>
+            <View style={stili.azioni}>
+              {sulTelefono ? (
+                <View style={{ flex: 1 }}>
+                  <Pulsante testo={t('Aggiorna', 'Refresh')} icona="aggiorna" variante="secondario" piccolo inCorso={inCorso} onPress={onAggiorna} />
+                </View>
+              ) : null}
+              <View style={{ flex: 1 }}>
+                <Pulsante testo={t('I dispositivi', 'Devices')} icona="orologio" variante="contorno" piccolo onPress={apriDispositivi} />
+              </View>
+            </View>
+          </View>
+        </>
+      ) : null}
+    </Carta>
   )
 }
 
@@ -272,6 +337,8 @@ function Settimana({ giorni, oggi }: { giorni: GiornoDispositivo[]; oggi: string
 
 const stili = StyleSheet.create({
   titoletto: { fontFamily: F.extra, fontSize: 17, letterSpacing: -0.3 },
+  iconaSonno: { width: 46, height: 46, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
+  suggerimento: { flexDirection: 'row', alignItems: 'flex-start', gap: spazio.tre - 2, padding: spazio.tre - 2, borderRadius: 18 },
   sottoTitolo: { fontFamily: F.extra, fontSize: 16 },
   nome: { fontFamily: F.bold, fontSize: 15 },
   nota: { fontFamily: F.medio, fontSize: 14, lineHeight: 20 },

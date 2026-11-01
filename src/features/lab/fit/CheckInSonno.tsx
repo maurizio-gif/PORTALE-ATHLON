@@ -97,7 +97,8 @@ export function SceltaOra({ titolo, valore, onSposta }: { titolo: string; valore
   )
 }
 
-export function CheckInSonno({ disp, giorni }: { disp: Dispositivi; giorni: GiornoDispositivo[] }) {
+/** `dentro`: senza la sua carta, per metterlo dentro un'altra (la carta «Sonno» di Recover, 01/11/2026). */
+export function CheckInSonno({ disp, giorni, dentro = false }: { disp: Dispositivi; giorni: GiornoDispositivo[]; dentro?: boolean }) {
   const p = usePalette()
   const oggi = oggiRoma()
   const sette = Array.from({ length: 7 }, (_, i) => spostaGiorno(oggi, -i))
@@ -143,8 +144,9 @@ export function CheckInSonno({ disp, giorni }: { disp: Dispositivi; giorni: Gior
   const domanda = giorno === oggi ? t('Come hai dormito questa notte?', 'How did you sleep last night?') : t(`Come hai dormito la notte del ${giornoBreve(giorno)}?`, `How did you sleep on the night of ${giornoBreve(giorno)}?`)
   const vedi = !dispositivo && (!scritta || modifica)
 
+  const Cornice = dentro ? View : Carta
   return (
-    <Carta style={{ gap: spazio.tre }}>
+    <Cornice style={{ gap: spazio.tre }}>
       <View style={stili.testa}>
         <View style={[stili.icona, { backgroundColor: RELAX[1] }]}>
           <Icona nome="foglia" size={20} colore="#fff" />
@@ -213,7 +215,7 @@ export function CheckInSonno({ disp, giorni }: { disp: Dispositivi; giorni: Gior
           {fatto}
         </Text>
       ) : null}
-    </Carta>
+    </Cornice>
   )
 }
 
