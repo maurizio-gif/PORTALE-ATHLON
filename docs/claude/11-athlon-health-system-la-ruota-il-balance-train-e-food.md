@@ -100,7 +100,9 @@ l'allenamento, l'alimentazione e il recupero dell'adulto in un posto solo. Nel c
   dopo il punteggio): il benessere come equilibrio di allenamento giusto (Train), buona
   alimentazione (Food) e recupero (Relax: sonno e giorni di riposo, senza una sezione sua), cosa fa il Balance e, in un pannello che si apre, come leggere i
   numeri (`ComeLeggere` in `fit/Balance.tsx`, lo stesso testo in fondo alla schermata di Balance). **L'ordine su Fit** (`schede/Schede.tsx`) è: ruota, punteggio, «Il tuo mese» e «La tua settimana» (quando ci sono),
-  introduzione, «Il tuo corpo», «I tuoi dispositivi», **«Le tue abitudini» (spostata sotto i dispositivi il 01/11/2026, richiesta di Maurizio: prima stava sotto il punteggio)**, Balance. Su schermo largo (da 900 px) l'introduzione sta a sinistra e, a destra, corpo e Balance in colonna.
+  introduzione, «Il tuo corpo», «I tuoi dispositivi», **«Le tue abitudini» (spostata sotto i dispositivi il 01/11/2026, richiesta di Maurizio: prima stava sotto il punteggio)**;
+  **il Balance non è più qui: dal 01/11/2026 (richiesta di Maurizio) sta nell'area Food**, subito dopo «Oggi» (`fit/Food.tsx`).
+  Su schermo largo (da 900 px) l'introduzione sta a sinistra e, a destra, corpo, dispositivi e abitudini in colonna.
 - **Poi «Il tuo corpo»** (`fit/Corpo.tsx`, dettaglio in `/allenamento/misure`). **Su Fit si presenta compresso** (24/10/2026, richiesta di Maurizio, come il Balance):
   il titolo e una riga che dice cosa c'è di là («Qui trovi le tue misure: aggiornale e consulta come cambiano nel tempo»); **le cifre compaiono toccando**
   (la carta si apre e si chiude, la freccia gira) e, aperta, c'è il tasto «Apri il dettaglio». **Senza misure non si apre: è una call to action** (24/10/2026, richiesta
@@ -121,7 +123,7 @@ l'allenamento, l'alimentazione e il recupero dell'adulto in un posto solo. Nel c
   1280 px, italiano e inglese, con la funzione delle presenze simulata con 0, 1 e 3 lezioni): la riga sta subito sotto il titolo e conta le lezioni («ne risultano 3 registrate»,
   «ne risulta 1», nessun conteggio a zero), l'anello non è a zero con le sole lezioni (52 su 100 con tre lezioni in due settimane), senza misure e senza consenso la riga
   sotto il titolo è l'invito e non c'è l'accordion, il pulsante e la testata portano alle misure. **Non provato**: un telefono vero, e dati veri con una sessione vera. Con tre cifre su 390 px «MASSA GRASSA» va su due righe nel Chromium di prova: le cifre non sono state ritoccate.
-- **Balance** (`fit/Balance.tsx`, conto in `fit/bilancio.ts`, schermata `/allenamento/balance`): **su Fit si presenta chiuso** (20/10/2026, richiesta del club:
+- **Balance** (`fit/Balance.tsx`, conto in `fit/bilancio.ts`, schermata `/allenamento/balance`; **dal 01/11/2026 la carta sta nell'area Food, in ogni suo stato**: anche senza consenso, per i minorenni e nella vista cliente, dove mostra solo il consumo; dentro Food non c'è il tasto «Vai a Food»): **nella carta si presenta chiuso** (20/10/2026, richiesta del club:
   titolo, «consumate e mangiate» e due righe che dicono cos'è; **i dati compaiono solo toccando**, e aperto ha il tasto «Apri il dettaglio»; sulla sua
   schermata è sempre aperto): le calorie consumate
   (le stime del contatore: riposo × 1,2 più l'attività contata) accanto a quelle del diario. **Un giorno senza niente nel
