@@ -1916,3 +1916,26 @@ Il pulsante «Vedi come cliente» del CRM apre ora `/?come=<email cliente>#th=<t
 ## «Cambia abbonamento»: nessun modulo, solo la procedura (31/10/2026)
 
 Richiesta di Maurizio. Nella finestra del cambio (`Gestisci.tsx`, `apriCambio`) il pulsante chiede `cambio_stato` a `portale-abbonamento`: se il cambio è possibile apre `/abbonamento?cambio=<contratto>` (data fissa, metodo di pagamento, contratto e firma, poi il vecchio si chiude e il nuovo parte il giorno dopo); **se non lo è mostra il motivo che dà il server** («C'è già un abbonamento in coda…», «Il termine per il cambio è passato…») **e non ricade più sul modulo per la segreteria** (era il ripiego quando la funzione non era aperta). I passi `c1`/`cEsito` del foglio e l'invio con `richiediUpgrade` per il cambio sono stati tolti. **L'upgrade** (fuori dalla finestra) resta com'era, con la richiesta alla segreteria. Lato server e ordine delle scritture: `CLAUDE.md` di APP-ATHLON, stessa data. **Pubblicare prima `portale-abbonamento`.** `tsc` senza nomi non definiti nel file toccato; **non guardato in un browser**, e il cambio vero non è mai stato provato con PerfectGym.
+
+## «Aggiungi un componente» in Famiglia e in Junior, e la delega sui figli a un altro adulto (31/10/2026)
+
+Richiesta di Maurizio. Contratto completo: **`docs/delega-nucleo.md`**. **Il lato server è scritto ma non pubblicato** (APP-ATHLON#512: migrazione `20261031m`, `portale-lab-delega`, `delega-invito`; il suo `CLAUDE.md` lo descrive): finché le funzioni
+non rispondono l'app dice «non è ancora attiva». **Pubblicare prima la migrazione e le funzioni, poi l'app.** Maurizio ha scelto la **strada A** e che **il delegato può fare tutto**.
+
+- **Un solo pulsante, due strade** (`lab/famiglia/AggiungiComponente.tsx`): lo stesso in **Home › Famiglia** (`SezioneFamiglia`, in fondo) e in **Junior** (dove c'era già, e ora è questo). Il foglio «Chi vuoi
+  aggiungere?» offre **«Un figlio»** (`FoglioComponente`, **com'era**: dati per intero, dichiarazione di genitore o tutore, controllo che non sia già al club con il messaggio di blocco e la riga nella Dashboard del
+  CRM) e **«Un altro adulto»** (porta a `/delega`). Mai in vista cliente. Dopo un figlio aggiunto dalla Home si buttano `area` e `junior:gruppi` e si rilegge.
+- **La delega** (`lab/delega/Delega.tsx`, `/delega`, `api/delega.ts`): il titolare crea un link (`crea`), lo manda da WhatsApp, email, SMS o lo copia (`invita/condividi.ts`, lo stesso del referral), vede chi ha
+  accesso e lo toglie («Togli», con conferma; anche il link aperto si annulla). **A differenza del referral il link è per una persona sola e scade** (la funzione dice quanti giorni): dà accesso a dei bambini, e un
+  codice fisso e riusabile sarebbe un rischio. Un link aperto per volta. Chi può dare la delega (titolare maggiorenne con un figlio minorenne), quante ne può avere (`massimo`) e il testo del messaggio **li decide la funzione**.
+- **La pagina pubblica** (`features/delega/AccettaDelega.tsx`, `/delega/<codice>`, senza accesso e senza la cornice dell'app, come `/invito/<codice>`): nome, cognome, email, cellulare (tendina del prefisso), data
+  di nascita, consenso privacy. Maggiorenne (`regole.ts`, puro). **Niente codice fiscale né password.** **Il modulo non abbina nessuno**: finisce con «Controlla la tua email», sempre allo stesso modo (non dice se la
+  persona è già al club), e l'email porta a **`/delega/conferma/<token>`** (`ConfermaDelega.tsx`), che dice chi dà la delega e chiede **un tocco su «Conferma»** (la pagina non conferma da sola: i programmi che
+  controllano i link delle email non devono farlo al posto suo). **Solo la conferma abbina**: se la persona è già al club si usa **la sua scheda così com'è** (niente blocco, niente riscrittura dei dati), se è nuova
+  la crea il server su PerfectGym come Guest. La verifica della casella è ciò che rende sicuro abbinare una scheda esistente. **Prima di accettare non si mostrano i nomi dei figli** (solo chi invita e quanti sono).
+  Il link dell'email vale 24 ore; un link della delega non si consuma finché non c'è la conferma (e il titolare, nella sua schermata, vede «Qualcuno ha già compilato il modulo»).
+- **⚠️ PerfectGym non permette di scrivere le relazioni** fra schede esistenti (nel file `perfectgym_api_v2.2.json` c'è solo la lettura di `MemberRelations`; il solo modo è `parentMemberId` in `AddGuestMember`, alla nascita di
+  un figlio), e **il portale ricava il nucleo da quelle relazioni** (`metodo_nucleo_da_email`: `FamilyChild` e `LegalGuardian`, il coniuge escluso di proposito). Il «spouse al titolare e parent ai bambini» chiesto **non si può
+  fare via API**: **scelta la strada A**: la delega sta nel nostro database (unita al nucleo da `metodo_nucleo_da_email`) e alla segreteria arriva **un compito in Agenda** per scrivere la relazione a mano su PerfectGym.
+- **Provato**: `tsc` pulito; regole pure con `node --experimental-strip-types`; in Chromium (bundle web esportato, funzioni simulate con `page.route`, 390 e 1280 px) il modulo pubblico, la pagina di conferma e la schermata del titolare
+  (vedi il documento). **Non provato**: le funzioni vere (non esistono), PerfectGym, il foglio di scelta dentro Home › Famiglia e Junior (non guardato renderizzato), un telefono, l'app nativa, tema scuro e inglese a schermo.

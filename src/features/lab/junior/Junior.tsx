@@ -52,7 +52,7 @@ import { CambioOrario } from "./CambioOrario";
 import { CorsiPersona } from "./Corsi";
 import { concludiInCorso, iscrizioniInCorso, type InCorso } from "./inCorso";
 import { DirettoreTecnico } from "./DirettoreTecnico";
-import { FoglioComponente } from "./FoglioComponente";
+import { AggiungiComponente } from "../famiglia/AggiungiComponente";
 import { FoglioLivelli } from "./FoglioLivelli";
 import { TestataJunior } from "./Presentazione";
 import { SchedaAttivita } from "./SchedaAttivita";
@@ -63,8 +63,9 @@ import { SchedaAttivita } from "./SchedaAttivita";
 //
 // In cima, **il nucleo** (21/10/2026): chi della famiglia puo' fare le attivita' junior (dai 3 mesi ai nati nell'anno piu'
 // vecchio dei gruppi del Nuoto Agonistico: lo decide il database) e a quali gruppi e' iscritto; toccando una persona si apre
-// il suo anno. Sotto, «Aggiungi un componente» (`FoglioComponente`): un figlio con tutti i dati, che la funzione controlla
-// non sia gia' al club prima di crearlo su PerfectGym. In vista cliente il comando non c'e'.
+// il suo anno. Sotto, «Aggiungi un componente» (`famiglia/AggiungiComponente`, lo stesso della Home): un figlio con tutti i dati
+// (`FoglioComponente`: la funzione controlla che non sia gia' al club prima di crearlo su PerfectGym) oppure un altro adulto a cui dare
+// la delega sui figli (`/delega`). In vista cliente il comando non c'e'.
 //
 // **Sotto le anagrafiche, i corsi della persona scelta** (22/10/2026, `CorsiPersona`): se e' iscritta a un gruppo, l'abbonamento
 // con tutti i suoi dati, i conteggi delle lezioni disdette e recuperate, le prossime lezioni (con «Disdici») e il calendario dei
@@ -86,7 +87,6 @@ export function Junior() {
   const [anno, setAnno] = useState<number | null>(null);
   const [soloLiberi, setSoloLiberi] = useState(false);
   const [giorni, setGiorni] = useState<number[]>([]);
-  const [foglio, setFoglio] = useState(false);
   const [storiaLivelli, setStoriaLivelli] = useState(false);
   const [daIscrivere, setDaIscrivere] = useState<GruppoJunior | null>(null);
   const [aggiunto, setAggiunto] = useState<string | null>(null);
@@ -153,7 +153,6 @@ export function Junior() {
       : annoIniziale(anni, chiesto ?? annoDalNucleo(nucleo, anni)?.toString());
 
   function dopoAggiunta(nome: string, n: NucleoJunior | null) {
-    setFoglio(false);
     setAggiunto(t(`${nome} è nel tuo nucleo familiare.`, `${nome} is now in your family members.`));
     // L'area della Home ha il nucleo di prima: alla prossima apertura si rilegge.
     scorda("area");
@@ -322,17 +321,7 @@ export function Junior() {
             </Text>
           )}
           {aggiunto ? <Messaggio tono="ok">{aggiunto}</Messaggio> : null}
-          {!vista ? (
-            <Pulsante
-              testo={t("Aggiungi un componente", "Add a family member")}
-              icona="aggiungi"
-              variante="secondario"
-              onPress={() => {
-                setAggiunto(null);
-                setFoglio(true);
-              }}
-            />
-          ) : null}
+          <AggiungiComponente onApri={() => setAggiunto(null)} onAggiunto={dopoAggiunta} />
         </Sezione>
       ) : null}
 
@@ -641,13 +630,6 @@ export function Junior() {
         </Carta>
       </Foglio>
 
-      {!vista ? (
-        <FoglioComponente
-          aperto={foglio}
-          onChiudi={() => setFoglio(false)}
-          onAggiunto={dopoAggiunta}
-        />
-      ) : null}
     </Schermata>
   );
 }
