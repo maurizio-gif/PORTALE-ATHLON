@@ -1,0 +1,10 @@
+## L'invito a registrarsi in vista nella pagina d'accesso (02/11/2026)
+
+Richiesta di Maurizio (02/11/2026): sotto il modulo d'accesso scrivere **in modo più evidente** «non sei ancora registrato? Registrati all'app e scopri le opportunità a te riservate»: **bisogna spingere l'utente a registrarsi**. Contesto: oggi si fa quasi tutto sul sito e l'app si scarica per prenotare; **l'obiettivo è far fare all'utente nell'app una serie di cose e portarci molto più traffico**. File: `features/lab/Accesso.tsx`.
+
+- **Prima**: una riga di testo piccolo, «Prima volta qui? …», in fondo al modulo. **Ora**: un **riquadro in vista** (sfondo e bordo arancio, bollino con la stella) con il titolo **«Non sei ancora registrato?»**, «Registrati all'app e scopri *le opportunità a te riservate*», tre vantaggi con la spunta (prenoti lezioni e corsi in un tocco; ti alleni con piani pensati per te; abbonamento e pagamenti sempre con te), un pulsante **«Registrati»** e una riga che dice cosa fare (scrivi l'email qui sopra e tocca Registrati: niente password, un minuto; dopo il codice solo i dati per creare il profilo). Italiano e inglese.
+- **Il percorso non cambia**: email → codice → «Completa il profilo». «Registrati» fa quello che fa «Mandami il codice» (`mandaCodice`): senza email valida dice di scriverla, con l'email manda il codice. Non c'è una pagina di registrazione a parte.
+- **Compare solo se la registrazione è aperta** (`registrazioneAperta()`, interruttore `portale_registrazione`) e solo al passo dell'email.
+- **I vantaggi elencati sono quelli che l'app fa oggi** (prenotazioni, piani e allenamenti, abbonamento e pagamenti). «Le opportunità a te riservate» è la formula chiesta da Maurizio: **se si vogliono promesse più precise** (offerte per chi si registra, eventi, prove), vanno scritte qui e tenute vere.
+- **Da guardare dopo**: quante persone toccano «Registrati» e quante arrivano a «Completa il profilo» (nel registro `portale_lab.registrazione`); non c'è ancora una misura del tocco sul pulsante.
+- **Provato**: `npx tsc --noEmit` senza errori nuovi (46 di base).

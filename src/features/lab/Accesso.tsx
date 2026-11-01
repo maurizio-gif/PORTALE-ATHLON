@@ -15,10 +15,10 @@ import { spazio } from '@/theme'
 import { CampoCodice, CampoTesto, CIFRE, IncollaCodice } from './ui/Campi'
 import { Icona } from './ui/Icona'
 import { Installa } from './ui/Installa'
-import { Carta, Messaggio, Pulsante } from './ui/kit'
+import { Bollino, Carta, Messaggio, Pulsante } from './ui/kit'
 import { SceltaLingua } from './ui/SceltaLingua'
 import { Schermata } from './ui/Schermata'
-import { F, FUOCO, NOTTE, usePalette } from './ui/tema'
+import { F, FUOCO, NOTTE, usePalette, velo } from './ui/tema'
 import { colpetto, Tocco } from './ui/Tocco'
 
 // L'accesso all'area riservata di Athlon Club:
@@ -179,10 +179,35 @@ export function Accesso() {
                 <Text style={{ fontFamily: F.bold, color: p.testo }}>{t('i tuoi abbonamenti e la tua famiglia', 'your memberships and your family')}</Text>.
               </Text>
               {registrazione ? (
-                <Text style={[stili.nota, { color: p.testoSecondario }]}>
-                  <Text style={{ fontFamily: F.bold, color: p.testo }}>{t('Prima volta qui?', 'First time here?')}</Text>{' '}
-                  {t('Scrivi la tua email e vai avanti: ti mandiamo il codice e, dopo, ti chiediamo solo i dati che servono per creare il tuo profilo.', 'Enter your email and continue: we’ll send you the code and then ask only for the details we need to create your profile.')}
-                </Text>
+                // L'invito a registrarsi (02/11/2026, richiesta di Maurizio): oggi si fa quasi tutto sul sito e l'app si scarica solo per prenotare; l'obiettivo e'
+                // portare l'utente a fare le cose nell'app. Quindi non una nota in fondo, ma un riquadro in vista, con i motivi e un pulsante. Il percorso e' lo
+                // stesso di sempre (email, codice, e poi i dati): «Registrati» manda il codice come «Mandami il codice», e senza email dice di scriverla.
+                <View style={[stili.invito, { backgroundColor: velo(p, 'accento', 0.12), borderColor: velo(p, 'accento', 0.45) }]}>
+                  <View style={stili.invitoTesta}>
+                    <Bollino icona="stella" tono="accento" size={40} pieno />
+                    <Text style={[stili.invitoTitolo, { color: p.testo }]}>{t('Non sei ancora registrato?', 'Not registered yet?')}</Text>
+                  </View>
+                  <Text style={[stili.nota, { color: p.testo, fontSize: 14.5 }]}>
+                    {t('Registrati all’app e scopri ', 'Sign up to the app and discover ')}
+                    <Text style={{ fontFamily: F.extra, color: p.accento }}>{t('le opportunità a te riservate', 'the opportunities reserved for you')}</Text>.
+                  </Text>
+                  <View style={{ gap: 6 }}>
+                    {[
+                      t('Prenoti lezioni e corsi in un tocco', 'Book classes and courses in one tap'),
+                      t('Ti alleni con piani pensati per te', 'Train with plans made for you'),
+                      t('Abbonamento e pagamenti sempre con te', 'Your membership and payments, always with you'),
+                    ].map((voce) => (
+                      <View key={voce} style={stili.invitoVoce}>
+                        <Icona nome="spunta" size={16} colore={p.accento} />
+                        <Text style={[stili.nota, { color: p.testoSecondario, flex: 1 }]}>{voce}</Text>
+                      </View>
+                    ))}
+                  </View>
+                  <Pulsante testo={t('Registrati', 'Sign up')} icona="avanti" onPress={mandaCodice} inCorso={attesa} />
+                  <Text style={[stili.nota, { color: p.testoSecondario, fontSize: 12.5 }]}>
+                    {t('Scrivi la tua email qui sopra e tocca Registrati: niente password, ti serve un minuto. Dopo il codice ti chiediamo solo i dati per creare il tuo profilo.', 'Enter your email above and tap Sign up: no password, it takes a minute. After the code we only ask for the details to create your profile.')}
+                  </Text>
+                </View>
               ) : null}
             </>
           ) : (
@@ -240,6 +265,10 @@ const stili = StyleSheet.create({
   modulo: { marginTop: -64, padding: spazio.quattro - 2 },
   passo: { height: 6, borderRadius: 3 },
   nota: { fontSize: 13.5, lineHeight: 20, fontFamily: F.medio },
+  invito: { borderWidth: 1.5, borderRadius: 22, padding: spazio.quattro - 2, gap: spazio.tre, marginTop: spazio.due },
+  invitoTesta: { flexDirection: 'row', alignItems: 'center', gap: spazio.tre },
+  invitoTitolo: { flex: 1, fontSize: 19, lineHeight: 24, fontFamily: F.extra, letterSpacing: -0.4 },
+  invitoVoce: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   garanzie: { flexDirection: 'row', justifyContent: 'center', flexWrap: 'wrap', gap: spazio.tre, marginTop: -spazio.due },
   garanzia: { flexDirection: 'row', alignItems: 'center', gap: 5 },
 })
