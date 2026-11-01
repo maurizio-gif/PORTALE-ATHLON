@@ -162,6 +162,17 @@ function Dati({ disp }: { disp: Dispositivi }) {
         </Carta>
       </Entra>
 
+      <Entra indice={0}>
+        <Carta onPress={() => router.push('/allenamento/rilascio')} style={stili.riga}>
+          <Bollino icona="rullo" tono="blu" size={46} />
+          <View style={{ flex: 1, gap: 2 }}>
+            <Text style={[stili.titoletto, { color: p.testo }]}>Foam roller</Text>
+            <Text style={[stili.nota, { color: p.testoSecondario }]}>{t('5, 10 o 15 minuti di rilascio sul rullo, per sentire i muscoli più sciolti. Scegli tu la zona.', '5, 10 or 15 minutes of foam rolling to help your muscles feel looser. You choose the area.')}</Text>
+          </View>
+          <Icona nome="avanti" size={18} colore={p.testoTerzo} />
+        </Carta>
+      </Entra>
+
       {notte ? (
         <Entra indice={0}>
           <LinearGradient colors={RELAX} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={stili.notte}>
