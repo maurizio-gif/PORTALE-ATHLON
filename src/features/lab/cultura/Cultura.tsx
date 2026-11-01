@@ -12,12 +12,14 @@ import { Carta, Entra, Tag } from '../ui/kit'
 import { Schermata } from '../ui/Schermata'
 import { F, ORTO, usePalette } from '../ui/tema'
 import { Tocco } from '../ui/Tocco'
+import { Bolla, Cerchi, Emoji, Grappolo } from './Emoji'
 import { COLORE_MACRO, TEMI, temaPer, type Blocco, type Tema } from './temi'
 import { Visual } from './Visual'
 
 // Una lettura di «Capire il cibo» (01/11/2026): l'apertura a colori con la frase da portarsi via, poi i blocchi di
 // `temi.ts` (testo, punti, un disegno che spiega, un «mito o realta'» da toccare), le fonti, e la lettura dopo.
-// Cultura, non consigli: il club non ha un nutrizionista, e lo si dice in fondo a ogni lettura.
+// Consigli di base, non un piano: in fondo a ogni lettura un disclaimer semplice lo dice (richiesta di Maurizio, 01/11/2026).
+// Le illustrazioni sono emoji (Emoji.tsx), le stesse della tessera in Food.
 
 const INDIETRO = '/allenamento?area=food' as const
 
@@ -35,12 +37,13 @@ function Lettura({ tema }: { tema: Tema }) {
     <Schermata sopratitolo={`Food · ${t('Cultura', 'Culture')}`} titolo={tema.titolo} sottotitolo={tema.sottotitolo} indietro={INDIETRO} barra={false}>
       <Entra indice={0}>
         <LinearGradient colors={tema.colori} start={{ x: 0, y: 0 }} end={{ x: 0.7, y: 1 }} style={stili.apertura}>
-          <View pointerEvents="none" style={stili.filigrana}>
-            <Icona nome={tema.icona} size={170} colore="rgba(255,255,255,0.16)" />
-          </View>
-          <View style={stili.minuti}>
-            <Icona nome="orologio" size={13} colore="#fff" />
-            <Text style={stili.testoMinuti}>{t(`${tema.minuti} min di lettura`, `${tema.minuti} min read`)}</Text>
+          <Cerchi />
+          <View style={stili.testaApertura}>
+            <View style={stili.minuti}>
+              <Icona nome="orologio" size={13} colore="#fff" />
+              <Text style={stili.testoMinuti}>{t(`${tema.minuti} min di lettura`, `${tema.minuti} min read`)}</Text>
+            </View>
+            <Grappolo emoji={tema.emoji} />
           </View>
           <View style={{ gap: 6 }}>
             <Text style={stili.etichettaApertura}>{t('IN UNA RIGA', 'IN ONE LINE')}</Text>
@@ -56,21 +59,17 @@ function Lettura({ tema }: { tema: Tema }) {
       ))}
 
       <Entra indice={tema.blocchi.length + 1}>
-        <Carta piatta style={{ gap: spazio.due + 2 }}>
-          <View style={stili.testaNota}>
-            <Icona nome="info" size={18} colore={p.testoSecondario} />
-            <Text style={[stili.titoletto, { color: p.testo }]}>{t('Cultura, non un piano', 'Culture, not a plan')}</Text>
+        <View style={{ gap: spazio.due + 2, paddingHorizontal: 4 }}>
+          <View style={stili.disclaimer}>
+            <Icona nome="info" size={16} colore={p.testoSecondario} style={{ marginTop: 2 }} />
+            <Text style={[stili.testoDisclaimer, { color: p.testoSecondario }]}>
+              {t('Questi sono consigli di base e non sostituiscono il piano di un nutrizionista.', 'These are basic tips and do not replace a nutritionist’s plan.')}
+            </Text>
           </View>
-          <Text style={[stili.corpo, { color: p.testoSecondario, fontSize: 14, lineHeight: 21 }]}>
-            {t(
-              'Il club non ha un nutrizionista: queste letture spiegano come funzionano le cose, non sono consigli personali né diete. Per un’alimentazione su misura rivolgiti a un medico o a un dietista.',
-              'The club doesn’t have a nutritionist: these readings explain how things work, they’re not personal advice or diets. For nutrition tailored to you, see a doctor or a dietitian.',
-            )}
-          </Text>
           <Text style={[stili.fonti, { color: p.testoTerzo }]}>
             {t('Fonti', 'Sources')}: {tema.fonti}
           </Text>
-        </Carta>
+        </View>
       </Entra>
 
       <Entra indice={tema.blocchi.length + 2}>
@@ -107,7 +106,7 @@ function BloccoLettura({ blocco, tema, anima }: { blocco: Blocco; tema: Tema; an
           <View style={{ gap: spazio.tre }}>
             {blocco.voci.map((v) => (
               <View key={v.titolo} style={stili.punto}>
-                <View style={[stili.pallino, { backgroundColor: v.macro ? COLORE_MACRO[v.macro] : tema.accento }]} />
+                {v.emoji ? <Bolla emoji={v.emoji} colore={v.macro ? COLORE_MACRO[v.macro] : tema.accento} /> : <View style={[stili.pallino, { backgroundColor: tema.accento }]} />}
                 <Text style={[stili.corpo, { color: p.testoSecondario, flex: 1 }]}>
                   <Text style={{ fontFamily: F.bold, color: p.testo }}>{v.titolo}. </Text>
                   {v.testo}
@@ -137,7 +136,10 @@ function Mito({ mito, realta }: { mito: string; realta: string }) {
   return (
     <Tocco onPress={() => setAperto((a) => !a)} etichetta={t('Mito o realtà? Tocca per scoprirlo', 'Myth or reality? Tap to find out')} stato={{ expanded: aperto }} scala={0.985}>
       <View style={[stili.mito, { backgroundColor: p.carbone }]}>
-        <Tag testo={t('Mito o realtà?', 'Myth or reality?')} colore="#FF8A2B" />
+        <View style={stili.testaMito}>
+          <Tag testo={t('Mito o realtà?', 'Myth or reality?')} colore="#FF8A2B" />
+          <Emoji e={aperto ? '✅' : '🤔'} size={30} />
+        </View>
         <Text style={[stili.testoMito, aperto && { opacity: 0.5, textDecorationLine: 'line-through', fontSize: 16, lineHeight: 22 }]}>«{mito}»</Text>
         {aperto ? (
           <Animated.View entering={FadeIn.duration(280)} style={{ gap: 8 }}>
@@ -156,23 +158,25 @@ function Mito({ mito, realta }: { mito: string; realta: string }) {
 }
 
 const stili = StyleSheet.create({
-  apertura: { borderRadius: 28, padding: spazio.tre + 4, gap: spazio.quattro, overflow: 'hidden', minHeight: 200, justifyContent: 'space-between' },
-  filigrana: { position: 'absolute', right: -22, bottom: -34 },
+  apertura: { borderRadius: 28, padding: spazio.tre + 4, gap: spazio.quattro, overflow: 'hidden', justifyContent: 'space-between' },
+  testaApertura: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between' },
   minuti: { flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'flex-start', backgroundColor: 'rgba(255,255,255,0.22)', borderRadius: 999, paddingHorizontal: 11, paddingVertical: 5 },
   testoMinuti: { color: '#fff', fontFamily: F.bold, fontSize: 12.5 },
   etichettaApertura: { color: 'rgba(255,255,255,0.8)', fontFamily: F.extra, fontSize: 11, letterSpacing: 1.6 },
-  testoApertura: { color: '#fff', fontFamily: F.extra, fontSize: 21, lineHeight: 27, letterSpacing: -0.5, paddingRight: 40 },
+  testoApertura: { color: '#fff', fontFamily: F.extra, fontSize: 21, lineHeight: 27, letterSpacing: -0.5 },
   titoletto: { fontFamily: F.extra, fontSize: 18, letterSpacing: -0.4 },
   corpo: { fontFamily: F.medio, fontSize: 15.5, lineHeight: 24 },
   didascalia: { fontFamily: F.medio, fontSize: 13.5, lineHeight: 20 },
   punto: { flexDirection: 'row', gap: spazio.tre - 2 },
   pallino: { width: 10, height: 10, borderRadius: 5, marginTop: 7 },
+  testaMito: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   mito: { borderRadius: 28, padding: spazio.tre + 4, gap: spazio.tre - 2 },
   testoMito: { color: '#fff', fontFamily: F.extra, fontSize: 20, lineHeight: 26, letterSpacing: -0.4 },
   testoRealta: { color: '#fff', fontFamily: F.semi, fontSize: 16, lineHeight: 24 },
   invito: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   testoInvito: { color: 'rgba(255,255,255,0.7)', fontFamily: F.semi, fontSize: 13 },
-  testaNota: { flexDirection: 'row', alignItems: 'center', gap: spazio.due },
+  disclaimer: { flexDirection: 'row', gap: spazio.due },
+  testoDisclaimer: { flex: 1, fontFamily: F.semi, fontSize: 14, lineHeight: 20 },
   fonti: { fontFamily: F.medio, fontSize: 12, lineHeight: 17 },
   prossima: { flexDirection: 'row', alignItems: 'center', gap: spazio.tre, borderRadius: 24, padding: spazio.tre + 4 },
   etichettaProssima: { color: 'rgba(255,255,255,0.8)', fontFamily: F.extra, fontSize: 11, letterSpacing: 1.6 },

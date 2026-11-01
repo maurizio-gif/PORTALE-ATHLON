@@ -11,6 +11,7 @@ import { Icona } from '../ui/Icona'
 import { Barra, Messaggio } from '../ui/kit'
 import { F, FUOCO, ORTO, usePalette } from '../ui/tema'
 import { Tocco } from '../ui/Tocco'
+import { Bolla, Emoji } from './Emoji'
 import { COLORE_MACRO, type NomeVisual } from './temi'
 
 // Le immagini che spiegano (01/11/2026): al posto dell'elenco puntato di una definizione, un disegno che si
@@ -28,16 +29,16 @@ const unita = (testo: string, colore: string) => <Text style={{ fontFamily: F.bo
 function KcalGrammo({ anima }: Proprieta) {
   const p = usePalette()
   const righe = [
-    { nome: t('Proteine', 'Protein'), k: 4, colore: COLORE_MACRO.proteine },
-    { nome: t('Carboidrati', 'Carbs'), k: 4, colore: COLORE_MACRO.carboidrati },
-    { nome: t('Grassi', 'Fat'), k: 9, colore: COLORE_MACRO.grassi },
+    { nome: t('Proteine', 'Protein'), k: 4, colore: COLORE_MACRO.proteine, emoji: '🥩' },
+    { nome: t('Carboidrati', 'Carbs'), k: 4, colore: COLORE_MACRO.carboidrati, emoji: '🍚' },
+    { nome: t('Grassi', 'Fat'), k: 9, colore: COLORE_MACRO.grassi, emoji: '🥑' },
   ]
   return (
     <View style={{ gap: spazio.tre }}>
       {righe.map((r, i) => (
         <View key={r.nome} style={{ gap: 7 }}>
           <View style={stili.testa}>
-            <View style={[stili.punto, { backgroundColor: r.colore }]} />
+            <Bolla emoji={r.emoji} colore={r.colore} size={34} />
             <Text style={[stili.nome, { color: p.testo }]}>{r.nome}</Text>
             <Text style={[stili.valore, { color: p.testo }]}>
               {r.k} {unita('kcal/g', p.testoSecondario)}
@@ -56,15 +57,15 @@ function KcalGrammo({ anima }: Proprieta) {
 function Larn(_: Proprieta) {
   const p = usePalette()
   const fasce = [
-    { nome: t('Carboidrati', 'Carbs'), r: LARN.carboidrati, colore: COLORE_MACRO.carboidrati },
-    { nome: t('Grassi', 'Fat'), r: LARN.grassi, colore: COLORE_MACRO.grassi },
+    { nome: t('Carboidrati', 'Carbs'), r: LARN.carboidrati, colore: COLORE_MACRO.carboidrati, emoji: '🍚' },
+    { nome: t('Grassi', 'Fat'), r: LARN.grassi, colore: COLORE_MACRO.grassi, emoji: '🥑' },
   ]
   return (
     <View style={{ gap: spazio.tre }}>
       {fasce.map((f) => (
         <View key={f.nome} style={{ gap: 7 }}>
           <View style={stili.testa}>
-            <View style={[stili.punto, { backgroundColor: f.colore }]} />
+            <Bolla emoji={f.emoji} colore={f.colore} size={34} />
             <Text style={[stili.nome, { color: p.testo }]}>{f.nome}</Text>
             <Text style={[stili.valore, { color: p.testo }]}>
               {f.r[0]}–{f.r[1]} {unita(t('% dell’energia', '% of energy'), p.testoSecondario)}
@@ -83,7 +84,7 @@ function Larn(_: Proprieta) {
         ))}
       </View>
       <View style={[stili.riquadro, { backgroundColor: p.incavo }]}>
-        <View style={[stili.punto, { backgroundColor: COLORE_MACRO.proteine, marginTop: 6 }]} />
+        <Bolla emoji="🥩" colore={COLORE_MACRO.proteine} size={34} />
         <Text style={[stili.testoRiquadro, { color: p.testoSecondario }]}>
           <Text style={{ fontFamily: F.bold, color: p.testo }}>{t('Proteine', 'Protein')}: </Text>
           {t('0,9 g per kg di peso al giorno; da 1,2 a 2,0 se ti alleni con regolarità.', '0.9 g per kg of body weight a day; 1.2 to 2.0 if you train regularly.')}
@@ -97,14 +98,14 @@ function Larn(_: Proprieta) {
 // Proteine dagli alimenti: grammi di proteine per 100 g
 
 const FONTI_PROTEINE = [
-  { nome: t('Parmigiano', 'Parmesan'), g: 33, vegetale: false },
-  { nome: t('Tonno al naturale', 'Tuna in water'), g: 25, vegetale: false },
-  { nome: t('Petto di pollo', 'Chicken breast'), g: 23, vegetale: false },
-  { nome: t('Salmone', 'Salmon'), g: 20, vegetale: false },
-  { nome: t('Uova', 'Eggs'), g: 13, vegetale: false },
-  { nome: 'Tofu', g: 12, vegetale: true },
-  { nome: t('Yogurt greco', 'Greek yogurt'), g: 10, vegetale: false },
-  { nome: t('Lenticchie cotte', 'Cooked lentils'), g: 9, vegetale: true },
+  { nome: t('Parmigiano', 'Parmesan'), emoji: '🧀', g: 33, vegetale: false },
+  { nome: t('Tonno', 'Tuna'), emoji: '🥫', g: 25, vegetale: false },
+  { nome: t('Pollo', 'Chicken'), emoji: '🍗', g: 23, vegetale: false },
+  { nome: t('Salmone', 'Salmon'), emoji: '🐟', g: 20, vegetale: false },
+  { nome: t('Uova', 'Eggs'), emoji: '🥚', g: 13, vegetale: false },
+  { nome: 'Tofu', emoji: '🌱', g: 12, vegetale: true },
+  { nome: t('Yogurt', 'Yogurt'), emoji: '🥣', g: 10, vegetale: false },
+  { nome: t('Lenticchie', 'Lentils'), emoji: '🫘', g: 9, vegetale: true },
 ]
 
 function FontiProteine({ anima }: Proprieta) {
@@ -115,6 +116,7 @@ function FontiProteine({ anima }: Proprieta) {
       <View style={{ gap: 9 }}>
         {FONTI_PROTEINE.map((f, i) => (
           <View key={f.nome} style={stili.rigaFonte}>
+            <Emoji e={f.emoji} size={22} style={{ width: 28 }} />
             <Text style={[stili.nomeFonte, { color: p.testo }]} numberOfLines={1}>
               {f.nome}
             </Text>
@@ -167,10 +169,10 @@ const NOMI_STATO: { id: Stato; nome: string }[] = [
   { id: 'deficit', nome: 'Deficit' },
 ]
 
-function Peso({ colori, icona, testo }: { colori: readonly [string, string, string]; icona: 'piatto' | 'fiamma'; testo: string }) {
+function Peso({ colori, emoji, testo }: { colori: readonly [string, string, string]; emoji: string; testo: string }) {
   return (
     <LinearGradient colors={colori} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={stili.peso}>
-      <Icona nome={icona} size={22} colore="#fff" />
+      <Emoji e={emoji} size={28} />
       <Text style={stili.testoPeso}>{testo}</Text>
     </LinearGradient>
   )
@@ -190,10 +192,10 @@ function Altalena({ accento }: Proprieta) {
       <View style={stili.altalena}>
         <Animated.View style={[stili.trave, { backgroundColor: p.testo }, trave]}>
           <View style={[stili.pesoSopra, { left: 6 }]}>
-            <Peso colori={ORTO} icona="piatto" testo={t('Mangi', 'Eat')} />
+            <Peso colori={ORTO} emoji="🍝" testo={t('Mangi', 'Eat')} />
           </View>
           <View style={[stili.pesoSopra, { right: 6 }]}>
-            <Peso colori={FUOCO} icona="fiamma" testo={t('Consumi', 'Burn')} />
+            <Peso colori={FUOCO} emoji="🏃" testo={t('Consumi', 'Burn')} />
           </View>
         </Animated.View>
         <View style={[stili.perno, { borderBottomColor: p.testoTerzo }]} />
@@ -225,9 +227,9 @@ function Altalena({ accento }: Proprieta) {
 function DoveVaEnergia({ accento }: Proprieta) {
   const p = usePalette()
   const parti = [
-    { flex: 6, colore: accento, nome: t('A riposo', 'At rest'), testo: t('Cuore, respiro, temperatura: la parte più grande se ne va solo per tenerti in vita.', 'Heart, breathing, temperature: the biggest part goes just to keeping you alive.') },
-    { flex: 3, colore: FUOCO[1], nome: t('In movimento', 'On the move'), testo: t('Dai passi di tutti i giorni all’allenamento.', 'From everyday steps to your workout.') },
-    { flex: 1, colore: '#F2B84B', nome: t('Digestione', 'Digestion'), testo: t('Circa un decimo dell’energia che mangi serve a digerirla.', 'About a tenth of the energy you eat goes into digesting it.') },
+    { flex: 6, emoji: '🫀', colore: accento, nome: t('A riposo', 'At rest'), testo: t('Cuore, respiro, temperatura: la parte più grande se ne va solo per tenerti in vita.', 'Heart, breathing, temperature: the biggest part goes just to keeping you alive.') },
+    { flex: 3, emoji: '🏃', colore: FUOCO[1], nome: t('In movimento', 'On the move'), testo: t('Dai passi di tutti i giorni all’allenamento.', 'From everyday steps to your workout.') },
+    { flex: 1, emoji: '🍽️', colore: '#F2B84B', nome: t('Digestione', 'Digestion'), testo: t('Circa un decimo dell’energia che mangi serve a digerirla.', 'About a tenth of the energy you eat goes into digesting it.') },
   ]
   return (
     <View style={{ gap: spazio.tre }}>
@@ -239,7 +241,7 @@ function DoveVaEnergia({ accento }: Proprieta) {
       <View style={{ gap: spazio.due + 2 }}>
         {parti.map((x) => (
           <View key={x.nome} style={stili.voceEnergia}>
-            <View style={[stili.punto, { backgroundColor: x.colore, marginTop: 6 }]} />
+            <Bolla emoji={x.emoji} colore={x.colore} size={34} />
             <Text style={[stili.testoSpiega, { color: p.testoSecondario, flex: 1 }]}>
               <Text style={{ fontFamily: F.bold, color: p.testo }}>{x.nome}. </Text>
               {x.testo}
@@ -254,13 +256,13 @@ function DoveVaEnergia({ accento }: Proprieta) {
 // ---------------------------------------------------------------------------
 // Prima e dopo l'allenamento: la linea del tempo
 
-type Passo = { quando: string; testo: string; allenamento?: boolean }
+type Passo = { quando: string; testo: string; emoji?: string; allenamento?: boolean }
 
 const PASSI: Passo[] = [
-  { quando: t('1–2 ore prima', '1–2 hours before'), testo: t('Un pasto normale con carboidrati e proteine: per esempio riso e pollo, o pane e uova.', 'A regular meal with carbs and protein: for example rice and chicken, or bread and eggs.') },
-  { quando: t('30–60 minuti prima', '30–60 minutes before'), testo: t('Qualcosa di leggero che si digerisce in fretta: una banana, fiocchi d’avena, una fetta di pane tostato.', 'Something light that digests quickly: a banana, oats, a slice of toast.') },
+  { emoji: '🍚', quando: t('1–2 ore prima', '1–2 hours before'), testo: t('Un pasto normale con carboidrati e proteine: per esempio riso e pollo, o pane e uova.', 'A regular meal with carbs and protein: for example rice and chicken, or bread and eggs.') },
+  { emoji: '🍌', quando: t('30–60 minuti prima', '30–60 minutes before'), testo: t('Qualcosa di leggero che si digerisce in fretta: una banana, fiocchi d’avena, una fetta di pane tostato.', 'Something light that digests quickly: a banana, oats, a slice of toast.') },
   { quando: '', testo: '', allenamento: true },
-  { quando: t('Entro 1–2 ore dopo', 'Within 1–2 hours after'), testo: t('Proteine e carboidrati insieme: riso e pollo, ricotta e frutta, oppure uno shake con una banana se un pasto non c’è.', 'Protein and carbs together: rice and chicken, ricotta and fruit, or a shake with a banana if a meal isn’t possible.') },
+  { emoji: '🥛', quando: t('Entro 1–2 ore dopo', 'Within 1–2 hours after'), testo: t('Proteine e carboidrati insieme: riso e pollo, ricotta e frutta, oppure uno shake con una banana se un pasto non c’è.', 'Protein and carbs together: rice and chicken, ricotta and fruit, or a shake with a banana if a meal isn’t possible.') },
 ]
 
 function Timeline({ accento }: Proprieta) {
@@ -275,17 +277,18 @@ function Timeline({ accento }: Proprieta) {
               <View style={x.allenamento ? [stili.nodoGrande, { backgroundColor: FUOCO[1] }] : [stili.nodo, { borderColor: accento, backgroundColor: p.carta }]} />
               {ultimo ? null : <View style={[stili.filo, { backgroundColor: accento }]} />}
             </View>
-            <View style={{ flex: 1, paddingBottom: ultimo ? 0 : spazio.tre + 2, gap: 3 }}>
+            <View style={{ flex: 1, paddingBottom: ultimo ? 0 : spazio.tre + 2, gap: 3, flexDirection: x.emoji ? 'row' : 'column', alignItems: x.emoji ? 'flex-start' : undefined }}>
+              {x.emoji ? <Bolla emoji={x.emoji} colore={accento} size={40} /> : null}
               {x.allenamento ? (
                 <LinearGradient colors={FUOCO} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={stili.pilloleAllenamento}>
                   <Icona nome="peso" size={16} colore="#fff" />
                   <Text style={stili.testoAllenamento}>{t('Allenamento', 'Training')}</Text>
                 </LinearGradient>
               ) : (
-                <>
+                <View style={{ flex: 1, gap: 3 }}>
                   <Text style={[stili.titoloSpiega, { color: p.testo }]}>{x.quando}</Text>
                   <Text style={[stili.testoSpiega, { color: p.testoSecondario }]}>{x.testo}</Text>
-                </>
+                </View>
               )}
             </View>
           </View>
@@ -348,10 +351,10 @@ function Urine(_: Proprieta) {
 // Qualità degli alimenti: i quattro gruppi NOVA
 
 const GRUPPI_NOVA = [
-  { n: 1, colore: '#18A957', titolo: t('Freschi o appena lavorati', 'Fresh or minimally processed'), testo: t('Frutta, verdura, uova, latte, legumi secchi, riso, carne e pesce.', 'Fruit, vegetables, eggs, milk, dried legumes, rice, meat and fish.') },
-  { n: 2, colore: '#9BB726', titolo: t('Ingredienti da cucina', 'Culinary ingredients'), testo: t('Olio, burro, sale, zucchero, farina: servono per cucinare, non sono un pasto.', 'Oil, butter, salt, sugar, flour: they’re for cooking, not a meal.') },
-  { n: 3, colore: '#F2A93B', titolo: t('Trasformati', 'Processed'), testo: t('Pane, formaggi, legumi e tonno in scatola, conserve: pochi ingredienti e un processo semplice.', 'Bread, cheese, canned legumes and tuna, preserves: few ingredients and a simple process.') },
-  { n: 4, colore: '#E5484D', titolo: t('Ultra-trasformati', 'Ultra-processed'), testo: t('Snack e merendine confezionati, bibite zuccherate, piatti pronti industriali: molti ingredienti e additivi che in cucina non hai.', 'Packaged snacks and pastries, sugary drinks, industrial ready meals: many ingredients and additives you wouldn’t have in your kitchen.') },
+  { n: 1, colore: '#18A957', titolo: t('Freschi o appena lavorati', 'Fresh or minimally processed'), testo: t('Frutta, verdura, uova, latte, legumi secchi, riso, carne e pesce.', 'Fruit, vegetables, eggs, milk, dried legumes, rice, meat and fish.'), emoji: '🍎 🥦 🥚 🐟' },
+  { n: 2, colore: '#9BB726', titolo: t('Ingredienti da cucina', 'Culinary ingredients'), testo: t('Olio, burro, sale, zucchero, farina: servono per cucinare, non sono un pasto.', 'Oil, butter, salt, sugar, flour: they’re for cooking, not a meal.'), emoji: '🧈 🧂 🌾' },
+  { n: 3, colore: '#F2A93B', titolo: t('Trasformati', 'Processed'), testo: t('Pane, formaggi, legumi e tonno in scatola, conserve: pochi ingredienti e un processo semplice.', 'Bread, cheese, canned legumes and tuna, preserves: few ingredients and a simple process.'), emoji: '🍞 🧀 🥫' },
+  { n: 4, colore: '#E5484D', titolo: t('Ultra-trasformati', 'Ultra-processed'), testo: t('Snack e merendine confezionati, bibite zuccherate, piatti pronti industriali: molti ingredienti e additivi che in cucina non hai.', 'Packaged snacks and pastries, sugary drinks, industrial ready meals: many ingredients and additives you wouldn’t have in your kitchen.'), emoji: '🍟 🥤 🍪' },
 ]
 
 function Nova(_: Proprieta) {
@@ -373,6 +376,7 @@ function Nova(_: Proprieta) {
           <View style={{ flex: 1, gap: 2 }}>
             <Text style={[stili.titoloSpiega, { color: p.testo }]}>{g.titolo}</Text>
             <Text style={[stili.testoSpiega, { color: p.testoSecondario }]}>{g.testo}</Text>
+            <Emoji e={g.emoji} size={24} style={{ textAlign: 'left', letterSpacing: 8, marginTop: 4 }} />
           </View>
         </View>
       ))}
@@ -415,7 +419,7 @@ const stili = StyleSheet.create({
   riquadro: { flexDirection: 'row', gap: spazio.due + 2, padding: spazio.tre - 2, borderRadius: 16 },
   testoRiquadro: { flex: 1, fontFamily: F.medio, fontSize: 14, lineHeight: 20 },
   rigaFonte: { flexDirection: 'row', alignItems: 'center', gap: spazio.due + 2 },
-  nomeFonte: { width: 112, fontFamily: F.semi, fontSize: 13.5 },
+  nomeFonte: { width: 84, fontFamily: F.semi, fontSize: 13.5 },
   valoreFonte: { width: 40, textAlign: 'right', fontFamily: F.extra, fontSize: 14, fontVariant: ['tabular-nums'] },
   legenda: { flexDirection: 'row', gap: spazio.tre },
   voceLegenda: { flexDirection: 'row', alignItems: 'center', gap: 6 },
@@ -423,7 +427,7 @@ const stili = StyleSheet.create({
   altalena: { height: 176, alignItems: 'center', justifyContent: 'flex-end' },
   trave: { width: '100%', maxWidth: 300, height: 12, borderRadius: 6, marginBottom: 40 },
   pesoSopra: { position: 'absolute', bottom: 12 },
-  peso: { width: 70, height: 70, borderRadius: 20, alignItems: 'center', justifyContent: 'center', gap: 3 },
+  peso: { width: 74, height: 74, borderRadius: 22, alignItems: 'center', justifyContent: 'center', gap: 3 },
   testoPeso: { color: '#fff', fontFamily: F.extra, fontSize: 11.5 },
   perno: { position: 'absolute', bottom: 0, width: 0, height: 0, borderLeftWidth: 28, borderRightWidth: 28, borderBottomWidth: 44, borderLeftColor: 'transparent', borderRightColor: 'transparent' },
   base: { position: 'absolute', bottom: 0, width: 104, height: 8, borderRadius: 4 },
@@ -439,7 +443,7 @@ const stili = StyleSheet.create({
   nodo: { width: 16, height: 16, borderRadius: 8, borderWidth: 3, marginTop: 3 },
   nodoGrande: { width: 22, height: 22, borderRadius: 11, marginTop: 6 },
   filo: { flex: 1, width: 3, borderRadius: 2, opacity: 0.35, marginTop: 4 },
-  pilloleAllenamento: { flexDirection: 'row', alignItems: 'center', gap: 7, alignSelf: 'flex-start', borderRadius: 999, paddingHorizontal: 14, minHeight: 34 },
+  pilloleAllenamento: { flexDirection: 'row', alignItems: 'center', gap: 7, alignSelf: 'flex-start', marginVertical: 4, borderRadius: 999, paddingHorizontal: 14, minHeight: 34 },
   testoAllenamento: { color: '#fff', fontFamily: F.extra, fontSize: 14 },
   campioni: { flexDirection: 'row', gap: 6 },
   campione: { height: 58, borderRadius: 14, borderWidth: 3, alignItems: 'center', justifyContent: 'center' },
