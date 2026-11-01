@@ -247,6 +247,16 @@ export function CartaPunteggioVista({ p, livelli, apri = true, lezioni, classifi
 // ---------------------------------------------------------------------------
 // La schermata del dettaglio
 
+/**
+ * Cosa c'e' dietro ogni pilastro (01/11/2026, richiesta di Maurizio): e' la sostanza della vecchia carta introduttiva di Fit («Il benessere e' un equilibrio»),
+ * che ripeteva il punteggio e ora non c'e' piu'. **Non nomina il Balance**, che sta nell'area Food.
+ */
+const DI_COSA_SI_TRATTA: Record<IdPilastro, () => string> = {
+  train: () => t('Allenarsi il giusto, non troppo: i tuoi piani di allenamento, il registro dei pesi, il test dei massimali e le calorie che consumi.', 'Training the right amount, not too much: your workout plans, the weights log, the max test and the calories you burn.'),
+  food: () => t('Mangiare bene: il diario dei pasti, la foto del piatto e i consigli. Si apre dopo aver accettato la sua informativa, e i dati li vedi solo tu.', 'Eating well: the meal diary, the photo of your plate and the tips. It opens after you accept its privacy notice, and only you see the data.'),
+  relax: () => t('Recuperare: il sonno, i giorni di riposo, la mobilità e il foam roller fanno parte dell’allenamento, perché è lì che il corpo si rimette in forze.', 'Recovering: sleep, rest days, mobility and foam rolling are part of training, because that’s where your body gets its strength back.'),
+}
+
 function CartaPilastro({ x, onAzione }: { x: Pilastro; onAzione: (x: Pilastro) => void }) {
   const pal = usePalette()
   if (x.stato === 'nonDisponibile' || x.stato === 'escluso') return null
@@ -269,6 +279,7 @@ function CartaPilastro({ x, onAzione }: { x: Pilastro; onAzione: (x: Pilastro) =
         </Text>
       </View>
       <Barra valore={attivo ? x.punti / x.max : 0} colore={COLORI[x.id]} animata />
+      <Text style={[stili.nota, { color: pal.testoSecondario }]}>{DI_COSA_SI_TRATTA[x.id]()}</Text>
       {x.frase ? <Text style={[stili.nota, { color: pal.testoSecondario }]}>{x.frase}</Text> : null}
       {!attivo ? (
         <>
@@ -360,6 +371,7 @@ function RegoleSpiegate() {
 }
 
 export function SchermataPunteggio() {
+  const pal = usePalette()
   const fit = useFit()
   const disp = useDispositivi()
   const p = usePunteggio(fit, disp)
@@ -386,6 +398,7 @@ export function SchermataPunteggio() {
 
           <Entra indice={1}>
             <Sezione titolo={t('I tre pilastri', 'The three pillars')}>
+              <Text style={[stili.nota, { color: pal.testoSecondario, marginTop: -6 }]}>{t('Il benessere è un equilibrio: viene da tre cose insieme, e nessuna basta da sola.', 'Wellbeing is a balance: it comes from three things together, and none is enough on its own.')}</Text>
               <View style={{ gap: spazio.tre }}>
                 {[p.train, p.food, p.relax].map((x) => (
                   <CartaPilastro key={x.id} x={x} onAzione={attiva} />

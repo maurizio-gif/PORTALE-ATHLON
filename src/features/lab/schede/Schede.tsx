@@ -19,7 +19,6 @@ import { CartaSettimana } from '../fit/Settimana'
 import { CartaPunteggio } from '../fit/Punteggio'
 import { AreaFood } from '../fit/Food'
 import { AreaRelax } from '../fit/Relax'
-import { IntroFit } from '../fit/Intro'
 import { CartaDatiDaCompilare } from '../fit/DatiDaCompilare'
 import { InvitoSaluteAllApertura } from '../fit/InvitoSalute'
 import { useDatiCorpo } from '../fit/useDatiCorpo'
@@ -38,9 +37,8 @@ import { eDiVasca, ETICHETTA_VASCA } from './nuoto'
 
 // Athlon Health System (19/10/2026, era Workout, poi Fit): sotto il titolo la
 // ruota Train, Food, Relax (fit/Ruota.tsx), l'Athlon Health Score (fit/Punteggio.tsx: il punteggio da 0 a 100 sui tre
-// pilastri, 20/10/2026); poi, dal 24/10/2026, **l'introduzione come seconda carta** (cosa si fa e cosa vogliono dire i numeri),
-// il tuo corpo (fit/Corpo.tsx, **compresso**: titolo e una riga, le cifre toccando) e il Balance; sotto, le aree da scegliere
-// (tre per i maggiorenni, due per gli altri).
+// pilastri, 20/10/2026); poi il tuo corpo (fit/Corpo.tsx, **compresso**: titolo e una riga, le cifre toccando), i dispositivi e le abitudini
+// (l'introduzione e il Balance non ci sono piu' qui, 01/11/2026); sotto, le aree da scegliere (tre per i maggiorenni, due per gli altri).
 //   - Train: il test dei massimali, il contatore delle calorie, i Consigli Athlon (i tipi di lezione che
 //     fanno per te, con le alternative, e se vuoi sala e nuoto: non e' una settimana ne' un piano, vedi
 //     `consigli/`; il Percorso a tappe, `percorso/`, e' in standby: `percorso/standby.ts`),
@@ -54,8 +52,8 @@ import { eDiVasca, ETICHETTA_VASCA } from './nuoto'
 //     maggiorenni** (20/10/2026): il sonno a mano non ha bisogno di un dispositivo; i dispositivi sono un modo in piu'.
 // **I dati del corpo da compilare** (29/10/2026, richiesta di Maurizio): altezza, peso e sesso. **Non bloccano la sezione** (prima la chiudevano:
 // si e' scelto il blocco morbido, perche' tutto l'uso della sezione non puo' dipendere dal consenso a dati sulla salute e il resto non li usa).
-// Finche' mancano, subito sotto il titolo c'e' la carta «Da compilare» (`fit/DatiDaCompilare.tsx`), e calorie e Balance restano chiusi (lo dicono
-// loro). `useDatiCorpo` rilegge a ogni ritorno sulla schermata: inseriti i dati, la carta sparisce e il contenuto si rifa' coi dati freschi.
+// Finche' mancano, subito sotto il titolo c'e' la carta «Da compilare» (`fit/DatiDaCompilare.tsx`), e le calorie restano chiuse (lo dice
+// la carta). `useDatiCorpo` rilegge a ogni ritorno sulla schermata: inseriti i dati, la carta sparisce e il contenuto si rifa' coi dati freschi.
 // **L'invito a collegare l'app Salute** compare all'apertura, una volta sola per dispositivo (`fit/InvitoSalute.tsx`); se la persona lo salta,
 // resta in evidenza la carta «Da attivare» (`fit/CartaDispositivi.tsx`).
 // L'area scelta sta nell'indirizzo (`?area=food`, `?area=relax`), cosi' tornando indietro dal
@@ -376,14 +374,11 @@ function ContenutoHub({ largo, corpoInCima }: { largo: boolean; /** La carta «D
       {/* «Il tuo mese in Athlon» (30/10/2026): compare solo quando c'e' un mese da mostrare, e subito sotto il punteggio. */}
       <CartaSettimana />
       <CartaMese />
-      {/* Dopo il punteggio, nell'ordine: cos'e' l'Athlon Health System (24/10/2026, richiesta di Maurizio: la descrizione e' la seconda
-          carta), «Il tuo corpo» compresso e i dispositivi. Il Balance non e' piu' qui: sta nell'area Food (01/11/2026, richiesta di
-          Maurizio). Su schermo largo la descrizione sta a sinistra e, a destra, corpo e dispositivi in colonna. */}
+      {/* Dopo il punteggio, nell'ordine: «Il tuo corpo» compresso, i dispositivi e le abitudini. **La carta introduttiva («Il benessere e' un equilibrio»)
+          non c'e' piu'** (01/11/2026, richiesta di Maurizio: ripeteva quello che dice l'Athlon Health Score): la sua sostanza sta nei tre pilastri della
+          schermata del punteggio (`fit/Punteggio.tsx`). Il Balance sta nell'area Food. Su schermo largo: a sinistra corpo e dispositivi, a destra le abitudini. */}
       {largo ? (
         <View style={stili.fila3}>
-          <Entra indice={0} style={{ flex: 1 }}>
-            <IntroFit relax={conRelax} />
-          </Entra>
           <View style={{ flex: 1, gap: spazio.tre }}>
             {corpoInCima ? null : (
               <Entra indice={1}>
@@ -393,14 +388,11 @@ function ContenutoHub({ largo, corpoInCima }: { largo: boolean; /** La carta «D
             <Entra indice={1}>
               <CartaDispositivi disp={disp} />
             </Entra>
-            {abitudini}
           </View>
+          <View style={{ flex: 1 }}>{abitudini}</View>
         </View>
       ) : (
         <View style={{ gap: spazio.quattro + 4 }}>
-          <Entra indice={0}>
-            <IntroFit relax={conRelax} />
-          </Entra>
           {corpoInCima ? null : (
             <Entra indice={1}>
               <CartaCorpo misure={misure} senzaConsenso={senzaConsenso} />

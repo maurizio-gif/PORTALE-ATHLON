@@ -18,8 +18,8 @@ import { useFit } from './useFit'
 // «Il tuo allenamento» (20/10/2026): l'analisi del Train in profondita', sotto l'Athlon Health Score. Le quattro settimane
 // del punteggio viste da vicino: giorni e sessioni, sala o lezioni (e quali), che giorno e a che ora, la sala (serie e
 // chili), il riposo e, se ci sono peso, altezza, eta' e sesso, le calorie. Il calcolo sta in analisiTraining.ts (puro).
-// **Descrive, non giudica**: nessuna frase dice cosa fare. Il Balance resta com'e' (le calorie consumate accanto a quelle
-// mangiate); qui le calorie sono solo quelle dell'allenamento, e rimandano al contatore e al Balance.
+// **Descrive, non giudica**: nessuna frase dice cosa fare. Qui le calorie sono solo quelle dell'allenamento, e rimandano al contatore
+// (il Balance sta nell'area Food e da qui non si nomina piu', 01/11/2026).
 
 const intero = (x: number) => Math.round(x).toLocaleString(locale())
 const dataCorta = new Intl.DateTimeFormat(locale(), { day: 'numeric', month: 'short', timeZone: 'UTC' })
@@ -267,9 +267,6 @@ function Calorie({ a, fit }: { a: AnalisiTraining; fit: ReturnType<typeof useFit
       <View style={stili.azioni}>
         <View style={{ flex: 1 }}>
           <Pulsante testo={t('Il contatore', 'Calorie counter')} icona="fiamma" variante="contorno" piccolo onPress={() => router.push('/allenamento/calorie')} />
-        </View>
-        <View style={{ flex: 1 }}>
-          <Pulsante testo={t('Il Balance', 'Balance')} icona="grafico" variante="contorno" piccolo onPress={() => router.push('/allenamento/balance')} />
         </View>
       </View>
     </Carta>

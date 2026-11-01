@@ -14,8 +14,8 @@ import { type DatoMancante } from './calcoloDatiCorpo'
 // I dati del corpo da compilare (29/10/2026, richiesta di Maurizio): altezza, peso e sesso (`calcoloDatiCorpo.ts`). **Non bloccano
 // la sezione**: prima la chiudevano finche' mancavano, poi si e' scelto il blocco morbido (un consenso a dati sulla salute da cui
 // dipende tutto l'uso della sezione non e' libero, e peso, altezza e sesso servono solo alle calorie). Finche' mancano, questa carta sta
-// **subito sotto il video**, in evidenza (bordo arancio, anello che pulsa, le tre voci con «Da inserire»), e **calorie e Balance restano
-// chiusi** (lo dicono loro, con il pulsante per inserirli): e' la sola cosa che dipende da questi dati. Il resto si usa come sempre.
+// **subito sotto il video**, in evidenza (bordo arancio, anello che pulsa, le tre voci con «Da inserire»), e **le calorie restano
+// chiuse** (lo dicono loro, con il pulsante per inserirli): e' la sola cosa che dipende da questi dati. Il resto si usa come sempre.
 // Inseriti i dati, tornando sulla schermata la carta sparisce da sola (`useDatiCorpo`, che rilegge a ogni ritorno).
 
 const apriDati = () => router.push('/allenamento/misure')
@@ -44,8 +44,8 @@ export function CartaDatiDaCompilare({ mancano, senzaConsenso }: { mancano: Dato
       </View>
       <Text style={[stili.testo, { color: p.testo }]}>
         {t(
-          'Servono altezza, peso e sesso per stimare le calorie che consumi in lezioni e allenamenti. Finché mancano, calorie e Balance restano chiusi: il resto lo usi come sempre. Ci vuole un minuto, restano tuoi e li aggiorni quando vuoi.',
-          'We need your height, weight and sex to estimate the calories you burn in classes and workouts. Until they’re in, calories and Balance stay closed: you use everything else as usual. It takes a minute, they stay yours and you can update them any time.',
+          'Servono altezza, peso e sesso per stimare le calorie che consumi in lezioni e allenamenti. Finché mancano, le calorie restano chiuse: il resto lo usi come sempre. Ci vuole un minuto, restano tuoi e li aggiorni quando vuoi.',
+          'We need your height, weight and sex to estimate the calories you burn in classes and workouts. Until they’re in, calories stay closed: you use everything else as usual. It takes a minute, they stay yours and you can update them any time.',
         )}
       </Text>
       <View style={[stili.elenco, { backgroundColor: p.incavo }]}>
@@ -63,8 +63,8 @@ export function CartaDatiDaCompilare({ mancano, senzaConsenso }: { mancano: Dato
       {senzaConsenso ? (
         <Text style={[stili.piccola, { color: p.testoSecondario }]}>
           {t(
-            'Peso, altezza e sesso sono dati sulla salute: prima ti mostriamo l’informativa, e se vuoi dai il consenso. Se non lo dai, calorie e Balance restano chiusi e tutto il resto funziona.',
-            'Weight, height and sex are health data: first we show you the privacy notice, and if you want you give your consent. If you don’t, calories and Balance stay closed and everything else works.',
+            'Peso, altezza e sesso sono dati sulla salute: prima ti mostriamo l’informativa, e se vuoi dai il consenso. Se non lo dai, le calorie restano chiuse e tutto il resto funziona.',
+            'Weight, height and sex are health data: first we show you the privacy notice, and if you want you give your consent. If you don’t, calories stay closed and everything else works.',
           )}
         </Text>
       ) : null}
