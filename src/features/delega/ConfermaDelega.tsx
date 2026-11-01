@@ -50,8 +50,8 @@ export function ConfermaDelega({ token }: { token: string }) {
       >
         <Testo>
           {t(
-            'Entra nell’app con questa stessa email: ti mandiamo il codice per accedere. Trovi i bambini nella sezione Famiglia della Home e puoi prenotare, disdire e pagare per loro.',
-            'Sign in to the app with this same email: we’ll send you the code to get in. You’ll find the children in the Family section of the Home screen and you can book, cancel and pay for them.',
+            'Entra nell’app con questa stessa email: nell’email di conferma trovi il codice di accesso (tocca «Ho già un codice» e scrivilo); se è scaduto, ne chiedi uno nuovo dalla stessa pagina. Trovi i bambini nella sezione Famiglia della Home e puoi prenotare, disdire e pagare per loro.',
+            'Sign in to the app with this same email: you’ll find the access code in the confirmation email (tap “I already have a code” and enter it); if it has expired, you can request a new one on the same page. You’ll find the children in the Family section of the Home screen and you can book, cancel and pay for them.',
           )}
         </Testo>
         <Testo variante="attenuato">{t('Se i bambini non compaiono subito, riprova fra qualche minuto: il club aggiorna i dati ogni poco.', 'If the children don’t show up right away, try again in a few minutes: the club updates its data regularly.')}</Testo>

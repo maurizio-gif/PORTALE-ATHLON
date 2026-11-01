@@ -96,6 +96,15 @@ export function Accesso() {
     setFase('codice')
   }
 
+  // «Ho già un codice»: chi ha già il codice (per esempio quello dell'email di conferma della delega) lo scrive senza chiederne un altro,
+  // che sostituirebbe quello che ha in mano.
+  function haGiaUnCodice() {
+    setErrore(null)
+    if (!emailValida(email)) return setErrore(t('Scrivi prima l’indirizzo email a cui è arrivato il codice.', 'First enter the email address the code was sent to.'))
+    setCodice('')
+    setFase('codice')
+  }
+
   async function verifica(scritto = codice) {
     if (attesa) return
     setErrore(null)
@@ -152,6 +161,7 @@ export function Accesso() {
               />
               {errore ? <Messaggio>{errore}</Messaggio> : null}
               <Pulsante testo={t('Mandami il codice', 'Send me the code')} icona="avanti" onPress={mandaCodice} inCorso={attesa} />
+              <Pulsante testo={t('Ho già un codice', 'I already have a code')} variante="fantasma" piccolo onPress={haGiaUnCodice} disabilitato={attesa} />
               <Text style={[stili.nota, { color: p.testoSecondario }]}>
                 {t('Usa l’email con cui sei iscritto al club: è da lì che troviamo', 'Use the email you registered with at the club: that’s how we find')}{' '}
                 <Text style={{ fontFamily: F.bold, color: p.testo }}>{t('i tuoi abbonamenti e la tua famiglia', 'your memberships and your family')}</Text>.
