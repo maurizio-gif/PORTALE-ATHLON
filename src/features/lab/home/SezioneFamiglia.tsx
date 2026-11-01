@@ -2,6 +2,7 @@ import { router, useFocusEffect } from 'expo-router'
 import { useCallback, useState } from 'react'
 import { Text, View } from 'react-native'
 
+import { AMBITI, statoConsensiMinori } from '@/api/consensiMinori'
 import { statoDelega, type DelegaAttiva } from '@/api/delega'
 import type { Area } from '@/api/lab'
 import { dataBreve } from '@/lib/metodoPagamento'
@@ -35,6 +36,8 @@ export function SezioneFamiglia({ area, onAggiorna }: { area: AreaTrovata; onAgg
   const p = usePalette()
   const [aggiunto, setAggiunto] = useState<string | null>(null)
   const [deleghe, setDeleghe] = useState<DelegaAttiva[]>([])
+  // Figli da 13 a 17 anni per cui il genitore puo' dare i consensi, e quanti ne ha dati (di quanti possibili).
+  const [consensi, setConsensi] = useState<{ figli: number; dati: number } | null>(null)
 
   useFocusEffect(
     useCallback(() => {
@@ -42,6 +45,10 @@ export function SezioneFamiglia({ area, onAggiorna }: { area: AreaTrovata; onAgg
       let vivo = true
       statoDelega().then((r) => {
         if (vivo) setDeleghe(r.ok && r.idoneo ? r.attive : [])
+      })
+      statoConsensiMinori().then((r) => {
+        if (!vivo) return
+        setConsensi(r.ok && r.figli.length ? { figli: r.figli.length, dati: r.figli.reduce((n, f) => n + AMBITI.filter((a) => f.consensi[a].attivo).length, 0) } : null)
       })
       return () => {
         vivo = false
@@ -94,6 +101,25 @@ export function SezioneFamiglia({ area, onAggiorna }: { area: AreaTrovata; onAgg
               />
             )
           })}
+        </Carta>
+      ) : null}
+      {consensi ? (
+        <Carta piatta style={{ paddingVertical: 0 }}>
+          <Riga
+            prima
+            icona="famiglia"
+            tono="accento"
+            titolo={t('Consensi per i tuoi figli', 'Consents for your children')}
+            sotto={
+              <Text style={{ color: p.testoSecondario, fontFamily: F.medio, fontSize: 13.5 }}>
+                {t(
+                  `Dati sulla salute: ${consensi.dati} consensi dati su ${consensi.figli * AMBITI.length}`,
+                  `Health data: ${consensi.dati} of ${consensi.figli * AMBITI.length} consents given`,
+                )}
+              </Text>
+            }
+            onPress={() => router.navigate('/consensi-minori')}
+          />
         </Carta>
       ) : null}
       {area.persone.length === 1 ? (

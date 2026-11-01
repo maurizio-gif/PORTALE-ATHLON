@@ -89,6 +89,7 @@ export default function LayoutLaboratorio() {
         <Stack.Screen name="notifiche" options={{ animation: 'slide_from_right' }} />
         <Stack.Screen name="invita" options={{ animation: 'slide_from_right' }} />
         <Stack.Screen name="delega" options={{ animation: 'slide_from_right' }} />
+        <Stack.Screen name="consensi-minori" options={{ animation: 'slide_from_right' }} />
         <Stack.Screen name="badge" options={{ animation: 'slide_from_right' }} />
         <Stack.Screen name="shop/index" options={{ animation: 'slide_from_right' }} />
         <Stack.Screen name="shop/[id]" options={{ animation: 'slide_from_right' }} />
