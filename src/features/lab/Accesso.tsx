@@ -1,12 +1,13 @@
 import { Image } from 'expo-image'
 import { LinearGradient } from 'expo-linear-gradient'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Linking, StyleSheet, Text, View } from 'react-native'
 import Animated, { FadeInRight } from 'react-native-reanimated'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { chiediCodice, entra } from '@/api/lab'
 import { emailValida } from '@/api/richieste'
+import { registrazioneAperta } from '@/api/registrazione'
 import { PRIVACY_URL } from '@/lib/guestPass'
 import { t } from '@/lib/lingua'
 import { spazio } from '@/theme'
@@ -32,8 +33,8 @@ import { colpetto, Tocco } from './ui/Tocco'
 // corpo) si chiedono dove serve, la prima volta che si usa quella funzione.
 
 
-/** La testata scura, con il bagliore arancio e gli anelli che allargano il marchio. */
-function Testata({ fase }: { fase: 'email' | 'codice' }) {
+/** La testata scura, con il bagliore arancio e gli anelli che allargano il marchio. Anche per «Completa il profilo» (`ingresso/`). */
+export function Testata({ fase, titolo, sotto }: { fase: 'email' | 'codice' | 'profilo'; /** Al posto del titolo e del sottotitolo della fase (le schermate che fermano «Completa il profilo»). */ titolo?: string; sotto?: string }) {
   const ins = useSafeAreaInsets()
   return (
     <LinearGradient colors={NOTTE} start={{ x: 0, y: 0 }} end={{ x: 0.4, y: 1 }} style={[stili.testata, { paddingTop: ins.top + spazio.cinque }]}>
@@ -51,13 +52,15 @@ function Testata({ fase }: { fase: 'email' | 'codice' }) {
           <Text style={stili.chipTesto}>{t('LA TUA AREA ATHLON CLUB', 'YOUR ATHLON CLUB AREA')}</Text>
         </View>
         <Text style={stili.titolo} accessibilityRole="header">
-          {fase === 'email' ? t('Il tuo club,\nsempre con te', 'Your club,\nalways with you') : t('Controlla\nla posta', 'Check\nyour email')}
+          {titolo ? titolo : fase === 'email' ? t('Il tuo club,\nsempre con te', 'Your club,\nalways with you') : fase === 'codice' ? t('Controlla\nla posta', 'Check\nyour email') : t('Ancora\nun attimo', 'Just one\nmore step')}
           <Text style={{ color: FUOCO[1] }}>.</Text>
         </Text>
         <Text style={stili.sotto}>
-          {fase === 'email'
+          {sotto ? sotto : fase === 'email'
             ? t('Prenotazioni, workout, abbonamenti e pagamenti in un posto solo. Entri con la tua email, senza password.', 'Bookings, workouts, memberships and payments all in one place. Sign in with your email, no password.')
-            : t(`Ti abbiamo mandato un codice di ${CIFRE} cifre: scrivilo o incollalo qui sotto.`, `We sent you a ${CIFRE}-digit code: type or paste it below.`)}
+            : fase === 'codice'
+              ? t(`Ti abbiamo mandato un codice di ${CIFRE} cifre: scrivilo o incollalo qui sotto.`, `We sent you a ${CIFRE}-digit code: type or paste it below.`)
+              : t('Ci servono pochi dati per completare il tuo profilo, poi sei dentro.', 'We just need a few details to complete your profile, then you’re in.')}
         </Text>
       </View>
     </LinearGradient>
@@ -83,6 +86,15 @@ export function Accesso() {
   const [fase, setFase] = useState<'email' | 'codice'>('email')
   const [attesa, setAttesa] = useState(false)
   const [errore, setErrore] = useState<string | null>(null)
+  // «Prima volta qui?»: solo se la registrazione e' aperta (interruttore sul server, 01/11/2026). Chi e' nuovo usa lo stesso percorso: email, codice, e poi i dati.
+  const [registrazione, setRegistrazione] = useState(false)
+  useEffect(() => {
+    let vivo = true
+    registrazioneAperta().then((a) => vivo && setRegistrazione(a))
+    return () => {
+      vivo = false
+    }
+  }, [])
 
   async function mandaCodice() {
     setErrore(null)
@@ -166,6 +178,12 @@ export function Accesso() {
                 {t('Usa l’email con cui sei iscritto al club: è da lì che troviamo', 'Use the email you registered with at the club: that’s how we find')}{' '}
                 <Text style={{ fontFamily: F.bold, color: p.testo }}>{t('i tuoi abbonamenti e la tua famiglia', 'your memberships and your family')}</Text>.
               </Text>
+              {registrazione ? (
+                <Text style={[stili.nota, { color: p.testoSecondario }]}>
+                  <Text style={{ fontFamily: F.bold, color: p.testo }}>{t('Prima volta qui?', 'First time here?')}</Text>{' '}
+                  {t('Scrivi la tua email e vai avanti: ti mandiamo il codice e, dopo, ti chiediamo solo i dati che servono per creare il tuo profilo.', 'Enter your email and continue: we’ll send you the code and then ask only for the details we need to create your profile.')}
+                </Text>
+              ) : null}
             </>
           ) : (
             <>
