@@ -1,5 +1,5 @@
 import type { VoceDiario } from '@/api/alimentazione'
-import type { AllenamentoDispositivo, GiornoDispositivo } from '@/api/dispositivi'
+import type { AllenamentoDispositivo, GiornoDispositivo, GiornoRecupero } from '@/api/dispositivi'
 import type { PresenzaLezione, SedutaStorico } from '@/api/lab'
 
 import { allenamentiContati, nomeSport } from '../dispositivi/allenamentiDispositivo'
@@ -32,6 +32,7 @@ import { locale, t } from '../../../lib/lingua'
 // diete, niente traguardi): un giorno vale se ci sono colazione, pranzo e cena nel diario, e
 // 5 giorni su 7 bastano. Oggi non conta, non e' finito. **Relax**: ogni notte vale in base alle
 // ore (da 7 in su il massimo, e piu' lunghe non sono penalizzate), e bastano 5 notti su 7.
+// **Dal 02/11/2026 Relax ha anche la «cura del corpo»** (mobilita' e foam roller): una quota piccola, che non toglie niente (vedi `quotaRecover`).
 //
 // **Un pilastro non attivato non penalizza**: contribuisce zero e il suo posto resta visibile
 // («fino a 15 punti»). Chi ha nascosto i numeri in Food (o ha detto che contare lo mette a
@@ -54,6 +55,34 @@ export const CURVA_TRAIN = [0, 0.4, 1, 1, 1, 0.9, 0.8, 0.7] as const
 /** Giorni di diario buoni, e notti, che in una settimana danno il massimo. */
 export const GIORNI_FOOD = 5
 export const NOTTI_RELAX = 5
+
+// La cura del corpo (02/11/2026, richiesta di Maurizio: «anche il foam roller, senza spingere a utilizzarlo troppo»). Le sessioni di mobilita' e di foam roller
+// dell'app si sommano per giorno; **un giorno vale con almeno 10 minuti** (di una o dell'altra, due sessioni lo stesso giorno valgono una volta) e **3 giorni su 7
+// danno il massimo: di piu' non serve**. Il massimo e' una piccola quota di Relax (`CURA_QUOTA`, il 20%: fino a 3 punti su 15) **che si somma al sonno senza
+// toglierlo**: chi dorme come serve arriva comunque a 15 e la cura non cambia niente; chi non ha dati sul sonno ha da qui una strada, piccola. Niente premia
+// la quantita' (piu' minuti o piu' giorni del necessario non danno niente), perche' piu' rullo non e' meglio. Minuti dichiarati dall'app, non verificati:
+// per questo la quota e' piccola. Le soglie sono nostre e vanno fatte validare dal Direttore Tecnico.
+export const CURA_MINUTI_GIORNO = 10
+export const CURA_GIORNI = 3
+export const CURA_QUOTA = 0.2
+
+/** La quota di Recover di una settimana: le notti (somma delle quote, 5 bastano) piu' la cura (3 giorni bastano), al massimo 1. La cura non toglie mai. */
+export function quotaRecover(sonno: number, giorniCura: number): number {
+  return Math.min(1, sonno / NOTTI_RELAX + CURA_QUOTA * Math.min(1, giorniCura / CURA_GIORNI))
+}
+
+/** I minuti di cura per giorno (mobilita' piu' foam roller), dai giorni che manda il server. */
+export function curaDa(recupero: GiornoRecupero[]): Map<string, number> {
+  const per = new Map<string, number>()
+  for (const r of recupero) {
+    const minuti = Math.max(0, r.mobilita) + Math.max(0, r.rilascio)
+    if (minuti > 0) per.set(r.data, (per.get(r.data) ?? 0) + minuti)
+  }
+  return per
+}
+
+/** I giorni di cura che contano in un insieme di giorni: almeno `CURA_MINUTI_GIORNO` minuti. */
+export const giorniCuraDi = (cura: Map<string, number>, dentroAi: (g: string) => boolean): number => [...cura].filter(([g, m]) => dentroAi(g) && m >= CURA_MINUTI_GIORNO).length
 
 const SETTIMANE = PESI.length
 
@@ -151,7 +180,7 @@ function mediaPesata(quote: { quota: number; conta: boolean }[]): number | null 
   return pesi ? somma / pesi : null
 }
 
-export type Settimana = { da: string; a: string; /** I giorni buoni (Train: attivi; Food: col diario; Relax: notti scritte). */ giorni: number; quota: number; conta: boolean }
+export type Settimana = { da: string; a: string; /** I giorni buoni (Train: attivi; Food: col diario; Relax: notti scritte). */ giorni: number; quota: number; conta: boolean; /** Relax: i giorni di mobilita' o foam roller (almeno 10 minuti). */ giorniCura?: number }
 
 // ---------------------------------------------------------------------------
 // Train
@@ -226,12 +255,13 @@ export function nottiDa(giorni: GiornoDispositivo[]): Map<string, number> {
   return notti
 }
 
-export function calcolaRelax(notti: Map<string, number>, oggi: string): Relax {
-  const primo = [...notti.keys()].sort()[0] ?? null
+export function calcolaRelax(notti: Map<string, number>, oggi: string, cura: Map<string, number> = new Map()): Relax {
+  const primo = [...notti.keys(), ...cura.keys()].sort()[0] ?? null
   const settimane: Settimana[] = blocchi(oggi).map((b) => {
     const dellaSettimana = [...notti].filter(([g]) => dentro(g, b))
     const somma = dellaSettimana.reduce((s, [, m]) => s + quotaNotte(m), 0)
-    return { ...b, giorni: dellaSettimana.length, quota: Math.min(1, somma / NOTTI_RELAX), conta: primo !== null && b.a >= primo }
+    const giorniCura = giorniCuraDi(cura, (g) => dentro(g, b))
+    return { ...b, giorni: dellaSettimana.length, giorniCura, quota: quotaRecover(somma, giorniCura), conta: primo !== null && b.a >= primo }
   })
   const ultime = [...notti].filter(([g]) => dentro(g, settimane[0]))
   const mediaMinuti = ultime.length ? Math.round(ultime.reduce((s, [, m]) => s + m, 0) / ultime.length) : null
@@ -291,7 +321,7 @@ export type Ingressi = {
   /** Food: null dove non esiste per questa persona (vista cliente, minorenne). */
   food: { consenso: boolean; escluso: boolean; senzaColazione: boolean; diario: VoceDiario[] } | null
   /** Relax: null dove non esiste per questa persona. */
-  relax: { consenso: boolean; giorni: GiornoDispositivo[] } | null
+  relax: { consenso: boolean; giorni: GiornoDispositivo[]; /** I minuti di mobilita' e foam roller per giorno (02/11/2026). */ recupero?: GiornoRecupero[] } | null
 }
 
 const n = (x: number) => x.toLocaleString(locale())
@@ -322,19 +352,21 @@ function fraseFood(f: Food): string | null {
 const ore = (m: number) => `${Math.floor(m / 60)} h${m % 60 ? ` ${String(m % 60).padStart(2, '0')}` : ''}`
 
 function fraseRelax(r: Relax): string | null {
+  const cura = r.settimane[0].giorniCura ?? 0
+  const frasiCura = cura > 0 ? t(` ${cura === 1 ? 'Un giorno' : `${n(cura)} giorni`} di mobilità o foam roller.`, ` ${cura === 1 ? 'One day' : `${n(cura)} days`} of mobility or foam rolling.`) : ''
   if (!r.haStoria) return t('Scrivi ogni mattina quanto hai dormito, o collega un dispositivo: contano le notti degli ultimi 7 giorni.', 'Each morning, log how long you slept, or connect a device: nights from the last 7 days count.')
   const g = r.settimane[0].giorni
-  if (g === 0) return t('Negli ultimi 7 giorni non c’è nessuna notte scritta.', 'No nights logged in the last 7 days.')
+  if (g === 0) return t(`Negli ultimi 7 giorni non c’è nessuna notte scritta.${frasiCura}`, `No nights logged in the last 7 days.${frasiCura}`)
   return t(
-    `${g === 1 ? 'Una notte scritta' : `${n(g)} notti scritte`} negli ultimi 7 giorni${r.mediaMinuti !== null ? `, in media ${ore(r.mediaMinuti)}` : ''}.`,
-    `${g === 1 ? 'One night logged' : `${n(g)} nights logged`} in the last 7 days${r.mediaMinuti !== null ? `, ${ore(r.mediaMinuti)} on average` : ''}.`,
+    `${g === 1 ? 'Una notte scritta' : `${n(g)} notti scritte`} negli ultimi 7 giorni${r.mediaMinuti !== null ? `, in media ${ore(r.mediaMinuti)}` : ''}.${frasiCura}`,
+    `${g === 1 ? 'One night logged' : `${n(g)} nights logged`} in the last 7 days${r.mediaMinuti !== null ? `, ${ore(r.mediaMinuti)} on average` : ''}.${frasiCura}`,
   )
 }
 
 export function calcolaPunteggio(i: Ingressi): Punteggio {
   const train = calcolaTrain(i.sessioni, i.oggi)
   const food = i.food && !i.food.escluso && i.food.consenso ? calcolaFood(i.food.diario, i.oggi, i.food.senzaColazione) : null
-  const relax = i.relax && i.relax.consenso ? calcolaRelax(nottiDa(i.relax.giorni), i.oggi) : null
+  const relax = i.relax && i.relax.consenso ? calcolaRelax(nottiDa(i.relax.giorni), i.oggi, curaDa(i.relax.recupero ?? [])) : null
 
   const contate = (s: Settimana[]) => s.filter((x) => x.conta).length
   const pilastroTrain: Pilastro = {

@@ -24,9 +24,8 @@ a quella di mobilità. Cartella `src/features/lab/rilascio/`, route `/allenament
   ossa, zona lombare e collo, rotolare piano e respirare, e chi ha trombosi o varici importanti, prende anticoagulanti, ha osteoporosi, è in
   gravidanza o ha una condizione medica chiede prima al medico. In fondo: «consigli di base che non sostituiscono il parere di un medico o di un
   fisioterapista». **Le avvertenze vanno fatte rileggere a un medico o a un fisioterapista prima di aprire la sezione a tutti.**
-- **Non somma i minuti a nessuna abitudine**: l'abitudine «Mobilità» è del server (catalogo di APP-ATHLON) e il rilascio è un'altra cosa. Se il
-  club vuole contarlo, si aggiunge una voce lì (e la categoria degli esercizi resta separata da «mobilità»: altrimenti le sessioni di mobilità
-  del server comincerebbero a proporli). Dopo la sessione un tasto porta a «Ora un po' di mobilità».
+- **Non somma i minuti a nessuna abitudine** (l'abitudine «Mobilità» è del server e il rilascio è un'altra cosa), ma **dal 02/11/2026 i minuti vanno al punteggio di
+  Recover** a fine sessione (`fit/RegistraRecupero.tsx`, sezione 83). Dopo la sessione un tasto porta a «Ora un po' di mobilità».
 - **Verifica**: `tsc` pulito sui file toccati; guardato nel browser a 390 px (scelta, filtri, avvertenze che sbloccano «Comincia», corsa col
   segnaposto, fine, tema chiaro e scuro); **non guardato su un telefono**, **non provato con una sessione vera né con l'icona `rullo` su iOS**
   (SF Symbol `figure.cooldown`: sul web e su Android è `physical_therapy`).

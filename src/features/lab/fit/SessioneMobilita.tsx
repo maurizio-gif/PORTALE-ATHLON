@@ -8,7 +8,7 @@ import { sessioneMobilita, type PassoMobilita, type SessioneMobilita as Sessione
 import { t } from '@/lib/lingua'
 import { spazio } from '@/theme'
 
-import { useDispositivi } from '../dispositivi/useDispositivi'
+import { useDispositivi, type Dispositivi } from '../dispositivi/useDispositivi'
 import { MediaEsercizio } from '../schede/MediaEsercizio'
 import { Scelte, SceltePiu } from '../ui/Campi'
 import { Icona } from '../ui/Icona'
@@ -17,6 +17,7 @@ import { Schermata } from '../ui/Schermata'
 import { F, usePalette, type ToniTutti } from '../ui/tema'
 import { colpetto, Tocco } from '../ui/Tocco'
 import { CATALOGO } from './catalogoAbitudini'
+import { RegistraRecupero } from './RegistraRecupero'
 import { avanti, avvia, ferma, indietro, minutiDaSecondi, MINUTI_SESSIONE, nomeFocus, nuovoCrono, progredisci, restanti, secondiFatti, vociFocus, vociZone, type Crono, type FocusMobilita, type ZonaFastidio } from './mobilita'
 import { useAbitudiniScelte } from './useAbitudiniScelte'
 
@@ -107,7 +108,7 @@ export function SchermataMobilita() {
           }}
         />
       ) : sessione ? (
-        <Fine sessione={sessione} secondi={fatti} inMobilita={!!inMobilita} sc={sc} consenso={consenso} onUnaltra={unAltra} onRifai={() => setFase('scelta')} />
+        <Fine sessione={sessione} secondi={fatti} inMobilita={!!inMobilita} sc={sc} consenso={consenso} disp={disp} onUnaltra={unAltra} onRifai={() => setFase('scelta')} />
       ) : null}
     </Schermata>
   )
@@ -288,7 +289,7 @@ function secondiLetti(s: number): string {
 
 // ---------------------------------------------------------------------------------------------------------------------------------
 
-function Fine({ sessione, secondi, inMobilita, sc, consenso, onUnaltra, onRifai }: { sessione: Sessione; secondi: number; inMobilita: boolean; sc: ReturnType<typeof useAbitudiniScelte>; consenso: boolean; onUnaltra: () => void; onRifai: () => void }) {
+function Fine({ sessione, secondi, inMobilita, sc, consenso, disp, onUnaltra, onRifai }: { sessione: Sessione; secondi: number; inMobilita: boolean; sc: ReturnType<typeof useAbitudiniScelte>; consenso: boolean; disp: Dispositivi; onUnaltra: () => void; onRifai: () => void }) {
   const p = usePalette()
   const minuti = minutiDaSecondi(secondi)
   const [esito, setEsito] = useState<'ok' | 'errore' | 'invio' | null>(null)
@@ -372,6 +373,9 @@ function Fine({ sessione, secondi, inMobilita, sc, consenso, onUnaltra, onRifai 
           </Carta>
         )
       ) : null}
+
+      {/* I minuti vanno anche al punteggio di Recover (02/11/2026), seguendo o no l'abitudine: sono due cose diverse. */}
+      <RegistraRecupero tipo="mobilita" minuti={minuti} disp={disp} />
 
       <Pulsante testo={t('Un’altra sessione', 'Another session')} variante="secondario" onPress={onUnaltra} />
       <Pulsante testo={t('Cambia scelta', 'Change choices')} variante="contorno" onPress={onRifai} />
