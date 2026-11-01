@@ -150,7 +150,8 @@ const stili = StyleSheet.create({
   iconaScelta: { width: 36, height: 36, borderRadius: 12, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.2)' },
   titolo: { fontFamily: F.bold, fontSize: 13 },
   pallino: { width: 12, height: 12, borderRadius: 6, borderWidth: 2 },
-  tag: { borderRadius: 999, paddingHorizontal: 9, paddingVertical: 3 },
+  // flexShrink + minWidth: 0: un'etichetta piu' lunga del posto si accorcia con i puntini e non esce dalla carta.
+  tag: { borderRadius: 999, paddingHorizontal: 9, paddingVertical: 3, flexShrink: 1, minWidth: 0, marginLeft: spazio.due },
   tagTesto: { fontFamily: F.extra, fontSize: 11.5 },
   valore: { fontFamily: F.extra, letterSpacing: -0.6 },
   // Due righe di spazio sempre: cosi' i riquadri affiancati hanno il testo alla stessa altezza.
