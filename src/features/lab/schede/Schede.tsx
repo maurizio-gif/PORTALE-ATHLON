@@ -359,6 +359,15 @@ function ContenutoHub({ largo, corpoInCima }: { largo: boolean; /** La carta «D
   const scegli = (a: Area) => router.setParams({ area: a })
   // Su schermo largo (15/10/2026), come Prenotazioni: le card in fila e le schede su piu' colonne (`largo`, dal genitore).
 
+  // «Le tue abitudini» (31/10/2026): camminare, muoversi e dormire, che si spuntano da sole con Apple Salute o Health Connect. Dove non
+  // sono collegati (PWA, browser) la carta spinge a installare l'app e a collegarli; dove lo sono mostra i risultati. **Dal 01/11/2026 sta
+  // subito sotto «I tuoi dispositivi»** (richiesta di Maurizio): prima era sotto il punteggio, sopra la descrizione.
+  const abitudini = (
+    <Entra indice={1}>
+      <CartaAbitudini disp={disp} />
+    </Entra>
+  )
+
   return (
     <>
       <Entra indice={0}>
@@ -367,11 +376,6 @@ function ContenutoHub({ largo, corpoInCima }: { largo: boolean; /** La carta «D
       {/* «Il tuo mese in Athlon» (30/10/2026): compare solo quando c'e' un mese da mostrare, e subito sotto il punteggio. */}
       <CartaSettimana />
       <CartaMese />
-      {/* «Le tue abitudini» (31/10/2026): camminare, muoversi e dormire, che si spuntano da sole con Apple Salute o Health Connect. Dove non
-          sono collegati (PWA, browser) la carta spinge a installare l'app e a collegarli; dove lo sono mostra i risultati. */}
-      <Entra indice={1}>
-        <CartaAbitudini disp={disp} />
-      </Entra>
       {/* Dopo il punteggio, nell'ordine: cos'e' l'Athlon Health System (24/10/2026, richiesta di Maurizio: la descrizione e' la seconda
           carta), «Il tuo corpo» compresso e i dispositivi. Il Balance non e' piu' qui: sta nell'area Food (01/11/2026, richiesta di
           Maurizio). Su schermo largo la descrizione sta a sinistra e, a destra, corpo e dispositivi in colonna. */}
@@ -389,6 +393,7 @@ function ContenutoHub({ largo, corpoInCima }: { largo: boolean; /** La carta «D
             <Entra indice={1}>
               <CartaDispositivi disp={disp} />
             </Entra>
+            {abitudini}
           </View>
         </View>
       ) : (
@@ -404,6 +409,7 @@ function ContenutoHub({ largo, corpoInCima }: { largo: boolean; /** La carta «D
           <Entra indice={1}>
             <CartaDispositivi disp={disp} />
           </Entra>
+          {abitudini}
         </View>
       )}
 
