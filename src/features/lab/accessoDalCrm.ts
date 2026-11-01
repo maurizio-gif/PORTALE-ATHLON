@@ -22,7 +22,7 @@ import { supabase } from '@/lib/supabase'
 
 let inCorso: Promise<void> | null = null
 
-function leggiEToglieToken(): string | null {
+export function leggiEToglieToken(): string | null {
   if (Platform.OS !== 'web' || typeof window === 'undefined') return null
   try {
     const frammento = window.location.hash.replace(/^#/, '')
@@ -40,15 +40,29 @@ function leggiEToglieToken(): string | null {
   }
 }
 
-async function consuma(token: string): Promise<void> {
+async function consuma(token: string): Promise<boolean> {
   // Supabase Auth chiama «email» il tipo del token di un link magico, e «magiclink» e' il nome di prima: si prova l'uno e poi l'altro.
   for (const tipo of ['email', 'magiclink'] as const) {
     try {
       const { error } = await supabase.auth.verifyOtp({ token_hash: token, type: tipo })
-      if (!error) return
+      if (!error) return true
     } catch {
       // si prova l'altro tipo, poi si lascia la pagina di accesso
     }
+  }
+  return false
+}
+
+/**
+ * Apre la sessione con un token preso dal frammento di un link (`leggiEToglieToken`), nel momento che sceglie chi chiama. Lo usa la
+ * conferma della delega: il link dell'email porta `#th=…` e la sessione si apre **solo dopo il tocco su «Conferma»**. Dice se e' entrato;
+ * se no (token scaduto o gia' usato) si entra dalla pagina di accesso. Non solleva mai.
+ */
+export async function entraConToken(token: string): Promise<boolean> {
+  try {
+    return await consuma(token)
+  } catch {
+    return false
   }
 }
 

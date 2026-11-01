@@ -1,11 +1,12 @@
 import { router } from 'expo-router'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 import { confermaDelega, leggiConfermaDelega, type AnteprimaConferma } from '@/api/delega'
 import { Avviso } from '@/components/Avviso'
 import { Bottone } from '@/components/Bottone'
 import { Pagina } from '@/components/Pagina'
 import { Testo } from '@/components/Testo'
+import { entraConToken, leggiEToglieToken } from '@/features/lab/accessoDalCrm'
 import { InCaricamento } from '@/features/link/Stati'
 import { t } from '@/lib/lingua'
 
@@ -19,6 +20,13 @@ export function ConfermaDelega({ token }: { token: string }) {
   const [attesa, setAttesa] = useState(false)
   const [errore, setErrore] = useState<string | null>(null)
   const [fatto, setFatto] = useState<string | null>(null)
+  const [dentro, setDentro] = useState(false)
+  // L'email porta anche un accesso all'app (`#th=…` nel link). Si legge e si toglie dall'indirizzo subito, ma si usa solo dopo «Conferma».
+  const accesso = useRef<string | null>(null)
+
+  useEffect(() => {
+    accesso.current = leggiEToglieToken()
+  }, [])
 
   useEffect(() => {
     let vivo = true
@@ -34,8 +42,14 @@ export function ConfermaDelega({ token }: { token: string }) {
     setErrore(null)
     setAttesa(true)
     const r = await confermaDelega(token)
+    if (!r.ok) {
+      setAttesa(false)
+      return setErrore(r.errore)
+    }
+    // Confermata: ora si entra nell'app con l'accesso dell'email, se c'e' e vale ancora (un'ora). Se no, resta la pagina di accesso.
+    setDentro(accesso.current ? await entraConToken(accesso.current) : false)
+    accesso.current = null
     setAttesa(false)
-    if (!r.ok) return setErrore(r.errore)
     setFatto(r.nome || anteprima?.delegato || '')
   }
 
@@ -49,7 +63,12 @@ export function ConfermaDelega({ token }: { token: string }) {
         indietro={false}
       >
         <Testo>
-          {t(
+          {dentro
+            ? t(
+                'Sei già dentro l’app. Trovi i bambini nella sezione Famiglia della Home e puoi prenotare, disdire e pagare per loro.',
+                'You’re already signed in to the app. You’ll find the children in the Family section of the Home screen and you can book, cancel and pay for them.',
+              )
+            : t(
             'Entra nell’app con questa stessa email: nell’email di conferma trovi il codice di accesso (tocca «Ho già un codice» e scrivilo); se è scaduto, ne chiedi uno nuovo dalla stessa pagina. Trovi i bambini nella sezione Famiglia della Home e puoi prenotare, disdire e pagare per loro.',
             'Sign in to the app with this same email: you’ll find the access code in the confirmation email (tap “I already have a code” and enter it); if it has expired, you can request a new one on the same page. You’ll find the children in the Family section of the Home screen and you can book, cancel and pay for them.',
           )}
