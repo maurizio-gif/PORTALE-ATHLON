@@ -172,6 +172,17 @@ function Dati({ disp }: { disp: Dispositivi }) {
           <Icona nome="avanti" size={18} colore={p.testoTerzo} />
         </Carta>
       </Entra>
+
+      <Entra indice={0}>
+        <Carta onPress={() => router.push('/allenamento/respiro')} style={stili.riga}>
+          <Bollino icona="respiro" tono="ok" size={46} />
+          <View style={{ flex: 1, gap: 2 }}>
+            <Text style={[stili.titoletto, { color: p.testo }]}>{t('Respiro', 'Breathe')}</Text>
+            <Text style={[stili.nota, { color: p.testoSecondario }]}>{t('Una pausa guidata da 1 a 5 minuti: segui il cerchio che respira, o porta l’attenzione al corpo.', 'A guided pause of 1 to 5 minutes: follow the breathing circle, or bring your attention to your body.')}</Text>
+          </View>
+          <Icona nome="avanti" size={18} colore={p.testoTerzo} />
+        </Carta>
+      </Entra>
     </View>
   )
 }
