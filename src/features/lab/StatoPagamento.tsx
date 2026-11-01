@@ -93,8 +93,12 @@ export function StatoPagamento() {
     } else {
       setErrore(r.errore)
       setNonTrovato(r.nonTrovato === true)
+      // Un pagamento che non e' di questo accesso (404), aperto senza i parametri del ritorno da Adyen, non ha niente da mostrare:
+      // e' l'indirizzo di un accesso precedente rimasto nell'app (segnalazione di Maurizio, 02/11/2026: dopo il codice l'app andava
+      // sempre li'). Si va alla Home, che e' dove si deve arrivare dopo l'accesso. Col ritorno da Adyen no: li' l'errore va detto.
+      if (r.nonTrovato && !sessionId && !redirectResult) router.replace('/')
     }
-  }, [riferimento])
+  }, [riferimento, router, sessionId, redirectResult])
 
   // «Riprova» deve dare un segno: con la risposta uguale a prima (la rete, per esempio) sembrava non fare niente.
   const riprova = useCallback(async () => {
