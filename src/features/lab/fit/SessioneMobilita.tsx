@@ -1,5 +1,5 @@
 import { router, useIsFocused } from 'expo-router'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import { AppState, StyleSheet, Text, View } from 'react-native'
 import Svg, { Circle } from 'react-native-svg'
 
@@ -14,7 +14,7 @@ import { Scelte, SceltePiu } from '../ui/Campi'
 import { Icona } from '../ui/Icona'
 import { Carta, Etichetta, Messaggio, Pulsante, Scheletro, Sezione } from '../ui/kit'
 import { Schermata } from '../ui/Schermata'
-import { F, usePalette } from '../ui/tema'
+import { F, usePalette, type ToniTutti } from '../ui/tema'
 import { colpetto, Tocco } from '../ui/Tocco'
 import { CATALOGO } from './catalogoAbitudini'
 import { avanti, avvia, ferma, indietro, minutiDaSecondi, MINUTI_SESSIONE, nomeFocus, nuovoCrono, progredisci, restanti, secondiFatti, vociFocus, vociZone, type Crono, type FocusMobilita, type ZonaFastidio } from './mobilita'
@@ -115,7 +115,29 @@ export function SchermataMobilita() {
 
 // ---------------------------------------------------------------------------------------------------------------------------------
 
-function Corsa({ sessione, onFine, onEsci }: { sessione: Sessione; onFine: (secondi: number) => void; onEsci: () => void }) {
+/** Quello che serve alla `Corsa` di un esercizio: la forma di `PassoMobilita`, con un `tipo` qualunque (il rilascio con il rullo ne ha uno suo). */
+export type PassoCorsa = Omit<PassoMobilita, 'tipo'> & { tipo: string }
+
+/**
+ * Gli esercizi uno dopo l'altro, col cronometro. La usano la mobilita' e, dal 01/11/2026, il rilascio con il foam roller (`rilascio/SessioneRilascio.tsx`):
+ * stesso cronometro, stesse pause. Senza i tre agganci e' quella di prima: `etichetta` cambia la pillola del tipo, `media` prende il posto del video
+ * (il rilascio ci mette il segnaposto «Video in arrivo» finche' i video non ci sono), `dettagli` aggiunge una carta dopo le istruzioni.
+ */
+export function Corsa<T extends PassoCorsa = PassoMobilita>({
+  sessione,
+  onFine,
+  onEsci,
+  etichetta,
+  media,
+  dettagli,
+}: {
+  sessione: { esercizi: T[] }
+  onFine: (secondi: number) => void
+  onEsci: () => void
+  etichetta?: (e: T) => { testo: string; tono: ToniTutti }
+  media?: (e: T) => ReactNode
+  dettagli?: (e: T) => ReactNode
+}) {
   const p = usePalette()
   const esercizi = sessione.esercizi
   const durate = esercizi.map((e) => e.secondi)
@@ -129,6 +151,7 @@ function Corsa({ sessione, onFine, onEsci }: { sessione: Sessione; onFine: (seco
   const e = esercizi[passo]
   const resto = restanti(crono, ora, durate)
   const inPausa = crono.ripresoIl === null && !crono.finita
+  const tipoEsercizio = e ? (etichetta ? etichetta(e) : e.tipo === 'mobilita' ? { testo: t('Mobilità', 'Mobility'), tono: 'accento' as ToniTutti } : { testo: 'Stretching', tono: 'neutro' as ToniTutti }) : null
 
   // Il tempo scorre dall'orologio vero: un timer in ritardo non cambia il conto. Cambiando esercizio, un colpetto.
   useEffect(() => {
@@ -178,7 +201,7 @@ function Corsa({ sessione, onFine, onEsci }: { sessione: Sessione; onFine: (seco
     <>
       <View style={stili.testaCorsa}>
         <Text style={[stili.contatore, { color: p.testoSecondario }]}>{t(`Esercizio ${passo + 1} di ${esercizi.length}`, `Exercise ${passo + 1} of ${esercizi.length}`)}</Text>
-        <Etichetta testo={e.tipo === 'mobilita' ? t('Mobilità', 'Mobility') : t('Stretching', 'Stretching')} tono={e.tipo === 'mobilita' ? 'accento' : 'neutro'} />
+        {tipoEsercizio ? <Etichetta testo={tipoEsercizio.testo} tono={tipoEsercizio.tono} /> : null}
       </View>
       <View style={stili.barra} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
         {esercizi.map((x, i) => (
@@ -187,7 +210,7 @@ function Corsa({ sessione, onFine, onEsci }: { sessione: Sessione; onFine: (seco
       </View>
 
       <View accessible accessibilityLabel={t(`Video: ${e.nome}`, `Video: ${e.nome}`)}>
-        <MediaEsercizio key={e.id} immagini={e.immagini} video={e.video} style={{ width: '100%', aspectRatio: 16 / 9, borderRadius: 16 }} />
+        {media ? media(e) : <MediaEsercizio key={e.id} immagini={e.immagini} video={e.video} style={{ width: '100%', aspectRatio: 16 / 9, borderRadius: 16 }} />}
       </View>
 
       <View style={stili.centro}>
@@ -232,6 +255,8 @@ function Corsa({ sessione, onFine, onEsci }: { sessione: Sessione; onFine: (seco
           ))}
         </Carta>
       ) : null}
+
+      {dettagli ? dettagli(e) : null}
 
       {uscita ? (
         <Carta style={{ gap: spazio.tre }}>
