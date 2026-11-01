@@ -203,19 +203,14 @@ export function Accesso() {
                       </View>
                     ))}
                   </View>
-                  {/* La prova (Guest Pass, 02/11/2026, richiesta di Maurizio): il motivo in piu' per registrarsi. Il prezzo e' PREZZO_PROVA (lib/guestPass); vale per chi
-                      non e' gia' stato socio (la regola dei 3 anni la decide il server), quindi la riga lo dice e non promette di piu'. */}
-                  <View style={[stili.invitoProva, { backgroundColor: p.carta, borderColor: p.linea }]}>
-                    <Bollino icona="regalo" tono="accento" size={38} pieno />
-                    <View style={{ flex: 1, gap: 2 }}>
-                      <Text style={{ fontFamily: F.extra, fontSize: 15, lineHeight: 20, color: p.testo }}>{t('Prova il club per una settimana', 'Try the club for a week')}</Text>
-                      <Text style={[stili.nota, { color: p.testoSecondario, fontSize: 12.5, lineHeight: 17 }]}>
-                        {t(
-                          `Sala, corsi e vasche per 7 giorni a ${PREZZO_PROVA} €, senza rinnovo. Per chi non è già socio.`,
-                          `Gym floor, classes and pools for 7 days at ${PREZZO_PROVA} €, no renewal. For people who aren’t already members.`,
-                        )}
-                      </Text>
-                    </View>
+                  {/* La prova (Guest Pass, 02/11/2026, richiesta di Maurizio): una riga sola, senza dettagli: serve a invogliare a registrarsi, il resto lo scopre dentro. Il prezzo
+                      e' PREZZO_PROVA (lib/guestPass). Niente «per chi non e' socio»: chi non ha diritto alla prova lo scopre quando prova ad attivarla. */}
+                  <View style={stili.invitoProva}>
+                    <Bollino icona="regalo" tono="accento" size={30} pieno />
+                    <Text style={[stili.nota, { color: p.testo, flex: 1, fontSize: 14.5 }]}>
+                      <Text style={{ fontFamily: F.extra }}>{t('Prova il club per una settimana', 'Try the club for a week')}</Text>
+                      {t(` a ${PREZZO_PROVA} €`, ` for ${PREZZO_PROVA} €`)}
+                    </Text>
                   </View>
                   <Pulsante testo={t('Registrati', 'Sign up')} icona="avanti" onPress={mandaCodice} inCorso={attesa} />
                   <Text style={[stili.nota, { color: p.testoSecondario, fontSize: 12.5 }]}>
@@ -282,7 +277,7 @@ const stili = StyleSheet.create({
   invito: { borderWidth: 1.5, borderRadius: 22, padding: spazio.quattro - 2, gap: spazio.tre, marginTop: spazio.due },
   invitoTesta: { flexDirection: 'row', alignItems: 'center', gap: spazio.tre },
   invitoTitolo: { flex: 1, fontSize: 19, lineHeight: 24, fontFamily: F.extra, letterSpacing: -0.4 },
-  invitoProva: { flexDirection: 'row', alignItems: 'center', gap: spazio.tre, borderWidth: 1, borderRadius: 16, padding: spazio.tre },
+  invitoProva: { flexDirection: 'row', alignItems: 'center', gap: spazio.tre },
   invitoVoce: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   garanzie: { flexDirection: 'row', justifyContent: 'center', flexWrap: 'wrap', gap: spazio.tre, marginTop: -spazio.due },
   garanzia: { flexDirection: 'row', alignItems: 'center', gap: 5 },
