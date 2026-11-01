@@ -1,0 +1,10 @@
+## «Elimina account» nel Profilo: anonimizzazione, contratti e pagamenti restano (02/11/2026)
+
+Richiesta di Maurizio (02/11/2026): eliminazione dell'account in app (Apple 5.1.1(v), Google Play) come **anonimizzazione**: i registri del club restano e chi torna non è una persona nuova. Funzione `portale-lab-account` (`stato`, `elimina`), funzione SQL e regole: `CLAUDE.md` di APP-ATHLON, stessa data. Schermata `/elimina-account` (`account/EliminaAccount.tsx`), API `src/api/account.ts`, riga «Elimina account» nella sezione Account del Profilo (sotto «Esci dall'account»).
+
+- **Cosa dice la schermata, prima di chiedere qualsiasi cosa**: cosa si cancella (accesso e dati raccolti dall'app), **cosa resta e perché** (contratti, pagamenti, ricevute, ordini, presenze, certificati, scheda del club: obblighi contabili e fiscali), e che **chi torna con la stessa email ritrova la stessa scheda e non può riattivare la settimana di prova**.
+- **L'abbonamento non si disdice.** Se ce n'è uno attivo (`contratti_attivi` > 0, dalla funzione) un avviso lo dice e rimanda a «Gestisci abbonamento»; la casella di conferma lo ripete.
+- **Due conferme**: la casella «Ho capito cosa si cancella e cosa resta» e **scrivere ELIMINA** (stessa parola in inglese; la controlla anche la funzione). Il pulsante resta spento finché non ci sono entrambe.
+- **Dopo il sì** si esce come per «Esci» (`esciDalLaboratorio`: niente di suo resta sul dispositivo, push compresi) e si torna all'ingresso. Se la funzione risponde che i dati sono andati ma l'accesso no (502), la persona legge l'errore e riprova (la seconda volta non c'è più niente da cancellare).
+- **In vista cliente** la schermata dice che l'account lo elimina solo la persona e non chiama la funzione (e la funzione, comunque, lo vieta).
+- **Provato**: `npx tsc --noEmit` senza errori nuovi (46 di base). **Non guardata renderizzata** (390 e 1280 px, chiaro e scuro, inglese), **né provata con un account vero**: va fatto con un account di prova (registrazione con un'email nuova, qualche dato, «Elimina account», poi rientro con la stessa email e controllo che la scheda sia la stessa e la prova non si riattivi).
