@@ -1,3 +1,4 @@
+import { router } from 'expo-router'
 import { useCallback, useEffect, useState } from 'react'
 import { Linking, StyleSheet, Text, View } from 'react-native'
 
@@ -384,6 +385,18 @@ export function ProfiloContenuto({ onAnagrafica }: { /** La Home lo usa per la t
             <SceltaLingua />
           </Carta>
           <PulsanteEsci email={dati.email} testo={t('Esci dall’account', 'Sign out')} />
+          {/* Elimina account (02/11/2026; Apple 5.1.1(v) e Google Play): anonimizzazione, i registri del club restano. Vedi account/EliminaAccount. */}
+          <Carta style={{ paddingVertical: spazio.due }}>
+            <Riga
+              prima
+              icona="cestino"
+              tono="neutro"
+              titolo={t('Elimina account', 'Delete account')}
+              sotto={t('Chiude l’accesso e cancella i dati che hai scritto nell’app. Contratti e pagamenti restano.', 'Closes your login and deletes the data you entered in the app. Contracts and payments stay on record.')}
+              stileTitolo={{ fontSize: 14, fontFamily: F.bold, color: p.testo }}
+              onPress={() => router.push('/elimina-account' as never)}
+            />
+          </Carta>
         </Sezione>
       </Entra>
 
