@@ -192,7 +192,7 @@ function riquadroCertificato(area: AreaTrovata): VoceRiquadro {
     valore: s.testo,
     nota: [chi, quando, s.proroga ? t(`proroga fino al ${dataBreve(s.proroga.fine)}`, `extension until ${dataBreve(s.proroga.fine)}`) : null].filter(Boolean).join(' · '),
     allerta: s.proroga ? 'attenzione' : s.tono === 'errore' ? 'errore' : s.daConsegnare || s.tono === 'attenzione' ? 'attenzione' : undefined,
-    tag: s.proroga ? { testo: t('Proroga concessa', 'Extension granted'), tono: 'ok' } : undefined,
+    tag: s.proroga ? { testo: t('Proroga', 'Extension'), tono: 'ok' } : undefined,
   }
 }
 
