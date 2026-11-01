@@ -6,7 +6,7 @@ import { t } from '@/lib/lingua'
 import { spazio } from '@/theme'
 
 import { Icona } from '../ui/Icona'
-import { Cerchi, Grappolo } from './Emoji'
+import { Cerchi, Grappolo } from './Illustrazione'
 import { Entra, Sezione } from '../ui/kit'
 import { F, usePalette } from '../ui/tema'
 import { Tocco } from '../ui/Tocco'
@@ -44,7 +44,7 @@ function Tessera({ tema }: { tema: Tema }) {
       <LinearGradient colors={tema.colori} start={{ x: 0, y: 0 }} end={{ x: 0.55, y: 1 }} style={[stili.tessera, { boxShadow: '0 10px 22px rgba(0,0,0,0.16)' }]}>
         <Cerchi />
         <View pointerEvents="none" style={stili.grappolo}>
-          <Grappolo emoji={tema.emoji} scala={0.62} />
+          <Grappolo icone={tema.icone} scala={0.62} />
         </View>
         <View style={stili.bollo}>
           <Icona nome={tema.icona} size={19} colore="#fff" />

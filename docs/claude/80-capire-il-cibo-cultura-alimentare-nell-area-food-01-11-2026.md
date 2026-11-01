@@ -14,12 +14,11 @@ Idea di Maurizio, da un'app di allenamento vista per caso (sezione «Nutrizione�
 - **I disegni** (`Visual.tsx`, viste e barre, niente immagini): kcal per grammo, fasce dei LARN (riusa `LARN` di `conti.ts`), proteine per
   100 g, l'altalena del bilancio (si tocca), dove va l'energia, linea del tempo prima/dopo, test del colore delle urine (si tocca),
   gruppi NOVA. Colori dei macros uguali a quelli del diario (`COLORE_MACRO`).
-- **Illustrazioni** (`Emoji.tsx`, richiesta di Maurizio: «icone o foto, molto figa»): emoji a colori, non foto. Hanno il disegno del
-  sistema su ogni telefono e sul web, non pesano e non hanno diritti da pagare. Tre per tema (`emoji` in `temi.ts`) in un grappolo
-  nell'angolo di tessera e apertura (`Grappolo`), su cerchi chiari (`Cerchi`); più bolle colorate negli elenchi (`Bolla`), emoji nelle
-  barre, nell'altalena, nella linea del tempo, nelle fonti di proteine e nei gruppi NOVA. Se un giorno ci sono foto del club o del
-  ristorante convenzionato, si mettono al posto del grappolo. Le emoji più nuove possono non comparire su telefoni vecchi: usate solo
-  quelle comuni.
+- **Illustrazioni** (`Illustrazione.tsx`, richiesta di Maurizio: «molto figa», poi «non utilizzare emoji»): **niente emoji e niente
+  foto**, solo le icone dell'app (SF Symbols e Material Symbols di `ui/Icona.tsx`), che seguono il tema e non dipendono dal telefono.
+  Tre icone per tema (`icone` in `temi.ts`) in un grappolo nell'angolo di tessera e apertura (`Grappolo`), su cerchi chiari (`Cerchi`),
+  più bolle colorate negli elenchi, nelle barre, nell'altalena e nella linea del tempo (`Bolla`). **Non rimettere emoji.** Se un
+  giorno ci sono foto del club, si mettono al posto del grappolo.
 - **Disclaimer semplice in fondo a ogni lettura** (richiesta di Maurizio, al posto del riquadro «Cultura, non un piano»): «Questi sono
   consigli di base e non sostituiscono il piano di un nutrizionista», con le fonti in piccolo. Resta la regola di fondo, che vale qui come
   nel diario (`09-l-alimentazione-…`): **niente cifre «da raggiungere»** e nessuna frase che dica a una persona quanto deve mangiare.

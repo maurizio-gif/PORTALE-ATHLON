@@ -12,14 +12,14 @@ import { Carta, Entra, Tag } from '../ui/kit'
 import { Schermata } from '../ui/Schermata'
 import { F, ORTO, usePalette } from '../ui/tema'
 import { Tocco } from '../ui/Tocco'
-import { Bolla, Cerchi, Emoji, Grappolo } from './Emoji'
+import { Bolla, Cerchi, Grappolo } from './Illustrazione'
 import { COLORE_MACRO, TEMI, temaPer, type Blocco, type Tema } from './temi'
 import { Visual } from './Visual'
 
 // Una lettura di «Capire il cibo» (01/11/2026): l'apertura a colori con la frase da portarsi via, poi i blocchi di
 // `temi.ts` (testo, punti, un disegno che spiega, un «mito o realta'» da toccare), le fonti, e la lettura dopo.
 // Consigli di base, non un piano: in fondo a ogni lettura un disclaimer semplice lo dice (richiesta di Maurizio, 01/11/2026).
-// Le illustrazioni sono emoji (Emoji.tsx), le stesse della tessera in Food.
+// Le illustrazioni sono icone dell'app (Illustrazione.tsx), le stesse della tessera in Food. Niente emoji (richiesta di Maurizio).
 
 const INDIETRO = '/allenamento?area=food' as const
 
@@ -43,7 +43,7 @@ function Lettura({ tema }: { tema: Tema }) {
               <Icona nome="orologio" size={13} colore="#fff" />
               <Text style={stili.testoMinuti}>{t(`${tema.minuti} min di lettura`, `${tema.minuti} min read`)}</Text>
             </View>
-            <Grappolo emoji={tema.emoji} />
+            <Grappolo icone={tema.icone} />
           </View>
           <View style={{ gap: 6 }}>
             <Text style={stili.etichettaApertura}>{t('IN UNA RIGA', 'IN ONE LINE')}</Text>
@@ -106,7 +106,7 @@ function BloccoLettura({ blocco, tema, anima }: { blocco: Blocco; tema: Tema; an
           <View style={{ gap: spazio.tre }}>
             {blocco.voci.map((v) => (
               <View key={v.titolo} style={stili.punto}>
-                {v.emoji ? <Bolla emoji={v.emoji} colore={v.macro ? COLORE_MACRO[v.macro] : tema.accento} /> : <View style={[stili.pallino, { backgroundColor: tema.accento }]} />}
+                {v.icona ? <Bolla icona={v.icona} colore={v.macro ? COLORE_MACRO[v.macro] : tema.accento} /> : <View style={[stili.pallino, { backgroundColor: tema.accento }]} />}
                 <Text style={[stili.corpo, { color: p.testoSecondario, flex: 1 }]}>
                   <Text style={{ fontFamily: F.bold, color: p.testo }}>{v.titolo}. </Text>
                   {v.testo}
@@ -138,7 +138,7 @@ function Mito({ mito, realta }: { mito: string; realta: string }) {
       <View style={[stili.mito, { backgroundColor: p.carbone }]}>
         <View style={stili.testaMito}>
           <Tag testo={t('Mito o realtà?', 'Myth or reality?')} colore="#FF8A2B" />
-          <Emoji e={aperto ? '✅' : '🤔'} size={30} />
+          <Icona nome={aperto ? 'ok' : 'aiuto'} size={26} colore={aperto ? ORTO[0] : 'rgba(255,255,255,0.7)'} />
         </View>
         <Text style={[stili.testoMito, aperto && { opacity: 0.5, textDecorationLine: 'line-through', fontSize: 16, lineHeight: 22 }]}>«{mito}»</Text>
         {aperto ? (

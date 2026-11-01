@@ -20,7 +20,7 @@ export type Macro = 'proteine' | 'carboidrati' | 'grassi'
 
 export type Blocco =
   | { tipo: 'testo'; titolo?: string; testo: string }
-  | { tipo: 'punti'; titolo?: string; voci: { titolo: string; testo: string; macro?: Macro; emoji?: string }[] }
+  | { tipo: 'punti'; titolo?: string; voci: { titolo: string; testo: string; macro?: Macro; icona?: NomeIcona }[] }
   | { tipo: 'visual'; visual: NomeVisual; titolo?: string; didascalia?: string }
   | { tipo: 'mito'; mito: string; realta: string }
 
@@ -33,8 +33,8 @@ export type Tema = {
   sottotitolo: string
   minuti: number
   icona: NomeIcona
-  /** Tre illustrazioni (emoji) per la tessera e per l'apertura della lettura: la grande, la media, la piccola. */
-  emoji: readonly [string, string, string]
+  /** Tre icone per la tessera e per l'apertura della lettura: la grande, la media, la piccola. */
+  icone: readonly [NomeIcona, NomeIcona, NomeIcona]
   /** Il fondo della tessera e dell'apertura della lettura. */
   colori: readonly [string, string, string]
   /** Il colore dei grafici dentro la lettura (chiaro come l'arancio del club, mai quello di un fondo scuro). */
@@ -57,7 +57,7 @@ export const TEMI: Tema[] = [
     sottotitolo: t('Le tre famiglie di nutrienti che portano energia', 'The three families of nutrients that carry energy'),
     minuti: 3,
     icona: 'macros',
-    emoji: ['🥩', '🍚', '🥑'],
+    icone: ['macros', 'fulmine', 'goccia'],
     colori: FUOCO,
     accento: FUOCO[1],
     unaRiga: t(
@@ -69,9 +69,9 @@ export const TEMI: Tema[] = [
         tipo: 'punti',
         titolo: t('Chi fa cosa', 'Who does what'),
         voci: [
-          { macro: 'proteine', emoji: '🥩', titolo: t('Proteine', 'Protein'), testo: t('Mattoni per muscoli, enzimi e ormoni: servono a riparare e a costruire.', 'Building blocks for muscles, enzymes and hormones: they repair and build.') },
-          { macro: 'carboidrati', emoji: '🍚', titolo: t('Carboidrati', 'Carbs'), testo: t('Il carburante preferito di cervello e muscoli, soprattutto quando ti alleni.', 'The preferred fuel of the brain and muscles, especially when you train.') },
-          { macro: 'grassi', emoji: '🥑', titolo: t('Grassi', 'Fat'), testo: t('Riserva di energia, ormoni, pareti delle cellule e trasporto delle vitamine A, D, E e K.', 'Energy reserve, hormones, cell walls, and transport of vitamins A, D, E and K.') },
+          { macro: 'proteine', icona: 'peso', titolo: t('Proteine', 'Protein'), testo: t('Mattoni per muscoli, enzimi e ormoni: servono a riparare e a costruire.', 'Building blocks for muscles, enzymes and hormones: they repair and build.') },
+          { macro: 'carboidrati', icona: 'fulmine', titolo: t('Carboidrati', 'Carbs'), testo: t('Il carburante preferito di cervello e muscoli, soprattutto quando ti alleni.', 'The preferred fuel of the brain and muscles, especially when you train.') },
+          { macro: 'grassi', icona: 'goccia', titolo: t('Grassi', 'Fat'), testo: t('Riserva di energia, ormoni, pareti delle cellule e trasporto delle vitamine A, D, E e K.', 'Energy reserve, hormones, cell walls, and transport of vitamins A, D, E and K.') },
         ],
       },
       {
@@ -107,7 +107,7 @@ export const TEMI: Tema[] = [
     sottotitolo: t('Costruire e riparare, partendo dal piatto', 'Build and repair, starting from your plate'),
     minuti: 3,
     icona: 'piatto',
-    emoji: ['🍗', '🥚', '🐟'],
+    icone: ['peso', 'piatto', 'cuore'],
     colori: ROSSO,
     accento: ROSSO[1],
     unaRiga: t(
@@ -133,8 +133,8 @@ export const TEMI: Tema[] = [
         tipo: 'punti',
         titolo: t('Come distribuirle', 'How to spread them'),
         voci: [
-          { emoji: '🍽️', titolo: t('Un po’ a ogni pasto', 'A little at every meal'), testo: t('Si usano meglio distribuite nella giornata che tutte a cena. Negli studi su chi si allena si parla di circa 20–40 g per pasto.', 'They’re used better when spread through the day than all at dinner. Studies on people who train talk about roughly 20–40 g per meal.') },
-          { emoji: '🌱', titolo: t('Fonti diverse', 'Different sources'), testo: t('Carne, pesce, uova e latticini hanno tutti gli amminoacidi essenziali. I legumi, la soia, i cereali e la frutta a guscio si completano a vicenda nell’arco della giornata.', 'Meat, fish, eggs and dairy have all the essential amino acids. Legumes, soy, grains and nuts complement each other over the course of the day.') },
+          { icona: 'piatto', titolo: t('Un po’ a ogni pasto', 'A little at every meal'), testo: t('Si usano meglio distribuite nella giornata che tutte a cena. Negli studi su chi si allena si parla di circa 20–40 g per pasto.', 'They’re used better when spread through the day than all at dinner. Studies on people who train talk about roughly 20–40 g per meal.') },
+          { icona: 'foglia', titolo: t('Fonti diverse', 'Different sources'), testo: t('Carne, pesce, uova e latticini hanno tutti gli amminoacidi essenziali. I legumi, la soia, i cereali e la frutta a guscio si completano a vicenda nell’arco della giornata.', 'Meat, fish, eggs and dairy have all the essential amino acids. Legumes, soy, grains and nuts complement each other over the course of the day.') },
         ],
       },
       {
@@ -157,7 +157,7 @@ export const TEMI: Tema[] = [
     sottotitolo: t('Quanta energia entra, quanta ne esce', 'How much energy comes in, how much goes out'),
     minuti: 3,
     icona: 'fiamma',
-    emoji: ['⚖️', '🔥', '🍽️'],
+    icone: ['grafico', 'fiamma', 'piatto'],
     colori: VIOLA,
     accento: VIOLA[1],
     unaRiga: t(
@@ -196,7 +196,7 @@ export const TEMI: Tema[] = [
     sottotitolo: t('Il momento conta, ma meno del totale', 'Timing matters, but less than the total'),
     minuti: 2,
     icona: 'cronometro',
-    emoji: ['🍌', '🏋️', '🥛'],
+    icone: ['cronometro', 'fulmine', 'cuore'],
     colori: NOTTE,
     accento: FUOCO[1],
     unaRiga: t(
@@ -231,7 +231,7 @@ export const TEMI: Tema[] = [
     sottotitolo: t('Acqua ed elettroliti, prima, durante e dopo', 'Water and electrolytes, before, during and after'),
     minuti: 2,
     icona: 'goccia',
-    emoji: ['💧', '🍋', '🥤'],
+    icone: ['goccia', 'sole', 'passi'],
     colori: MARE,
     accento: MARE[1],
     unaRiga: t(
@@ -258,9 +258,9 @@ export const TEMI: Tema[] = [
         tipo: 'punti',
         titolo: t('Prima, durante, dopo', 'Before, during, after'),
         voci: [
-          { emoji: '🥛', titolo: t('Prima', 'Before'), testo: t('Qualche bicchiere nelle due ore che precedono, senza arrivare già assetato.', 'A few glasses in the two hours before, without already being thirsty.') },
-          { emoji: '🏊', titolo: t('Durante', 'During'), testo: t('Piccoli sorsi regolari, senza aspettare di avere molta sete: in vasca e nei giorni caldi si suda più di quanto sembri.', 'Small regular sips, without waiting until you’re very thirsty: in the pool and on hot days you sweat more than you think.') },
-          { emoji: '🍌', titolo: t('Dopo', 'After'), testo: t('Rimetti quello che hai perso: acqua, e un pasto con un po’ di sale se hai sudato molto.', 'Put back what you lost: water, and a meal with a little salt if you sweated a lot.') },
+          { icona: 'goccia', titolo: t('Prima', 'Before'), testo: t('Qualche bicchiere nelle due ore che precedono, senza arrivare già assetato.', 'A few glasses in the two hours before, without already being thirsty.') },
+          { icona: 'passi', titolo: t('Durante', 'During'), testo: t('Piccoli sorsi regolari, senza aspettare di avere molta sete: in vasca e nei giorni caldi si suda più di quanto sembri.', 'Small regular sips, without waiting until you’re very thirsty: in the pool and on hot days you sweat more than you think.') },
+          { icona: 'cuore', titolo: t('Dopo', 'After'), testo: t('Rimetti quello che hai perso: acqua, e un pasto con un po’ di sale se hai sudato molto.', 'Put back what you lost: water, and a meal with a little salt if you sweated a lot.') },
         ],
       },
       {
@@ -284,7 +284,7 @@ export const TEMI: Tema[] = [
     sottotitolo: t('Cibo vero e cibo ultra-trasformato', 'Real food and ultra-processed food'),
     minuti: 3,
     icona: 'foglia',
-    emoji: ['🥦', '🍎', '🥕'],
+    icone: ['foglia', 'scudo', 'piatto'],
     colori: ORTO,
     accento: ORTO[1],
     unaRiga: t(
@@ -307,20 +307,20 @@ export const TEMI: Tema[] = [
         tipo: 'punti',
         titolo: t('Cosa mettere al centro del piatto', 'What to put at the center of your plate'),
         voci: [
-          { emoji: '🥗', titolo: t('Verdura e frutta', 'Vegetables and fruit'), testo: t('Ogni giorno, di colori diversi.', 'Every day, in different colors.') },
-          { emoji: '🌾', titolo: t('Cereali integrali', 'Whole grains'), testo: t('Avena, riso, farro, pane integrale.', 'Oats, rice, spelt, whole-grain bread.') },
-          { emoji: '🐟', titolo: t('Proteine di qualità', 'Quality protein'), testo: t('Pesce, uova, legumi, carni magre.', 'Fish, eggs, legumes, lean meats.') },
-          { emoji: '🥜', titolo: t('Grassi buoni', 'Good fats'), testo: t('Olio extravergine d’oliva, frutta a guscio, pesce azzurro.', 'Extra virgin olive oil, nuts, oily fish.') },
-          { emoji: '🧀', titolo: t('Latticini', 'Dairy'), testo: t('Yogurt, ricotta, formaggi, se li tolleri.', 'Yogurt, ricotta, cheese, if you tolerate them.') },
+          { icona: 'foglia', titolo: t('Verdura e frutta', 'Vegetables and fruit'), testo: t('Ogni giorno, di colori diversi.', 'Every day, in different colors.') },
+          { icona: 'fulmine', titolo: t('Cereali integrali', 'Whole grains'), testo: t('Avena, riso, farro, pane integrale.', 'Oats, rice, spelt, whole-grain bread.') },
+          { icona: 'peso', titolo: t('Proteine di qualità', 'Quality protein'), testo: t('Pesce, uova, legumi, carni magre.', 'Fish, eggs, legumes, lean meats.') },
+          { icona: 'cuore', titolo: t('Grassi buoni', 'Good fats'), testo: t('Olio extravergine d’oliva, frutta a guscio, pesce azzurro.', 'Extra virgin olive oil, nuts, oily fish.') },
+          { icona: 'scudo', titolo: t('Latticini', 'Dairy'), testo: t('Yogurt, ricotta, formaggi, se li tolleri.', 'Yogurt, ricotta, cheese, if you tolerate them.') },
         ],
       },
       {
         tipo: 'punti',
         titolo: t('Qualche trucco pratico', 'A few practical tricks'),
         voci: [
-          { emoji: '📋', titolo: t('Lista degli ingredienti corta', 'Short ingredient list'), testo: t('Spesso è un buon segno.', 'It’s often a good sign.') },
-          { emoji: '🍱', titolo: t('Cucinare in anticipo', 'Cook ahead'), testo: t('Preparare i pasti per qualche giorno fa risparmiare tempo e rende più facile scegliere bene.', 'Preparing meals for a few days saves time and makes it easier to choose well.') },
-          { emoji: '⚖️', titolo: t('Una regola pratica: 80/20', 'A rule of thumb: 80/20'), testo: t('Se la maggior parte delle scelte è di qualità, il resto può essere piacere, senza sensi di colpa. Non è una legge: è un modo per non farne una battaglia.', 'If most of your choices are quality ones, the rest can be pleasure, without guilt. It’s not a law: it’s a way of not turning it into a battle.') },
+          { icona: 'elenco', titolo: t('Lista degli ingredienti corta', 'Short ingredient list'), testo: t('Spesso è un buon segno.', 'It’s often a good sign.') },
+          { icona: 'piatto', titolo: t('Cucinare in anticipo', 'Cook ahead'), testo: t('Preparare i pasti per qualche giorno fa risparmiare tempo e rende più facile scegliere bene.', 'Preparing meals for a few days saves time and makes it easier to choose well.') },
+          { icona: 'grafico', titolo: t('Una regola pratica: 80/20', 'A rule of thumb: 80/20'), testo: t('Se la maggior parte delle scelte è di qualità, il resto può essere piacere, senza sensi di colpa. Non è una legge: è un modo per non farne una battaglia.', 'If most of your choices are quality ones, the rest can be pleasure, without guilt. It’s not a law: it’s a way of not turning it into a battle.') },
         ],
       },
       {
