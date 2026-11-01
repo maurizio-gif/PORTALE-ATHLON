@@ -51,10 +51,12 @@ export function useLivelli(fit: DatiFit, disp: Dispositivi, punteggio: Punteggio
     if (!punteggio || !fit.sessioni) return null
     const oggi = oggiRoma()
     const food = fit.food?.consenso && fit.diario && fit.food.maggiorenne && !fit.food.profilo?.nascondi_numeri ? { diario: fit.diario, senzaColazione: fit.food.profilo?.questionario.colazione === 'mai' } : null
-    const giorni = disp.stato?.ok && disp.stato.consenso && disp.stato.maggiorenne ? (disp.dati?.giorni ?? null) : null
+    const conRecover = !!(disp.stato?.ok && disp.stato.consenso && disp.stato.maggiorenne)
+    const giorni = conRecover ? (disp.dati?.giorni ?? null) : null
+    const recupero = conRecover ? (disp.dati?.recupero ?? null) : null
     return {
-      finite: lunediFiniti(oggi).map((l) => puntiSettimana(l, fit.sessioni!, food, giorni)),
-      inCorso: puntiSettimana(lunediDi(oggi), fit.sessioni, food, giorni),
+      finite: lunediFiniti(oggi).map((l) => puntiSettimana(l, fit.sessioni!, food, giorni, recupero)),
+      inCorso: puntiSettimana(lunediDi(oggi), fit.sessioni, food, giorni, recupero),
     }
   }, [punteggio, fit.sessioni, fit.food, fit.diario, disp.stato, disp.dati])
 

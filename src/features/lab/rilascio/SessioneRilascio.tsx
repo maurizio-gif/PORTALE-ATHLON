@@ -8,6 +8,8 @@ import { t } from '@/lib/lingua'
 import { spazio } from '@/theme'
 
 import { Cerchi } from '../cultura/Illustrazione'
+import { useDispositivi, type Dispositivi } from '../dispositivi/useDispositivi'
+import { RegistraRecupero } from '../fit/RegistraRecupero'
 import { Corsa } from '../fit/SessioneMobilita'
 import { minutiDaSecondi, vociZone, type ZonaFastidio } from '../fit/mobilita'
 import { MediaEsercizio } from '../schede/MediaEsercizio'
@@ -23,8 +25,8 @@ import { componiSessione, MINUTI_RILASCIO, nomeFocusRilascio, vociFocusRilascio,
 // il tempo e, se serve, un fastidio (che toglie gli esercizi che lo caricano, e non si conserva); gli esercizi stanno in `esercizi.ts` e la sessione si
 // compone qui, senza chiamare nessuna funzione. Si fanno con la `Corsa` della mobilita' (stesso cronometro, stesse pause).
 // **I video non ci sono ancora**: al loro posto un segnaposto «Video in arrivo», esercizio per esercizio (vedi `esercizi.ts` per come si sostituisce).
-// **Non somma i minuti a nessuna abitudine**: l'abitudine «Mobilita'» e' del server (catalogo di APP-ATHLON) e il rilascio e' un'altra cosa; se un giorno
-// il club vuole contarlo si aggiunge li'. Descrive e propone, non cura: chi ha dolore o un problema di salute chiede al medico o al fisioterapista.
+// **Non somma i minuti a nessuna abitudine** (l'abitudine «Mobilita'» e' del server e il rilascio e' un'altra cosa), ma dal 02/11/2026 **i minuti vanno al punteggio
+// di Recover** a fine sessione (`RegistraRecupero`). Descrive e propone, non cura: chi ha dolore o un problema di salute chiede al medico o al fisioterapista.
 
 type Fase = 'scelta' | 'corsa' | 'fine'
 
@@ -33,6 +35,7 @@ const CORNICE = { width: '100%' as const, aspectRatio: 16 / 9, borderRadius: 16 
 export function SchermataRilascio() {
   const p = usePalette()
   const vista = !!vistaCorrente()
+  const disp = useDispositivi()
   const [fase, setFase] = useState<Fase>('scelta')
   const [focus, setFocus] = useState<FocusRilascio>('tutto')
   const [minuti, setMinuti] = useState<number>(10)
@@ -153,7 +156,7 @@ export function SchermataRilascio() {
           }}
         />
       ) : sessione ? (
-        <Fine sessione={sessione} secondi={fatti} onUnaltra={unAltra} onRifai={() => setFase('scelta')} />
+        <Fine sessione={sessione} secondi={fatti} disp={disp} onUnaltra={unAltra} onRifai={() => setFase('scelta')} />
       ) : null}
     </Schermata>
   )
@@ -202,7 +205,7 @@ function DettagliPasso({ e }: { e: PassoRilascio }) {
 
 // ---------------------------------------------------------------------------------------------------------------------------------
 
-function Fine({ sessione, secondi, onUnaltra, onRifai }: { sessione: SessioneRilascio; secondi: number; onUnaltra: () => void; onRifai: () => void }) {
+function Fine({ sessione, secondi, disp, onUnaltra, onRifai }: { sessione: SessioneRilascio; secondi: number; disp: Dispositivi; onUnaltra: () => void; onRifai: () => void }) {
   const p = usePalette()
   const minuti = minutiDaSecondi(secondi)
   return (
@@ -226,6 +229,8 @@ function Fine({ sessione, secondi, onUnaltra, onRifai }: { sessione: SessioneRil
           )}
         </Text>
       </Carta>
+
+      <RegistraRecupero tipo="rilascio" minuti={minuti} disp={disp} />
 
       <Pulsante testo={t('Ora un po’ di mobilità', 'Now a little mobility')} icona="mobilita" onPress={() => router.push('/allenamento/mobilita')} />
       <Pulsante testo={t('Un’altra sessione', 'Another session')} variante="secondario" onPress={onUnaltra} />

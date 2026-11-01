@@ -119,3 +119,4 @@ chiamata diretta al gestionale. Esempio: la sezione Prodotti usa l'azione `prodo
 - [«Foam roller»: la sessione di rilascio in Recover, con i video ancora da girare (01/11/2026)](docs/claude/81-foam-roller-rilascio-miofasciale-in-recover-01-11-2026.md) · 4 KB
 - [Recover: il sonno in una carta chiusa, con dentro inserimento, ultima notte e ultimi sette giorni (01/11/2026)](docs/claude/82-recover-il-sonno-in-una-carta-chiusa-01-11-2026.md) · 2 KB
 - [Il respiro guidato: una pausa di 1–5 minuti in Recover, solo animazione (01/11/2026)](docs/claude/84-il-respiro-guidato-una-pausa-in-recover-01-11-2026.md) · 3 KB
+- [Mobilità e foam roller nel punteggio di Recover: una quota piccola, che non spinge (02/11/2026)](docs/claude/83-mobilita-e-foam-roller-nel-punteggio-di-recover-02-11-2026.md) · 4 KB

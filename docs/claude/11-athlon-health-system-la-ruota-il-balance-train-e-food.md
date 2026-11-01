@@ -96,13 +96,15 @@ l'allenamento, l'alimentazione e il recupero dell'adulto in un posto solo. Nel c
   senza il conteggio; dove Food e Relax non esistono (vista cliente, minorenni) la coda «e Food e Relax se li usi» non compare. **Solo sulla carta di Fit**, non sulla
   schermata del dettaglio, che ha già «Come si calcola». Chi non ha ancora niente di registrato legge sotto i pallini «Ancora nessuna lezione o allenamento registrato:
   dal primo, il punteggio comincia a salire» (`fraseTrain`, prima ripeteva quello che ora dice la riga in cima).
-- **Poi l'introduzione, come seconda carta** (`fit/Intro.tsx`; 24/10/2026, richiesta di Maurizio: la descrizione dell'Athlon Health System viene subito
-  dopo il punteggio): il benessere come equilibrio di allenamento giusto (Train), buona
-  alimentazione (Food) e recupero (Relax: sonno e giorni di riposo, senza una sezione sua), cosa fa il Balance e, in un pannello che si apre, come leggere i
-  numeri (`ComeLeggere` in `fit/Balance.tsx`, lo stesso testo in fondo alla schermata di Balance). **L'ordine su Fit** (`schede/Schede.tsx`) è: ruota, punteggio, «Il tuo mese» e «La tua settimana» (quando ci sono),
-  introduzione, «Il tuo corpo», «I tuoi dispositivi», **«Le tue abitudini» (spostata sotto i dispositivi il 01/11/2026, richiesta di Maurizio: prima stava sotto il punteggio)**;
-  **il Balance non è più qui: dal 01/11/2026 (richiesta di Maurizio) sta nell'area Food**, subito dopo «Oggi» (`fit/Food.tsx`).
-  Su schermo largo (da 900 px) l'introduzione sta a sinistra e, a destra, corpo, dispositivi e abitudini in colonna.
+- **L'introduzione («Il benessere è un equilibrio») NON c'è più** (01/11/2026, richiesta di Maurizio: «ripete quello che dice l'Athlon Health Score, e ora c'è tanta roba nell'app»). Era la seconda carta di Fit
+  (`fit/Intro.tsx`, 24/10/2026: Train, Food e Recover, l'Athlon Health Score, il Balance e il pannello «Come leggere i numeri»); **il file è stato tolto**. **La sua sostanza sta nella schermata dell'Athlon Health Score**
+  (`fit/Punteggio.tsx`, sezione «I tre pilastri»): la frase «Il benessere è un equilibrio: viene da tre cose insieme, e nessuna basta da sola» e, in ogni carta di pilastro, cosa c'è dentro
+  (`DI_COSA_SI_TRATTA`: Train i piani, il registro dei pesi, il test dei massimali e le calorie che consumi; Food il diario, la foto del piatto e i consigli, dopo l'informativa; Recover il sonno, i giorni di riposo, la mobilità
+  e il foam roller). **Il Balance non si nomina più** nell'introduzione, nel punteggio e nel dettaglio dell'allenamento (`fit/Training.tsx`: tolto il tasto «Il Balance», resta «Il contatore») né nella carta «Da compilare»
+  (ora dice solo «le calorie restano chiuse»): sta nell'area Food (`fit/Food.tsx`) e nella sua schermata `/allenamento/balance`, che ha ancora «Come leggere i numeri» (`ComeLeggere` in `fit/Balance.tsx`).
+  Resta il Balance solo nell'informativa dei dati del corpo (`dati/informativaCorpo.ts`), perché usa quei dati: è un testo legale, non l'ho toccato.
+  **L'ordine su Fit** (`schede/Schede.tsx`) è: ruota, punteggio, «Il tuo mese» e «La tua settimana» (quando ci sono), «Il tuo corpo», «I tuoi dispositivi», **«Le tue abitudini» (spostata sotto i dispositivi il 01/11/2026)**; poi le aree.
+  Su schermo largo (da 900 px): a sinistra corpo e dispositivi, a destra le abitudini.
 - **Poi «Il tuo corpo»** (`fit/Corpo.tsx`, dettaglio in `/allenamento/misure`). **Su Fit si presenta compresso** (24/10/2026, richiesta di Maurizio, come il Balance):
   il titolo e una riga che dice cosa c'è di là («Qui trovi le tue misure: aggiornale e consulta come cambiano nel tempo»); **le cifre compaiono toccando**
   (la carta si apre e si chiude, la freccia gira) e, aperta, c'è il tasto «Apri il dettaglio». **Senza misure non si apre: è una call to action** (24/10/2026, richiesta
