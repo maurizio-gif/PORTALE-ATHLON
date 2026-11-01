@@ -8,7 +8,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { chiediCodice, entra } from '@/api/lab'
 import { emailValida } from '@/api/richieste'
 import { registrazioneAperta } from '@/api/registrazione'
-import { PREZZO_PROVA, PRIVACY_URL } from '@/lib/guestPass'
+import { PRIVACY_URL } from '@/lib/guestPass'
 import { t } from '@/lib/lingua'
 import { spazio } from '@/theme'
 
@@ -203,14 +203,11 @@ export function Accesso() {
                       </View>
                     ))}
                   </View>
-                  {/* La prova (Guest Pass, 02/11/2026, richiesta di Maurizio): una riga sola, senza dettagli: serve a invogliare a registrarsi, il resto lo scopre dentro. Il prezzo
-                      e' PREZZO_PROVA (lib/guestPass). Niente «per chi non e' socio»: chi non ha diritto alla prova lo scopre quando prova ad attivarla. */}
+                  {/* La prova (Guest Pass, 02/11/2026, richiesta di Maurizio): una riga sola, senza dettagli e senza prezzo: serve a invogliare a registrarsi, il resto lo scopre dentro.
+                      Niente «per chi non e' socio»: chi non ha diritto alla prova lo scopre quando prova ad attivarla. */}
                   <View style={stili.invitoProva}>
                     <Bollino icona="regalo" tono="accento" size={30} pieno />
-                    <Text style={[stili.nota, { color: p.testo, flex: 1, fontSize: 14.5 }]}>
-                      <Text style={{ fontFamily: F.extra }}>{t('Prova il club per una settimana', 'Try the club for a week')}</Text>
-                      {t(` a ${PREZZO_PROVA} €`, ` for ${PREZZO_PROVA} €`)}
-                    </Text>
+                    <Text style={[stili.nota, { color: p.testo, flex: 1, fontSize: 14.5, fontFamily: F.extra }]}>{t('Prova il club per una settimana', 'Try the club for a week')}</Text>
                   </View>
                   <Pulsante testo={t('Registrati', 'Sign up')} icona="avanti" onPress={mandaCodice} inCorso={attesa} />
                   <Text style={[stili.nota, { color: p.testoSecondario, fontSize: 12.5 }]}>
