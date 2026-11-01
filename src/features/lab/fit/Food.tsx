@@ -8,6 +8,7 @@ import { spazio } from '@/theme'
 
 import { oggiRoma, somma } from '../alimentazione/conti'
 import { CulturaCibo } from '../cultura/CulturaCibo'
+import { CartaBalance } from './Balance'
 import { Icona, type NomeIcona } from '../ui/Icona'
 import { Carta, Entra, Messaggio, Pulsante, SchedeInArrivo } from '../ui/kit'
 import { F, ORTO, usePalette } from '../ui/tema'
@@ -18,6 +19,10 @@ import type { DatiFit } from './useFit'
 // racconta cosa c'e' dentro e porta all'informativa (Vetrina.tsx, nel diario);
 // dopo, il riassunto di oggi e i comandi per scrivere un pasto o fotografarlo.
 // Il diario vero resta nella sua schermata (/allenamento/alimentazione).
+//
+// **Il Balance sta qui** (01/11/2026, richiesta di Maurizio: «spostalo nella sezione Food»), subito dopo «Oggi»: prima era sopra le
+// tre aree di Fit. Si vede in ogni stato (anche senza consenso, per i minorenni e nella vista cliente) perche' la carta sa gia'
+// cosa mostrare: senza diario, solo il consumo. Dentro Food il tasto «Vai a Food» non serve, quindi non lo si passa.
 
 const apriDiario = () => router.push('/allenamento/alimentazione')
 const apriFoto = () => router.push({ pathname: '/allenamento/alimentazione', params: { foto: '1' } })
@@ -31,21 +36,39 @@ const COSE: { icona: NomeIcona; testo: string }[] = [
 export function AreaFood({ dati }: { dati: DatiFit }) {
   const p = usePalette()
   const f = dati.food
+  const balance = (
+    <Entra indice={1}>
+      <CartaBalance dati={dati} />
+    </Entra>
+  )
 
   if (dati.vista) {
     return (
-      <Messaggio tono="attenzione" titolo={t('Non visibile nella vista cliente', 'Not visible in client view')}>
-        {t('Food contiene dati sulla salute: lo vede solo il socio, dalla sua app.', 'Food contains health data: only the member can see it, from their own app.')}
-      </Messaggio>
+      <View style={{ gap: spazio.quattro }}>
+        <Messaggio tono="attenzione" titolo={t('Non visibile nella vista cliente', 'Not visible in client view')}>
+          {t('Food contiene dati sulla salute: lo vede solo il socio, dalla sua app.', 'Food contains health data: only the member can see it, from their own app.')}
+        </Messaggio>
+        {balance}
+      </View>
     )
   }
-  if (!f) return dati.foodErrore ? <Messaggio>{dati.foodErrore}</Messaggio> : <SchedeInArrivo quante={1} />
+  if (!f) {
+    return (
+      <View style={{ gap: spazio.quattro }}>
+        {dati.foodErrore ? <Messaggio>{dati.foodErrore}</Messaggio> : <SchedeInArrivo quante={1} />}
+        {balance}
+      </View>
+    )
+  }
   if (!f.maggiorenne) {
     return (
-      <Carta style={{ gap: spazio.due }}>
-        <Text style={[stili.titoletto, { color: p.testo }]}>{t('Food è per i maggiorenni', 'Food is for adults only')}</Text>
-        <Text style={[stili.nota, { color: p.testoSecondario }]}>{t('Se nella tua scheda del club manca la data di nascita, chiedi al desk di aggiungerla.', 'If your date of birth is missing from your club profile, ask the front desk to add it.')}</Text>
-      </Carta>
+      <View style={{ gap: spazio.quattro }}>
+        <Carta style={{ gap: spazio.due }}>
+          <Text style={[stili.titoletto, { color: p.testo }]}>{t('Food è per i maggiorenni', 'Food is for adults only')}</Text>
+          <Text style={[stili.nota, { color: p.testoSecondario }]}>{t('Se nella tua scheda del club manca la data di nascita, chiedi al desk di aggiungerla.', 'If your date of birth is missing from your club profile, ask the front desk to add it.')}</Text>
+        </Carta>
+        {balance}
+      </View>
     )
   }
 
@@ -74,7 +97,8 @@ export function AreaFood({ dati }: { dati: DatiFit }) {
             </LinearGradient>
           </Tocco>
         </Entra>
-        <CulturaCibo indiceBase={1} />
+        {balance}
+        <CulturaCibo indiceBase={2} />
       </View>
     )
   }
@@ -87,7 +111,8 @@ export function AreaFood({ dati }: { dati: DatiFit }) {
           <Text style={[stili.nota, { color: p.testoSecondario }]}>{t('Nove domande sulle tue abitudini: servono a scegliere i consigli per te.', 'Nine questions about your habits: they help us pick tips for you.')}</Text>
           <Pulsante testo={t('Rispondi', 'Answer')} icona="avanti" onPress={apriDiario} />
         </Carta>
-        <CulturaCibo />
+        {balance}
+        <CulturaCibo indiceBase={2} />
       </View>
     )
   }
@@ -133,7 +158,8 @@ export function AreaFood({ dati }: { dati: DatiFit }) {
           {t('Nel diario trovi anche i nutrienti del giorno, i consigli per te e le impostazioni: il questionario, i numeri nascosti e la revoca del consenso.', 'In the diary you’ll also find the day’s nutrients, your tips and the settings: the questionnaire, hidden numbers and withdrawing consent.')}
         </Text>
       </View>
-      <CulturaCibo indiceBase={1} />
+      {balance}
+      <CulturaCibo indiceBase={2} />
     </View>
   )
 }

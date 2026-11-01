@@ -10,7 +10,6 @@ import { spazio } from '@/theme'
 
 import { relaxAperto, useDispositivi, type Dispositivi } from '../dispositivi/useDispositivi'
 import { CartaAbitudini } from '../fit/Abitudini'
-import { CartaBalance } from '../fit/Balance'
 import { CartaCorpo } from '../fit/Corpo'
 import { AggiungiAllenamento } from '../fit/AggiungiAllenamento'
 import { CartaMovimento } from '../fit/CartaMovimento'
@@ -374,7 +373,8 @@ function ContenutoHub({ largo, corpoInCima }: { largo: boolean; /** La carta «D
         <CartaAbitudini disp={disp} />
       </Entra>
       {/* Dopo il punteggio, nell'ordine: cos'e' l'Athlon Health System (24/10/2026, richiesta di Maurizio: la descrizione e' la seconda
-          carta), «Il tuo corpo» compresso e il Balance. Su schermo largo la descrizione sta a sinistra e, a destra, corpo e Balance in colonna. */}
+          carta), «Il tuo corpo» compresso e i dispositivi. Il Balance non e' piu' qui: sta nell'area Food (01/11/2026, richiesta di
+          Maurizio). Su schermo largo la descrizione sta a sinistra e, a destra, corpo e dispositivi in colonna. */}
       {largo ? (
         <View style={stili.fila3}>
           <Entra indice={0} style={{ flex: 1 }}>
@@ -388,9 +388,6 @@ function ContenutoHub({ largo, corpoInCima }: { largo: boolean; /** La carta «D
             )}
             <Entra indice={1}>
               <CartaDispositivi disp={disp} />
-            </Entra>
-            <Entra indice={1}>
-              <CartaBalance dati={fit} onAttivaFood={area === 'food' ? undefined : () => scegli('food')} />
             </Entra>
           </View>
         </View>
@@ -406,9 +403,6 @@ function ContenutoHub({ largo, corpoInCima }: { largo: boolean; /** La carta «D
           )}
           <Entra indice={1}>
             <CartaDispositivi disp={disp} />
-          </Entra>
-          <Entra indice={1}>
-            <CartaBalance dati={fit} onAttivaFood={area === 'food' ? undefined : () => scegli('food')} />
           </Entra>
         </View>
       )}
