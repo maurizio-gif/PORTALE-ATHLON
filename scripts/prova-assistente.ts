@@ -14,6 +14,7 @@ import { DESTINAZIONI_ASSISTENTE, eDestinazioneAssistente, hrefAssistente, scher
 import { LettoreSse } from '../src/features/lab/assistente/sse'
 import { AZIONE_TEAM, MESSAGGIO_TEAM_MAX, teamDaAzione } from '../src/features/lab/assistente/teamDaChat'
 import { AZIONE_CHIAMATA, chiamataDaAzione } from '../src/features/lab/assistente/chiamataDaChat'
+import { AZIONE_CHIARISCI, DOMANDA_CHIARIMENTO_MAX, chiarimentoDaAzione } from '../src/features/lab/assistente/chiarimentoDaChat'
 
 let passi = 0
 const ok = (nome: string) => {
@@ -178,6 +179,23 @@ function rottaEsiste(pathname: string): boolean {
   assert.equal(eDestinazioneAssistente('prova'), true, 'la prova e una destinazione (la 32esima chiave, come nella funzione)')
   assert.equal(hrefAssistente('prova'), '/richiesta/guest-pass', 'porta alla pagina del Guest Pass, che con una sessione prosegue dentro l app')
   ok('prenota-chiamata: una carta nella chat, non una destinazione; prova: porta al Guest Pass')
+}
+
+{
+  // Il chiarimento (01/11/2026): «intendevi questo?», con un pulsante per opzione che manda una domanda completa. Non e' una destinazione: parla, non porta altrove.
+  assert.equal(AZIONE_CHIARISCI, 'chiarisci')
+  const a = { destinazione: 'chiarisci', parametri: { testo: 'Che lezioni di Aqua Fitness ci sono domani?' }, etichetta: 'Aqua Fitness' }
+  assert.deepEqual(chiarimentoDaAzione(a), { etichetta: 'Aqua Fitness', testo: 'Che lezioni di Aqua Fitness ci sono domani?' })
+  assert.deepEqual(chiarimentoDaAzione({ ...a, etichetta: '' }), { etichetta: 'Che lezioni di Aqua Fitness ci sono domani?'.slice(0, 40), testo: a.parametri.testo }, 'senza etichetta ce n e una di ripiego')
+  assert.deepEqual(chiarimentoDaAzione({ ...a, parametri: { testo: '  Che lezioni di yoga ci sono?  ' } })?.testo, 'Che lezioni di yoga ci sono?', 'ripulita ai capi')
+  assert.equal(chiarimentoDaAzione({ ...a, parametri: {} }), null, 'senza domanda non e un pulsante')
+  assert.equal(chiarimentoDaAzione({ ...a, parametri: { testo: '   ' } }), null)
+  assert.equal(chiarimentoDaAzione({ ...a, parametri: { testo: 'x'.repeat(DOMANDA_CHIARIMENTO_MAX + 1) } }), null, 'oltre il campo della chat non parte')
+  assert.equal(chiarimentoDaAzione({ destinazione: 'calendario', parametri: { testo: 'ciao' }, etichetta: 'Apri' }), null, 'le altre destinazioni non sono un chiarimento')
+  assert.equal(eDestinazioneAssistente('chiarisci'), false, 'non e una destinazione della mappa (l elenco chiuso uguale a quello della funzione)')
+  assert.equal(hrefAssistente('chiarisci', { testo: 'ciao' }), null, 'e non porta in nessuna schermata')
+  assert.equal(DOMANDA_CHIARIMENTO_MAX, 500, 'lo stesso tetto del campo della chat e della funzione')
+  ok('chiarisci: un pulsante che manda una domanda completa, non una destinazione; tetto uguale al campo della chat')
 }
 
 console.log(`\n${passi} gruppi di prove: ok`)
