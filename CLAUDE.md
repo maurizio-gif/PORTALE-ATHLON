@@ -112,3 +112,4 @@ chiamata diretta al gestionale. Esempio: la sezione Prodotti usa l'azione `prodo
 - [Il genitore vede i dati del figlio: «Vedi i dati» e la pagina `/dati-figlio/<id>` (02/11/2026)](docs/claude/74-il-genitore-vede-i-dati-del-figlio-vedi-i-dati-e-la-pagina.md) · 1 KB
 - [Il portale aperto a chi si registra: nessun cambio nell'app (02/11/2026)](docs/claude/75-il-portale-aperto-a-chi-si-registra-nessun-cambio-nell-app.md) · 1 KB
 - [«Elimina account» nel Profilo: anonimizzazione, contratti e pagamenti restano (02/11/2026)](docs/claude/76-elimina-account-nel-profilo-anonimizzazione-contratti-e-paga.md) · 2 KB
+- [L'invito a registrarsi in vista nella pagina d'accesso (02/11/2026)](docs/claude/77-l-invito-a-registrarsi-in-vista-nella-pagina-d-accesso.md) · 2 KB
