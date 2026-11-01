@@ -7,6 +7,7 @@ import { locale, t } from '@/lib/lingua'
 import { spazio } from '@/theme'
 
 import { oggiRoma, somma } from '../alimentazione/conti'
+import { CulturaCibo } from '../cultura/CulturaCibo'
 import { Icona, type NomeIcona } from '../ui/Icona'
 import { Carta, Entra, Messaggio, Pulsante, SchedeInArrivo } from '../ui/kit'
 import { F, ORTO, usePalette } from '../ui/tema'
@@ -50,38 +51,44 @@ export function AreaFood({ dati }: { dati: DatiFit }) {
 
   if (!f.consenso) {
     return (
-      <Entra indice={0}>
-        <Tocco onPress={apriDiario} etichetta={t('Scopri Food', 'Discover Food')} scala={0.985}>
-          <LinearGradient colors={ORTO} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={stili.vetrina}>
-            <Text style={stili.vetrinaTitolo}>{t('Mangiare bene, per allenarti meglio', 'Eat well, train better')}</Text>
-            <View style={{ gap: spazio.due }}>
-              {COSE.map((c) => (
-                <View key={c.icona} style={stili.riga}>
-                  <View style={stili.bollo}>
-                    <Icona nome={c.icona} size={16} colore="#fff" />
+      <View style={{ gap: spazio.quattro }}>
+        <Entra indice={0}>
+          <Tocco onPress={apriDiario} etichetta={t('Scopri Food', 'Discover Food')} scala={0.985}>
+            <LinearGradient colors={ORTO} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={stili.vetrina}>
+              <Text style={stili.vetrinaTitolo}>{t('Mangiare bene, per allenarti meglio', 'Eat well, train better')}</Text>
+              <View style={{ gap: spazio.due }}>
+                {COSE.map((c) => (
+                  <View key={c.icona} style={stili.riga}>
+                    <View style={stili.bollo}>
+                      <Icona nome={c.icona} size={16} colore="#fff" />
+                    </View>
+                    <Text style={[stili.vetrinaTesto, { flex: 1 }]}>{c.testo}</Text>
                   </View>
-                  <Text style={[stili.vetrinaTesto, { flex: 1 }]}>{c.testo}</Text>
-                </View>
-              ))}
-            </View>
-            <Text style={stili.vetrinaPiccola}>{t('Prima di cominciare si legge e si accetta l’informativa: quello che scrivi lo vedi solo tu.', 'Before you start, you read and accept the privacy notice: only you see what you write.')}</Text>
-            <View style={stili.vetrinaPulsante}>
-              <Text style={stili.vetrinaPulsanteTesto}>{t('Scopri Food', 'Discover Food')}</Text>
-              <Icona nome="avanti" size={16} colore={ORTO[2]} />
-            </View>
-          </LinearGradient>
-        </Tocco>
-      </Entra>
+                ))}
+              </View>
+              <Text style={stili.vetrinaPiccola}>{t('Prima di cominciare si legge e si accetta l’informativa: quello che scrivi lo vedi solo tu.', 'Before you start, you read and accept the privacy notice: only you see what you write.')}</Text>
+              <View style={stili.vetrinaPulsante}>
+                <Text style={stili.vetrinaPulsanteTesto}>{t('Scopri Food', 'Discover Food')}</Text>
+                <Icona nome="avanti" size={16} colore={ORTO[2]} />
+              </View>
+            </LinearGradient>
+          </Tocco>
+        </Entra>
+        <CulturaCibo indiceBase={1} />
+      </View>
     )
   }
 
   if (!f.profilo) {
     return (
-      <Carta style={{ gap: spazio.due }}>
-        <Text style={[stili.titoletto, { color: p.testo }]}>{t('Manca un minuto', 'Just a minute more')}</Text>
-        <Text style={[stili.nota, { color: p.testoSecondario }]}>{t('Nove domande sulle tue abitudini: servono a scegliere i consigli per te.', 'Nine questions about your habits: they help us pick tips for you.')}</Text>
-        <Pulsante testo={t('Rispondi', 'Answer')} icona="avanti" onPress={apriDiario} />
-      </Carta>
+      <View style={{ gap: spazio.quattro }}>
+        <Carta style={{ gap: spazio.due }}>
+          <Text style={[stili.titoletto, { color: p.testo }]}>{t('Manca un minuto', 'Just a minute more')}</Text>
+          <Text style={[stili.nota, { color: p.testoSecondario }]}>{t('Nove domande sulle tue abitudini: servono a scegliere i consigli per te.', 'Nine questions about your habits: they help us pick tips for you.')}</Text>
+          <Pulsante testo={t('Rispondi', 'Answer')} icona="avanti" onPress={apriDiario} />
+        </Carta>
+        <CulturaCibo />
+      </View>
     )
   }
 
@@ -91,39 +98,42 @@ export function AreaFood({ dati }: { dati: DatiFit }) {
   const tot = somma(diOggi)
   const scritti = PASTI.filter((x) => diOggi.some((v) => v.pasto === x.id)).map((x) => x.nome.toLowerCase())
   return (
-    <View style={{ gap: spazio.tre }}>
-      <Entra indice={0}>
-        <Carta style={{ gap: spazio.tre }}>
-          <View style={stili.riga}>
-            <LinearGradient colors={ORTO} style={stili.icona}>
-              <Icona nome="piatto" size={24} colore="#fff" />
-            </LinearGradient>
-            <View style={{ flex: 1, gap: 2 }}>
-              <Text style={[stili.titoletto, { color: p.testo }]}>{t('Oggi', 'Today')}</Text>
-              <Text style={[stili.nota, { color: p.testoSecondario }]}>
-                {!dati.diario
-                  ? t('Leggiamo il diario…', 'Loading your diary…')
-                  : !diOggi.length
-                    ? t('Ancora niente nel diario.', 'Nothing in the diary yet.')
-                    : nascosti
-                      ? t(`Hai scritto ${scritti.join(', ')}.`, `You logged ${scritti.join(', ')}.`)
-                      : `${Math.round(tot.kcal).toLocaleString(locale())} kcal · ${scritti.join(', ')}`}
-              </Text>
+    <View style={{ gap: spazio.quattro }}>
+      <View style={{ gap: spazio.tre }}>
+        <Entra indice={0}>
+          <Carta style={{ gap: spazio.tre }}>
+            <View style={stili.riga}>
+              <LinearGradient colors={ORTO} style={stili.icona}>
+                <Icona nome="piatto" size={24} colore="#fff" />
+              </LinearGradient>
+              <View style={{ flex: 1, gap: 2 }}>
+                <Text style={[stili.titoletto, { color: p.testo }]}>{t('Oggi', 'Today')}</Text>
+                <Text style={[stili.nota, { color: p.testoSecondario }]}>
+                  {!dati.diario
+                    ? t('Leggiamo il diario…', 'Loading your diary…')
+                    : !diOggi.length
+                      ? t('Ancora niente nel diario.', 'Nothing in the diary yet.')
+                      : nascosti
+                        ? t(`Hai scritto ${scritti.join(', ')}.`, `You logged ${scritti.join(', ')}.`)
+                        : `${Math.round(tot.kcal).toLocaleString(locale())} kcal · ${scritti.join(', ')}`}
+                </Text>
+              </View>
             </View>
-          </View>
-          <View style={stili.azioni}>
-            <View style={{ flex: 1 }}>
-              <Pulsante testo={t('Il diario', 'Diary')} icona="piatto" onPress={apriDiario} />
+            <View style={stili.azioni}>
+              <View style={{ flex: 1 }}>
+                <Pulsante testo={t('Il diario', 'Diary')} icona="piatto" onPress={apriDiario} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Pulsante testo={t('Fotografa', 'Take a photo')} icona="fotocamera" variante="secondario" onPress={apriFoto} />
+              </View>
             </View>
-            <View style={{ flex: 1 }}>
-              <Pulsante testo={t('Fotografa', 'Take a photo')} icona="fotocamera" variante="secondario" onPress={apriFoto} />
-            </View>
-          </View>
-        </Carta>
-      </Entra>
-      <Text style={[stili.piccola, { color: p.testoTerzo, paddingHorizontal: 2 }]}>
-        {t('Nel diario trovi anche i nutrienti del giorno, i consigli per te e le impostazioni: il questionario, i numeri nascosti e la revoca del consenso.', 'In the diary you’ll also find the day’s nutrients, your tips and the settings: the questionnaire, hidden numbers and withdrawing consent.')}
-      </Text>
+          </Carta>
+        </Entra>
+        <Text style={[stili.piccola, { color: p.testoTerzo, paddingHorizontal: 2 }]}>
+          {t('Nel diario trovi anche i nutrienti del giorno, i consigli per te e le impostazioni: il questionario, i numeri nascosti e la revoca del consenso.', 'In the diary you’ll also find the day’s nutrients, your tips and the settings: the questionnaire, hidden numbers and withdrawing consent.')}
+        </Text>
+      </View>
+      <CulturaCibo indiceBase={1} />
     </View>
   )
 }

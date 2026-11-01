@@ -105,6 +105,8 @@ const ICONE = {
   // La mobilita' (31/10/2026): le sessioni guidate e l'abitudine dei minuti di mobilita'.
   mobilita: ['figure.flexibility', 'self_improvement'],
   sole: ['sun.max.fill', 'wb_sunny'],
+  // «Capire il cibo» (01/11/2026): la torta dei macros.
+  macros: ['chart.pie.fill', 'pie_chart'],
   // La classifica mensile (29/10/2026).
   trofeo: ['trophy.fill', 'emoji_events'],
 } as const satisfies Record<string, readonly [SFSymbol, AndroidSymbol]>
