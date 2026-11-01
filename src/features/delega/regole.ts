@@ -1,7 +1,9 @@
 // Le regole della pagina pubblica della delega (31/10/2026), pure: si provano con `node --experimental-strip-types`.
 // Qui solo quello che si vede subito (maggiorenne, campi pieni); il resto lo ricontrolla `delega-invito` (APP-ATHLON).
 
-export type CampiDelegato = { nome: string; cognome: string; email: string; telefono: string; nascita: string }
+import type { CampoDelega } from '@/api/delega'
+
+export type DatiConferma = Record<CampoDelega, string>
 
 /** Gli anni compiuti al giorno `al` («AAAA-MM-GG»), da una data di nascita «AAAA-MM-GG»; null se non sono date. */
 export function anniAl(nascita: string, al: string): number | null {
@@ -18,14 +20,12 @@ export function maggiorenne(nascita: string, oggi: string): boolean {
   return a != null && a >= 18
 }
 
-/** Cosa manca per poter inviare: i nomi dei campi vuoti, nell'ordine della pagina. */
-export function mancanti(d: CampiDelegato): (keyof CampiDelegato)[] {
-  const out: (keyof CampiDelegato)[] = []
-  if (!d.nome.trim()) out.push('nome')
-  if (!d.cognome.trim()) out.push('cognome')
-  if (!d.email.trim()) out.push('email')
-  // Il cellulare e' vuoto finche' non si scrive il numero (la tendina del prefisso da sola non conta); sotto 8 cifre con il prefisso non e' un cellulare.
-  if (d.telefono.replace(/\D/g, '').length < 8) out.push('telefono')
-  if (!d.nascita) out.push('nascita')
-  return out
+/** Dei dati che la conferma chiede (`campi`, li decide la funzione), quali sono ancora vuoti, nell'ordine della pagina. */
+export function mancantiConferma(campi: CampoDelega[], d: DatiConferma): CampoDelega[] {
+  return (['nome', 'cognome', 'telefono', 'nascita'] as CampoDelega[]).filter((c) => {
+    if (!campi.includes(c)) return false
+    // Il cellulare e' vuoto finche' non si scrive il numero (la tendina del prefisso da sola non conta); sotto 8 cifre con il prefisso non e' un cellulare.
+    if (c === 'telefono') return d.telefono.replace(/\D/g, '').length < 8
+    return !d[c].trim()
+  })
 }
