@@ -1,0 +1,4 @@
+## La vista cliente dal CRM entra già loggata (31/10/2026)
+
+Il pulsante «Vedi come cliente» del CRM apre ora `/?come=<email cliente>#th=<token>`: il token monouso, generato dal CRM per **l'indirizzo di chi guarda** (mai per il cliente), sta nel frammento dell'indirizzo e `src/features/lab/accessoDalCrm.ts` lo consuma prima che `useSessione` legga la sessione (`verifyOtp` con `token_hash`, tipo `email` e poi `magiclink`), togliendolo subito dall'indirizzo. Solo sul web, una promessa sola per pagina, non solleva mai: con un token non valido si vede la pagina di accesso come prima. Resto invariato: `vista.ts` legge `?come=`, ogni richiesta porta `X-Athlon-Come`, il server decide. Lato CRM e perché: `CLAUDE.md` di APP-ATHLON, stessa data. **Da pubblicare prima del CRM.** Provato con un browser finto (6 casi); non in un browser vero.
+

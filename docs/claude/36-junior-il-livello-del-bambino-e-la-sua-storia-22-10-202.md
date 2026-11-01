@@ -1,0 +1,4 @@
+## Junior: il livello del bambino e la sua storia (22/10/2026)
+
+Nella scheda «La tua famiglia» il livello della Scuola Nuoto Bambini sta accanto al nome («Nome Cognome · A2 - Stella Marina 2», `livello` di `junior_nucleo`: dal mirror, solo quello di adesso). Sotto, per la persona scelta, una carta «Livello» che apre **«La storia dei livelli»** (`junior/FoglioLivelli.tsx`, azione `livelli` di `portale-lab-junior`): una timeline dal più recente. **PerfectGym non dà le date dei passaggi**: le scrive il nostro database (`junior_livelli_storico`, APP-ATHLON) a ogni giro, da quando ha cominciato a guardare (22/10/2026). Sono date «rilevate», la prima riga dice «Livello al primo rilevamento» e una nota in fondo lo spiega; per i passaggi di prima non c'è nessuna data. **Pubblicato il 22/10/2026**: migrazione `20261022c`, `portale-lab-junior` v5, poi l'app. `tsc` pulito sui file toccati; **non guardato in un browser**, né con la funzione vera.
+
