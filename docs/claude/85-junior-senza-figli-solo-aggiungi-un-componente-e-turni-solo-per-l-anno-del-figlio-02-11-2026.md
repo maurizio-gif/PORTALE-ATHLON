@@ -1,0 +1,7 @@
+## Junior: senza figli solo «Aggiungi un componente»; i turni solo per l'anno del figlio (02/11/2026)
+
+Richiesta di Maurizio. File: `junior/Junior.tsx`.
+- **Nessun figlio registrato** (`senzaFigli`: nel nucleo non c'è nessuna persona idonea per età): la pagina mostra la testata, «La tua famiglia» con la spiegazione «Aggiungi un figlio per vedere le attività. Una volta inserito, qui vedrai tutte le attività disponibili per la sua età (dai N mesi ai nati nel AAAA), con i turni e le modalità di iscrizione» e il pulsante «Aggiungi un componente». **Nessun gruppo, nessun filtro, nessun «Nessun gruppo attivo»** (anche se il palinsesto è vuoto). Se la funzione non manda il nucleo, la spiegazione e il pulsante compaiono lo stesso (senza l'intervallo d'età).
+- **Con un figlio**: i turni sono **solo quelli del suo anno di nascita**. Le tessere «Anno di nascita» sono state tolte del tutto (prima tornavano se il suo anno non aveva gruppi); se l'anno non ha gruppi compare solo «Nessun gruppo per i nati nel AAAA». Restano il filtro per giorno e «solo con posti liberi». Il bambino iscritto o in età di Baby Nuoto vede come prima abbonamento e lezioni, non i gruppi.
+- Il parametro `?anno=` che `CartaJunior` passa a `/junior` ora non serve più: l'anno è sempre quello della persona scelta.
+- Controllata solo la sintassi (nel contenitore non ci sono le dipendenze, `tsc` completo non è girato); **non guardato in un browser né su un telefono**.

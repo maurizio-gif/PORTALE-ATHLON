@@ -1,4 +1,4 @@
-import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
+import { router, useFocusEffect } from "expo-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 
@@ -30,13 +30,10 @@ import { F, usePalette, velo } from "../ui/tema";
 import { vistaCorrente } from "../vista";
 import {
   annateGruppo,
-  annoDalNucleo,
   annoDi,
-  annoIniziale,
   calendarioGruppo,
   chiPuoIscriversi,
   anniDisponibili,
-  conPosto,
   descriviPersona,
   eBaby,
   giorniDelAnno,
@@ -80,11 +77,9 @@ export const CHIAVE_GRUPPI_JUNIOR = "junior:gruppi";
 
 export function Junior() {
   const p = usePalette();
-  const { anno: chiesto } = useLocalSearchParams<{ anno?: string }>();
   const [esito, setEsito] = useState<EsitoGruppi | undefined>(() =>
     inMemoria<EsitoGruppi>(CHIAVE_GRUPPI_JUNIOR),
   );
-  const [anno, setAnno] = useState<number | null>(null);
   const [soloLiberi, setSoloLiberi] = useState(false);
   const [giorni, setGiorni] = useState<number[]>([]);
   const [storiaLivelli, setStoriaLivelli] = useState(false);
@@ -137,20 +132,17 @@ export function Junior() {
     idonee.find((x) => x.member_id === personaScelta) ?? idonee[0] ?? null;
   const personaBaby = !!persona && eBaby(persona.data_nascita);
   const personaIscritta = !!persona && persona.gruppi.length > 0;
+  // **Senza un figlio registrato non si mostra nessun turno** (02/11/2026, richiesta di Maurizio): resta solo «Aggiungi un
+  // componente», con la spiegazione di cosa succede dopo.
+  const senzaFigli = !persona;
   // I gruppi da cui scegliere servono a chi non ha ancora un corso: non a un lattante (c'e' il Baby Nuoto) e non a chi e'
   // gia' iscritto (ha il suo abbonamento sopra), salvo che li chieda.
-  const mostraGruppi =
-    !persona || (!personaBaby && !personaIscritta);
-  // Con una persona scelta l'anno e' il suo: non si sceglie (si vedono solo i gruppi per i suoi anni). Le tessere restano
-  // solo se non si sa chi e', o se il suo anno non ha nessun gruppo.
+  const mostraGruppi = !!persona && !personaBaby && !personaIscritta;
+  // L'anno e' quello della persona: non si sceglie, e si vedono solo i gruppi che lo accolgono. Se il suo anno non ha nessun
+  // gruppo non si mostra altro (niente tessere degli altri anni).
   const annoPersona = persona ? annoDi(persona) : null;
   const annoFisso = annoPersona != null && anni.includes(annoPersona) ? annoPersona : null;
-  const scelto =
-    annoFisso != null
-      ? annoFisso
-      : anno != null && anni.includes(anno)
-      ? anno
-      : annoIniziale(anni, chiesto ?? annoDalNucleo(nucleo, anni)?.toString());
+  const scelto = annoFisso;
 
   function dopoAggiunta(nome: string, n: NucleoJunior | null) {
     setAggiunto(t(`${nome} è nel tuo nucleo familiare.`, `${nome} is now in your family members.`));
@@ -221,7 +213,7 @@ export function Junior() {
     );
   }
 
-  if (!anni.length) {
+  if (!anni.length && !senzaFigli) {
     return (
       <Schermata {...intestazione}>
         <Messaggio tono="attenzione" titolo={t("Nessun gruppo attivo", "No active groups")}>
@@ -235,19 +227,19 @@ export function Junior() {
     <Schermata
       {...intestazione}
       sottotitolo={
-        mostraGruppi
+        senzaFigli
+          ? t("Aggiungi un componente per vedere le attività.", "Add a family member to see the activities.")
+          : mostraGruppi
           ? t("I gruppi attivi e i posti ancora liberi.", "Active groups and spots still available.")
           : t(`I corsi di ${persona?.nome ?? "chi hai scelto"}: abbonamento, lezioni e recuperi.`, `${persona?.nome ?? "The person you chose"}’s courses: membership, classes and make-ups.`)
       }
     >
       <TestataJunior nome={persona?.nome} />
-      {nucleo ? (
+      {nucleo || senzaFigli ? (
         <Sezione titolo={t("La tua famiglia", "Your family")}>
           {persone.length ? (
             <Carta>
               {persone.map((x, i) => {
-                const a = annoDi(x);
-                const apre = x.idoneo && a != null && anni.includes(a);
                 const sel = x.member_id === persona?.member_id;
                 return (
                   <View
@@ -306,7 +298,6 @@ export function Junior() {
                         x.idoneo
                           ? () => {
                               setPersonaScelta(x.member_id);
-                              if (apre) setAnno(a);
                             }
                           : undefined
                       }
@@ -315,11 +306,15 @@ export function Junior() {
                 );
               })}
             </Carta>
-          ) : (
-            <Text style={[stili.nota, { color: p.testoSecondario }]}>
-              {t(`Nel tuo nucleo familiare non c’è nessuno in età per i corsi junior (dai ${nucleo.mesi_minimi} mesi ai nati nel ${nucleo.anno_minimo}).`, `No one in your family is the right age for junior courses (from ${nucleo.mesi_minimi} months old to those born in ${nucleo.anno_minimo}).`)}
-            </Text>
-          )}
+          ) : null}
+          {senzaFigli ? (
+            <Messaggio titolo={t("Aggiungi un figlio per vedere le attività", "Add a child to see the activities")}>
+              {t(
+                `Una volta inserito, qui vedrai tutte le attività disponibili per la sua età${nucleo ? ` (dai ${nucleo.mesi_minimi} mesi ai nati nel ${nucleo.anno_minimo})` : ""}, con i turni e le modalità di iscrizione.`,
+                `Once you’ve added them, you’ll see here all the activities available for their age${nucleo ? ` (from ${nucleo.mesi_minimi} months old to those born in ${nucleo.anno_minimo})` : ""}, with the slots and how to enroll.`,
+              )}
+            </Messaggio>
+          ) : null}
           {aggiunto ? <Messaggio tono="ok">{aggiunto}</Messaggio> : null}
           <AggiungiComponente onApri={() => setAggiunto(null)} onAggiunto={dopoAggiunta} />
         </Sezione>
@@ -363,71 +358,34 @@ export function Junior() {
         />
       ) : null}
 
-      {mostraGruppi ? (
+      {mostraGruppi && persona && annoFisso == null ? (
+        <Messaggio
+          tono="attenzione"
+          titolo={t(
+            `Nessun gruppo per i nati nel ${annoPersona ?? "?"}`,
+            `No groups for those born in ${annoPersona ?? "?"}`,
+          )}
+        >
+          {t(
+            `Al momento non ci sono gruppi attivi per ${persona.nome ?? "chi hai scelto"}. Per altre informazioni chiedi in segreteria.`,
+            `There are no active groups for ${persona.nome ?? "the person you chose"} right now. Ask at the front desk for more information.`,
+          )}
+        </Messaggio>
+      ) : mostraGruppi && persona ? (
         <>
           <View style={{ gap: spazio.due }}>
-            {annoFisso != null && persona ? (
-              <Text
-                style={[stili.filtriTitolo, { color: p.testoSecondario }]}
-                accessibilityRole="header"
-              >
-                {t(
-                  `Le nostre attività per ${persona.nome ?? "chi hai scelto"} · nato nel ${annoFisso}`,
-                  `Our activities for ${persona.nome ?? "the person you chose"} · born in ${annoFisso}`,
-                )}
-              </Text>
-            ) : null}
-            {annoFisso != null && persona ? (
-              <Text style={[stili.nota, { color: p.testoSecondario }]}>
-                {t("La pallanuoto è solo maschile.", "Water polo is boys only.")}
-              </Text>
-            ) : (
-              <>
             <Text
               style={[stili.filtriTitolo, { color: p.testoSecondario }]}
               accessibilityRole="header"
             >
-              {t("Anno di nascita", "Birth year")}
+              {t(
+                `Le nostre attività per ${persona.nome ?? "chi hai scelto"} · nato nel ${annoFisso}`,
+                `Our activities for ${persona.nome ?? "the person you chose"} · born in ${annoFisso}`,
+              )}
             </Text>
-            <View style={stili.tessere}>
-              {anni.map((a) => {
-                const attivo = a === scelto;
-                const n = conPosto(gruppi, a);
-                return (
-                  <Tocco
-                    key={a}
-                    vibra="scelta"
-                    stato={{ selected: attivo }}
-                    onPress={() => setAnno(a)}
-                    etichetta={t(`Nati nel ${a}, ${n} ${n === 1 ? "gruppo" : "gruppi"} con posti liberi`, `Born in ${a}, ${n} ${n === 1 ? "group" : "groups"} with spots available`)}
-                    style={[
-                      stili.tessera,
-                      {
-                        backgroundColor: attivo
-                          ? velo(p, "accento", p.scuro ? 0.16 : 0.1)
-                          : p.carta,
-                        borderColor: attivo ? p.accento : p.linea,
-                        borderWidth: attivo ? 1.5 : StyleSheet.hairlineWidth,
-                      },
-                    ]}
-                  >
-                    <Text
-                      style={[
-                        stili.anno,
-                        {
-                          color: n ? p.testo : p.testoTerzo,
-                          fontFamily: attivo ? F.extra : F.bold,
-                        },
-                      ]}
-                    >
-                      {a}
-                    </Text>
-                  </Tocco>
-                );
-              })}
-            </View>
-              </>
-            )}
+            <Text style={[stili.nota, { color: p.testoSecondario }]}>
+              {t("La pallanuoto è solo maschile.", "Water polo is boys only.")}
+            </Text>
             {giorniAnno.length ? (
               <>
                 <Text
@@ -589,7 +547,7 @@ export function Junior() {
           ) : (
             <Messaggio
               tono="attenzione"
-              titolo={t(`Nessun gruppo per i nati nel ${scelto}`, `No groups for those born in ${scelto}`)}
+              titolo={t(`Nessun gruppo per i nati nel ${annoFisso}`, `No groups for those born in ${annoFisso}`)}
             >
               {soloLiberi && !giorniAttivi.length
                 ? t("Tutti i gruppi di quest’anno sono al completo. Togli il filtro per vederli, o chiedi in segreteria.", "All groups for this year are full. Remove the filter to see them, or ask at the front desk.")
@@ -655,24 +613,6 @@ const stili = StyleSheet.create({
     paddingHorizontal: 2,
   },
   tessere: { flexDirection: "row", flexWrap: "wrap", gap: spazio.due },
-  // Sedici anni in poche righe su un telefono: tessere piccole col solo anno. Un anno senza posti e' piu' chiaro.
-  tessera: {
-    flexGrow: 1,
-    flexBasis: 58,
-    maxWidth: 110,
-    minWidth: 0,
-    alignItems: "center",
-    justifyContent: "center",
-    minHeight: 44,
-    paddingHorizontal: 8,
-    borderRadius: 14,
-  },
-  anno: {
-    fontSize: 17,
-    lineHeight: 21,
-    letterSpacing: -0.4,
-    fontVariant: ["tabular-nums"],
-  },
   giorno: {
     minWidth: 48,
     minHeight: 44,
