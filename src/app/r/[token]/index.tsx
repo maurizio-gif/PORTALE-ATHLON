@@ -4,12 +4,14 @@ import { useCallback, useEffect, useState } from 'react'
 import { eTokenAppuntamento, leggiAppuntamento, type Appuntamento, type Calendario, type GiornoPrenotabile } from '@/api/appuntamenti'
 import type { PaginaCertificato } from '@/api/certificati'
 import { chiamaLink } from '@/api/link'
+import { eTokenProposta, sondaProposta } from '@/api/proposta'
 import { GestioneAppuntamento } from '@/features/appuntamento/GestioneAppuntamento'
 import { CaricaCertificatoDaLink } from '@/features/certificato/CaricaDaLink'
 import { PrenotaEvento } from '@/features/evento/PrenotaEvento'
 import { AttivaGuestPass } from '@/features/guest-pass/AttivaGuestPass'
 import { AppuntamentoNonTrovato, GuestPassScaduto, Guasto, InCaricamento, LinkScaduto } from '@/features/link/Stati'
 import { GestioneNucleo } from '@/features/metodo-pagamento/GestioneNucleo'
+import { AbbonamentoDaProposta, type Iniziale } from '@/features/proposta/AbbonamentoDaProposta'
 import type { PaginaEvento } from '@/lib/eventi'
 import type { PaginaGuestPass } from '@/lib/guestPass'
 import type { ContrattoNucleo } from '@/lib/metodoPagamento'
@@ -21,6 +23,8 @@ import { t } from '@/lib/lingua'
 //   <uuid>.<firma>  ->  appuntamento col desk o col Direttore Tecnico (rotte del CRM)
 //   altrimenti      ->  `portale-link` dice di che si tratta: metodo di pagamento, evento, Guest Pass,
 //                       certificato medico da caricare
+//   se `portale-link` non lo conosce (404)  ->  puo' essere una proposta di abbonamento (vendita assistita, 02/11/2026):
+//                       lo dice la funzione `proposte`. Una chiamata in piu' solo per i token che il resto non conosce.
 
 type Stato =
   | { fase: 'carica' }
@@ -32,6 +36,7 @@ type Stato =
   | { fase: 'evento'; nome: string | null; pagina: PaginaEvento }
   | { fase: 'guest_pass'; nome: string | null; pagina: PaginaGuestPass }
   | { fase: 'certificato'; pagina: PaginaCertificato }
+  | { fase: 'proposta'; iniziale: Iniziale }
   | { fase: 'appuntamento'; calendario: Calendario; appuntamento: Appuntamento; giorni: GiornoPrenotabile[] }
 
 export default function ArrivoDaLink() {
@@ -47,6 +52,12 @@ export default function ArrivoDaLink() {
       return setStato({ fase: letto.scaduto ? 'appuntamento-scaduto' : 'guasto' })
     }
     const { ok, stato: http, dati } = await chiamaLink(token, 'apri')
+    // Sconosciuto per `portale-link` (e non un Guest Pass scaduto, che ha la sua pagina): potrebbe essere una proposta.
+    if (http === 404 && dati.tipo !== 'guest_pass' && eTokenProposta(token)) {
+      const proposta = await sondaProposta(token)
+      if (proposta.tipo === 'guasto') return setStato({ fase: 'guasto' })
+      if (proposta.tipo === 'proposta' || proposta.tipo === 'proposta_ferma') return setStato({ fase: 'proposta', iniziale: proposta })
+    }
     if (http === 404 || dati.scaduto) return setStato({ fase: dati.tipo === 'guest_pass' ? 'guest-pass-scaduto' : 'scaduto' })
     if (!ok) return setStato({ fase: 'guasto' })
     if (dati.tipo === 'metodo_pagamento') {
@@ -99,6 +110,8 @@ export default function ArrivoDaLink() {
       return <AttivaGuestPass key={token} token={token} nome={stato.nome} iniziale={stato.pagina} />
     case 'certificato':
       return <CaricaCertificatoDaLink token={token} iniziale={stato.pagina} />
+    case 'proposta':
+      return <AbbonamentoDaProposta key={token} token={token} iniziale={stato.iniziale} />
     case 'appuntamento':
       return <GestioneAppuntamento token={token} calendario={stato.calendario} iniziale={stato.appuntamento} giorni={stato.giorni} />
   }
