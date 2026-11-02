@@ -1,4 +1,5 @@
 import type { AnteprimaContratto, EsitoContratto, EsitoFirma, EsitoPagamento, Formula, MetodoAbbonamento, StatoContratto } from '@/api/abbonamento'
+import { funzione } from '@/api/lab'
 import { SUPABASE_URL } from '@/config'
 import { intestazioneLingua, t } from '@/lib/lingua'
 
@@ -45,6 +46,11 @@ export type MotivoProposta =
   | 'nascita_errata'
   | 'gia_firmata'
   | 'giorno_non_confermato'
+  | 'non_idoneo'
+  | 'operatore_non_valido'
+  | 'operatore_richiesto'
+  | 'documento_non_verificato'
+  | 'email'
   | 'rete'
   | 'altro'
 
@@ -60,7 +66,7 @@ export type ErroreProposta = {
   mancanti?: string[]
 }
 
-const MOTIVI: MotivoProposta[] = ['annullata', 'proposta_scaduta', 'token_scaduto', 'bloccata', 'dati_mancanti', 'non_verificata', 'nascita_errata', 'gia_firmata', 'giorno_non_confermato']
+const MOTIVI: MotivoProposta[] = ['annullata', 'proposta_scaduta', 'token_scaduto', 'bloccata', 'dati_mancanti', 'non_verificata', 'nascita_errata', 'gia_firmata', 'giorno_non_confermato', 'non_idoneo', 'operatore_non_valido', 'operatore_richiesto', 'documento_non_verificato', 'email']
 
 function errore(r: Risposta, ripiego: string): ErroreProposta {
   const d = r.dati
@@ -143,8 +149,23 @@ export async function anteprimaProposta(token: string, dataInizio?: string): Pro
   return { ok: false, ...errore(r, t('Non riusciamo a preparare il contratto adesso.', 'We can’t prepare the contract right now.')) }
 }
 
-export async function firmaProposta(token: string, impronta: string, consensi: Record<string, boolean>, firmaPng: string): Promise<{ ok: true; esito: EsitoFirma } | ({ ok: false } & ErroreProposta)> {
-  const r = await chiama('portale-abbonamento', { azione: 'proposta_firma', token, dati_confermati: true, impronta, consensi, firma_png: firmaPng })
+export async function firmaProposta(
+  token: string,
+  impronta: string,
+  consensi: Record<string, boolean>,
+  firmaPng: string,
+  /** Solo in assistita: l'operatore dichiara di aver controllato il documento. Il server lo pretende e lo scrive sul contratto. */
+  documentoVerificato?: boolean,
+): Promise<{ ok: true; esito: EsitoFirma } | ({ ok: false } & ErroreProposta)> {
+  const r = await chiama('portale-abbonamento', {
+    azione: 'proposta_firma',
+    token,
+    dati_confermati: true,
+    impronta,
+    consensi,
+    firma_png: firmaPng,
+    ...(documentoVerificato ? { documento_verificato: true } : {}),
+  })
   if (r.ok && r.dati.numero) {
     return { ok: true, esito: { numero: String(r.dati.numero), stato: r.dati.stato as StatoContratto, totale_oggi: Number(r.dati.totale_oggi ?? 0), cambio: null } }
   }
@@ -179,4 +200,93 @@ export async function esitoProposta(token: string): Promise<{ ok: true; esito: E
     return { ok: true, esito: { firmata: true, stato: r.dati.stato as StatoContratto, pagamento: r.dati.pagamento ?? null, errore: r.dati.errore ?? null } }
   }
   return { ok: false, ...errore(r, t('Non riusciamo a verificare il contratto adesso.', 'We can’t check the contract right now.')) }
+}
+
+// ---------------------------------------------------------------------------
+// Dal totem: la proposta nasce dalla sessione (il login con il codice via email)
+
+export type ModalitaProposta = 'qr' | 'email' | 'assistita'
+
+/** Quello che `proposta_crea` dice. Il token c'e' per `qr` e `assistita`; per `email` no, di proposito: il link non deve comparire sul totem. */
+export type PropostaCreata = {
+  proposta_id: string
+  modalita: ModalitaProposta
+  ripresa: boolean
+  scade_il: string
+  token_scade_il: string
+  token: string | null
+  url: string | null
+}
+
+/**
+ * La persona e' dentro con la sua sessione e ha scelto cosa comprare: da qui nasce la proposta, con i dati che PerfectGym ha gia'.
+ * Se mancano dati sulla scheda il server risponde `dati_mancanti` con l'elenco in `mancanti`; se non puo' comprare `non_idoneo`.
+ */
+export async function creaPropostaDaSessione(a: {
+  member_id: number
+  piano_id: number
+  data_inizio: string | null
+  modalita: ModalitaProposta
+}): Promise<{ ok: true; proposta: PropostaCreata } | ({ ok: false } & ErroreProposta)> {
+  const r = await funzione('portale-abbonamento', {
+    azione: 'proposta_crea',
+    member_id: a.member_id,
+    piano_id: a.piano_id,
+    modalita: a.modalita,
+    ...(a.data_inizio ? { data_inizio: a.data_inizio } : {}),
+  })
+  if (r.ok && typeof r.dati.proposta_id === 'string') {
+    const d = r.dati
+    return {
+      ok: true,
+      proposta: {
+        proposta_id: d.proposta_id,
+        modalita: a.modalita,
+        ripresa: d.ripresa === true,
+        scade_il: String(d.scade_il),
+        token_scade_il: String(d.token_scade_il),
+        token: typeof d.token === 'string' ? d.token : null,
+        url: typeof d.url === 'string' ? d.url : null,
+      },
+    }
+  }
+  return { ok: false, ...errore(r, t('Non riusciamo a preparare la proposta adesso.', 'We can’t prepare the offer right now.')) }
+}
+
+/** Il totem in attesa: a che punto e' la proposta. Basta il token, anche scaduto (e' soltanto la chiave per saperlo). */
+export type StatoPropostaTotem = { esito: string; etichetta: string; firmata: boolean; pagata: boolean; linkAperto: boolean; tokenScadeIl: string | null }
+
+export async function statoProposta(token: string): Promise<{ ok: true; stato: StatoPropostaTotem } | ({ ok: false } & ErroreProposta)> {
+  const r = await chiama('proposte', { azione: 'stato', token })
+  if (r.ok) {
+    return {
+      ok: true,
+      stato: {
+        esito: String(r.dati.esito ?? ''),
+        etichetta: String(r.dati.etichetta ?? ''),
+        firmata: r.dati.firmata === true,
+        pagata: r.dati.pagata === true,
+        linkAperto: r.dati.link_aperto === true,
+        tokenScadeIl: typeof r.dati.token_scade_il === 'string' ? r.dati.token_scade_il : null,
+      },
+    }
+  }
+  return { ok: false, ...errore(r, t('Non riusciamo a leggere lo stato adesso.', 'We can’t check the status right now.')) }
+}
+
+/** Il QR dura pochi minuti: se nessuno l'ha aperto se ne chiede uno nuovo. Il token cambia, e il vecchio smette di valere. */
+export async function rinnovaQrProposta(token: string): Promise<{ ok: true; token: string; token_scade_il: string } | ({ ok: false } & ErroreProposta)> {
+  const r = await chiama('proposte', { azione: 'rinnova_qr', token })
+  if (r.ok && typeof r.dati.token === 'string') return { ok: true, token: r.dati.token, token_scade_il: String(r.dati.token_scade_il) }
+  return { ok: false, ...errore(r, t('Non riusciamo a rinnovare il codice adesso.', 'We can’t renew the code right now.')) }
+}
+
+/**
+ * L'operatore digita il suo user number e sblocca la modalita assistita di QUESTA proposta. Una risposta sola per numero sbagliato,
+ * operatore senza la sezione e operatore non piu' presente (`operatore_non_valido`): la funzione non dice quale dei tre.
+ */
+export async function sbloccaAssistita(token: string, codice: string): Promise<{ ok: true; operatore: string | null } | ({ ok: false } & ErroreProposta)> {
+  const r = await chiama('portale-abbonamento', { azione: 'proposta_assistita_sblocca', token, codice })
+  if (r.ok) return { ok: true, operatore: typeof r.dati.operatore?.nome === 'string' ? r.dati.operatore.nome : null }
+  return { ok: false, ...errore(r, t('Non riusciamo a controllare il numero adesso.', 'We can’t check the number right now.')) }
 }

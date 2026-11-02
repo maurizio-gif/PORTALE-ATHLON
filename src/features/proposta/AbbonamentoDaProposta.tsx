@@ -17,9 +17,11 @@ import { CampoData } from '@/components/CampoData'
 import { Pagina } from '@/components/Pagina'
 import { Testo } from '@/components/Testo'
 import { Indicatore } from '@/features/lab/abbonamento/Passi'
+import { uscitaTotem } from '@/features/lab/totem/uscita'
 import { InCaricamento } from '@/features/link/Stati'
 import { euro } from '@/lib/eventi'
 import { locale, t } from '@/lib/lingua'
+import { inModalitaTotem } from '@/lib/totem'
 import { spazio, useColori } from '@/theme'
 
 import { FaseContratto, FaseGiorno } from './FaseContratto'
@@ -205,7 +207,7 @@ export function AbbonamentoDaProposta({ token, iniziale }: { token: string; iniz
         />
       ) : null}
 
-      {fase.f === 'esito' ? <FaseEsito token={token} numero={firmato?.numero ?? null} onRiprova={() => setFase({ f: 'pagamento' })} onErrore={globale} /> : null}
+      {fase.f === 'esito' ? <FaseEsito token={token} numero={firmato?.numero ?? null} onRiprova={() => setFase({ f: 'pagamento' })} onErrore={globale} onFine={inModalitaTotem() ? () => void uscitaTotem() : undefined} /> : null}
     </Pagina>
   )
 }

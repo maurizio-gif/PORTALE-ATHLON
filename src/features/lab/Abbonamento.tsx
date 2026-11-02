@@ -40,6 +40,8 @@ import { FORMULE, Listino } from './abbonamento/Listino'
 import { FirmaPad } from './FirmaPad'
 import { segnaPagataInCorso } from './junior/inCorso'
 import { scorda, scordaPrefisso } from './memoria'
+import { useSessione } from './useSessione'
+import { vistaCorrente } from './vista'
 import { dataLunga, RiepilogoCosti } from './RiepilogoCosti'
 import { Foglio } from './ui/Foglio'
 import { Icona } from './ui/Icona'
@@ -49,6 +51,8 @@ import { Schermata } from './ui/Schermata'
 import { F, usePalette } from './ui/tema'
 import { colpetto, Tocco } from './ui/Tocco'
 import { apriPagamento } from '@/lib/pagamentoEsterno'
+import { inModalitaTotem } from '@/lib/totem'
+import { ContinuaSulTelefono } from '@/features/proposta/ContinuaSulTelefono'
 
 // L'abbonamento principale comprato dal portale (16/10/2026): Smart o Premium,
 // nelle tre formule, con il contratto da leggere e firmare come su Adobe o
@@ -201,6 +205,9 @@ export function Abbonamento() {
   // L'ordine, scelto dal club: abbonamento, data, dati e firma, e solo poi il
   // pagamento. Il contratto non dice con cosa si paga: il metodo si sceglie dopo.
   const [passo, setPasso] = useState<1 | 2 | 3 | 4>(1)
+  // Sul totem, dopo la data, si sceglie come finire: QR sul telefono, email, o qui con un operatore (`ContinuaSulTelefono`).
+  const [sulTelefono, setSulTelefono] = useState(false)
+  const sessione = useSessione()
   const scorrimento = useRef<Animated.ScrollView>(null)
   const [stato, setStato] = useState<StatoAbbonamento | null>(null)
   const [errore, setErrore] = useState<string | null>(null)
@@ -457,6 +464,17 @@ export function Abbonamento() {
   }
   if (cambioId && !infoCambio) return <SchermataInArrivo titolo={t('Cambio abbonamento', 'Change membership')} />
 
+  if (sulTelefono && persona && piano && FORMULE[piano.formula]) {
+    return (
+      <Schermata titolo={t('Abbonamento', 'Membership')} sottotitolo={t('Come vuoi firmare e pagare?', 'How would you like to sign and pay?')} indietro={hrefSezione('abbonamenti')}>
+        <ContinuaSulTelefono
+          dati={{ membro: persona.member_id, pianoId: piano.piano_id, inizio, nomePiano: `${piano.abbonamento} · ${FORMULE[piano.formula].titolo}`, email: vistaCorrente() ? null : (sessione?.user.email ?? null) }}
+          onIndietro={() => setSulTelefono(false)}
+        />
+      </Schermata>
+    )
+  }
+
   const pronto = !!scelta()
   const NOMI_PASSI = [t('Abbonamento', 'Membership'), t('Data', 'Date'), t('Dati e firma', 'Details and signature'), t('Pagamento', 'Payment')]
   const SOTTOTITOLI = [
@@ -581,7 +599,7 @@ export function Abbonamento() {
               )}
             </Sezione>
 
-            <Pulsante testo={t('Continua', 'Continue')} icona="avanti" onPress={() => vai(3)} disabilitato={!pronto || !costi} />
+            <Pulsante testo={t('Continua', 'Continue')} icona="avanti" onPress={() => (inModalitaTotem() && !cambioId ? setSulTelefono(true) : vai(3))} disabilitato={!pronto || !costi} />
             <Pulsante testo={t('Indietro', 'Back')} variante="fantasma" piccolo pieno={false} onPress={() => vai(1)} />
           </>
         ) : null}

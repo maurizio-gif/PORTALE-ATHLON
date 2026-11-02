@@ -136,7 +136,20 @@ const PAUSA_MS = 3000
  * **Un conto collegato non e' un pagamento**: l'addebito della prima quota parte con il mandato SEPA e si vede dopo. Si dice cosi',
  * e la quota non risulta pagata finche' non lo e' davvero.
  */
-export function FaseEsito({ token, numero, onRiprova, onErrore }: { token: string; numero: string | null; onRiprova: () => void; onErrore: (e: ErroreProposta) => boolean }) {
+export function FaseEsito({
+  token,
+  numero,
+  onRiprova,
+  onErrore,
+  onFine,
+}: {
+  token: string
+  numero: string | null
+  onRiprova: () => void
+  onErrore: (e: ErroreProposta) => boolean
+  /** Sul totem: «Ho finito, esco» al posto del rimando al sito. Fa uscire e non lascia niente a schermo. */
+  onFine?: () => void
+}) {
   const c = useColori()
   const [esito, setEsito] = useState<{ stato: string; come?: string; pagamentoOk: boolean; errore: string | null } | null>(null)
   const [erroreRete, setErroreRete] = useState<string | null>(null)
@@ -224,7 +237,13 @@ export function FaseEsito({ token, numero, onRiprova, onErrore }: { token: strin
             setFinito(false)
             setGiro((g) => g + 1)
           }} /> : null}
-      {fatto || collegato ? <Bottone testo={t('Vai al sito di Athlon', 'Go to the Athlon website')} variante="contorno" onPress={() => Linking.openURL('https://www.athlonroma.it/')} /> : null}
+      {fatto || collegato ? (
+        onFine ? (
+          <Bottone testo={t('Ho finito, esco', 'I’m done, sign out')} onPress={onFine} />
+        ) : (
+          <Bottone testo={t('Vai al sito di Athlon', 'Go to the Athlon website')} variante="contorno" onPress={() => Linking.openURL('https://www.athlonroma.it/')} />
+        )
+      ) : null}
     </>
   )
 }

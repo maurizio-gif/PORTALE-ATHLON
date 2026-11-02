@@ -131,12 +131,15 @@ export function FaseGiorno({
 export function FaseContratto({
   token,
   anteprima,
+  assistita = false,
   onFirmato,
   onIndietro,
   onErrore,
 }: {
   token: string
   anteprima: AnteprimaProposta
+  /** Sul totem con un operatore: serve la sua dichiarazione di aver controllato il documento, che il server pretende e scrive sul contratto. */
+  assistita?: boolean
   onFirmato: (numero: string, importi: ImportiContratto) => void
   onIndietro: () => void
   onErrore: (e: ErroreProposta) => boolean
@@ -144,6 +147,7 @@ export function FaseContratto({
   const c = useColori()
   const p = usePalette()
   const [datiOk, setDatiOk] = useState(false)
+  const [documentoOk, setDocumentoOk] = useState(false)
   const [foglio, setFoglio] = useState(false)
   // Le dichiarazioni obbligatorie partono spuntate (e non si tolgono): il facoltativo segue il catalogo del club.
   const [consensi, setConsensi] = useState<Record<string, boolean>>(() => Object.fromEntries(anteprima.consensi.map((x) => [x.chiave, x.obbligatorio || x.preselezionato])))
@@ -173,7 +177,7 @@ export function FaseContratto({
     if (!firmaPng) return
     setErroreFirma(null)
     setFirmando(true)
-    const r = await firmaProposta(token, anteprima.impronta, consensi, firmaPng)
+    const r = await firmaProposta(token, anteprima.impronta, consensi, firmaPng, assistita ? documentoOk : undefined)
     setFirmando(false)
     if (!r.ok) {
       colpetto('errore')
@@ -223,14 +227,25 @@ export function FaseContratto({
         <Testo>{t('Confermo che questi dati sono corretti.', 'I confirm these details are correct.')}</Testo>
       </Casella>
 
+      {assistita ? (
+        <Casella spuntata={documentoOk} onCambia={() => setDocumentoOk((v) => !v)} etichetta={t('L’operatore conferma di aver controllato il documento', 'The operator confirms they have checked the ID document')}>
+          <Testo>
+            {t(
+              'Operatore: confermo di aver controllato il documento di identità di chi firma.',
+              'Operator: I confirm I have checked the ID document of the person signing.',
+            )}
+          </Testo>
+        </Casella>
+      ) : null}
+
       <Testo variante="attenuato">
         {anteprima.firmatario === 'genitore'
           ? t('Lo leggi, spunti le dichiarazioni e firma il genitore, con il dito o con il mouse. Il pagamento viene dopo: carta o conto corrente, lo scegli allora.', 'You read it, tick the declarations and the parent signs, with a finger or a mouse. Payment comes next: you choose card or bank account then.')
           : t('Lo leggi, spunti le dichiarazioni e firmi con il dito o con il mouse. Il pagamento viene dopo: carta o conto corrente, lo scegli allora.', 'You read it, tick the declarations and sign with a finger or a mouse. Payment comes next: you choose card or bank account then.')}
       </Testo>
       {erroreFirma ? <Avviso>{erroreFirma}</Avviso> : null}
-      <Bottone testo={t('Leggi il contratto e firma', 'Read the contract and sign')} onPress={() => { setFirmaVicina(false); setFoglio(true) }} disabilitato={!datiOk} />
-      {!datiOk ? <Text style={[stili.nota, { color: c.testoSecondario }]}>{t('Conferma i dati per continuare.', 'Confirm your details to continue.')}</Text> : null}
+      <Bottone testo={t('Leggi il contratto e firma', 'Read the contract and sign')} onPress={() => { setFirmaVicina(false); setFoglio(true) }} disabilitato={!datiOk || (assistita && !documentoOk)} />
+      {!datiOk || (assistita && !documentoOk) ? <Text style={[stili.nota, { color: c.testoSecondario }]}>{!datiOk ? t('Conferma i dati per continuare.', 'Confirm your details to continue.') : t('L’operatore deve confermare il controllo del documento.', 'The operator must confirm the ID check.')}</Text> : null}
       <Bottone testo={t('Indietro', 'Back')} variante="contorno" onPress={onIndietro} disabilitato={firmando} />
 
       <Foglio
