@@ -3,7 +3,7 @@ import { StyleSheet, Text, View } from 'react-native'
 import { impostaLingua, t, type Lingua } from '@/lib/lingua'
 import { useLingua } from '@/lib/lingua-react'
 
-import { F, FUOCO, usePalette } from './tema'
+import { F, FUOCO, usePalette, velo } from './tema'
 import { Tocco } from './Tocco'
 
 // La scelta della lingua: due pillole, «Italiano» e «English», ognuna scritta nella sua lingua (chi non legge
@@ -15,11 +15,12 @@ const VOCI: { lingua: Lingua; nome: string }[] = [
   { lingua: 'en', nome: 'English' },
 ]
 
-export function SceltaLingua({ centrata = false }: { centrata?: boolean }) {
+// `compatta`: stessa variante discreta di `SceltaTema` (02/11/2026), per la pagina d'accesso.
+export function SceltaLingua({ centrata = false, compatta = false }: { centrata?: boolean; compatta?: boolean }) {
   const p = usePalette()
   const attuale = useLingua()
   return (
-    <View style={[stili.fila, centrata && { alignSelf: 'center' }]} accessibilityRole="radiogroup" accessibilityLabel={t('Lingua dell’app', 'App language')}>
+    <View style={[stili.fila, compatta && { gap: 6 }, centrata && { alignSelf: 'center' }]} accessibilityRole="radiogroup" accessibilityLabel={t('Lingua dell’app', 'App language')}>
       {VOCI.map((v) => {
         const scelta = v.lingua === attuale
         return (
@@ -32,9 +33,13 @@ export function SceltaLingua({ centrata = false }: { centrata?: boolean }) {
             onPress={() => {
               if (!scelta) impostaLingua(v.lingua)
             }}
-            style={[stili.pillola, { backgroundColor: scelta ? FUOCO[1] : p.incavo, borderColor: scelta ? FUOCO[1] : p.bordo }]}
+            style={
+              compatta
+                ? [stili.pillolaPiccola, { backgroundColor: scelta ? velo(p, 'accento', 0.12) : 'transparent', borderColor: scelta ? velo(p, 'accento', 0.5) : p.linea }]
+                : [stili.pillola, { backgroundColor: scelta ? FUOCO[1] : p.incavo, borderColor: scelta ? FUOCO[1] : p.bordo }]
+            }
           >
-            <Text style={[stili.testo, { color: scelta ? '#fff' : p.testo }]}>{v.nome}</Text>
+            <Text style={[compatta ? stili.testoPiccolo : stili.testo, { color: compatta ? (scelta ? p.accento : p.testoSecondario) : scelta ? '#fff' : p.testo }]}>{v.nome}</Text>
           </Tocco>
         )
       })}
@@ -46,4 +51,6 @@ const stili = StyleSheet.create({
   fila: { flexDirection: 'row', gap: 8, flexWrap: 'wrap' },
   pillola: { minHeight: 44, paddingHorizontal: 18, borderRadius: 999, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
   testo: { fontSize: 14, fontFamily: F.bold },
+  pillolaPiccola: { minHeight: 34, paddingHorizontal: 14, borderRadius: 999, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
+  testoPiccolo: { fontSize: 12.5, fontFamily: F.semi },
 })

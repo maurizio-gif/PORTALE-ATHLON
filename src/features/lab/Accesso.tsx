@@ -149,12 +149,10 @@ export function Accesso() {
   return (
     <Schermata titolo={t('Accesso', 'Sign in')} nascondiTitolo barra={false} sopra={<Testata fase={fase} />}>
       <Carta style={stili.modulo}>
-        {/* La lingua, in vista sia all'email sia al codice (lib/lingua.ts): di partenza e' l'italiano. */}
-        <View style={{ gap: 6, alignItems: 'center' }}>
-          <Text style={[stili.nota, { color: p.testoSecondario, fontSize: 12.5 }]}>{t('Lingua · Language', 'Language · Lingua')}</Text>
-          <SceltaLingua centrata />
-          {/* Il tema (02/11/2026): chi non e' ancora entrato lo sceglie da qui. */}
-          <SceltaTema centrata />
+        {/* La lingua, in vista sia all'email sia al codice (lib/lingua.ts): di partenza e' l'italiano. Una riga sola, discreta: ogni voce e' scritta nella sua lingua, quindi niente etichetta.
+            Il tema (02/11/2026, richiesta di Maurizio: «troppo impattante e crea confusione») non sta piu' qui: e' in fondo alla pagina, dopo l'informativa privacy. */}
+        <View style={{ marginBottom: spazio.tre }}>
+          <SceltaLingua centrata compatta />
         </View>
         <Animated.View key={fase} entering={FadeInRight.duration(320)} style={{ gap: spazio.tre + 4 }}>
           <Passi fase={fase} />
@@ -257,6 +255,11 @@ export function Accesso() {
           <Text style={{ fontFamily: F.bold, color: p.accento, textDecorationLine: 'underline' }}>{t('informativa privacy', 'privacy notice')}</Text>
         </Text>
       </Tocco>
+      {/* Il tema (02/11/2026, richiesta di Maurizio): in fondo, discreto e non subito sotto gli occhi. Automatico, Chiaro e Scuro come nel Profilo, in pillole piccole. */}
+      <View style={stili.tema}>
+        <Text style={{ color: p.testoTerzo, fontSize: 12, fontFamily: F.semi }}>{t('Tema', 'Theme')}</Text>
+        <SceltaTema compatta />
+      </View>
     </Schermata>
   )
 }
@@ -281,4 +284,5 @@ const stili = StyleSheet.create({
   invitoVoce: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   garanzie: { flexDirection: 'row', justifyContent: 'center', flexWrap: 'wrap', gap: spazio.tre, marginTop: -spazio.due },
   garanzia: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+  tema: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', flexWrap: 'wrap', gap: 10, marginTop: spazio.due },
 })
