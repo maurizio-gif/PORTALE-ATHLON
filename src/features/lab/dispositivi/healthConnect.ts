@@ -68,8 +68,6 @@ const FONTI: [RegExp, string][] = [
   [/fitbit/i, 'Fitbit'],
   [/samsung.*health|shealth/i, 'Samsung Health'],
   [/garmin/i, 'Garmin Connect'],
-  [/ouraring|oura/i, 'Oura'],
-  [/polar/i, 'Polar Flow'],
   [/withings/i, 'Withings'],
   [/whoop/i, 'WHOOP'],
   [/huawei/i, 'Huawei Health'],

@@ -8,10 +8,10 @@ import { t } from '@/lib/lingua'
 //     in quel caso il marchio non compare nell'elenco di quella piattaforma, ma la guida lo cita fra quelli che non funzionano.
 //   - `nota`: una condizione scritta nella pagina ufficiale (un abbonamento, una versione di Android). Mai istruzioni di menu:
 //     cambiano, e per quelle c'e' il collegamento.
-// **Non sono qui, di proposito**: MyFitnessPal e YAZIO (scrivono alimentazione, che da qui non leggiamo: il diario e' di Food).
+// **Non sono qui, di proposito**: Oura e Polar (tolti il 02/11/2026, richiesta di Maurizio: nel resto dell'app non ci sono piu') e MyFitnessPal e YAZIO (scrivono alimentazione, che da qui non leggiamo: il diario e' di Food).
 // **Da rifare ogni tanto**: i produttori cambiano nome e regole (Fitbit e' diventata Google Health il 19/05/2026; Withings ha messo
 // Withings+ per i nuovi account dal 13/10/2026). I marchi sono dei rispettivi proprietari: si citano in testo semplice, senza loghi
-// (Apple e Oura hanno regole d'uso; il badge «Works with Apple Health» e' solo per gli sviluppatori di app HealthKit approvate).
+// (Apple ha regole d'uso; il badge «Works with Apple Health» e' solo per gli sviluppatori di app HealthKit approvate).
 
 export type Piattaforma = 'apple' | 'google'
 export type Categoria = 'orologio' | 'anello' | 'fascia' | 'app' | 'attrezzatura'
@@ -35,22 +35,6 @@ export const MARCHI: Marchio[] = [
     app: 'Garmin Connect',
     apple: { verdetto: 'confermato', url: 'https://support.garmin.com/en-US/?faq=lK5FPB9iPF5PXFkIpFlFPA' },
     google: { verdetto: 'confermato', url: 'https://support.garmin.com/en-US/?faq=JToBEy0jfe6pIygark2Ui5', nota: t('Solo con Android 14 o successivo.', 'Only with Android 14 or later.') },
-  },
-  {
-    id: 'oura',
-    nome: 'Oura',
-    categoria: 'anello',
-    app: 'Oura',
-    apple: { verdetto: 'confermato', url: 'https://support.ouraring.com/hc/en-us/articles/360025438734-Apple-Health-Integration' },
-    google: { verdetto: 'confermato', url: 'https://support.ouraring.com/hc/en-us/articles/10786105824531-Health-Connect-by-Android-Integration' },
-  },
-  {
-    id: 'polar',
-    nome: 'Polar',
-    categoria: 'orologio',
-    app: 'Polar Flow',
-    apple: { verdetto: 'confermato', url: 'https://support.polar.com/us-en/support/connecting_polar_flow_with_apple_health' },
-    google: { verdetto: 'confermato', url: 'https://support.polar.com/en/flow-app-health-connect' },
   },
   {
     id: 'fitbit',
