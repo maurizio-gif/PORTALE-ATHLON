@@ -42,6 +42,7 @@
         }
       ],
       "package": "it.athlonroma.app",
+      "googleServicesFile": "./google-services.json",
       "versionCode": 1,
       "permissions": [
         "android.permission.health.READ_STEPS",
