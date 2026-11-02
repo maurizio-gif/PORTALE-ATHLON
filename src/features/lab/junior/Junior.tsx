@@ -7,71 +7,44 @@ import {
   type EsitoGruppi,
   type GruppoJunior,
   type NucleoJunior,
+  type PersonaJunior,
 } from "@/api/junior";
 import { t } from "@/lib/lingua";
 import { spazio } from "@/theme";
 
 import { inMemoria, prendi, ricorda, scorda } from "../memoria";
-import {
-  Avatar,
-  Bollino,
-  Carta,
-  Etichetta,
-  Messaggio,
-  Pulsante,
-  Riga,
-  SchedeInArrivo,
-  Sezione,
-} from "../ui/kit";
-import { Foglio } from "../ui/Foglio";
+import { Carta, Etichetta, Messaggio, Pulsante, Riga, SchedeInArrivo } from "../ui/kit";
 import { Schermata } from "../ui/Schermata";
-import { Tocco } from "../ui/Tocco";
-import { F, usePalette, velo } from "../ui/tema";
+import { F, usePalette } from "../ui/tema";
 import { vistaCorrente } from "../vista";
-import {
-  annateGruppo,
-  annoDi,
-  calendarioGruppo,
-  chiPuoIscriversi,
-  anniDisponibili,
-  descriviPersona,
-  eBaby,
-  giorniDelAnno,
-  gruppiDellAnno,
-  personeDaMostrare,
-  SIGLE_GIORNI,
-  statoPosti,
-  quotaMensile,
-  titoloGruppo,
-} from "./comune";
+import { annoDi, chiPuoIscriversi, eBaby, nomeIscrizione, personeDaMostrare } from "./comune";
 import { attivitaDiPersona } from "./attivita";
+import { AttivitaDaScegliere } from "./AttivitaDaScegliere";
 import { CambioOrario } from "./CambioOrario";
-import { CorsiPersona } from "./Corsi";
+import { CorsiPersona, type ParteCorsi } from "./Corsi";
 import { concludiInCorso, iscrizioniInCorso, type InCorso } from "./inCorso";
 import { DirettoreTecnico } from "./DirettoreTecnico";
-import { AggiungiComponente } from "../famiglia/AggiungiComponente";
 import { FoglioLivelli } from "./FoglioLivelli";
+import { MenuIscritto, type VoceJunior } from "./MenuIscritto";
 import { TestataJunior } from "./Presentazione";
+import { SceltaFiglio } from "./SceltaFiglio";
 import { SchedaAttivita } from "./SchedaAttivita";
 
-// La sezione Junior (21/10/2026, richiesta di Maurizio): tutti i gruppi dei corsi per bambini e ragazzi attivi adesso
-// (Scuola Nuoto mono e bisettimanale, Nuoto Agonistico e Propaganda, Pallanuoto), divisi per anno di nascita, con i
-// posti che restano. Un gruppo che accoglie piu' anni («(2015-14-13)») compare sotto ognuno.
+// La sezione Junior (21/10/2026, richiesta di Maurizio): i corsi per bambini e ragazzi (Scuola Nuoto mono e bisettimanale, Nuoto
+// Agonistico e Propaganda, Pallanuoto, Baby Nuoto) con i posti che restano.
 //
-// In cima, **il nucleo** (21/10/2026): chi della famiglia puo' fare le attivita' junior (dai 3 mesi ai nati nell'anno piu'
-// vecchio dei gruppi del Nuoto Agonistico: lo decide il database) e a quali gruppi e' iscritto; toccando una persona si apre
-// il suo anno. Sotto, «Aggiungi un componente» (`famiglia/AggiungiComponente`, lo stesso della Home): un figlio con tutti i dati
-// (`FoglioComponente`: la funzione controlla che non sia gia' al club prima di crearlo su PerfectGym) oppure un altro adulto a cui dare
-// la delega sui figli (`/delega`). In vista cliente il comando non c'e'.
-//
-// **Sotto le anagrafiche, i corsi della persona scelta** (22/10/2026, `CorsiPersona`): se e' iscritta a un gruppo, l'abbonamento
-// con tutti i suoi dati, i conteggi delle lezioni disdette e recuperate, le prossime lezioni (con «Disdici») e il calendario dei
-// recuperi; se e' in eta' per il Baby Nuoto, l'abbonamento o le due strade (lezione singola, mensile) e il calendario delle
-// lezioni. I gruppi con l'anno di nascita restano per chi non e' ancora iscritto e non e' in eta' per il Baby Nuoto (e, con
-// il «Cambio orario», per chi e' gia' iscritto: solo turni dello stesso tipo).
+// **Riordinata il 02/11/2026** (richiesta di Maurizio: «c'e' troppo testo tutto insieme, non si capisce»). Lo scopo e' uno solo: scegliere
+// il bambino per cui si opera, o aggiungerne uno, e poi:
+//   - **se non ha un abbonamento attivo**, le attivita' che il suo anno di nascita apre, come carte chiuse con l'«upsell» (da quanto,
+//     quanti posti) e aperte con tutti i dettagli e i turni (`AttivitaDaScegliere`);
+//   - **se ce l'ha**, un menu (`MenuIscritto`) con le voci che si possono guardare (abbonamento, lezioni, recuperi, livello, cambio
+//     orario, Direttore Tecnico, da sapere): sotto si vede una voce alla volta, e la pagina non scorre all'infinito.
+// Il nucleo non e' piu' un elenco con una riga di testo per persona: e' una fila di tessere (`SceltaFiglio`) con «Aggiungi» in fondo
+// (`famiglia/AggiungiComponente`, lo stesso della Home: un figlio con tutti i dati oppure un altro adulto con la delega sui figli).
 //
 // Ai gruppi da qui ci si iscrive toccando un turno con posti (`/iscrizione`). I numeri sono quelli del mirror di PerfectGym (si aggiornano ogni
-// pochi minuti), e l'ultima parola sui posti e' della segreteria al momento dell'iscrizione: la schermata lo dice.
+// pochi minuti), e l'ultima parola sui posti e' della segreteria al momento dell'iscrizione. Il bambino iscritto non si iscrive ad altri
+// turni da qui: puo' chiedere un altro turno dello stesso tipo (`CambioOrario`).
 
 export const CHIAVE_GRUPPI_JUNIOR = "junior:gruppi";
 
@@ -80,12 +53,10 @@ export function Junior() {
   const [esito, setEsito] = useState<EsitoGruppi | undefined>(() =>
     inMemoria<EsitoGruppi>(CHIAVE_GRUPPI_JUNIOR),
   );
-  const [soloLiberi, setSoloLiberi] = useState(false);
-  const [giorni, setGiorni] = useState<number[]>([]);
-  const [storiaLivelli, setStoriaLivelli] = useState(false);
-  const [daIscrivere, setDaIscrivere] = useState<GruppoJunior | null>(null);
   const [aggiunto, setAggiunto] = useState<string | null>(null);
   const [personaScelta, setPersonaScelta] = useState<number | null>(null);
+  // Un lattante non ha gruppi: e' «iscritto» se ha l'abbonamento mensile del Baby Nuoto, che sa solo `CorsiPersona` (null: non si sa ancora).
+  const [babyAbbonato, setBabyAbbonato] = useState<{ id: number; si: boolean } | null>(null);
   const vista = !!vistaCorrente();
 
   const carica = useCallback(async () => {
@@ -98,8 +69,7 @@ export function Junior() {
     }, [carica]),
   );
 
-  const gruppi = esito?.ok ? esito.gruppi : [];
-  const anni = useMemo(() => anniDisponibili(gruppi), [gruppi]);
+  const gruppi = useMemo(() => (esito?.ok ? esito.gruppi : []), [esito]);
   const nucleoServer = esito?.ok ? esito.nucleo : null;
   // Un'iscrizione appena firmata che il mirror non ha ancora (`inCorso.ts`) si vede subito, e si rilegge finche' non arriva.
   const [giroInCorso, setGiroInCorso] = useState(0);
@@ -125,63 +95,35 @@ export function Junior() {
     const id = setInterval(carica, 6000);
     return () => clearInterval(id);
   }, [inCorso.length, carica]);
+
   const persone = personeDaMostrare(nucleo);
-  // La persona di cui si vedono i corsi: quella toccata, se c'e' ancora; se no la prima in eta' per i corsi.
+  // La persona di cui si lavora: quella toccata, se c'e' ancora; se no la prima in eta' per i corsi.
   const idonee = persone.filter((x) => x.idoneo);
-  const persona =
-    idonee.find((x) => x.member_id === personaScelta) ?? idonee[0] ?? null;
-  const personaBaby = !!persona && eBaby(persona.data_nascita);
-  const personaIscritta = !!persona && persona.gruppi.length > 0;
-  // **Senza un figlio registrato non si mostra nessun turno** (02/11/2026, richiesta di Maurizio): resta solo «Aggiungi un
-  // componente», con la spiegazione di cosa succede dopo.
+  const persona = idonee.find((x) => x.member_id === personaScelta) ?? idonee[0] ?? null;
+  // **Senza un figlio registrato non si mostra nessun turno** (02/11/2026): resta solo «Aggiungi».
   const senzaFigli = !persona;
-  // I gruppi da cui scegliere servono a chi non ha ancora un corso: non a un lattante (c'e' il Baby Nuoto) e non a chi e'
-  // gia' iscritto (ha il suo abbonamento sopra), salvo che li chieda.
-  const mostraGruppi = !!persona && !personaBaby && !personaIscritta;
-  // L'anno e' quello della persona: non si sceglie, e si vedono solo i gruppi che lo accolgono. Se il suo anno non ha nessun
-  // gruppo non si mostra altro (niente tessere degli altri anni).
-  const annoPersona = persona ? annoDi(persona) : null;
-  const annoFisso = annoPersona != null && anni.includes(annoPersona) ? annoPersona : null;
-  const scelto = annoFisso;
+  const personaIscritta = !!persona && (persona.gruppi.length > 0);
 
   function dopoAggiunta(nome: string, n: NucleoJunior | null) {
     setAggiunto(t(`${nome} è nel tuo nucleo familiare.`, `${nome} is now in your family members.`));
+    // Il bambino appena aggiunto diventa quello scelto.
+    const prima = new Set((nucleo?.persone ?? []).map((x) => x.member_id));
+    const nuovo = n?.persone.find((x) => !prima.has(x.member_id) && x.idoneo);
+    if (nuovo) setPersonaScelta(nuovo.member_id);
     // L'area della Home ha il nucleo di prima: alla prossima apertura si rilegge.
     scorda("area");
     if (esito?.ok && n) {
-      const nuovo: EsitoGruppi = { ...esito, nucleo: n };
-      ricorda(CHIAVE_GRUPPI_JUNIOR, nuovo);
-      setEsito(nuovo);
+      const nuovoEsito: EsitoGruppi = { ...esito, nucleo: n };
+      ricorda(CHIAVE_GRUPPI_JUNIOR, nuovoEsito);
+      setEsito(nuovoEsito);
     } else carica();
   }
-  // Solo i giorni che quell'anno ha davvero; i giorni scelti che non ci sono piu' (cambio d'anno) non contano.
-  const giorniAnno = useMemo(
-    () => (scelto == null ? [] : giorniDelAnno(gruppi, scelto)),
-    [gruppi, scelto],
-  );
-  const giorniAttivi = giorni.filter((i) => giorniAnno.includes(i));
+
   function iscrivi(g: GruppoJunior, membro: number) {
-    setDaIscrivere(null);
     router.navigate({
       pathname: "/iscrizione",
       params: { group: g.id, membro: String(membro) },
     });
-  }
-  function tocca(g: GruppoJunior) {
-    const chi = chiPuoIscriversi(nucleo, g);
-    if (chi.length === 1) iscrivi(g, chi[0].member_id);
-    else if (chi.length > 1) setDaIscrivere(g);
-  }
-  const blocchi = useMemo(
-    () =>
-      scelto == null
-        ? []
-        : gruppiDellAnno(gruppi, scelto, soloLiberi, giorniAttivi),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [gruppi, scelto, soloLiberi, giorniAttivi.join(",")],
-  );
-  function scegliGiorno(i: number) {
-    setGiorni((v) => (v.includes(i) ? v.filter((x) => x !== i) : [...v, i]));
   }
 
   const intestazione = {
@@ -213,7 +155,7 @@ export function Junior() {
     );
   }
 
-  if (!anni.length && !senzaFigli) {
+  if (!gruppi.length && !senzaFigli) {
     return (
       <Schermata {...intestazione}>
         <Messaggio tono="attenzione" titolo={t("Nessun gruppo attivo", "No active groups")}>
@@ -224,103 +166,149 @@ export function Junior() {
   }
 
   return (
-    <Schermata
-      {...intestazione}
-      sottotitolo={
-        senzaFigli
-          ? t("Aggiungi un componente per vedere le attività.", "Add a family member to see the activities.")
-          : mostraGruppi
-          ? t("I gruppi attivi e i posti ancora liberi.", "Active groups and spots still available.")
-          : t(`I corsi di ${persona?.nome ?? "chi hai scelto"}: abbonamento, lezioni e recuperi.`, `${persona?.nome ?? "The person you chose"}’s courses: membership, classes and make-ups.`)
-      }
-    >
+    <Schermata {...intestazione}>
       <TestataJunior nome={persona?.nome} />
-      {nucleo || senzaFigli ? (
-        <Sezione titolo={t("La tua famiglia", "Your family")}>
-          {persone.length ? (
-            <Carta>
-              {persone.map((x, i) => {
-                const sel = x.member_id === persona?.member_id;
-                return (
-                  <View
-                    key={x.member_id}
-                    style={
-                      sel
-                        ? [
-                            stili.scelta,
-                            {
-                              backgroundColor: velo(
-                                p,
-                                "accento",
-                                p.scuro ? 0.18 : 0.1,
-                              ),
-                              borderColor: p.accento,
-                            },
-                          ]
-                        : undefined
-                    }
-                  >
-                    <Riga
-                      prima={i === 0 || sel}
-                      testa={
-                        <View
-                          style={[
-                            stili.avatarAnello,
-                            { borderColor: sel ? p.accento : "transparent" },
-                          ]}
-                        >
-                          <Avatar nome={x.nome} cognome={x.cognome} size={40} />
-                        </View>
-                      }
-                      titolo={
-                        ([x.nome, x.cognome].filter(Boolean).join(" ") ||
-                          t("Senza nome", "No name")) +
-                        (x.livello ? ` · ${x.livello}` : "")
-                      }
-                      sotto={descriviPersona(x)}
-                      coda={
-                        x.idoneo ? (
-                          <Etichetta
-                            icona={sel ? "spunta" : undefined}
-                            grande={sel}
-                            testo={sel ? t("Scelto", "Selected") : t("Vedi i corsi", "See courses")}
-                            tono={
-                              x.member_id === persona?.member_id
-                                ? "accento"
-                                : "neutro"
-                            }
-                          />
-                        ) : (
-                          <Etichetta testo={t("Non ancora", "Not yet")} tono="neutro" />
-                        )
-                      }
-                      onPress={
-                        x.idoneo
-                          ? () => {
-                              setPersonaScelta(x.member_id);
-                            }
-                          : undefined
-                      }
-                    />
-                  </View>
-                );
-              })}
-            </Carta>
-          ) : null}
-          {senzaFigli ? (
-            <Messaggio titolo={t("Aggiungi un figlio per vedere le attività", "Add a child to see the activities")}>
-              {t(
-                `Una volta inserito, qui vedrai tutte le attività disponibili per la sua età${nucleo ? ` (dai ${nucleo.mesi_minimi} mesi ai nati nel ${nucleo.anno_minimo})` : ""}, con i turni e le modalità di iscrizione.`,
-                `Once you’ve added them, you’ll see here all the activities available for their age${nucleo ? ` (from ${nucleo.mesi_minimi} months old to those born in ${nucleo.anno_minimo})` : ""}, with the slots and how to enroll.`,
-              )}
-            </Messaggio>
-          ) : null}
-          {aggiunto ? <Messaggio tono="ok">{aggiunto}</Messaggio> : null}
-          <AggiungiComponente onApri={() => setAggiunto(null)} onAggiunto={dopoAggiunta} />
-        </Sezione>
-      ) : null}
 
-      {persona?.livello ? (
+      <SceltaFiglio
+        persone={persone}
+        scelta={persona?.member_id ?? null}
+        onScegli={(id) => {
+          setAggiunto(null);
+          setPersonaScelta(id);
+        }}
+        onAggiunto={dopoAggiunta}
+        onApriAggiungi={() => setAggiunto(null)}
+      />
+      {aggiunto ? <Messaggio tono="ok">{aggiunto}</Messaggio> : null}
+
+      {senzaFigli ? (
+        <Messaggio titolo={t("Aggiungi un figlio per vedere le attività", "Add a child to see the activities")}>
+          {t(
+            `Una volta inserito vedrai le attività per la sua età${nucleo ? ` (dai ${nucleo.mesi_minimi} mesi ai nati nel ${nucleo.anno_minimo})` : ""}.`,
+            `Once added, you’ll see the activities for their age${nucleo ? ` (from ${nucleo.mesi_minimi} months old to those born in ${nucleo.anno_minimo})` : ""}.`,
+          )}
+        </Messaggio>
+      ) : persona ? (
+        <>
+          <StatoIscrizione
+            persona={persona}
+            iscritto={personaIscritta ? true : eBaby(persona.data_nascita) ? (babyAbbonato?.id === persona.member_id ? babyAbbonato.si : null) : false}
+          />
+          {!personaIscritta && eBaby(persona.data_nascita) ? (
+            // Chi e' in eta' per il Baby Nuoto: la lettura dei suoi dati parte subito, per dire in alto se ha l'abbonamento.
+            <CorsiPersona persona={persona} vista={vista} parte={null} onDati={(d) => setBabyAbbonato({ id: persona.member_id, si: d.babyAbbonato })} />
+          ) : null}
+          {personaIscritta ? (
+            <AreaIscritto
+              key={persona.member_id}
+              persona={persona}
+              gruppi={gruppi}
+              vista={vista}
+              inCorso={inCorso.find((x) => x.member_id === persona.member_id)}
+              onInCorsoFinito={() => setGiroInCorso((n) => n + 1)}
+            />
+          ) : (
+            <AttivitaDaScegliere
+              key={persona.member_id}
+              persona={persona}
+              gruppi={gruppi}
+              vista={vista}
+              puoIscriversi={(g) => chiPuoIscriversi(nucleo, g).some((x) => x.member_id === persona.member_id)}
+              onIscrivi={(g) => iscrivi(g, persona.member_id)}
+              contenutoBaby={
+                <CorsiPersona
+                  persona={persona}
+                  vista={vista}
+                  parte="baby"
+                  inCorso={inCorso.find((x) => x.member_id === persona.member_id)}
+                  onInCorsoFinito={() => setGiroInCorso((n) => n + 1)}
+                />
+              }
+            />
+          )}
+        </>
+      ) : null}
+    </Schermata>
+  );
+}
+
+/**
+ * Subito sotto la scelta del bambino, in grande, se e' iscritto o no (02/11/2026, richiesta di Maurizio): «Iscritto» con i corsi a cui
+ * e' dentro, oppure «Non iscritto». `null`: ancora non si sa (la lettura dell'abbonamento del Baby Nuoto), si dice solo la classe.
+ */
+function StatoIscrizione({ persona, iscritto }: { persona: PersonaJunior; iscritto: boolean | null }) {
+  const p = usePalette();
+  const anno = annoDi(persona);
+  const classe = anno ? t(`Classe ${anno}`, `Born ${anno}`) : null;
+  const corsi = persona.gruppi.map((g) => nomeIscrizione(g.nome)).join(", ");
+  return (
+    <View style={stili.stato} accessibilityRole="summary">
+      {iscritto === null ? null : (
+        <Etichetta
+          grande
+          icona={iscritto ? "spunta" : "attenzione"}
+          tono={iscritto ? "ok" : "attenzione"}
+          testo={iscritto ? t("Iscritto", "Enrolled") : t("Non iscritto", "Not enrolled")}
+        />
+      )}
+      <Text style={[stili.riepilogo, { color: p.testoSecondario }]} numberOfLines={2}>
+        {[classe, iscritto && corsi ? corsi : iscritto === false ? t("nessun abbonamento attivo", "no active membership") : null]
+          .filter(Boolean)
+          .join(" · ")}
+      </Text>
+    </View>
+  );
+}
+
+/**
+ * Un bambino con un abbonamento attivo: il menu e, sotto, la voce scelta. `CorsiPersona` resta montato per tutte le voci (legge i dati
+ * una volta sola) e disegna solo la sua parte; le altre voci sono pagine a se'.
+ */
+function AreaIscritto({
+  persona,
+  gruppi,
+  vista,
+  inCorso,
+  onInCorsoFinito,
+}: {
+  persona: PersonaJunior;
+  gruppi: GruppoJunior[];
+  vista: boolean;
+  inCorso?: InCorso;
+  onInCorsoFinito: () => void;
+}) {
+  const baby = eBaby(persona.data_nascita);
+  const [voce, setVoce] = useState<VoceJunior>("abbonamento");
+  const [recuperabile, setRecuperabile] = useState<boolean | null>(null);
+  const [storiaLivelli, setStoriaLivelli] = useState(false);
+
+  const voci = useMemo(() => {
+    const v: VoceJunior[] = ["abbonamento", "lezioni"];
+    if (recuperabile !== false) v.push("recuperi");
+    if (persona.livello) v.push("livello");
+    if (!baby) v.push("cambio");
+    if (persona.minorenne) v.push("dt");
+    v.push("attivita");
+    return v;
+  }, [recuperabile, persona.livello, persona.minorenne, baby]);
+  // Se la voce aperta sparisce dal menu (i recuperi, quando si scopre che non ci sono) si torna alla prima.
+  const attiva: VoceJunior = voci.includes(voce) ? voce : voci[0];
+  const parte: ParteCorsi | null = attiva === "abbonamento" || attiva === "lezioni" || attiva === "recuperi" ? attiva : null;
+
+  return (
+    <>
+      <MenuIscritto voci={voci} scelta={attiva} onScegli={setVoce} />
+
+      <CorsiPersona
+        persona={persona}
+        vista={vista}
+        parte={parte}
+        inCorso={inCorso}
+        onInCorsoFinito={onInCorsoFinito}
+        onDati={(d) => setRecuperabile(d.recuperabile)}
+      />
+
+      {attiva === "livello" && persona.livello ? (
         <Carta>
           <Riga
             prima
@@ -332,323 +320,18 @@ export function Junior() {
           />
         </Carta>
       ) : null}
+      {attiva === "cambio" ? <CambioOrario persona={persona} gruppi={gruppi} vista={vista} /> : null}
+      {attiva === "dt" ? <DirettoreTecnico persona={persona} vista={vista} /> : null}
+      {attiva === "attivita" ? <SchedaAttivita chiavi={attivitaDiPersona(persona)} nome={persona.nome} /> : null}
 
-      {persona ? (
-        <CorsiPersona
-          persona={persona}
-          vista={vista}
-          inCorso={inCorso.find((x) => x.member_id === persona.member_id)}
-          onInCorsoFinito={() => setGiroInCorso((n) => n + 1)}
-        />
-      ) : null}
-      {persona && persona.minorenne && persona.gruppi.length > 0 ? (
-        <DirettoreTecnico persona={persona} vista={vista} />
-      ) : null}
-      <FoglioLivelli
-        persona={persona}
-        aperto={storiaLivelli}
-        onChiudi={() => setStoriaLivelli(false)}
-      />
-
-      {persona ? (
-        <SchedaAttivita
-          key={persona.member_id}
-          chiavi={attivitaDiPersona(persona)}
-          nome={persona.nome}
-        />
-      ) : null}
-
-      {mostraGruppi && persona && annoFisso == null ? (
-        <Messaggio
-          tono="attenzione"
-          titolo={t(
-            `Nessun gruppo per i nati nel ${annoPersona ?? "?"}`,
-            `No groups for those born in ${annoPersona ?? "?"}`,
-          )}
-        >
-          {t(
-            `Al momento non ci sono gruppi attivi per ${persona.nome ?? "chi hai scelto"}. Per altre informazioni chiedi in segreteria.`,
-            `There are no active groups for ${persona.nome ?? "the person you chose"} right now. Ask at the front desk for more information.`,
-          )}
-        </Messaggio>
-      ) : mostraGruppi && persona ? (
-        <>
-          <View style={{ gap: spazio.due }}>
-            <Text
-              style={[stili.filtriTitolo, { color: p.testoSecondario }]}
-              accessibilityRole="header"
-            >
-              {t(
-                `Le nostre attività per ${persona.nome ?? "chi hai scelto"} · nato nel ${annoFisso}`,
-                `Our activities for ${persona.nome ?? "the person you chose"} · born in ${annoFisso}`,
-              )}
-            </Text>
-            <Text style={[stili.nota, { color: p.testoSecondario }]}>
-              {t("La pallanuoto è solo maschile.", "Water polo is boys only.")}
-            </Text>
-            {giorniAnno.length ? (
-              <>
-                <Text
-                  style={[stili.filtriTitolo, { color: p.testoSecondario }]}
-                  accessibilityRole="header"
-                >
-                  {t("Giorno della settimana", "Day of the week")}
-                </Text>
-                <View style={stili.tessere}>
-                  <Tocco
-                    vibra="scelta"
-                    stato={{ selected: !giorniAttivi.length }}
-                    onPress={() => setGiorni([])}
-                    etichetta={t("Tutti i giorni", "Every day")}
-                    style={[
-                      stili.giorno,
-                      stili.giornoTutti,
-                      {
-                        backgroundColor: !giorniAttivi.length
-                          ? velo(p, "accento", p.scuro ? 0.16 : 0.1)
-                          : p.carta,
-                        borderColor: !giorniAttivi.length ? p.accento : p.linea,
-                      },
-                    ]}
-                  >
-                    <Text
-                      style={[
-                        stili.giornoTesto,
-                        {
-                          color: p.testo,
-                          fontFamily: !giorniAttivi.length ? F.extra : F.bold,
-                        },
-                      ]}
-                    >
-                      {t("Tutti", "All")}
-                    </Text>
-                  </Tocco>
-                  {giorniAnno.map((i) => {
-                    const on = giorniAttivi.includes(i);
-                    return (
-                      <Tocco
-                        key={i}
-                        vibra="scelta"
-                        stato={{ selected: on }}
-                        onPress={() => scegliGiorno(i)}
-                        etichetta={SIGLE_GIORNI[i]}
-                        style={[
-                          stili.giorno,
-                          {
-                            backgroundColor: on
-                              ? velo(p, "accento", p.scuro ? 0.16 : 0.1)
-                              : p.carta,
-                            borderColor: on ? p.accento : p.linea,
-                          },
-                        ]}
-                      >
-                        <Text
-                          style={[
-                            stili.giornoTesto,
-                            {
-                              color: p.testo,
-                              fontFamily: on ? F.extra : F.bold,
-                            },
-                          ]}
-                        >
-                          {SIGLE_GIORNI[i]}
-                        </Text>
-                      </Tocco>
-                    );
-                  })}
-                </View>
-              </>
-            ) : null}
-            <Tocco
-              vibra="scelta"
-              stato={{ selected: soloLiberi }}
-              onPress={() => setSoloLiberi((v) => !v)}
-              etichetta={t("Mostra solo i gruppi con posti liberi", "Show only groups with spots available")}
-              style={[
-                stili.interruttore,
-                {
-                  backgroundColor: soloLiberi
-                    ? velo(p, "accento", p.scuro ? 0.16 : 0.1)
-                    : p.carta,
-                  borderColor: soloLiberi ? p.accento : p.linea,
-                },
-              ]}
-            >
-              <View
-                style={[
-                  stili.casella,
-                  {
-                    borderColor: soloLiberi ? p.accento : p.testoTerzo,
-                    backgroundColor: soloLiberi ? p.accento : "transparent",
-                  },
-                ]}
-              >
-                {soloLiberi ? <Text style={stili.spunta}>✓</Text> : null}
-              </View>
-              <Text
-                style={{ color: p.testo, fontFamily: F.semi, fontSize: 14 }}
-              >
-                {t("Solo i gruppi con posti liberi", "Only groups with spots available")}
-              </Text>
-            </Tocco>
-          </View>
-
-          {blocchi.length ? (
-            blocchi.map((b) => (
-              <Sezione key={b.corso} titolo={b.corso}>
-                <Carta>
-                  {b.gruppi.map((g, i) => {
-                    const s = statoPosti(g);
-                    const chi = vista ? [] : chiPuoIscriversi(nucleo, g);
-                    return (
-                      <Riga
-                        key={g.id}
-                        prima={i === 0}
-                        testa={
-                          <Bollino
-                            icona="goccia"
-                            tono={s.tono === "neutro" ? "neutro" : "blu"}
-                            size={40}
-                          />
-                        }
-                        titolo={titoloGruppo(g)}
-                        sotto={
-                          <View style={{ gap: 6 }}>
-                            <Text style={[stili.nota, { color: p.testoSecondario }]}>
-                              {(calendarioGruppo(g) ? calendarioGruppo(g) + "\n" : "") +
-                                annateGruppo(g)}
-                            </Text>
-                            {chi.length ? (
-                              <Tocco
-                                onPress={() => tocca(g)}
-                                style={{ alignSelf: "flex-start", paddingVertical: 6 }}
-                              >
-                                <Text style={{ color: p.accento, fontFamily: F.semi, fontSize: 13.5 }}>
-                                  {t("Iscriviti a questo turno →", "Enroll in this slot →")}
-                                </Text>
-                              </Tocco>
-                            ) : null}
-                          </View>
-                        }
-                        coda={
-                          <View style={{ alignItems: "flex-end", gap: 6 }}>
-                            <Etichetta testo={s.testo} tono={s.tono} />
-                            {quotaMensile(g) ? (
-                              <Etichetta testo={quotaMensile(g)!} tono="neutro" />
-                            ) : null}
-                          </View>
-                        }
-                      />
-                    );
-                  })}
-                </Carta>
-              </Sezione>
-            ))
-          ) : (
-            <Messaggio
-              tono="attenzione"
-              titolo={t(`Nessun gruppo per i nati nel ${annoFisso}`, `No groups for those born in ${annoFisso}`)}
-            >
-              {soloLiberi && !giorniAttivi.length
-                ? t("Tutti i gruppi di quest’anno sono al completo. Togli il filtro per vederli, o chiedi in segreteria.", "All groups for this year are full. Remove the filter to see them, or ask at the front desk.")
-                : t("Con questi filtri non c’è nessun gruppo. Prova a togliere un giorno o i posti liberi.", "No groups match these filters. Try removing a day or the available-spots filter.")}
-            </Messaggio>
-          )}
-
-          <Text style={[stili.nota, { color: p.testoTerzo }]}>
-            {t("I posti sono quelli del gestionale del club e si aggiornano ogni pochi minuti: al momento dell’iscrizione la segreteria ti conferma quello che c’è davvero.", "Spots come from the club’s management system and update every few minutes: when you enroll, the front desk confirms what’s actually available.")}
-          </Text>
-        </>
-      ) : personaIscritta && persona && !personaBaby ? (
-        <CambioOrario persona={persona} gruppi={gruppi} vista={vista} />
-      ) : null}
-
-      <Foglio
-        aperto={!!daIscrivere}
-        titolo={t("Chi vuoi iscrivere?", "Who do you want to enroll?")}
-        sottotitolo={daIscrivere ? titoloGruppo(daIscrivere) : undefined}
-        onChiudi={() => setDaIscrivere(null)}
-      >
-        <Carta>
-          {daIscrivere
-            ? chiPuoIscriversi(nucleo, daIscrivere).map((x, i) => (
-                <Riga
-                  key={x.member_id}
-                  prima={i === 0}
-                  testa={<Avatar nome={x.nome} cognome={x.cognome} size={40} />}
-                  titolo={
-                    [x.nome, x.cognome].filter(Boolean).join(" ") ||
-                    t("Senza nome", "No name")
-                  }
-                  sotto={descriviPersona(x)}
-                  onPress={() => iscrivi(daIscrivere, x.member_id)}
-                />
-              ))
-            : null}
-        </Carta>
-      </Foglio>
-
-    </Schermata>
+      <FoglioLivelli persona={persona} aperto={storiaLivelli} onChiudi={() => setStoriaLivelli(false)} />
+    </>
   );
 }
 
 const stili = StyleSheet.create({
-  // La persona scelta: sfondo e bordo nell'arancio del club, e l'anello intorno all'avatar.
-  scelta: {
-    borderRadius: 18,
-    borderWidth: 2,
-    marginHorizontal: -2,
-    overflow: "hidden",
-  },
-  avatarAnello: {
-    padding: 2,
-    borderRadius: 18,
-    borderWidth: 2,
-  },
-  filtriTitolo: {
-    fontSize: 13,
-    fontFamily: F.extra,
-    letterSpacing: 0.4,
-    textTransform: "uppercase",
-    paddingHorizontal: 2,
-  },
-  tessere: { flexDirection: "row", flexWrap: "wrap", gap: spazio.due },
-  giorno: {
-    minWidth: 48,
-    minHeight: 44,
-    paddingHorizontal: 12,
-    alignItems: "center",
-    justifyContent: "center",
-    borderRadius: 999,
-    borderWidth: StyleSheet.hairlineWidth,
-  },
-  giornoTutti: { paddingHorizontal: 16 },
-  giornoTesto: { fontSize: 14, lineHeight: 18 },
-  interruttore: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spazio.due,
-    alignSelf: "flex-start",
-    minHeight: 44,
-    paddingHorizontal: spazio.tre,
-    borderRadius: 999,
-    borderWidth: StyleSheet.hairlineWidth,
-  },
-  casella: {
-    width: 20,
-    height: 20,
-    borderRadius: 6,
-    borderWidth: 1.5,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  spunta: { color: "#fff", fontSize: 13, fontFamily: F.extra, lineHeight: 15 },
-  nota: {
-    fontSize: 13,
-    lineHeight: 19,
-    fontFamily: F.medio,
-    paddingHorizontal: 2,
-  },
+  stato: { flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: spazio.due, paddingHorizontal: 2 },
+  riepilogo: { flexShrink: 1, fontSize: 13, lineHeight: 19, fontFamily: F.medio },
 });
 
 /** Le iscrizioni firmate che il mirror non ha ancora (la persona esiste nel nucleo e non ha ancora quel gruppo). */

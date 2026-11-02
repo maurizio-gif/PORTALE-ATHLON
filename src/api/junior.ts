@@ -279,7 +279,7 @@ export async function livelliJunior(memberId: number): Promise<EsitoLivelli> {
 export type GiornoDt = { data: string; etichetta: string; slot: string[] };
 
 export type EsitoSlotDt =
-  | { ok: true; durataMinuti: number | null; giorni: GiornoDt[]; telefonoMancante: boolean }
+  | { ok: true; durataMinuti: number | null; giorni: GiornoDt[]; telefonoMancante: boolean; /** Il cellulare che PerfectGym ha del genitore (lo manda `dt_slot` dal 02/11/2026; un server vecchio no). */ telefono: string | null }
   | { ok: false; errore: string };
 
 const NON_ATTIVO_DT = () =>
@@ -318,6 +318,7 @@ export async function slotDirettoreTecnico(memberId: number, appuntamentoId?: st
       ? (dati.giorni as GiornoDt[]).filter((g) => Array.isArray(g.slot) && g.slot.length > 0)
       : [],
     telefonoMancante: dati.telefono_mancante === true,
+    telefono: typeof dati.telefono === "string" && dati.telefono.trim() ? dati.telefono.trim() : null,
   };
 }
 
