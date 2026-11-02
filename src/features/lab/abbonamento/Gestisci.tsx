@@ -356,7 +356,7 @@ export function FoglioGestisci({ contratto: c, aperto, onChiudi, onCambiato }: {
         )}
       </View>
       {inFinestra && finestra?.stato === 'aperta' ? (
-        <Nota>{t(`Puoi cambiare abbonamento senza disdire fino alle 23:59 del ${dataLunga(finestra.ultimo_giorno)}: il nuovo parte il ${dataLunga(finestra.nuovo_inizio)}.`, `You can change membership without cancelling until 11:59 pm on ${dataLunga(finestra.ultimo_giorno)}: the new one starts on ${dataLunga(finestra.nuovo_inizio)}.`)}</Nota>
+        <Nota>{t(`Puoi cambiare abbonamento senza disdire fino alle 23:59 del ${dataLunga(finestra.ultimo_giorno)}: scegli tu quando parte il nuovo, nei prossimi 30 giorni.`, `You can change membership without cancelling until 11:59 pm on ${dataLunga(finestra.ultimo_giorno)}: you choose when the new one starts, within the next 30 days.`)}</Nota>
       ) : !inFinestra && upgrade && !upgrade.possibile ? (
         <Nota>{t('Hai già l’abbonamento di valore più alto: non c’è un upgrade possibile.', 'You already have the highest-value membership: there’s no upgrade available.')}</Nota>
       ) : null}
@@ -544,7 +544,7 @@ export function FoglioGestisci({ contratto: c, aperto, onChiudi, onCambiato }: {
         <Messaggio tono="ok" icona="rinnovo" titolo={t('Vuoi cambiare abbonamento invece di disdire?', 'Want to change membership instead of cancelling?')}>
           <View style={{ gap: spazio.due }}>
             <Text style={[stili.nota, { color: p.testo }]}>{t(`Stai per disdire ${etichettaPiano(c)}. Invece puoi passare a un altro abbonamento, Smart o Premium o uno degli altri in vigore, scegliendo quello che preferisci: così dai continuità ai tuoi allenamenti, senza disdetta e senza nessun buco.`, `You’re about to cancel ${etichettaPiano(c)}. Instead you can move to another membership, Smart or Premium or any other currently on sale, whichever you prefer: this keeps your training going, with no cancellation and no gap.`)}</Text>
-            <Text style={[stili.nota, { color: p.testo }]}>{t(`Il tuo abbonamento attuale finisce il ${dataLunga(finestra.fine)} e il nuovo parte il ${dataLunga(finestra.nuovo_inizio)}. La quota di attivazione è in omaggio.`, `Your current membership ends on ${dataLunga(finestra.fine)} and the new one starts on ${dataLunga(finestra.nuovo_inizio)}. The joining fee is waived.`)}</Text>
+            <Text style={[stili.nota, { color: p.testo }]}>{t(`Scegli tu il giorno in cui parte il nuovo, nei prossimi 30 giorni: il tuo abbonamento attuale finisce il giorno prima. La quota di attivazione è in omaggio.`, `You choose the day the new one starts, within the next 30 days: your current membership ends the day before. The joining fee is waived.`)}</Text>
             <Pulsante testo={t('Cambia abbonamento', 'Change membership')} icona="rinnovo" piccolo onPress={apriCambio} inCorso={inCorso} />
           </View>
         </Messaggio>
@@ -755,8 +755,8 @@ export function FoglioGestisci({ contratto: c, aperto, onChiudi, onCambiato }: {
 
   // --- Cambio senza disdetta (nella finestra) ------------------------------
   // Si fa tutto dal portale (31/10/2026, Maurizio): niente modulo per la segreteria. Il server decide se il cambio e' possibile per questo
-  // contratto (`cambio_stato`); se si', si apre la procedura vera (data fissa, metodo di pagamento, firma) e solo a firma fatta il vecchio si
-  // chiude e il nuovo parte il giorno dopo. Se no, **si dice il motivo che da' il server**, senza ricadere su una richiesta alla segreteria.
+  // contratto (`cambio_stato`); se si', si apre la procedura vera (data a scelta nei prossimi 30 giorni, metodo di pagamento, firma) e solo a firma fatta il vecchio si
+  // chiude (il giorno prima della data scelta) e il nuovo parte. Se no, **si dice il motivo che da' il server**, senza ricadere su una richiesta alla segreteria.
   async function apriCambio() {
     setInCorso(true)
     setErrore(null)

@@ -1,5 +1,5 @@
 import { router } from 'expo-router'
-import { useState } from 'react'
+import { useState, type ReactNode } from 'react'
 
 import type { NucleoJunior } from '@/api/junior'
 import { t } from '@/lib/lingua'
@@ -19,27 +19,31 @@ import { vistaCorrente } from '../vista'
 export function AggiungiComponente({
   onAggiunto,
   onApri,
+  trigger,
 }: {
   /** Un figlio aggiunto: il nome e, se la funzione lo manda, il nucleo aggiornato. */
   onAggiunto: (nome: string, nucleo: NucleoJunior | null) => void
   /** Il pulsante e' stato toccato (chi mostra un messaggio d'esito di prima lo toglie). */
   onApri?: () => void
+  /** Al posto del pulsante grigio (Junior lo mette in fila con i bambini): riceve il comando che apre la scelta. */
+  trigger?: (apri: () => void) => ReactNode
 }) {
   const [scelta, setScelta] = useState(false)
   const [figlio, setFiglio] = useState(false)
   if (vistaCorrente()) return null
 
+  const apri = () => {
+    onApri?.()
+    setScelta(true)
+  }
+
   return (
     <>
-      <Pulsante
-        testo={t('Aggiungi un componente', 'Add a family member')}
-        icona="aggiungi"
-        variante="secondario"
-        onPress={() => {
-          onApri?.()
-          setScelta(true)
-        }}
-      />
+      {trigger ? (
+        trigger(apri)
+      ) : (
+        <Pulsante testo={t('Aggiungi un componente', 'Add a family member')} icona="aggiungi" variante="secondario" onPress={apri} />
+      )}
 
       <Foglio
         aperto={scelta}

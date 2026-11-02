@@ -46,6 +46,8 @@ export function CambioOrario({
   const p = usePalette();
   const turni = useMemo(() => turniPerCambio(persona, gruppi), [persona, gruppi]);
   const [scelto, setScelto] = useState<GruppoJunior | null>(null);
+  // La doppia conferma (02/11/2026, richiesta di Maurizio): il primo passo spiega e sconsiglia, il secondo chiede «sei sicuro?» e solo allora parte la richiesta.
+  const [passo, setPasso] = useState<1 | 2>(1);
   const [invio, setInvio] = useState(false);
   const [errore, setErrore] = useState<string | null>(null);
   const [chiesti, setChiesti] = useState<string[]>([]);
@@ -62,22 +64,33 @@ export function CambioOrario({
       return;
     }
     setChiesti((x) => [...x, scelto.id]);
+    chiudi();
+  }
+
+  function apri(g: GruppoJunior) {
+    setPasso(1);
+    setErrore(null);
+    setScelto(g);
+  }
+  function chiudi() {
     setScelto(null);
+    setPasso(1);
+    setErrore(null);
   }
 
   return (
     <Sezione titolo={t("Cambio orario", "Change schedule")} conteggio={turni.length}>
       <Text style={[stili.nota, { color: p.testoSecondario }]}>
         {t(
-          `Se ${nome} vuole cambiare orario puoi chiedere un altro turno dello stesso tipo, con un posto libero. La richiesta non è automatica: la segreteria la controlla e poi la approva o la rifiuta, e ti scrive l’esito per email. Nello stesso tipo di corso non c’è una nuova quota.`,
-          `If ${nome} wants a different time you can ask for another slot of the same kind, with a free spot. The request isn’t automatic: the front desk reviews it, then approves or declines it and emails you the outcome. Within the same kind of course there’s no new fee.`,
+          `Se ${nome} vuole cambiare orario, puoi chiedere un altro turno dello stesso tipo con un posto libero. La segreteria controlla la richiesta e ti scrive l’esito per email.`,
+          `If ${nome} wants a different time, you can ask for another slot of the same kind with a free spot. The front desk reviews the request and emails you the outcome.`,
         )}
       </Text>
       {chiesti.length ? (
         <Messaggio tono="ok" titolo={t("Richiesta inviata", "Request sent")}>
           {t(
-            "La segreteria la controlla e poi la approva o la rifiuta: ti scriviamo l’esito per email. Fino ad allora il turno resta quello di adesso.",
-            "The front desk will review it and approve or decline it: we’ll email you the outcome. Until then the slot stays the same.",
+            "La segreteria la controlla e ti scrive l’esito per email. Fino ad allora il turno resta quello di adesso.",
+            "The front desk will review it and email you the outcome. Until then the slot stays the same.",
           )}
         </Messaggio>
       ) : null}
@@ -94,43 +107,53 @@ export function CambioOrario({
                 titolo={titoloGruppo(g)}
                 sotto={(calendarioGruppo(g) ? calendarioGruppo(g) + "\n" : "") + annateGruppo(g)}
                 coda={<Etichetta testo={fatto ? t("Richiesto", "Requested") : s.testo} tono={fatto ? "ok" : s.tono} />}
-                onPress={!vista && !fatto ? () => setScelto(g) : undefined}
+                onPress={!vista && !fatto ? () => apri(g) : undefined}
               />
             );
           })}
         </Carta>
       ) : (
         <Text style={[stili.nota, { color: p.testoSecondario }]}>
-          {t(
-            "Adesso non ci sono altri turni dello stesso tipo con un posto libero. Se ti serve un orario diverso scrivi alla segreteria.",
-            "There are no other slots of the same kind with a free spot right now. If you need a different time, write to the front desk.",
-          )}
+          {t("Adesso non ci sono altri turni dello stesso tipo con un posto libero.", "There are no other slots of the same kind with a free spot right now.")}
         </Text>
       )}
 
       <Foglio
         aperto={!!scelto}
-        titolo={t("Chiedi il cambio orario", "Request a schedule change")}
+        titolo={passo === 1 ? t("Chiedi il cambio di turno", "Request a slot change") : t("Ne sei sicuro?", "Are you sure?")}
         sottotitolo={scelto ? titoloGruppo(scelto) : undefined}
-        onChiudi={() => (invio ? undefined : setScelto(null))}
+        onChiudi={() => (invio ? undefined : chiudi())}
       >
-        <View style={{ gap: spazio.tre }}>
-          <Messaggio tono="attenzione" titolo={t("Prima di mandare la richiesta", "Before you send the request")}>
-            {t(
-              `La richiesta non è automatica: viene controllata dalla segreteria e poi approvata o rifiutata, e solo dopo l’approvazione ${nome} cambia turno. Se viene approvata, il cambio vale dalla prima lezione utile dopo la data che ti comunichiamo. Fino ad allora ${nome} resta nel turno di adesso. Riceverai l’esito per email.`,
-              `The request isn’t automatic: the front desk reviews it and then approves or declines it, and ${nome} only changes slot once it’s approved. If approved, the change applies from the first useful lesson after the date we tell you. Until then ${nome} stays in the current slot. You’ll get the outcome by email.`,
-            )}
-          </Messaggio>
-          <Text style={[stili.nota, { color: p.testoSecondario }]}>
-            {t(
-              "Per garantire la continuità didattica, ti raccomandiamo di chiedere il cambio solo se strettamente necessario.",
-              "To protect continuity in lessons, we recommend requesting a change only if strictly necessary.",
-            )}
-          </Text>
-          {errore ? <Messaggio tono="errore">{errore}</Messaggio> : null}
-          <Pulsante testo={t("Ho capito, manda la richiesta", "I understand, send the request")} icona="ok" onPress={manda} inCorso={invio} />
-          <Pulsante testo={t("Annulla", "Cancel")} variante="secondario" onPress={() => setScelto(null)} disabilitato={invio} />
-        </View>
+        {passo === 1 ? (
+          <View style={{ gap: spazio.tre }}>
+            <Messaggio tono="attenzione" titolo={t("Cambiare turno è sconsigliato", "Changing slot is discouraged")}>
+              {t(
+                `Cambiare turno, e ancora di più farlo spesso, fa perdere a ${nome} la continuità con l’istruttore e con il gruppo, e rende meno efficace la didattica. Chiedilo solo se è davvero necessario.`,
+                `Changing slot, and even more so doing it often, makes ${nome} lose continuity with the instructor and the group, and makes the teaching less effective. Only ask if it’s truly necessary.`,
+              )}
+            </Messaggio>
+            <Text style={[stili.nota, { color: p.testoSecondario }]}>
+              {t(
+                `La richiesta non è automatica: la segreteria la controlla e la approva o la rifiuta. Se è approvata, il cambio vale dalla prima lezione utile dopo la data che ti comunichiamo; fino ad allora ${nome} resta nel turno di adesso. L’esito arriva per email.`,
+                `The request isn’t automatic: the front desk reviews it and approves or declines it. If approved, the change applies from the first useful lesson after the date we give you; until then ${nome} stays in the current slot. The outcome arrives by email.`,
+              )}
+            </Text>
+            <Pulsante testo={t("Manda la richiesta", "Send the request")} icona="avanti" onPress={() => setPasso(2)} />
+            <Pulsante testo={t("Annulla", "Cancel")} variante="secondario" onPress={chiudi} />
+          </View>
+        ) : (
+          <View style={{ gap: spazio.tre }}>
+            <Messaggio tono="attenzione" titolo={t("Un ultimo controllo", "One last check")}>
+              {t(
+                "Se i cambi di turno diventano frequenti, le richieste successive potrebbero non essere accettate. Vuoi mandare questa richiesta?",
+                "If slot changes become frequent, later requests may not be accepted. Do you want to send this request?",
+              )}
+            </Messaggio>
+            {errore ? <Messaggio tono="errore">{errore}</Messaggio> : null}
+            <Pulsante testo={t("Sì, ho bisogno del cambio", "Yes, I need the change")} icona="ok" onPress={manda} inCorso={invio} />
+            <Pulsante testo={t("No, resto nel turno di adesso", "No, keep the current slot")} variante="secondario" onPress={chiudi} disabilitato={invio} />
+          </View>
+        )}
       </Foglio>
     </Sezione>
   );

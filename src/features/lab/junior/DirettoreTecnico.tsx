@@ -11,12 +11,16 @@ import {
   type EsitoSlotDt,
   type PersonaJunior,
 } from "@/api/junior";
+import { leggiAnagrafica, type EsitoAnagrafica } from "@/api/lab";
 import { locale, t } from "@/lib/lingua";
 import { spazio } from "@/theme";
 
 import { Messaggio, Pulsante, Sezione, SchedeInArrivo, Carta } from "../ui/kit";
 import { CampoTesto, Scelte } from "../ui/Campi";
 import { Icona } from "../ui/Icona";
+import { inMemoria, prendi } from "../memoria";
+import { Consenso } from "./Consenso";
+import { Dettagli } from "./Dettagli";
 import { F, usePalette, velo } from "../ui/tema";
 
 // Il Direttore Tecnico, dalla scheda di un bambino iscritto (22/10/2026, richiesta di Maurizio): cosa fa, e il calendario aperto per
@@ -52,7 +56,17 @@ export function DirettoreTecnico({
   const [giorno, setGiorno] = useState<string | null>(null);
   const [ora, setOra] = useState<string | null>(null);
   const [motivo, setMotivo] = useState("");
+  // Il numero a cui richiamare (02/11/2026, richiesta di Maurizio: «puoi essere richiamato a questo numero?», con il numero modificabile): **si propone sempre**, quello di PerfectGym
+  // se la funzione lo manda (`dt_slot`), se no quello del Profilo (`anagrafica`), e il genitore lo conferma con una spunta o lo cambia. Parte sempre col nome `telefono`.
   const [telefono, setTelefono] = useState("");
+  const [telefonoToccato, setTelefonoToccato] = useState(false);
+  const [confermaTel, setConfermaTel] = useState(false);
+  const [telProfilo, setTelProfilo] = useState<string | null>(() => {
+    const a = inMemoria<EsitoAnagrafica>("anagrafica");
+    return a?.ok ? a.anagrafica.telefono : null;
+  });
+  // Ha toccato «Conferma» senza aver scritto di cosa vuole parlare: il campo si segna e il motivo si dice.
+  const [provato, setProvato] = useState(false);
   const [invio, setInvio] = useState(false);
   const [errore, setErrore] = useState<string | null>(null);
   const [fatto, setFatto] = useState<{ data: string; ora: string } | null>(null);
@@ -79,6 +93,10 @@ export function DirettoreTecnico({
     setGiorno(null);
     setOra(null);
     setMotivo("");
+    setTelefono("");
+    setTelefonoToccato(false);
+    setConfermaTel(false);
+    setProvato(false);
     setErrore(null);
     setFatto(null);
     setEsito(undefined);
@@ -86,12 +104,33 @@ export function DirettoreTecnico({
   useEffect(() => {
     if (aperto && !vista) carica();
   }, [aperto, vista, carica]);
+  // Il numero del Profilo, se non c'e' gia' in memoria.
+  useEffect(() => {
+    if (telProfilo || vista) return;
+    prendi("anagrafica", leggiAnagrafica).then((r) => {
+      if (r.ok && r.anagrafica.telefono) setTelProfilo(r.anagrafica.telefono);
+    });
+  }, [telProfilo, vista]);
+  // Il numero proposto: quello di PerfectGym, o del Profilo; non si riscrive se la persona l'ha gia' toccato.
+  const numeroProposto = (esito?.ok && esito.telefono ? esito.telefono : telProfilo) ?? "";
+  useEffect(() => {
+    if (!telefonoToccato && numeroProposto) setTelefono(numeroProposto);
+  }, [numeroProposto, telefonoToccato]);
 
   const giorni = esito?.ok ? esito.giorni : [];
   const slotDelGiorno = giorni.find((g) => g.data === giorno)?.slot ?? [];
 
+  const telefonoOk = telefono.replace(/\D/g, "").length >= 8;
+  const motivoMancante = motivo.trim().length === 0;
+  const telefonoMancanteOra = !telefonoOk || !confermaTel;
+
   const prenota = async () => {
     if (!giorno || !ora || invio) return;
+    // Il motivo e' obbligatorio: lo legge il Direttore Tecnico prima di chiamare. Senza, non si manda niente e il campo si segna.
+    if (motivoMancante || telefonoMancanteOra) {
+      setProvato(true);
+      return;
+    }
     setInvio(true);
     setErrore(null);
     const r = await prenotaDirettoreTecnico({
@@ -99,7 +138,7 @@ export function DirettoreTecnico({
       data: giorno,
       ora,
       motivo: motivo.trim(),
-      telefono: telefono.trim() || undefined,
+      telefono: telefono.trim(),
     });
     setInvio(false);
     if (r.ok) {
@@ -115,6 +154,8 @@ export function DirettoreTecnico({
       setGiorno(null);
       setOra(null);
       setMotivo("");
+      setProvato(false);
+      setConfermaTel(false);
       rileggiMie();
       return;
     }
@@ -125,12 +166,6 @@ export function DirettoreTecnico({
       carica();
     }
   };
-
-  const pronto =
-    !!giorno &&
-    !!ora &&
-    motivo.trim().length > 0 &&
-    (!(esito?.ok && esito.telefonoMancante) || telefono.replace(/\D/g, "").length >= 8);
 
   return (
     <Sezione titolo={t("Parla con il Direttore Tecnico", "Talk to the Technical Director")}>
@@ -146,27 +181,29 @@ export function DirettoreTecnico({
           </View>
           <Text style={[stili.testo, { color: p.testoSecondario }]}>
             {t(
-              `Il Direttore Tecnico è il punto di riferimento della famiglia per il percorso di ${nome}: coordina i gruppi, conosce ogni allievo e segue la progressione didattica.`,
-              `The Technical Director is the family’s point of contact for ${nome}’s journey: they coordinate the groups, know every student and follow their progress.`,
+              `Il Direttore Tecnico è il punto di riferimento per il percorso di ${nome}: ti richiama per una telefonata di quindici minuti.`,
+              `The Technical Director is the point of contact for ${nome}’s journey: they’ll call you for a fifteen-minute phone call.`,
             )}
           </Text>
-          {[
-            t("A che punto è e cosa si sta lavorando: obiettivi raggiunti e prossimi passi.", "Where they are and what they’re working on: goals reached and next steps."),
-            t("Cambio di gruppo o di orario, quando serve per livello o per esigenze di famiglia.", "A change of group or time slot, when needed for level or family reasons."),
-            t("Osservazioni e segnalazioni su lezioni, istruttore, organizzazione.", "Feedback and reports on classes, instructor, organization."),
-            t("Dubbi sul percorso sportivo: il passaggio ad agonistico o pallanuoto, o se continuare.", "Questions about the sporting path: moving to competitive or water polo, or whether to continue."),
-          ].map((r, i) => (
-            <View key={i} style={stili.riga}>
-              <View style={[stili.punto, { backgroundColor: p.blu }]} />
-              <Text style={[stili.testo, { color: p.testoSecondario, flex: 1 }]}>{r}</Text>
-            </View>
-          ))}
-          <Text style={[stili.nota, { color: p.testoTerzo }]}>
-            {t(
-              "Non è la strada per iscriversi, per scegliere un turno o per chiedere un posto in un turno al completo: per quello scrivi alla segreteria.",
-              "It’s not for enrolling, choosing a slot or asking for a spot in a full slot: for that, write to the front desk.",
-            )}
-          </Text>
+          <Dettagli titolo={t("Di cosa puoi parlare", "What you can talk about")}>
+            {[
+              t("A che punto è e cosa si sta lavorando: obiettivi raggiunti e prossimi passi.", "Where they are and what they’re working on: goals reached and next steps."),
+              t("Cambio di gruppo o di orario, quando serve per livello o per esigenze di famiglia.", "A change of group or time slot, when needed for level or family reasons."),
+              t("Osservazioni e segnalazioni su lezioni, istruttore, organizzazione.", "Feedback and reports on classes, instructor, organization."),
+              t("Dubbi sul percorso sportivo: il passaggio ad agonistico o pallanuoto, o se continuare.", "Questions about the sporting path: moving to competitive or water polo, or whether to continue."),
+            ].map((r, i) => (
+              <View key={i} style={stili.riga}>
+                <View style={[stili.punto, { backgroundColor: p.blu }]} />
+                <Text style={[stili.testo, { color: p.testoSecondario, flex: 1 }]}>{r}</Text>
+              </View>
+            ))}
+            <Text style={[stili.nota, { color: p.testoTerzo }]}>
+              {t(
+                "Non è la strada per iscriversi, per scegliere un turno o per chiedere un posto in un turno al completo: per quello scrivi alla segreteria.",
+                "It’s not for enrolling, choosing a slot or asking for a spot in a full slot: for that, write to the front desk.",
+              )}
+            </Text>
+          </Dettagli>
 
           {fatto ? (
             <Messaggio tono="ok" titolo={t("Appuntamento fissato", "Appointment booked")}>
@@ -245,43 +282,52 @@ export function DirettoreTecnico({
               ) : null}
               {ora ? (
                 <>
-                  <CampoTesto
-                    etichetta={t("Di cosa vuoi parlare (obbligatorio)", "What would you like to discuss (required)")}
-                    value={motivo}
-                    onChangeText={(v) => setMotivo(v.slice(0, MOTIVO_MAX))}
-                    multiline
-                    placeholder={t("Scrivilo qui, anche in due parole", "Write it here, a few words are enough")}
-                  />
-                  {motivo.trim().length === 0 ? (
-                    <Text style={[stili.nota, { color: p.attenzione }]}>
-                      {t(
-                        "Per confermare scrivi di cosa vuoi parlare: il Direttore Tecnico lo legge prima di chiamarti.",
-                        "To confirm, write what you’d like to discuss: the Technical Director reads it before calling you.",
-                      )}
-                    </Text>
-                  ) : null}
-                  {esito.telefonoMancante ? (
+                  <View style={{ gap: spazio.due }}>
                     <CampoTesto
-                      etichetta={t("Il tuo cellulare", "Your mobile number")}
+                      etichetta={t("Di cosa vuoi parlare? (obbligatorio)", "What would you like to discuss? (required)")}
+                      value={motivo}
+                      onChangeText={(v) => setMotivo(v.slice(0, MOTIVO_MAX))}
+                      multiline
+                      errore={provato && motivoMancante}
+                      placeholder={t("Spiegaci di cosa vuoi parlare, anche in due parole", "Tell us what you’d like to discuss, a few words are enough")}
+                    />
+                    <Text style={[stili.nota, { color: provato && motivoMancante ? p.errore : p.testoTerzo }]}>
+                      {provato && motivoMancante
+                        ? t("Scrivi di cosa vuoi parlare per confermare l’appuntamento.", "Write what you’d like to discuss to confirm the appointment.")
+                        : t("Il Direttore Tecnico lo legge prima di chiamarti.", "The Technical Director reads it before calling you.")}
+                    </Text>
+                  </View>
+                  <View style={{ gap: spazio.due }}>
+                    <CampoTesto
+                      etichetta={t("Numero a cui richiamarti", "Number to call you back on")}
                       value={telefono}
-                      onChangeText={setTelefono}
+                      onChangeText={(v) => {
+                        setTelefono(v);
+                        setTelefonoToccato(true);
+                        setConfermaTel(false);
+                      }}
                       keyboardType="phone-pad"
                       autoComplete="tel"
+                      errore={provato && !telefonoOk}
                       placeholder="+39 …"
                     />
-                  ) : null}
-                  <Text style={[stili.nota, { color: p.testoTerzo }]}>
-                    {t(
-                      `Useremo i dati che abbiamo già di te e di ${nome} per la chiamata e per la conferma via email.`,
-                      `We’ll use the details we already have for you and ${nome} for the call and the confirmation email.`,
-                    )}
-                  </Text>
+                    <Text style={[stili.nota, { color: provato && !telefonoOk ? p.errore : p.testoTerzo }]}>
+                      {provato && !telefonoOk
+                        ? t("Scrivi un numero di cellulare valido.", "Enter a valid mobile number.")
+                        : t("Puoi cambiarlo: il Direttore Tecnico ti richiamerà a questo numero.", "You can change it: the Technical Director will call you back on this number.")}
+                    </Text>
+                    <Consenso
+                      spuntato={confermaTel}
+                      onCambia={() => setConfermaTel((v) => !v)}
+                      errore={provato && telefonoOk && !confermaTel}
+                      testo={t("Confermo che posso essere richiamato a questo numero.", "I confirm that I can be called back on this number.")}
+                    />
+                  </View>
                   {errore ? <Messaggio>{errore}</Messaggio> : null}
                   <Pulsante
                     testo={t("Conferma l’appuntamento", "Confirm the appointment")}
                     icona="spunta"
                     inCorso={invio}
-                    disabilitato={!pronto}
                     onPress={prenota}
                   />
                 </>

@@ -33,6 +33,7 @@ import { spazio } from '@/theme'
 
 import { CorreggiDati } from './abbonamento/CorreggiDati'
 import { hrefSezione } from './home/sezioni'
+import { CalendarioCambio } from './abbonamento/CalendarioCambio'
 import { DaCambio } from './abbonamento/DaCambio'
 import { DallaProva } from './abbonamento/DallaProva'
 import { Indicatore, SchedaScelta } from './abbonamento/Passi'
@@ -64,6 +65,12 @@ import { ContinuaSulTelefono } from '@/features/proposta/ContinuaSulTelefono'
 // genitore, dal suo account. Sotto i 13 anni non si vende un abbonamento adulti.
 // Il contratto che si firma e' quello che si e' letto: il server ricompone il
 // documento e ne confronta l'impronta con quella dell'anteprima.
+
+/** Il giorno prima di 'AAAA-MM-GG'. */
+function giornoPrima(iso: string): string {
+  const [a, m, g] = iso.split('-').map(Number)
+  return new Date(Date.UTC(a, m - 1, g - 1)).toISOString().slice(0, 10)
+}
 
 export function giornoBreve(iso: string): string {
   const [a, m, g] = iso.split('-').map(Number)
@@ -237,7 +244,8 @@ export function Abbonamento() {
   const [costiInCorso, setCostiInCorso] = useState(false)
   const giroCosti = useRef(0)
 
-  // Cambio senza disdetta (30/10/2026): la data e' fissa e la decide il server; il metodo di pagamento si sceglie PRIMA della firma; niente pagamento.
+  // Cambio senza disdetta (30/10/2026): il metodo di pagamento si sceglie PRIMA della firma; niente pagamento. **La data la sceglie il socio** (02/11/2026,
+  // Maurizio): in un calendario, da domani a 30 giorni; il nuovo parte quel giorno e il vecchio finisce il giorno prima. Le date le dice il server.
   const cambioId = typeof cambio === 'string' && /^\d+$/.test(cambio) ? Number(cambio) : null
   const [infoCambio, setInfoCambio] = useState<StatoCambio | null>(null)
   const [metodoCambio, setMetodoCambio] = useState<'carta' | 'conto' | null>(null)
@@ -275,17 +283,20 @@ export function Abbonamento() {
   }, [carica, numero])
 
   const personaBase: PersonaAbbonamento | undefined = stato?.persone.find((x) => x.member_id === membro)
-  // Nel cambio la persona e' quella del contratto e la data e' una sola (il giorno dopo la fine del vecchio): lo dice `cambio_stato`.
+  // Nel cambio la persona e' quella del contratto e le date fra cui scegliere le dice `cambio_stato` (da domani a 30 giorni; un server vecchio manda solo il giorno dopo la fine).
   const persona: PersonaAbbonamento | undefined =
     cambioId && infoCambio && personaBase
-      ? { ...personaBase, puo_comprare: true, motivo: null, inizio_min: infoCambio.nuovo_inizio, inizio_max: infoCambio.nuovo_inizio, da_guest_pass: null }
+      ? { ...personaBase, puo_comprare: true, motivo: null, inizio_min: infoCambio.inizio_min ?? infoCambio.nuovo_inizio, inizio_max: infoCambio.inizio_max ?? infoCambio.nuovo_inizio, da_guest_pass: null }
       : cambioId
         ? undefined
         : personaBase
   const piano: PianoAbbonamento | undefined = stato?.piani.find((x) => x.piano_id === pianoId)
   useEffect(() => {
-    if (persona?.inizio_min) setInizio((i) => (i && persona.inizio_min! <= i && i <= persona.inizio_max! ? i : persona.inizio_min))
-  }, [persona?.inizio_min, persona?.inizio_max, persona])
+    if (!persona?.inizio_min) return
+    // Nel cambio si parte dal giorno dopo la fine naturale del vecchio (o dall'ultimo giorno scegliibile): non dal primo giorno, che chiuderebbe il vecchio oggi.
+    const proposta = infoCambio ? (infoCambio.nuovo_inizio < persona.inizio_min ? persona.inizio_min : infoCambio.nuovo_inizio > persona.inizio_max! ? persona.inizio_max! : infoCambio.nuovo_inizio) : persona.inizio_min
+    setInizio((i) => (i && persona.inizio_min! <= i && i <= persona.inizio_max! ? i : proposta))
+  }, [persona?.inizio_min, persona?.inizio_max, persona, infoCambio])
   const giorni = useMemo(() => (persona?.inizio_min && persona.inizio_max ? giorniFra(persona.inizio_min, persona.inizio_max) : []), [persona])
 
   // Nel cambio non si propone l'abbonamento che si ha gia' (stesso livello e stessa formula): il nome del contratto, «Premium - Mensile Flex», dice l'uno e l'altra.
@@ -399,7 +410,7 @@ export function Abbonamento() {
       scorda('abbonamenti:contratti')
       scorda('area')
       setAnteprima(null)
-      setCambioFatto(r.esito.cambio ?? (infoCambio ? { fine_vecchio: infoCambio.fine, inizio_nuovo: infoCambio.nuovo_inizio } : null))
+      setCambioFatto(r.esito.cambio ?? (infoCambio && inizio ? { fine_vecchio: giornoPrima(inizio), inizio_nuovo: inizio } : null))
       return
     }
     setFirmato({ numero: r.esito.numero, importi: anteprima.importi, piano: `${piano.abbonamento} · ${FORMULE[piano.formula].titolo}`, nome: persona?.nome ?? null, errore: null })
@@ -531,7 +542,7 @@ export function Abbonamento() {
             {persona?.puo_comprare ? (
               <>
                 {persona.da_guest_pass && persona.inizio_min ? <DallaProva inizio={persona.inizio_min} quota={stato.quota_attivazione} /> : null}
-                {infoCambio ? <DaCambio fine={infoCambio.fine} inizio={infoCambio.nuovo_inizio} piano={infoCambio.piano} /> : null}
+                {infoCambio ? <DaCambio piano={infoCambio.piano} /> : null}
                 <Listino piani={infoCambio ? stato.piani.filter((x) => !eQuelloCheHai(x)) : stato.piani} pianoId={pianoId} onScegli={setPianoId} />
                 <Text style={[stili.nota, { color: p.testoSecondario }]}>
                   {stato.quota_attivazione > 0 && !infoCambio
@@ -557,8 +568,15 @@ export function Abbonamento() {
             </Carta>
 
             {infoCambio ? (
-              <Sezione titolo={t('Quando parte', 'When it starts')}>
-                <DaCambio fine={infoCambio.fine} inizio={infoCambio.nuovo_inizio} piano={infoCambio.piano} conData />
+              <Sezione titolo={t('Quando parte il nuovo', 'When the new one starts')}>
+                <CalendarioCambio
+                  min={persona.inizio_min ?? infoCambio.nuovo_inizio}
+                  max={persona.inizio_max ?? infoCambio.nuovo_inizio}
+                  scelta={inizio}
+                  onScegli={setInizio}
+                  piano={infoCambio.piano}
+                  fineNaturale={infoCambio.fine}
+                />
               </Sezione>
             ) : persona.da_guest_pass && persona.inizio_min ? (
               <Sezione titolo={t('Quando parte', 'When it starts')}>
@@ -683,7 +701,7 @@ export function Abbonamento() {
 
             <Messaggio tono="attenzione" titolo={t('Adesso il contratto', 'Now the contract')} icona="documento">
               {infoCambio
-                ? t('Lo leggi, spunti le dichiarazioni e firmi con il dito o con il mouse. Alla firma il tuo abbonamento attuale viene chiuso alla sua scadenza e il nuovo parte il giorno dopo. Non c’è nessun pagamento adesso.', 'You read it, tick the declarations and sign with a finger or a mouse. When you sign, your current membership is closed at its end date and the new one starts the day after. There’s no payment now.')
+                ? t('Lo leggi, spunti le dichiarazioni e firmi con il dito o con il mouse. Alla firma il tuo abbonamento attuale viene chiuso il giorno prima della data scelta e il nuovo parte quel giorno. Non c’è nessun pagamento adesso.', 'You read it, tick the declarations and sign with a finger or a mouse. When you sign, your current membership is closed the day before the date you chose and the new one starts that day. There’s no payment now.')
                 : persona.firmatario === 'genitore'
                 ? t('Lo leggi, spunti le dichiarazioni e firma il genitore, con il dito o con il mouse. Il pagamento viene dopo: carta o conto corrente, lo scegli allora.', 'You read it, tick the declarations and the parent signs, with a finger or a mouse. Payment comes next: you choose card or bank account then.')
                 : t('Lo leggi, spunti le dichiarazioni e firmi con il dito o con il mouse. Il pagamento viene dopo: carta o conto corrente, lo scegli allora.', 'You read it, tick the declarations and sign with a finger or a mouse. Payment comes next: you choose card or bank account then.')}

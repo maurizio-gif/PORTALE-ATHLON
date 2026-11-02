@@ -28,6 +28,7 @@ import { Foglio } from './ui/Foglio'
 import { Icona, type NomeIcona } from './ui/Icona'
 import { Carta, Entra, Messaggio, Pulsante, Riga, SchedeInArrivo, Sezione } from './ui/kit'
 import { SceltaLingua } from './ui/SceltaLingua'
+import { SceltaTema } from './ui/SceltaTema'
 import { PulsanteEsci } from './ui/Uscita'
 import { F, usePalette } from './ui/tema'
 import { colpetto } from './ui/Tocco'
@@ -383,6 +384,11 @@ export function ProfiloContenuto({ onAnagrafica }: { /** La Home lo usa per la t
           <Carta style={{ gap: spazio.due }}>
             <Text style={{ color: p.testo, fontFamily: F.bold, fontSize: 14 }}>{t('Lingua', 'Language')}</Text>
             <SceltaLingua />
+          </Carta>
+          {/* Il tema (02/11/2026): automatico, chiaro o scuro, ricordato sul dispositivo (lib/schemaColori.ts). */}
+          <Carta style={{ gap: spazio.due }}>
+            <Text style={{ color: p.testo, fontFamily: F.bold, fontSize: 14 }}>{t('Tema', 'Theme')}</Text>
+            <SceltaTema />
           </Carta>
           <PulsanteEsci email={dati.email} testo={t('Esci dall’account', 'Sign out')} />
           {/* Elimina account (02/11/2026; Apple 5.1.1(v) e Google Play): anonimizzazione, i registri del club restano. Vedi account/EliminaAccount. */}

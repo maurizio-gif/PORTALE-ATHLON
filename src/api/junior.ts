@@ -272,6 +272,39 @@ export async function livelliJunior(memberId: number): Promise<EsitoLivelli> {
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
+// La foto del bambino (02/11/2026, richiesta di Maurizio): serve al diplomino del brevetto da condividere. E' la foto del profilo del bambino su
+// PerfectGym, come quella del genitore (`portale-lab-anagrafica`, azione `foto`), ma per un minorenne del nucleo: la funzione controlla che sia suo.
+// `foto` e' il link firmato (un'ora) o null; `modificabile` e' falso in vista cliente. Un server che non conosce l'azione risponde `disponibile: false`:
+// il diploma si fa lo stesso, con le iniziali al posto della foto.
+
+export type EsitoFotoBambino =
+  | { ok: true; foto: string | null; modificabile: boolean }
+  | { ok: false; errore: string; disponibile: boolean };
+
+const azioneMancante = (stato: number, errore: unknown) =>
+  (stato === 404 && !errore) || errore === "Azione sconosciuta." || errore === "Unknown action.";
+
+export async function fotoBambino(memberId: number): Promise<EsitoFotoBambino> {
+  const { ok, stato, dati } = await funzione("portale-lab-junior", { azione: "foto", member_id: memberId });
+  if (!ok) {
+    return {
+      ok: false,
+      disponibile: !azioneMancante(stato, dati.errore),
+      errore: dati.errore ?? t("Non riusciamo a leggere la foto adesso.", "We can’t load the photo right now."),
+    };
+  }
+  return { ok: true, foto: typeof dati.foto === "string" ? dati.foto : null, modificabile: dati.modificabile === true };
+}
+
+/** Mette la foto (un «data:image/…;base64,…», `lib/fotoProfilo.ts`) come foto del profilo del bambino. La funzione ricontrolla i byte. */
+export async function impostaFotoBambino(memberId: number, immagine: string): Promise<{ ok: true } | { ok: false; errore: string }> {
+  const { ok, stato, dati } = await funzione("portale-lab-junior", { azione: "foto_imposta", member_id: memberId, immagine });
+  if (ok) return { ok: true };
+  if (azioneMancante(stato, dati.errore)) return { ok: false, errore: t("Il cambio della foto non è ancora attivo.", "Changing the photo isn’t active yet.") };
+  return { ok: false, errore: dati.errore ?? t("Non siamo riusciti a salvare la foto.", "We couldn’t save the photo.") };
+}
+
+// ---------------------------------------------------------------------------------------------------------------------
 // Il Direttore Tecnico (22/10/2026, richiesta di Maurizio): dalla scheda di un bambino iscritto il genitore vede gli orari liberi e
 // prenota una telefonata, senza riscrivere nessun dato. Genitore e bambino li ricava la funzione; l'unico dato che puo' mancare e' il
 // cellulare del genitore. Stessa agenda e stesse email del modulo del sito.
@@ -279,7 +312,7 @@ export async function livelliJunior(memberId: number): Promise<EsitoLivelli> {
 export type GiornoDt = { data: string; etichetta: string; slot: string[] };
 
 export type EsitoSlotDt =
-  | { ok: true; durataMinuti: number | null; giorni: GiornoDt[]; telefonoMancante: boolean }
+  | { ok: true; durataMinuti: number | null; giorni: GiornoDt[]; telefonoMancante: boolean; /** Il cellulare che PerfectGym ha del genitore (lo manda `dt_slot` dal 02/11/2026; un server vecchio no). */ telefono: string | null }
   | { ok: false; errore: string };
 
 const NON_ATTIVO_DT = () =>
@@ -318,6 +351,7 @@ export async function slotDirettoreTecnico(memberId: number, appuntamentoId?: st
       ? (dati.giorni as GiornoDt[]).filter((g) => Array.isArray(g.slot) && g.slot.length > 0)
       : [],
     telefonoMancante: dati.telefono_mancante === true,
+    telefono: typeof dati.telefono === "string" && dati.telefono.trim() ? dati.telefono.trim() : null,
   };
 }
 

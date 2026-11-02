@@ -17,6 +17,20 @@
     <meta name="apple-mobile-web-app-title" content="Athlon Club 4.0" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <script>
+      // Il tema scelto dalla persona, subito: il fondo e il colore della barra del browser prima che parta il codice, senza il lampo del tema sbagliato.
+      try {
+        var tema = localStorage.getItem('athlon_tema')
+        if (tema === 'scuro' || tema === 'chiaro') {
+          document.documentElement.setAttribute('data-tema', tema)
+          var barra = document.createElement('meta')
+          barra.id = 'athlon-theme-color'
+          barra.name = 'theme-color'
+          barra.content = tema === 'scuro' ? '#050506' : '#E4E5EA'
+          document.head.appendChild(barra)
+        }
+      } catch (e) {}
+    </script>
+    <script>
       // La richiesta di installazione (Chrome, Edge, Android) arriva presto: si
       // tiene da parte per il pulsante «Installa» della Home del laboratorio.
       window.addEventListener('beforeinstallprompt', function (e) {
@@ -88,6 +102,15 @@
         body {
           background-color: #050506;
         }
+      }
+      /* La scelta del tema fatta dalla persona (src/lib/schemaColori.ts, 02/11/2026): vale ovunque e batte quella automatica. */
+      html[data-tema='scuro'],
+      html[data-tema='scuro'] body {
+        background-color: #050506;
+      }
+      html[data-tema='chiaro'],
+      html[data-tema='chiaro'] body {
+        background-color: #e4e5ea;
       }
       html[data-avvio],
       html[data-avvio] body {
