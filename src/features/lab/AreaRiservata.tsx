@@ -48,7 +48,7 @@ import { FoglioFoto } from './profilo/FotoProfilo'
 import { conFotoLocale, ricordaFotoLocale } from './profilo/fotoLocale'
 import { memoria as memoriaTv } from './tv/comune'
 import { Icona } from './ui/Icona'
-import { Entra, Messaggio, Pulsante, SchedeInArrivo } from './ui/kit'
+import { Bagliore, Colonne, Entra, Messaggio, Pulsante, SchedeInArrivo } from './ui/kit'
 import { Installa } from './ui/Installa'
 import { Schermata } from './ui/Schermata'
 import { PulsanteEsci } from './ui/Uscita'
@@ -112,7 +112,7 @@ function Benvenuto({
   return (
     <Tocco onPress={onProfilo} ruolo="link" etichetta={t('Il mio profilo: anagrafica e contatti', 'My profile: personal and contact details')} scala={0.985}>
     <LinearGradient colors={NOTTE} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={stili.benvenuto}>
-      <View style={stili.bagliore} />
+      <Bagliore />
       <View style={[stili.data, { justifyContent: 'space-between', gap: 8 }]}>
         {invitoFoto ? (
           <Tocco onPress={onFoto} etichetta={t('Aggiungi la tua foto', 'Add your photo')} scala={0.96} style={{ flexShrink: 1 }}>
@@ -168,7 +168,7 @@ function Benvenuto({
       {/* «Aggiungi la tua foto» in basso, sotto i contatti (02/11/2026, richiesta di Maurizio): accanto all'avatar stringeva la riga di bandiere, tema, campanello e Profilo. E' un testo e non un
           Tocco, perche' tutta la testata e' gia' un comando (il Profilo) e due pulsanti uno dentro l'altro non sono validi sul web. */}
       {invitoFoto ? (
-        <Text onPress={onFoto} accessibilityRole="button" accessibilityLabel={t('Aggiungi la tua foto', 'Add your photo')} style={stili.invitoFoto}>
+        <Text onPress={onFoto} accessibilityRole="button" accessibilityLabel={t('Aggiungi la tua foto', 'Add your photo')} style={stili.invitoFoto} suppressHighlighting>
           {t('Aggiungi la tua foto', 'Add your photo')}  ›
         </Text>
       ) : null}
@@ -452,42 +452,46 @@ export function AreaRiservata({ email }: { email: string }) {
         <Benvenuto titolare={titolare} email={email} famiglia={famiglia.length} foto={anagrafica?.foto ?? null} invitoFoto={invitoFoto && sezione !== 'profilo'} onProfilo={() => vai('profilo', true)} onFoto={() => setFoglioFoto(true)} />
       </Entra>
 
-      {fotoFatta ? <Messaggio tono="ok">{fotoFatta}</Messaggio> : null}
+      {/* Le carte della Home: una sotto l'altra sul telefono, su due colonne da computer (ui/kit, `Colonne`, 02/11/2026). L'ordine e'
+          quello di prima, e da largo decide anche la colonna: la prima a sinistra, la seconda a destra, e cosi' via. */}
+      <Colonne>
+        {fotoFatta ? <Messaggio tono="ok">{fotoFatta}</Messaggio> : null}
 
-      {/* Il certificato scaduto o mancante di chi ha un abbonamento: subito sotto la testata, prima di tutto il resto (home/AvvisoCertificato). */}
-      <AvvisoCertificato area={area} onVai={() => vai('certificato', true)} />
+        {/* Il certificato scaduto o mancante di chi ha un abbonamento: subito sotto la testata, prima di tutto il resto (home/AvvisoCertificato). */}
+        <AvvisoCertificato area={area} onVai={() => vai('certificato', true)} />
 
-      {/* Gli orari del club di oggi, con l'avviso in evidenza se c'e' una chiusura o un orario ridotto (clublife/OrariClub). */}
-      <CartaOrariClub />
+        {/* Gli orari del club di oggi, con l'avviso in evidenza se c'e' una chiusura o un orario ridotto (clublife/OrariClub). */}
+        <CartaOrariClub />
 
-      {/* Le notifiche del club da leggere (home/CartaNotifiche): solo se ce ne sono; il centro e' il campanello della testata. */}
-      <CartaNotifiche />
+        {/* Le notifiche del club da leggere (home/CartaNotifiche): solo se ce ne sono; il centro e' il campanello della testata. */}
+        <CartaNotifiche />
 
-      {/* Il messaggio di benvenuto: scritto a ogni ritorno nell'app, spinge verso il prossimo passo (home/MessaggioBenvenuto). */}
-      <MessaggioBenvenuto email={email} onSezione={(s) => vai(s, true)} />
+        {/* Il messaggio di benvenuto: scritto a ogni ritorno nell'app, spinge verso il prossimo passo (home/MessaggioBenvenuto). */}
+        <MessaggioBenvenuto email={email} onSezione={(s) => vai(s, true)} />
 
-      {/* L'invito ai tester a lasciare segnalazioni e suggerimenti (home/CartaFeedback). L'assistente non e' piu' qui: e' il pulsante
-          «Assistente virtuale» in alto a destra, sempre visibile (assistente/PulsanteAssistente). */}
-      <CartaFeedback />
+        {/* L'invito ai tester a lasciare segnalazioni e suggerimenti (home/CartaFeedback). L'assistente non e' piu' qui: e' il pulsante
+            «Assistente virtuale» in alto a destra, sempre visibile (assistente/PulsanteAssistente). */}
+        <CartaFeedback />
 
-      {/* L'invito ad attivare le notifiche push: solo dove c'e' una cosa da fare, «Non ora» rimanda di tre giorni (home/CartaPush). */}
-      <CartaPush />
+        {/* L'invito ad attivare le notifiche push: solo dove c'e' una cosa da fare, «Non ora» rimanda di tre giorni (home/CartaPush). */}
+        <CartaPush />
 
-      <DaFare area={area} onSezione={(s) => vai(s, true)} />
+        <DaFare area={area} onSezione={(s) => vai(s, true)} />
 
-      {/* Le stelle alla lezione appena fatta (home/CartaValutaLezione): compare solo se c'e' una lezione con presenza e senza voto. */}
-      <CartaValutaLezione />
+        {/* Le stelle alla lezione appena fatta (home/CartaValutaLezione): compare solo se c'e' una lezione con presenza e senza voto. */}
+        <CartaValutaLezione />
 
-      {/* L'invito di un amico: il link personale da condividere, solo per chi ha un abbonamento in vigore (home/CartaInvita). */}
-      <CartaInvita area={area} />
+        {/* L'invito di un amico: il link personale da condividere, solo per chi ha un abbonamento in vigore (home/CartaInvita). */}
+        <CartaInvita area={area} />
 
-      {/* Lo shop: una voce della barra e, qui, la sua carta, fuori dalla sezione Prodotti (home/CartaShop). */}
-      <CartaShop />
+        {/* Lo shop: una voce della barra e, qui, la sua carta, fuori dalla sezione Prodotti (home/CartaShop). */}
+        <CartaShop />
 
-      {/* La sezione Junior: i gruppi dei corsi per bambini e ragazzi con i posti liberi, per anno di nascita (home/CartaJunior). */}
-      <CartaJunior area={area} />
+        {/* La sezione Junior: i gruppi dei corsi per bambini e ragazzi con i posti liberi, per anno di nascita (home/CartaJunior). */}
+        <CartaJunior area={area} />
 
-      <Installa />
+        <Installa />
+      </Colonne>
 
       <View ref={riquadri}>
         <Entra indice={2}>
@@ -518,13 +522,13 @@ const stili = StyleSheet.create({
   // faceva saltare la larghezza passando dai riquadri alla sezione.
   sezione: { width: '100%', alignSelf: 'center' },
   benvenuto: { borderRadius: 32, padding: spazio.quattro - 2, gap: spazio.tre + 2, overflow: 'hidden' },
-  bagliore: { position: 'absolute', width: 260, height: 260, borderRadius: 130, right: -90, top: -110, backgroundColor: '#FF5701', opacity: 0.28, filter: 'blur(50px)' } as object,
   marchio: { width: 104, height: 84 },
   data: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   profilo: { flexDirection: 'row', alignItems: 'center', gap: 5, borderRadius: 999, paddingLeft: 10, paddingRight: 8, paddingVertical: 6, backgroundColor: 'rgba(255,255,255,0.12)' },
   profiloTesto: { color: '#fff', fontFamily: F.extra, fontSize: 12 },
   dataTesto: { color: 'rgba(255,255,255,0.6)', fontFamily: F.extra, fontSize: 11.5, letterSpacing: 1.2 },
-  invitoFoto: { color: FUOCO[0], fontFamily: F.semi, fontSize: 12.5 },
+  // Un testo-comando: 14 punti di padding sopra e sotto (il bersaglio arriva a 44) con margini negativi, cosi' la testata non cresce.
+  invitoFoto: { color: FUOCO[0], fontFamily: F.semi, fontSize: 12.5, lineHeight: 16, paddingVertical: 14, marginVertical: -14, alignSelf: 'flex-start' },
   ciao: { color: '#fff', fontFamily: F.extra, fontSize: 28, lineHeight: 32, letterSpacing: -0.9 },
   pillola: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   puntino: { width: 8, height: 8, borderRadius: 3 },

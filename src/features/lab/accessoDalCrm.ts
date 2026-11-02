@@ -70,7 +70,7 @@ export async function entraConToken(token: string): Promise<boolean> {
 export function consumaAccessoDalCrm(): Promise<void> {
   if (!inCorso) {
     const token = leggiEToglieToken()
-    inCorso = token ? consuma(token) : Promise.resolve()
+    inCorso = token ? consuma(token).then(() => undefined) : Promise.resolve()
   }
   return inCorso
 }

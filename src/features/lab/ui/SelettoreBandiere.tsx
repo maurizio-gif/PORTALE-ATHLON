@@ -15,6 +15,7 @@ import { Tocco } from './Tocco'
 // **Dentro la stessa pillola c'e' anche il tema** (02/11/2026, richiesta di Maurizio: «il chiaroscuro nella scheda iniziale, in maniera non troppo invadente»): un solo
 // tondino, la luna col tema chiaro e il sole con quello scuro (l'icona dice dove si va), che porta all'altro. E' una scelta esplicita (`impostaTema`: vale ovunque, anche sul
 // computer); **tornare ad «Automatico» si fa dal Profilo** (`SceltaTema`). Non toglie spazio al resto: la pillola cresce di una trentina di punti.
+// I tre tondini sono di 30 punti, sotto i 44 di un dito: il tocco si allarga di 7 per lato (`hitSlop`) senza allargare il disegno.
 
 const VOCI: { lingua: Lingua; bandiera: string; nome: string }[] = [
   { lingua: 'it', bandiera: '🇮🇹', nome: 'Italiano' },
@@ -43,6 +44,7 @@ export function SelettoreBandiere({ conTema: permesso = true }: { conTema?: bool
               if (!scelta) impostaLingua(v.lingua)
             }}
             style={[stili.bandiera, scelta && stili.scelta]}
+            hitSlop={7}
           >
             <Text style={[stili.emoji, !scelta && { opacity: 0.45 }]}>{v.bandiera}</Text>
           </Tocco>
@@ -55,6 +57,7 @@ export function SelettoreBandiere({ conTema: permesso = true }: { conTema?: bool
         vibra="scelta"
         onPress={() => impostaTema(scuro ? 'chiaro' : 'scuro')}
         style={stili.bandiera}
+        hitSlop={7}
       >
         <Icona nome={scuro ? 'sole' : 'luna'} size={16} colore="rgba(255,255,255,0.9)" />
       </Tocco> : null}

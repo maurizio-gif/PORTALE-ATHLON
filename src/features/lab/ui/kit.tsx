@@ -1,12 +1,15 @@
 import { LinearGradient } from 'expo-linear-gradient'
-import { useEffect, type ReactNode } from 'react'
-import { ActivityIndicator, StyleSheet, Text, View, type StyleProp, type TextStyle, type ViewStyle } from 'react-native'
-import Animated, { Easing, FadeInDown, useAnimatedStyle, useSharedValue, withDelay, withRepeat, withTiming } from 'react-native-reanimated'
+import { Children, useEffect, useState, type ReactNode } from 'react'
+import { ActivityIndicator, Platform, StyleSheet, Text, View, type StyleProp, type TextStyle, type ViewStyle } from 'react-native'
+import Animated, { Easing, FadeInDown, useAnimatedStyle, useSharedValue, withDelay, withRepeat, withSequence, withTiming } from 'react-native-reanimated'
+import { useWindowDimensions } from '@/lib/finestra'
 
+import { LARGO } from '@/components/Pagina'
 import { spazio, type Tono } from '@/theme'
 import { t } from '@/lib/lingua'
 
 import { Icona, type NomeIcona } from './Icona'
+import { useRiduciMovimento } from './movimento'
 import { coloreTono, F, FUOCO, raggio, usePalette, velo, type ToniTutti } from './tema'
 import { Tocco } from './Tocco'
 
@@ -301,6 +304,76 @@ export function Entra({ indice = 0, children, style }: { indice?: number; childr
       {children}
     </Animated.View>
   )
+}
+
+// ---------------------------------------------------------------------------
+
+/**
+ * Le carte una sotto l'altra sul telefono e sul tablet, **su due colonne da schermo largo** (02/11/2026): su un computer la
+ * colonna dell'app e' 1180 punti, e una carta sola per riga («Certificato scaduto», «Aiutaci a migliorare l'app») diventava una
+ * striscia di 1100 punti con tre righe di testo da cento caratteri.
+ *
+ * Sul web le colonne sono quelle del browser (`columnCount: 2`): le carte riempiono la colonna sinistra dall'alto e poi la destra,
+ * nell'ordine in cui stanno scritte, e una carta che non disegna niente (ce ne sono molte: compaiono solo a certe condizioni) non
+ * occupa posto. Ogni carta sta in un involucro che non si spezza fra le due colonne (`breakInside`) e porta sotto di se' lo spazio
+ * fra una carta e l'altra; l'involucro di una carta che non c'e' misura zero e lo spazio lo perde (`onLayout`), o lascerebbe un
+ * buco. Il contenitore e' `display: block`, perche' le colonne del browser non valgono su un flex.
+ *
+ * Sul nativo (un tablet di traverso) le carte si alternano per indice, la prima a sinistra e la seconda a destra: li' una carta
+ * assente lascia la colonna meno piena, e va bene.
+ */
+export function Colonne({ children, gap = spazio.quattro + 4, style }: { children: ReactNode; gap?: number; style?: StyleProp<ViewStyle> }) {
+  const { width } = useWindowDimensions()
+  const [vuoti, setVuoti] = useState<Record<number, boolean>>({})
+  const figli = Children.toArray(children)
+  if (width < LARGO) return <View style={[{ gap }, style]}>{figli}</View>
+  if (Platform.OS === 'web')
+    return (
+      <View style={[{ display: 'block', columnCount: 2, columnGap: gap, marginBottom: -gap } as object, style]}>
+        {figli.map((f, i) => (
+          <View
+            key={i}
+            onLayout={(e) => {
+              const vuoto = e.nativeEvent.layout.height === 0
+              if (vuoto !== !!vuoti[i]) setVuoti((v) => ({ ...v, [i]: vuoto }))
+            }}
+            style={{ breakInside: 'avoid', marginBottom: vuoti[i] ? 0 : gap } as object}
+          >
+            {f}
+          </View>
+        ))}
+      </View>
+    )
+  return (
+    <View style={[{ flexDirection: 'row', gap }, style]}>
+      <View style={{ flex: 1, minWidth: 0, gap }}>{figli.filter((_, i) => i % 2 === 0)}</View>
+      <View style={{ flex: 1, minWidth: 0, gap }}>{figli.filter((_, i) => i % 2 === 1)}</View>
+    </View>
+  )
+}
+
+// ---------------------------------------------------------------------------
+
+/**
+ * Un bagliore colorato e sfocato in un angolo di una scheda scura, che respira piano (02/11/2026): si allarga e si sposta di
+ * qualche punto in una ventina di secondi, avanti e indietro. Da' vita alla testata senza distrarre; con «riduci movimento» sta
+ * fermo. Va dentro una scheda con `overflow: 'hidden'`, prima del contenuto.
+ */
+export function Bagliore({ colore = FUOCO[1], size = 260, opacita = 0.28, style }: { colore?: string; size?: number; opacita?: number; style?: StyleProp<ViewStyle> }) {
+  const fermo = useRiduciMovimento()
+  const fase = useSharedValue(0)
+  useEffect(() => {
+    if (fermo) {
+      fase.value = 0
+      return
+    }
+    fase.value = withRepeat(withSequence(withTiming(1, { duration: 9000, easing: Easing.inOut(Easing.sin) }), withTiming(0, { duration: 11000, easing: Easing.inOut(Easing.sin) })), -1, false)
+  }, [fermo, fase])
+  const animato = useAnimatedStyle(() => ({
+    opacity: opacita * (0.85 + 0.3 * fase.value),
+    transform: [{ translateX: -size * 0.08 * fase.value }, { translateY: size * 0.06 * fase.value }, { scale: 1 + 0.18 * fase.value }],
+  }))
+  return <Animated.View pointerEvents="none" style={[{ position: 'absolute', width: size, height: size, borderRadius: size / 2, right: -size * 0.35, top: -size * 0.42, backgroundColor: colore, filter: `blur(${Math.round(size * 0.19)}px)` } as object, animato, style]} />
 }
 
 // ---------------------------------------------------------------------------

@@ -129,3 +129,4 @@ chiamata diretta al gestionale. Esempio: la sezione Prodotti usa l'azione `prodo
 - [La modalità totem: l'app sul pannello del club, con «Esci» e l'uscita da sola (02/11/2026)](docs/claude/91-la-modalita-totem-l-app-sul-pannello-del-club-02-11-2026.md) · 13 KB
 - [Totem: «Continua sul telefono» dopo la data: QR, email o assistita (02/11/2026)](docs/claude/92-totem-continua-sul-telefono-qr-email-assistita-02-11-2026.md) · 3 KB
 - [Pagina d'accesso più snella: il tema in fondo, la lingua discreta (02/11/2026)](docs/claude/93-accesso-snellito-il-tema-in-fondo-02-11-2026.md) · 3 KB
+- [La resa grafica: la Home a due colonne da computer, l'hover, il bagliore che respira e «riduci movimento» (02/11/2026)](docs/claude/94-resa-grafica-home-a-due-colonne-hover-e-movimento-02-11-2026.md) · 4 KB
