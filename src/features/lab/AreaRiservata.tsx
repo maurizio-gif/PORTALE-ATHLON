@@ -103,7 +103,6 @@ function Benvenuto({
       <AvatarFoto nome={titolare?.nome ?? email} cognome={titolare?.cognome} foto={foto} size={AVATAR_TESTATA} anello="rgba(255,255,255,0.18)" invito={invitoFoto} />
       <View style={{ gap: 3, flexShrink: 1 }}>
         {conData ? <Text style={stili.dataTesto} numberOfLines={2}>{oggi().toUpperCase()}</Text> : null}
-        {invitoFoto ? <Text style={stili.invitoFoto}>{t('Aggiungi la tua foto', 'Add your photo')}</Text> : null}
       </View>
     </View>
   )
@@ -155,9 +154,18 @@ function Benvenuto({
               </View>
             ) : null}
           </View>
+          {/* L'invito a mettere la foto sta qui, a tutta larghezza della colonna, e non accanto all'avatar: lì, con bandiere, campanello e Profilo a destra, restavano ~50 punti e «Aggiungi la tua foto» andava a capo una parola per riga (4/11/2026, foto di un tester). */}
+          {invitoFoto ? (
+            <Tocco onPress={onFoto} etichetta={t('Aggiungi la tua foto', 'Add your photo')} scala={0.96} style={{ alignSelf: 'flex-start' }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                <Icona nome="fotocamera" size={14} colore={FUOCO[0]} />
+                <Text style={stili.invitoFoto}>{t('Aggiungi la tua foto', 'Add your photo')}</Text>
+              </View>
+            </Tocco>
+          ) : null}
         </View>
         {/* Il marchio, arancio pieno e grande come nell'app di prima (15/10/2026): era una filigrana al 6%. */}
-        <Image source={require('@/../assets/images/pittogramma.png')} style={stili.marchio} contentFit="contain" accessibilityLabel="Athlon Club" />
+        <Image source={require('@/../assets/images/pittogramma.png')} style={[stili.marchio, profiloCompatto && stili.marchioPiccolo]} contentFit="contain" accessibilityLabel="Athlon Club" />
       </View>
       <Text style={stili.contatti} numberOfLines={2}>
         {[titolare?.email || email, titolare?.telefono].filter(Boolean).join('  ·  ')}
@@ -508,14 +516,16 @@ const stili = StyleSheet.create({
   benvenuto: { borderRadius: 32, padding: spazio.quattro - 2, gap: spazio.tre + 2, overflow: 'hidden' },
   bagliore: { position: 'absolute', width: 260, height: 260, borderRadius: 130, right: -90, top: -110, backgroundColor: '#FF5701', opacity: 0.28, filter: 'blur(50px)' } as object,
   marchio: { width: 104, height: 84 },
+  // Sotto i 400 punti il logo lascia piu' posto alle pillole (il «Numero Utente» finiva sotto il logo).
+  marchioPiccolo: { width: 76, height: 61 },
   data: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   profilo: { flexDirection: 'row', alignItems: 'center', gap: 5, borderRadius: 999, paddingLeft: 10, paddingRight: 8, paddingVertical: 6, backgroundColor: 'rgba(255,255,255,0.12)' },
   profiloTesto: { color: '#fff', fontFamily: F.extra, fontSize: 12 },
   dataTesto: { color: 'rgba(255,255,255,0.6)', fontFamily: F.extra, fontSize: 11.5, letterSpacing: 1.2 },
   invitoFoto: { color: FUOCO[0], fontFamily: F.semi, fontSize: 12.5 },
   ciao: { color: '#fff', fontFamily: F.extra, fontSize: 28, lineHeight: 32, letterSpacing: -0.9 },
-  pillola: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  pillola: { flexDirection: 'row', alignItems: 'center', gap: 6, flexShrink: 1, maxWidth: '100%' },
   puntino: { width: 8, height: 8, borderRadius: 3 },
-  pillolaTesto: { color: 'rgba(255,255,255,0.85)', fontFamily: F.semi, fontSize: 13 },
+  pillolaTesto: { color: 'rgba(255,255,255,0.85)', fontFamily: F.semi, fontSize: 13, flexShrink: 1 },
   contatti: { color: 'rgba(255,255,255,0.5)', fontFamily: F.medio, fontSize: 12.5 },
 })

@@ -121,3 +121,4 @@ chiamata diretta al gestionale. Esempio: la sezione Prodotti usa l'azione `prodo
 - [Mobilità e foam roller nel punteggio di Recover: una quota piccola, che non spinge (02/11/2026)](docs/claude/83-mobilita-e-foam-roller-nel-punteggio-di-recover-02-11-2026.md) · 4 KB
 - [Il respiro guidato: una pausa di 1–5 minuti in Recover, solo animazione (01/11/2026)](docs/claude/84-il-respiro-guidato-una-pausa-in-recover-01-11-2026.md) · 3 KB
 - [Junior: senza figli solo «Aggiungi un componente»; i turni solo per l'anno del figlio (02/11/2026)](docs/claude/85-junior-senza-figli-solo-aggiungi-un-componente-e-turni-solo-per-l-anno-del-figlio-02-11-2026.md) · 2 KB
+- [Correzioni dalle foto di un tester su Android: intestazione, prenotazioni, dispositivi, «Richiedi assistenza» (04/11/2026)](docs/claude/86-correzioni-dalle-foto-di-un-tester-android-04-11-2026.md) · 3 KB

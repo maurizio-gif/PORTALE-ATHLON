@@ -46,7 +46,9 @@ export async function chiediPermessoHealthConnect(): Promise<boolean> {
   if (!hc) return false
   try {
     if (!(await hc.initialize())) return false
-    await hc.requestPermission(LETTURE.map((recordType) => ({ accessType: 'read' as const, recordType })))
+    const concessi = await hc.requestPermission(LETTURE.map((recordType) => ({ accessType: 'read' as const, recordType })))
+    // Chiudere la richiesta di Android senza consentire niente non e' un collegamento (4/11/2026: la schermata diceva «Attivo» anche cosi', e non si capiva se si era collegati).
+    if (!concessi.some((c) => c.accessType === 'read' && (LETTURE as readonly string[]).includes(c.recordType))) return false
     try {
       await hc.requestPermission(LETTURE_EXTRA.map((recordType) => ({ accessType: 'read' as const, recordType })))
     } catch {

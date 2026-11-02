@@ -83,14 +83,7 @@ export function schermataDa(percorso: string | null | undefined): string {
 export const SPOSTA_SE_OCCUPATO = 52
 
 /**
- * Da questa larghezza in su il pulsante «Assistente virtuale» ha la scritta; sotto (e dove la schermata ha gia' un comando in alto a
- * destra) e' solo l'icona: con la freccia indietro e il marchio a sinistra, la pillola con la scritta finirebbe sul marchio.
- */
-export const LARGHEZZA_CON_SCRITTA = 390
-
-/**
  * Quanto e' larga la pillola «Richiedi assistenza» (31/10/2026): con la scritta (stima per l'italiano, che e' la piu' lunga) o solo l'icona. Serve alla testata sottile
  * delle schermate, che scorrendo mostra il titolo piccolo: lo lascia fuori dallo spazio della pillola, o ci finirebbe sotto («Ciao, Maurizi» tagliato).
  */
-export const LARGHEZZA_PILLOLA = 160
-export const LARGHEZZA_PILLOLA_COMPATTA = 34
+export const LARGHEZZA_PILLOLA = 172

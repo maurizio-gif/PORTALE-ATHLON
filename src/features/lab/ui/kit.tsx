@@ -220,6 +220,7 @@ export function Riga({
   testa,
   titolo,
   sotto,
+  sottoRiga,
   coda,
   onPress,
   prima = false,
@@ -231,6 +232,8 @@ export function Riga({
   testa?: ReactNode
   titolo: string
   sotto?: ReactNode
+  /** Una riga a tutta larghezza sotto il testo (la conferma «Sì, annulla / No»): a destra, accanto al titolo, due pulsanti lo schiacciano e il nome va a capo lettera per lettera. */
+  sottoRiga?: ReactNode
   coda?: ReactNode
   onPress?: () => void
   /** La prima riga non ha la linea sopra. */
@@ -244,6 +247,7 @@ export function Riga({
       <View style={{ flex: 1, gap: 3 }}>
         <Text style={[stili.rigaTitolo, { color: p.testo }, stileTitolo]}>{titolo}</Text>
         {typeof sotto === 'string' ? <Text style={[stili.rigaSotto, { color: p.testoSecondario }]}>{sotto}</Text> : sotto}
+        {sottoRiga}
       </View>
       {coda}
       {onPress && !coda ? <Icona nome="avanti" size={16} colore={p.testoTerzo} /> : null}

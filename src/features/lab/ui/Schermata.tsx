@@ -10,7 +10,7 @@ import { LARGO } from '@/components/Pagina'
 import { spazio } from '@/theme'
 import { t } from '@/lib/lingua'
 
-import { LARGHEZZA_CON_SCRITTA, LARGHEZZA_PILLOLA, LARGHEZZA_PILLOLA_COMPATTA, SPOSTA_SE_OCCUPATO } from '../feedback/comune'
+import { LARGHEZZA_PILLOLA, SPOSTA_SE_OCCUPATO } from '../feedback/comune'
 import { useAzioneInAltoPresente, useSegnaAzioneInAlto } from '../feedback/posizione'
 import { vistaCorrente } from '../vista'
 import { ingombroBarra } from './BarraSchede'
@@ -31,12 +31,13 @@ import { Tocco } from './Tocco'
 const PITTOGRAMMA = require('@/../assets/images/pittogramma.png')
 
 /** Il marchio: il pittogramma arancio e il nome. */
-export function Marchio({ piccolo = false }: { piccolo?: boolean }) {
+export function Marchio({ piccolo = false, senzaNome = false }: { piccolo?: boolean; senzaNome?: boolean }) {
   const p = usePalette()
   return (
     <View style={stili.marchio} accessibilityLabel="Athlon Club" accessibilityRole="image">
       <Image source={PITTOGRAMMA} style={piccolo ? stili.pittogrammaPiccolo : stili.pittogramma} contentFit="contain" />
-      {piccolo ? null : <Text numberOfLines={1} style={[stili.nomeClub, { color: p.testo }]}>Athlon Club</Text>}
+      {/* Il nome del club non cresce con la dimensione del carattere scelta nel telefono e non si accorcia: «Athlon Cl…» (4/11/2026). */}
+      {piccolo || senzaNome ? null : <Text numberOfLines={1} allowFontScaling={false} style={[stili.nomeClub, { color: p.testo }]}>Athlon Club</Text>}
     </View>
   )
 }
@@ -92,7 +93,12 @@ export function Schermata({
   const colonnaPillola = width < LARGO ? 640 : LARGHEZZA_APP
   const riservaDestra = vistaCorrente()
     ? 64
-    : Math.max(0, (width - colonnaPillola) / 2) + spazio.tre + 2 + (occupato ? SPOSTA_SE_OCCUPATO : 0) + (occupato || width < LARGHEZZA_CON_SCRITTA ? LARGHEZZA_PILLOLA_COMPATTA : LARGHEZZA_PILLOLA) + spazio.due
+    : Math.max(0, (width - colonnaPillola) / 2) + spazio.tre + 2 + (occupato ? SPOSTA_SE_OCCUPATO : 0) + LARGHEZZA_PILLOLA + spazio.due
+  // «Richiedi assistenza» ha sempre icona e scritta (4/11/2026, richiesta di Maurizio): se col marchio e la freccia non c'e' posto, a cedere e' il nome del club, non la scritta della pillola.
+  const colonnaUtile = Math.min(width, colonnaPillola)
+  const sinistraConNome = spazio.tre + 2 + (indietro ? 44 + spazio.tre : 0) + 30 + spazio.due + 92
+  const destraPillola = spazio.tre + 2 + (occupato ? SPOSTA_SE_OCCUPATO : 0) + LARGHEZZA_PILLOLA
+  const nomeClubInTesta = vistaCorrente() || colonnaUtile - destraPillola - sinistraConNome >= spazio.due
   const y = useSharedValue(0)
   const onScroll = useAnimatedScrollHandler((e) => {
     y.value = e.contentOffset.y
@@ -132,7 +138,7 @@ export function Schermata({
           <View style={stili.barraAlta}>
             <View style={stili.sinistra}>
               {freccia}
-              <Marchio />
+              <Marchio senzaNome={!nomeClubInTesta} />
             </View>
             {destra}
           </View>
@@ -190,7 +196,7 @@ const stili = StyleSheet.create({
   marchio: { flexDirection: 'row', alignItems: 'center', gap: spazio.due },
   pittogramma: { width: 30, height: 24 },
   pittogrammaPiccolo: { width: 24, height: 19 },
-  nomeClub: { fontFamily: F.extra, fontSize: 16, letterSpacing: -0.3, paddingRight: 4 },
+  nomeClub: { fontFamily: F.extra, fontSize: 16, letterSpacing: -0.3, paddingRight: 8, flexShrink: 0 },
   marchioTestata: { position: 'absolute', left: spazio.tre + 2, height: 52, justifyContent: 'center' },
   tondo: { width: 44, height: 44, borderRadius: 16, alignItems: 'center', justifyContent: 'center', borderWidth: StyleSheet.hairlineWidth },
   titoli: { gap: 6, paddingHorizontal: 2 },

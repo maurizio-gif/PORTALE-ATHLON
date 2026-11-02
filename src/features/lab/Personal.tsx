@@ -522,17 +522,20 @@ function SedutePrenotate({ sedute, ore, onAnnulla }: { sedute: SedutaPersonal[];
               }
               titolo={`${maiuscola(giornoEsteso(giornoDi(s.inizio)))}`}
               sotto={`${nomeSeduta(s.nome)}${s.trainer ? t(` con ${s.trainer}`, ` with ${s.trainer}`) : ''}`}
+              sottoRiga={
+                !s.completata && disdicibile && conferma === s.booking_id ? (
+                  <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 6 }}>
+                    <Pulsante testo={t('Sì, annulla', 'Yes, cancel')} variante="pericolo" piccolo pieno={false} onPress={() => annulla(s)} inCorso={inCorso === s.booking_id} />
+                    <Pulsante testo={t('No', 'No')} variante="secondario" piccolo pieno={false} onPress={() => setConferma(null)} disabilitato={inCorso !== null} />
+                  </View>
+                ) : null
+              }
               coda={
                 s.completata ? (
                   <Etichetta testo={t('Fatta', 'Done')} tono="ok" />
                 ) : !disdicibile ? (
                   <Etichetta testo={t(`Meno di ${ore} ore`, `Less than ${ore} hours`)} tono="neutro" />
-                ) : conferma === s.booking_id ? (
-                  <View style={{ flexDirection: 'row', gap: 6 }}>
-                    <Pulsante testo={t('Sì, annulla', 'Yes, cancel')} variante="pericolo" piccolo pieno={false} onPress={() => annulla(s)} inCorso={inCorso === s.booking_id} />
-                    <Pulsante testo={t('No', 'No')} variante="secondario" piccolo pieno={false} onPress={() => setConferma(null)} disabilitato={inCorso !== null} />
-                  </View>
-                ) : (
+                ) : conferma === s.booking_id ? undefined : (
                   <Pulsante testo={t('Annulla', 'Cancel')} variante="secondario" piccolo pieno={false} onPress={() => setConferma(s.booking_id)} disabilitato={inCorso !== null} />
                 )
               }

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Linking, Platform, StyleSheet, Text, View } from 'react-native'
 
 import { t } from '@/lib/lingua'
@@ -8,7 +8,7 @@ import { Icona, type NomeIcona } from '../ui/Icona'
 import { Carta, Etichetta, Messaggio, Sezione } from '../ui/kit'
 import { F, usePalette } from '../ui/tema'
 import { Tocco } from '../ui/Tocco'
-import { appSaluteDelTelefono } from './appleSalute'
+import { appleSaluteDisponibile, appSaluteDelTelefono } from './appleSalute'
 import { MARCHI, type Categoria, type Marchio, type Piattaforma } from './marchi'
 
 // «Come collegare il tuo dispositivo» (29/10/2026, richiesta di Maurizio): i dispositivi non si collegano piu' uno per uno (Oura, Polar...)
@@ -18,16 +18,21 @@ import { MARCHI, type Categoria, type Marchio, type Piattaforma } from './marchi
 // L'elenco dei marchi e' in `marchi.ts` (verificato su pagine ufficiali, con la data). I nomi sono dei rispettivi proprietari: si citano
 // solo per dire che si collegano, senza loghi e senza nessun rapporto con il club.
 
-const PASSI: Record<Piattaforma, () => { titolo: string; testo: string }[]> = {
+// **Dentro l'app le indicazioni sono quelle del telefono in uso, non quelle del portale** (4/11/2026, foto di un tester su Android: la guida diceva «serve l'app
+// per Android… non dal browser» e «dal browser o dalla PWA non si puo'», cioe' le istruzioni da portale, a chi l'app l'aveva gia' installata). Sul web restano le due
+// strade a scelta e l'avviso; nell'app c'e' solo la strada del telefono, senza tab e senza avvisi sul browser.
+const PASSI: Record<Piattaforma, (inApp: boolean) => { titolo: string; testo: string }[]> = {
   apple: () => [
     { titolo: t('Apri l’app del tuo dispositivo', 'Open your device’s app'), testo: t('Per esempio Garmin Connect, Oura, Polar Flow o Google Health (l’ex Fitbit): quella che usi per vedere sonno e allenamenti.', 'For example Garmin Connect, Oura, Polar Flow or Google Health (the former Fitbit): the one you use to see your sleep and workouts.') },
     { titolo: t('Attiva la condivisione con Apple Salute', 'Turn on sharing with Apple Health'), testo: t('Nelle impostazioni dell’app cerca «Apple Salute» (o «Salute») e scegli cosa condividere: sonno, passi, battito e allenamenti.', 'In the app’s settings look for “Apple Health” (or “Health”) and choose what to share: sleep, steps, heart rate and workouts.') },
     { titolo: t('Torna qui e aggiorna', 'Come back here and refresh'), testo: t('Premi «Aggiorna ora»: nella carta vedi da chi stai ricevendo i dati. Se non arriva niente, controlla in Impostazioni › Salute › Accesso ai dati e dispositivi › Athlon Club.', 'Tap “Refresh now”: the card shows who you’re receiving data from. If nothing comes in, check Settings › Health › Data Access & Devices › Athlon Club.') },
   ],
-  google: () => [
+  google: (inApp) => [
     { titolo: t('Apri l’app del tuo dispositivo', 'Open your device’s app'), testo: t('Quella che usi per vedere sonno e allenamenti: Garmin Connect, Oura, Polar Flow, Google Health, Samsung Health…', 'The one you use to see your sleep and workouts: Garmin Connect, Oura, Polar Flow, Google Health, Samsung Health…') },
     { titolo: t('Attiva la condivisione con Health Connect', 'Turn on sharing with Health Connect'), testo: t('Nelle impostazioni dell’app cerca «Health Connect» e scegli cosa condividere: sonno, passi, battito e allenamenti.', 'In the app’s settings look for “Health Connect” and choose what to share: sleep, steps, heart rate and workouts.') },
-    { titolo: t('L’app del club legge da Health Connect', 'The club app reads from Health Connect'), testo: t('Apri l’app Athlon Club per Android (aggiornata all’ultima versione), tocca «Attiva Health Connect» e dai il permesso: i dati compaiono qui. Dal browser o dalla PWA non si può: serve l’app.', 'Open the Athlon Club app for Android (updated to the latest version), tap “Turn on Health Connect” and give permission: the data shows up here. It can’t be done from the browser or the PWA: you need the app.') },
+    inApp
+      ? { titolo: t('Torna qui e aggiorna', 'Come back here and refresh'), testo: t('Premi «Aggiorna ora»: nella carta vedi da chi stai ricevendo i dati. Se non arriva niente, controlla in Impostazioni › Health Connect › Autorizzazioni delle app › Athlon Club che passi, sonno e allenamenti siano attivi.', 'Tap “Refresh now”: the card shows who you’re receiving data from. If nothing comes in, check Settings › Health Connect › App permissions › Athlon Club that steps, sleep and workouts are turned on.') }
+      : { titolo: t('L’app del club legge da Health Connect', 'The club app reads from Health Connect'), testo: t('Apri l’app Athlon Club per Android (aggiornata all’ultima versione), tocca «Attiva Health Connect» e dai il permesso: i dati compaiono qui. Dal browser o dalla PWA non si può: serve l’app.', 'Open the Athlon Club app for Android (updated to the latest version), tap “Turn on Health Connect” and give permission: the data shows up here. It can’t be done from the browser or the PWA: you need the app.') },
   ],
 }
 
@@ -68,7 +73,13 @@ const SUBITO = 6
 export function GuidaCollegamento() {
   const p = usePalette()
   const nativa: Piattaforma = appSaluteDelTelefono() === 'apple' ? 'apple' : Platform.OS === 'android' ? 'google' : 'apple'
+  const inApp = Platform.OS !== 'web'
   const [piattaforma, setPiattaforma] = useState<Piattaforma>(nativa)
+  // Su Android Health Connect puo' mancare (telefono con Android 13 o precedente, o da aggiornare): senza dirlo la carta di attivazione sparisce e non si capisce perche'.
+  const [haHealthConnect, setHaHealthConnect] = useState(true)
+  useEffect(() => {
+    if (inApp && nativa === 'google') appleSaluteDisponibile().then(setHaHealthConnect)
+  }, [inApp, nativa])
   const [tutti, setTutti] = useState(false)
   const marchi = marchiPer(piattaforma)
   const no = marchiChePerNonFunzionano(piattaforma)
@@ -76,6 +87,16 @@ export function GuidaCollegamento() {
 
   return (
     <Sezione titolo={t('Come collegare il tuo dispositivo', 'How to connect your device')}>
+      {inApp ? (
+        <View style={{ alignSelf: 'flex-start' }}>
+          <Etichetta
+            testo={nativa === 'google' ? t('Il tuo telefono: Android · Health Connect', 'Your phone: Android · Health Connect') : t('Il tuo telefono: iPhone · Apple Salute', 'Your phone: iPhone · Apple Health')}
+            tono="ok"
+            icona="ok"
+            grande
+          />
+        </View>
+      ) : (
       <View style={stili.pillole} accessibilityRole="tablist">
         {(
           [
@@ -91,15 +112,25 @@ export function GuidaCollegamento() {
           )
         })}
       </View>
+      )}
 
-      {piattaforma === 'google' ? (
+      {inApp && nativa === 'google' && !haHealthConnect ? (
+        <Messaggio tono="attenzione" titolo={t('Health Connect non è attivo su questo telefono', 'Health Connect isn’t available on this phone')}>
+          {t(
+            'Su Android 14 o successivo è già nel telefono: cercalo in Impostazioni. Sulle versioni precedenti si installa da Google Play («Health Connect di Android»). Se c’è già, aggiornalo e riapri l’app.',
+            'On Android 14 or later it’s already on your phone: look for it in Settings. On earlier versions you install it from Google Play (“Health Connect by Android”). If you already have it, update it and reopen the app.',
+          )}
+        </Messaggio>
+      ) : null}
+
+      {!inApp && piattaforma === 'google' ? (
         <Messaggio tono="attenzione" titolo={t('Serve l’app per Android', 'You need the Android app')}>
           {t('Health Connect si legge solo dall’app Athlon Club installata sul telefono, non dal browser. Se non puoi installarla, puoi scrivere il sonno a mano.', 'Health Connect can only be read by the Athlon Club app installed on your phone, not by the browser. If you can’t install it, you can log your sleep by hand.')}
         </Messaggio>
       ) : null}
 
       <Carta style={{ gap: spazio.tre }}>
-        {PASSI[piattaforma]().map((x, i) => (
+        {PASSI[piattaforma](inApp).map((x, i) => (
           <View key={x.titolo} style={stili.passo}>
             <View style={[stili.numero, { backgroundColor: p.accento }]}>
               <Text style={stili.numeroTesto}>{i + 1}</Text>
