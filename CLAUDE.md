@@ -128,3 +128,4 @@ chiamata diretta al gestionale. Esempio: la sezione Prodotti usa l'azione `prodo
 - [La proposta di abbonamento dal link: QR o email, senza account, dalla verifica al pagamento (02/11/2026)](docs/claude/90-la-proposta-di-abbonamento-dal-link-qr-o-email-02-11-2026.md) · 5 KB
 - [La modalità totem: l'app sul pannello del club, con «Esci» e l'uscita da sola (02/11/2026)](docs/claude/91-la-modalita-totem-l-app-sul-pannello-del-club-02-11-2026.md) · 13 KB
 - [Totem: «Continua sul telefono» dopo la data: QR, email o assistita (02/11/2026)](docs/claude/92-totem-continua-sul-telefono-qr-email-assistita-02-11-2026.md) · 3 KB
+- [Pagina d'accesso più snella: il tema in fondo, la lingua discreta (02/11/2026)](docs/claude/93-accesso-snellito-il-tema-in-fondo-02-11-2026.md) · 3 KB
