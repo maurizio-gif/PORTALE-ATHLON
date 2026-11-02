@@ -63,7 +63,7 @@ export function ConfermaDelega({ token }: { token: string }) {
     if (minorenne) return setErrore(t('Per avere accesso ai figli di un altro serve essere maggiorenni.', 'You must be an adult to get access to someone else’s children.'))
     setAttesa(true)
     // Solo i dati chiesti: gli altri non servono e non si mandano.
-    const dati: DatiConferma = {}
+    const dati: Partial<DatiConferma> = {}
     for (const k of chiesti) dati[k] = k === 'nome' || k === 'cognome' ? (d[k] ?? '').trim() : d[k]
     const r = await confermaDelega(token, dati)
     if (!r.ok) {

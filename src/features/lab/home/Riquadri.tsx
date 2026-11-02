@@ -1,6 +1,7 @@
 import { LinearGradient } from 'expo-linear-gradient'
 import { useEffect, useRef } from 'react'
 import { ScrollView, StyleSheet, Text, View } from 'react-native'
+import Animated, { ZoomIn } from 'react-native-reanimated'
 import { useWindowDimensions } from '@/lib/finestra'
 
 import { LARGO } from '@/components/Pagina'
@@ -9,6 +10,7 @@ import { t } from '@/lib/lingua'
 
 import { Icona, type NomeIcona } from '../ui/Icona'
 import { Bollino } from '../ui/kit'
+import { useRiduciMovimento } from '../ui/movimento'
 import { F, FUOCO, MARE, usePalette, coloreTono, velo, type ToniTutti } from '../ui/tema'
 import { Tocco } from '../ui/Tocco'
 import { SEZIONI, type SezioneHome } from './sezioni'
@@ -48,6 +50,7 @@ function corpo(valore: string): number {
 
 function Riquadro({ sezione, voce, scelto, onPress, larghezza }: { sezione: SezioneHome; voce: VoceRiquadro; scelto: boolean; onPress: () => void; /** In riga (schermo largo) il riquadro riempie la sua cella; su telefono ha una larghezza fissa. */ larghezza?: number }) {
   const p = usePalette()
+  const fermo = useRiduciMovimento()
   const a = ASPETTO[sezione]
   const sopra = scelto ? '#fff' : p.testo
   const sotto = scelto ? 'rgba(255,255,255,0.8)' : p.testoSecondario
@@ -55,9 +58,10 @@ function Riquadro({ sezione, voce, scelto, onPress, larghezza }: { sezione: Sezi
     <>
       <View style={stili.testa}>
         {scelto ? (
-          <View style={stili.iconaScelta}>
+          // L'icona bianca del riquadro scelto entra con una piccola molla (02/11/2026): dice «e' questo» mentre il colore cambia.
+          <Animated.View entering={fermo ? undefined : ZoomIn.springify().damping(12).stiffness(220)} style={stili.iconaScelta}>
             <Icona nome={a.icona} size={18} colore="#fff" />
-          </View>
+          </Animated.View>
         ) : (
           <Bollino icona={a.icona} tono={a.tono} size={36} />
         )}

@@ -1,9 +1,10 @@
 import { BlurView } from 'expo-blur'
 import { LinearGradient } from 'expo-linear-gradient'
 import { router, usePathname, type Href } from 'expo-router'
+import type React from 'react'
 import { useEffect, useRef, useState } from 'react'
 import { Platform, StyleSheet, View } from 'react-native'
-import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated'
+import Animated, { useAnimatedStyle, useSharedValue, withSequence, withSpring, withTiming } from 'react-native-reanimated'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { tinta } from '@/theme'
@@ -12,6 +13,7 @@ import { t } from '@/lib/lingua'
 import { clubLifeDaCapo } from '../clublife/daCapo'
 import { Icona, type NomeIcona } from './Icona'
 import { IconaRuota } from './IconaRuota'
+import { useRiduciMovimento } from './movimento'
 import { usePalette } from './tema'
 import { Tocco } from './Tocco'
 
@@ -23,6 +25,8 @@ import { Tocco } from './Tocco'
 // sotto c'e' una sfumatura del colore del fondo, che quella striscia la copre.
 // Si vede solo sulle cinque schermate principali (i pagamenti stanno nella Home).
 // Senza nomi sotto le icone: il nome resta per chi usa lo screen reader.
+// L'icona della scheda appena scelta fa un saltino (02/11/2026, `Salto`): si schiaccia un poco e torna su con una molla, mentre
+// il velo le scivola sotto. Con «riduci movimento» resta ferma.
 
 const SCHEDE: { href: Href; percorso: string; titolo: string; icona: NomeIcona; /** L'icona e' la ruota di Train, Food e Relax (ui/IconaRuota.tsx), non un simbolo. */ ruota?: boolean; anche?: string[] }[] = [
   { href: '/', percorso: '/', titolo: 'Home', icona: 'casa' },
@@ -60,6 +64,19 @@ export function schedaAttiva(percorso: string): number {
   // La Home e' la radice: tolto lo slash finale resterebbe una stringa vuota.
   const qui = percorso.replace(/\/+$/, '') || '/'
   return SCHEDE.findIndex((s) => s.percorso === qui || s.anche?.includes(qui))
+}
+
+/** L'icona di una scheda: quella attiva, appena scelta, si schiaccia e risale con una molla. */
+function Salto({ attiva, children }: { attiva: boolean; children: React.ReactNode }) {
+  const fermo = useRiduciMovimento()
+  const k = useSharedValue(1)
+  const prima = useRef(attiva)
+  useEffect(() => {
+    if (attiva && !prima.current && !fermo) k.value = withSequence(withTiming(0.82, { duration: 90 }), withSpring(1, { damping: 9, stiffness: 260, mass: 0.6 }))
+    prima.current = attiva
+  }, [attiva, fermo, k])
+  const stile = useAnimatedStyle(() => ({ transform: [{ scale: k.value }] }))
+  return <Animated.View style={stile}>{children}</Animated.View>
 }
 
 export function BarraSchede() {
@@ -124,7 +141,7 @@ export function BarraSchede() {
                   }}
                   style={stili.scheda}
                 >
-                  {s.ruota ? <IconaRuota size={26} attiva={qui} colore={colore} /> : <Icona nome={s.icona} size={24} colore={colore} />}
+                  <Salto attiva={qui}>{s.ruota ? <IconaRuota size={26} attiva={qui} colore={colore} /> : <Icona nome={s.icona} size={24} colore={colore} />}</Salto>
                 </Tocco>
               )
             })}
