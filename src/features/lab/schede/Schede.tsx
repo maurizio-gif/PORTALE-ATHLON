@@ -1,7 +1,8 @@
 import { LinearGradient } from 'expo-linear-gradient'
 import { router, useLocalSearchParams } from 'expo-router'
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { StyleSheet, Text, useWindowDimensions, View } from 'react-native'
+import { StyleSheet, Text, View } from 'react-native'
+import { useWindowDimensions } from '@/lib/finestra'
 
 import { elencoMisure, elencoSchede, type Misura, type RigaSchedaLab, type SedutaBreve, type StatoTest } from '@/api/lab'
 import { LARGO } from '@/components/Pagina'

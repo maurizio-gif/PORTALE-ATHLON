@@ -1,6 +1,7 @@
 import { Platform } from 'react-native'
 
 import { locale } from './lingua'
+import { inModalitaTotem } from './totem'
 
 // La dettatura vocale (30/10/2026): la persona parla e il testo compare nel campo, dove lo rilegge e lo manda lei.
 // Non e' un messaggio audio: niente file, niente registrazione che passa da noi. Sul web usa il riconoscimento vocale del
@@ -30,8 +31,9 @@ function costruttore(): CostruttoreRiconoscimento | null {
 }
 
 /** Il browser sa riconoscere la voce? (Firefox e l'app nativa no.) */
+// Sul totem (totem.ts) il microfono non si usa: il permesso resterebbe al browser del pannello, e i campi li scrive una persona al volta.
 export function dettaturaDisponibile(): boolean {
-  return costruttore() !== null
+  return !inModalitaTotem() && costruttore() !== null
 }
 
 export type ErroreDettatura = 'permesso' | 'nessuna-voce' | 'rete' | 'altro'

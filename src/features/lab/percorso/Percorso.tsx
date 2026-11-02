@@ -1,7 +1,8 @@
 import { LinearGradient } from 'expo-linear-gradient'
 import { router } from 'expo-router'
 import { useMemo, useState } from 'react'
-import { StyleSheet, Text, useWindowDimensions, View } from 'react-native'
+import { StyleSheet, Text, View } from 'react-native'
+import { useWindowDimensions } from '@/lib/finestra'
 
 import type { SchedaLezione } from '@/api/lab'
 import { eliminaPercorso, type GiornoSettimana, type TappaSettimana } from '@/api/percorso'

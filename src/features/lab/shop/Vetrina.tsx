@@ -1,7 +1,8 @@
 import { Image } from 'expo-image'
 import { router } from 'expo-router'
 import { useState } from 'react'
-import { StyleSheet, Text, useWindowDimensions, View } from 'react-native'
+import { StyleSheet, Text, View } from 'react-native'
+import { useWindowDimensions } from '@/lib/finestra'
 
 import type { ArticoloShop } from '@/api/shop'
 import { euro } from '@/lib/eventi'

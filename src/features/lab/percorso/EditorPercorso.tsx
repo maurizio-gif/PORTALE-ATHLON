@@ -1,6 +1,7 @@
 import { router, useLocalSearchParams } from 'expo-router'
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { StyleSheet, Text, TextInput, useWindowDimensions, View } from 'react-native'
+import { StyleSheet, Text, TextInput, View } from 'react-native'
+import { useWindowDimensions } from '@/lib/finestra'
 
 import { leggiCatalogo, salvaPercorso, type Affollamento, type Catalogo, type GiornoSettimana, type PercorsoBozza, type SlotRicorrente, type Tappa } from '@/api/percorso'
 import { LARGO } from '@/components/Pagina'

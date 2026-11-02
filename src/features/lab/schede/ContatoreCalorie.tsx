@@ -1,7 +1,8 @@
 import { LinearGradient } from 'expo-linear-gradient'
 import { router } from 'expo-router'
 import { useEffect, useMemo, useRef, useState, type RefObject } from 'react'
-import { StyleSheet, Text, useWindowDimensions, View } from 'react-native'
+import { StyleSheet, Text, View } from 'react-native'
+import { useWindowDimensions } from '@/lib/finestra'
 import Animated, { Easing, useAnimatedStyle, useReducedMotion, useSharedValue, withDelay, withRepeat, withSequence, withTiming } from 'react-native-reanimated'
 import Svg, { Circle, Defs, Line, Path, RadialGradient, Stop, LinearGradient as SvgGradient } from 'react-native-svg'
 

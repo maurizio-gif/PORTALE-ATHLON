@@ -1,5 +1,6 @@
 import { Children, isValidElement, type ReactNode } from 'react'
-import { useWindowDimensions, View } from 'react-native'
+import { View } from 'react-native'
+import { useWindowDimensions } from '@/lib/finestra'
 
 import { spazio } from '@/theme'
 

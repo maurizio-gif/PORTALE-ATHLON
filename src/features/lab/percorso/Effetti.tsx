@@ -1,5 +1,6 @@
 import { useMemo } from 'react'
-import { StyleSheet, Text, useWindowDimensions, View } from 'react-native'
+import { StyleSheet, Text, View } from 'react-native'
+import { useWindowDimensions } from '@/lib/finestra'
 import Svg, { Circle, G, Line, Polygon, Text as TestoSvg } from 'react-native-svg'
 
 import { LARGO } from '@/components/Pagina'

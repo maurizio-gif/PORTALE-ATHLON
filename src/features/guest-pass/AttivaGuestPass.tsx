@@ -1,6 +1,7 @@
 import { router, useLocalSearchParams } from 'expo-router'
 import { useEffect, useRef, useState } from 'react'
-import { ActivityIndicator, Linking, Platform, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native'
+import { ActivityIndicator, Linking, Platform, ScrollView, StyleSheet, Text, View } from 'react-native'
+import { useWindowDimensions } from '@/lib/finestra'
 
 import { chiamaLink } from '@/api/link'
 import { Avviso } from '@/components/Avviso'

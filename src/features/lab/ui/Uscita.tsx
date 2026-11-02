@@ -4,8 +4,10 @@ import { Text, View } from 'react-native'
 
 import { spazio } from '@/theme'
 import { t, tv } from '@/lib/lingua'
+import { inModalitaTotem } from '@/lib/totem'
 
 import { esciDalLaboratorio } from '../memoria'
+import { uscitaTotem } from '../totem/uscita'
 import { esciDallaVista, vistaCorrente } from '../vista'
 import { Foglio } from './Foglio'
 import { Pulsante } from './kit'
@@ -32,6 +34,8 @@ export function PulsanteEsci({ email, testo = t('Esci', 'Log out'), conferma = t
       return
     }
     setInCorso(true)
+    // Sul totem l'uscita e' sempre quella completa (lib/totem.ts): esce, svuota il browser e riparte da capo.
+    if (inModalitaTotem()) return uscitaTotem()
     await esciDalLaboratorio()
     setInCorso(false)
     setAperto(false)

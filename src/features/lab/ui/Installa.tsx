@@ -5,6 +5,7 @@ import { Platform, StyleSheet, Text, View } from 'react-native'
 
 import { spazio } from '@/theme'
 import { lingua, t } from '@/lib/lingua'
+import { inModalitaTotem } from '@/lib/totem'
 
 import { Icona, type NomeIcona } from './Icona'
 import { F, FUOCO, NOTTE } from './tema'
@@ -208,7 +209,8 @@ export function Installa({ dopoAccesso = false }: { dopoAccesso?: boolean }) {
   const [copiato, setCopiato] = useState(false)
 
   useEffect(() => {
-    if (Platform.OS !== 'web' || installata() || rimandata()) return
+    // Sul totem (lib/totem.ts) non si invita a installare niente: e' il pannello del club, non il telefono di qualcuno.
+    if (Platform.OS !== 'web' || inModalitaTotem() || installata() || rimandata()) return
     const w = window as Finestra
     const aggiorna = () => {
       const c = caso()

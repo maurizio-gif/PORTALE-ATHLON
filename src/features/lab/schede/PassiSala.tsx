@@ -1,7 +1,8 @@
 import { LinearGradient } from 'expo-linear-gradient'
 import { router, useIsFocused } from 'expo-router'
 import { useEffect, useRef, useState, type ReactNode } from 'react'
-import { ActivityIndicator, ScrollView, StyleSheet, Text, TextInput, useWindowDimensions, View } from 'react-native'
+import { ActivityIndicator, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native'
+import { useWindowDimensions } from '@/lib/finestra'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { chiediSchedaAi, elencoSchede } from '@/api/lab'

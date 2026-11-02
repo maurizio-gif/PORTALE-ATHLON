@@ -3,7 +3,8 @@ import { LinearGradient } from 'expo-linear-gradient'
 import { router } from 'expo-router'
 import { useLocalSearchParams } from 'expo-router'
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { Platform, StyleSheet, Text, useWindowDimensions, View, type ScrollView } from 'react-native'
+import { Platform, StyleSheet, Text, View, type ScrollView } from 'react-native'
+import { useWindowDimensions } from '@/lib/finestra'
 import type Animated from 'react-native-reanimated'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
@@ -325,7 +326,9 @@ export function AreaRiservata({ email }: { email: string }) {
       let sv: HTMLElement | null = el.parentElement
       while (sv && !(sv.scrollHeight > sv.clientHeight && /(auto|scroll)/.test(getComputedStyle(sv).overflowY))) sv = sv.parentElement
       // `scroll` e non `scrollTo`: react-native-web ridefinisce `scrollTo` sul nodo con un'altra firma.
-      if (sv) sv.scroll({ top: sv.scrollTop + el.getBoundingClientRect().top - sv.getBoundingClientRect().top - margine, behavior: 'smooth' })
+      // Sul totem la pagina e' ingrandita (`zoom`, lib/totem.ts): i rettangoli sono in pixel veri e lo scorrimento in pixel logici. Fuori dal totem k e' 1.
+      const k = sv && sv.getBoundingClientRect().height > 0 && sv.offsetHeight > 0 ? sv.offsetHeight / sv.getBoundingClientRect().height : 1
+      if (sv) sv.scroll({ top: sv.scrollTop + (el.getBoundingClientRect().top - sv.getBoundingClientRect().top) * k - margine, behavior: 'smooth' })
       return
     }
     const sv = scorrimento.current as unknown as ScrollView | null

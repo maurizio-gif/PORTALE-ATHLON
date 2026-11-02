@@ -1,7 +1,8 @@
 import { Image } from 'expo-image'
 import { Link } from 'expo-router'
 import type { ReactNode } from 'react'
-import { ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native'
+import { ScrollView, StyleSheet, Text, View } from 'react-native'
+import { useWindowDimensions } from '@/lib/finestra'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
 import { IntestazioneLegale } from '@/components/IntestazioneLegale'

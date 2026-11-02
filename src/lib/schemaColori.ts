@@ -1,4 +1,6 @@
-import { Platform, useColorScheme, useWindowDimensions } from 'react-native'
+import { Platform, useColorScheme } from 'react-native'
+import { useWindowDimensions } from './finestra'
+import { inModalitaTotem } from './totem'
 
 // Il tema chiaro o scuro dell'app (20/10/2026, richiesta di Maurizio): **sul computer sempre chiaro**, sul telefono
 // quello del sistema. E' il solo posto dove si decide: `useColori` (theme.ts) e `usePalette` (lab/ui/tema.ts) lo leggono da qui,
@@ -15,6 +17,7 @@ export const LARGO = 900
 export function useSchemaColori(): 'light' | 'dark' {
   const sistema = useColorScheme()
   const { width } = useWindowDimensions()
-  if (Platform.OS === 'web' && width >= LARGO) return 'light'
+  // Il totem e' un computer, anche se la sua larghezza logica (540, `totem.ts`) e' da telefono: sempre chiaro, come a computer.
+  if (Platform.OS === 'web' && (width >= LARGO || inModalitaTotem())) return 'light'
   return sistema === 'dark' ? 'dark' : 'light'
 }

@@ -1,6 +1,10 @@
+// Il primo, perche' decide dove stanno la sessione e la scala prima che qualunque altro modulo li usi (la modalita' totem: lib/totem.ts).
+import '@/lib/totemAvvio'
+
 import { Stack } from 'expo-router'
 import { StatusBar } from 'expo-status-bar'
 
+import { GuardiaTotem } from '@/features/lab/totem/GuardiaTotem'
 import { useLingua } from '@/lib/lingua-react'
 import { useColori } from '@/theme'
 
@@ -18,6 +22,8 @@ export default function Layout() {
           contentStyle: { backgroundColor: c.sfondo },
         }}
       />
+      {/* L'uscita da sola del totem: cinque minuti senza tocchi (features/lab/totem). Fuori dal totem non disegna niente. */}
+      <GuardiaTotem />
     </>
   )
 }

@@ -122,3 +122,4 @@ chiamata diretta al gestionale. Esempio: la sezione Prodotti usa l'azione `prodo
 - [Il respiro guidato: una pausa di 1–5 minuti in Recover, solo animazione (01/11/2026)](docs/claude/84-il-respiro-guidato-una-pausa-in-recover-01-11-2026.md) · 3 KB
 - [Junior: senza figli solo «Aggiungi un componente»; i turni solo per l'anno del figlio (02/11/2026)](docs/claude/85-junior-senza-figli-solo-aggiungi-un-componente-e-turni-solo-per-l-anno-del-figlio-02-11-2026.md) · 2 KB
 - [La proposta di abbonamento dal link: QR o email, senza account, dalla verifica al pagamento (02/11/2026)](docs/claude/86-la-proposta-di-abbonamento-dal-link-qr-o-email-02-11-2026.md) · 5 KB
+- [La modalità totem: l'app sul pannello del club, con «Esci» e l'uscita da sola (02/11/2026)](docs/claude/87-la-modalita-totem-l-app-sul-pannello-del-club-02-11-2026.md) · 13 KB

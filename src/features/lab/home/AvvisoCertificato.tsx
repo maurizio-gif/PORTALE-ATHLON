@@ -1,4 +1,5 @@
-import { StyleSheet, Text, useWindowDimensions, View } from 'react-native'
+import { StyleSheet, Text, View } from 'react-native'
+import { useWindowDimensions } from '@/lib/finestra'
 
 import type { Area, PersonaArea } from '@/api/lab'
 import { spazio } from '@/theme'
