@@ -87,3 +87,5 @@ porta al Profilo), link scaduto, vista cliente e funzione vecchia, «riduci movi
 senza scorrimento orizzontale. **Non provato**: un telefono vero (la fotocamera frontale, `capture="user"`, e l'HEIC di iOS), l'app
 nativa, e **PerfectGym vero** (vedi APP-ATHLON): la funzione era simulata.
 
+
+- **L'invito «Aggiungi la tua foto» è in basso nella testata** (02/11/2026, richiesta di Maurizio): sotto i contatti, non più a destra dell'avatar (vedi la sezione sul tema, stesso giorno).

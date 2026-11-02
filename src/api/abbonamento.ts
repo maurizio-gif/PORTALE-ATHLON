@@ -156,7 +156,7 @@ export type SceltaAbbonamento = {
   member_id: number
   piano_id: number
   data_inizio: string
-  /** Cambio senza disdetta: il contratto che si sta cambiando. La data e' fissa e la decide il server. */
+  /** Cambio senza disdetta: il contratto che si sta cambiando. La data la sceglie il socio fra domani e 30 giorni; il vecchio finisce il giorno prima (la decide e la ricontrolla il server). */
   cambio_contract_id?: number
 }
 
@@ -165,8 +165,12 @@ export type StatoCambio = {
   contract_id: number
   member_id: number
   piano: string
+  /** La fine naturale del vecchio e il giorno dopo: la data proposta. */
   fine: string
   nuovo_inizio: string
+  /** Le date fra cui si sceglie la partenza del nuovo (02/11/2026): da domani a 30 giorni al massimo. Un server vecchio non le manda: e' la sola `nuovo_inizio`. */
+  inizio_min?: string
+  inizio_max?: string
   ultimo_giorno: string
   metodi: { carta: { id: number; finale: string | null; scadenza: string | null } | null; conto: { id: number; finale: string | null } | null }
 }

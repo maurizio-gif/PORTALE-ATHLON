@@ -8,7 +8,7 @@ import { F, MARE, raggio } from "../ui/tema";
 
 // La testata della sezione Junior (22/10/2026, richiesta di Maurizio: «una vera sezione junior only one»). Un riquadro blu acqua, il colore
 // del secondo riquadro forte dell'app. **Dal 02/11/2026 e' corta** (richiesta di Maurizio: «c'e' troppo testo tutto insieme»): solo il
-// titolo, con il nome del bambino scelto; il paragrafo e le quattro pillole sono stati tolti. Solo Views e il tema: niente immagini ne'
+// titolo, «I Corsi per Sara Palermo» (nome e cognome del bambino scelto); il paragrafo e le quattro pillole sono stati tolti. Solo Views e il tema: niente immagini ne'
 // sfumature, funziona uguale su web e nativo.
 
 export function TestataJunior({ nome }: { nome?: string | null }) {
@@ -28,9 +28,17 @@ export function TestataJunior({ nome }: { nome?: string | null }) {
         </View>
         <Text style={stili.sopra}>{t("Athlon Junior", "Athlon Junior")}</Text>
       </View>
-      <Text style={stili.titolo}>
-        {nome ? t(`I corsi di ${nome}`, `${nome}’s courses`) : t("I corsi dei tuoi figli", "Your kids’ courses")}
-      </Text>
+      {nome ? (
+        // Nome e cognome in evidenza (richiesta di Maurizio, 02/11/2026): «I Corsi per» piccolo e sopra, il nome grande sotto.
+        <View style={{ gap: 2 }}>
+          <Text style={stili.per}>{t("I Corsi per", "Courses for")}</Text>
+          <Text style={stili.nomeGrande} numberOfLines={2}>
+            {nome}
+          </Text>
+        </View>
+      ) : (
+        <Text style={stili.titolo}>{t("I corsi dei tuoi figli", "Your kids’ courses")}</Text>
+      )}
     </View>
   );
 }
@@ -62,6 +70,8 @@ const stili = StyleSheet.create({
     textTransform: "uppercase",
     opacity: 0.9,
   },
+  per: { color: "rgba(255,255,255,0.88)", fontFamily: F.semi, fontSize: 17, letterSpacing: -0.2 },
+  nomeGrande: { color: "#fff", fontFamily: F.extra, fontSize: 34, lineHeight: 38, letterSpacing: -1 },
   titolo: {
     color: "#fff",
     fontFamily: F.extra,

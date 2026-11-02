@@ -130,8 +130,8 @@ export const ATTIVITA: Record<ChiaveAttivita, Attivita> = {
       {
         titolo: t("Segui i livelli nell’app", "Follow the levels in the app"),
         testo: t(
-          "Nel menu del bambino iscritto trovi la voce «Livello», con il livello di adesso. Toccando «Storia» si apre la storia dei livelli, dal più recente: così vedi i progressi e quando è passato al livello successivo. Le date sono quelle in cui abbiamo visto cambiare il livello, a partire dal 22 ottobre 2026.",
-          "In your enrolled child’s menu you’ll find “Level”, showing the current level. Tap “History” to open the level history, newest first: you can follow their progress and when they moved up. Dates are when we saw each change, starting 22 October 2026.",
+          "Nel menu del bambino iscritto trovi la voce «Brevetti», con il brevetto di adesso e il percorso dei passaggi, dal più recente: così vedi i progressi e quando è passato al livello successivo. Le date sono quelle in cui abbiamo visto cambiare il livello, a partire dal 22 ottobre 2026.",
+          "In your enrolled child’s menu you’ll find “Badges”, showing the current badge and the journey of changes, newest first: you can follow their progress and when they moved up. Dates are when we saw each change, starting 22 October 2026.",
         ),
       },
       {

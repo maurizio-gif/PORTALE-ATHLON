@@ -17,6 +17,7 @@ import { Icona } from './ui/Icona'
 import { Installa } from './ui/Installa'
 import { Bollino, Carta, Messaggio, Pulsante } from './ui/kit'
 import { SceltaLingua } from './ui/SceltaLingua'
+import { SceltaTema } from './ui/SceltaTema'
 import { Schermata } from './ui/Schermata'
 import { F, FUOCO, NOTTE, usePalette, velo } from './ui/tema'
 import { colpetto, Tocco } from './ui/Tocco'
@@ -152,6 +153,8 @@ export function Accesso() {
         <View style={{ gap: 6, alignItems: 'center' }}>
           <Text style={[stili.nota, { color: p.testoSecondario, fontSize: 12.5 }]}>{t('Lingua · Language', 'Language · Lingua')}</Text>
           <SceltaLingua centrata />
+          {/* Il tema (02/11/2026): chi non e' ancora entrato lo sceglie da qui. */}
+          <SceltaTema centrata />
         </View>
         <Animated.View key={fase} entering={FadeInRight.duration(320)} style={{ gap: spazio.tre + 4 }}>
           <Passi fase={fase} />

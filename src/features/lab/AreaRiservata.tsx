@@ -101,10 +101,11 @@ function Benvenuto({
   const avatar = (
     <View style={[stili.data, { gap: 12, flexShrink: 1 }]}>
       <AvatarFoto nome={titolare?.nome ?? email} cognome={titolare?.cognome} foto={foto} size={AVATAR_TESTATA} anello="rgba(255,255,255,0.18)" invito={invitoFoto} />
-      <View style={{ gap: 3, flexShrink: 1 }}>
-        {conData ? <Text style={stili.dataTesto} numberOfLines={2}>{oggi().toUpperCase()}</Text> : null}
-        {invitoFoto ? <Text style={stili.invitoFoto}>{t('Aggiungi la tua foto', 'Add your photo')}</Text> : null}
-      </View>
+      {conData ? (
+        <View style={{ gap: 3, flexShrink: 1 }}>
+          <Text style={stili.dataTesto} numberOfLines={2}>{oggi().toUpperCase()}</Text>
+        </View>
+      ) : null}
     </View>
   )
   return (
@@ -123,6 +124,7 @@ function Benvenuto({
         <View style={[stili.data, { gap: 8, flexShrink: 0 }]}>
           {/* Il campanello delle notifiche del club (features/lab/notifiche): non si vede finche' la funzione non risponde. */}
           {/* La lingua: due bandiere, una sola scelta (cambiarla riavvia l'app nella lingua nuova). */}
+          {/* Il tondino del tema sta nella stessa pillola delle bandiere (02/11/2026). */}
           <SelettoreBandiere />
           <Campanello />
           <View style={stili.profilo}>
@@ -162,6 +164,13 @@ function Benvenuto({
       <Text style={stili.contatti} numberOfLines={2}>
         {[titolare?.email || email, titolare?.telefono].filter(Boolean).join('  ·  ')}
       </Text>
+      {/* «Aggiungi la tua foto» in basso, sotto i contatti (02/11/2026, richiesta di Maurizio): accanto all'avatar stringeva la riga di bandiere, tema, campanello e Profilo. E' un testo e non un
+          Tocco, perche' tutta la testata e' gia' un comando (il Profilo) e due pulsanti uno dentro l'altro non sono validi sul web. */}
+      {invitoFoto ? (
+        <Text onPress={onFoto} accessibilityRole="button" accessibilityLabel={t('Aggiungi la tua foto', 'Add your photo')} style={stili.invitoFoto}>
+          {t('Aggiungi la tua foto', 'Add your photo')}  ›
+        </Text>
+      ) : null}
     </LinearGradient>
     </Tocco>
   )

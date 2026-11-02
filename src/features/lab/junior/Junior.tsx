@@ -13,18 +13,18 @@ import { t } from "@/lib/lingua";
 import { spazio } from "@/theme";
 
 import { inMemoria, prendi, ricorda, scorda } from "../memoria";
-import { Carta, Etichetta, Messaggio, Pulsante, Riga, SchedeInArrivo } from "../ui/kit";
+import { Etichetta, Messaggio, Pulsante, SchedeInArrivo } from "../ui/kit";
 import { Schermata } from "../ui/Schermata";
 import { F, usePalette } from "../ui/tema";
 import { vistaCorrente } from "../vista";
-import { annoDi, chiPuoIscriversi, eBaby, nomeIscrizione, personeDaMostrare } from "./comune";
+import { annoDi, chiPuoIscriversi, eBaby, nomeCompleto, nomeIscrizione, personeDaMostrare } from "./comune";
 import { attivitaDiPersona } from "./attivita";
 import { AttivitaDaScegliere } from "./AttivitaDaScegliere";
+import { Brevetti } from "./Brevetti";
 import { CambioOrario } from "./CambioOrario";
 import { CorsiPersona, type ParteCorsi } from "./Corsi";
 import { concludiInCorso, iscrizioniInCorso, type InCorso } from "./inCorso";
 import { DirettoreTecnico } from "./DirettoreTecnico";
-import { FoglioLivelli } from "./FoglioLivelli";
 import { MenuIscritto, type VoceJunior } from "./MenuIscritto";
 import { TestataJunior } from "./Presentazione";
 import { SceltaFiglio } from "./SceltaFiglio";
@@ -167,7 +167,7 @@ export function Junior() {
 
   return (
     <Schermata {...intestazione}>
-      <TestataJunior nome={persona?.nome} />
+      <TestataJunior nome={persona ? nomeCompleto(persona) : null} />
 
       <SceltaFiglio
         persone={persone}
@@ -280,12 +280,11 @@ function AreaIscritto({
   const baby = eBaby(persona.data_nascita);
   const [voce, setVoce] = useState<VoceJunior>("abbonamento");
   const [recuperabile, setRecuperabile] = useState<boolean | null>(null);
-  const [storiaLivelli, setStoriaLivelli] = useState(false);
 
   const voci = useMemo(() => {
     const v: VoceJunior[] = ["abbonamento", "lezioni"];
     if (recuperabile !== false) v.push("recuperi");
-    if (persona.livello) v.push("livello");
+    if (persona.livello) v.push("brevetti");
     if (!baby) v.push("cambio");
     if (persona.minorenne) v.push("dt");
     v.push("attivita");
@@ -308,23 +307,11 @@ function AreaIscritto({
         onDati={(d) => setRecuperabile(d.recuperabile)}
       />
 
-      {attiva === "livello" && persona.livello ? (
-        <Carta>
-          <Riga
-            prima
-            icona="stella"
-            titolo={t("Livello", "Level")}
-            sotto={persona.livello}
-            coda={<Etichetta testo={t("Storia", "History")} tono="neutro" />}
-            onPress={() => setStoriaLivelli(true)}
-          />
-        </Carta>
-      ) : null}
+      {attiva === "brevetti" && persona.livello ? <Brevetti persona={persona} vista={vista} /> : null}
       {attiva === "cambio" ? <CambioOrario persona={persona} gruppi={gruppi} vista={vista} /> : null}
       {attiva === "dt" ? <DirettoreTecnico persona={persona} vista={vista} /> : null}
       {attiva === "attivita" ? <SchedaAttivita chiavi={attivitaDiPersona(persona)} nome={persona.nome} /> : null}
 
-      <FoglioLivelli persona={persona} aperto={storiaLivelli} onChiudi={() => setStoriaLivelli(false)} />
     </>
   );
 }

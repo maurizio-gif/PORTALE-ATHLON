@@ -123,3 +123,5 @@ chiamata diretta al gestionale. Esempio: la sezione Prodotti usa l'azione `prodo
 - [Junior: senza figli solo «Aggiungi un componente»; i turni solo per l'anno del figlio (02/11/2026)](docs/claude/85-junior-senza-figli-solo-aggiungi-un-componente-e-turni-solo-per-l-anno-del-figlio-02-11-2026.md) · 2 KB
 - [La pagina di stato del pagamento, aperta da sola, porta alla Home senza mostrarsi (02/11/2026)](docs/claude/86-pagamento-aperto-da-solo-niente-pagina-ne-richiesta-02-11-2026.md) · 1 KB
 - [Junior riordinata: scelta del bambino, attività a fisarmonica con foto e video, menu per chi è iscritto, Direttore Tecnico con il numero (02/11/2026)](docs/claude/87-junior-riordinata-scelta-del-bambino-attivita-e-menu-02-11-2026.md) · 5 KB
+- [«Cambia abbonamento»: la data si sceglie in un calendario, entro 30 giorni (02/11/2026)](docs/claude/88-cambio-abbonamento-la-data-si-sceglie-in-un-calendario-02-11-2026.md) · 3 KB
+- [Junior: la voce «Brevetti» (storico, prove) e il diplomino da condividere sui social (02/11/2026)](docs/claude/89-junior-brevetti-storico-prove-e-diplomino-da-condividere-02-11-2026.md) · 5 KB

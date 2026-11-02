@@ -415,3 +415,12 @@ export function eBaby(
   const m = mesiCompiuti(nascita, oggi);
   return m != null && m >= 3 && m <= 36;
 }
+
+/** «Sara Palermo» (PerfectGym puo' averli in maiuscolo): nome e cognome con l'iniziale grande, anche dopo l'apostrofo o il trattino. */
+export function nomeCompleto(p: { nome: string | null; cognome: string | null }): string {
+  return [p.nome, p.cognome]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase()
+    .replace(/(^|[\s'’-])(\p{L})/gu, (_m, a: string, b: string) => a + b.toUpperCase());
+}

@@ -11,12 +11,15 @@ import {
   type EsitoSlotDt,
   type PersonaJunior,
 } from "@/api/junior";
+import { leggiAnagrafica, type EsitoAnagrafica } from "@/api/lab";
 import { locale, t } from "@/lib/lingua";
 import { spazio } from "@/theme";
 
 import { Messaggio, Pulsante, Sezione, SchedeInArrivo, Carta } from "../ui/kit";
 import { CampoTesto, Scelte } from "../ui/Campi";
 import { Icona } from "../ui/Icona";
+import { inMemoria, prendi } from "../memoria";
+import { Consenso } from "./Consenso";
 import { Dettagli } from "./Dettagli";
 import { F, usePalette, velo } from "../ui/tema";
 
@@ -53,9 +56,15 @@ export function DirettoreTecnico({
   const [giorno, setGiorno] = useState<string | null>(null);
   const [ora, setOra] = useState<string | null>(null);
   const [motivo, setMotivo] = useState("");
+  // Il numero a cui richiamare (02/11/2026, richiesta di Maurizio: «puoi essere richiamato a questo numero?», con il numero modificabile): **si propone sempre**, quello di PerfectGym
+  // se la funzione lo manda (`dt_slot`), se no quello del Profilo (`anagrafica`), e il genitore lo conferma con una spunta o lo cambia. Parte sempre col nome `telefono`.
   const [telefono, setTelefono] = useState("");
-  // Il numero a cui chiamare: quello di PerfectGym, che il genitore puo' cambiare (02/11/2026, richiesta di Maurizio).
-  const [cambiaTel, setCambiaTel] = useState(false);
+  const [telefonoToccato, setTelefonoToccato] = useState(false);
+  const [confermaTel, setConfermaTel] = useState(false);
+  const [telProfilo, setTelProfilo] = useState<string | null>(() => {
+    const a = inMemoria<EsitoAnagrafica>("anagrafica");
+    return a?.ok ? a.anagrafica.telefono : null;
+  });
   // Ha toccato «Conferma» senza aver scritto di cosa vuole parlare: il campo si segna e il motivo si dice.
   const [provato, setProvato] = useState(false);
   const [invio, setInvio] = useState(false);
@@ -85,7 +94,8 @@ export function DirettoreTecnico({
     setOra(null);
     setMotivo("");
     setTelefono("");
-    setCambiaTel(false);
+    setTelefonoToccato(false);
+    setConfermaTel(false);
     setProvato(false);
     setErrore(null);
     setFatto(null);
@@ -94,15 +104,25 @@ export function DirettoreTecnico({
   useEffect(() => {
     if (aperto && !vista) carica();
   }, [aperto, vista, carica]);
+  // Il numero del Profilo, se non c'e' gia' in memoria.
+  useEffect(() => {
+    if (telProfilo || vista) return;
+    prendi("anagrafica", leggiAnagrafica).then((r) => {
+      if (r.ok && r.anagrafica.telefono) setTelProfilo(r.anagrafica.telefono);
+    });
+  }, [telProfilo, vista]);
+  // Il numero proposto: quello di PerfectGym, o del Profilo; non si riscrive se la persona l'ha gia' toccato.
+  const numeroProposto = (esito?.ok && esito.telefono ? esito.telefono : telProfilo) ?? "";
+  useEffect(() => {
+    if (!telefonoToccato && numeroProposto) setTelefono(numeroProposto);
+  }, [numeroProposto, telefonoToccato]);
 
   const giorni = esito?.ok ? esito.giorni : [];
   const slotDelGiorno = giorni.find((g) => g.data === giorno)?.slot ?? [];
 
-  // Il cellulare va scritto se PerfectGym non ce l'ha, o se il genitore ha scelto di cambiarlo.
-  const telefonoDaScrivere = !!esito?.ok && (esito.telefonoMancante || cambiaTel);
   const telefonoOk = telefono.replace(/\D/g, "").length >= 8;
   const motivoMancante = motivo.trim().length === 0;
-  const telefonoMancanteOra = telefonoDaScrivere && !telefonoOk;
+  const telefonoMancanteOra = !telefonoOk || !confermaTel;
 
   const prenota = async () => {
     if (!giorno || !ora || invio) return;
@@ -118,7 +138,7 @@ export function DirettoreTecnico({
       data: giorno,
       ora,
       motivo: motivo.trim(),
-      telefono: telefonoDaScrivere ? telefono.trim() : undefined,
+      telefono: telefono.trim(),
     });
     setInvio(false);
     if (r.ok) {
@@ -135,7 +155,7 @@ export function DirettoreTecnico({
       setOra(null);
       setMotivo("");
       setProvato(false);
-      setCambiaTel(false);
+      setConfermaTel(false);
       rileggiMie();
       return;
     }
@@ -277,72 +297,32 @@ export function DirettoreTecnico({
                         : t("Il Direttore Tecnico lo legge prima di chiamarti.", "The Technical Director reads it before calling you.")}
                     </Text>
                   </View>
-                  {esito.telefono && !esito.telefonoMancante ? (
-                    <View style={{ gap: spazio.due }}>
-                      {!cambiaTel ? (
-                        <>
-                          <Text style={[stili.testo, { color: p.testo }]}>
-                            {t(`Ti chiameremo al ${esito.telefono}.`, `We’ll call you on ${esito.telefono}.`)}
-                          </Text>
-                          <Pulsante
-                            testo={t("Vuoi usare un altro numero?", "Want to use another number?")}
-                            icona="modifica"
-                            variante="secondario"
-                            piccolo
-                            pieno={false}
-                            onPress={() => {
-                              setTelefono(esito.telefono ?? "");
-                              setCambiaTel(true);
-                            }}
-                          />
-                        </>
-                      ) : (
-                        <>
-                          <CampoTesto
-                            etichetta={t("Numero a cui chiamarti", "Number to call you on")}
-                            value={telefono}
-                            onChangeText={setTelefono}
-                            keyboardType="phone-pad"
-                            autoComplete="tel"
-                            errore={provato && !telefonoOk}
-                            placeholder="+39 …"
-                          />
-                          {provato && !telefonoOk ? (
-                            <Text style={[stili.nota, { color: p.errore }]}>
-                              {t("Scrivi un numero di cellulare valido.", "Enter a valid mobile number.")}
-                            </Text>
-                          ) : null}
-                          <Pulsante
-                            testo={t("Tieni il numero di prima", "Keep the previous number")}
-                            variante="fantasma"
-                            piccolo
-                            pieno={false}
-                            onPress={() => {
-                              setCambiaTel(false);
-                              setProvato(false);
-                            }}
-                          />
-                        </>
-                      )}
-                    </View>
-                  ) : esito.telefonoMancante ? (
-                    <View style={{ gap: spazio.due }}>
-                      <CampoTesto
-                        etichetta={t("Il tuo cellulare", "Your mobile number")}
-                        value={telefono}
-                        onChangeText={setTelefono}
-                        keyboardType="phone-pad"
-                        autoComplete="tel"
-                        errore={provato && !telefonoOk}
-                        placeholder="+39 …"
-                      />
-                      {provato && !telefonoOk ? (
-                        <Text style={[stili.nota, { color: p.errore }]}>
-                          {t("Ci serve un numero di cellulare per chiamarti.", "We need a mobile number to call you.")}
-                        </Text>
-                      ) : null}
-                    </View>
-                  ) : null}
+                  <View style={{ gap: spazio.due }}>
+                    <CampoTesto
+                      etichetta={t("Numero a cui richiamarti", "Number to call you back on")}
+                      value={telefono}
+                      onChangeText={(v) => {
+                        setTelefono(v);
+                        setTelefonoToccato(true);
+                        setConfermaTel(false);
+                      }}
+                      keyboardType="phone-pad"
+                      autoComplete="tel"
+                      errore={provato && !telefonoOk}
+                      placeholder="+39 …"
+                    />
+                    <Text style={[stili.nota, { color: provato && !telefonoOk ? p.errore : p.testoTerzo }]}>
+                      {provato && !telefonoOk
+                        ? t("Scrivi un numero di cellulare valido.", "Enter a valid mobile number.")
+                        : t("Puoi cambiarlo: il Direttore Tecnico ti richiamerà a questo numero.", "You can change it: the Technical Director will call you back on this number.")}
+                    </Text>
+                    <Consenso
+                      spuntato={confermaTel}
+                      onCambia={() => setConfermaTel((v) => !v)}
+                      errore={provato && telefonoOk && !confermaTel}
+                      testo={t("Confermo che posso essere richiamato a questo numero.", "I confirm that I can be called back on this number.")}
+                    />
+                  </View>
                   {errore ? <Messaggio>{errore}</Messaggio> : null}
                   <Pulsante
                     testo={t("Conferma l’appuntamento", "Confirm the appointment")}
