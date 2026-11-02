@@ -68,7 +68,7 @@ export function dimentica() {
 }
 
 /** Esce dal laboratorio e svuota la memoria (anche quella di Athlon TV). Uscendo cade anche la vista cliente: al prossimo accesso si riparte dall'app di sempre. */
-export async function esciDalLaboratorio() {
+export async function esciDalLaboratorio(opzioni: { soloQuestoDispositivo?: boolean } = {}) {
   // Le notifiche push di questo dispositivo sono di chi c'era: si tolgono **prima** di chiudere la sessione (il server vuole
   // sapere chi e') e senza far aspettare chi esce. Su un dispositivo condiviso non devono passare a chi entra dopo.
   await scollegaDispositivo()
@@ -85,5 +85,6 @@ export async function esciDalLaboratorio() {
   dimenticaLaVista()
   memoriaTv.vetrine = null
   memoriaTv.video.clear()
-  await esci()
+  // Sul totem si chiude solo la sessione di questo dispositivo: l'accesso della persona sul suo telefono resta com'e'.
+  await esci(opzioni.soloQuestoDispositivo ? 'local' : 'global')
 }

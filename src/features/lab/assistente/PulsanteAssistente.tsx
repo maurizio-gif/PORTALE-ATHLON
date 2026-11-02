@@ -1,6 +1,7 @@
 import { useGlobalSearchParams, usePathname } from 'expo-router'
 import { useEffect, useRef, useState } from 'react'
-import { StyleSheet, Text, useWindowDimensions, View } from 'react-native'
+import { StyleSheet, Text, View } from 'react-native'
+import { useWindowDimensions } from '@/lib/finestra'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { LARGO } from '@/components/Pagina'
@@ -20,7 +21,7 @@ import { registraApertura } from './store'
 
 // **Sta dentro la testata e ne segue il centro** (01/11/2026, richiesta di Maurizio: «dentro l'header, centrato, cosi' scorre e rimane comunque dentro»): la testata sottile e' alta
 // `ins.top + 52`, la pillola (34) sta al suo centro verticale, in alto a destra; il titolo piccolo si ferma prima di lei (`ui/Schermata.tsx`, `riservaDestra`), quindi non si sovrappongono mai.
-const DENTRO_TESTATA = 26 - 22 // centro della testata (52 / 2) meno meta' dell'area che si tocca (44)
+export const DENTRO_TESTATA = 26 - 22 // centro della testata (52 / 2) meno meta' dell'area che si tocca (44)
 
 // Il pulsante «Richiedi assistenza» (30/10/2026, richiesta di Maurizio; fino al 31/10/2026 si chiamava «Assistente virtuale»: il foglio che apre si intitola ancora cosi', e dice chi risponde): una pillola in alto a destra, sopra ogni schermata dell'app, sempre
 // visibile. Tocca e sale la chat (`FoglioAssistente`). Sta qui, montata nel layout, e non in una schermata, perche' deve esserci **ovunque**: se

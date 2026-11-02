@@ -5,6 +5,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native'
 import Svg, { Defs, RadialGradient, Rect, Stop } from 'react-native-svg'
 
 import { t } from '@/lib/lingua'
+import { inModalitaTotem } from '@/lib/totem'
 import { spazio } from '@/theme'
 
 import { oggiRoma } from '../alimentazione/conti'
@@ -176,7 +177,8 @@ export function SchermataMese() {
               ) : null}
               <View style={{ gap: spazio.due }}>
                 <Pulsante testo={immagineDisponibile() ? t('Condividi l’immagine', 'Share the image') : t('Condividi', 'Share')} icona="condividi" onPress={() => manda()} inCorso={invio} />
-                {immagineDisponibile() ? <Pulsante testo={t('Scarica l’immagine', 'Download the image')} variante="secondario" piccolo onPress={() => manda(true)} disabilitato={invio} /> : null}
+                {/* Sul totem (lib/totem.ts) non si scarica niente sul dispositivo: l'immagine di una persona resterebbe sul disco del pannello. */}
+                {immagineDisponibile() && !inModalitaTotem() ? <Pulsante testo={t('Scarica l’immagine', 'Download the image')} variante="secondario" piccolo onPress={() => manda(true)} disabilitato={invio} /> : null}
                 {esito === 'scaricato' ? <Messaggio tono="ok">{t('Immagine scaricata: la trovi fra i tuoi file.', 'Image downloaded: you’ll find it in your files.')}</Messaggio> : null}
                 {esito === 'errore' ? <Messaggio>{t('Non siamo riusciti a preparare l’immagine. Riprova.', 'We couldn’t prepare the image. Try again.')}</Messaggio> : null}
               </View>

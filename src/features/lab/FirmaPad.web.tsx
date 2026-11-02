@@ -50,8 +50,11 @@ export function FirmaPad({ onCambia }: { onCambia: (png: string | null) => void 
   }, [prepara])
 
   const posizione = (e: PointerEvent | React.PointerEvent) => {
-    const r = tela.current!.getBoundingClientRect()
-    return { x: e.clientX - r.left, y: e.clientY - r.top }
+    const c = tela.current!
+    const r = c.getBoundingClientRect()
+    // Sul totem la pagina e' ingrandita (`zoom`, lib/totem.ts): il rettangolo e' in pixel veri e la tela in pixel logici. Fuori dal totem il rapporto e' 1.
+    const k = r.width > 0 && c.offsetWidth > 0 ? c.offsetWidth / r.width : 1
+    return { x: (e.clientX - r.left) * k, y: (e.clientY - r.top) * k }
   }
 
   function giu(e: React.PointerEvent) {

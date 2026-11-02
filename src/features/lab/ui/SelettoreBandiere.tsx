@@ -1,4 +1,5 @@
-import { StyleSheet, Text, useWindowDimensions, View } from 'react-native'
+import { StyleSheet, Text, View } from 'react-native'
+import { useWindowDimensions } from '@/lib/finestra'
 
 import { impostaLingua, t, type Lingua } from '@/lib/lingua'
 import { useLingua } from '@/lib/lingua-react'

@@ -1,6 +1,7 @@
 import { LinearGradient } from 'expo-linear-gradient'
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
-import { Modal, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native'
+import { Modal, ScrollView, StyleSheet, Text, View } from 'react-native'
+import { useWindowDimensions } from '@/lib/finestra'
 import Animated, { Easing, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { scheduleOnRN } from 'react-native-worklets'

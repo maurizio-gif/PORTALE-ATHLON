@@ -1,7 +1,8 @@
 import { Image } from 'expo-image'
 import { router } from 'expo-router'
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
-import { StyleSheet, Text, useWindowDimensions, View } from 'react-native'
+import { StyleSheet, Text, View } from 'react-native'
+import { useWindowDimensions } from '@/lib/finestra'
 import type Animated from 'react-native-reanimated'
 
 import type { AreaHelpDesk, EventoClub, NewsClub, SchedaHelpDesk } from '@/api/clubLife'

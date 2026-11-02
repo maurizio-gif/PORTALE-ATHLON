@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState, type ReactNode } from 'react'
 import * as Sharing from 'expo-sharing'
 import { Linking, Platform, Share, Text } from 'react-native'
 import { t } from '@/lib/lingua'
+import { inModalitaTotem } from '@/lib/totem'
 
 import { Foglio } from './ui/Foglio'
 import { Messaggio, Pulsante } from './ui/kit'
@@ -130,7 +131,8 @@ function PdfPronto({ pronto, onChiudi }: { pronto: Pronto | null; onChiudi: () =
       {errore ? <Messaggio>{errore}</Messaggio> : null}
       <Pulsante testo={t('Invia', 'Send')} icona="condividi" onPress={invia} />
       <Pulsante testo={t('Apri il PDF', 'Open the PDF')} icona="apriFuori" variante="secondario" onPress={apri} />
-      {Platform.OS === 'web' ? <Pulsante testo={t('Salva sul dispositivo', 'Save to device')} icona="scarica" variante="contorno" onPress={salva} /> : null}
+      {/* Sul totem (lib/totem.ts) non si salva niente sul dispositivo: il file di una persona resterebbe sul disco del pannello. */}
+      {Platform.OS === 'web' && !inModalitaTotem() ? <Pulsante testo={t('Salva sul dispositivo', 'Save to device')} icona="scarica" variante="contorno" onPress={salva} /> : null}
     </Foglio>
   )
 }

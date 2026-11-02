@@ -1,6 +1,7 @@
 import { StyleSheet, Text, View } from 'react-native'
 
 import { t } from '@/lib/lingua'
+import { inModalitaTotem } from '@/lib/totem'
 import { spazio } from '@/theme'
 
 import { Icona } from '../ui/Icona'
@@ -14,7 +15,8 @@ import { apriAssistente } from './store'
 // **Mai in vista cliente** (come il pulsante: chi guarda l'app di un socio non conversa a suo nome).
 export function RichiediAssistenza() {
   const p = usePalette()
-  if (vistaCorrente()) return null
+  // Sul totem (lib/totem.ts) la chat dell'assistente non c'e': davanti c'e' il desk, e in alto a destra c'e' «Esci» al suo posto.
+  if (vistaCorrente() || inModalitaTotem()) return null
   return (
     <Carta piatta style={stili.carta}>
       <View style={stili.testata}>

@@ -14,6 +14,7 @@ import { Avvio } from '@/features/lab/avvio/Avvio'
 import { CompletaProfilo } from '@/features/lab/ingresso/CompletaProfilo'
 import { useIngresso } from '@/features/lab/ingresso/useIngresso'
 import { Notifiche } from '@/features/lab/notifiche/Notifiche'
+import { EsciTotem } from '@/features/lab/totem/EsciTotem'
 import { BannerVista } from '@/features/lab/ui/BannerVista'
 import { BarraSchede } from '@/features/lab/ui/BarraSchede'
 import { SchermataInArrivo } from '@/features/lab/ui/Attesa'
@@ -23,6 +24,7 @@ import { usePalette } from '@/features/lab/ui/tema'
 import { useSessione } from '@/features/lab/useSessione'
 import { vistaCorrente } from '@/features/lab/vista'
 import { t } from '@/lib/lingua'
+import { inModalitaTotem } from '@/lib/totem'
 
 // Il portale (le schermate dopo l'accesso) sta nel gruppo `(portale)`, che non compare
 // nell'indirizzo: la Home e' `/`, le altre `/calendario`, `/allenamento`, `/tv`...
@@ -112,7 +114,8 @@ export default function LayoutLaboratorio() {
       {/* Il pulsante «Assistente virtuale», in alto a destra e sempre visibile (features/lab/assistente): apre la chat, che resta
           montata qui e non si perde cambiando schermata. Solo con una sessione, e prima dell'avvio animato, che lo copre. In vista
           cliente non si disegna. Il feedback dei tester e' una carta della Home (home/CartaFeedback). */}
-      {sessione ? <PulsanteAssistente /> : null}
+      {/* Sul totem (lib/totem.ts) al suo posto c'e' «Esci»: l'assistente non ha senso su un pannello davanti al desk, e chi finisce deve poter uscire con un tocco. */}
+      {sessione ? inModalitaTotem() ? <EsciTotem /> : <PulsanteAssistente /> : null}
       {/* L'avvio animato: una volta a ogni apertura, sopra tutto (features/lab/avvio). */}
       <Avvio />
     </View>

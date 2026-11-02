@@ -1,6 +1,7 @@
 import { LinearGradient } from 'expo-linear-gradient'
 import { useEffect, useRef } from 'react'
-import { ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native'
+import { ScrollView, StyleSheet, Text, View } from 'react-native'
+import { useWindowDimensions } from '@/lib/finestra'
 
 import { LARGO } from '@/components/Pagina'
 import { spazio, type Tono } from '@/theme'

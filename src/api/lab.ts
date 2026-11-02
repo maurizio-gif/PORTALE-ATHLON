@@ -33,8 +33,12 @@ export async function entra(email: string, codice: string): Promise<{ ok: true }
   return { ok: false, errore: t('Non siamo riusciti a farti entrare. Riprova tra poco.', 'We couldn’t sign you in. Try again shortly.') }
 }
 
-export async function esci() {
-  await supabase.auth.signOut()
+/**
+ * Esce. Di partenza `global` (chiude la sessione su tutti i dispositivi, come ha sempre fatto l'app); `local` chiude solo questa:
+ * sul totem (`features/lab/totem`) chi esce non deve trovarsi senza accesso anche sul proprio telefono.
+ */
+export async function esci(ambito: 'global' | 'local' = 'global') {
+  await supabase.auth.signOut({ scope: ambito })
 }
 
 export type PersonaArea = {

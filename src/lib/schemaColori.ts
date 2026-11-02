@@ -1,5 +1,7 @@
 import { useSyncExternalStore } from 'react'
-import { Appearance, Platform, useColorScheme, useWindowDimensions } from 'react-native'
+import { Appearance, Platform, useColorScheme } from 'react-native'
+import { useWindowDimensions } from './finestra'
+import { inModalitaTotem } from './totem'
 
 import './localStorage'
 
@@ -106,6 +108,9 @@ export function useSchemaColori(): 'light' | 'dark' {
   const sistema = useColorScheme()
   const { width } = useWindowDimensions()
   const voluta = useSceltaTema()
+  // Il totem e' un computer, anche se la sua larghezza logica (540, `totem.ts`) e' da telefono: sempre chiaro, come a computer. Viene prima della scelta
+  // della persona: sul totem niente resta (la scelta del tema sta nella memoria della scheda, che si svuota a ogni uscita) e il fondo scuro non serve.
+  if (Platform.OS === 'web' && inModalitaTotem()) return 'light'
   if (voluta === 'chiaro') return 'light'
   if (voluta === 'scuro') return 'dark'
   if (Platform.OS === 'web' && width >= LARGO) return 'light'

@@ -3,6 +3,7 @@ import { Platform } from 'react-native'
 
 import { iscriviPush, rimuoviPush, statoPushServer } from '@/api/notifiche'
 import { t } from '@/lib/lingua'
+import { inModalitaTotem } from '@/lib/totem'
 
 import { vistaCorrente } from '../vista'
 import { attivaNativo, eNativo, gettone, permessoNativo, spegniNativo } from './pushNativo'
@@ -37,7 +38,9 @@ function eWeb(): boolean {
 
 function supportato(): boolean {
   if (eNativo) return true
-  return eWeb() && 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window
+  // Sul totem (lib/totem.ts) non si attiva nessuna notifica push: l'indirizzo push resterebbe al pannello, e le notifiche di una persona
+  // arriverebbero sullo schermo di tutti. Stato `non_supportato`: niente carta in Home, niente finestra di invito, niente richiesta di permesso.
+  return eWeb() && !inModalitaTotem() && 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window
 }
 
 function installata(): boolean {

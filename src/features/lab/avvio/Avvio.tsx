@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
-import { Pressable, StyleSheet, useWindowDimensions, View } from 'react-native'
+import { Pressable, StyleSheet, View } from 'react-native'
+import { useWindowDimensions } from '@/lib/finestra'
 import { useReducedMotion } from 'react-native-reanimated'
 import Svg, { ClipPath, Circle, Defs, G, LinearGradient, Path, RadialGradient, Rect, Stop } from 'react-native-svg'
 
