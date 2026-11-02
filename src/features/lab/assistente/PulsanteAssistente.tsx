@@ -31,7 +31,7 @@ const DENTRO_TESTATA = 26 - 22 // centro della testata (52 / 2) meno meta' dell'
 // di `Schermata`, stesso gutter, stessa altezza). Dove la schermata ha gia' un comando li' (il carrello dello shop, il salvataggio dell'editor) si sposta
 // di un bottone a sinistra invece di coprirlo (`feedback/posizione.ts`).
 //
-// **Sempre icona e scritta «Richiedi assistenza» per esteso, anche in app** (4/11/2026, richiesta di Maurizio: la sola icona non si capiva). Prima su
+// **Sempre icona e scritta «Richiedi assistenza» per esteso, anche in app** (2/11/2026, richiesta di Maurizio: la sola icona non si capiva). Prima su
 // uno schermo stretto, o dove un comando occupava gia' il posto, restava il cerchio con l'icona. Ora, se col marchio non c'e' posto, a cedere e' il
 // nome del club accanto al pittogramma (`Schermata`, `senzaNome`), mai la scritta della pillola.
 //

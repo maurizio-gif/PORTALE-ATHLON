@@ -264,7 +264,7 @@ function CartaAppleSalute({ d, onErrore, attivaSubito }: { d: DatiDispositivi; o
   }
 
   const senzaDati = attivo && !!d.dati && !apple.ha
-  // Il nome e le parole sono quelli del telefono in uso (4/11/2026, foto di un tester su Android: la carta diceva «Apple Salute» e «Dal tuo iPhone»).
+  // Il nome e le parole sono quelli del telefono in uso (2/11/2026, foto di un tester su Android: la carta diceva «Apple Salute» e «Dal tuo iPhone»).
   const nome = nomeAppSalute()
   const android = appSaluteDelTelefono() === 'google'
   return (

@@ -36,7 +36,7 @@ export function Marchio({ piccolo = false, senzaNome = false }: { piccolo?: bool
   return (
     <View style={stili.marchio} accessibilityLabel="Athlon Club" accessibilityRole="image">
       <Image source={PITTOGRAMMA} style={piccolo ? stili.pittogrammaPiccolo : stili.pittogramma} contentFit="contain" />
-      {/* Il nome del club non cresce con la dimensione del carattere scelta nel telefono e non si accorcia: «Athlon Cl…» (4/11/2026). */}
+      {/* Il nome del club non cresce con la dimensione del carattere scelta nel telefono e non si accorcia: «Athlon Cl…» (2/11/2026). */}
       {piccolo || senzaNome ? null : <Text numberOfLines={1} allowFontScaling={false} style={[stili.nomeClub, { color: p.testo }]}>Athlon Club</Text>}
     </View>
   )
@@ -94,7 +94,7 @@ export function Schermata({
   const riservaDestra = vistaCorrente()
     ? 64
     : Math.max(0, (width - colonnaPillola) / 2) + spazio.tre + 2 + (occupato ? SPOSTA_SE_OCCUPATO : 0) + LARGHEZZA_PILLOLA + spazio.due
-  // «Richiedi assistenza» ha sempre icona e scritta (4/11/2026, richiesta di Maurizio): se col marchio e la freccia non c'e' posto, a cedere e' il nome del club, non la scritta della pillola.
+  // «Richiedi assistenza» ha sempre icona e scritta (2/11/2026, richiesta di Maurizio): se col marchio e la freccia non c'e' posto, a cedere e' il nome del club, non la scritta della pillola.
   const colonnaUtile = Math.min(width, colonnaPillola)
   const sinistraConNome = spazio.tre + 2 + (indietro ? 44 + spazio.tre : 0) + 30 + spazio.due + 92
   const destraPillola = spazio.tre + 2 + (occupato ? SPOSTA_SE_OCCUPATO : 0) + LARGHEZZA_PILLOLA

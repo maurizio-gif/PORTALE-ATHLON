@@ -89,8 +89,8 @@ export function CartaDispositivi({ disp }: { disp: Dispositivi }) {
           <Text style={[stili.nota, { color: p.testoSecondario }]}>
             {faccia === 'da-attivare'
               ? t(
-                  'Passi, sonno e allenamenti arrivano da soli, anche da Apple Watch, Garmin, Oura o Fitbit: il tuo punteggio e le tue calorie si calcolano su dati veri.',
-                  'Steps, sleep and workouts come in by themselves, also from Apple Watch, Garmin, Oura or Fitbit: your score and your calories are worked out from real data.',
+                  'Passi, sonno e allenamenti arrivano da soli, anche da Apple Watch, Garmin o Fitbit: il tuo punteggio e le tue calorie si calcolano su dati veri.',
+                  'Steps, sleep and workouts come in by themselves, also from Apple Watch, Garmin or Fitbit: your score and your calories are worked out from real data.',
                 )
               : faccia === 'senza-dati'
                 ? t(

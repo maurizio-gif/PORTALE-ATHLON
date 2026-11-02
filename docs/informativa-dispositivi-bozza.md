@@ -1,6 +1,6 @@
 # Informativa dei dispositivi: bozza per il consulente privacy (29/10/2026)
 
-**Stato: bozza, non pubblicata.** Il testo in uso sta in `src/features/lab/dispositivi/informativa.ts` (versione `2026-10-28`) e descrive ancora i collegamenti con Oura e Polar, che l'app non offre più. Questa bozza descrive quello che il codice fa **oggi**: i dispositivi arrivano solo da Apple Salute, e l'app non parla più con i fornitori.
+**Stato (02/11/2026): il testo è stato messo in `informativa.ts` (versione `2026-11-02`), esteso a Health Connect e ai dati del 31/10; resta da far rileggere al consulente, e non è pubblicato.** Quella che segue è la bozza di partenza del 29/10: dove dice «Health Connect non è nel testo» è superata. **Stato originale: bozza, non pubblicata.** Il testo in uso sta in `src/features/lab/dispositivi/informativa.ts` (versione `2026-10-28`) e descrive ancora i collegamenti con Oura e Polar, che l'app non offre più. Questa bozza descrive quello che il codice fa **oggi**: i dispositivi arrivano solo da Apple Salute, e l'app non parla più con i fornitori.
 
 Da far rileggere dal consulente prima di pubblicarla: è un testo legale, e il consenso è la base (art. 9, par. 2, lett. a del GDPR).
 

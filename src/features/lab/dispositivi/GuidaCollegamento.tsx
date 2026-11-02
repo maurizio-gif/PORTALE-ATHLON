@@ -18,17 +18,17 @@ import { MARCHI, type Categoria, type Marchio, type Piattaforma } from './marchi
 // L'elenco dei marchi e' in `marchi.ts` (verificato su pagine ufficiali, con la data). I nomi sono dei rispettivi proprietari: si citano
 // solo per dire che si collegano, senza loghi e senza nessun rapporto con il club.
 
-// **Dentro l'app le indicazioni sono quelle del telefono in uso, non quelle del portale** (4/11/2026, foto di un tester su Android: la guida diceva «serve l'app
+// **Dentro l'app le indicazioni sono quelle del telefono in uso, non quelle del portale** (2/11/2026, foto di un tester su Android: la guida diceva «serve l'app
 // per Android… non dal browser» e «dal browser o dalla PWA non si puo'», cioe' le istruzioni da portale, a chi l'app l'aveva gia' installata). Sul web restano le due
 // strade a scelta e l'avviso; nell'app c'e' solo la strada del telefono, senza tab e senza avvisi sul browser.
 const PASSI: Record<Piattaforma, (inApp: boolean) => { titolo: string; testo: string }[]> = {
   apple: () => [
-    { titolo: t('Apri l’app del tuo dispositivo', 'Open your device’s app'), testo: t('Per esempio Garmin Connect, Oura, Polar Flow o Google Health (l’ex Fitbit): quella che usi per vedere sonno e allenamenti.', 'For example Garmin Connect, Oura, Polar Flow or Google Health (the former Fitbit): the one you use to see your sleep and workouts.') },
+    { titolo: t('Apri l’app del tuo dispositivo', 'Open your device’s app'), testo: t('Per esempio Garmin Connect, Google Health (l’ex Fitbit) o Samsung Health: quella che usi per vedere sonno e allenamenti.', 'For example Garmin Connect, Google Health (the former Fitbit) or Samsung Health: the one you use to see your sleep and workouts.') },
     { titolo: t('Attiva la condivisione con Apple Salute', 'Turn on sharing with Apple Health'), testo: t('Nelle impostazioni dell’app cerca «Apple Salute» (o «Salute») e scegli cosa condividere: sonno, passi, battito e allenamenti.', 'In the app’s settings look for “Apple Health” (or “Health”) and choose what to share: sleep, steps, heart rate and workouts.') },
     { titolo: t('Torna qui e aggiorna', 'Come back here and refresh'), testo: t('Premi «Aggiorna ora»: nella carta vedi da chi stai ricevendo i dati. Se non arriva niente, controlla in Impostazioni › Salute › Accesso ai dati e dispositivi › Athlon Club.', 'Tap “Refresh now”: the card shows who you’re receiving data from. If nothing comes in, check Settings › Health › Data Access & Devices › Athlon Club.') },
   ],
   google: (inApp) => [
-    { titolo: t('Apri l’app del tuo dispositivo', 'Open your device’s app'), testo: t('Quella che usi per vedere sonno e allenamenti: Garmin Connect, Oura, Polar Flow, Google Health, Samsung Health…', 'The one you use to see your sleep and workouts: Garmin Connect, Oura, Polar Flow, Google Health, Samsung Health…') },
+    { titolo: t('Apri l’app del tuo dispositivo', 'Open your device’s app'), testo: t('Quella che usi per vedere sonno e allenamenti: Garmin Connect, Google Health, Samsung Health…', 'The one you use to see your sleep and workouts: Garmin Connect, Google Health, Samsung Health…') },
     { titolo: t('Attiva la condivisione con Health Connect', 'Turn on sharing with Health Connect'), testo: t('Nelle impostazioni dell’app cerca «Health Connect» e scegli cosa condividere: sonno, passi, battito e allenamenti.', 'In the app’s settings look for “Health Connect” and choose what to share: sleep, steps, heart rate and workouts.') },
     inApp
       ? { titolo: t('Torna qui e aggiorna', 'Come back here and refresh'), testo: t('Premi «Aggiorna ora»: nella carta vedi da chi stai ricevendo i dati. Se non arriva niente, controlla in Impostazioni › Health Connect › Autorizzazioni delle app › Athlon Club che passi, sonno e allenamenti siano attivi.', 'Tap “Refresh now”: the card shows who you’re receiving data from. If nothing comes in, check Settings › Health Connect › App permissions › Athlon Club that steps, sleep and workouts are turned on.') }

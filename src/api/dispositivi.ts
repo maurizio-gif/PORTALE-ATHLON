@@ -10,25 +10,8 @@ import { t } from '@/lib/lingua'
 
 type Esito<T> = ({ ok: true } & T) | { ok: false; errore: string; senzaConsenso?: boolean }
 
-/** I collegamenti diretti che la funzione conosce ancora (solo per chi si era collegato in prova: l'app non ne offre di nuovi). */
-export type IdFornitore = 'oura' | 'polar'
-
-export type Fornitore = { id: IdFornitore; nome: string; disponibile: boolean }
-
-export type Collegamento = {
-  fornitore: IdFornitore
-  /** 'da_riautorizzare': il fornitore ha tolto l'accesso, va ricollegato. */
-  stato: 'attivo' | 'da_riautorizzare'
-  collegato_il: string | null
-  ultimo_sync_il: string | null
-  ultimo_errore: string | null
-}
-
-/** Il recupero com'e' per il fornitore: Oura «prontezza» 0-100, Polar «Nightly Recharge» 1-6. */
-export type ScalaRecupero = 'oura_prontezza' | 'polar_recharge'
-
-/** Da dove viene il riassunto di un giorno: un fornitore, o «manuale» (il sonno che il socio scrive, 20/10/2026). */
-export type FonteGiorno = IdFornitore | 'manuale' | 'apple_salute' | 'google_salute'
+/** Da dove viene il riassunto di un giorno: Apple Salute, Health Connect, o «manuale» (il sonno che il socio scrive, 20/10/2026). */
+export type FonteGiorno = 'manuale' | 'apple_salute' | 'google_salute'
 
 export type GiornoDispositivo = {
   fornitore: FonteGiorno
@@ -42,7 +25,7 @@ export type GiornoDispositivo = {
   sonno_profondo_minuti: number | null
   sonno_rem_minuti: number | null
   recupero_valore: number | null
-  recupero_scala: ScalaRecupero | null
+  recupero_scala: string | null
   /** Il battito piu' basso della notte, in battiti al minuto. */
   fc_notte: number | null
   /** La variabilita' del battito (HRV), in millisecondi. */
@@ -63,7 +46,7 @@ export type GiornoDispositivo = {
 
 export type AllenamentoDispositivo = {
   id: string
-  fornitore: IdFornitore | 'apple_salute' | 'google_salute' | 'manuale'
+  fornitore: 'apple_salute' | 'google_salute' | 'manuale'
   inizio: string
   durata_minuti: number
   /** Da quale app o dispositivo arriva (Apple Salute fa da hub: «Oura», «Apple Watch»…). Null per i dati scritti a mano. */
@@ -80,14 +63,15 @@ export type AllenamentoDispositivo = {
 /** I minuti di mobilita' e di foam roller di un giorno (02/11/2026): le sessioni dell'app, per il punteggio di Recover. Mancano con una funzione di prima. */
 export type GiornoRecupero = { data: string; mobilita: number; rilascio: number }
 
-export type DatiDispositivi = { collegamenti: Collegamento[]; giorni: GiornoDispositivo[]; allenamenti: AllenamentoDispositivo[]; recupero?: GiornoRecupero[] }
+export type DatiDispositivi = { collegamenti: unknown[]; giorni: GiornoDispositivo[]; allenamenti: AllenamentoDispositivo[]; recupero?: GiornoRecupero[] }
 
 export type StatoDispositivi = {
   versione: string
   consenso: { versione: string; accettato_il: string } | null
   maggiorenne: boolean
-  fornitori: Fornitore[]
-  collegamenti: Collegamento[]
+  /** Sempre vuote dal 02/11/2026 (non ci sono piu' collegamenti con i fornitori): restano perche' la funzione le manda ancora. */
+  fornitori: unknown[]
+  collegamenti: unknown[]
 }
 
 const chiama = (corpo: Record<string, unknown>) => funzione('portale-lab-dispositivi', corpo)

@@ -154,7 +154,7 @@ function Benvenuto({
               </View>
             ) : null}
           </View>
-          {/* L'invito a mettere la foto sta qui, a tutta larghezza della colonna, e non accanto all'avatar: lì, con bandiere, campanello e Profilo a destra, restavano ~50 punti e «Aggiungi la tua foto» andava a capo una parola per riga (4/11/2026, foto di un tester). */}
+          {/* L'invito a mettere la foto sta qui, a tutta larghezza della colonna, e non accanto all'avatar: lì, con bandiere, campanello e Profilo a destra, restavano ~50 punti e «Aggiungi la tua foto» andava a capo una parola per riga (2/11/2026, foto di un tester). */}
           {invitoFoto ? (
             <Tocco onPress={onFoto} etichetta={t('Aggiungi la tua foto', 'Add your photo')} scala={0.96} style={{ alignSelf: 'flex-start' }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>

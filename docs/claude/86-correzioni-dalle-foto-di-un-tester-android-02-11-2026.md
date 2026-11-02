@@ -1,4 +1,4 @@
-## Correzioni dalle foto di un tester su Android: intestazione, prenotazioni, dispositivi, «Richiedi assistenza» (04/11/2026)
+## Correzioni dalle foto di un tester su Android: intestazione, prenotazioni, dispositivi, «Richiedi assistenza» (02/11/2026)
 
 Quattro segnalazioni di Maurizio da tre schermate di un telefono Android (build `preview`). **Provato solo con `tsc`** (46 errori, la base: nessuno nuovo); **non guardato su un telefono né in un browser**.
 
@@ -10,8 +10,15 @@ Quattro segnalazioni di Maurizio da tre schermate di un telefono Android (build 
 - **«Collegato» o no**: la carta dice **«Collegato» / «Non collegato» / «Senza dati»** (prima «Attivo» / «Da attivare»), con «Collegato. Ricevi da: …». E `chiediPermessoHealthConnect` ora risponde `false` se nella richiesta di Android non si consente **niente** di quello che leggiamo: prima la schermata passava ad «Attivo» anche chiudendola, ed era il motivo per cui non si capiva se si era collegati.
 - **Da fare, non toccato**: `fit/CartaDispositivi.tsx` (la carta in Home) ha ancora i suoi testi «Attivo» / «Da attivare»; vanno allineati ai nuovi se si vuole la stessa parola in tutti e due i posti.
 
-### Push su Android (04/11/2026, prima di una nuova build)
+### Push su Android (02/11/2026, prima di una nuova build)
 
 - **Canale creato prima del permesso** (`pushNativo.ts`, `preparaCanale`): da Android 13 il telefono non mostra la richiesta del permesso se l'app non ha creato un canale; «Attiva le notifiche» risultava negato senza che comparisse niente. Il canale `default` si crea anche all'avvio dell'ascolto. Provato solo con `tsc`.
 - **Manca la chiave Firebase (FCM)**: verificato sul progetto Expo (`googleServiceAccountKeyForFcmV1: null`) e nel repository (nessun `google-services.json`, nessun `googleServicesFile` in `app.json`). **Senza, `getExpoPushTokenAsync` fallisce su Android e la carta dice «Questo dispositivo non ha potuto preparare le notifiche».** Il server non c'entra: manda già dal servizio di Expo (`lib/push.ts` in APP-ATHLON). Passi, da fare dall'account Google/Firebase del club: progetto Firebase → app Android `it.athlonroma.app` → scaricare `google-services.json` (e mettere `"googleServicesFile": "./google-services.json"` in `android` di `app.json`) → chiave dell'account di servizio (Cloud Messaging V1) caricata su EAS con `eas credentials`. **Poi serve una build nuova**: il file entra nell'app al build.
 - **Aggiunto `google-services.json`** (progetto Firebase «App Athlon», `app-athlon-aa224`, app `it.athlonroma.app`) e `android.googleServicesFile` in `app.json`. È la configurazione pubblica del client (si committa di solito), **non** la chiave dell'account di servizio: quella è un segreto e sta solo su EAS (Credentials › Android › FCM V1). **Finché la chiave non è su EAS le push non partono**, anche con questo file.
+
+### Oura e Polar tolti dall'app (02/11/2026, richiesta di Maurizio)
+
+- **`informativa.ts` riscritta** (versione `2026-11-02`, la stessa del server): non nomina più Oura e Polar né il pulsante «Collega»; dice di Health Connect, che l'app legge **solo quando si apre** (verificato: `sincronizzaSalute` gira solo da schermate aperte, al massimo ogni dieci minuti, nessuna lettura in background), dei dati aggiunti il 31/10 (minuti di esercizio e di meditazione; solo su iPhone variabilità del battito, ore in piedi e luce del giorno) e che la revoca cancella anche le abitudini scelte. **Non l'ha vista un consulente**: va fatta rileggere prima di pubblicare. Chi aveva accettato la versione di prima riaccetta.
+- **Testi visibili**: tolti dalla carta dei dispositivi e dagli esempi della guida. **Tipi**: via `IdFornitore`, `Fornitore`, `Collegamento`, `ScalaRecupero` da `api/dispositivi.ts`; `fornitori` e `collegamenti` restano come liste vuote, perché la funzione le manda ancora.
+- **Lasciato di proposito, e da decidere**: **Oura e Polar compaiono ancora nell'elenco dei dispositivi che si collegano** (`dispositivi/marchi.ts`, con le pagine ufficiali dei produttori) e nei nomi delle fonti (`healthConnect.ts`, «Oura», «Polar Flow», e quelli che Apple Salute dà alla fonte): sono anelli e orologi che scrivono su Apple Salute o Health Connect, non un collegamento del club. Se Maurizio vuole toglierli anche di lì, è una riga ciascuno.
+- Il server è nella PR «Dispositivi: via Oura e Polar dal server» di APP-ATHLON (migrazione compresa). Ordine di pubblicazione: `87-rilascio-come-si-pubblica-02-11-2026.md`.

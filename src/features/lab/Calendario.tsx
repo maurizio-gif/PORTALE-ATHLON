@@ -655,7 +655,7 @@ function LezioniPrenotate({ lezioni, occupato, onAnnulla }: { lezioni: Prenotata
                     {attesa ? <InfoAttesa /> : null}
                   </View>
                 }
-                // La conferma sta sotto il titolo, a tutta larghezza (4/11/2026, foto di un tester: a destra due pulsanti lasciavano al nome ~60 punti e «Allenamento Gym Floor» andava a capo lettera per lettera).
+                // La conferma sta sotto il titolo, a tutta larghezza (2/11/2026, foto di un tester: a destra due pulsanti lasciavano al nome ~60 punti e «Allenamento Gym Floor» andava a capo lettera per lettera).
                 sottoRiga={
                   conferma === l.class_id ? (
                     <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 6 }}>
