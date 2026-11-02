@@ -121,3 +121,5 @@ chiamata diretta al gestionale. Esempio: la sezione Prodotti usa l'azione `prodo
 - [Mobilità e foam roller nel punteggio di Recover: una quota piccola, che non spinge (02/11/2026)](docs/claude/83-mobilita-e-foam-roller-nel-punteggio-di-recover-02-11-2026.md) · 4 KB
 - [Il respiro guidato: una pausa di 1–5 minuti in Recover, solo animazione (01/11/2026)](docs/claude/84-il-respiro-guidato-una-pausa-in-recover-01-11-2026.md) · 3 KB
 - [Junior: senza figli solo «Aggiungi un componente»; i turni solo per l'anno del figlio (02/11/2026)](docs/claude/85-junior-senza-figli-solo-aggiungi-un-componente-e-turni-solo-per-l-anno-del-figlio-02-11-2026.md) · 2 KB
+- [La pagina di stato del pagamento, aperta da sola, porta alla Home senza mostrarsi (02/11/2026)](docs/claude/86-pagamento-aperto-da-solo-niente-pagina-ne-richiesta-02-11-2026.md) · 1 KB
+- [Junior riordinata: scelta del bambino, attività a fisarmonica con foto e video, menu per chi è iscritto, Direttore Tecnico con il numero (02/11/2026)](docs/claude/87-junior-riordinata-scelta-del-bambino-attivita-e-menu-02-11-2026.md) · 5 KB

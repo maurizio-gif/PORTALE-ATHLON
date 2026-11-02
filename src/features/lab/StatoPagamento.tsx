@@ -83,6 +83,11 @@ export function StatoPagamento() {
   const [nonTrovato, setNonTrovato] = useState(false)
   const [riprovando, setRiprovando] = useState(false)
   const avviato = useRef(false)
+  // Aperta da sola, senza il ritorno da Adyen e senza una schermata da cui tornare (l'app che si riapre su un indirizzo `/pagamenti/<riferimento>`
+  // rimasto di un accesso precedente: segnalazione di Maurizio, 02/11/2026, «mi si apre un attimo una pagina di pagamento dopo il login»): non c'e' niente
+  // da mostrare, e nemmeno da chiedere al server. Si decide una volta sola, alla prima apertura: dopo il `router.replace` del ritorno da Adyen
+  // i parametri non ci sono piu' e la pagina e' quella giusta.
+  const [daSola] = useState(() => !sessionId && !sessionResult && !redirectResult && !router.canGoBack())
 
   const leggi = useCallback(async () => {
     const r = await statoPagamento(riferimento)
@@ -110,6 +115,10 @@ export function StatoPagamento() {
   // Il ritorno: prima l'esito da Adyen (dal server), poi via i parametri
   // dall'indirizzo, cosi' resta quello stabile del riferimento.
   useEffect(() => {
+    if (daSola) {
+      router.replace('/')
+      return
+    }
     if (avviato.current) return
     avviato.current = true
     ;(async () => {
@@ -132,7 +141,7 @@ export function StatoPagamento() {
       }
       await leggi()
     })()
-  }, [riferimento, sessionId, sessionResult, redirectResult, router, leggi])
+  }, [daSola, riferimento, sessionId, sessionResult, redirectResult, router, leggi])
 
   // Finche' l'esito non e' definitivo si rilegge ogni 5 secondi, per dieci minuti.
   const inCorso = pag ? STATI_IN_CORSO.includes(pag.stato) : false
@@ -152,6 +161,8 @@ export function StatoPagamento() {
     if (stato === 'autorizzato') colpetto('ok')
     else if (stato === 'rifiutato' || stato === 'errore') colpetto('errore')
   }, [stato])
+
+  if (daSola) return null
 
   if (errore && !pag) {
     return (

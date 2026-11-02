@@ -3,19 +3,13 @@ import { StyleSheet, Text, View } from "react-native";
 import { t } from "@/lib/lingua";
 import { spazio } from "@/theme";
 
-import { Icona, type NomeIcona } from "../ui/Icona";
+import { Icona } from "../ui/Icona";
 import { F, MARE, raggio } from "../ui/tema";
 
 // La testata della sezione Junior (22/10/2026, richiesta di Maurizio: «una vera sezione junior only one»). Un riquadro blu acqua, il colore
-// del secondo riquadro forte dell'app, che dice a chi arriva che qui c'e' tutto: i corsi dei figli, le lezioni, i recuperi, i livelli,
-// le iscrizioni. Solo Views e il tema: niente immagini ne' sfumature, funziona uguale su web e nativo.
-
-const VOCI: { icona: NomeIcona; testo: () => string }[] = [
-  { icona: "calendario", testo: () => t("Lezioni", "Classes") },
-  { icona: "rinnovo", testo: () => t("Recuperi", "Make-ups") },
-  { icona: "stella", testo: () => t("Livelli", "Levels") },
-  { icona: "aggiungi", testo: () => t("Iscrizioni", "Enrollments") },
-];
+// del secondo riquadro forte dell'app. **Dal 02/11/2026 e' corta** (richiesta di Maurizio: «c'e' troppo testo tutto insieme»): solo il
+// titolo, con il nome del bambino scelto; il paragrafo e le quattro pillole sono stati tolti. Solo Views e il tema: niente immagini ne'
+// sfumature, funziona uguale su web e nativo.
 
 export function TestataJunior({ nome }: { nome?: string | null }) {
   return (
@@ -23,7 +17,7 @@ export function TestataJunior({ nome }: { nome?: string | null }) {
       style={[stili.riquadro, { backgroundColor: MARE[1] }]}
       accessible
       accessibilityRole="header"
-      accessibilityLabel={t("Junior: i corsi dei tuoi figli, tutto in un posto", "Junior: your kids’ courses, all in one place")}
+      accessibilityLabel={t("Junior: i corsi dei tuoi figli", "Junior: your kids’ courses")}
     >
       {/* Due onde di mare, cerchi del blu piu' scuro e piu' chiaro: la sola decorazione. */}
       <View style={[stili.onda, stili.ondaGrande, { backgroundColor: MARE[2] }]} />
@@ -35,24 +29,8 @@ export function TestataJunior({ nome }: { nome?: string | null }) {
         <Text style={stili.sopra}>{t("Athlon Junior", "Athlon Junior")}</Text>
       </View>
       <Text style={stili.titolo}>
-        {nome
-          ? t(`Tutto sui corsi di ${nome}, in un posto solo`, `Everything about ${nome}’s courses, in one place`)
-          : t("I corsi dei tuoi figli, in un posto solo", "Your kids’ courses, in one place")}
+        {nome ? t(`I corsi di ${nome}`, `${nome}’s courses`) : t("I corsi dei tuoi figli", "Your kids’ courses")}
       </Text>
-      <Text style={stili.testo}>
-        {t(
-          "Iscrizioni, abbonamento, lezioni, recuperi e livelli: qui controlli tutto, e trovi spiegato come funziona.",
-          "Enrollments, membership, classes, make-ups and levels: manage it all here, with explanations of how everything works.",
-        )}
-      </Text>
-      <View style={stili.pillole}>
-        {VOCI.map((v, i) => (
-          <View key={i} style={stili.pillola}>
-            <Icona nome={v.icona} size={14} colore="#fff" />
-            <Text style={stili.pillolaTesto}>{v.testo()}</Text>
-          </View>
-        ))}
-      </View>
     </View>
   );
 }
@@ -61,7 +39,7 @@ const stili = StyleSheet.create({
   riquadro: {
     borderRadius: raggio.grande,
     padding: spazio.quattro,
-    gap: spazio.due,
+    gap: spazio.tre,
     overflow: "hidden",
   },
   onda: { position: "absolute", borderRadius: 999, opacity: 0.55 },
@@ -91,22 +69,4 @@ const stili = StyleSheet.create({
     lineHeight: 29,
     letterSpacing: -0.5,
   },
-  testo: {
-    color: "#fff",
-    fontFamily: F.medio,
-    fontSize: 14,
-    lineHeight: 20,
-    opacity: 0.92,
-  },
-  pillole: { flexDirection: "row", flexWrap: "wrap", gap: spazio.due, marginTop: 4 },
-  pillola: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    paddingHorizontal: 12,
-    minHeight: 30,
-    borderRadius: 999,
-    backgroundColor: "rgba(255,255,255,0.2)",
-  },
-  pillolaTesto: { color: "#fff", fontFamily: F.bold, fontSize: 13 },
 });

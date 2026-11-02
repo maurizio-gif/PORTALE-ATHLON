@@ -36,6 +36,7 @@ import {
 } from "../ui/kit";
 import { Foglio } from "../ui/Foglio";
 import { FoglioLezione } from "../ui/FoglioLezione";
+import { Dettagli } from "./Dettagli";
 import { PagamentiContratto } from "./PagamentiContratto";
 import { concludiInCorso, type InCorso } from "./inCorso";
 import { F, usePalette } from "../ui/tema";
@@ -97,17 +98,28 @@ function comeLezione(l: Lezione): LezioneConsiglio {
 const senzaPunto = (piano: string | null) =>
   (piano ?? t("Abbonamento", "Membership")).replace(/^!\s*/, "").trim();
 
+/**
+ * Quale pezzo dei corsi mostrare (02/11/2026): la pagina Junior ha un menu e mostra una cosa per volta. `null` non disegna niente
+ * ma lascia montato il componente (la lettura dei dati non riparte a ogni cambio di voce); senza `parte` si vede tutto, come prima.
+ */
+export type ParteCorsi = "abbonamento" | "lezioni" | "recuperi" | "baby";
+
 export function CorsiPersona({
   persona,
   vista,
+  parte,
   inCorso,
   onInCorsoFinito,
+  onDati,
 }: {
   persona: PersonaJunior;
   vista: boolean;
+  parte?: ParteCorsi | null;
   /** Un'iscrizione appena firmata che il mirror non ha ancora (`inCorso.ts`). */
   inCorso?: InCorso;
   onInCorsoFinito?: () => void;
+  /** Quello che la pagina Junior deve sapere per il suo menu (i recuperi ci sono solo per la Scuola Nuoto). */
+  onDati?: (d: { recuperabile: boolean; babyAbbonato: boolean }) => void;
 }) {
   const chiave = chiaveCorsi(persona.member_id);
   const [esito, setEsito] = useState<EsitoCorsi | undefined>(() =>
@@ -145,6 +157,11 @@ export function CorsiPersona({
     }
   }, [arrivata, inCorso, onInCorsoFinito]);
 
+  useEffect(() => {
+    if (esito?.ok) onDati?.({ recuperabile: esito.iscrizioni.some((i) => i.recuperabile), babyAbbonato: !!esito.baby?.abbonamento });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [esito]);
+
   /** Dopo una prenotazione o una disdetta i conteggi sono cambiati: si rileggono. */
   const cambiato = useCallback(async () => {
     scorda(chiave);
@@ -153,9 +170,10 @@ export function CorsiPersona({
 
   // L'iscrizione appena firmata, finche' il mirror non la dice: si vede subito, con il pagamento da fare o fatto.
   const provvisoria =
-    inCorso && !arrivata ? (
+    inCorso && !arrivata && (parte === undefined || parte === "abbonamento") ? (
       <IscrizioneInCorso nome={persona.nome ?? ""} x={inCorso} />
     ) : null;
+  if (parte === null) return null;
   if (!esito) return provvisoria ?? <SchedeInArrivo quante={1} />;
   if (!esito.ok)
     return (
@@ -174,7 +192,7 @@ export function CorsiPersona({
   return (
     <>
       {provvisoria}
-      {esito.baby && esito.iscrizioni.length === 0 ? (
+      {esito.baby && esito.iscrizioni.length === 0 && (parte === undefined || parte === "baby") ? (
         <SezioneBaby
           nome={nome}
           memberId={persona.member_id}
@@ -183,9 +201,10 @@ export function CorsiPersona({
           onCambiato={cambiato}
         />
       ) : null}
-      {esito.iscrizioni.map((i) => (
+      {(parte === "baby" ? [] : esito.iscrizioni).map((i) => (
         <SezioneIscrizione
           key={i.iscrizione_id}
+          parte={parte}
           nome={nome}
           memberId={persona.member_id}
           iscrizione={i}
@@ -250,12 +269,14 @@ function IscrizioneInCorso({ nome, x }: { nome: string; x: InCorso }) {
 // L'iscrizione a un gruppo
 
 function SezioneIscrizione({
+  parte,
   nome,
   memberId,
   iscrizione: i,
   vista,
   onCambiato,
 }: {
+  parte?: ParteCorsi;
   nome: string;
   memberId: number;
   iscrizione: IscrizioneJunior;
@@ -272,8 +293,10 @@ function SezioneIscrizione({
       onCambiato();
     },
   });
+  const mostra = (x: ParteCorsi) => !parte || parte === x;
   return (
     <>
+      {mostra("abbonamento") ? (
       <Sezione
         titolo={
           nome
@@ -319,20 +342,15 @@ function SezioneIscrizione({
           />
         ) : null}
       </Sezione>
+      ) : null}
 
-      {i.recuperabile ? (
+      {i.recuperabile && mostra("recuperi") ? (
         <Sezione
           titolo={t(
             "Le lezioni disdette e i recuperi",
             "Cancelled classes and make-ups",
           )}
         >
-          <Text style={[stili.nota, { color: p.testoSecondario }]}>
-            {t(
-              "I recuperi si usano entro e non oltre la fine del corso e sono legati all’abbonamento da cui sono stati generati: l’abbonamento deve restare attivo per mantenerne la validità. In caso di disdetta, i recuperi si perdono.",
-              "Make-ups must be used by the end of the course at the latest and are tied to the membership that generated them: the membership must stay active for them to remain valid. If you cancel, make-ups are lost.",
-            )}
-          </Text>
           <View style={stili.conteggi}>
             <Conteggio
               n={i.conteggi.disdette}
@@ -369,15 +387,24 @@ function SezioneIscrizione({
                   )}
             </Text>
           ) : null}
-          <Text style={[stili.nota, { color: p.testoTerzo }]}>
-            {t(
-              "Un recupero ti viene assegnato quando disdici una lezione in tempo (fino a un’ora prima dell’inizio): lo vedi anche fra i prodotti del tuo profilo.",
-              "A make-up is assigned when you cancel a class in time (up to one hour before it starts): you can also see it among the products in your profile.",
-            )}
-          </Text>
+          <Dettagli titolo={t("Come funzionano i recuperi", "How make-ups work")}>
+            <Text style={[stili.nota, { color: p.testoSecondario }]}>
+              {t(
+                "I recuperi si usano entro e non oltre la fine del corso e sono legati all’abbonamento da cui sono stati generati: l’abbonamento deve restare attivo per mantenerne la validità. In caso di disdetta, i recuperi si perdono.",
+                "Make-ups must be used by the end of the course at the latest and are tied to the membership that generated them: the membership must stay active for them to remain valid. If you cancel, make-ups are lost.",
+              )}
+            </Text>
+            <Text style={[stili.nota, { color: p.testoSecondario }]}>
+              {t(
+                "Un recupero ti viene assegnato quando disdici una lezione in tempo (fino a un’ora prima dell’inizio): lo vedi anche fra i prodotti del tuo profilo.",
+                "A make-up is assigned when you cancel a class in time (up to one hour before it starts): you can also see it among the products in your profile.",
+              )}
+            </Text>
+          </Dettagli>
         </Sezione>
       ) : null}
 
+      {mostra("lezioni") ? (
       <Sezione
         titolo={t(
           "Le prossime lezioni del corso",
@@ -434,8 +461,9 @@ function SezioneIscrizione({
           </Text>
         ) : null}
       </Sezione>
+      ) : null}
 
-      {i.recuperabile && !vista ? (
+      {i.recuperabile && !vista && mostra("recuperi") ? (
         <Sezione titolo={t("Prenota un recupero", "Book a make-up")}>
           {i.conteggi.da_recuperare === 0 ? (
             <Messaggio tono="attenzione">
