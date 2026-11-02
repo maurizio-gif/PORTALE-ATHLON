@@ -30,6 +30,24 @@ function progetto(): string | undefined {
   return extra?.eas?.projectId ?? Constants.easConfig?.projectId
 }
 
+/**
+ * Il canale delle notifiche su Android. **Da Android 13 il sistema non mostra la richiesta del permesso se l'app non ha ancora creato un canale**
+ * (documentazione di `expo-notifications`): senza questa riga «Attiva le notifiche» chiede il permesso, il telefono non mostra niente e risulta negato.
+ * `default` e' anche il canale che il servizio push di Expo usa quando il messaggio non ne indica uno. Non solleva mai.
+ */
+async function preparaCanale(): Promise<void> {
+  if (Platform.OS !== 'android') return
+  try {
+    await Notifications.setNotificationChannelAsync('default', {
+      name: 'Comunicazioni del club',
+      importance: Notifications.AndroidImportance.MAX,
+      lightColor: '#FF5701',
+    })
+  } catch {
+    // senza canale la richiesta potrebbe non comparire: si prova lo stesso
+  }
+}
+
 /** Il gettone di questo dispositivo, o null (permesso negato, simulatore, Android senza Firebase). Non solleva mai. */
 export async function gettone(): Promise<string | null> {
   try {
@@ -56,6 +74,7 @@ export async function permessoNativo(): Promise<PermessoNativo> {
 /** Chiede il permesso (dentro il tocco), prende il gettone e lo iscrive. Restituisce l'errore da mostrare, o null. */
 export async function attivaNativo(): Promise<{ ok: true } | { ok: false; errore: string | null; negato: boolean }> {
   try {
+    await preparaCanale()
     let p = await Notifications.getPermissionsAsync()
     if (!p.granted) p = await Notifications.requestPermissionsAsync()
     if (!p.granted) return { ok: false, errore: null, negato: p.canAskAgain === false }
@@ -105,6 +124,7 @@ let attivo = false
 export function ascoltaNotificheNative(): () => void {
   if (!eNativo || attivo) return () => undefined
   attivo = true
+  void preparaCanale()
   Notifications.setNotificationHandler({
     handleNotification: async () => ({ shouldShowBanner: false, shouldShowList: false, shouldPlaySound: false, shouldSetBadge: false }),
   })

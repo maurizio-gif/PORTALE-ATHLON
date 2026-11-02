@@ -655,13 +655,17 @@ function LezioniPrenotate({ lezioni, occupato, onAnnulla }: { lezioni: Prenotata
                     {attesa ? <InfoAttesa /> : null}
                   </View>
                 }
-                coda={
+                // La conferma sta sotto il titolo, a tutta larghezza (4/11/2026, foto di un tester: a destra due pulsanti lasciavano al nome ~60 punti e «Allenamento Gym Floor» andava a capo lettera per lettera).
+                sottoRiga={
                   conferma === l.class_id ? (
-                    <View style={{ flexDirection: 'row', gap: 6 }}>
+                    <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 6 }}>
                       <Pulsante testo={t('Sì, annulla', 'Yes, cancel')} variante="pericolo" piccolo pieno={false} onPress={() => annulla(l)} inCorso={inCorso === l.class_id} />
                       <Pulsante testo={t('No', 'No')} variante="secondario" piccolo pieno={false} onPress={() => setConferma(null)} disabilitato={inCorso !== null} />
                     </View>
-                  ) : (
+                  ) : null
+                }
+                coda={
+                  conferma === l.class_id ? undefined : (
                     <Pulsante testo={t('Annulla', 'Cancel')} variante="secondario" piccolo pieno={false} onPress={() => setConferma(l.class_id)} disabilitato={occupato || inCorso !== null} />
                   )
                 }

@@ -7,7 +7,7 @@ import { LARGO } from '@/components/Pagina'
 import { t } from '@/lib/lingua'
 import { spazio } from '@/theme'
 
-import { LARGHEZZA_CON_SCRITTA, SPOSTA_SE_OCCUPATO } from '../feedback/comune'
+import { SPOSTA_SE_OCCUPATO } from '../feedback/comune'
 import { useAzioneInAltoPresente } from '../feedback/posizione'
 import { Icona } from '../ui/Icona'
 import { LARGHEZZA_APP } from '../ui/Schermata'
@@ -31,8 +31,9 @@ const DENTRO_TESTATA = 26 - 22 // centro della testata (52 / 2) meno meta' dell'
 // di `Schermata`, stesso gutter, stessa altezza). Dove la schermata ha gia' un comando li' (il carrello dello shop, il salvataggio dell'editor) si sposta
 // di un bottone a sinistra invece di coprirlo (`feedback/posizione.ts`).
 //
-// **Con la scritta dove c'e' posto, la sola icona dove no** (`LARGHEZZA_CON_SCRITTA`): con la freccia indietro e il marchio a sinistra, su uno schermo
-// stretto «Richiedi assistenza» finirebbe sul marchio; lo stesso se un comando occupa gia' il posto. Il nome resta per lo screen reader.
+// **Sempre icona e scritta «Richiedi assistenza» per esteso, anche in app** (4/11/2026, richiesta di Maurizio: la sola icona non si capiva). Prima su
+// uno schermo stretto, o dove un comando occupava gia' il posto, restava il cerchio con l'icona. Ora, se col marchio non c'e' posto, a cedere e' il
+// nome del club accanto al pittogramma (`Schermata`, `senzaNome`), mai la scritta della pillola.
 //
 // **Mai in vista cliente**: chi guarda l'app di un socio non conversa a suo nome (la funzione risponderebbe 403). Il layout lo monta solo con una sessione.
 export function PulsanteAssistente() {
@@ -60,7 +61,6 @@ export function PulsanteAssistente() {
   // La stessa colonna delle schermate: 640 sul telefono e sul tablet stretto, 1180 sullo schermo largo, centrata.
   const colonna = width < LARGO ? 640 : LARGHEZZA_APP
   const destra = Math.max(0, (width - colonna) / 2) + spazio.tre + 2 + (occupato ? SPOSTA_SE_OCCUPATO : 0)
-  const compatto = occupato || width < LARGHEZZA_CON_SCRITTA
 
   return (
     <>
@@ -74,9 +74,9 @@ export function PulsanteAssistente() {
         scala={0.95}
         style={[stili.area, { top: ins.top + DENTRO_TESTATA, right: destra }]}
       >
-        <View style={[stili.pillola, compatto && stili.compatta, { backgroundColor: p.vetro, borderColor: p.linea }]}>
-          <Icona nome="assistente" size={compatto ? 17 : 15} colore={p.accento} />
-          {compatto ? null : <Text style={[stili.testo, { color: p.testo }]}>{t('Richiedi assistenza', 'Get support')}</Text>}
+        <View style={[stili.pillola, { backgroundColor: p.vetro, borderColor: p.linea }]}>
+          <Icona nome="assistente" size={15} colore={p.accento} />
+          <Text numberOfLines={1} allowFontScaling={false} style={[stili.testo, { color: p.testo }]}>{t('Richiedi assistenza', 'Get support')}</Text>
         </View>
       </Tocco>
       <FoglioAssistente aperto={aperto} schermata={schermata.current} onChiudi={() => setAperto(false)} />
@@ -96,7 +96,5 @@ const stili = StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth,
     boxShadow: '0 4px 14px rgba(18, 19, 22, 0.08)',
   },
-  // Solo l'icona: un cerchio da 34, come l'altezza della pillola.
-  compatta: { width: 34, paddingHorizontal: 0, justifyContent: 'center' },
   testo: { fontFamily: F.semi, fontSize: 12.5, letterSpacing: -0.1 },
 })

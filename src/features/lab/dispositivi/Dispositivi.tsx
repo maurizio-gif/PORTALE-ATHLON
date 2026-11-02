@@ -135,8 +135,8 @@ function Gestione({ d, attivaSubito }: { d: DatiDispositivi; attivaSubito: boole
         <Carta style={{ gap: spazio.tre }}>
           <Text style={[stili.nota, { color: p.testoSecondario }]}>
             {t(
-              'Li vedi solo tu, nemmeno lo staff. Teniamo gli ultimi 90 giorni; se disattivi Apple Salute cancelliamo subito i suoi dati. Il sonno che scrivi tu si cancella con la revoca.',
-              'Only you see it, not even staff. We keep the last 90 days; if you turn off Apple Health we delete its data straight away. The sleep you log yourself is deleted when you withdraw consent.',
+              `Li vedi solo tu, nemmeno lo staff. Teniamo gli ultimi 90 giorni; se disattivi ${nomeAppSalute()} cancelliamo subito i suoi dati. Il sonno che scrivi tu si cancella con la revoca.`,
+              `Only you see it, not even staff. We keep the last 90 days; if you turn off ${nomeAppSalute()} we delete its data straight away. The sleep you log yourself is deleted when you withdraw consent.`,
             )}
           </Text>
           <Tocco onPress={() => setInformativa(true)} etichetta={t('Leggi l’informativa', 'Read the privacy notice')} ruolo="link" style={{ alignSelf: 'flex-start' }}>
@@ -229,7 +229,11 @@ function CartaAppleSalute({ d, onErrore, attivaSubito }: { d: DatiDispositivi; o
     const ok = await chiediPermessoSalute()
     if (!ok) {
       setFase('no')
-      onErrore(t('Non siamo riusciti ad aprire Apple Salute. Riprova.', 'We couldn’t open Apple Health. Try again.'))
+      onErrore(
+        appSaluteDelTelefono() === 'google'
+          ? t('Non è stato consentito niente a Health Connect, quindi non è collegato. Riprova e consenti la lettura di sonno, passi e allenamenti.', 'Nothing was allowed in Health Connect, so it isn’t connected. Try again and allow reading sleep, steps and workouts.')
+          : t('Non siamo riusciti ad aprire Apple Salute. Riprova.', 'We couldn’t open Apple Health. Try again.'),
+      )
       return
     }
     impostaAppleSalute(true)
@@ -260,15 +264,28 @@ function CartaAppleSalute({ d, onErrore, attivaSubito }: { d: DatiDispositivi; o
   }
 
   const senzaDati = attivo && !!d.dati && !apple.ha
+  // Il nome e le parole sono quelli del telefono in uso (4/11/2026, foto di un tester su Android: la carta diceva «Apple Salute» e «Dal tuo iPhone»).
+  const nome = nomeAppSalute()
+  const android = appSaluteDelTelefono() === 'google'
   return (
     <Carta style={{ gap: spazio.tre }}>
       <View style={stili.testa}>
         <Bollino icona="cuore" tono={attivo ? (senzaDati ? 'attenzione' : 'ok') : 'neutro'} size={46} />
         <View style={{ flex: 1, gap: 2 }}>
-          <Text style={[stili.nome, { color: p.testo }]}>{t('Apple Salute', 'Apple Health')}</Text>
-          <Text style={[stili.nota, { color: p.testoSecondario }]}>{attivo && fonti.length ? t(`Ricevi da: ${fonti.join(', ')}`, `Receiving from: ${fonti.join(', ')}`) : t('Dal tuo iPhone e dai dispositivi collegati', 'From your iPhone and your connected devices')}</Text>
+          <Text style={[stili.nome, { color: p.testo }]}>{nome}</Text>
+          <Text style={[stili.nota, { color: p.testoSecondario }]}>
+            {attivo
+              ? fonti.length
+                ? t(`Collegato. Ricevi da: ${fonti.join(', ')}`, `Connected. Receiving from: ${fonti.join(', ')}`)
+                : senzaDati
+                  ? t('Collegato, ma non è arrivato ancora niente', 'Connected, but nothing has come in yet')
+                  : t('Collegato. Aspettiamo i primi dati', 'Connected. Waiting for the first data')
+              : android
+                ? t('Non collegato. Dal tuo telefono Android e dai dispositivi collegati', 'Not connected. From your Android phone and your connected devices')
+                : t('Non collegato. Dal tuo iPhone e dai dispositivi collegati', 'Not connected. From your iPhone and your connected devices')}
+          </Text>
         </View>
-        {attivo ? senzaDati ? <Etichetta testo={t('Senza dati', 'No data')} tono="attenzione" /> : <Etichetta testo={t('Attivo', 'On')} tono="ok" icona="ok" /> : <Etichetta testo={t('Da attivare', 'To turn on')} tono="attenzione" />}
+        {attivo ? senzaDati ? <Etichetta testo={t('Senza dati', 'No data')} tono="attenzione" /> : <Etichetta testo={t('Collegato', 'Connected')} tono="ok" icona="ok" /> : <Etichetta testo={t('Non collegato', 'Not connected')} tono="attenzione" />}
       </View>
       <Text style={[stili.nota, { color: p.testoSecondario }]}>
         {t(
