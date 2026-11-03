@@ -40,34 +40,37 @@ export default function LayoutLaboratorio() {
   const { ingresso, fatto, riprova } = useIngresso(sessione)
   useFonts({ PlusJakartaSans_400Regular, PlusJakartaSans_500Medium, PlusJakartaSans_600SemiBold, PlusJakartaSans_700Bold, PlusJakartaSans_800ExtraBold })
   // Chi ha una sessione ma non puo' ancora entrare (e' nuovo, o la sua scheda non ha la data di nascita: `portale-registrazione`, 01/11/2026) vede
-  // «Completa il profilo» al posto di tutto il portale: niente barra, niente notifiche, niente assistente, nessuna schermata che chiamerebbe una funzione
-  // chiusa. Con l'interruttore spento `ingresso` e' sempre `dentro` e il layout e' quello di prima.
-  if (sessione && ingresso.fase !== 'dentro') {
-    return (
-      <View style={{ flex: 1, backgroundColor: p.fondo }}>
-        {ingresso.fase === 'completa' ? (
-          <CompletaProfilo key={ingresso.campi.join()} campi={ingresso.campi} onFatto={fatto} />
-        ) : ingresso.fase === 'segreteria' ? (
-          <CompletaProfilo campi={[]} segreteria onFatto={fatto} />
-        ) : ingresso.fase === 'errore' ? (
-          <Schermata titolo="Athlon Club" barra={false}>
-            <Messaggio>{ingresso.errore}</Messaggio>
-            <Pulsante testo={t('Riprova', 'Try again')} onPress={riprova} />
-          </Schermata>
-        ) : (
-          <SchermataInArrivo />
-        )}
-        {/* Lo stesso `key` del ramo sotto: vedi il commento all'ultimo `<Avvio />`. */}
-        <Avvio key="avvio" />
-      </View>
+  // «Completa il profilo» al posto di tutto il portale: niente barra, niente notifiche, niente assistente, nessuna schermata che chiamerebbe una
+  // funzione chiusa.
+  //
+  // **Lo `Stack` resta montato anche allora, e il gate si disegna dentro `screenLayout`** (04/11/2026): al posto del contenuto di ogni schermata.
+  // Prima il gate sostituiva l'intero layout, `Stack` compreso: quando la persona poteva entrare lo `Stack` si montava da zero e, senza lo stato
+  // che aveva preso dall'indirizzo, partiva dalla **prima schermata dichiarata** (`pagamenti/[riferimento]`, con il riferimento mancante), che
+  // subito dopo riportava alla Home (`StatoPagamento`). Era il «mi si apre un attimo una pagina di pagamento e poi torno indietro» del
+  // 02/11/2026 — e voleva dire che **qualunque indirizzo aperto a freddo** (`/calendario?attivita=…` da un link del sito, un ricaricamento,
+  // il link dell'email di `/entra`) finiva sulla Home. Provato nel browser: aperto a freddo, `/calendario?attivita=Group%20Reformer` finiva su `/`
+  // con il layout di prima e resta dov'e' con questo.
+  const gate = Boolean(sessione && ingresso.fase !== 'dentro')
+  const contenutoGate = gate ? (
+    ingresso.fase === 'completa' ? (
+      <CompletaProfilo key={ingresso.campi.join()} campi={ingresso.campi} onFatto={fatto} />
+    ) : ingresso.fase === 'segreteria' ? (
+      <CompletaProfilo campi={[]} segreteria onFatto={fatto} />
+    ) : ingresso.fase === 'errore' ? (
+      <Schermata titolo="Athlon Club" barra={false}>
+        <Messaggio>{ingresso.errore}</Messaggio>
+        <Pulsante testo={t('Riprova', 'Try again')} onPress={riprova} />
+      </Schermata>
+    ) : (
+      <SchermataInArrivo />
     )
-  }
+  ) : null
   return (
     <View style={{ flex: 1, backgroundColor: p.fondo }}>
       {/* In vista cliente (vista.ts) la striscia con di chi e'; sulla stessa
           app, solo per chi e' entrato: senza accesso non c'e' niente da guardare. */}
-      {sessione ? <BannerVista /> : null}
-      <Stack screenOptions={{ headerShown: false, animation: 'fade', contentStyle: { backgroundColor: p.fondo } }}>
+      {sessione && !gate ? <BannerVista /> : null}
+      <Stack screenLayout={({ children }) => (contenutoGate ?? children)} screenOptions={{ headerShown: false, animation: 'fade', contentStyle: { backgroundColor: p.fondo } }}>
         <Stack.Screen name="pagamenti/[riferimento]" options={{ animation: 'slide_from_right' }} />
         <Stack.Screen name="pagamenti/storico" options={{ animation: 'slide_from_right' }} />
         <Stack.Screen name="tv/[raccolta]/index" options={{ animation: 'slide_from_right' }} />
@@ -111,17 +114,17 @@ export default function LayoutLaboratorio() {
         <Stack.Screen name="club-life/survey/[tema]" options={{ animation: 'slide_from_right' }} />
         <Stack.Screen name="metodo-pagamento/fatto/[token]" options={{ animation: 'fade' }} />
       </Stack>
-      {sessione ? <BarraSchede /> : null}
+      {sessione && !gate ? <BarraSchede /> : null}
       {/* Le notifiche del club (features/lab/notifiche): il giro che le legge e la finestra che compare appena ne arriva una. Solo per
           chi e' entrato, e mai in vista cliente: chi guarda l'app di un socio non deve segnare come viste le sue notifiche. */}
-      {sessione && !vistaCorrente() ? <Notifiche /> : null}
+      {sessione && !gate && !vistaCorrente() ? <Notifiche /> : null}
       {/* Il pulsante «Assistente virtuale», in alto a destra e sempre visibile (features/lab/assistente): apre la chat, che resta
           montata qui e non si perde cambiando schermata. Solo con una sessione, e prima dell'avvio animato, che lo copre. In vista
           cliente non si disegna. Il feedback dei tester e' una carta della Home (home/CartaFeedback). */}
       {/* Sul totem (lib/totem.ts) al suo posto c'e' «Esci»: l'assistente non ha senso su un pannello davanti al desk, e chi finisce deve poter uscire con un tocco. */}
-      {sessione ? inModalitaTotem() ? <EsciTotem /> : <PulsanteAssistente /> : null}
+      {sessione && !gate ? inModalitaTotem() ? <EsciTotem /> : <PulsanteAssistente /> : null}
       {/* Sul totem ogni pagamento passa dalle tre strade (QR, email, con un operatore): la schermata che le mostra sta qui, sempre montata (`totem/passaggio.ts`). */}
-      {sessione && inModalitaTotem() ? <PagamentoTotem /> : null}
+      {sessione && !gate && inModalitaTotem() ? <PagamentoTotem /> : null}
       {/* L'avvio animato: una volta a ogni apertura, sopra tutto (features/lab/avvio).
           **Il `key` e' la ragione per cui si vede.** Chi ha gia' una sessione passa da questo ramo a quello di «Completa il profilo» (mentre
           `useIngresso` chiede lo stato al server) e poi di nuovo qui: l'`<Avvio />` sta in posizioni diverse nei due rami, quindi senza

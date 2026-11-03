@@ -40,7 +40,13 @@ export function leggiEToglieToken(): string | null {
   }
 }
 
+// I token gia' provati in questa pagina. Il router del web rimette `#th=…` nell'indirizzo dopo che lo si e' tolto, quindi chi legge il
+// frammento piu' tardi (`useSessione`, appena si apre il portale) lo ritrova: senza questo elenco lo riproverebbe, e un token monouso gia'
+// consumato fa solo perdere tempo (due richieste a vuoto prima di sapere se c'e' una sessione). Visto il 04/11/2026 con `/entra`.
+const usati = new Set<string>()
+
 async function consuma(token: string): Promise<boolean> {
+  usati.add(token)
   // Supabase Auth chiama «email» il tipo del token di un link magico, e «magiclink» e' il nome di prima: si prova l'uno e poi l'altro.
   for (const tipo of ['email', 'magiclink'] as const) {
     try {
@@ -70,7 +76,7 @@ export async function entraConToken(token: string): Promise<boolean> {
 export function consumaAccessoDalCrm(): Promise<void> {
   if (!inCorso) {
     const token = leggiEToglieToken()
-    inCorso = token ? consuma(token).then(() => undefined) : Promise.resolve()
+    inCorso = token && !usati.has(token) ? consuma(token).then(() => undefined) : Promise.resolve()
   }
   return inCorso
 }
