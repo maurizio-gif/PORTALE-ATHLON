@@ -29,7 +29,7 @@ import { F, FUOCO, usePalette } from "../ui/tema";
 import { Tocco } from "../ui/Tocco";
 import { Dettagli } from "./Dettagli";
 import { giornoBrevetto, LIVELLI, NOMI_CICLO, nomeLivello, type LivelloBrevetto } from "./datiBrevetti";
-import { personaggioDi } from "./personaggiBrevetti";
+import { PersonaggioAnimato } from "./PersonaggioAnimato";
 
 // Il viaggio dei brevetti (03/11/2026, richiesta di Maurizio: «invece di fare un'anteprima PDF del libretto, fai un'animazione grafica che ti permette comunque di
 // sfogliare le varie pagine»). Sostituisce il libretto da sfogliare (`LibrettoSfoglia`, che erano le pagine del PDF una accanto all'altra): qui la progressione e'
@@ -65,38 +65,6 @@ const GAP = 12;
 type Stato = "fatto" | "corrente" | "prossimo" | "da";
 
 const bianco = (a: number) => `rgba(255,255,255,${a})`;
-
-// ---------------------------------------------------------------------------------------------------------------------
-// Il personaggio che galleggia. Esportato: lo usa anche la carta «Brevetto di adesso» in cima alla pagina.
-
-export function Galleggia({
-  children,
-  attivo = true,
-  ampiezza = 6,
-  durata = 2600,
-  fase = 0,
-  style,
-}: {
-  children: ReactNode;
-  attivo?: boolean;
-  ampiezza?: number;
-  durata?: number;
-  /** Quanto aspettare prima di cominciare, in ms: tanti personaggi non salgono e scendono insieme. */
-  fase?: number;
-  style?: StyleProp<ViewStyle>;
-}) {
-  const fermo = useRiduciMovimento();
-  const v = useSharedValue(0);
-  useEffect(() => {
-    if (fermo || !attivo) {
-      v.value = withTiming(0, { duration: 300 });
-      return;
-    }
-    v.value = withDelay(fase, withRepeat(withTiming(1, { duration: durata, easing: Easing.inOut(Easing.sin) }), -1, true));
-  }, [fermo, attivo, fase, durata, v]);
-  const s = useAnimatedStyle(() => ({ transform: [{ translateY: -ampiezza * v.value }, { rotate: `${(v.value - 0.5) * 3}deg` }] }));
-  return <Animated.View style={[style, s]}>{children}</Animated.View>;
-}
 
 // ---------------------------------------------------------------------------------------------------------------------
 // La scena: raggi e bolle.
@@ -441,7 +409,6 @@ function PaginaBrevetto({
   scatto: number;
   onCondividi: (l: LivelloBrevetto) => void;
 }) {
-  const img = personaggioDi(l.specie);
   const fatto = stato === "fatto" || stato === "corrente";
   const prove = l.prove();
   // La pagina al centro e' piena; le vicine si rimpiccioliscono, scendono, si inclinano un poco e si abbassano di luce.
@@ -475,9 +442,7 @@ function PaginaBrevetto({
 
         <View style={stili.palco}>
           <Alone stato={stato} attivo={attivo} />
-          <Galleggia attivo={attivo} fase={(i * 170) % 900} ampiezza={7}>
-            <View style={!fatto ? SPENTO : undefined}>{img ? <Image source={img} style={stili.personaggio} contentFit="contain" accessibilityLabel={nomeLivello(l)} /> : <View style={stili.personaggio} />}</View>
-          </Galleggia>
+          <PersonaggioAnimato specie={l.specie} larghezza={150} altezza={126} attivo={attivo} vivace={fatto} ritardo={(i * 170) % 900} etichetta={nomeLivello(l)} style={!fatto ? SPENTO : undefined} />
           {!fatto ? (
             <View style={stili.lucchetto}>
               <Icona nome="lucchetto" size={20} colore={GRIGIO} />
@@ -734,7 +699,6 @@ const stili = StyleSheet.create({
   sigla: { backgroundColor: ARANCIO, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 5 },
   palco: { height: 146, alignItems: "center", justifyContent: "center" },
   alone: { position: "absolute", width: 150, height: 150, borderRadius: 75 },
-  personaggio: { width: 150, height: 126 },
   lucchetto: { position: "absolute", width: 40, height: 40, borderRadius: 20, backgroundColor: "rgba(255,255,255,0.92)", alignItems: "center", justifyContent: "center", boxShadow: "0 3px 8px rgba(35,31,32,0.18)" },
   coriandoli: { position: "absolute", left: "50%", top: 70, width: 0, height: 0 },
   nome: { color: INCHIOSTRO, fontFamily: F.extra, fontSize: 24, letterSpacing: -0.5, textAlign: "center", marginTop: 2 },

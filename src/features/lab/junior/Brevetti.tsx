@@ -1,4 +1,3 @@
-import { Image } from "expo-image";
 import { useEffect, useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 
@@ -17,7 +16,8 @@ import { FoglioDiploma } from "./FoglioDiploma";
 import { InvitoFoto, useFotoBambino } from "./FotoBambino";
 import type { DatiDiploma } from "./immagineBrevetto";
 import { personaggioDi } from "./personaggiBrevetti";
-import { Galleggia, ViaggioBrevetti } from "./ViaggioBrevetti";
+import { PersonaggioAnimato } from "./PersonaggioAnimato";
+import { ViaggioBrevetti } from "./ViaggioBrevetti";
 
 // La voce «Brevetti» di un bambino iscritto (02/11/2026, richiesta di Maurizio: «al posto della voce Livello, metti Brevetti»). In una pagina:
 //   1. il brevetto di adesso (il livello di PerfectGym: «A2 - Stella Marina 2») col personaggio, **la data in cui l'abbiamo visto arrivare, in evidenza** (dove la sappiamo)
@@ -99,9 +99,7 @@ export function Brevetti({ persona, vista }: { persona: PersonaJunior; vista: bo
       <Carta>
         <View style={stili.eroe}>
           {personaggio ? (
-            <Galleggia ampiezza={5} durata={2800}>
-              <Image source={personaggio} style={stili.personaggio} contentFit="contain" accessibilityLabel={nomeSpecie(attuale.specie)} />
-            </Galleggia>
+            <PersonaggioAnimato specie={attuale.specie} larghezza={72} altezza={72} effetti={false} etichetta={nomeSpecie(attuale.specie)} />
           ) : attuale.codice ? (
             <View style={[stili.sigla, { backgroundColor: p.accento }]}>
               <Text style={stili.siglaTesto}>{attuale.codice}</Text>
