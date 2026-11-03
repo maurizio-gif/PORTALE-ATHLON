@@ -48,7 +48,7 @@ function CartaPagamento() {
       </View>
     )
   }
-  return <DaPagare elenco={elenco} carta={dati.cartaSaldo} onAggiorna={rileggi} verificaSubito={false} />
+  return <DaPagare elenco={elenco} carta={dati.cartaSaldo} inCorsoFrase={dati.inCorsoFrase} onAggiorna={rileggi} verificaSubito={false} />
 }
 
 export function PagaDaChat({ proposta, messaggioId }: { proposta: ProponePagamento; messaggioId: string | null }) {
