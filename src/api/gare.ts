@@ -150,10 +150,17 @@ export async function sessioneGara(iscrizioneId: number): Promise<EsitoSessioneG
 }
 
 /** Com'e' andata la sessione, chiesto ad Adyen dal server (`completed`, `refused`, `paymentPending`, `canceled`, `expired`). Non conferma niente: la conferma e' del webhook. */
-export async function esitoSessioneGara(iscrizioneId: number, sessioneId: string, risultato: string): Promise<{ ok: true; adyen_status: string | null } | { ok: false }> {
+export async function esitoSessioneGara(iscrizioneId: number, sessioneId: string, risultato: string): Promise<{ ok: true; adyen_status: string | null; motivo?: MotivoRifiuto } | { ok: false }> {
   const { ok, dati } = await funzione("portale-lab-gare", { azione: "esito", iscrizione_id: iscrizioneId, sessione_id: sessioneId, risultato });
-  return ok && dati.ok !== false ? { ok: true, adyen_status: typeof dati.adyen_status === "string" ? dati.adyen_status : null } : { ok: false };
+  return ok && dati.ok !== false ? { ok: true, adyen_status: typeof dati.adyen_status === "string" ? dati.adyen_status : null, motivo: motivoDa(dati.motivo) } : { ok: false };
 }
+
+/**
+ * Perche' la banca non ha autorizzato, in cinque categorie (04/11/2026): il server decide la categoria dal motivo di Adyen e **non manda mai il motivo grezzo** (alcuni sono segnali antifrode).
+ * Assente (un server di prima, nessun avviso ancora arrivato, un motivo che non si conosce) = il messaggio generico.
+ */
+export type MotivoRifiuto = "fondi" | "verifica" | "scaduta" | "dati" | "altro";
+const motivoDa = (v: unknown): MotivoRifiuto | undefined => (v === "fondi" || v === "verifica" || v === "scaduta" || v === "dati" || v === "altro" ? v : undefined);
 
 /** Una carta gia' salvata di chi paga: marca, ultime cifre e scadenza (`09/28`). L'`id` e' quello da rimandare al server per addebitarla: il server rilegge le carte di chi chiede. */
 export type CartaSalvata = { id: string; marca: string; cifre: string; scade: string };
@@ -166,11 +173,11 @@ export async function carteSalvateGara(): Promise<CartaSalvata[]> {
 }
 
 /** Come e' andato l'addebito con un tocco: incassato, da verificare (la schermata aspetta il webhook) o non autorizzato (si propone un'altra carta). */
-export type EsitoCartaGara = { ok: true; esito: "autorizzato" | "in_verifica" | "non_autorizzato" } | { ok: false; errore: string; cartaPersa?: boolean };
+export type EsitoCartaGara = { ok: true; esito: "autorizzato" | "in_verifica" | "non_autorizzato"; motivo?: MotivoRifiuto } | { ok: false; errore: string; cartaPersa?: boolean };
 
 export async function pagaConCartaSalvata(iscrizioneId: number, cartaId: string): Promise<EsitoCartaGara> {
   const { ok, dati } = await funzione("portale-lab-gare", { azione: "paga_carta", iscrizione_id: iscrizioneId, carta_id: cartaId, ritorno: "https://app.athlonroma.it/junior?voce=gare" });
-  if (ok && (dati.esito === "autorizzato" || dati.esito === "in_verifica" || dati.esito === "non_autorizzato")) return { ok: true, esito: dati.esito };
+  if (ok && (dati.esito === "autorizzato" || dati.esito === "in_verifica" || dati.esito === "non_autorizzato")) return { ok: true, esito: dati.esito, motivo: motivoDa(dati.motivo) };
   if (ok && dati.gia_pagata) return { ok: true, esito: "in_verifica" };
   return { ok: false, errore: dati.errore ?? t("Non riusciamo a fare il pagamento adesso. Riprova fra qualche minuto.", "We can’t take the payment right now. Try again in a few minutes."), cartaPersa: dati.codice === "carta" };
 }

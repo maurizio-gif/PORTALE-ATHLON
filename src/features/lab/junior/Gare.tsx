@@ -16,6 +16,7 @@ import {
   type DatiGare,
   type GaraTrofeo,
   type IscrizioneMia,
+  type MotivoRifiuto,
   type PersonaGara,
 } from "@/api/gare";
 import type { PersonaJunior } from "@/api/junior";
@@ -580,6 +581,66 @@ type EsitoCassa = { tono: "ok" | "attenzione" | "errore"; titolo: string; testo:
 const MARCHE: Record<string, string> = { visa: "Visa", mc: "Mastercard", mastercard: "Mastercard", amex: "American Express", maestro: "Maestro", diners: "Diners", discover: "Discover", jcb: "JCB", cartebancaire: "Carte Bancaire" };
 const nomeCarta = (c: CartaSalvata) => MARCHE[c.marca] ?? (c.marca ? c.marca.charAt(0).toUpperCase() + c.marca.slice(1) : t("Carta", "Card"));
 
+/**
+ * Il pagamento che non va, con il perche' e cosa fare (04/11/2026, Maurizio: «mostrare il motivo: 3D Secure, mancanza di fondi, l'invito all'azione»). Il server manda una di cinque
+ * categorie e mai il motivo di Adyen (alcuni sono segnali antifrode); senza categoria, o `altro`, il messaggio e' il generico di prima. Sempre «non e' stato addebitato nulla»:
+ * e' la prima cosa che chi vede un rifiuto vuole sapere. `via` dice dove e' successo: con la carta salvata si propone l'altra carta, nel modulo si riprova.
+ */
+function esitoRifiutato(motivo: MotivoRifiuto | undefined, via: "carta" | "modulo", cifre?: string): EsitoCassa {
+  const carta = cifre ? t(`La carta •••• ${cifre}`, `The card •••• ${cifre}`) : t("La carta", "The card");
+  const prova = via === "carta" ? t("scegli un’altra carta", "choose another card") : t("prova con un’altra carta", "try another card");
+  switch (motivo) {
+    case "fondi":
+      return {
+        tono: "errore",
+        titolo: t("Fondi non sufficienti", "Not enough funds"),
+        testo: t(`${carta} non ha fondi o plafond sufficienti per questo importo. Non è stato addebitato nulla: ${prova}.`, `${carta} doesn’t have enough funds or limit for this amount. Nothing was charged: ${prova}.`),
+        altra: true,
+      };
+    case "verifica":
+      return {
+        tono: "attenzione",
+        titolo: via === "carta" ? t("La banca chiede una verifica", "Your bank needs a verification") : t("Verifica della banca non completata", "Bank verification not completed"),
+        testo:
+          via === "carta"
+            ? t(`Per questa carta la banca chiede di confermare il pagamento. Non è stato addebitato nulla: usa un’altra carta e conferma dall’app della tua banca.`, `Your bank needs you to confirm the payment on this card. Nothing was charged: use another card and confirm in your bank’s app.`)
+            : t("La verifica della banca non è stata completata. Non è stato addebitato nulla: riprova e conferma dall’app della tua banca.", "The bank verification wasn’t completed. Nothing was charged: try again and confirm in your bank’s app."),
+        altra: true,
+      };
+    case "scaduta":
+      return {
+        tono: "errore",
+        titolo: t("Carta scaduta", "Card expired"),
+        testo: t(`${carta} risulta scaduta. Non è stato addebitato nulla: ${prova}.`, `${carta} has expired. Nothing was charged: ${prova}.`),
+        altra: true,
+      };
+    case "dati":
+      return {
+        tono: "errore",
+        titolo: t("Controlla i dati della carta", "Check the card details"),
+        testo:
+          via === "carta"
+            ? t(`I dati della carta •••• ${cifre ?? ""} non risultano più validi. Non è stato addebitato nulla: scegli un’altra carta.`, `The details of the card •••• ${cifre ?? ""} are no longer valid. Nothing was charged: choose another card.`)
+            : t("Il numero, la scadenza o il codice di sicurezza non risultano corretti. Non è stato addebitato nulla: controlla e riprova.", "The number, expiry date or security code isn’t correct. Nothing was charged: check and try again."),
+        altra: true,
+      };
+    default:
+      return via === "carta"
+        ? {
+            tono: "errore",
+            titolo: t("Pagamento non autorizzato", "Payment not authorized"),
+            testo: t(`La banca non ha autorizzato l’addebito sulla carta •••• ${cifre ?? ""}. Non è stato addebitato nulla: puoi usare un’altra carta.`, `Your bank didn’t authorize the charge on the card •••• ${cifre ?? ""}. Nothing was charged: you can use another card.`),
+            altra: true,
+          }
+        : {
+            tono: "errore",
+            titolo: t("Pagamento rifiutato", "Payment declined"),
+            testo: t("La banca non ha autorizzato il pagamento. Non è stato addebitato nulla: puoi riprovare con un’altra carta.", "Your bank didn’t authorize the payment. Nothing was charged: you can try another card."),
+            altra: true,
+          };
+  }
+}
+
 function CassaGara({ iscrizioneId, quotaCent, onAttendo, onChiudi }: { iscrizioneId: number; quotaCent: number; onAttendo: (iscrizioneId: number) => void; onChiudi: () => void }) {
   const p = usePalette();
   const [fase, setFase] = useState<"carico" | "carte" | "nuova">("carico");
@@ -662,12 +723,7 @@ function CassaGara({ iscrizioneId, quotaCent, onAttendo, onChiudi }: { iscrizion
     }
     if (r.esito === "autorizzato") return ricevuto("completed");
     if (r.esito === "in_verifica") return ricevuto("verifica");
-    setEsito({
-      tono: "errore",
-      titolo: t("Pagamento non autorizzato", "Payment not authorized"),
-      testo: t(`La banca non ha autorizzato l’addebito sulla carta •••• ${carta.cifre}. Non è stato addebitato nulla: puoi usare un’altra carta.`, `Your bank didn’t authorize the charge on the card •••• ${carta.cifre}. Nothing was charged: you can use another card.`),
-      altra: true,
-    });
+    setEsito(esitoRifiutato(r.motivo, "carta", carta.cifre));
   }
 
   // Il modulo di Adyen: finito, si chiede l'esito al server.
@@ -675,13 +731,17 @@ function CassaGara({ iscrizioneId, quotaCent, onAttendo, onChiudi }: { iscrizion
     async (risultato: string | null) => {
       const id = sessione?.sessione.id;
       let stato: string | null = null;
+      let motivo: MotivoRifiuto | undefined;
       if (id && risultato) {
         const e = await esitoSessioneGara(iscrizioneId, id, risultato);
-        if (e.ok) stato = e.adyen_status;
+        if (e.ok) {
+          stato = e.adyen_status;
+          motivo = e.motivo;
+        }
       }
       setSessione(null); // il modulo si chiude
       if (stato === "refused") {
-        setEsito({ tono: "errore", titolo: t("Pagamento rifiutato", "Payment declined"), testo: t("La banca non ha autorizzato il pagamento. Non è stato addebitato nulla: puoi riprovare con un’altra carta.", "Your bank didn’t authorize the payment. Nothing was charged: you can try another card."), altra: true });
+        setEsito(esitoRifiutato(motivo, "modulo"));
       } else if (stato === "canceled" || stato === "expired") {
         setEsito({ tono: "attenzione", titolo: t("Pagamento non completato", "Payment not completed"), testo: t("Il pagamento non è stato completato. Non è stato addebitato nulla.", "The payment wasn’t completed. Nothing was charged."), altra: true });
       } else {
