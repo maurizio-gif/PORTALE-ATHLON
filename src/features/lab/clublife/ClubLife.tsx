@@ -21,6 +21,7 @@ import { ascoltaClubLifeDaCapo } from './daCapo'
 import { useClubLife } from './dati'
 import { percorsoScheda } from './link'
 import { BloccoOrariClub } from './OrariClub'
+import { PortaSurvey } from './survey/ElencoSurvey'
 
 // Club Life nell'app: le news, gli eventi in arrivo e le risposte dell'Help Desk,
 // disegnati qui coi dati del sito (club-life.json) invece della pagina del sito
@@ -170,14 +171,18 @@ export function ClubLife() {
       {/* «Richiedi assistenza»: apre sempre la chat dell'assistente (assistente/RichiediAssistenza), dopo gli orari. */}
       <RichiediAssistenza />
       {!dati ? (
-        errore ? (
-          <View style={{ gap: spazio.tre }}>
-            <Messaggio>{errore}</Messaggio>
-            <Pulsante testo={t('Riprova', 'Try again')} icona="aggiorna" onPress={riprova} inCorso={inCorso} />
-          </View>
-        ) : (
-          <SchedeInArrivo />
-        )
+        <>
+          {errore ? (
+            <View style={{ gap: spazio.tre }}>
+              <Messaggio>{errore}</Messaggio>
+              <Pulsante testo={t('Riprova', 'Try again')} icona="aggiorna" onPress={riprova} inCorso={inCorso} />
+            </View>
+          ) : (
+            <SchedeInArrivo />
+          )}
+          {/* Le survey non aspettano il sito: se le news non arrivano, la porta c'e' lo stesso. */}
+          <PortaSurvey />
+        </>
       ) : (
         <>
           {dati.eventi.length ? (
@@ -196,6 +201,8 @@ export function ClubLife() {
               <Text style={[stili.intro, { color: p.testoSecondario, flex: 1 }]}>{t('Per ora nessuna news e nessun evento in arrivo.', 'No news or upcoming events for now.')}</Text>
             </Carta>
           ) : null}
+          {/* Le survey (survey/ElencoSurvey): fra le news e l'Help Desk, come sul sito. Sono dell'app e non dipendono dal feed. */}
+          <PortaSurvey />
           <HelpDesk aree={dati.aree} schede={dati.schede} />
         </>
       )}

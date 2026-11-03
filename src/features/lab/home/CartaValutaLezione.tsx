@@ -1,12 +1,12 @@
 import { useEffect, useRef, useState } from 'react'
 import { StyleSheet, Text, View } from 'react-native'
-import Svg, { Path } from 'react-native-svg'
 
 import { lezioniDaValutare, valutaLezione, type LezioneDaValutare } from '@/api/lab'
 import { spazio } from '@/theme'
 import { locale, t } from '@/lib/lingua'
 
 import { Carta, Entra } from '../ui/kit'
+import { Stella } from '../ui/Stella'
 import { F, FUOCO, usePalette } from '../ui/tema'
 import { colpetto, Tocco } from '../ui/Tocco'
 import { vistaCorrente } from '../vista'
@@ -22,16 +22,6 @@ import { vistaCorrente } from '../vista'
 
 /** Le lezioni che la persona ha scelto di rimandare, per questa apertura dell'app (solo in memoria). */
 const rimandate = new Set<number>()
-
-const STELLA = 'M12 2.5l2.9 6.1 6.6.9-4.8 4.6 1.2 6.6L12 17.5l-5.9 3.2 1.2-6.6L2.5 9.5l6.6-.9z'
-
-function Stella({ piena, size, colore, vuota }: { piena: boolean; size: number; colore: string; vuota: string }) {
-  return (
-    <Svg width={size} height={size} viewBox="0 0 24 24">
-      <Path d={STELLA} fill={piena ? colore : 'none'} stroke={piena ? colore : vuota} strokeWidth={1.6} strokeLinejoin="round" />
-    </Svg>
-  )
-}
 
 /** «oggi alle 18:30», «ieri alle 18:30», «martedì alle 18:30»: il giorno e' quello di Roma. */
 export function quandoLezione(inizio: string, adesso: Date = new Date()): string {

@@ -5,6 +5,7 @@ import { Linking, Platform } from 'react-native'
 import type { ClubLife, TipoModulo } from '@/api/clubLife'
 
 import { hrefSezione } from '../home/sezioni'
+import { SLUG_SURVEY } from './survey/dati'
 
 // Dove porta un link o un pulsante toccato dentro Club Life.
 //
@@ -111,10 +112,17 @@ export function destinazione(url: string, dati: ClubLife | null, etichetta = '')
         return APP(hrefSezione('abbonamenti'))
       case 'prenota-chiamata':
         return APP(hrefModulo('appuntamento'))
+      // Il menu delle survey del sito: nell'app le survey sono sue (`clublife/survey`), e chi risponde e' gia' riconosciuto.
+      case 'surveys':
+        return APP('/club-life/survey')
     }
     // Le pagine dei corsi: nell'app si prenotano dal calendario.
     if (dati?.corsiPrenotabili.includes(pezzi[0])) return APP('/calendario')
     return FUORI
+  }
+  // Una survey per argomento: sono dell'app e non dipendono dal feed. `/surveys/iscrizione/` non c'e': la manda il CRM a una persona precisa, con l'indirizzo nel link, e si apre sul sito.
+  if (pezzi[0] === 'surveys' && pezzi.length === 2 && (SLUG_SURVEY as readonly string[]).includes(pezzi[1])) {
+    return APP({ pathname: '/club-life/survey/[tema]', params: { tema: pezzi[1] } })
   }
   if (!dati) return FUORI
   if (pezzi[0] === 'news' && pezzi.length === 2 && dati.news.some((n) => n.id === pezzi[1])) {

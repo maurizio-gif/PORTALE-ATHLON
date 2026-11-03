@@ -1,4 +1,4 @@
-import { router } from 'expo-router'
+import { router, type Href } from 'expo-router'
 import type { ReactNode } from 'react'
 import { StyleSheet, Text, View } from 'react-native'
 
@@ -14,10 +14,10 @@ import { inVista } from './identita'
 // Le parti che i moduli di Club Life si dividono: la cornice, la scelta a
 // pillole, la schermata di fine e l'avviso della vista cliente.
 
-/** La schermata di un modulo: si torna a Club Life, e la barra delle schede non c'e' (un modulo si finisce o si lascia). */
-export function Cornice({ sopratitolo, titolo, sottotitolo, children }: { sopratitolo: string; titolo: string; sottotitolo?: string; children: ReactNode }) {
+/** La schermata di un modulo: si torna a Club Life (o a `indietro`), e la barra delle schede non c'e' (un modulo si finisce o si lascia). */
+export function Cornice({ sopratitolo, titolo, sottotitolo, indietro = '/club-life', children }: { sopratitolo: string; titolo: string; sottotitolo?: string; indietro?: Href; children: ReactNode }) {
   return (
-    <Schermata indietro="/club-life" barra={false} sopratitolo={sopratitolo} titolo={titolo} sottotitolo={sottotitolo}>
+    <Schermata indietro={indietro} barra={false} sopratitolo={sopratitolo} titolo={titolo} sottotitolo={sottotitolo}>
       {inVista() ? <Messaggio tono="attenzione">{t('Sei in vista cliente: i moduli non si possono inviare da qui.', 'You’re in client view: forms can’t be sent from here.')}</Messaggio> : null}
       {children}
     </Schermata>

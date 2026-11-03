@@ -27,8 +27,8 @@ async function chiama(url: string, init: RequestInit): Promise<{ ok: boolean; st
   }
 }
 
-const postJson = (url: string, corpo: unknown): Promise<{ ok: boolean; stato: number; dati: Record<string, any> }> =>
-  chiama(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(corpo), keepalive: true })
+const postJson = (url: string, corpo: unknown, intestazioni: Record<string, string> = {}): Promise<{ ok: boolean; stato: number; dati: Record<string, any> }> =>
+  chiama(url, { method: 'POST', headers: { 'Content-Type': 'application/json', ...intestazioni }, body: JSON.stringify(corpo), keepalive: true })
 
 // ---------------------------------------------------------------------------
 // Gli appuntamenti telefonici: il desk e il Direttore Tecnico del nuoto, che
@@ -95,6 +95,45 @@ export async function scriviAlClub(d: {
   })
   if (r.ok) return { ok: true }
   return { ok: false, errore: r.dati.errore ?? r.dati.message ?? t('Non siamo riusciti a inviare il messaggio. Riprova fra qualche minuto.', 'We couldn’t send the message. Try again in a few minutes.') }
+}
+
+// ---------------------------------------------------------------------------
+// Le survey: la stessa funzione che riceve quelle del sito (`sito-valutazioni`, azione `sondaggio`), quindi la stessa tabella
+// (`sondaggi_risposte`) e la stessa pagina del CRM. La differenza e' chi risponde: dall'app e' gia' dentro, e l'email e il numero
+// socio sono quelli dell'accesso — la funzione li usa per agganciare la risposta alla sua anagrafica, come per ogni form del sito.
+//
+// **Solo `esito: 'ricevuto'` vuol dire «salvata».** La funzione scarta in silenzio, con un 200 senza esito, le richieste il cui
+// user-agent sembra uno script (`isbot`): su Android l'app, senza un suo user-agent, si presenta come `okhttp/x.y.z` ed e' uno di
+// quelli. Un `ok` da solo non basta: chi vedesse «grazie» per una risposta scartata non lo scoprirebbe mai. `intestazioni` porta lo
+// user-agent dell'app (vedi `agenteApp` in `clublife/survey/calcolo.ts`).
+
+export async function inviaSondaggio(
+  d: {
+    sondaggio: string
+    risposte: { id: string; voto: number | null }[]
+    nps: number | null
+    nota: string
+    email: string
+    numero: string | null
+  },
+  intestazioni: Record<string, string> = {},
+): Promise<Esito> {
+  const r = await postJson(
+    `${SUPABASE_URL}/functions/v1/sito-valutazioni/sondaggio`,
+    {
+      sondaggio: d.sondaggio,
+      risposte: d.risposte,
+      nps: d.nps,
+      nota: d.nota,
+      email: d.email,
+      ...(d.numero ? { userNumber: d.numero } : {}),
+      // La pagina da cui arriva: nel CRM distingue una risposta dell'app (`/club-life/survey/<tema>`) da una del sito (`/surveys/<tema>/`).
+      pagina: `/club-life/survey/${d.sondaggio}`,
+    },
+    intestazioni,
+  )
+  if (r.ok && r.dati.esito === 'ricevuto') return { ok: true }
+  return { ok: false, errore: r.dati.errore ?? t('Non siamo riusciti a inviare la risposta. Riprova fra un momento.', 'We couldn’t send your answers. Try again in a moment.') }
 }
 
 // ---------------------------------------------------------------------------
