@@ -131,3 +131,4 @@ chiamata diretta al gestionale. Esempio: la sezione Prodotti usa l'azione `prodo
 - [Pagina d'accesso più snella: il tema in fondo, la lingua discreta (02/11/2026)](docs/claude/93-accesso-snellito-il-tema-in-fondo-02-11-2026.md) · 3 KB
 - [La resa grafica: la Home a due colonne da computer, l'hover, il bagliore che respira e «riduci movimento» (02/11/2026)](docs/claude/94-resa-grafica-home-a-due-colonne-hover-e-movimento-02-11-2026.md) · 4 KB
 - [Le survey dentro Club Life: scritte nell'app, e chi risponde è già noto (03/11/2026)](docs/claude/95-le-survey-del-sito-in-club-life-03-11-2026.md) · 9 KB
+- [«Brevetti»: il viaggio animato al posto del libretto da sfogliare, e la data dell'ultimo brevetto (03/11/2026)](docs/claude/96-brevetti-il-viaggio-animato-03-11-2026.md) · 9 KB
