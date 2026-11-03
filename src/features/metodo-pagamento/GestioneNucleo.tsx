@@ -9,6 +9,7 @@ import { InfoAdyen } from '@/components/InfoAdyen'
 import { Pagina } from '@/components/Pagina'
 import { Forte, Testo } from '@/components/Testo'
 import { vaiA } from '@/lib/esterno'
+import { passaDalTotem } from '@/features/lab/totem/passaggio'
 import { meseAnno, metodoDaSistemare, ultimeCifre, type ContrattoNucleo, type EsitoContratto } from '@/lib/metodoPagamento'
 import { spazio } from '@/theme'
 
@@ -92,6 +93,8 @@ export function GestioneNucleo({
   }
 
   async function salvaIban(conto: DatiConto): Promise<string | null> {
+    // Un IBAN nuovo sul totem passa dalle tre strade (`totem/passaggio.ts`): QR ed email riaprono la sezione sul telefono.
+    if (!(await passaDalTotem({ cosa: 'metodo di pagamento', percorso: '/metodo-pagamento' }))) return null
     const { ok, dati } = await chiamaLink(token, 'iban', { contratti: [...scelti], ...conto })
     if (!ok) return dati.errore ?? t('Non siamo riusciti a salvarlo adesso. Riprova fra qualche minuto.', 'We couldn’t save it right now. Try again in a few minutes.')
     setRisultati(dati.risultati ?? [])
@@ -105,6 +108,11 @@ export function GestioneNucleo({
     setAttesa(true)
     const { ok, dati } = await chiamaLink(token, 'carta', { contratti: [...scelti] })
     if (ok && dati.url) {
+      // Sul totem la pagina della carta passa dalle tre strade (`totem/passaggio.ts`): scelto QR o email, o annullato, non si apre.
+      if (!(await passaDalTotem({ cosa: 'metodo di pagamento', url: String(dati.url) }))) {
+        setAttesa(false)
+        return
+      }
       vaiA(String(dati.url))
       return
     }

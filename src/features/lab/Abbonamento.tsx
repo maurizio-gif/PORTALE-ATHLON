@@ -52,6 +52,7 @@ import { Schermata } from './ui/Schermata'
 import { F, usePalette } from './ui/tema'
 import { colpetto, Tocco } from './ui/Tocco'
 import { apriPagamento } from '@/lib/pagamentoEsterno'
+import { passaDalTotem } from '@/features/lab/totem/passaggio'
 import { inModalitaTotem } from '@/lib/totem'
 import { ContinuaSulTelefono } from '@/features/proposta/ContinuaSulTelefono'
 
@@ -430,6 +431,8 @@ export function Abbonamento() {
   async function paga() {
     const m = metodoScelto()
     if (!m || !firmato) return
+    // Sul totem un addebito su un metodo salvato o un IBAN passa dalle tre strade (`totem/passaggio.ts`); la pagina della carta nuova le fa passare `apriPagamento`.
+    if ((m.metodo === 'conto' || m.con_carta) && !(await passaDalTotem({ cosa: 'abbonamento', percorso: '/abbonamento' }))) return
     setErrorePagamento(null)
     setPagando(true)
     const r = await pagaAbbonamento(firmato.numero, m)

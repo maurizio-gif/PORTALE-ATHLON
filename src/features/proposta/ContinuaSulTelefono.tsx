@@ -155,7 +155,7 @@ export function ContinuaSulTelefono({ dati, onIndietro }: { dati: DatiProposta; 
   )
 }
 
-function Strada({ icona, titolo, testo, onPress }: { icona: 'telefono' | 'email' | 'persona'; titolo: string; testo: string; onPress: () => void }) {
+export function Strada({ icona, titolo, testo, onPress }: { icona: 'telefono' | 'email' | 'persona'; titolo: string; testo: string; onPress: () => void }) {
   const p = usePalette()
   return (
     <Tocco vibra="scelta" etichetta={titolo} onPress={onPress} style={[stili.strada, { backgroundColor: p.carta, borderColor: p.linea }]}>
