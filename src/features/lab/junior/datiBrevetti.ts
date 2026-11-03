@@ -1,8 +1,10 @@
 import { locale, t } from "@/lib/lingua";
 
 // I brevetti della Scuola Nuoto Bambini (02/11/2026, richiesta di Maurizio). Ogni livello di PerfectGym (categoria di attivita' 28) e' un brevetto, e i livelli sono
-// **progressivi**: chi ha il M1 ha gia' conseguito A1, A2 e A3. Il contenuto di ogni livello (il programma e le prove) viene dal **libretto del club**
-// («libretto_athlon_1/2_FR/RT definitivo», 02/11/2026), trascritto cosi' com'e': **in caso di dubbio vale il libretto stampato**, e se il club lo cambia si cambia qui.
+// **progressivi**: chi ha il M1 ha gia' conseguito A1, A2 e A3. **Le prove** di ogni livello sono dal 04/11/2026 **quelle di PerfectGym** («Livelli e abilita'», la stampa che Maurizio
+// ha mandato il 03/11/2026: 57 abilita' in dodici livelli, stesso testo e stesso ordine), che sostituiscono quelle trascritte dal libretto stampato; **il programma** («Cosa si impara») resta
+// quello del **libretto del club** («libretto_athlon_1/2_FR/RT definitivo», 02/11/2026). Se il club cambia le abilita' in PerfectGym si cambia qui E nel database (`brevetti_prove`):
+// la chiave di una prova e' (livello, ordine) e l'ordine non si cambia da una parte sola.
 //
 // I dodici livelli, in tre cicli (Art. 5 del libretto):
 //   - 1° ciclo «Pre-corso» di ambientamento: Stella Marina 1, 2, 3 (A1, A2, A3);
@@ -10,10 +12,10 @@ import { locale, t } from "@/lib/lingua";
 //   - 3° ciclo «Brevetti»: Cavalluccio Marino (B1), Pinguino (B2), Pinna Bianca (B3), Delfino (B4), Squalo Tigre (B5), Squalo Bianco (B6).
 // PerfectGym da' solo il nome del livello di adesso («A2 - Stella Marina 2»); la storia dei passaggi la scrive il nostro database (`junior_livelli_storico`, dal 22/10/2026).
 //
-// **Ogni livello ha due elenchi, come sul libretto**: le *prove* (la pagina del brevetto: quello che l'esaminatore controlla) e il *programma* (quello che si impara
-// nel livello). Le due liste del club non coincidono sempre fra loro (per esempio i «100 metri misti» stanno nel programma del B5 e fra le prove del B6): qui sono
-// quelle del libretto. **PerfectGym non sa quali singole prove sono state superate**: si sa solo il livello, quindi le prove si segnano superate per ogni livello
-// fino a quello di adesso, compreso. I giudizi (S, B, O, DM), le date e le firme del libretto stampato non ci sono nell'app.
+// **Ogni livello ha due elenchi**: le *prove* (quello che l'esaminatore controlla: le abilita' di PerfectGym) e il *programma* (quello che si impara nel livello, dal libretto). Le due
+// liste non coincidono sempre fra loro (per esempio i «100 metri misti» stanno nel programma del B5 e fra le prove del B6). **Nel mirror di PerfectGym ci sono i livelli dei soci ma non le
+// abilita' spuntate** (la schermata «Livelli e abilita'» le mostra, il mirror non le ha): le prove superate le tiene il nostro database (`junior_brevetti_prove`), e quelle dei livelli
+// ottenuti si danno per superate. I giudizi (S, B, O, DM), le date e le firme del libretto stampato non ci sono nell'app.
 
 export type CicloBrevetti = "pre" | "mini" | "brevetti";
 
@@ -62,9 +64,10 @@ export const LIVELLI: LivelloBrevetto[] = [
       ["Bollicine", "Blowing bubbles"],
     ]),
     prove: voci([
-      ["Salto dal bordo", "Jump from the edge"],
-      ["Stellina (accenno)", "Starfish float (first attempt)"],
+      ["Ambientamento", "Getting used to the water"],
+      ["Salto dal Bordo con ausilio", "Jump from the edge with a learning aid"],
       ["Bollicine", "Blowing bubbles"],
+      ["Stellina (accenno)", "Starfish float (first attempt)"],
     ]),
   },
   {
@@ -76,9 +79,10 @@ export const LIVELLI: LivelloBrevetto[] = [
     ]),
     prove: voci([
       ["Salto dal bordo", "Jump from the edge"],
-      ["Respirazione da fermo con appoggio", "Breathing while standing, holding the edge"],
-      ["Gambe dorso con ausilio", "Back kick with a float"],
-      ["Accenni di cagnolino", "First attempts at doggy paddle"],
+      ["Respirazione da fermo con appoggio (viso in acqua)", "Breathing while standing, holding the edge (face in the water)"],
+      ["Gambe Dorso con ausilio", "Back kick with a float"],
+      ["Cenni Cagnolino", "First attempts at doggy paddle"],
+      ["Galleggiamento supino", "Floating on the back"],
     ]),
   },
   {
@@ -93,10 +97,12 @@ export const LIVELLI: LivelloBrevetto[] = [
       ["Respirazioni", "Breathing"],
     ]),
     prove: voci([
-      ["Salto dal bordo", "Jump from the edge"],
+      ["Tuffo a candela", "Feet-first jump"],
       ["Immersione", "Going underwater"],
-      ["Accenni di gambe dorso", "First attempts at back kick"],
+      ["Accenni gambe Dorso", "First attempts at back kick"],
       ["Cagnolino", "Doggy paddle"],
+      ["Respirazioni ritmiche al muro", "Rhythmic breathing at the wall"],
+      ["Scivolamento supino", "Gliding on the back"],
     ]),
   },
   {
@@ -113,11 +119,11 @@ export const LIVELLI: LivelloBrevetto[] = [
       ["Gambe dorso con le braccia in alto", "Back kick with arms up"],
     ]),
     prove: voci([
-      ["Tuffo a candela, braccia su", "Feet-first jump, arms up"],
-      ["Gambe dorso, 12,50 metri", "Back kick, 12.5 m"],
-      ["Spinta e scivolamento", "Push-off and glide"],
-      ["Cagnolino, 12,50 metri", "Doggy paddle, 12.5 m"],
-      ["Respirazioni in appoggio", "Breathing at the edge"],
+      ["Tuffo a candela braccia in alto", "Feet-first jump, arms up"],
+      ["Gambe Dorso 12,5m", "Back kick, 12.5 m"],
+      ["Spinta e scivolamento supino", "Push-off and glide on the back"],
+      ["Cagnolino 12,5m con respirazioni", "Doggy paddle with breathing, 12.5 m"],
+      ["Respirazioni ritmiche mani e piedi al muro", "Rhythmic breathing, hands and feet on the wall"],
       ["Scivolamento prono", "Gliding face down"],
     ]),
   },
@@ -138,9 +144,8 @@ export const LIVELLI: LivelloBrevetto[] = [
     ]),
     prove: voci([
       ["Tuffo dal bordo in ginocchio", "Kneeling dive from the edge"],
-      ["Gambe dorso, 12,50 metri, braccia alte", "Back kick, 12.5 m, arms up"],
-      ["Gambe stile libero con ausili, 12,50 metri", "Freestyle kick with floats, 12.5 m"],
-      ["10 respirazioni a pennello", "10 “brush” breaths"],
+      ["Scivolamento supino, gambe Dorso 12,5m braccia in alto", "Glide on the back, back kick with arms up, 12.5 m"],
+      ["Scivolamento prono, gambe stile con ausilio 12,5m respirazione frontale", "Glide face down, freestyle kick with a float and front breathing, 12.5 m"],
       ["Cambi di fronte", "Turning front to back"],
       ["Braccia dorso", "Back arms"],
     ]),
@@ -155,11 +160,11 @@ export const LIVELLI: LivelloBrevetto[] = [
       ["Recupero di un oggetto a 1,20 metri di profondità e a 3 metri di distanza", "Retrieving an object at 1.2 m depth and 3 m away"],
     ]),
     prove: voci([
-      ["Tuffo", "Dive"],
-      ["Gambe stile libero e respirazione laterale", "Freestyle kick and side breathing"],
-      ["Dorso da braccia in alto", "Back stroke from arms up"],
+      ["Tuffo dal bordo", "Dive from the edge"],
+      ["Scivolamento prono, gambe Stile Libero, respirazione laterale con ausilio", "Glide face down, freestyle kick, side breathing with a float"],
+      ["Dorso successivo", "Alternating backstroke"],
       ["Dorso alternato con pausa", "Alternating back stroke with a pause"],
-      ["Recupero di un oggetto immerso", "Retrieving a submerged object"],
+      ["Recupero oggetto immerso in acqua bassa", "Retrieving a submerged object in shallow water"],
     ]),
   },
   {
@@ -175,11 +180,11 @@ export const LIVELLI: LivelloBrevetto[] = [
       ["Stile libero successivo", "Alternating freestyle"],
     ]),
     prove: voci([
-      ["Tuffo con precedenza del capo", "Dive, head first"],
-      ["Partenza dorso", "Back start"],
-      ["Stile dorso", "Backstroke"],
-      ["Stile libero successivo con ausili, 25 metri", "Alternating freestyle with floats, 25 m"],
-      ["Scivolamento e capovolta", "Glide and somersault"],
+      ["Tuffo di partenza con precedenza del capo", "Starting dive, head first"],
+      ["Partenza Dorso", "Back start"],
+      ["Dorso completo 25m", "Full backstroke, 25 m"],
+      ["Stile Libero successivo 25m", "Alternating freestyle, 25 m"],
+      ["Scivolamento + capovolta", "Glide and somersault"],
     ]),
   },
   {
@@ -195,10 +200,10 @@ export const LIVELLI: LivelloBrevetto[] = [
       ["Partenze elementari", "Basic starts"],
     ]),
     prove: voci([
-      ["Tuffo di partenza (grab start)", "Starting dive (grab start)"],
-      ["Stile libero, 25 metri", "Freestyle, 25 m"],
+      ["Tuffo di partenza Grab Start", "Starting dive (grab start)"],
+      ["Stile Libero completo 25m", "Full freestyle, 25 m"],
       ["Gambe rana", "Breaststroke kick"],
-      ["Braccia rana e gambe stile libero", "Breaststroke arms with freestyle kick"],
+      ["Braccia Rana gambe Stile Libero", "Breaststroke arms with freestyle kick"],
     ]),
   },
   {
@@ -218,11 +223,11 @@ export const LIVELLI: LivelloBrevetto[] = [
       ["Partenze elementari", "Basic starts"],
     ]),
     prove: voci([
-      ["25 metri delfino", "25 m butterfly"],
-      ["25 metri stile libero con respirazione bilaterale", "25 m freestyle with bilateral breathing"],
-      ["25 metri rana", "25 m breaststroke"],
-      ["Movimento a delfino", "Dolphin movement"],
-      ["Subacquea, 10 metri", "Underwater, 10 m"],
+      ["Tuffo di partenza Track Start", "Starting dive (track start)"],
+      ["Stile Libero respirazione bilaterale 25m", "Freestyle with bilateral breathing, 25 m"],
+      ["Rana completa 25m", "Full breaststroke, 25 m"],
+      ["Movimento a Delfino", "Dolphin movement"],
+      ["Subacquea 10m", "Underwater, 10 m"],
     ]),
   },
   {
@@ -235,10 +240,10 @@ export const LIVELLI: LivelloBrevetto[] = [
       ["100 metri misti", "100 m medley"],
     ]),
     prove: voci([
-      ["75 metri misti dorso, rana e stile libero, con virate", "75 m medley (back, breaststroke, freestyle) with turns"],
-      ["Perfezionamento del delfino", "Refining butterfly"],
-      ["Virata dorso", "Back turn"],
-      ["Virata stile libero", "Freestyle turn"],
+      ["75m Misti Dorso-Rana-Stile + virate", "75 m medley (back, breaststroke, freestyle) with turns"],
+      ["Perfezionamento Delfino", "Refining butterfly"],
+      ["Virata Dorso", "Back turn"],
+      ["Virata Stile Libero", "Freestyle turn"],
     ]),
   },
   {
@@ -252,11 +257,11 @@ export const LIVELLI: LivelloBrevetto[] = [
       ["Nozioni di apnea", "Basic breath-hold diving"],
     ]),
     prove: voci([
-      ["50 metri stile libero", "50 m freestyle"],
-      ["25 metri delfino", "25 m butterfly"],
-      ["Virata delfino", "Butterfly turn"],
-      ["Virata rana", "Breaststroke turn"],
-      ["Recupero di un oggetto a 2,40 metri", "Retrieving an object at 2.4 m"],
+      ["50m Stile Libero a tempo", "50 m freestyle, timed"],
+      ["Recupero oggetto in acqua alta", "Retrieving an object in deep water"],
+      ["Delfino completo 25m", "Full butterfly, 25 m"],
+      ["Virata Rana", "Breaststroke turn"],
+      ["Virata Delfino", "Butterfly turn"],
     ]),
   },
   {
@@ -268,7 +273,7 @@ export const LIVELLI: LivelloBrevetto[] = [
       ["Esercizi di pallanuoto", "Water polo exercises"],
     ]),
     prove: voci([
-      ["100 metri misti", "100 m medley"],
+      ["100m Misti a tempo", "100 m medley, timed"],
       ["Esercizi di salvamento", "Lifesaving exercises"],
       ["Esercizi di apnea", "Breath-hold exercises"],
     ]),
