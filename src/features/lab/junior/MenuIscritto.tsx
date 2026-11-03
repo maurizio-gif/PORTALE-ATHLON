@@ -11,13 +11,14 @@ import { F, usePalette, velo } from "../ui/tema";
 // cosa puoi andare a vedere, senza che scorri all'infinito»). Una fila di voci con l'icona; toccandone una sotto compare solo quella
 // parte, come i riquadri della Home: la pagina resta corta e non e' un elenco unico di tutto.
 
-export type VoceJunior = "abbonamento" | "lezioni" | "recuperi" | "brevetti" | "cambio" | "dt" | "attivita";
+export type VoceJunior = "abbonamento" | "lezioni" | "recuperi" | "brevetti" | "gare" | "cambio" | "dt" | "attivita";
 
 const VOCI: Record<VoceJunior, { icona: NomeIcona; testo: () => string }> = {
   abbonamento: { icona: "abbonamento", testo: () => t("Abbonamento", "Membership") },
   lezioni: { icona: "calendario", testo: () => t("Lezioni", "Classes") },
   recuperi: { icona: "rinnovo", testo: () => t("Recuperi", "Make-ups") },
   brevetti: { icona: "trofeo", testo: () => t("Brevetti", "Badges") },
+  gare: { icona: "trofeo", testo: () => t("Gare", "Races") },
   cambio: { icona: "orologio", testo: () => t("Cambio orario", "Change time") },
   dt: { icona: "telefono", testo: () => t("Direttore Tecnico", "Technical Director") },
   attivita: { icona: "info", testo: () => t("Da sapere", "Good to know") },

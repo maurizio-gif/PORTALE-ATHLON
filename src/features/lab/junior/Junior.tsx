@@ -1,4 +1,4 @@
-import { router, useFocusEffect } from "expo-router";
+import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 
@@ -25,6 +25,7 @@ import { CambioOrario } from "./CambioOrario";
 import { CorsiPersona, type ParteCorsi } from "./Corsi";
 import { concludiInCorso, iscrizioniInCorso, type InCorso } from "./inCorso";
 import { DirettoreTecnico } from "./DirettoreTecnico";
+import { Gare } from "./Gare";
 import { InvitoAbbonamentoAdulti } from "./InvitoAbbonamentoAdulti";
 import { MenuIscritto, type VoceJunior } from "./MenuIscritto";
 import { TestataJunior } from "./Presentazione";
@@ -59,6 +60,8 @@ export function Junior() {
   // Un lattante non ha gruppi: e' «iscritto» se ha l'abbonamento mensile del Baby Nuoto, che sa solo `CorsiPersona` (null: non si sa ancora).
   const [babyAbbonato, setBabyAbbonato] = useState<{ id: number; si: boolean } | null>(null);
   const vista = !!vistaCorrente();
+  // `?voce=gare`: il ritorno dal pagamento della gara e il link dall'evento aprono direttamente la voce «Gare» (04/11/2026).
+  const { voce: voceParam } = useLocalSearchParams<{ voce?: string }>();
 
   const carica = useCallback(async () => {
     setEsito(await prendi(CHIAVE_GRUPPI_JUNIOR, gruppiJunior));
@@ -212,6 +215,7 @@ export function Junior() {
               vista={vista}
               inCorso={inCorso.find((x) => x.member_id === persona.member_id)}
               onInCorsoFinito={() => setGiroInCorso((n) => n + 1)}
+              voceIniziale={voceParam === "gare" ? "gare" : undefined}
             />
           ) : (
             <>
@@ -286,21 +290,25 @@ function AreaIscritto({
   vista,
   inCorso,
   onInCorsoFinito,
+  voceIniziale,
 }: {
   persona: PersonaJunior;
   gruppi: GruppoJunior[];
   vista: boolean;
   inCorso?: InCorso;
   onInCorsoFinito: () => void;
+  voceIniziale?: VoceJunior;
 }) {
   const baby = eBaby(persona.data_nascita);
-  const [voce, setVoce] = useState<VoceJunior>("abbonamento");
+  const [voce, setVoce] = useState<VoceJunior>(voceIniziale ?? "abbonamento");
   const [recuperabile, setRecuperabile] = useState<boolean | null>(null);
 
   const voci = useMemo(() => {
     const v: VoceJunior[] = ["abbonamento", "lezioni"];
     if (recuperabile !== false) v.push("recuperi");
     if (haBrevetti(persona)) v.push("brevetti");
+    // Le gare (Trofeo Athlon): per i minorenni non in eta' da Baby Nuoto; se non e' ammesso, la voce dice perche'.
+    if (!baby && persona.minorenne) v.push("gare");
     if (!baby) v.push("cambio");
     if (persona.minorenne) v.push("dt");
     v.push("attivita");
@@ -324,6 +332,7 @@ function AreaIscritto({
       />
 
       {attiva === "brevetti" && haBrevetti(persona) ? <Brevetti persona={persona} vista={vista} /> : null}
+      {attiva === "gare" ? <Gare persona={persona} vista={vista} /> : null}
       {attiva === "cambio" ? <CambioOrario persona={persona} gruppi={gruppi} vista={vista} /> : null}
       {attiva === "dt" ? <DirettoreTecnico persona={persona} vista={vista} /> : null}
       {attiva === "attivita" ? <SchedaAttivita chiavi={attivitaDiPersona(persona)} nome={persona.nome} /> : null}
