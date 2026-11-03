@@ -39,7 +39,7 @@ import { MarchioFacebook, MarchioInstagram, MarchioTelegram, MarchioTikTok } fro
 //
 // **Terzo giro (04/11/2026)**: nessun limite di amici (50 € per ognuno che si iscrive) e **l'unico requisito e' che siano nuovi
 // iscritti**; ora lo applica anche il server (APP-ATHLON, `referral_gia_iscritto`): chi ha un abbonamento dal 2021 in poi, scaduto o in
-// corso, non puo' avere l'invito. Lo stato `respinto` si legge neutro, senza dire perche'.
+// corso, non puo' avere l'invito. Lo stato `respinto` dice a chi ha invitato «non idoneo» e che per quell'amico non c'e' voucher (senza il perche' per quella persona).
 
 export const CHIAVE_INVITO = 'referral:stato'
 
@@ -74,8 +74,9 @@ function racconto(a: Amico): { testo: string; tono: ToniTutti } {
     case 'scaduto':
       return { testo: t('Invito scaduto', 'Invitation expired'), tono: 'neutro' }
     case 'respinto':
-      // Neutro: il perche' (un abbonamento dal 2021) e' un dato dell'amico, e chi invita non lo legge.
-      return { testo: t('Invito non valido per questo amico', 'Invitation not valid for this friend'), tono: 'neutro' }
+      // Chi ha invitato deve saperlo (04/11/2026), per non aspettarsi un voucher che non arriva. Dice «non idoneo» e la regola
+      // pubblica della campagna, mai il perche' per quella persona (date, piano): e' un dato suo.
+      return { testo: t('Non idoneo alla campagna', 'Not eligible for the campaign'), tono: 'attenzione' }
     default:
       return { testo: t(`Ha accettato · ha tempo fino al ${giorno(a.ultimo_giorno)}`, `Accepted · has until ${giorno(a.ultimo_giorno)}`), tono: 'accento' }
   }
@@ -410,13 +411,22 @@ export function Invita() {
                 <Riga
                   key={a.id}
                   prima={i === 0}
-                  icona={a.stato === 'iscritto' ? 'ok' : 'persona'}
+                  icona={a.stato === 'iscritto' ? 'ok' : a.stato === 'respinto' ? 'attenzione' : 'persona'}
                   tono={r.tono}
                   titolo={a.amico}
                   sotto={
                     <View style={{ alignItems: 'flex-start', gap: 4 }}>
                       <Etichetta testo={r.testo} tono={r.tono} />
-                      <Text style={[stili.piccolo, { color: p.testoTerzo }]}>{t(`Accettato il ${giorno(a.accettato_il)}`, `Accepted on ${giorno(a.accettato_il)}`)}</Text>
+                      {a.stato === 'respinto' ? (
+                        <Text style={[stili.piccolo, { color: p.testoSecondario }]}>
+                          {ti(
+                            `Per questo amico non è previsto nessun voucher da ${s.voucher} €: la campagna è per chi non è stato iscritto ad Athlon dal 2021.`,
+                            `No €${s.voucher} voucher applies for this friend: the campaign is for people who haven’t been a member of Athlon since 2021.`,
+                          )}
+                        </Text>
+                      ) : (
+                        <Text style={[stili.piccolo, { color: p.testoTerzo }]}>{t(`Accettato il ${giorno(a.accettato_il)}`, `Accepted on ${giorno(a.accettato_il)}`)}</Text>
+                      )}
                     </View>
                   }
                 />
