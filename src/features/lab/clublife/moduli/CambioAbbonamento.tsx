@@ -72,7 +72,7 @@ export function CambioAbbonamento({ emailAccesso }: { emailAccesso?: string | nu
     }
   }, [])
 
-  // Nell'ordine del listino (Smart, Premium), e per ciascuno prima l'unica soluzione e poi le rate.
+  // Nell'ordine del listino (Premium, Smart: `ordinaPiani`), e per ciascuno prima l'unica soluzione e poi le rate.
   const formule = useMemo(() => {
     const ordine = (f: string) => (f === 'annuale-unico' ? 0 : 1)
     return [...(piani ?? [])]

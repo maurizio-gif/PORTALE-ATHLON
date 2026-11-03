@@ -1,5 +1,6 @@
 import { funzione } from '@/api/lab'
 import { t } from '@/lib/lingua'
+import { ordinaPiani } from '@/lib/ordinePiani'
 
 // L'abbonamento principale comprato dal portale (portale-abbonamento): chi
 // puo' comprarlo, il contratto da leggere, la firma, e l'esito. Prezzi, date e
@@ -63,7 +64,11 @@ export type StatoAbbonamento = {
 
 export async function statoAbbonamento(): Promise<{ ok: true; stato: StatoAbbonamento } | { ok: false; errore: string }> {
   const { ok, dati } = await abbonamento({ azione: 'stato' })
-  if (ok) return { ok: true, stato: dati as unknown as StatoAbbonamento }
+  if (ok) {
+    const stato = dati as unknown as StatoAbbonamento
+    // Prima il Premium, poi lo Smart (03/11/2026): l'ordine si decide qui, per tutte le schermate che elencano i piani.
+    return { ok: true, stato: { ...stato, piani: ordinaPiani(stato.piani ?? []) } }
+  }
   return { ok: false, errore: dati.errore ?? t('Non riusciamo a leggere gli abbonamenti adesso.', 'We can’t load the memberships right now.') }
 }
 
