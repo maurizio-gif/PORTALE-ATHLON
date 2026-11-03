@@ -145,3 +145,4 @@ chiamata diretta al gestionale. Esempio: la sezione Prodotti usa l'azione `prodo
 - [Brevetti: ottenuto e in corso, e il libretto anche senza un abbonamento (04/11/2026)](docs/claude/107-brevetti-ottenuto-in-corso-e-senza-abbonamento-04-11-2026.md) · 3 KB
 - [Un pagamento in corso si vede e le quote non si pagano due volte: la schermata «Da pagare» e il riquadro in Home (03/11/2026)](docs/claude/108-pagamento-in-corso-nell-app-03-11-2026.md) · 2 KB
 - [Brevetti: le prove di ogni livello sono le abilità di PerfectGym (04/11/2026)](docs/claude/109-brevetti-prove-da-perfectgym-04-11-2026.md) · 2 KB
+- [La voce «Gare» di Junior: il Trofeo Athlon, iscrizione e pagamento dall'app (04/11/2026)](docs/claude/110-gare-trofeo-athlon-04-11-2026.md) · 3 KB
