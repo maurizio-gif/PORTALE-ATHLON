@@ -8,7 +8,7 @@ import { spazio } from "@/theme";
 import { Icona } from "../ui/Icona";
 import { Carta, Messaggio, Pulsante } from "../ui/kit";
 import { F, usePalette, velo } from "../ui/tema";
-import { dateDeiPassaggi, giornoBrevetto, leggiBrevetto, LIVELLI, nomeSpecie, posizioneDi } from "./datiBrevetti";
+import { dateDeiPassaggi, giornoBrevetto, leggiBrevetto, livelloDi, LIVELLI, nomeSpecie, posizioneDi } from "./datiBrevetti";
 import { nomeCompleto } from "./comune";
 import { Dettagli } from "./Dettagli";
 import { datiLibretto, stampaLibretto } from "./esportaLibretto";
@@ -88,6 +88,8 @@ export function Brevetti({ persona, vista }: { persona: PersonaJunior; vista: bo
     livello: codice || numero,
     corso: t("Scuola Nuoto Bambini", "Kids Swim School"),
     data: codice && date[codice] ? giornoBrevetto(date[codice]) : null,
+    // Le prove del brevetto, per il riquadro «Prove superate»: un brevetto conseguito le ha tutte (i livelli sono progressivi). Vuote se la sigla non e' del libretto.
+    prove: livelloDi(codice)?.prove() ?? [],
   });
   const diplomaAttuale = datiDiploma(attuale.codice, attuale.specie, attuale.livello);
 
