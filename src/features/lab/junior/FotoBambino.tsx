@@ -12,12 +12,16 @@ import { Messaggio, Pulsante } from "../ui/kit";
 import { F, usePalette, velo } from "../ui/tema";
 
 // La foto del bambino per il libretto e per il diploma (02/11/2026, richiesta di Maurizio: «nel libretto spingi sempre l'utente ad inserire la foto, cosi' che nella
-// copertina sia presente la foto del bambino»). Un solo posto per leggerla e per cambiarla, usato dal libretto (`LibrettoSfoglia`) e dal diploma (`FoglioDiploma`): e' la foto
+// copertina sia presente la foto del bambino»). Un solo posto per leggerla e per cambiarla, usato dalla pagina dei brevetti (`Brevetti`: il viaggio e il PDF) e dal diploma (`FoglioDiploma`): e' la foto
 // del profilo del bambino su PerfectGym (`portale-lab-junior`, azioni `foto` e `foto_imposta`), e **chi non l'ha viene invitato a metterla ogni volta** che apre il libretto.
 // L'invito si vede anche se la funzione non risponde ancora (la scelta della foto allora dice che non e' ancora attiva): solo in vista cliente non si offre.
 
+// La foto appena scelta, per bambino: PerfectGym ha le sue misure fra qualche minuto, e nel frattempo la pagina del brevetto, il viaggio e il diploma (che leggono la foto
+// ognuno per conto suo) devono mostrare la stessa, quella nuova, e non il link del server che e' ancora quello di prima.
+const scelte = new Map<number, string>();
+
 export function useFotoBambino(aperto: boolean, persona: PersonaJunior, vista: boolean) {
-  const [foto, setFoto] = useState<string | null>(null);
+  const [foto, setFoto] = useState<string | null>(() => scelte.get(persona.member_id) ?? null);
   const [modificabile, setModificabile] = useState(!vista);
   const [letta, setLetta] = useState(false);
   const [lavoro, setLavoro] = useState(false);
@@ -32,7 +36,7 @@ export function useFotoBambino(aperto: boolean, persona: PersonaJunior, vista: b
     fotoBambino(persona.member_id).then((r) => {
       if (!vivo) return;
       if (r.ok) {
-        setFoto((prima) => r.foto ?? prima);
+        setFoto((prima) => scelte.get(persona.member_id) ?? r.foto ?? prima);
         setModificabile(r.modificabile && !vista);
       } else setModificabile(!vista);
       setLetta(true);
@@ -57,6 +61,7 @@ export function useFotoBambino(aperto: boolean, persona: PersonaJunior, vista: b
       setLavoro(false);
       if (!r.ok) return setErrore(r.errore);
       // La foto appena scelta si usa subito: PerfectGym ha le sue misure fra qualche minuto.
+      scelte.set(persona.member_id, pronta.foto.anteprima);
       setFoto(pronta.foto.anteprima);
     },
     [persona.member_id],
