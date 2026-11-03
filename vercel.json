@@ -38,6 +38,10 @@
       "destination": "/index.html"
     },
     {
+      "source": "/invito/:codice",
+      "destination": "/invito-anteprima.html"
+    },
+    {
       "source": "/((?!.*\\.).*)",
       "destination": "/index.html"
     }
