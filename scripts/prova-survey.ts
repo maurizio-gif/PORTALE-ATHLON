@@ -1,14 +1,15 @@
 // @ts-nocheck — script da `npx tsx`: usa moduli di Node che il progetto dell'app (tsc) non conosce.
-// Prova a mano delle survey di Club Life: la lettura controllata del feed del sito (`surveyDa`), le regole di calcolo
+// Prova a mano delle survey di Club Life: i dati scritti nell'app (integrita', italiano e inglese), le regole di calcolo
 // (media, soglia, forma della nota, user-agent) e l'invio (`inviaSondaggio`) con un `fetch` finto.
 //   LC_ALL=it_IT.UTF-8 npx tsx scripts/prova-survey.ts
-//   CLUB_LIFE_JSON=/percorso/dist/club-life.json npx tsx scripts/prova-survey.ts   (in piu': il feed vero del sito)
+//   SITO_SURVEYS_TS=/percorso/SITO-ATHLON/src/data/surveys.ts npx tsx scripts/prova-survey.ts   (in piu': il confronto col sito)
 import assert from 'node:assert/strict'
-import { readFileSync } from 'node:fs'
+import { pathToFileURL } from 'node:url'
 
-import { surveyDa } from '../src/api/clubLife'
+import { impostaLingua } from '../src/lib/lingua'
 import { inviaSondaggio } from '../src/api/moduli'
 import { agenteApp, etichettaVoto, formaNota, giudizioPositivo, mediaVoti, votiInOrdine } from '../src/features/lab/clublife/survey/calcolo'
+import { RECENSIONE_GOOGLE, SLUG_SURVEY, SOGLIA, survey } from '../src/features/lab/clublife/survey/dati'
 
 let passi = 0
 const ok = (n: string) => {
@@ -16,95 +17,73 @@ const ok = (n: string) => {
   console.log('ok  ' + n)
 }
 
-const FEED = {
-  temi: [
-    {
-      slug: 'piscina',
-      titolo: 'Piscina e acqua',
-      eyebrow: 'Le vasche',
-      intro: 'L’acqua, le corsie.',
-      domande: [
-        { id: 'temperatura', testo: 'L’acqua era alla temperatura giusta' },
-        { id: 'corsie', testo: 'Le corsie erano abbastanza libere' },
-        { id: 'bagnino', testo: 'L’assistente bagnino era presente' },
-      ],
-      fonte: { testo: 'Vasca, corsie e orari', url: 'https://www.athlonroma.it/nuoto-libero/' },
-    },
-    { slug: 'junior', titolo: 'Corsi bambini', eyebrow: 'Per i genitori', intro: 'Com’è per tuo figlio.', domande: [{ id: 'istruttori', testo: 'Gli istruttori seguono i bambini' }], fonte: null },
-  ],
-  nps: { testo: 'Quanto è probabile che consigli Athlon?', minimo: 'Per niente probabile', massimo: 'Estremamente probabile' },
-  stelle: ['Per niente', 'Poco', 'Abbastanza', 'Molto', 'Moltissimo'],
-  soglia: { nps: 9, media: 4.5 },
-  nota: {
-    neutra: { titolo: 'Vuoi aggiungere qualcosa?', aiuto: 'Facoltativo.' },
-    sotto: { titolo: 'Cosa potevamo fare meglio?', aiuto: 'Più è preciso…' },
-    sopra: { titolo: 'C’è qualcosa che ti piacerebbe trovare?', aiuto: 'Un suggerimento.' },
-  },
-  recensione: 'https://search.google.com/local/writereview?placeid=ChIJxwtVpgxkLxMRdzofCeJVsYU',
-}
-
 // ---------------------------------------------------------------------------
-// surveyDa: la forma controllata del feed.
+// I dati scritti nell'app (survey/dati.ts).
 
 {
-  const s = surveyDa(FEED)!
-  assert.equal(s.temi.length, 2)
-  assert.equal(s.temi[0].domande.length, 3)
-  assert.equal(s.temi[0].fonte!.url, 'https://www.athlonroma.it/nuoto-libero/')
-  assert.equal(s.temi[1].fonte, null)
-  assert.deepEqual(s.soglia, { nps: 9, media: 4.5 })
-  assert.equal(s.nota.sotto.titolo, 'Cosa potevamo fare meglio?')
-  ok('un feed buono si legge intero')
-}
-{
-  assert.equal(surveyDa(undefined), null, 'senza il campo (il sito non ha il deploy): niente sezione')
-  assert.equal(surveyDa(null), null)
-  assert.equal(surveyDa('boh'), null)
-  assert.equal(surveyDa({}), null)
-  assert.equal(surveyDa({ ...FEED, soglia: undefined }), null, 'senza la soglia non si sa se chiedere la recensione')
-  assert.equal(surveyDa({ ...FEED, soglia: { nps: '9', media: 4.5 } }), null, 'una soglia che non e un numero')
-  assert.equal(surveyDa({ ...FEED, stelle: ['a', 'b'] }), null, 'la scala deve avere cinque voci')
-  assert.equal(surveyDa({ ...FEED, nps: { testo: ' ' } }), null, 'senza la domanda dell NPS')
-  assert.equal(surveyDa({ ...FEED, nota: { ...FEED.nota, sopra: undefined } }), null, 'una forma della nota che manca')
-  assert.equal(surveyDa({ ...FEED, temi: [] }), null)
-  ok('un feed sporco fa sparire la sezione, senza sollevare')
-}
-{
-  const sporco = {
-    ...FEED,
-    temi: [
-      ...FEED.temi,
-      { slug: 'Senza Slug Valido!', titolo: 'x', domande: [{ id: 'a', testo: 'b' }] },
-      { slug: 'vuoto', titolo: 'Senza domande', domande: [] },
-      { slug: 'solo-sporche', titolo: 'Domande sporche', domande: [{ id: '', testo: 'x' }, { id: 'a', testo: ' ' }, null] },
-      { slug: 'senza-titolo', titolo: ' ', domande: [{ id: 'a', testo: 'b' }] },
-      null,
-    ],
+  const s = survey()
+  assert.deepEqual(s.temi.map((x) => x.slug), [...SLUG_SURVEY], 'gli slug dei temi sono quelli del menu del sito, nell\'ordine: SLUG_SURVEY non diverge')
+  assert.equal(s.temi.some((x) => x.slug === 'iscrizione'), false, 'la survey nascosta (la manda il CRM) non e nell\'app')
+  for (const x of s.temi) {
+    assert.match(x.slug, /^[a-z0-9-]+$/, `${x.slug}: slug da indirizzo`)
+    assert.ok(x.titolo && x.eyebrow && x.intro, `${x.slug}: titolo, occhiello e riga di presentazione`)
+    assert.ok(x.domande.length >= 5 && x.domande.length <= 7, `${x.slug}: da cinque a sette domande (${x.domande.length})`)
+    assert.equal(new Set(x.domande.map((d) => d.id)).size, x.domande.length, `${x.slug}: gli id delle domande sono unici`)
+    for (const d of x.domande) assert.ok(/^[a-z0-9-]+$/.test(d.id) && d.testo.trim().length > 10, `${x.slug}/${d.id}: id da colonna e testo vero`)
   }
-  const s = surveyDa(sporco)!
-  assert.deepEqual(s.temi.map((t) => t.slug), ['piscina', 'junior'], 'i temi sporchi si scartano, quelli buoni restano')
-  const fonteStorta = surveyDa({ ...FEED, temi: [{ ...FEED.temi[0], fonte: { testo: 'x', url: 'javascript:alert(1)' } }] })!
-  assert.equal(fonteStorta.temi[0].fonte, null, 'un indirizzo che non e http(s) non diventa un link')
-  assert.equal(surveyDa({ ...FEED, recensione: 'javascript:alert(1)' })!.recensione, '', 'idem per la recensione: nessun pulsante')
-  ok('temi, domande e indirizzi sporchi si scartano da soli')
+  assert.equal(s.stelle.length, 5)
+  assert.deepEqual(s.soglia, { nps: 9, media: 4.5 })
+  assert.equal(s.soglia.nps, SOGLIA.nps)
+  assert.match(s.recensione, /^https:\/\/search\.google\.com\/local\/writereview\?placeid=/)
+  assert.equal(s.recensione, RECENSIONE_GOOGLE)
+  ok(`${s.temi.length} temi, ${s.temi.reduce((n, x) => n + x.domande.length, 0)} domande: slug e id da colonna, da cinque a sette domande per tema, nessuna iscrizione`)
+}
+{
+  // Ogni testo ha la sua versione inglese (regola dell'app) e nessuna e' rimasta quella italiana per dimenticanza.
+  const it = survey()
+  impostaLingua('en')
+  const en = survey()
+  impostaLingua('it')
+  assert.equal(survey().temi[0].titolo, it.temi[0].titolo, 'si torna all\'italiano')
+  const stessi = []
+  const conf = (a: string, b: string, dove: string) => {
+    assert.ok(b.trim().length > 0, `${dove}: manca l'inglese`)
+    if (a === b) stessi.push(`${dove}: «${a}»`)
+  }
+  en.temi.forEach((x, i) => {
+    assert.equal(x.slug, it.temi[i].slug, 'lo slug non si traduce')
+    conf(it.temi[i].titolo, x.titolo, `${x.slug}/titolo`)
+    conf(it.temi[i].eyebrow, x.eyebrow, `${x.slug}/occhiello`)
+    conf(it.temi[i].intro, x.intro, `${x.slug}/intro`)
+    x.domande.forEach((d, k) => {
+      assert.equal(d.id, it.temi[i].domande[k].id, `${x.slug}: l'id non si traduce`)
+      conf(it.temi[i].domande[k].testo, d.testo, `${x.slug}/${d.id}`)
+    })
+  })
+  conf(it.nps.testo, en.nps.testo, 'nps/testo'); conf(it.nps.minimo, en.nps.minimo, 'nps/minimo'); conf(it.nps.massimo, en.nps.massimo, 'nps/massimo')
+  it.stelle.forEach((x, k) => conf(x, en.stelle[k], `stelle/${k + 1}`))
+  for (const k of ['neutra', 'sotto', 'sopra']) { conf(it.nota[k].titolo, en.nota[k].titolo, `nota/${k}/titolo`); conf(it.nota[k].aiuto, en.nota[k].aiuto, `nota/${k}/aiuto`) }
+  assert.deepEqual(stessi, [], 'testi uguali nelle due lingue (da tradurre): ' + stessi.join(' | '))
+  assert.deepEqual(en.soglia, it.soglia)
+  ok('italiano e inglese: ogni testo ha la sua traduzione, e slug e id restano gli stessi')
 }
 
 // ---------------------------------------------------------------------------
 // calcolo: media, soglia, forma della nota.
 
 {
-  const s = surveyDa(FEED)!
-  const domande = s.temi[0].domande
+  const s = survey()
+  const domande = s.temi.find((x) => x.slug === 'piscina')!.domande
   const voti = votiInOrdine(domande, { corsie: 4, temperatura: 5, fuori: 3 })
-  assert.deepEqual(voti, [{ id: 'temperatura', voto: 5 }, { id: 'corsie', voto: 4 }, { id: 'bagnino', voto: null }], 'ordine delle domande, null dove non ha risposto, nessun id estraneo')
+  assert.deepEqual(voti.map((v) => [v.id, v.voto]), [['temperatura', 5], ['pulizia-acqua', null], ['corsie', 4], ['ritmo', null], ['bagnino', null], ['turno', null], ['bordo', null]], 'ordine delle domande del sito, null dove non ha risposto, nessun id estraneo')
   assert.equal(mediaVoti(voti), 4.5, 'la media conta solo le stelle date')
   assert.equal(mediaVoti(votiInOrdine(domande, {})), null)
   assert.equal(mediaVoti(votiInOrdine(domande, { temperatura: 5, corsie: 5, bagnino: 4 })), 4.67, 'due decimali, come sul sito')
-  assert.deepEqual(votiInOrdine(domande, { temperatura: 0, corsie: 6, bagnino: 2.5 }).map((v) => v.voto), [null, null, null], 'fuori scala o non intero: non e un voto')
+  assert.ok(votiInOrdine(domande, { temperatura: 0, corsie: 6, bagnino: 2.5 }).every((v) => v.voto === null), 'fuori scala o non intero: non e un voto')
   ok('i voti restano nell ordine delle domande e la media e quella del sito')
 }
 {
-  const { soglia } = surveyDa(FEED)!
+  const { soglia } = survey()
   assert.equal(giudizioPositivo(null, null, soglia), false, 'quando non si sa, non si chiede la recensione')
   assert.equal(giudizioPositivo(null, 9, soglia), true, 'NPS 9: promotore')
   assert.equal(giudizioPositivo(null, 8, soglia), false)
@@ -116,7 +95,7 @@ const FEED = {
   ok('la soglia e quella del sito: NPS ≥ 9 oppure media ≥ 4,5, e nel dubbio no')
 }
 {
-  const s = surveyDa(FEED)!
+  const s = survey()
   assert.equal(formaNota(s, null, null).titolo, 'Vuoi aggiungere qualcosa?', 'senza giudizio: la forma neutra')
   assert.equal(formaNota(s, 2, null).titolo, 'Cosa potevamo fare meglio?', 'sotto soglia')
   assert.equal(formaNota(s, 5, 10).titolo, 'C’è qualcosa che ti piacerebbe trovare?', 'sopra soglia')
@@ -226,27 +205,36 @@ await (async () => {
 }
 
 // ---------------------------------------------------------------------------
-// Il feed vero del sito, se c'e': e' il contratto fra le due meta.
+// Il confronto col sito, se si da' il suo file: le survey sono scritte in due posti, e gli `slug` e gli `id` devono restare gli stessi (sono le
+// colonne su Supabase), con le stesse parole italiane (la stessa domanda posta in due modi non e' confrontabile).
 
-function feedVero() {
-  const percorso = process.env.CLUB_LIFE_JSON
+async function confrontoSito() {
+  const percorso = process.env.SITO_SURVEYS_TS
   if (!percorso) return
-  const vero = JSON.parse(readFileSync(percorso, 'utf8'))
-  const s = surveyDa(vero.survey)
-  assert.ok(s, 'il feed del sito ha un campo `survey` che l\'app legge')
-  assert.ok(s.temi.length >= 8, `almeno gli otto temi del menu (trovati ${s.temi.length})`)
-  assert.equal(s.temi.some((x) => x.slug === 'iscrizione'), false, 'la survey nascosta (la manda il CRM) non e nell\'app')
+  const sito = await import(pathToFileURL(percorso).href)
+  const s = survey()
+  assert.deepEqual(s.temi.map((x) => x.slug), sito.SURVEYS_DEL_MENU.map((x) => x.slug), 'gli stessi temi, nello stesso ordine')
   for (const x of s.temi) {
-    assert.ok(x.domande.length >= 3 && x.domande.length <= 7, `${x.slug}: da tre a sette domande`)
-    assert.equal(new Set(x.domande.map((d) => d.id)).size, x.domande.length, `${x.slug}: gli id delle domande sono unici`)
-    if (x.fonte) assert.match(x.fonte.url, /^https:\/\/www\.athlonroma\.it\/.+\/$/, `${x.slug}: la fonte e un indirizzo intero con lo slash finale`)
+    const y = sito.SURVEYS_DEL_MENU.find((z) => z.slug === x.slug)
+    assert.deepEqual(x.domande.map((d) => d.id), y.domande.map((d) => d.id), `${x.slug}: gli stessi id, nello stesso ordine`)
+    x.domande.forEach((d, k) => assert.equal(d.testo, y.domande[k].testo, `${x.slug}/${d.id}: le stesse parole del sito`))
+    assert.equal(x.titolo, y.titolo, `${x.slug}: lo stesso titolo`)
+    assert.equal(x.eyebrow, y.eyebrow, `${x.slug}: lo stesso occhiello`)
+    assert.equal(x.intro, y.intro, `${x.slug}: la stessa presentazione`)
   }
-  assert.match(s.recensione, /^https:\/\/search\.google\.com\/local\/writereview\?placeid=/)
-  ok(`il feed vero del sito: ${s.temi.length} temi, ${s.temi.reduce((n, x) => n + x.domande.length, 0)} domande, soglia ${s.soglia.nps}/${s.soglia.media}`)
+  assert.equal(s.nps.testo, sito.NPS.testo)
+  assert.equal(s.nps.minimo, sito.NPS.minimo)
+  assert.equal(s.nps.massimo, sito.NPS.massimo)
+  assert.deepEqual(s.stelle, [...sito.STELLE])
+  assert.deepEqual(s.soglia, { ...sito.SOGLIA }, 'la stessa soglia della recensione')
+  assert.equal(s.recensione, sito.RECENSIONE_GOOGLE)
+  // Le tre frasi della nota stanno nei dati del sito solo se li' sono esportate (`NOTA`); altrimenti sono dentro il client della pagina e non si confrontano qui.
+  if (sito.NOTA) for (const k of ['neutra', 'sotto', 'sopra']) assert.deepEqual(s.nota[k], { ...sito.NOTA[k] }, `la nota «${k}»`)
+  ok(`il confronto col sito: ${s.temi.length} temi e ${s.temi.reduce((n, x) => n + x.domande.length, 0)} domande uguali (slug, id e parole), stessa soglia, stessa scala`)
 }
 
 invii()
-  .then(() => feedVero())
+  .then(() => confrontoSito())
   .then(() => console.log(`\n${passi} prove passate`))
   .catch((e) => {
     console.error(e)

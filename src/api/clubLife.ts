@@ -91,37 +91,6 @@ export type SchedaHelpDesk = {
   blocchi: Blocco[]
 }
 
-/** Una domanda a stelle di una survey. L'`id` e' il nome con cui la risposta finisce su Supabase: lo stesso del sito. */
-export type DomandaSurvey = { id: string; testo: string }
-
-/** Un argomento delle survey del sito (`/surveys/<slug>/`), con le sue domande e la pagina dove il club ha scritto la promessa che controllano. */
-export type TemaSurvey = {
-  slug: string
-  titolo: string
-  eyebrow: string
-  intro: string
-  domande: DomandaSurvey[]
-  fonte: { testo: string; url: string } | null
-}
-
-/** Le tre forme della domanda aperta: neutra finche' non c'e' un giudizio, poi sotto o sopra soglia. */
-export type FormaNota = { titolo: string; aiuto: string }
-
-/**
- * Le survey, come le pubblica il sito (`surveyPerApp` in `data/surveys.ts`): le domande, la scala dell'NPS, la soglia che decide
- * se chiedere la recensione su Google e le frasi della nota. **L'app non ne ha una copia**: un tema nuovo o una domanda ritoccata
- * arrivano al deploy del sito.
- */
-export type SurveyClub = {
-  temi: TemaSurvey[]
-  nps: { testo: string; minimo: string; massimo: string }
-  stelle: string[]
-  soglia: { nps: number; media: number }
-  nota: { neutra: FormaNota; sotto: FormaNota; sopra: FormaNota }
-  /** Il riquadro della recensione su Google, per chi e' contento. */
-  recensione: string
-}
-
 export type ClubLife = {
   generato: string
   news: NewsClub[]
@@ -130,51 +99,6 @@ export type ClubLife = {
   schede: SchedaHelpDesk[]
   /** Gli slug delle pagine che nell'app portano al calendario delle prenotazioni. */
   corsiPrenotabili: string[]
-  /** Le survey del sito; assente (o null) finche' il sito non ha il deploy che le pubblica: allora la sezione non compare. */
-  survey?: SurveyClub | null
-}
-
-const testoDa = (v: unknown): string => (typeof v === 'string' ? v : '')
-
-function formaNotaDa(v: any): FormaNota | null {
-  const titolo = testoDa(v?.titolo).trim()
-  return titolo ? { titolo, aiuto: testoDa(v?.aiuto).trim() } : null
-}
-
-/**
- * Le survey con la forma controllata, o `null`. Un pezzo che manca o e' sporco fa sparire la sezione invece di rompere Club Life:
- * senza la soglia non si sa se chiedere la recensione, senza la scala dell'NPS non si disegna la domanda. Un tema senza domande
- * o senza titolo si scarta da solo; gli altri restano.
- */
-export function surveyDa(d: any): SurveyClub | null {
-  if (!d || typeof d !== 'object') return null
-  const temi: TemaSurvey[] = (Array.isArray(d.temi) ? d.temi : [])
-    .map((x: any): TemaSurvey | null => {
-      const slug = testoDa(x?.slug).trim()
-      const titolo = testoDa(x?.titolo).trim()
-      const domande: DomandaSurvey[] = (Array.isArray(x?.domande) ? x.domande : [])
-        .filter((q: any) => q && testoDa(q.id).trim() && testoDa(q.testo).trim())
-        .map((q: any) => ({ id: testoDa(q.id).trim(), testo: testoDa(q.testo).trim() }))
-      if (!/^[a-z0-9-]+$/.test(slug) || !titolo || !domande.length) return null
-      const fonte = x?.fonte && testoDa(x.fonte.testo).trim() && /^https?:\/\//.test(testoDa(x.fonte.url)) ? { testo: testoDa(x.fonte.testo).trim(), url: testoDa(x.fonte.url) } : null
-      return { slug, titolo, eyebrow: testoDa(x.eyebrow).trim(), intro: testoDa(x.intro).trim(), domande, fonte }
-    })
-    .filter((x: TemaSurvey | null): x is TemaSurvey => x !== null)
-  const stelle = (Array.isArray(d.stelle) ? d.stelle : []).map(testoDa)
-  const soglia = d.soglia
-  const neutra = formaNotaDa(d.nota?.neutra)
-  const sotto = formaNotaDa(d.nota?.sotto)
-  const sopra = formaNotaDa(d.nota?.sopra)
-  if (!temi.length || !testoDa(d.nps?.testo).trim() || stelle.length !== 5) return null
-  if (typeof soglia?.nps !== 'number' || typeof soglia?.media !== 'number' || !neutra || !sotto || !sopra) return null
-  return {
-    temi,
-    nps: { testo: testoDa(d.nps.testo).trim(), minimo: testoDa(d.nps.minimo).trim(), massimo: testoDa(d.nps.massimo).trim() },
-    stelle,
-    soglia: { nps: soglia.nps, media: soglia.media },
-    nota: { neutra, sotto, sopra },
-    recensione: /^https?:\/\//.test(testoDa(d.recensione)) ? testoDa(d.recensione) : '',
-  }
 }
 
 export const URL_CLUB_LIFE_JSON = `${SITO_URL}/club-life.json`
@@ -217,7 +141,6 @@ export async function leggiClubLife(): Promise<{ ok: true; dati: ClubLife } | { 
       aree: d.aree ?? [],
       schede: d.schede,
       corsiPrenotabili: d.corsiPrenotabili ?? [],
-      survey: surveyDa(d.survey),
     }
     salvaSulDisco(dati)
     return { ok: true, dati }

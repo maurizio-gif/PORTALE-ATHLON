@@ -1,11 +1,10 @@
-import type { DomandaSurvey, FormaNota, SurveyClub } from '@/api/clubLife'
+import type { DomandaSurvey, FormaNota, SurveyClub } from './dati'
 
 // Le regole delle survey che dal disegno non si leggono. **Modulo puro** (niente React ne' React Native): si prova con
 // `npx tsx scripts/prova-survey.ts`.
 //
-// Le regole sono quelle del sito (`data/surveys.ts`, `lib/surveyForm.client.js`) e la soglia arriva dal feed, non e' scritta
-// qui: due copie di un numero rispondono in due modi al primo ritocco. Quello che si ricopia e' solo il modo di combinare:
-// la media a due decimali, il «positivo» in OR, e quale forma della nota mostrare.
+// Le regole sono quelle del sito (`data/surveys.ts`, `lib/surveyForm.client.js`), con la soglia in `survey/dati.ts`: la media a due
+// decimali, il «positivo» in OR, e quale forma della nota mostrare.
 
 export type Voto = { id: string; voto: number | null }
 

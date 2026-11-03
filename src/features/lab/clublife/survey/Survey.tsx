@@ -1,8 +1,7 @@
 import { router } from 'expo-router'
-import { useState, type ReactNode } from 'react'
+import { useState } from 'react'
 import { Platform, StyleSheet, Text, View } from 'react-native'
 
-import type { ClubLife, SurveyClub, TemaSurvey } from '@/api/clubLife'
 import { inviaSondaggio } from '@/api/moduli'
 import { LARGO } from '@/components/Pagina'
 import { useWindowDimensions } from '@/lib/finestra'
@@ -14,15 +13,16 @@ import { Carta, Messaggio, Pulsante, SchedeInArrivo } from '../../ui/kit'
 import { Stella } from '../../ui/Stella'
 import { F, FUOCO, raggio, usePalette } from '../../ui/tema'
 import { colpetto, Tocco } from '../../ui/Tocco'
-import { useClubLife } from '../dati'
-import { apriFuori, apriLink, hrefModulo } from '../link'
+import { apriFuori, hrefModulo } from '../link'
 import { Cornice, Fatto } from '../moduli/Cornice'
 import { inVista, useIdentita } from '../moduli/identita'
 import { agenteApp, etichettaVoto, formaNota, giudizioPositivo, mediaVoti, votiInOrdine } from './calcolo'
+import { survey as comporreSurvey, type SurveyClub, type TemaSurvey } from './dati'
 
-// Una survey del sito dentro l'app (03/11/2026, richiesta di Maurizio): le stesse domande di `/surveys/<tema>/`, lette da `club-life.json`
-// (campo `survey`), e la stessa funzione che le riceve. La differenza e' chi risponde: la persona e' gia' dentro, quindi **non si chiede
-// l'email** — si prende dall'accesso, con il numero socio, e la risposta si aggancia alla sua anagrafica come ogni form del sito.
+// Una survey del club dentro l'app (03/11/2026, richiesta di Maurizio): le stesse domande di `/surveys/<tema>/` del sito, **scritte nell'app**
+// (`survey/dati.ts`, niente feed) e inviate alla stessa funzione. La differenza e' chi risponde: la persona e' gia' dentro, quindi **non si chiede
+// l'email** — si prende dall'accesso, con il numero socio, e la risposta si aggancia alla sua anagrafica come ogni form del sito. Non si scrive in
+// pagina «rispondi come…»: e' scontato, e non va sottolineato.
 //
 // Come sul sito: un giudizio basta (le altre domande, l'NPS e la nota sono facoltativi), la domanda aperta cambia con i voti, e solo chi e'
 // contento — NPS alto o media alta — riceve la richiesta di una recensione su Google. In vista cliente non si invia niente: chi guarda l'app
@@ -130,19 +130,6 @@ function DomandaNps({ survey, nps, onNps }: { survey: SurveyClub; nps: number | 
   )
 }
 
-/** Una riga «Rispondi come …»: chi risponde vede da dove parte la risposta, senza doverlo scrivere. */
-function ComeRispondi({ email }: { email: string }) {
-  const p = usePalette()
-  return (
-    <View style={[stili.come, { backgroundColor: p.incavo }]}>
-      <Text style={[stili.comeTesto, { color: p.testoSecondario }]}>
-        {t('Rispondi come ', 'You’re answering as ')}
-        <Text style={{ color: p.testo, fontFamily: F.bold }}>{email || t('l’indirizzo del tuo accesso', 'the email you sign in with')}</Text>
-      </Text>
-    </View>
-  )
-}
-
 function Grazie({ positivo, survey }: { positivo: boolean; survey: SurveyClub }) {
   const p = usePalette()
   // `dismissTo` e non `navigate`: torna al menu che e' gia' nello stack invece di impilarne una copia a ogni argomento, e se la survey si e' aperta da un
@@ -184,7 +171,7 @@ function Grazie({ positivo, survey }: { positivo: boolean; survey: SurveyClub })
   )
 }
 
-function Modulo({ survey, tema, dati, emailAccesso }: { survey: SurveyClub; tema: TemaSurvey; dati: ClubLife | null; emailAccesso?: string | null }) {
+function Modulo({ survey, tema, emailAccesso }: { survey: SurveyClub; tema: TemaSurvey; emailAccesso?: string | null }) {
   const p = usePalette()
   const identita = useIdentita(emailAccesso)
   const [scelte, setScelte] = useState<Record<string, number>>({})
@@ -262,47 +249,32 @@ function Modulo({ survey, tema, dati, emailAccesso }: { survey: SurveyClub; tema
               style={{ minHeight: 110, textAlignVertical: 'top' }}
             />
           </Carta>
-          <ComeRispondi email={identita.email} />
           {errore ? <Messaggio>{errore}</Messaggio> : null}
           <Pulsante testo={t('Invia', 'Send')} icona="invia" onPress={invia} inCorso={inCorso} disabilitato={inVista()} />
-          {tema.fonte ? (
-            <Tocco onPress={() => apriLink(tema.fonte!.url, dati, tema.fonte!.testo)} ruolo="link" etichetta={tema.fonte.testo} style={stili.fonte}>
-              <Text style={[stili.fonteTesto, { color: p.testoSecondario }]}>
-                {t('Cosa avevamo dichiarato: ', 'What we said we’d do: ')}
-                <Text style={{ color: p.accento, fontFamily: F.bold }}>{tema.fonte.testo}</Text>
-              </Text>
-            </Tocco>
-          ) : null}
         </>
       )}
     </Cornice>
   )
 }
 
-/** Cosa si vede finche' i dati di Club Life non ci sono, o se quell'argomento non esiste piu' (un tema tolto dal sito). */
-function Stato({ dati, errore, riprova, haSurvey }: { dati: ClubLife | null; errore: string | null; riprova: () => void; haSurvey: boolean }): ReactNode {
+/** Un argomento che non c'e': un indirizzo vecchio o sbagliato (una notifica, un link). Si torna al menu. */
+function NonTrovato() {
   return (
-    <Cornice sopratitolo="Club Life" titolo="Survey" indietro={haSurvey ? '/club-life/survey' : '/club-life'}>
-      {!dati && !errore ? (
-        <SchedeInArrivo quante={2} />
-      ) : (
-        <View style={{ gap: spazio.tre }}>
-          <Messaggio tono={dati ? 'attenzione' : 'errore'}>{dati ? t('Questo argomento non è più disponibile.', 'This topic is no longer available.') : errore}</Messaggio>
-          {dati ? null : <Pulsante testo={t('Riprova', 'Try again')} icona="aggiorna" onPress={riprova} />}
-          <Pulsante testo={haSurvey ? t('Tutti gli argomenti', 'All topics') : t('Torna a Club Life', 'Back to Club Life')} variante="contorno" onPress={() => router.replace(haSurvey ? '/club-life/survey' : '/club-life')} />
-        </View>
-      )}
+    <Cornice sopratitolo="Club Life" titolo="Survey" indietro="/club-life/survey">
+      <View style={{ gap: spazio.tre }}>
+        <Messaggio tono="attenzione">{t('Questo argomento non è disponibile.', 'This topic isn’t available.')}</Messaggio>
+        <Pulsante testo={t('Tutti gli argomenti', 'All topics')} variante="contorno" onPress={() => router.replace('/club-life/survey')} />
+      </View>
     </Cornice>
   )
 }
 
 /** La survey di un argomento. `emailAccesso` e' quella con cui la persona e' entrata: serve solo se l'anagrafica non si legge. */
 export function Survey({ slug, emailAccesso }: { slug: string; emailAccesso?: string | null }) {
-  const { dati, errore, riprova } = useClubLife()
-  const survey = dati?.survey ?? null
-  const tema = survey?.temi.find((x) => x.slug === slug) ?? null
-  if (!survey || !tema) return <Stato dati={dati} errore={errore} riprova={riprova} haSurvey={!!survey} />
-  return <Modulo key={tema.slug} survey={survey} tema={tema} dati={dati} emailAccesso={emailAccesso} />
+  const survey = comporreSurvey()
+  const tema = survey.temi.find((x) => x.slug === slug)
+  if (!tema) return <NonTrovato />
+  return <Modulo key={tema.slug} survey={survey} tema={tema} emailAccesso={emailAccesso} />
 }
 
 const stili = StyleSheet.create({
@@ -317,9 +289,5 @@ const stili = StyleSheet.create({
   nps: { height: 48, borderWidth: 1.5, borderRadius: raggio.piccolo, alignItems: 'center', justifyContent: 'center' },
   scala: { flexDirection: 'row', justifyContent: 'space-between', gap: spazio.tre },
   scalaTesto: { flex: 1, fontFamily: F.medio, fontSize: 12.5, lineHeight: 17 },
-  come: { borderRadius: raggio.piccolo, paddingHorizontal: spazio.tre - 2, paddingVertical: spazio.tre - 4 },
-  comeTesto: { fontFamily: F.medio, fontSize: 14, lineHeight: 20 },
   fattoTesto: { fontFamily: F.medio, fontSize: 15, lineHeight: 22 },
-  fonte: { alignSelf: 'flex-start', paddingVertical: spazio.due },
-  fonteTesto: { fontFamily: F.medio, fontSize: 13.5, lineHeight: 19 },
 })

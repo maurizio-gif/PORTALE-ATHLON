@@ -130,4 +130,4 @@ chiamata diretta al gestionale. Esempio: la sezione Prodotti usa l'azione `prodo
 - [Totem: «Continua sul telefono» dopo la data: QR, email o assistita (02/11/2026)](docs/claude/92-totem-continua-sul-telefono-qr-email-assistita-02-11-2026.md) · 3 KB
 - [Pagina d'accesso più snella: il tema in fondo, la lingua discreta (02/11/2026)](docs/claude/93-accesso-snellito-il-tema-in-fondo-02-11-2026.md) · 3 KB
 - [La resa grafica: la Home a due colonne da computer, l'hover, il bagliore che respira e «riduci movimento» (02/11/2026)](docs/claude/94-resa-grafica-home-a-due-colonne-hover-e-movimento-02-11-2026.md) · 4 KB
-- [Le survey del sito dentro Club Life: le stesse domande, e chi risponde è già noto (03/11/2026)](docs/claude/95-le-survey-del-sito-in-club-life-03-11-2026.md) · 8 KB
+- [Le survey dentro Club Life: scritte nell'app, e chi risponde è già noto (03/11/2026)](docs/claude/95-le-survey-del-sito-in-club-life-03-11-2026.md) · 9 KB
