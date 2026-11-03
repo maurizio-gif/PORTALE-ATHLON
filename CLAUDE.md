@@ -143,3 +143,4 @@ chiamata diretta al gestionale. Esempio: la sezione Prodotti usa l'azione `prodo
 - [La Home scrive «Guest» a un Guest, non «Socio» (04/11/2026)](docs/claude/105-home-guest-al-posto-di-socio-04-11-2026.md) · 1 KB
 - [Il controllo dei dati all'accesso: «Aggiungi il tuo cellulare» in «Da fare» (04/11/2026)](docs/claude/106-controllo-dati-all-accesso-04-11-2026.md) · 1 KB
 - [Brevetti: ottenuto e in corso, e il libretto anche senza un abbonamento (04/11/2026)](docs/claude/107-brevetti-ottenuto-in-corso-e-senza-abbonamento-04-11-2026.md) · 3 KB
+- [Un pagamento in corso si vede e le quote non si pagano due volte: la schermata «Da pagare» e il riquadro in Home (03/11/2026)](docs/claude/108-pagamento-in-corso-nell-app-03-11-2026.md) · 2 KB

@@ -59,7 +59,7 @@ export function MetodoPagamento() {
         nome={stato.nome}
         nomeTitolare={stato.nomeTitolare}
         iniziali={stato.contratti}
-        sopra={daSaldare.length ? <DaPagare elenco={daSaldare} carta={pagamenti?.cartaSaldo ?? null} onAggiorna={rileggi} verificaSubito={false} /> : null}
+        sopra={daSaldare.length ? <DaPagare elenco={daSaldare} carta={pagamenti?.cartaSaldo ?? null} inCorsoFrase={pagamenti?.inCorsoFrase ?? null} onAggiorna={rileggi} verificaSubito={false} /> : null}
       />
     )
   }

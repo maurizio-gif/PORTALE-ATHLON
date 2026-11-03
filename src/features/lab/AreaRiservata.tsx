@@ -413,8 +413,12 @@ export function AreaRiservata({ email }: { email: string }) {
   const debito = area.persone.reduce((tot, x) => tot + (x.debito?.importo ?? 0), 0)
   const daSaldare = movimenti.dati?.daSaldare.reduce((tot, m) => tot + m.importo, 0) ?? 0
   const prossimo = movimenti.dati?.futuri[0]
+  const inCorso = !!movimenti.dati?.inCorsoFrase
   const pagamenti: VoceRiquadro =
-    debito > 0 || daSaldare > 0
+    // Un pagamento elettronico gia' in corso (03/11/2026): la quota e' ancora «da saldare» ma non e' un allarme, e non va pagata di nuovo.
+    (debito > 0 || daSaldare > 0) && inCorso
+      ? { valore: t('In corso', 'In progress'), nota: t(`${soldi(Math.max(debito, daSaldare))} in pagamento`, `${soldi(Math.max(debito, daSaldare))} being paid`), allerta: 'attenzione' }
+      : debito > 0 || daSaldare > 0
       ? { valore: t('In sospeso', 'Outstanding'), nota: t(`${soldi(Math.max(debito, daSaldare))} da saldare`, `${soldi(Math.max(debito, daSaldare))} to pay`), allerta: 'errore' }
       : prossimo
         ? { valore: dataCorta(prossimo.scadenza), nota: t(`prossimo addebito · ${soldi(prossimo.importo)}`, `next charge · ${soldi(prossimo.importo)}`) }
