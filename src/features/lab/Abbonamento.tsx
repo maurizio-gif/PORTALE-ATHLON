@@ -37,7 +37,7 @@ import { CalendarioCambio } from './abbonamento/CalendarioCambio'
 import { DaCambio } from './abbonamento/DaCambio'
 import { DallaProva } from './abbonamento/DallaProva'
 import { Indicatore, SchedaScelta } from './abbonamento/Passi'
-import { FORMULE, Listino } from './abbonamento/Listino'
+import { BarraScelta, FORMULE, Listino } from './abbonamento/Listino'
 import { FirmaPad } from './FirmaPad'
 import { segnaPagataInCorso } from './junior/inCorso'
 import { scorda, scordaPrefisso } from './memoria'
@@ -552,7 +552,7 @@ export function Abbonamento() {
                     : ''}
                   {t('Tutto quello che scegli lo rivedi prima di firmare.', 'You’ll review everything you choose before signing.')}
                 </Text>
-                <Pulsante testo={t('Continua', 'Continue')} icona="avanti" onPress={() => vai(2)} disabilitato={!pianoId} />
+                <BarraScelta piano={piano} onContinua={() => vai(2)} />
                 <Pulsante testo={t('I miei abbonamenti', 'My memberships')} variante="fantasma" piccolo pieno={false} onPress={() => router.navigate(hrefSezione('abbonamenti'))} />
               </>
             ) : null}
