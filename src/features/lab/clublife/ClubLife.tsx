@@ -21,6 +21,7 @@ import { ascoltaClubLifeDaCapo } from './daCapo'
 import { useClubLife } from './dati'
 import { percorsoScheda } from './link'
 import { BloccoOrariClub } from './OrariClub'
+import { PortaSurvey } from './survey/ElencoSurvey'
 
 // Club Life nell'app: le news, gli eventi in arrivo e le risposte dell'Help Desk,
 // disegnati qui coi dati del sito (club-life.json) invece della pagina del sito
@@ -196,6 +197,8 @@ export function ClubLife() {
               <Text style={[stili.intro, { color: p.testoSecondario, flex: 1 }]}>{t('Per ora nessuna news e nessun evento in arrivo.', 'No news or upcoming events for now.')}</Text>
             </Carta>
           ) : null}
+          {/* Le survey del sito (survey/ElencoSurvey): fra le news e l'Help Desk, come sul sito. Senza il campo nel feed (il sito non ha ancora il deploy) non compaiono. */}
+          {dati.survey ? <PortaSurvey survey={dati.survey} /> : null}
           <HelpDesk aree={dati.aree} schede={dati.schede} />
         </>
       )}

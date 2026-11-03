@@ -111,6 +111,9 @@ export function destinazione(url: string, dati: ClubLife | null, etichetta = '')
         return APP(hrefSezione('abbonamenti'))
       case 'prenota-chiamata':
         return APP(hrefModulo('appuntamento'))
+      // Il menu delle survey del sito: nell'app e' il suo, e chi risponde e' gia' riconosciuto. Se il feed non le porta (il sito non ha il deploy), resta il sito.
+      case 'surveys':
+        return dati?.survey ? APP('/club-life/survey') : FUORI
     }
     // Le pagine dei corsi: nell'app si prenotano dal calendario.
     if (dati?.corsiPrenotabili.includes(pezzi[0])) return APP('/calendario')
@@ -122,6 +125,10 @@ export function destinazione(url: string, dati: ClubLife | null, etichetta = '')
   }
   if (pezzi[0] === 'eventi' && pezzi.length === 2 && dati.eventi.some((e) => e.id === pezzi[1])) {
     return APP({ pathname: '/club-life/eventi/[id]', params: { id: pezzi[1] } })
+  }
+  // Una survey per argomento. `/surveys/iscrizione/` non c'e': la manda il CRM a una persona precisa, con l'indirizzo nel link, e si apre sul sito.
+  if (pezzi[0] === 'surveys' && pezzi.length === 2 && dati.survey?.temi.some((x) => x.slug === pezzi[1])) {
+    return APP({ pathname: '/club-life/survey/[tema]', params: { tema: pezzi[1] } })
   }
   if (pezzi[0] === 'wikiathlon' && pezzi.length === 3) {
     const id = `${pezzi[1]}/${pezzi[2]}`
