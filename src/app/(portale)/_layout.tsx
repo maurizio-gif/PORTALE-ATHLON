@@ -15,6 +15,7 @@ import { CompletaProfilo } from '@/features/lab/ingresso/CompletaProfilo'
 import { useIngresso } from '@/features/lab/ingresso/useIngresso'
 import { Notifiche } from '@/features/lab/notifiche/Notifiche'
 import { EsciTotem } from '@/features/lab/totem/EsciTotem'
+import { PagamentoTotem } from '@/features/lab/totem/PagamentoTotem'
 import { BannerVista } from '@/features/lab/ui/BannerVista'
 import { BarraSchede } from '@/features/lab/ui/BarraSchede'
 import { SchermataInArrivo } from '@/features/lab/ui/Attesa'
@@ -119,6 +120,8 @@ export default function LayoutLaboratorio() {
           cliente non si disegna. Il feedback dei tester e' una carta della Home (home/CartaFeedback). */}
       {/* Sul totem (lib/totem.ts) al suo posto c'e' «Esci»: l'assistente non ha senso su un pannello davanti al desk, e chi finisce deve poter uscire con un tocco. */}
       {sessione ? inModalitaTotem() ? <EsciTotem /> : <PulsanteAssistente /> : null}
+      {/* Sul totem ogni pagamento passa dalle tre strade (QR, email, con un operatore): la schermata che le mostra sta qui, sempre montata (`totem/passaggio.ts`). */}
+      {sessione && inModalitaTotem() ? <PagamentoTotem /> : null}
       {/* L'avvio animato: una volta a ogni apertura, sopra tutto (features/lab/avvio).
           **Il `key` e' la ragione per cui si vede.** Chi ha gia' una sessione passa da questo ramo a quello di «Completa il profilo» (mentre
           `useIngresso` chiede lo stato al server) e poi di nuovo qui: l'`<Avvio />` sta in posizioni diverse nei due rami, quindi senza

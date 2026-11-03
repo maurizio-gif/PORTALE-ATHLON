@@ -144,7 +144,7 @@ export function AssistitaTotem({ proposta, inizio, nomePiano, onIndietro }: { pr
         />
       ) : null}
       {fase.f === 'pagamento' ? (
-        <FasePagamento token={token} firmato={firmato} errore={fase.errore ?? null} onPagato={() => setFase({ f: 'esito' })} onErrore={globale} />
+        <FasePagamento token={token} firmato={firmato} errore={fase.errore ?? null} assistita onPagato={() => setFase({ f: 'esito' })} onErrore={globale} />
       ) : null}
       {fase.f === 'esito' ? <FaseEsito token={token} numero={firmato?.numero ?? null} onRiprova={() => setFase({ f: 'pagamento' })} onErrore={globale} onFine={() => void uscitaTotem()} /> : null}
     </View>

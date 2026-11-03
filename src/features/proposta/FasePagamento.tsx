@@ -23,6 +23,7 @@ export function FasePagamento({
   token,
   firmato,
   errore,
+  assistita,
   onPagato,
   onErrore,
 }: {
@@ -31,6 +32,8 @@ export function FasePagamento({
   firmato: { numero: string; importi: ImportiContratto } | null
   /** L'errore del tentativo di prima, se la pagina si e' riaperta dopo un pagamento non riuscito. */
   errore: string | null
+  /** Sul totem con un operatore gia' sbloccato per questa proposta: la pagina della carta si apre qui senza richiedere il codice (`passaggio.ts`). */
+  assistita?: boolean
   /** Pagina di pagamento chiusa, o addebito collegato: l'esito lo dice la fase dopo. */
   onPagato: () => void
   onErrore: (e: ErroreProposta) => boolean
@@ -52,7 +55,7 @@ export function FasePagamento({
     if (r.esito.url) {
       // Sul web si cambia pagina: al ritorno questa pagina si riapre da sola, sull'esito. Nell'app la pagina della banca e' un
       // browser integrato, e quando si chiude si va a guardare l'esito.
-      await apriPagamento(r.esito.url)
+      await apriPagamento(r.esito.url, { giaAssistito: assistita })
       setPagando(false)
       return onPagato()
     }

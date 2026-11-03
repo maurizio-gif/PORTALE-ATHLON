@@ -1,5 +1,6 @@
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { acquistabileDaQuestoAccount } from '@/lib/eta'
 import { Linking, Platform, ScrollView, StyleSheet, Text, View, type NativeScrollEvent, type NativeSyntheticEvent } from 'react-native'
 import type Animated from 'react-native-reanimated'
 
@@ -52,6 +53,7 @@ import { Schermata } from './ui/Schermata'
 import { F, usePalette } from './ui/tema'
 import { colpetto, Tocco } from './ui/Tocco'
 import { apriPagamento } from '@/lib/pagamentoEsterno'
+import { passaDalTotem } from '@/features/lab/totem/passaggio'
 import { inModalitaTotem } from '@/lib/totem'
 import { ContinuaSulTelefono } from '@/features/proposta/ContinuaSulTelefono'
 
@@ -270,9 +272,13 @@ export function Abbonamento() {
   const carica = useCallback(async () => {
     const r = await statoAbbonamento()
     if (!r.ok) return setErrore(r.errore)
-    setStato(r.stato)
-    const indicato = typeof membroIndicato === 'string' && /^\d+$/.test(membroIndicato) ? r.stato.persone.find((x) => x.member_id === Number(membroIndicato))?.member_id : undefined
-    setMembro((m) => m ?? (cambioId ? null : indicato ?? r.stato.persone.find((x) => x.puo_comprare)?.member_id) ?? r.stato.persone[0]?.member_id ?? null)
+    // Da questo account si compra per se stessi e per i familiari da 13 a 17 anni: un altro adulto del nucleo (o un bambino) non compare nemmeno fra le scelte
+    // (04/11/2026). Nel cambio si lascia l'elenco com'e': la persona e' quella del contratto che si cambia. Il server rifiuta comunque chi non puo'.
+    const persone = cambioId ? r.stato.persone : r.stato.persone.filter((x) => acquistabileDaQuestoAccount(x.titolare, x.eta))
+    const visibile = { ...r.stato, persone: persone.length ? persone : r.stato.persone }
+    setStato(visibile)
+    const indicato = typeof membroIndicato === 'string' && /^\d+$/.test(membroIndicato) ? visibile.persone.find((x) => x.member_id === Number(membroIndicato))?.member_id : undefined
+    setMembro((m) => m ?? (cambioId ? null : indicato ?? visibile.persone.find((x) => x.puo_comprare)?.member_id) ?? visibile.persone[0]?.member_id ?? null)
     // Firmato e non pagato: si riprende dal pagamento, senza rifirmare.
     const d = cambioId ? null : r.stato.da_pagare
     if (d) {
@@ -430,6 +436,8 @@ export function Abbonamento() {
   async function paga() {
     const m = metodoScelto()
     if (!m || !firmato) return
+    // Sul totem un addebito su un metodo salvato o un IBAN passa dalle tre strade (`totem/passaggio.ts`); la pagina della carta nuova le fa passare `apriPagamento`.
+    if ((m.metodo === 'conto' || m.con_carta) && !(await passaDalTotem({ cosa: 'abbonamento', percorso: '/abbonamento' }))) return
     setErrorePagamento(null)
     setPagando(true)
     const r = await pagaAbbonamento(firmato.numero, m)

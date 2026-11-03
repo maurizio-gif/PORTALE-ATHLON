@@ -4,6 +4,7 @@ import { Linking, Platform } from 'react-native'
 
 import { acquistaLezione, disdiciLezione, pagaLezioneConCarta, prenotaLezione, type DaPagare } from '@/api/lab'
 import { apriPagamento } from '@/lib/pagamentoEsterno'
+import { passaDalTotem } from '@/features/lab/totem/passaggio'
 
 // Prenotare, disdire e pagare una lezione di gruppo: i quattro gesti che il Calendario faceva da solo e che
 // adesso fa anche il Percorso Athlon dalle sue tappe (20/10/2026). Sono qui, in un posto solo, perche' due copie
@@ -55,6 +56,8 @@ export function usePrenotazioneLezione(memberId: number | null | undefined, dopo
 
   /** Con la carta salvata: l'addebito, poi l'esito come al ritorno dal pagamento. */
   async function pagaCarta(acquistoId: string): Promise<string | null> {
+    // Sul totem un addebito su una carta salvata passa dalle tre strade (QR, email, operatore): annullato, non parte.
+    if (!(await passaDalTotem({ cosa: 'carta salvata', percorso: '/calendario' }))) return null
     setOccupato(true)
     const r = await pagaLezioneConCarta(acquistoId)
     setOccupato(false)
