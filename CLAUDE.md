@@ -141,3 +141,4 @@ chiamata diretta al gestionale. Esempio: la sezione Prodotti usa l'azione `prodo
 - [La chat «Richiedi assistenza» su Android installata: la tastiera non si richiude più (04/11/2026)](docs/claude/103-chat-assistenza-android-pwa-tastiera-04-11-2026.md) · 2 KB
 - [Totem: ogni pagamento passa da QR, email o operatore (04/11/2026)](docs/claude/104-totem-ogni-pagamento-qr-email-operatore-04-11-2026.md) · 4 KB
 - [La Home scrive «Guest» a un Guest, non «Socio» (04/11/2026)](docs/claude/105-home-guest-al-posto-di-socio-04-11-2026.md) · 1 KB
+- [Brevetti: ottenuto e in corso, e il libretto anche senza un abbonamento (04/11/2026)](docs/claude/106-brevetti-ottenuto-in-corso-e-senza-abbonamento-04-11-2026.md) · 3 KB

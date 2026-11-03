@@ -355,7 +355,7 @@ function ChipStato({ stato, fatte, totale }: { stato: Stato; fatte: number; tota
       <View style={[stili.chip, { backgroundColor: "#FFEBD9" }]}>
         <Icona nome="bandiera" size={13} colore={ARANCIO} />
         <Text style={[stili.chipTesto, { color: ARANCIO }]}>
-          {fatte > 0 ? t(`Il prossimo traguardo · ${fatte} su ${totale}`, `The next goal · ${fatte} of ${totale}`) : t("Il prossimo traguardo", "The next goal")}
+          {fatte > 0 ? t(`In corso · ${fatte} su ${totale}`, `In progress · ${fatte} of ${totale}`) : t("In corso", "In progress")}
         </Text>
       </View>
     );

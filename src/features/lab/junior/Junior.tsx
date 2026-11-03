@@ -13,11 +13,11 @@ import { t } from "@/lib/lingua";
 import { spazio } from "@/theme";
 
 import { inMemoria, prendi, ricorda, scorda } from "../memoria";
-import { Etichetta, Messaggio, Pulsante, SchedeInArrivo } from "../ui/kit";
+import { Etichetta, Messaggio, Pulsante, SchedeInArrivo, Sezione } from "../ui/kit";
 import { Schermata } from "../ui/Schermata";
 import { F, usePalette } from "../ui/tema";
 import { vistaCorrente } from "../vista";
-import { annoDi, chiPuoIscriversi, eBaby, nomeCompleto, nomeIscrizione, personeDaMostrare } from "./comune";
+import { annoDi, chiPuoIscriversi, eBaby, haBrevetti, nomeCompleto, nomeIscrizione, personeDaMostrare } from "./comune";
 import { attivitaDiPersona } from "./attivita";
 import { AttivitaDaScegliere } from "./AttivitaDaScegliere";
 import { Brevetti } from "./Brevetti";
@@ -100,7 +100,9 @@ export function Junior() {
   const persone = personeDaMostrare(nucleo);
   // La persona di cui si lavora: quella toccata, se c'e' ancora; se no la prima in eta' per i corsi.
   const idonee = persone.filter((x) => x.idoneo);
-  const persona = idonee.find((x) => x.member_id === personaScelta) ?? idonee[0] ?? null;
+  // Chi ha dei brevetti si sceglie anche se non è in età per i corsi (04/11/2026): il libretto resta suo, iscritto o no.
+  const scegliibili = persone.filter((x) => x.idoneo || haBrevetti(x));
+  const persona = scegliibili.find((x) => x.member_id === personaScelta) ?? idonee[0] ?? scegliibili[0] ?? null;
   // **Senza un figlio registrato non si mostra nessun turno** (02/11/2026): resta solo «Aggiungi».
   const senzaFigli = !persona;
   const personaIscritta = !!persona && (persona.gruppi.length > 0);
@@ -156,7 +158,8 @@ export function Junior() {
     );
   }
 
-  if (!gruppi.length && !senzaFigli) {
+  // Senza gruppi aperti non c'è niente da scegliere, ma i brevetti si vedono lo stesso (04/11/2026).
+  if (!gruppi.length && !senzaFigli && !(persona && haBrevetti(persona))) {
     return (
       <Schermata {...intestazione}>
         <Messaggio tono="attenzione" titolo={t("Nessun gruppo attivo", "No active groups")}>
@@ -211,6 +214,14 @@ export function Junior() {
               onInCorsoFinito={() => setGiroInCorso((n) => n + 1)}
             />
           ) : (
+            <>
+              {/* Senza un abbonamento i brevetti già ottenuti si vedono lo stesso, e si scarica il libretto e si condivide (04/11/2026, richiesta di Maurizio). */}
+              {persona.livello ? (
+                <Sezione titolo={t("Brevetti", "Badges")}>
+                  <Brevetti key={persona.member_id} persona={persona} vista={vista} />
+                </Sezione>
+              ) : null}
+              {persona.idoneo ? (
             <AttivitaDaScegliere
               key={persona.member_id}
               persona={persona}
@@ -228,6 +239,8 @@ export function Junior() {
                 />
               }
             />
+              ) : null}
+            </>
           )}
         </>
       ) : null}
@@ -287,12 +300,12 @@ function AreaIscritto({
   const voci = useMemo(() => {
     const v: VoceJunior[] = ["abbonamento", "lezioni"];
     if (recuperabile !== false) v.push("recuperi");
-    if (persona.livello) v.push("brevetti");
+    if (haBrevetti(persona)) v.push("brevetti");
     if (!baby) v.push("cambio");
     if (persona.minorenne) v.push("dt");
     v.push("attivita");
     return v;
-  }, [recuperabile, persona.livello, persona.minorenne, baby]);
+  }, [recuperabile, persona.livello, persona.in_corso, persona.minorenne, baby]);
   // Se la voce aperta sparisce dal menu (i recuperi, quando si scopre che non ci sono) si torna alla prima.
   const attiva: VoceJunior = voci.includes(voce) ? voce : voci[0];
   const parte: ParteCorsi | null = attiva === "abbonamento" || attiva === "lezioni" || attiva === "recuperi" ? attiva : null;
@@ -310,7 +323,7 @@ function AreaIscritto({
         onDati={(d) => setRecuperabile(d.recuperabile)}
       />
 
-      {attiva === "brevetti" && persona.livello ? <Brevetti persona={persona} vista={vista} /> : null}
+      {attiva === "brevetti" && haBrevetti(persona) ? <Brevetti persona={persona} vista={vista} /> : null}
       {attiva === "cambio" ? <CambioOrario persona={persona} gruppi={gruppi} vista={vista} /> : null}
       {attiva === "dt" ? <DirettoreTecnico persona={persona} vista={vista} /> : null}
       {attiva === "attivita" ? <SchedaAttivita chiavi={attivitaDiPersona(persona)} nome={persona.nome} /> : null}
