@@ -36,8 +36,10 @@ export type PersonaGara = {
   nome: string | null;
   cognome: string | null;
   anno: number | null;
-  /** Il sesso sulla scheda: `Male`, `Female` o `Other`. Il genitore lo conferma all'iscrizione. */
+  /** Il sesso sulla scheda su PerfectGym: `Male`, `Female` o `Other`. */
   sesso: string | null;
+  /** Il sesso che dice il codice fiscale (solo se il codice torna con la data di nascita), o `null`: in quel caso e solo in quello lo sceglie il genitore. */
+  sesso_cf: "Male" | "Female" | null;
   livello: string | null;
   livello_nome: string | null;
   fascia: string | null;
@@ -106,9 +108,12 @@ export async function leggiGare(): Promise<EsitoGare> {
 
 export type EsitoIscrizione = { ok: true; iscrizione_id: number; stato: string; sesso_aggiornato: boolean } | { ok: false; errore: string; gia_iscritto?: boolean };
 
-/** Iscrive un bambino a una gara, con il sesso confermato. Non paga: dopo si chiama `pagaGara`. */
-export async function iscriviAGara(garaId: number, memberId: number, sesso: "Male" | "Female"): Promise<EsitoIscrizione> {
-  const { ok, dati } = await funzione("portale-lab-gare", { azione: "iscrivi", gara_id: garaId, member_id: memberId, sesso });
+/**
+ * Iscrive un bambino a una gara. Il sesso lo dice il codice fiscale (`PersonaGara.sesso_cf`): `sesso` si manda solo quando il codice non lo dice, ed e' quello scelto
+ * dal genitore. Non paga: dopo si chiama `pagaGara`.
+ */
+export async function iscriviAGara(garaId: number, memberId: number, sesso: "Male" | "Female" | null): Promise<EsitoIscrizione> {
+  const { ok, dati } = await funzione("portale-lab-gare", { azione: "iscrivi", gara_id: garaId, member_id: memberId, ...(sesso ? { sesso } : {}) });
   if (!ok) {
     return {
       ok: false,
