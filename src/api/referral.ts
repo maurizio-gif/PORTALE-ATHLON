@@ -6,7 +6,8 @@ import { intestazioneLingua, t } from '@/lib/lingua'
 // `portale-lab-referral` (APP-ATHLON); e, per la pagina pubblica dell'invito, il nome di chi ha invitato (`guest-pass`,
 // azione `invito`). Il voucher da 50 € non passa di qui: quando l'amico si iscrive, il desk riceve un task in Agenda.
 
-export type StatoAmico = 'accettato' | 'in_prova' | 'prova_finita' | 'iscritto' | 'scaduto'
+/** `respinto` (04/11/2026): il sistema ha visto un abbonamento dal 2021, quindi l'amico non e' idoneo alla campagna e non da' nessun voucher: chi ha invitato lo legge «Non idoneo» (senza il perche': e' un dato suo). */
+export type StatoAmico = 'accettato' | 'in_prova' | 'prova_finita' | 'iscritto' | 'scaduto' | 'respinto'
 
 export type Amico = {
   id: string
