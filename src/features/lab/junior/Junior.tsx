@@ -13,7 +13,7 @@ import { t } from "@/lib/lingua";
 import { spazio } from "@/theme";
 
 import { inMemoria, prendi, ricorda, scorda } from "../memoria";
-import { Etichetta, Messaggio, Pulsante, SchedeInArrivo, Sezione } from "../ui/kit";
+import { Etichetta, Messaggio, Pulsante, SchedeInArrivo } from "../ui/kit";
 import { Schermata } from "../ui/Schermata";
 import { F, usePalette } from "../ui/tema";
 import { vistaCorrente } from "../vista";
@@ -21,6 +21,7 @@ import { annoDi, chiPuoIscriversi, eBaby, haBrevetti, nomeCompleto, nomeIscrizio
 import { attivitaDiPersona } from "./attivita";
 import { AttivitaDaScegliere } from "./AttivitaDaScegliere";
 import { Brevetti } from "./Brevetti";
+import { BrevettiChiusi } from "./BrevettiChiusi";
 import { CambioOrario } from "./CambioOrario";
 import { CorsiPersona, type ParteCorsi } from "./Corsi";
 import { concludiInCorso, iscrizioniInCorso, type InCorso } from "./inCorso";
@@ -219,31 +220,27 @@ export function Junior() {
             />
           ) : (
             <>
-              {/* Senza un abbonamento i brevetti già ottenuti si vedono lo stesso, e si scarica il libretto e si condivide (04/11/2026, richiesta di Maurizio). */}
-              {persona.livello ? (
-                <Sezione titolo={t("Brevetti", "Badges")}>
-                  <Brevetti key={persona.member_id} persona={persona} vista={vista} />
-                </Sezione>
-              ) : null}
               {persona.idoneo ? (
-            <AttivitaDaScegliere
-              key={persona.member_id}
-              persona={persona}
-              gruppi={gruppi}
-              vista={vista}
-              puoIscriversi={(g) => chiPuoIscriversi(nucleo, g).some((x) => x.member_id === persona.member_id)}
-              onIscrivi={(g) => iscrivi(g, persona.member_id)}
-              contenutoBaby={
-                <CorsiPersona
+                <AttivitaDaScegliere
+                  key={persona.member_id}
                   persona={persona}
+                  gruppi={gruppi}
                   vista={vista}
-                  parte="baby"
-                  inCorso={inCorso.find((x) => x.member_id === persona.member_id)}
-                  onInCorsoFinito={() => setGiroInCorso((n) => n + 1)}
+                  puoIscriversi={(g) => chiPuoIscriversi(nucleo, g).some((x) => x.member_id === persona.member_id)}
+                  onIscrivi={(g) => iscrivi(g, persona.member_id)}
+                  contenutoBaby={
+                    <CorsiPersona
+                      persona={persona}
+                      vista={vista}
+                      parte="baby"
+                      inCorso={inCorso.find((x) => x.member_id === persona.member_id)}
+                      onInCorsoFinito={() => setGiroInCorso((n) => n + 1)}
+                    />
+                  }
                 />
-              }
-            />
               ) : null}
+              {/* Senza un abbonamento i brevetti già ottenuti si vedono lo stesso (libretto, diploma), ma in fondo e chiusi, sotto le attività da scegliere (04/11/2026, richiesta di Maurizio). */}
+              {persona.livello ? <BrevettiChiusi key={persona.member_id} persona={persona} vista={vista} /> : null}
             </>
           )}
         </>
