@@ -6,7 +6,7 @@ import { locale, t } from "@/lib/lingua";
 import { spazio } from "@/theme";
 
 import { Icona } from "../ui/Icona";
-import { Carta, Messaggio, Pulsante } from "../ui/kit";
+import { Carta, Messaggio, Pulsante, SchedeInArrivo } from "../ui/kit";
 import { F, usePalette, velo } from "../ui/tema";
 import { dateDeiPassaggi, giornoBrevetto, leggiBrevetto, livelloDi, LIVELLI, nomeSpecie, posizioneDi } from "./datiBrevetti";
 import { nomeCompleto } from "./comune";
@@ -67,6 +67,38 @@ export function Brevetti({ persona, vista }: { persona: PersonaJunior; vista: bo
   const proveSuperate = prossimo ? prossimo.superate : [];
 
   if (!attuale) {
+    // Si legge ancora: non si dice «niente» prima di saperlo.
+    if (esito === undefined) return <SchedeInArrivo quante={1} />;
+    // Nessun brevetto ottenuto, ma è nel libretto e sta facendo il primo (04/11/2026): PerfectGym ci dà il livello in corso, e chi era in A1 non ha ancora ottenuto niente.
+    const inCorso = esito.ok && esito.prossimo ? esito.prossimo : null;
+    const primo = inCorso ? livelloDi(inCorso.codice) : null;
+    if (inCorso && primo) {
+      const fatte = inCorso.superate.length;
+      return (
+        <Carta>
+          <View style={stili.eroe}>
+            <PersonaggioAnimato specie={primo.specie} larghezza={72} altezza={72} effetti={false} etichetta={nomeSpecie(primo.specie)} />
+            <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
+              <Text style={[stili.piccolo, { color: p.testoSecondario }]}>{t("Brevetto in corso", "Badge in progress")}</Text>
+              <Text style={[stili.nome, { color: p.testo }]}>{nomeSpecie(primo.specie)}</Text>
+              <Text style={[stili.piccolo, { color: p.testoSecondario }]}>{t(`Livello ${primo.codice}`, `Level ${primo.codice}`)}</Text>
+            </View>
+          </View>
+          <View style={{ paddingHorizontal: spazio.tre, paddingBottom: spazio.tre, gap: 6 }}>
+            <Text style={[stili.piccolo, { color: p.testo, fontFamily: F.bold }]}>
+              {fatte > 0
+                ? t(`${fatte} prove su ${inCorso.totale}`, `${fatte} of ${inCorso.totale} tests`)
+                : t(`${persona.nome ?? "Il bambino"} non ha ancora ottenuto nessun brevetto: lo ottiene con tutte le prove.`, `${persona.nome ?? "Your child"} hasn’t earned a badge yet: they get it when all the tests are done.`)}
+            </Text>
+            {fatte > 0 ? (
+              <View style={[stili.barraProve, { backgroundColor: p.incavo }]} accessibilityRole="progressbar" accessibilityValue={{ min: 0, max: inCorso.totale, now: fatte }}>
+                <View style={[stili.barraProveRiempita, { backgroundColor: p.accento, width: `${(Math.min(fatte, inCorso.totale) / Math.max(inCorso.totale, 1)) * 100}%` }]} />
+              </View>
+            ) : null}
+          </View>
+        </Carta>
+      );
+    }
     return (
       <Messaggio>
         {t(
@@ -159,8 +191,8 @@ export function Brevetti({ persona, vista }: { persona: PersonaJunior; vista: bo
           />
           <Text style={[stili.piccolo, { color: p.testoTerzo }]}>
             {t(
-              "I livelli sono progressivi: quelli fino al brevetto di adesso risultano conseguiti. Prove e programma sono quelli del libretto del club.",
-              "Levels are progressive: those up to the current badge count as earned. Tests and programme are those of the club’s booklet.",
+              "I livelli sono progressivi: quelli fino al brevetto di adesso risultano conseguiti, il successivo è in corso. Prove e programma sono quelli del libretto del club.",
+              "Levels are progressive: those up to the current badge count as earned, the next one is in progress. Tests and programme are those of the club’s booklet.",
             )}
           </Text>
 

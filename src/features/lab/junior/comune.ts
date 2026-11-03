@@ -202,7 +202,13 @@ export function annoIniziale(
 /** Chi si mostra: gli idonei, e i minorenni non ancora idonei (un neonato) col perche'. Gli adulti fuori eta' no. */
 export function personeDaMostrare(n: NucleoJunior | null): PersonaJunior[] {
   if (!n) return [];
-  return n.persone.filter((p) => p.idoneo || (p.minorenne && !p.titolare));
+  // Chi ha dei brevetti ottenuti si mostra sempre (04/11/2026): anche un adulto non in età per i corsi può rivedere il suo libretto.
+  return n.persone.filter((p) => p.idoneo || (p.minorenne && !p.titolare) || !!p.livello);
+}
+
+/** Ha un libretto da guardare: un brevetto ottenuto, o è nel registro e sta facendo il primo. Vale anche senza un abbonamento. */
+export function haBrevetti(p: Pick<PersonaJunior, "livello" | "in_corso">): boolean {
+  return !!(p.livello || p.in_corso);
 }
 
 export function annoDi(p: PersonaJunior): number | null {
