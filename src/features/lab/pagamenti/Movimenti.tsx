@@ -313,7 +313,11 @@ export function DaPagare({ elenco, carta, inCorsoFrase, onApri, onAggiorna, veri
       {/* Un errore del pagamento sta subito sotto il titolo, dove l'occhio e' gia': non in fondo, sopra i pulsanti. */}
       {errore ? <Messaggio>{errore}</Messaggio> : null}
       {inAttesa ? (
-        <Messaggio tono="attenzione" icona="clessidra">{inCorsoFrase}</Messaggio>
+        <>
+          <Messaggio tono="attenzione" icona="clessidra">{inCorsoFrase}</Messaggio>
+          {/* Salvare un nuovo metodo non paga niente: resta possibile (03/11/2026). */}
+          <Text style={[stili.nota, { color: p.testoSecondario }]}>{t('Puoi comunque aggiornare il metodo di pagamento.', 'You can still update your payment method.')}</Text>
+        </>
       ) : fase !== 'pagato' ? (
         <Text style={[stili.nota, { color: p.testoSecondario }]}>
           {spiegazione} {vista ? '' : t('Puoi pagare adesso, con la carta.', 'You can pay now, by card.')}
