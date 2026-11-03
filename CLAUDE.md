@@ -146,3 +146,4 @@ chiamata diretta al gestionale. Esempio: la sezione Prodotti usa l'azione `prodo
 - [Un pagamento in corso si vede e le quote non si pagano due volte: la schermata «Da pagare» e il riquadro in Home (03/11/2026)](docs/claude/108-pagamento-in-corso-nell-app-03-11-2026.md) · 2 KB
 - [Brevetti: le prove di ogni livello sono le abilità di PerfectGym (04/11/2026)](docs/claude/109-brevetti-prove-da-perfectgym-04-11-2026.md) · 2 KB
 - [La voce «Gare» di Junior: il Trofeo Athlon, iscrizione e pagamento dall'app (04/11/2026)](docs/claude/110-gare-trofeo-athlon-04-11-2026.md) · 3 KB
+- [«Entra» dal sito: il link dell'email apre l'app già dentro sulla pagina giusta, e un indirizzo aperto a freddo non si perde più (04/11/2026)](docs/claude/111-entra-dal-sito-04-11-2026.md) · 6 KB

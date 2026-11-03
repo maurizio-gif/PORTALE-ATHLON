@@ -742,9 +742,11 @@ function CalendarioGiorno() {
   // Si puo' arrivare con un giorno e una categoria gia' scelti (`?giorno=2026-10-31&attivita=Eventi Gratuiti`): e' il
   // pulsante «Prenota nel calendario» della pagina di un evento (21/10/2026). Un valore che non ha la forma giusta si
   // ignora; un giorno fuori dai quindici del calendario il server lo riporta a oggi.
+  // **La categoria vale anche senza il giorno** (04/11/2026): i pulsanti «Prenota» del sito e il link dell'email (`/entra`) non
+  // sanno che giorno e' quando la persona li apre, e portano solo `?attivita=Group Reformer`: si apre su oggi, gia' filtrato.
   const { giorno: giornoDaFuori, attivita: attivitaDaFuori } = useLocalSearchParams<{ giorno?: string; attivita?: string }>()
   const giornoScelto = typeof giornoDaFuori === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(giornoDaFuori) ? giornoDaFuori : undefined
-  const attivitaScelta = giornoScelto && typeof attivitaDaFuori === 'string' && attivitaDaFuori.length <= 60 ? attivitaDaFuori : null
+  const attivitaScelta = typeof attivitaDaFuori === 'string' && attivitaDaFuori.length > 0 && attivitaDaFuori.length <= 60 ? attivitaDaFuori : null
   useEffect(() => {
     setAttivita(attivitaScelta)
     leggi(giornoScelto)
