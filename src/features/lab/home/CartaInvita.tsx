@@ -15,7 +15,7 @@ import { F, FUOCO, usePalette } from '../ui/tema'
 import { vistaCorrente } from '../vista'
 import { personeConAbbonamento } from './regolarita'
 
-// L'ingresso a «Invita un amico» dalla Home (21/10/2026, richiesta di Maurizio). Sta subito sotto «Da fare», prima
+// L'ingresso a «Invita i tuoi amici» dalla Home (21/10/2026, richiesta di Maurizio). Sta subito sotto «Da fare», prima
 // dello Shop, e **non gli somiglia**: lo Shop e' una carta chiara col bollino arancio, questa e' scura col regalo, cosi'
 // le due non si confondono. Il titolo dice il vantaggio, non il nome del programma.
 //
@@ -23,7 +23,7 @@ import { personeConAbbonamento } from './regolarita'
 // `portale-lab-referral`, che la ricontrolla). Mai in vista cliente.
 //
 // **Il vantaggio e' la cifra, non la parola «voucher»** (04/11/2026, richiesta di Maurizio): «ricevi 50 €», con la cifra in
-// grassetto. La cifra la dice la funzione (`voucher`); finche' non ha risposto vale quella di sempre.
+// grassetto. **Titolo e testo sono al plurale** («Invita i tuoi amici»), sempre: l'idea e' farlo condividere a piu' persone. La cifra la dice la funzione (`voucher`); finche' non ha risposto vale quella di sempre.
 
 /** Il voucher di ripiego, finche' la funzione non ha risposto: lo stesso di `portale-lab-referral` (VOUCHER). */
 const VOUCHER_DI_RIPIEGO = 50
@@ -54,14 +54,14 @@ export function CartaInvita({ area }: { area: Extract<Area, { trovato: true }> }
   return (
     <Entra indice={2}>
       <Carta onPress={() => router.navigate('/invita')} style={[stili.carta, { backgroundColor: p.carbone }]}>
-        <View style={stili.riga} accessibilityRole="link" accessibilityLabel={t(`Invita un amico. Allenati con un amico: per lui una settimana di prova, per te ${voucher} € se si iscrive.`, `Invite a friend. Train with a friend: a trial week for them, €${voucher} for you if they join.`)}>
+        <View style={stili.riga} accessibilityRole="link" accessibilityLabel={t(`Invita i tuoi amici. Allenati con i tuoi amici: per loro una settimana di prova, per te ${voucher} € quando si iscrivono.`, `Invite your friends. Train with your friends: a trial week for them, €${voucher} for you when they join.`)}>
           <View style={[stili.bollino, { borderColor: FUOCO[0] }]}>
             <Icona nome="regalo" size={24} colore={FUOCO[0]} />
           </View>
           <View style={stili.testi}>
-            <Text style={stili.titolo}>{t('Allenati con un amico', 'Train with a friend')}</Text>
+            <Text style={stili.titolo}>{t('Invita i tuoi amici', 'Invite your friends')}</Text>
             <Text style={stili.sotto}>
-              {t('Mandagli il tuo invito: può provare il club o iscriversi subito, e se si iscrive ricevi ', 'Send them your invite: they can try the club or join right away, and if they join you get ')}
+              {t('Manda il tuo invito ai tuoi amici: possono provare il club o iscriversi subito, e quando si iscrivono ricevi ', 'Send your invite to your friends: they can try the club or join right away, and when they join you get ')}
               <Text style={stili.importo}>{t(`${voucher}\u00A0€`, `€${voucher}`)}</Text>
               {'.'}
             </Text>
