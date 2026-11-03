@@ -36,6 +36,10 @@ import { MarchioFacebook, MarchioInstagram, MarchioTelegram, MarchioTikTok } fro
 // amici»): l'idea e' farlo condividere a piu' persone possibile; (2) **mai «5 invece di 19»**: «potranno provare il club e
 // allenarsi con te per 1 settimana», e **in piccolo** «pagando solo 5 €»; (3) oltre a WhatsApp, email, SMS e «Copia»,
 // Facebook, Instagram, TikTok, Telegram e «Altre app» (vedi `condividi.ts` per cosa puo' fare ognuno).
+//
+// **Terzo giro (04/11/2026)**: nessun limite di amici (50 € per ognuno che si iscrive) e **l'unico requisito e' che siano nuovi
+// iscritti**; ora lo applica anche il server (APP-ATHLON, `referral_gia_iscritto`): chi ha un abbonamento dal 2021 in poi, scaduto o in
+// corso, non puo' avere l'invito. Lo stato `respinto` si legge neutro, senza dire perche'.
 
 export const CHIAVE_INVITO = 'referral:stato'
 
@@ -69,6 +73,9 @@ function racconto(a: Amico): { testo: string; tono: ToniTutti } {
       return { testo: t(`Prova finita · può iscriversi fino al ${giorno(a.ultimo_giorno)}`, `Trial ended · can join until ${giorno(a.ultimo_giorno)}`), tono: 'attenzione' }
     case 'scaduto':
       return { testo: t('Invito scaduto', 'Invitation expired'), tono: 'neutro' }
+    case 'respinto':
+      // Neutro: il perche' (un abbonamento dal 2021) e' un dato dell'amico, e chi invita non lo legge.
+      return { testo: t('Invito non valido per questo amico', 'Invitation not valid for this friend'), tono: 'neutro' }
     default:
       return { testo: t(`Ha accettato · ha tempo fino al ${giorno(a.ultimo_giorno)}`, `Accepted · has until ${giorno(a.ultimo_giorno)}`), tono: 'accento' }
   }
@@ -100,7 +107,7 @@ function Copertina({ s }: { s: Idoneo }) {
         <Text style={stili.copertinaSotto}>
           {t('Tu ricevi ', 'You get ')}
           <Text style={stili.cifraChiara}>{euro(s.voucher)}</Text>
-          {t(' quando si iscrivono.', ' when they join.')}
+          {t(' per ogni amico che si iscrive.', ' for every friend who joins.')}
         </Text>
       </View>
     </View>
@@ -140,8 +147,8 @@ function PerVoiDue({ s }: { s: Idoneo }) {
         </View>
         <Text style={[stili.corpo, { color: 'rgba(255,255,255,0.78)' }]}>
           {ti(
-            `Quando i tuoi amici si iscrivono, la segreteria carica per te un voucher da ${s.voucher} € sul tuo abbonamento.`,
-            `When your friends join, the front desk adds a €${s.voucher} voucher to your membership for you.`,
+            `Per ogni amico che si iscrive, la segreteria carica per te un voucher da ${s.voucher} € sul tuo abbonamento. Non c’è un limite agli amici che puoi invitare.`,
+            `For every friend who joins, the front desk adds a €${s.voucher} voucher to your membership. There’s no limit to how many friends you can invite.`,
           )}
         </Text>
       </Carta>
@@ -169,7 +176,7 @@ function Passo({ n, titolo, testo, ultimo }: { n: number; titolo: string; testo:
 }
 
 /** Una regola: l'icona, il titolo in grassetto e la frase che la spiega. */
-function Regola({ icona, titolo, testo }: { icona: 'calendario' | 'clessidra' | 'persone'; titolo: string; testo: string }) {
+function Regola({ icona, titolo, testo }: { icona: 'calendario' | 'clessidra' | 'persone' | 'regalo'; titolo: string; testo: string }) {
   const p = usePalette()
   return (
     <View style={stili.regola}>
@@ -351,10 +358,10 @@ export function Invita() {
           <Passo
             n={4}
             ultimo
-            titolo={ti(`Tu ricevi ${s.voucher} €`, `You get €${s.voucher}`)}
+            titolo={ti(`Tu ricevi ${s.voucher} € per ogni amico`, `You get €${s.voucher} for every friend`)}
             testo={ti(
-              `Quando si iscrivono, la segreteria carica il voucher da ${s.voucher} € sul tuo abbonamento. Lo segui qui sotto, in «I tuoi inviti».`,
-              `When they join, the front desk adds the €${s.voucher} voucher to your membership. You can follow it below, in “Your invitations”.`,
+              `Per ogni amico che si iscrive, la segreteria carica il voucher da ${s.voucher} € sul tuo abbonamento. Lo segui qui sotto, in «I tuoi inviti».`,
+              `For every friend who joins, the front desk adds the €${s.voucher} voucher to your membership. You can follow it below, in “Your invitations”.`,
             )}
           />
         </Carta>
@@ -366,8 +373,16 @@ export function Invita() {
             icona="calendario"
             titolo={t('Chi puoi invitare', 'Who you can invite')}
             testo={t(
-              'Amici che non sono stati iscritti ad Athlon dal 2021: nessun abbonamento e nessun Guest Pass da allora.',
-              'Friends who haven’t been members of Athlon since 2021: no membership and no Guest Pass since then.',
+              'Basta che siano nuovi iscritti: il sistema controlla che non abbiano avuto un abbonamento ad Athlon dal 2021 in poi, scaduto o ancora in corso.',
+              'They just need to be new members: the system checks that they haven’t had an Athlon membership since 2021, expired or still running.',
+            )}
+          />
+          <Regola
+            icona="regalo"
+            titolo={t('Quanti amici puoi invitare', 'How many friends you can invite')}
+            testo={t(
+              `Quanti ne vuoi: non c’è un limite, e il voucher da ${s.voucher} € vale per ognuno che si iscrive.`,
+              `As many as you like: there’s no limit, and the €${s.voucher} voucher applies for each one who joins.`,
             )}
           />
           <Regola

@@ -54,14 +54,14 @@ export function CartaInvita({ area }: { area: Extract<Area, { trovato: true }> }
   return (
     <Entra indice={2}>
       <Carta onPress={() => router.navigate('/invita')} style={[stili.carta, { backgroundColor: p.carbone }]}>
-        <View style={stili.riga} accessibilityRole="link" accessibilityLabel={t(`Invita i tuoi amici. Allenati con i tuoi amici: per loro una settimana di prova, per te ${voucher} € quando si iscrivono.`, `Invite your friends. Train with your friends: a trial week for them, €${voucher} for you when they join.`)}>
+        <View style={stili.riga} accessibilityRole="link" accessibilityLabel={t(`Invita i tuoi amici. Allenati con i tuoi amici: per loro una settimana di prova, per te ${voucher} € per ogni amico che si iscrive.`, `Invite your friends. Train with your friends: a trial week for them, €${voucher} for you for every friend who joins.`)}>
           <View style={[stili.bollino, { borderColor: FUOCO[0] }]}>
             <Icona nome="regalo" size={24} colore={FUOCO[0]} />
           </View>
           <View style={stili.testi}>
             <Text style={stili.titolo}>{t('Invita i tuoi amici', 'Invite your friends')}</Text>
             <Text style={stili.sotto}>
-              {t('Manda il tuo invito ai tuoi amici: possono provare il club o iscriversi subito, e quando si iscrivono ricevi ', 'Send your invite to your friends: they can try the club or join right away, and when they join you get ')}
+              {t('Manda il tuo invito ai tuoi amici: possono provare il club o iscriversi subito, e per ogni amico che si iscrive ricevi ', 'Send your invite to your friends: they can try the club or join right away, and for every friend who joins you get ')}
               <Text style={stili.importo}>{t(`${voucher}\u00A0€`, `€${voucher}`)}</Text>
               {'.'}
             </Text>

@@ -77,6 +77,8 @@ export type PaginaGuestPass = {
   consensi: ConsensoGuestPass[]
   inizio: { dal: string; al: string; scelto: string | null }
   prezzo: number
+  /** `non_nuovo` (04/11/2026): l'invito non vale per questa persona (risulta iscritta dal 2021), il prezzo e' quello di listino. */
+  invito_esito?: 'non_nuovo' | null
   /** La password per l'app e il portale: obbligatoria per chi non ha mai avuto un accesso (era nuovo o Lead). */
   password?: { obbligatoria: boolean }
   /** La carta e il conto gia' salvati su PerfectGym: si mostrano, e si possono usare. */

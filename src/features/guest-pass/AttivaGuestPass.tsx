@@ -500,6 +500,15 @@ export function AttivaGuestPass({ token, nome, iniziale }: { token: string; nome
       {avviso ? <Avviso tono={avviso.tono}>{avviso.testo}</Avviso> : null}
       {/* Un'anagrafica simile: finche' la segreteria non risponde (per email) non si conferma. */}
       {p.verifica ? <Avviso tono={p.verifica.stato === 'bloccata' ? 'errore' : 'attenzione'}>{p.verifica.testo}</Avviso> : null}
+      {/* L'invito e' per i nuovi iscritti (04/11/2026): chi risulta iscritto dal 2021 lo perde, e il prezzo e' quello di tutti. */}
+      {p.invito_esito === 'non_nuovo' ? (
+        <Avviso tono="attenzione">
+          {t(
+            `L’invito non vale per te: è per chi non è stato iscritto ad Athlon dal 2021. Il Guest Pass costa ${p.prezzo} €, come per tutti.`,
+            `The invitation doesn’t apply to you: it’s for people who haven’t been a member of Athlon since 2021. The Guest Pass costs ${p.prezzo} €, like for everyone.`,
+          )}
+        </Avviso>
+      ) : null}
 
       {/* La prova in vetrina (30/10/2026): il prezzo e, sotto, tutto quello che il Pass apre, a fisarmonica. Chi torna dalla
           pagina di pagamento o ha gia' confermato i dati trova l'elenco chiuso: sta solo finendo, e non va spinto sotto la piega. */}
