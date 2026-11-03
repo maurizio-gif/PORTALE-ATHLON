@@ -1,0 +1,7 @@
+## La Home a due colonne: lo stacco fra le carte e i riquadri (03/11/2026)
+
+Segnalazione di Maurizio (screenshot dal computer, 1440 px): la carta «Da fare» («Manca il metodo di pagamento», con «Aggiorna il metodo») era **attaccata ai riquadri** (Abbonamenti, Pagamenti…), quasi sovrapposta.
+
+- **Causa**: `Colonne` (`ui/kit.tsx`, sul web a due colonne del browser) aveva `marginBottom: -gap` sul contenitore, per annullare lo spazio sotto l'ultima carta. Ma il browser (Chromium) **taglia sempre lo spazio sotto l'ultima carta di una colonna**, quindi il `-gap` toglieva `gap` punti allo stacco già previsto da `Schermata`: con 20 di `gap` e 16 di `spazio.quattro` restavano **−4 punti**, cioè le carte salivano sopra i riquadri. Valeva per qualunque carta in fondo (la colonna di sinistra o di destra), non solo per «Da fare».
+- **Correzione**: tolto il `marginBottom` negativo. Lo stacco dai riquadri è quello di `Schermata`, uguale al telefono e al tablet. Il codice nativo (alternanza per indice, senza colonne del browser) non è toccato.
+- **Provato**: in Chromium, con una pagina di prova che riproduce il contenitore a colonne e il blocco che segue (carte più alte a sinistra, più alte a destra, carte vuote in fondo): prima −4 punti, dopo 16 in tutti i casi. `tsc` senza errori nuovi (43 di base). **Non guardato nell'app vera** (serve una sessione e dati): da riguardare la Home a 1440 px e a 900-1100 px.
