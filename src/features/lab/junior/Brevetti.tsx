@@ -6,9 +6,9 @@ import { locale, t } from "@/lib/lingua";
 import { spazio } from "@/theme";
 
 import { Icona } from "../ui/Icona";
-import { Carta, Messaggio, Pulsante, Sezione } from "../ui/kit";
+import { Carta, Messaggio, Pulsante } from "../ui/kit";
 import { F, usePalette, velo } from "../ui/tema";
-import { dateDeiPassaggi, giornoBrevetto, leggiBrevetto, LIVELLI, nomeBrevetto, nomeSpecie, posizioneDi } from "./datiBrevetti";
+import { dateDeiPassaggi, giornoBrevetto, leggiBrevetto, livelloDi, LIVELLI, nomeSpecie, posizioneDi } from "./datiBrevetti";
 import { nomeCompleto } from "./comune";
 import { Dettagli } from "./Dettagli";
 import { datiLibretto, stampaLibretto } from "./esportaLibretto";
@@ -25,7 +25,8 @@ import { ViaggioBrevetti } from "./ViaggioBrevetti";
 //   2. **il viaggio** (`ViaggioBrevetti`, 03/11/2026): la progressione dei dodici brevetti, animata, da sfogliare una pagina per brevetto; **ogni pagina conseguita si
 //      condivide** (lo stesso diplomino, con quel brevetto). Ha preso il posto del libretto da sfogliare (le pagine del PDF una accanto all'altra) e dell'elenco dei livelli;
 //   3. **il libretto in PDF**, per chi lo vuole da tenere o stampare: non e' piu' il modo di sfogliare, e' un file;
-//   4. **il percorso**: lo storico dei passaggi (`junior_livelli_storico`, dal 22/10/2026: PerfectGym non da' le date, quindi sono date «rilevate»).
+//   (Non c'e' piu' «Il percorso», la timeline dei passaggi con «al primo rilevamento» e la nota sulle date: tolta il 03/11/2026 su richiesta di Maurizio. I passaggi servono ancora
+//   per le date di ogni brevetto, dentro il viaggio e sulla carta in cima.)
 //
 // **La data del brevetto non viene dal mirror di PerfectGym** (03/11/2026, verificato sul database): la relazione socio-livello porta `id`, `name`, `order`,
 // `activityCategoryId`, `isDeleted` e un `version` che e' quello della definizione del livello; il `version` del socio non si muove al cambio di livello; i webhook
@@ -59,6 +60,11 @@ export function Brevetti({ persona, vista }: { persona: PersonaJunior; vista: bo
   // Le date in cui abbiamo visto arrivare i brevetti: solo i passaggi veri, mai le righe «al primo rilevamento» (dicono che il livello c'era gia', non da quando).
   const date = dateDeiPassaggi(passaggi);
   const dal = attuale?.codice && date[attuale.codice] ? giornoBrevetto(date[attuale.codice]) : null;
+  // Le prove del brevetto successivo gia' spuntate dal direttore tecnico. Si usano solo se la funzione parla dello stesso livello che l'app ritiene il successivo: un dato
+  // che non combacia (una funzione di prima, un livello cambiato fra una lettura e l'altra) non deve far vedere spunte sulla pagina sbagliata.
+  const successivo = posizione >= 0 ? LIVELLI[posizione + 1] : undefined;
+  const prossimo = esito?.ok && esito.prossimo && successivo && esito.prossimo.codice === successivo.codice ? esito.prossimo : null;
+  const proveSuperate = prossimo ? prossimo.superate : [];
 
   if (!attuale) {
     return (
@@ -82,6 +88,8 @@ export function Brevetti({ persona, vista }: { persona: PersonaJunior; vista: bo
     livello: codice || numero,
     corso: t("Scuola Nuoto Bambini", "Kids Swim School"),
     data: codice && date[codice] ? giornoBrevetto(date[codice]) : null,
+    // Le prove del brevetto, per il riquadro «Prove superate»: un brevetto conseguito le ha tutte (i livelli sono progressivi). Vuote se la sigla non e' del libretto.
+    prove: livelloDi(codice)?.prove() ?? [],
   });
   const diplomaAttuale = datiDiploma(attuale.codice, attuale.specie, attuale.livello);
 
@@ -113,6 +121,20 @@ export function Brevetti({ persona, vista }: { persona: PersonaJunior; vista: bo
             {attuale.codice || attuale.livello ? <Text style={[stili.piccolo, { color: p.testoSecondario }]}>{t(`Livello ${attuale.codice || attuale.livello}`, `Level ${attuale.codice || attuale.livello}`)}</Text> : null}
           </View>
         </View>
+        {/* Il cammino verso il brevetto successivo: compare appena il direttore tecnico spunta la prima prova, e cresce a ogni prova. */}
+        {prossimo && successivo && proveSuperate.length > 0 ? (
+          <View style={{ paddingHorizontal: spazio.tre, paddingBottom: spazio.tre, gap: 6 }}>
+            <Text style={[stili.piccolo, { color: p.testo, fontFamily: F.bold }]}>
+              {t(
+                `Verso ${nomeSpecie(successivo.specie)}${successivo.numero ? ` ${successivo.numero}` : ""}: ${proveSuperate.length} prove su ${prossimo.totale}`,
+                `Towards ${nomeSpecie(successivo.specie)}${successivo.numero ? ` ${successivo.numero}` : ""}: ${proveSuperate.length} of ${prossimo.totale} tests`,
+              )}
+            </Text>
+            <View style={[stili.barraProve, { backgroundColor: p.incavo }]} accessibilityRole="progressbar" accessibilityValue={{ min: 0, max: prossimo.totale, now: proveSuperate.length }}>
+              <View style={[stili.barraProveRiempita, { backgroundColor: p.accento, width: `${(Math.min(proveSuperate.length, prossimo.totale) / Math.max(prossimo.totale, 1)) * 100}%` }]} />
+            </View>
+          </View>
+        ) : null}
         {/* La data in cui il brevetto e' stato aggiornato, in evidenza: scritta solo dove la sappiamo (vedi il commento in testa). */}
         {dal ? (
           <View style={[stili.dataEvidenza, { backgroundColor: velo(p, "accento", p.scuro ? 0.18 : 0.1) }]}>
@@ -132,6 +154,7 @@ export function Brevetti({ persona, vista }: { persona: PersonaJunior; vista: bo
             posizione={posizione}
             date={date}
             foto={statoFoto.foto}
+            proveSuperate={proveSuperate}
             onCondividi={(l) => setDiploma(datiDiploma(l.codice, l.specie, l.numero))}
           />
           <Text style={[stili.piccolo, { color: p.testoTerzo }]}>
@@ -188,42 +211,6 @@ export function Brevetti({ persona, vista }: { persona: PersonaJunior; vista: bo
         </Text>
       </Dettagli>
 
-      <Sezione titolo={t("Il percorso", "The journey so far")}>
-        {!esito ? (
-          <Text style={[stili.piccolo, { color: p.testoSecondario }]}>{t("Un momento…", "One moment…")}</Text>
-        ) : !esito.ok ? (
-          <Messaggio>{esito.errore}</Messaggio>
-        ) : passaggi.length === 0 ? (
-          <Text style={[stili.piccolo, { color: p.testoSecondario }]}>{t("Non c’è ancora nessun brevetto registrato.", "There’s no badge recorded yet.")}</Text>
-        ) : (
-          <View>
-            {passaggi.map((x, i) => {
-              const b = leggiBrevetto(x.livello);
-              return (
-                <View key={`${x.rilevato_il}-${i}`} style={stili.passo}>
-                  <View style={stili.binario}>
-                    <View style={[stili.puntoPassaggio, { backgroundColor: i === 0 ? p.accento : p.incavo, borderColor: p.accento }]} />
-                    {i < passaggi.length - 1 ? <View style={[stili.linea, { backgroundColor: p.incavo }]} /> : null}
-                  </View>
-                  <View style={{ flex: 1, gap: 2, paddingBottom: spazio.tre }}>
-                    <Text style={[stili.livelloNome, { color: p.testo }]}>{b.codice ? `${b.codice} · ${nomeBrevetto(b)}` : nomeBrevetto(b)}</Text>
-                    <Text style={[stili.piccolo, { color: p.testoSecondario }]}>
-                      {x.primo_rilevamento ? t(`Brevetto al primo rilevamento · ${giornoBrevetto(x.rilevato_il)}`, `Badge at first check · ${giornoBrevetto(x.rilevato_il)}`) : giornoBrevetto(x.rilevato_il)}
-                    </Text>
-                  </View>
-                </View>
-              );
-            })}
-            <Text style={[stili.piccolo, { color: p.testoTerzo }]}>
-              {t(
-                "Le date sono quelle in cui abbiamo visto cambiare il brevetto, a partire dal 22 ottobre 2026: il passaggio può essere avvenuto qualche giorno prima. Per i passaggi precedenti non abbiamo una data.",
-                "Dates are when we saw the badge change, starting on October 22, 2026: the move may have happened a few days earlier. We don’t have dates for earlier changes.",
-              )}
-            </Text>
-          </View>
-        )}
-      </Sezione>
-
       <FoglioDiploma aperto={diploma !== null} onChiudi={() => setDiploma(null)} persona={persona} vista={vista} dati={diploma ?? diplomaAttuale} />
     </>
   );
@@ -238,11 +225,8 @@ const stili = StyleSheet.create({
   titoloCarta: { fontFamily: F.extra, fontSize: 18, letterSpacing: -0.3 },
   piccolo: { fontFamily: F.medio, fontSize: 13, lineHeight: 19 },
   testo: { fontFamily: F.medio, fontSize: 14, lineHeight: 21 },
-  livelloNome: { fontFamily: F.semi, fontSize: 16 },
   dataEvidenza: { flexDirection: "row", alignItems: "center", gap: spazio.due, alignSelf: "flex-start", marginHorizontal: spazio.tre, marginBottom: spazio.tre, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 999 },
   dataTesto: { fontFamily: F.extra, fontSize: 14 },
-  passo: { flexDirection: "row", gap: spazio.tre },
-  binario: { width: 16, alignItems: "center" },
-  puntoPassaggio: { width: 14, height: 14, borderRadius: 7, borderWidth: 2, marginTop: 3 },
-  linea: { flex: 1, width: 2, marginTop: 2 },
+  barraProve: { height: 8, borderRadius: 4, overflow: "hidden" },
+  barraProveRiempita: { height: "100%", borderRadius: 4 },
 });

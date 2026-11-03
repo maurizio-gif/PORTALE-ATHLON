@@ -46,6 +46,10 @@ import { PersonaggioAnimato } from "./PersonaggioAnimato";
 //     il bordo arancio e il bagliore che respira.
 //   - **Sotto la scena**: «Cosa si impara» del brevetto che si sta guardando (il programma del libretto del club).
 //
+// **Le prove del prossimo brevetto avanzano da sole** (03/11/2026, richiesta di Maurizio): il direttore tecnico le spunta dal CRM **una per volta**, e l'app mostra quelle gia'
+// fatte sulla pagina del brevetto che viene dopo («3 su 6») e allunga il binario oltre il bambino, in proporzione, verso la tappa successiva. Con tutte le prove il database fa passare il
+// bambino di livello da solo e la corsa arriva fino a li'. Le note del direttore non arrivano qui.
+//
 // **Tutto quello che e' solo vita** (raggi, bolle, galleggiamento, bagliore, coriandoli, la corsa del bambino) sta fermo con «riduci movimento» (`movimento.ts`): la
 // scena si vede finita, subito. Quello che porta un dato (le spunte che seguono lo scorrimento, l'anello) e' mosso dal dito, non dal tempo, e resta. **Il
 // bambino non e' un dato in piu'**: arriva dove dice il livello di PerfectGym, e le prove si segnano superate per ogni livello fino a quello di adesso (PerfectGym non
@@ -226,10 +230,13 @@ function Percorso({
   rimbalzo,
   foto,
   iniziale,
+  frazione,
   onVai,
 }: {
   larghezza: number;
   posizione: number;
+  /** Quanta strada ha fatto verso il brevetto successivo (le prove spuntate su quelle del livello): 0..1. */
+  frazione: number;
   scrollX: SharedValue<number>;
   stride: number;
   av: SharedValue<number>;
@@ -242,7 +249,8 @@ function Percorso({
   const pitch = (larghezza - 2 * PAD - NODO) / (N - 1);
   const x0 = PAD + NODO / 2;
   const cy = 28;
-  const riempi = useAnimatedStyle(() => ({ width: Math.max(0, av.value * posizione * pitch) }));
+  // Il binario arriva al bambino e poi va avanti di un pezzo verso la tappa dopo: tante prove spuntate, tanta strada in piu'.
+  const riempi = useAnimatedStyle(() => ({ width: Math.max(0, av.value * (posizione + frazione) * pitch) }));
   const gettone = useAnimatedStyle(() => ({ transform: [{ translateX: av.value * posizione * pitch }, { scale: rimbalzo.value }] }));
   const anello = useAnimatedStyle(() => ({ transform: [{ translateX: (Math.min(Math.max(scrollX.value, 0), (N - 1) * stride) / stride) * pitch }] }));
   const cicli = (["pre", "mini", "brevetti"] as const).map((c) => {
@@ -327,7 +335,7 @@ function RigaProva({
   );
 }
 
-function ChipStato({ stato }: { stato: Stato }) {
+function ChipStato({ stato, fatte, totale }: { stato: Stato; fatte: number; totale: number }) {
   if (stato === "corrente")
     return (
       <LinearGradient colors={[FUOCO[0], FUOCO[1]]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={stili.chip}>
@@ -346,7 +354,9 @@ function ChipStato({ stato }: { stato: Stato }) {
     return (
       <View style={[stili.chip, { backgroundColor: "#FFEBD9" }]}>
         <Icona nome="bandiera" size={13} colore={ARANCIO} />
-        <Text style={[stili.chipTesto, { color: ARANCIO }]}>{t("Il prossimo traguardo", "The next goal")}</Text>
+        <Text style={[stili.chipTesto, { color: ARANCIO }]}>
+          {fatte > 0 ? t(`Il prossimo traguardo · ${fatte} su ${totale}`, `The next goal · ${fatte} of ${totale}`) : t("Il prossimo traguardo", "The next goal")}
+        </Text>
       </View>
     );
   return (
@@ -394,11 +404,14 @@ function PaginaBrevetto({
   av,
   attivo,
   scatto,
+  superate,
   onCondividi,
 }: {
   l: LivelloBrevetto;
   i: number;
   stato: Stato;
+  /** Solo per il brevetto successivo a quello di adesso: i numeri d'ordine delle prove che il direttore tecnico ha gia' spuntato. */
+  superate: number[];
   data: string | null;
   nome: string;
   cardW: number;
@@ -411,6 +424,7 @@ function PaginaBrevetto({
 }) {
   const fatto = stato === "fatto" || stato === "corrente";
   const prove = l.prove();
+  const fatteDelProssimo = stato === "prossimo" ? prove.filter((_, k) => superate.includes(k + 1)).length : 0;
   // La pagina al centro e' piena; le vicine si rimpiccioliscono, scendono, si inclinano un poco e si abbassano di luce.
   const vicina = useAnimatedStyle(() => {
     const s = Math.max(-1.5, Math.min(1.5, (scrollX.value - i * stride) / stride));
@@ -454,7 +468,7 @@ function PaginaBrevetto({
         <Text style={stili.nome} accessibilityRole="header">
           {nomeLivello(l)}
         </Text>
-        <ChipStato stato={stato} />
+        <ChipStato stato={stato} fatte={fatteDelProssimo} totale={prove.length} />
         {fatto && data ? (
           <View style={stili.dataRiga}>
             <Icona nome="calendario" size={14} colore={GRIGIO} />
@@ -462,10 +476,12 @@ function PaginaBrevetto({
           </View>
         ) : null}
 
-        <Text style={stili.sezione}>{fatto ? t("Prove superate", "Tests passed") : t("Le prove", "The tests")}</Text>
+        <Text style={stili.sezione}>
+          {fatto ? t("Prove superate", "Tests passed") : fatteDelProssimo > 0 ? t(`Le prove · ${fatteDelProssimo} su ${prove.length}`, `The tests · ${fatteDelProssimo} of ${prove.length}`) : t("Le prove", "The tests")}
+        </Text>
         <View style={{ gap: 7 }}>
           {prove.map((x, k) => (
-            <RigaProva key={k} testo={x} k={k} n={prove.length} fatto={fatto} i={i} stride={stride} scrollX={scrollX} av={av} corrente={stato === "corrente"} />
+            <RigaProva key={k} testo={x} k={k} n={prove.length} fatto={fatto || (stato === "prossimo" && superate.includes(k + 1))} i={i} stride={stride} scrollX={scrollX} av={av} corrente={stato === "corrente"} />
           ))}
         </View>
 
@@ -492,10 +508,13 @@ export function ViaggioBrevetti({
   posizione,
   date,
   foto,
+  proveSuperate = [],
   onCondividi,
 }: {
   /** Il nome di battesimo del bambino («Sara»), per i titoli. */
   nome: string;
+  /** Le prove del brevetto successivo che il direttore tecnico ha gia' spuntato (numeri d'ordine, dal primo): vuoto se non ce n'e' o se non si sa. */
+  proveSuperate?: number[];
   /** Dove e' arrivato: l'indice del livello di adesso in `LIVELLI`. */
   posizione: number;
   /** Sigla -> data (ISO) in cui abbiamo visto arrivare quel brevetto, dove la sappiamo (`dateDeiPassaggi`). */
@@ -517,6 +536,10 @@ export function ViaggioBrevetti({
   const [focus, setFocus] = useState(posizione);
   const [scatto, setScatto] = useState(0);
   const iniziale = (nome.trim()[0] ?? "") || "·";
+  // Quanta strada verso il brevetto successivo: le prove spuntate sul totale di quel livello. All'ultimo livello non c'e' un successivo.
+  const successivo = LIVELLI[posizione + 1];
+  const totaleSuccessivo = successivo ? successivo.prove().length : 0;
+  const frazione = totaleSuccessivo > 0 ? Math.min(proveSuperate.length, totaleSuccessivo) / totaleSuccessivo : 0;
 
   const onScroll = useAnimatedScrollHandler((e) => {
     scrollX.value = e.contentOffset.x;
@@ -609,7 +632,7 @@ export function ViaggioBrevetti({
               </Tocco>
             </View>
 
-            <Percorso larghezza={W} posizione={posizione} scrollX={scrollX} stride={stride} av={av} rimbalzo={rimbalzo} foto={foto} iniziale={iniziale} onVai={vai} />
+            <Percorso larghezza={W} posizione={posizione} scrollX={scrollX} stride={stride} av={av} rimbalzo={rimbalzo} foto={foto} iniziale={iniziale} frazione={frazione} onVai={vai} />
 
             <Animated.ScrollView
               ref={rif}
@@ -639,6 +662,7 @@ export function ViaggioBrevetti({
                   av={av}
                   attivo={focus === i}
                   scatto={scatto}
+                  superate={i === posizione + 1 ? proveSuperate : []}
                   onCondividi={onCondividi}
                 />
               ))}
