@@ -108,8 +108,8 @@ function RichiestaConEmail({ invito, avviso }: { invito?: Invito; avviso?: strin
       sottotitolo={
         invito
           ? t(
-              `Con il suo invito provi il club per una settimana pagando solo ${invito.prezzo} € invece di ${invito.prezzoPieno}, oppure ti iscrivi subito. Scrivi la tua email: ti mandiamo il link per cominciare. L’invito vale 30 giorni da quando lo accetti, per chi non ha avuto abbonamenti o Guest Pass negli ultimi 3 anni.`,
-              `With this invitation you try the club for a week for just ${invito.prezzo} € instead of ${invito.prezzoPieno}, or you join right away. Enter your email: we’ll send you the link to get started. The invitation is valid for 30 days from when you accept it, for anyone who hasn’t had a membership or Guest Pass in the last 3 years.`,
+              `Con il suo invito provi il club per una settimana pagando solo ${invito.prezzo} € invece di ${invito.prezzoPieno}, oppure ti iscrivi subito. Scrivi la tua email: ti mandiamo il link per cominciare. L’invito vale 30 giorni da quando lo accetti, per chi non è stato iscritto ad Athlon dal 2021: nessun abbonamento e nessun Guest Pass da allora.`,
+              `With this invitation you try the club for a week for just ${invito.prezzo} € instead of ${invito.prezzoPieno}, or you join right away. Enter your email: we’ll send you the link to get started. The invitation is valid for 30 days from when you accept it, for anyone who hasn’t been a member of Athlon since 2021: no membership and no Guest Pass since then.`,
             )
           : t(
               'Il Guest Pass Premium: sala, corsi e vasche per 7 giorni a 19 €, senza impegno e senza rinnovo. Per chi non ha avuto abbonamenti o Guest Pass negli ultimi 3 anni, per te o per un figlio dai 13 ai 17 anni. Scrivi la tua email: ti mandiamo il link per attivarlo.',
