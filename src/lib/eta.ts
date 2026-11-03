@@ -3,6 +3,9 @@
 /** Il personal training e' dai 13 anni compiuti. */
 export const ETA_MINIMA_PERSONAL = 13
 
+/** L'abbonamento adulti e' dai 13 anni compiuti (dai 13 ai 17 firma il genitore). */
+export const ETA_MINIMA_ABBONAMENTO = 13
+
 /** L'eta' in anni compiuti; null se la data manca o non si legge. */
 export function etaDa(nascita: string | null | undefined, oggi: Date = new Date()): number | null {
   const m = String(nascita ?? '').match(/^(\d{4})-(\d{2})-(\d{2})/)

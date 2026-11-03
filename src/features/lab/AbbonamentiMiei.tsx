@@ -9,12 +9,12 @@ import { euro } from '@/lib/eventi'
 import { locale, t } from '@/lib/lingua'
 import { spazio } from '@/theme'
 
-import { regolaritaContratto, type Regolarita } from './home/regolarita'
+import { regolaritaContratto, senzaAbbonamento, type Regolarita } from './home/regolarita'
 import type { SezioneHome } from './home/sezioni'
 import { useApriPdf } from './apriPdf'
 import { CartaProva, PulsanteGestisci } from './abbonamento/Gestisci'
 import { inMemoria, prendi, scorda } from './memoria'
-import { Carta, Etichetta, Messaggio, Pulsante, SchedeInArrivo, Sezione } from './ui/kit'
+import { Avatar, Carta, Etichetta, Messaggio, Pulsante, SchedeInArrivo, Sezione } from './ui/kit'
 import { F, usePalette } from './ui/tema'
 import { Tocco } from './ui/Tocco'
 
@@ -233,6 +233,35 @@ function SchedaContratto({ c, conPersona, regolarita, onSezione, gestione, onCam
   )
 }
 
+/**
+ * L'invito a fare l'abbonamento per una persona del nucleo che non ce l'ha (03/11/2026). Apre la scelta gia' su di lei
+ * (`/abbonamento?membro=<id>`); per un minorenne la scelta dice che firma il genitore, e se il server non lo permette ne dice il motivo.
+ */
+function InvitoAbbonamento({ persona }: { persona: { member_id: number; nome: string | null; cognome: string | null; titolare: boolean } }) {
+  const p = usePalette()
+  const intero = `${persona.nome ?? ''} ${persona.cognome ?? ''}`.trim()
+  return (
+    <Carta>
+      <View style={{ gap: spazio.tre }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: spazio.tre }}>
+          <Avatar nome={persona.nome} cognome={persona.cognome} size={40} />
+          <View style={{ flex: 1, gap: 2 }}>
+            <Text style={{ color: p.testo, fontFamily: F.extra, fontSize: 16, letterSpacing: -0.3 }}>{persona.titolare ? t('Tu', 'You') : intero}</Text>
+            <Text style={{ color: p.testoSecondario, fontFamily: F.medio, fontSize: 14, lineHeight: 20 }}>
+              {persona.titolare ? t('Non hai ancora un abbonamento.', 'You don’t have a membership yet.') : t(`${persona.nome ?? 'Questa persona'} non ha ancora un abbonamento.`, `${persona.nome ?? 'This person'} doesn’t have a membership yet.`)}
+            </Text>
+          </View>
+        </View>
+        <Pulsante
+          testo={persona.titolare ? t('Scegli il tuo abbonamento', 'Choose your membership') : t(`Scegli l’abbonamento per ${persona.nome ?? 'lei/lui'}`, `Choose a membership for ${persona.nome ?? 'them'}`)}
+          icona="avanti"
+          onPress={() => router.navigate({ pathname: '/abbonamento', params: { membro: String(persona.member_id) } })}
+        />
+      </View>
+    </Carta>
+  )
+}
+
 export const CHIAVE_CONTRATTI = 'abbonamenti:contratti'
 
 /**
@@ -277,6 +306,7 @@ export function ElencoAbbonamenti({ area, onSezione }: { area: Extract<Area, { t
   const vigore = (elenco ?? []).filter((c) => c.in_vigore)
   const haPrincipale = vigore.some((c) => c.categoria === 'principale')
   const piuPersone = new Set(vigore.map((c) => c.member_id)).size > 1
+  const inviti = senzaAbbonamento(area)
   // La regolarita' viene dai dati della Home (l'area): il metodo e il debito sono li'.
   const regolarita = (c: ContrattoElenco): Regolarita | null => {
     const k = area.contratti.find((x) => x.contract_id === c.contract_id)
@@ -284,8 +314,19 @@ export function ElencoAbbonamenti({ area, onSezione }: { area: Extract<Area, { t
   }
   return (
     <View style={{ gap: spazio.quattro }}>
-      {/* Con un abbonamento principale attivo non si offre di sceglierne un altro: si vede solo quello. */}
-      {!haPrincipale ? <Pulsante testo={t('Scegli un abbonamento', 'Choose a membership')} icona="avanti" onPress={() => router.navigate('/abbonamento')} /> : null}
+      {/* Chi nel nucleo ha 13 anni o piu' e non ha un abbonamento riceve un invito a sceglierlo, anche se il genitore ne ha gia' uno
+          (03/11/2026, Maurizio). Senza inviti (nessuno da invitare, o date di nascita mancanti) resta il comando generale di prima. */}
+      {inviti.length ? (
+        <Sezione titolo={t('Un abbonamento per chi non ce l’ha', 'A membership for those without one')} conteggio={inviti.length}>
+          <View style={{ gap: spazio.tre }}>
+            {inviti.map((x) => (
+              <InvitoAbbonamento key={x.member_id} persona={x} />
+            ))}
+          </View>
+        </Sezione>
+      ) : !haPrincipale ? (
+        <Pulsante testo={t('Scegli un abbonamento', 'Choose a membership')} icona="avanti" onPress={() => router.navigate('/abbonamento')} />
+      ) : null}
       {errore && !elenco ? (
         <>
           <Messaggio>{errore}</Messaggio>
