@@ -1353,10 +1353,29 @@ export type QuotaFutura = {
 /** Con quale carta si propone di saldare le quote scadute: le ultime cifre e la scadenza («AAAA-MM»), o null. */
 export type CartaSaldo = { finale: string | null; scade: string | null }
 
-export async function movimentiPagamenti(): Promise<Esito<{ storico: Movimento[]; daSaldare: Movimento[]; futuri: QuotaFutura[]; cartaSaldo: CartaSaldo | null }>> {
+/**
+ * Un pagamento elettronico in corso (03/11/2026): un addebito SEPA che impiega 3-5 giorni lavorativi, o una carta appena partita. Finche' c'e'
+ * la quota resta «da pagare» su PerfectGym, e pagarla di nuovo sarebbe un doppio addebito: l'app lo scrive al posto dei pulsanti di pagamento.
+ */
+export type PagamentoInCorso = { metodo: 'sepa' | 'carta'; importo: number; dal: string; per: string | null }
+
+export async function movimentiPagamenti(): Promise<
+  Esito<{ storico: Movimento[]; daSaldare: Movimento[]; futuri: QuotaFutura[]; cartaSaldo: CartaSaldo | null; inCorso: PagamentoInCorso[]; inCorsoFrase: string | null }>
+> {
   const { ok, dati } = await pagamenti({ azione: 'movimenti' })
   // `saldo` manca con la funzione di prima (22/10/2026): niente carta da proporre, si paga dalla pagina della carta.
-  if (ok) return { ok: true, storico: dati.storico ?? [], daSaldare: dati.da_saldare ?? [], futuri: dati.futuri ?? [], cartaSaldo: dati.saldo?.carta ?? null }
+  // `in_corso` manca con la funzione di prima del 03/11/2026: nessun blocco dall'app (resta quello del server, che rifiuta il pagamento).
+  if (ok) {
+    return {
+      ok: true,
+      storico: dati.storico ?? [],
+      daSaldare: dati.da_saldare ?? [],
+      futuri: dati.futuri ?? [],
+      cartaSaldo: dati.saldo?.carta ?? null,
+      inCorso: Array.isArray(dati.in_corso) ? dati.in_corso : [],
+      inCorsoFrase: typeof dati.in_corso_frase === 'string' ? dati.in_corso_frase : null,
+    }
+  }
   return { ok: false, errore: dati.errore ?? t('Non riusciamo a leggere i tuoi pagamenti adesso.', 'We can’t load your payments right now.') }
 }
 
@@ -1367,7 +1386,7 @@ export async function movimentiPagamenti(): Promise<Esito<{ storico: Movimento[]
 export type EsitoSaldo =
   | { ok: true; stato: 'in_corso' | 'pagato'; url?: undefined }
   | { ok: true; stato: 'redirect'; url: string }
-  | { ok: false; errore: string; importoCambiato?: number; nonAttivo?: boolean }
+  | { ok: false; errore: string; importoCambiato?: number; nonAttivo?: boolean; /** C'e' gia' un pagamento in corso: il server non ha addebitato niente. */ inCorso?: boolean }
 
 export async function saldaPagamenti(totale: number, conCarta: boolean): Promise<EsitoSaldo> {
   const { ok, dati } = await pagamenti({ azione: 'salda', totale, con_carta: conCarta })
@@ -1381,6 +1400,7 @@ export async function saldaPagamenti(totale: number, conCarta: boolean): Promise
     ok: false,
     errore: dati.errore ?? t('Non siamo riusciti a completare il pagamento adesso.', 'We couldn’t complete the payment right now.'),
     importoCambiato: dati.codice === 'importo_cambiato' && typeof dati.totale === 'number' ? dati.totale : undefined,
+    inCorso: dati.codice === 'pagamento_in_corso' ? true : undefined,
   }
 }
 

@@ -32,7 +32,7 @@ import { apriPagamento } from '@/lib/pagamentoEsterno'
 
 export const CHIAVE_MOVIMENTI = 'pagamenti:movimenti'
 
-type Dati = { storico: Movimento[]; daSaldare: Movimento[]; futuri: QuotaFutura[]; cartaSaldo: CartaSaldo | null }
+type Dati = { storico: Movimento[]; daSaldare: Movimento[]; futuri: QuotaFutura[]; cartaSaldo: CartaSaldo | null; inCorsoFrase: string | null }
 
 export function soldi(n: number): string {
   return n.toLocaleString(locale(), { style: 'currency', currency: 'EUR' })
@@ -64,7 +64,7 @@ export function useMovimenti() {
   const carica = useCallback(async () => {
     setErrore(null)
     const r = await prendi(CHIAVE_MOVIMENTI, movimentiPagamenti)
-    if (r.ok) setDati({ storico: r.storico, daSaldare: r.daSaldare, futuri: r.futuri, cartaSaldo: r.cartaSaldo })
+    if (r.ok) setDati({ storico: r.storico, daSaldare: r.daSaldare, futuri: r.futuri, cartaSaldo: r.cartaSaldo, inCorsoFrase: r.inCorsoFrase })
     else setErrore(r.errore)
   }, [])
   /** Dopo un pagamento: si butta la memoria e si rilegge (la Home ricalcola i riquadri dalla sua lettura). */
@@ -199,7 +199,7 @@ type Fase = 'pronto' | 'invio-carta' | 'invio-altra' | 'verifica' | 'pagato' | '
  * quota che scade oggi non e' ancora stata addebitata, e il nostro dato non dice se un addebito e' fallito. Si dice che
  * risulta da pagare, e si paga.
  */
-export function DaPagare({ elenco, carta, onApri, onAggiorna, verificaSubito }: { elenco: Movimento[]; carta: CartaSaldo | null; /** Senza, le righe non si aprono (nella chat dell'assistente non c'e' il foglio del dettaglio). */ onApri?: (m: Movimento) => void; onAggiorna: () => void; verificaSubito: boolean }) {
+export function DaPagare({ elenco, carta, inCorsoFrase, onApri, onAggiorna, verificaSubito }: { elenco: Movimento[]; carta: CartaSaldo | null; /** Un pagamento elettronico e' gia' in corso (SEPA: giorni): la frase sta al posto dei pulsanti, per non pagare due volte. */ inCorsoFrase?: string | null; /** Senza, le righe non si aprono (nella chat dell'assistente non c'e' il foglio del dettaglio). */ onApri?: (m: Movimento) => void; onAggiorna: () => void; verificaSubito: boolean }) {
   const p = usePalette()
   const totale = Math.round(elenco.reduce((t, m) => t + m.importo, 0) * 100) / 100
   const vista = vistaCorrente() !== null
@@ -260,7 +260,8 @@ export function DaPagare({ elenco, carta, onApri, onAggiorna, verificaSubito }: 
       colpetto('errore')
       setErrore(r.errore)
       setFase('pronto')
-      if (r.importoCambiato != null) onAggiorna()
+      // Un pagamento e' partito da un'altra parte mentre la pagina era aperta: si rilegge, e la scheda dice che e' in corso.
+      if (r.importoCambiato != null || r.inCorso) onAggiorna()
       return
     }
     if (r.stato === 'pagato') {
@@ -293,16 +294,27 @@ export function DaPagare({ elenco, carta, onApri, onAggiorna, verificaSubito }: 
       : t('Sono scadute e non risultano ancora pagate.', 'They’re past due and aren’t paid yet.')
   const occupato = fase === 'invio-carta' || fase === 'invio-altra' || fase === 'verifica'
   const cifre = carta?.finale ? ` •••• ${carta.finale}` : ''
+  // Un pagamento elettronico gia' in corso (SEPA: 3-5 giorni lavorativi): la quota resta «da pagare» finche' non arriva, e pagarla di nuovo
+  // sarebbe un doppio addebito. Al posto dei pulsanti c'e' la frase (03/11/2026); `salda` lo rifiuta comunque anche lato server.
+  const inAttesa = !!inCorsoFrase && fase !== 'pagato' && fase !== 'verifica'
 
   return (
-    <Carta style={{ gap: spazio.due, borderWidth: 1.5, borderColor: fase === 'pagato' ? p.ok : p.errore }}>
+    <Carta style={{ gap: spazio.due, borderWidth: 1.5, borderColor: fase === 'pagato' ? p.ok : inAttesa ? p.attenzione : p.errore }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: spazio.due }}>
-        <Icona nome={fase === 'pagato' ? 'spunta' : 'attenzione'} size={20} colore={fase === 'pagato' ? p.ok : p.errore} />
-        <Text style={[stili.titoletto, { color: p.testo, flex: 1 }]}>{fase === 'pagato' ? t(`Pagato: ${soldi(totale)}`, `Paid: ${soldi(totale)}`) : t(`Da pagare: ${soldi(totale)}`, `Due now: ${soldi(totale)}`)}</Text>
+        <Icona nome={fase === 'pagato' ? 'spunta' : inAttesa ? 'clessidra' : 'attenzione'} size={20} colore={fase === 'pagato' ? p.ok : inAttesa ? p.attenzione : p.errore} />
+        <Text style={[stili.titoletto, { color: p.testo, flex: 1 }]}>
+          {fase === 'pagato'
+            ? t(`Pagato: ${soldi(totale)}`, `Paid: ${soldi(totale)}`)
+            : inAttesa
+              ? t(`Pagamento in corso: ${soldi(totale)}`, `Payment in progress: ${soldi(totale)}`)
+              : t(`Da pagare: ${soldi(totale)}`, `Due now: ${soldi(totale)}`)}
+        </Text>
       </View>
       {/* Un errore del pagamento sta subito sotto il titolo, dove l'occhio e' gia': non in fondo, sopra i pulsanti. */}
       {errore ? <Messaggio>{errore}</Messaggio> : null}
-      {fase !== 'pagato' ? (
+      {inAttesa ? (
+        <Messaggio tono="attenzione" icona="clessidra">{inCorsoFrase}</Messaggio>
+      ) : fase !== 'pagato' ? (
         <Text style={[stili.nota, { color: p.testoSecondario }]}>
           {spiegazione} {vista ? '' : t('Puoi pagare adesso, con la carta.', 'You can pay now, by card.')}
         </Text>
@@ -321,7 +333,7 @@ export function DaPagare({ elenco, carta, onApri, onAggiorna, verificaSubito }: 
         <Messaggio tono="attenzione">{t('Non vediamo ancora il pagamento. Se è andato a buon fine compare qui fra qualche minuto; se sei tornato indietro senza pagare, non è stato addebitato niente.', 'We can’t see the payment yet. If it went through it’ll show up here in a few minutes; if you went back without paying, nothing was charged.')}</Messaggio>
       ) : null}
 
-      {!vista && fase !== 'pagato' && fase !== 'verifica' ? (
+      {!vista && !inAttesa && fase !== 'pagato' && fase !== 'verifica' ? (
         <View style={{ gap: spazio.due }}>
           {carta ? (
             <Pulsante
@@ -377,7 +389,7 @@ export function RiepilogoPagamenti({ onPagato }: { onPagato?: () => void } = {})
   return (
     <View style={{ gap: spazio.quattro }}>
       {dati.daSaldare.length ? (
-        <DaPagare elenco={dati.daSaldare} carta={dati.cartaSaldo} onApri={(m) => setScelto({ tipo: 'movimento', m })} onAggiorna={aggiorna} verificaSubito={ritorno} />
+        <DaPagare elenco={dati.daSaldare} carta={dati.cartaSaldo} inCorsoFrase={dati.inCorsoFrase} onApri={(m) => setScelto({ tipo: 'movimento', m })} onAggiorna={aggiorna} verificaSubito={ritorno} />
       ) : null}
 
       <Sezione titolo={t('Prossimi pagamenti', 'Upcoming payments')} destra={dati.futuri.length > 3 ? <LinkSezione testo={t('Tutti', 'All')} onPress={() => router.push({ pathname: '/pagamenti/storico', params: { vista: 'futuri' } })} /> : undefined}>
@@ -472,7 +484,7 @@ export function StoricoPagamenti({ vistaIniziale }: { vistaIniziale: 'effettuati
     <Schermata sopratitolo={t('Pagamenti', 'Payments')} titolo={t('I tuoi pagamenti', 'Your payments')} sottotitolo={t('Tuoi e della tua famiglia, da PerfectGym.', 'Yours and your family’s, from PerfectGym.')} indietro={hrefSezione('pagamenti')} barra={false}>
       {intestazione}
       {dati.daSaldare.length && vista === 'effettuati' ? (
-        <DaPagare elenco={dati.daSaldare} carta={dati.cartaSaldo} onApri={(m) => setScelto({ tipo: 'movimento', m })} onAggiorna={rileggi} verificaSubito={false} />
+        <DaPagare elenco={dati.daSaldare} carta={dati.cartaSaldo} inCorsoFrase={dati.inCorsoFrase} onApri={(m) => setScelto({ tipo: 'movimento', m })} onAggiorna={rileggi} verificaSubito={false} />
       ) : null}
       {gruppi.length ? (
         gruppi.map((g) => (
