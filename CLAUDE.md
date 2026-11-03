@@ -133,3 +133,4 @@ chiamata diretta al gestionale. Esempio: la sezione Prodotti usa l'azione `prodo
 - [Le survey dentro Club Life: scritte nell'app, e chi risponde è già noto (03/11/2026)](docs/claude/95-le-survey-del-sito-in-club-life-03-11-2026.md) · 9 KB
 - [«Brevetti»: il viaggio animato al posto del libretto da sfogliare, e la data dell'ultimo brevetto (03/11/2026)](docs/claude/96-brevetti-il-viaggio-animato-03-11-2026.md) · 9 KB
 - [«Brevetti»: le prove spuntate si vedono nell'app, senza «Il percorso»; il diplomino con le prove e la storia senza vuoti (03/11/2026)](docs/claude/97-brevetti-le-prove-spuntate-si-vedono-nell-app-03-11-2026.md) · 6 KB
+- [L'invito a fare l'abbonamento per chi, nel nucleo, non ce l'ha: dai 13 anni, anche se il genitore è già iscritto (03/11/2026)](docs/claude/98-invito-abbonamento-per-chi-nel-nucleo-non-ce-l-ha-03-11-2026.md) · 2 KB

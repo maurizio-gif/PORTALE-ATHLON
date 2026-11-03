@@ -1,4 +1,5 @@
 import type { Area, ContrattoArea, PersonaArea } from '@/api/lab'
+import { ETA_MINIMA_ABBONAMENTO, etaDa } from '@/lib/eta'
 import { meseAnno, metodoDaPerfectGym } from '@/lib/metodoPagamento'
 import type { Tono } from '@/theme'
 import { locale, t } from '@/lib/lingua'
@@ -56,6 +57,22 @@ export function eAbbonamento(c: Pick<ContrattoArea, 'canone' | 'tipo' | 'aggiunt
 /** Le persone del nucleo che hanno un abbonamento in vigore (i contratti dell'area sono tutti vivi: in corso, non ancora iniziati o sospesi). */
 export function personeConAbbonamento(area: AreaTrovata): Set<number> {
   return new Set(area.contratti.filter(eAbbonamento).map((c) => c.member_id))
+}
+
+/**
+ * **Chi nel nucleo puo' avere un abbonamento adulti e non ce l'ha** (03/11/2026, richiesta di Maurizio): ogni persona dai 13 anni compiuti
+ * senza un abbonamento principale in vigore (`eAbbonamento`, non aggiuntivo: un corso Junior non lo e') merita un invito a sceglierne uno, **anche se il genitore ce l'ha gia'** e anche se il
+ * ragazzo (13-17) e' solo un figlio sulla scheda. Per i minorenni firma il genitore: lo dice il server (`portale-abbonamento`, `persone`).
+ * Restano fuori chi ha una prova in corso (Guest Pass: ha gia' il suo «Attiva abbonamento») e chi non ha la data di nascita (l'eta' non si
+ * sa: la scelta dell'abbonamento resta raggiungibile dal comando generale). Il titolare viene per primo.
+ */
+export function senzaAbbonamento(area: AreaTrovata, oggi: Date = new Date()): PersonaArea[] {
+  // Conta solo l'abbonamento principale: un corso Junior o un servizio in piu' (`aggiuntivo`) non e' l'abbonamento adulti.
+  const con = new Set(area.contratti.filter((c) => eAbbonamento(c) && !c.aggiuntivo).map((c) => c.member_id))
+  const inProva = new Set(area.contratti.filter((c) => c.tipo === 'guest_pass').map((c) => c.member_id))
+  return area.persone
+    .filter((x) => !con.has(x.member_id) && !inProva.has(x.member_id) && (etaDa(x.data_nascita, oggi) ?? -1) >= ETA_MINIMA_ABBONAMENTO)
+    .sort((a, b) => Number(b.titolare) - Number(a.titolare))
 }
 
 function soldi(n: number): string {

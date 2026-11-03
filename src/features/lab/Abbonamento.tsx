@@ -208,7 +208,8 @@ type Firmato = { numero: string; importi: ImportiContratto; piano: string; nome:
 
 export function Abbonamento() {
   const p = usePalette()
-  const { contratto, cambio } = useLocalSearchParams<{ contratto?: string; cambio?: string }>()
+  // `membro`: da un invito a fare l'abbonamento per una persona del nucleo (03/11/2026): la scelta si apre gia' su di lei.
+  const { contratto, cambio, membro: membroIndicato } = useLocalSearchParams<{ contratto?: string; cambio?: string; membro?: string }>()
   // L'ordine, scelto dal club: abbonamento, data, dati e firma, e solo poi il
   // pagamento. Il contratto non dice con cosa si paga: il metodo si sceglie dopo.
   const [passo, setPasso] = useState<1 | 2 | 3 | 4>(1)
@@ -270,14 +271,15 @@ export function Abbonamento() {
     const r = await statoAbbonamento()
     if (!r.ok) return setErrore(r.errore)
     setStato(r.stato)
-    setMembro((m) => m ?? (cambioId ? null : r.stato.persone.find((x) => x.puo_comprare)?.member_id) ?? r.stato.persone[0]?.member_id ?? null)
+    const indicato = typeof membroIndicato === 'string' && /^\d+$/.test(membroIndicato) ? r.stato.persone.find((x) => x.member_id === Number(membroIndicato))?.member_id : undefined
+    setMembro((m) => m ?? (cambioId ? null : indicato ?? r.stato.persone.find((x) => x.puo_comprare)?.member_id) ?? r.stato.persone[0]?.member_id ?? null)
     // Firmato e non pagato: si riprende dal pagamento, senza rifirmare.
     const d = cambioId ? null : r.stato.da_pagare
     if (d) {
       setFirmato({ numero: d.numero, importi: d.importi, piano: d.piano, nome: d.nome, errore: d.errore })
       setPasso(4)
     }
-  }, [cambioId])
+  }, [cambioId, membroIndicato])
   useEffect(() => {
     if (!numero) carica()
   }, [carica, numero])
