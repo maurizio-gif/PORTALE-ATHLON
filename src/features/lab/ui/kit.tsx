@@ -318,6 +318,9 @@ export function Entra({ indice = 0, children, style }: { indice?: number; childr
  * occupa posto. Ogni carta sta in un involucro che non si spezza fra le due colonne (`breakInside`) e porta sotto di se' lo spazio
  * fra una carta e l'altra; l'involucro di una carta che non c'e' misura zero e lo spazio lo perde (`onLayout`), o lascerebbe un
  * buco. Il contenitore e' `display: block`, perche' le colonne del browser non valgono su un flex.
+ * **Niente margine negativo sul contenitore** (03/11/2026, dallo screenshot di Maurizio: «Da fare» attaccata ai riquadri): il browser taglia
+ * sempre lo spazio sotto l'ultima carta di una colonna, quindi il `-gap` che lo compensava mangiava `gap` punti dello stacco dal blocco
+ * seguente (con lo `spazio.quattro` di `Schermata` restavano -4: carte sopra i riquadri). Senza, lo stacco e' quello della `Schermata`.
  *
  * Sul nativo (un tablet di traverso) le carte si alternano per indice, la prima a sinistra e la seconda a destra: li' una carta
  * assente lascia la colonna meno piena, e va bene.
@@ -329,7 +332,7 @@ export function Colonne({ children, gap = spazio.quattro + 4, style }: { childre
   if (width < LARGO) return <View style={[{ gap }, style]}>{figli}</View>
   if (Platform.OS === 'web')
     return (
-      <View style={[{ display: 'block', columnCount: 2, columnGap: gap, marginBottom: -gap } as object, style]}>
+      <View style={[{ display: 'block', columnCount: 2, columnGap: gap } as object, style]}>
         {figli.map((f, i) => (
           <View
             key={i}
