@@ -140,3 +140,4 @@ chiamata diretta al gestionale. Esempio: la sezione Prodotti usa l'azione `prodo
 - [L'abbonamento dal nucleo: per i familiari solo da 13 a 17 anni, mai per un altro adulto (04/11/2026)](docs/claude/102-abbonamento-dal-nucleo-solo-13-17-anni-04-11-2026.md) · 2 KB
 - [La chat «Richiedi assistenza» su Android installata: la tastiera non si richiude più (04/11/2026)](docs/claude/103-chat-assistenza-android-pwa-tastiera-04-11-2026.md) · 2 KB
 - [Totem: ogni pagamento passa da QR, email o operatore (04/11/2026)](docs/claude/104-totem-ogni-pagamento-qr-email-operatore-04-11-2026.md) · 4 KB
+- [La Home scrive «Guest» a un Guest, non «Socio» (04/11/2026)](docs/claude/105-home-guest-al-posto-di-socio-04-11-2026.md) · 1 KB
