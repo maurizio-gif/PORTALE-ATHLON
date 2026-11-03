@@ -2,6 +2,7 @@ import { router, useFocusEffect } from 'expo-router'
 import { useCallback, useState } from 'react'
 import { Text, View } from 'react-native'
 
+import type { ContrattoElenco } from '@/api/abbonamento'
 import { AMBITI, statoConsensiMinori } from '@/api/consensiMinori'
 import { statoDelega, type DelegaAttiva } from '@/api/delega'
 import type { Area } from '@/api/lab'
@@ -11,7 +12,8 @@ import { t } from '@/lib/lingua'
 
 import { AggiungiComponente } from '../famiglia/AggiungiComponente'
 import { CHIAVE_GRUPPI_JUNIOR } from '../junior/Junior'
-import { scorda } from '../memoria'
+import { CHIAVE_CONTRATTI } from '../AbbonamentiMiei'
+import { inMemoria, scorda } from '../memoria'
 import { Avatar, Carta, Etichetta, Messaggio, Pulsante, Riga } from '../ui/kit'
 import { BollinoDebito } from '../ui/Irregolarita'
 import { F, usePalette } from '../ui/tema'
@@ -40,7 +42,8 @@ export function SezioneFamiglia({ area, onAggiorna }: { area: AreaTrovata; onAgg
   const p = usePalette()
   const [aggiunto, setAggiunto] = useState<string | null>(null)
   // Chi ha 13 anni o piu' e non ha un abbonamento (anche se il genitore ce l'ha): sulla sua riga c'e' l'invito a sceglierlo (03/11/2026).
-  const senza = new Set(senzaAbbonamento(area).map((x) => x.member_id))
+  // Con l'elenco dei contratti (se la sezione Abbonamenti l'ha gia' letto) lo decide la categoria del server.
+  const senza = new Set(senzaAbbonamento(area, new Date(), inMemoria<{ ok: true; contratti: ContrattoElenco[] }>(CHIAVE_CONTRATTI)?.contratti).map((x) => x.member_id))
   const [deleghe, setDeleghe] = useState<DelegaAttiva[]>([])
   // Figli da 13 a 17 anni per cui il genitore puo' dare i consensi, e quanti ne ha dati (di quanti possibili).
   const [consensi, setConsensi] = useState<{ figli: number; dati: number } | null>(null)
