@@ -1,4 +1,5 @@
 import { funzione } from "@/api/lab";
+import type { SessioneAdyen } from "@/api/lab";
 import { t } from "@/lib/lingua";
 
 // Le gare della Scuola Nuoto: il Trofeo Athlon 2026/27 (04/11/2026, richiesta di Maurizio), dalla funzione `portale-lab-gare` (APP-ATHLON).
@@ -132,4 +133,23 @@ export async function pagaGara(iscrizioneId: number): Promise<EsitoPagamentoGara
   if (!ok) return { ok: false, errore: dati.errore ?? t("Non riusciamo a preparare il pagamento adesso. Riprova fra qualche minuto.", "We can’t set up the payment right now. Try again in a few minutes.") };
   if (dati.gia_pagata) return { ok: true, giaPagata: true };
   return { ok: true, url: String(dati.url) };
+}
+
+export type EsitoSessioneGara = ({ ok: true } & SessioneAdyen) | { ok: true; giaPagata: true } | { ok: false; errore: string };
+
+/**
+ * La sessione Adyen per pagare **dentro l'app**, col Drop-in (solo sul web: nell'app nativa il Drop-in non c'e', e si usa il link di `pagaGara`). Stesso riferimento `GARA-<id>`
+ * del link: la conferma resta del webhook di Adyen, non del browser.
+ */
+export async function sessioneGara(iscrizioneId: number): Promise<EsitoSessioneGara> {
+  const { ok, dati } = await funzione("portale-lab-gare", { azione: "sessione", iscrizione_id: iscrizioneId, ritorno: "https://app.athlonroma.it/junior?voce=gare" });
+  if (!ok) return { ok: false, errore: dati.errore ?? t("Non riusciamo a preparare il pagamento adesso. Riprova fra qualche minuto.", "We can’t set up the payment right now. Try again in a few minutes.") };
+  if (dati.gia_pagata) return { ok: true, giaPagata: true };
+  return { ok: true, riferimento: String(dati.riferimento), clientKey: String(dati.clientKey), environment: String(dati.environment), sessione: dati.sessione };
+}
+
+/** Com'e' andata la sessione, chiesto ad Adyen dal server (`completed`, `refused`, `paymentPending`, `canceled`, `expired`). Non conferma niente: la conferma e' del webhook. */
+export async function esitoSessioneGara(iscrizioneId: number, sessioneId: string, risultato: string): Promise<{ ok: true; adyen_status: string | null } | { ok: false }> {
+  const { ok, dati } = await funzione("portale-lab-gare", { azione: "esito", iscrizione_id: iscrizioneId, sessione_id: sessioneId, risultato });
+  return ok && dati.ok !== false ? { ok: true, adyen_status: typeof dati.adyen_status === "string" ? dati.adyen_status : null } : { ok: false };
 }
