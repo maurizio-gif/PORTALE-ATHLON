@@ -1,0 +1,16 @@
+## «Brevetti»: le prove spuntate dal direttore tecnico si vedono nell'app, anche se non sono tutte (03/11/2026)
+
+Richiesta di Maurizio (03/11/2026): quando il direttore tecnico segna una prova come fatta, **la progressione dei brevetti nell'app si aggiorna**, anche se le prove fatte non sono tutte. Il registro dei brevetti è adesso il nostro database (APP-ATHLON, sezione 93): il direttore spunta le prove dal CRM **una per volta** e **con tutte le prove il bambino passa di livello da solo**; qui si vede a che punto sono. File: `api/junior.ts` (`ProssimoLivello`, `livelliJunior`), `junior/Brevetti.tsx`, `junior/ViaggioBrevetti.tsx`.
+
+**Stato: scritto e provato nel browser con la funzione finta; NON può funzionare finché in APP-ATHLON non sono pubblicate la migrazione `20261103a` e la funzione `portale-lab-junior`.** Con la funzione di prima l'azione `livelli` non porta `prossimo` e non si vede niente di nuovo (l'app non si rompe).
+
+- **Cosa arriva**: l'azione `livelli` porta `prossimo`: `{ codice, nome, totale, superate }`, cioè il livello successivo, quante prove ha e **i numeri d'ordine di quelle già spuntate** (da 1, come nell'elenco del libretto, `datiBrevetti.ts`). **Le note del direttore tecnico non passano di lì**: sono del direttore.
+- **La pagina del brevetto che viene dopo** (nel viaggio) mostra **le prove già spuntate** (la spunta verde, che compare con lo scorrimento come le altre) e **quelle da fare** (cerchio vuoto), con «Le prove · 3 su 6» e «Il prossimo traguardo · 3 su 6».
+- **Il binario va avanti oltre il bambino**: l'avanzamento verso la tappa successiva è la frazione di prove spuntate (`frazione` in `Percorso`), quindi ogni prova allunga un pezzo di strada.
+- **La carta «Brevetto di adesso» in cima** dice «Verso Anatroccolo 2: 3 prove su 6» con una barra, **appena c'è la prima prova** (con zero prove non compare niente).
+- **Si usa solo se combacia**: `prossimo.codice` deve essere il livello che l'app ritiene successivo a quello di adesso. Un dato che non combacia (funzione di prima, livello cambiato fra una lettura e l'altra) non deve far vedere spunte sulla pagina sbagliata.
+- **Il passaggio di livello**, quando le prove sono tutte, lo fa il database: alla lettura successiva `persona.livello` e la corsa del gettone arrivano al livello nuovo, e le spunte del livello raggiunto diventano quelle dei livelli conseguiti. **L'app legge quando si apre la voce «Brevetti»**: non si aggiorna da sola mentre è aperta.
+
+- **«Il percorso» non c'è più** (richiesta di Maurizio, 03/11/2026): la timeline dei passaggi con «Brevetto al primo rilevamento» e la nota «Le date sono quelle in cui abbiamo visto cambiare il brevetto…» è tolta dalla pagina. **I passaggi si leggono ancora** (`livelliJunior`): servono alle date di ogni brevetto, «Aggiornato il …» sulla carta in cima e sulle pagine del viaggio. Se la funzione dei livelli non risponde la pagina non dice più niente (prima la sezione mostrava l'errore).
+
+**Provato** (export web, Chromium, funzione finta): tre prove su sei spuntate (carta in cima con barra, pagina M2 con tre spunte e tre cerchi vuoti, binario), un `prossimo` che non combacia (niente da vedere), `prossimo` nullo (niente da vedere), `tsc` pulito. **Non provato**: con la funzione vera, sull'app nativa, e il binario con la frazione guardato da vicino (il tratto in più è di pochi punti).

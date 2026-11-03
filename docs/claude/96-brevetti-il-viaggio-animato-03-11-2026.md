@@ -7,7 +7,7 @@ Richiesta di Maurizio (03/11/2026): il libretto da sfogliare (sezione 89) era **
 - **Il brevetto di adesso**: personaggio che galleggia, nome, livello, **«Aggiornato il 26 ottobre 2026» in una pillola arancio** (solo dove la data si sa, vedi sotto) e «Condividi il brevetto».
 - **Il viaggio** (`ViaggioBrevetti`): la scena animata, qui sotto. Sostituisce il libretto da sfogliare e l'elenco dei dodici livelli (prove e programma stanno nelle pagine del viaggio).
 - **La foto** (`InvitoFoto`) e **«Il libretto in PDF»** (`stampaLibretto`, invariato: 15 pagine A5, stampa sul web, `expo-print` sull'app) con una riga che dice che per sfogliarlo c'è il viaggio.
-- «I brevetti di giugno» e **«Il percorso»** (lo storico con le date rilevate), come prima.
+- «I brevetti di giugno», come prima. **«Il percorso»** (la timeline dei passaggi con «al primo rilevamento» e la nota sulle date) **è stato tolto il 03/11/2026** su richiesta di Maurizio (sezione 97): le date servono ancora, dentro il viaggio e sulla carta in cima.
 
 ### Il viaggio
 
