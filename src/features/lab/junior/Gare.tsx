@@ -5,11 +5,14 @@ import Animated, { ZoomIn } from "react-native-reanimated";
 
 import { configurazioneAdyen, type SessioneAdyen } from "@/api/lab";
 import {
+  carteSalvateGara,
   esitoSessioneGara,
   iscriviAGara,
   leggiGare,
+  pagaConCartaSalvata,
   pagaGara,
   sessioneGara,
+  type CartaSalvata,
   type DatiGare,
   type GaraTrofeo,
   type IscrizioneMia,
@@ -50,7 +53,11 @@ import { nomeCompleto } from "./comune";
 // **Si paga nella carta, col Drop-in di Adyen** (04/11/2026, Maurizio: «mi apre un altro link: usa l'altra modalita' di Adyen che gia' avevamo, l'embed nel nostro sito, metti i dati
 // della carta e ti da' il risultato li'»): sul web, dopo l'iscrizione, la carta della gara si apre su `CassaGara` con il modulo di Adyen (`../adyen`, la stessa sessione e lo stesso
 // riferimento `GARA-<id>` del link). Finito il pagamento si chiede l'esito al server (`esitoSessioneGara`: «ricevuto», «rifiutato») e si rilegge finche' il webhook non conferma
-// l'iscrizione. **Nell'app nativa il Drop-in non c'e'** (`pagamentoDisponibile` falso) e si resta sul link di prima, nel browser integrato.
+// l'iscrizione. **Nell'app nativa il Drop-in non c'e'** (`pagamentoDisponibile` falso) e la carta nuova passa dal link di prima, nel browser integrato.
+//
+// **La carta gia' salvata** (04/11/2026, Maurizio: «se trova la carta salvata deve selezionarla e addebitare senza CVC e 3D Secure, che servono alla prima registrazione; se non c'e',
+// salva e paga»): prima del modulo `CassaGara` chiede al server le carte di chi paga (`carteSalvateGara`). Se ce n'e' una, si paga con un tocco (`pagaConCartaSalvata`, solo
+// sul server: va bene anche nell'app nativa); se la banca non autorizza o si preferisce un'altra carta, si passa al modulo. Il modulo **salva la carta pagando**, e lo dice prima.
 //
 // **Nessuna scadenza scritta** (Maurizio): le iscrizioni restano aperte fino a un minuto prima dell'inizio della gara, e la schermata non dice quando chiudono.
 
@@ -301,7 +308,7 @@ function CartaGara({
         cassa === iscr.id ? (
           <CassaGara iscrizioneId={iscr.id} quotaCent={quotaCent} onAttendo={onPagamentoAperto} onChiudi={() => setCassa(null)} />
         ) : (
-          <Pagamento iscrizioneId={iscr.id} quotaCent={quotaCent} onCassa={setCassa} onPagamentoAperto={onPagamentoAperto} />
+          <Pagamento iscrizioneId={iscr.id} quotaCent={quotaCent} onCassa={setCassa} />
         )
       ) : (
         <FormIscrizione
@@ -316,7 +323,6 @@ function CartaGara({
           onScelto={setScelto}
           onFatto={onCambiato}
           onCassa={setCassa}
-          onPagamentoAperto={onPagamentoAperto}
         />
       )}
     </Carta>
@@ -430,7 +436,6 @@ function FormIscrizione({
   onScelto,
   onFatto,
   onCassa,
-  onPagamentoAperto,
 }: {
   gara: GaraTrofeo;
   pg: PersonaGara;
@@ -443,7 +448,6 @@ function FormIscrizione({
   onScelto: (s: Sesso) => void;
   onFatto: () => Promise<unknown>;
   onCassa: (iscrizioneId: number) => void;
-  onPagamentoAperto: (iscrizioneId: number) => void;
 }) {
   const p = usePalette();
   const [lavoro, setLavoro] = useState(false);
@@ -466,24 +470,10 @@ function FormIscrizione({
       await onFatto();
       return;
     }
-    // Sul web si paga qui, nella carta (Drop-in); altrove, col link nel browser integrato.
-    if (pagamentoDisponibile) {
-      onCassa(r.iscrizione_id);
-      setLavoro(false);
-      await onFatto();
-      return;
-    }
-    const l = await pagaGara(r.iscrizione_id);
+    // Si paga qui, nella carta: la carta salvata con un tocco, o il modulo (sul web) / il link (nell'app nativa).
+    onCassa(r.iscrizione_id);
     setLavoro(false);
     await onFatto();
-    if (!l.ok) {
-      setErrore(l.errore);
-      return;
-    }
-    if (l.url) {
-      const aperto = await apriPagamento(l.url);
-      if (aperto) onPagamentoAperto(r.iscrizione_id);
-    }
   }
 
   const note = (
@@ -569,44 +559,57 @@ function FormIscrizione({
 }
 
 /** Iscritto ma non ancora pagato: si riprende il pagamento. */
-function Pagamento({ iscrizioneId, quotaCent, onCassa, onPagamentoAperto }: { iscrizioneId: number; quotaCent: number; onCassa: (iscrizioneId: number) => void; onPagamentoAperto: (iscrizioneId: number) => void }) {
-  const [lavoro, setLavoro] = useState(false);
-  const [errore, setErrore] = useState<string | null>(null);
-  async function paga() {
-    if (pagamentoDisponibile) return onCassa(iscrizioneId);
-    setErrore(null);
-    setLavoro(true);
-    const l = await pagaGara(iscrizioneId);
-    setLavoro(false);
-    if (!l.ok) return setErrore(l.errore);
-    if (l.url) {
-      const aperto = await apriPagamento(l.url);
-      if (aperto) onPagamentoAperto(iscrizioneId);
-    }
-  }
+function Pagamento({ iscrizioneId, quotaCent, onCassa }: { iscrizioneId: number; quotaCent: number; onCassa: (iscrizioneId: number) => void }) {
   return (
     <View style={{ gap: spazio.tre }}>
       <Messaggio tono="attenzione" titolo={t("Manca il pagamento", "Payment is missing")}>
         {t("L’iscrizione è confermata solo dopo il pagamento.", "Registration is confirmed only after payment.")}
       </Messaggio>
-      {errore ? <Messaggio>{errore}</Messaggio> : null}
-      <Pulsante testo={t(`Paga ${euro(quotaCent)}`, `Pay ${euro(quotaCent)}`)} icona="carta" inCorso={lavoro} onPress={paga} />
+      <Pulsante testo={t(`Paga ${euro(quotaCent)}`, `Pay ${euro(quotaCent)}`)} icona="carta" onPress={() => onCassa(iscrizioneId)} />
     </View>
   );
 }
 
 /**
- * Il pagamento nella carta, sul web: il Drop-in di Adyen. La sessione la prepara il server (`sessioneGara`), la carta si scrive nel modulo sicuro di Adyen (i dati non passano da noi)
- * e, finito, si chiede l'esito al server: «ricevuto» (e si aspetta la conferma del webhook), «rifiutato» o «non completato» (con «Riprova», che chiede una sessione nuova).
+ * Il pagamento nella carta. Prima si guardano le carte **gia' salvate** di chi paga: se ce n'e' una si addebita con un tocco, senza CVC ne' 3D Secure (servono alla prima
+ * registrazione, Maurizio). Se non ce n'e', o si sceglie un'altra carta, si scrive nel modulo sicuro di Adyen (Drop-in, solo web), che **salva la carta pagando**; nell'app
+ * nativa, senza Drop-in, la carta nuova passa dal link nel browser integrato. In ogni caso la conferma dell'iscrizione e' del webhook di Adyen, non di questa schermata.
  */
+type EsitoCassa = { tono: "ok" | "attenzione" | "errore"; titolo: string; testo: string; altra?: boolean };
+
+const MARCHE: Record<string, string> = { visa: "Visa", mc: "Mastercard", mastercard: "Mastercard", amex: "American Express", maestro: "Maestro", diners: "Diners", discover: "Discover", jcb: "JCB", cartebancaire: "Carte Bancaire" };
+const nomeCarta = (c: CartaSalvata) => MARCHE[c.marca] ?? (c.marca ? c.marca.charAt(0).toUpperCase() + c.marca.slice(1) : t("Carta", "Card"));
+
 function CassaGara({ iscrizioneId, quotaCent, onAttendo, onChiudi }: { iscrizioneId: number; quotaCent: number; onAttendo: (iscrizioneId: number) => void; onChiudi: () => void }) {
   const p = usePalette();
+  const [fase, setFase] = useState<"carico" | "carte" | "nuova">("carico");
+  const [carte, setCarte] = useState<CartaSalvata[]>([]);
+  const [scelta, setScelta] = useState<string | null>(null);
+  const [lavoro, setLavoro] = useState(false);
   const [sessione, setSessione] = useState<SessioneAdyen | null>(null);
+  const [salva, setSalva] = useState(false);
   const [errore, setErrore] = useState<string | null>(null);
-  const [esito, setEsito] = useState<{ tono: "ok" | "attenzione" | "errore"; titolo: string; testo: string; riprova: boolean } | null>(null);
+  const [esito, setEsito] = useState<EsitoCassa | null>(null);
   const [giro, setGiro] = useState(0); // cambia per chiedere una sessione nuova
 
+  // 1. Le carte gia' salvate.
   useEffect(() => {
+    let vivo = true;
+    (async () => {
+      const c = await carteSalvateGara();
+      if (!vivo) return;
+      setCarte(c);
+      setScelta(c[0]?.id ?? null);
+      setFase(c.length ? "carte" : "nuova");
+    })();
+    return () => {
+      vivo = false;
+    };
+  }, [iscrizioneId]);
+
+  // 2. La carta nuova col modulo di Adyen (solo web): la sessione la prepara il server.
+  useEffect(() => {
+    if (fase !== "nuova" || !pagamentoDisponibile) return;
     let vivo = true;
     setSessione(null);
     setErrore(null);
@@ -617,16 +620,57 @@ function CassaGara({ iscrizioneId, quotaCent, onAttendo, onChiudi }: { iscrizion
       if (!r.ok) return setErrore(r.errore);
       if ("giaPagata" in r) {
         onAttendo(iscrizioneId);
-        return setEsito({ tono: "ok", titolo: t("Pagamento già ricevuto", "Payment already received"), testo: t("Stiamo confermando l’iscrizione.", "We’re confirming the registration."), riprova: false });
+        return setEsito({ tono: "ok", titolo: t("Pagamento già ricevuto", "Payment already received"), testo: t("Stiamo confermando l’iscrizione.", "We’re confirming the registration.") });
       }
+      setSalva(r.salva);
       setSessione(r);
     })();
     return () => {
       vivo = false;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [iscrizioneId, giro]);
+  }, [fase, iscrizioneId, giro]);
 
+  const ricevuto = useCallback(
+    (stato: "completed" | "verifica") => {
+      onAttendo(iscrizioneId);
+      setEsito(
+        stato === "completed"
+          ? { tono: "ok", titolo: t("Pagamento ricevuto", "Payment received"), testo: t("Stiamo confermando l’iscrizione: di solito bastano pochi secondi.", "We’re confirming the registration: it usually takes a few seconds.") }
+          : { tono: "attenzione", titolo: t("Stiamo verificando il pagamento", "We’re checking the payment"), testo: t("La banca non ha ancora risposto. Se il pagamento va a buon fine l’iscrizione si conferma da sola.", "Your bank hasn’t replied yet. If the payment goes through the registration confirms itself.") },
+      );
+    },
+    [iscrizioneId, onAttendo],
+  );
+
+  // La carta salvata, con un tocco.
+  async function addebita() {
+    const carta = carte.find((c) => c.id === scelta);
+    if (!carta) return;
+    setErrore(null);
+    setLavoro(true);
+    const r = await pagaConCartaSalvata(iscrizioneId, carta.id);
+    setLavoro(false);
+    if (!r.ok) {
+      if (r.cartaPersa) {
+        const restano = carte.filter((c) => c.id !== carta.id);
+        setCarte(restano);
+        setScelta(restano[0]?.id ?? null);
+        if (!restano.length) setFase("nuova");
+      }
+      return setErrore(r.errore);
+    }
+    if (r.esito === "autorizzato") return ricevuto("completed");
+    if (r.esito === "in_verifica") return ricevuto("verifica");
+    setEsito({
+      tono: "errore",
+      titolo: t("Pagamento non autorizzato", "Payment not authorized"),
+      testo: t(`La banca non ha autorizzato l’addebito sulla carta •••• ${carta.cifre}. Non è stato addebitato nulla: puoi usare un’altra carta.`, `Your bank didn’t authorize the charge on the card •••• ${carta.cifre}. Nothing was charged: you can use another card.`),
+      altra: true,
+    });
+  }
+
+  // Il modulo di Adyen: finito, si chiede l'esito al server.
   const fine = useCallback(
     async (risultato: string | null) => {
       const id = sessione?.sessione.id;
@@ -637,21 +681,38 @@ function CassaGara({ iscrizioneId, quotaCent, onAttendo, onChiudi }: { iscrizion
       }
       setSessione(null); // il modulo si chiude
       if (stato === "refused") {
-        setEsito({ tono: "errore", titolo: t("Pagamento rifiutato", "Payment declined"), testo: t("La banca non ha autorizzato il pagamento. Non è stato addebitato nulla: puoi riprovare con un’altra carta.", "Your bank didn’t authorize the payment. Nothing was charged: you can try another card."), riprova: true });
+        setEsito({ tono: "errore", titolo: t("Pagamento rifiutato", "Payment declined"), testo: t("La banca non ha autorizzato il pagamento. Non è stato addebitato nulla: puoi riprovare con un’altra carta.", "Your bank didn’t authorize the payment. Nothing was charged: you can try another card."), altra: true });
       } else if (stato === "canceled" || stato === "expired") {
-        setEsito({ tono: "attenzione", titolo: t("Pagamento non completato", "Payment not completed"), testo: t("Il pagamento non è stato completato. Non è stato addebitato nulla.", "The payment wasn’t completed. Nothing was charged."), riprova: true });
+        setEsito({ tono: "attenzione", titolo: t("Pagamento non completato", "Payment not completed"), testo: t("Il pagamento non è stato completato. Non è stato addebitato nulla.", "The payment wasn’t completed. Nothing was charged."), altra: true });
       } else {
         // Ricevuto, in verifica o esito non leggibile: la conferma e' del webhook, e la schermata la aspetta.
-        onAttendo(iscrizioneId);
-        setEsito(
-          stato === "completed"
-            ? { tono: "ok", titolo: t("Pagamento ricevuto", "Payment received"), testo: t("Stiamo confermando l’iscrizione: di solito bastano pochi secondi.", "We’re confirming the registration: it usually takes a few seconds."), riprova: false }
-            : { tono: "attenzione", titolo: t("Stiamo verificando il pagamento", "We’re checking the payment"), testo: t("La banca non ha ancora risposto. Se il pagamento va a buon fine l’iscrizione si conferma da sola.", "Your bank hasn’t replied yet. If the payment goes through the registration confirms itself."), riprova: false },
-        );
+        ricevuto(stato === "completed" ? "completed" : "verifica");
       }
     },
-    [sessione, iscrizioneId, onAttendo],
+    [sessione, iscrizioneId, ricevuto],
   );
+
+  // Nell'app nativa il modulo non c'e': la carta nuova passa dal link, nel browser integrato.
+  async function apriLink() {
+    setErrore(null);
+    setLavoro(true);
+    const l = await pagaGara(iscrizioneId);
+    setLavoro(false);
+    if (!l.ok) return setErrore(l.errore);
+    if (l.url) {
+      const aperto = await apriPagamento(l.url);
+      if (aperto) onAttendo(iscrizioneId);
+    }
+  }
+
+  const altraCarta = () => {
+    setEsito(null);
+    setErrore(null);
+    setGiro((g) => g + 1);
+    setFase("nuova");
+  };
+  const scelteAperte = fase === "carte" && !esito;
+  const cartaScelta = carte.find((c) => c.id === scelta);
 
   return (
     <View style={{ gap: spazio.tre }}>
@@ -660,16 +721,65 @@ function CassaGara({ iscrizioneId, quotaCent, onAttendo, onChiudi }: { iscrizion
         <Text style={[stili.corpo, { color: p.testo, fontFamily: F.bold, flex: 1 }]}>{t(`Paga ${euro(quotaCent)} con carta`, `Pay ${euro(quotaCent)} by card`)}</Text>
       </View>
       {errore ? <Messaggio>{errore}</Messaggio> : null}
-      {sessione ? <DropIn sessione={sessione} onFine={fine} onErrore={setErrore} /> : !esito && !errore ? <SchedeInArrivo quante={1} /> : null}
       {esito ? (
         <Messaggio tono={esito.tono} titolo={esito.titolo}>
           {esito.testo}
         </Messaggio>
       ) : null}
-      {errore || esito?.riprova ? <Pulsante testo={t("Riprova", "Try again")} icona="aggiorna" variante="secondario" onPress={() => setGiro((g) => g + 1)} /> : null}
-      {!esito || esito.riprova ? <Pulsante testo={t("Non adesso", "Not now")} variante="secondario" piccolo onPress={onChiudi} /> : null}
+
+      {fase === "carico" ? <SchedeInArrivo quante={1} /> : null}
+
+      {scelteAperte ? (
+        <>
+          <View style={{ gap: spazio.due }} accessibilityRole="radiogroup">
+            {carte.map((c) => {
+              const on = c.id === scelta;
+              return (
+                <Tocco
+                  key={c.id}
+                  vibra="scelta"
+                  ruolo="radio"
+                  stato={{ checked: on }}
+                  etichetta={`${nomeCarta(c)} •••• ${c.cifre}${c.scade ? `, ${t("scade", "expires")} ${c.scade}` : ""}`}
+                  onPress={() => setScelta(c.id)}
+                  style={[stili.cartaRiga, { backgroundColor: on ? velo(p, "accento", p.scuro ? 0.18 : 0.1) : p.carta, borderColor: on ? p.accento : p.linea }]}
+                >
+                  <Icona nome="carta" size={18} colore={on ? p.accento : p.testoSecondario} />
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ color: p.testo, fontFamily: on ? F.extra : F.bold, fontSize: 15 }}>
+                      {nomeCarta(c)} •••• {c.cifre}
+                    </Text>
+                    {c.scade ? <Text style={[stili.nota, { color: p.testoSecondario }]}>{t(`Scade ${c.scade}`, `Expires ${c.scade}`)}</Text> : null}
+                  </View>
+                </Tocco>
+              );
+            })}
+          </View>
+          <Pulsante testo={t(`Paga ${euro(quotaCent)}${cartaScelta ? ` con •••• ${cartaScelta.cifre}` : ""}`, `Pay ${euro(quotaCent)}${cartaScelta ? ` with •••• ${cartaScelta.cifre}` : ""}`)} icona="carta" inCorso={lavoro} onPress={addebita} />
+          <Pulsante testo={t("Usa un’altra carta", "Use another card")} variante="secondario" piccolo onPress={altraCarta} />
+        </>
+      ) : null}
+
+      {fase === "nuova" && pagamentoDisponibile ? (
+        <>
+          {sessione ? <DropIn sessione={sessione} onFine={fine} onErrore={setErrore} /> : !esito && !errore ? <SchedeInArrivo quante={1} /> : null}
+          {sessione && salva ? (
+            <Text style={[stili.nota, { color: p.testoSecondario }]}>
+              {t("Pagando, la carta viene salvata in modo sicuro su Adyen: la prossima volta la ritrovi già pronta, senza riscrivere i dati.", "When you pay, the card is saved securely with Adyen: next time it’s ready, without typing the details again.")}
+            </Text>
+          ) : null}
+        </>
+      ) : null}
+
+      {fase === "nuova" && !pagamentoDisponibile && !esito ? <Pulsante testo={t(`Paga ${euro(quotaCent)} con carta`, `Pay ${euro(quotaCent)} by card`)} icona="carta" inCorso={lavoro} onPress={apriLink} /> : null}
+
+      {fase === "nuova" && (errore || esito?.altra) && pagamentoDisponibile ? <Pulsante testo={t("Riprova", "Try again")} icona="aggiorna" variante="secondario" onPress={altraCarta} /> : null}
+      {esito?.altra && fase === "carte" ? <Pulsante testo={t("Usa un’altra carta", "Use another card")} icona="carta" variante="secondario" onPress={altraCarta} /> : null}
+      {!esito || esito.altra ? <Pulsante testo={t("Non adesso", "Not now")} variante="secondario" piccolo onPress={onChiudi} /> : null}
       <Text style={[stili.nota, { color: p.testoSecondario }]}>
-        {t("I dati della carta li scrivi nel modulo sicuro di Adyen: non passano da noi. La quota non è rimborsabile.", "You enter your card details in Adyen’s secure form: they don’t pass through us. The fee is non-refundable.")}
+        {fase === "carte"
+          ? t("Addebitiamo la carta già salvata, senza altri codici. La quota non è rimborsabile.", "We charge the card you already saved, with no extra codes. The fee is non-refundable.")
+          : t("I dati della carta li scrivi nel modulo sicuro di Adyen: non passano da noi. La quota non è rimborsabile.", "You enter your card details in Adyen’s secure form: they don’t pass through us. The fee is non-refundable.")}
       </Text>
     </View>
   );
@@ -767,4 +877,5 @@ const stili = StyleSheet.create({
   // I pulsanti del sesso, ciascuno con la sua ora.
   scelta: { flex: 1, minHeight: 68, alignItems: "center", justifyContent: "center", gap: 3, borderRadius: 14, borderWidth: 1.5, paddingVertical: spazio.due },
   sceltaOra: { flexDirection: "row", alignItems: "center", gap: 4 },
+  cartaRiga: { flexDirection: "row", alignItems: "center", gap: spazio.tre, minHeight: 56, borderRadius: 14, borderWidth: 1.5, paddingVertical: spazio.due, paddingHorizontal: spazio.tre },
 });

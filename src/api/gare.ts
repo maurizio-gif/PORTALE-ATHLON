@@ -135,7 +135,8 @@ export async function pagaGara(iscrizioneId: number): Promise<EsitoPagamentoGara
   return { ok: true, url: String(dati.url) };
 }
 
-export type EsitoSessioneGara = ({ ok: true } & SessioneAdyen) | { ok: true; giaPagata: true } | { ok: false; errore: string };
+/** `salva`: il Drop-in salva la carta pagando (lo si dice prima che la persona la scriva). */
+export type EsitoSessioneGara = ({ ok: true; salva: boolean } & SessioneAdyen) | { ok: true; giaPagata: true } | { ok: false; errore: string };
 
 /**
  * La sessione Adyen per pagare **dentro l'app**, col Drop-in (solo sul web: nell'app nativa il Drop-in non c'e', e si usa il link di `pagaGara`). Stesso riferimento `GARA-<id>`
@@ -145,7 +146,7 @@ export async function sessioneGara(iscrizioneId: number): Promise<EsitoSessioneG
   const { ok, dati } = await funzione("portale-lab-gare", { azione: "sessione", iscrizione_id: iscrizioneId, ritorno: "https://app.athlonroma.it/junior?voce=gare" });
   if (!ok) return { ok: false, errore: dati.errore ?? t("Non riusciamo a preparare il pagamento adesso. Riprova fra qualche minuto.", "We can’t set up the payment right now. Try again in a few minutes.") };
   if (dati.gia_pagata) return { ok: true, giaPagata: true };
-  return { ok: true, riferimento: String(dati.riferimento), clientKey: String(dati.clientKey), environment: String(dati.environment), sessione: dati.sessione };
+  return { ok: true, salva: dati.salva === true, riferimento: String(dati.riferimento), clientKey: String(dati.clientKey), environment: String(dati.environment), sessione: dati.sessione };
 }
 
 /** Com'e' andata la sessione, chiesto ad Adyen dal server (`completed`, `refused`, `paymentPending`, `canceled`, `expired`). Non conferma niente: la conferma e' del webhook. */
@@ -153,3 +154,24 @@ export async function esitoSessioneGara(iscrizioneId: number, sessioneId: string
   const { ok, dati } = await funzione("portale-lab-gare", { azione: "esito", iscrizione_id: iscrizioneId, sessione_id: sessioneId, risultato });
   return ok && dati.ok !== false ? { ok: true, adyen_status: typeof dati.adyen_status === "string" ? dati.adyen_status : null } : { ok: false };
 }
+
+/** Una carta gia' salvata di chi paga: marca, ultime cifre e scadenza (`09/28`). L'`id` e' quello da rimandare al server per addebitarla: il server rilegge le carte di chi chiede. */
+export type CartaSalvata = { id: string; marca: string; cifre: string; scade: string };
+
+/** Le carte gia' salvate da proporre prima del modulo. Mai un errore: senza carte (o se il server non risponde) si paga col modulo, salvando la carta. */
+export async function carteSalvateGara(): Promise<CartaSalvata[]> {
+  const { ok, dati } = await funzione("portale-lab-gare", { azione: "carte" });
+  if (!ok || !Array.isArray(dati.carte)) return [];
+  return dati.carte.filter((c: Partial<CartaSalvata>) => typeof c?.id === "string" && typeof c?.cifre === "string").map((c: CartaSalvata) => ({ id: c.id, marca: String(c.marca ?? ""), cifre: c.cifre, scade: String(c.scade ?? "") }));
+}
+
+/** Come e' andato l'addebito con un tocco: incassato, da verificare (la schermata aspetta il webhook) o non autorizzato (si propone un'altra carta). */
+export type EsitoCartaGara = { ok: true; esito: "autorizzato" | "in_verifica" | "non_autorizzato" } | { ok: false; errore: string; cartaPersa?: boolean };
+
+export async function pagaConCartaSalvata(iscrizioneId: number, cartaId: string): Promise<EsitoCartaGara> {
+  const { ok, dati } = await funzione("portale-lab-gare", { azione: "paga_carta", iscrizione_id: iscrizioneId, carta_id: cartaId, ritorno: "https://app.athlonroma.it/junior?voce=gare" });
+  if (ok && (dati.esito === "autorizzato" || dati.esito === "in_verifica" || dati.esito === "non_autorizzato")) return { ok: true, esito: dati.esito };
+  if (ok && dati.gia_pagata) return { ok: true, esito: "in_verifica" };
+  return { ok: false, errore: dati.errore ?? t("Non riusciamo a fare il pagamento adesso. Riprova fra qualche minuto.", "We can’t take the payment right now. Try again in a few minutes."), cartaPersa: dati.codice === "carta" };
+}
+
