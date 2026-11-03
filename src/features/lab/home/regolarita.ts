@@ -1,5 +1,5 @@
 import type { Area, ContrattoArea, PersonaArea } from '@/api/lab'
-import { ETA_MINIMA_ABBONAMENTO, etaDa } from '@/lib/eta'
+import { acquistabileDaQuestoAccount, ETA_MINIMA_ABBONAMENTO, etaDa } from '@/lib/eta'
 import { meseAnno, metodoDaPerfectGym } from '@/lib/metodoPagamento'
 import type { Tono } from '@/theme'
 import { locale, t } from '@/lib/lingua'
@@ -83,10 +83,13 @@ export function haProva(area: AreaTrovata, membro: number): boolean {
  * e anche se il ragazzo (13-17) e' solo un figlio sulla scheda. Per i minorenni firma il genitore: lo dice il server (`portale-abbonamento`,
  * `persone`). Restano fuori chi ha una prova in corso (`haProva`) e chi non ha la data di nascita (l'eta' non si sa: la scelta dell'abbonamento
  * resta raggiungibile dal comando generale). Il titolare viene per primo.
+ *
+ * **Un adulto del nucleo non e' mai invitato** (04/11/2026, richiesta di Maurizio): da questo account si compra per se stessi e per i familiari **da 13 a 17 anni**,
+ * non per un altro adulto, che compra dal suo account (il server lo rifiuta comunque: `idoneita` in `portale-abbonamento`).
  */
 export function senzaAbbonamento(area: AreaTrovata, oggi: Date = new Date(), elenco?: ContrattoPerPrincipale[] | null): PersonaArea[] {
   return area.persone
-    .filter((x) => !haAbbonamentoPrincipale(area, x.member_id, elenco) && !haProva(area, x.member_id) && (etaDa(x.data_nascita, oggi) ?? -1) >= ETA_MINIMA_ABBONAMENTO)
+    .filter((x) => !haAbbonamentoPrincipale(area, x.member_id, elenco) && !haProva(area, x.member_id) && (x.titolare ? (etaDa(x.data_nascita, oggi) ?? -1) >= ETA_MINIMA_ABBONAMENTO : acquistabileDaQuestoAccount(false, etaDa(x.data_nascita, oggi))))
     .sort((a, b) => Number(b.titolare) - Number(a.titolare))
 }
 
