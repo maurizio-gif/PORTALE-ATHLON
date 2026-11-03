@@ -46,6 +46,8 @@ export type PersonaArea = {
   nome: string | null
   cognome: string | null
   numero: string | null
+  /** Il tipo di scheda su PerfectGym (`Member`, `Guest`, `Lead`); assente con una funzione di prima. */
+  tipo?: string | null
   data_nascita: string | null
   titolare: boolean
   email: string | null

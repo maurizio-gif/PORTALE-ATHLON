@@ -148,7 +148,7 @@ function Benvenuto({
             {famiglia || titolare?.numero ? (
               <View style={stili.pillola}>
                 <View style={[stili.puntino, { backgroundColor: MARE[0] }]} />
-                <Text style={stili.pillolaTesto}>{famiglia ? t(`Famiglia di ${famiglia + 1}`, `Family of ${famiglia + 1}`) : t('Socio', 'Member')}</Text>
+                <Text style={stili.pillolaTesto}>{famiglia ? t(`Famiglia di ${famiglia + 1}`, `Family of ${famiglia + 1}`) : titolare?.tipo === 'Guest' ? 'Guest' : titolare?.tipo === 'Lead' ? t('Registrato', 'Registered') : t('Socio', 'Member')}</Text>
               </View>
             ) : null}
             {titolare?.debito ? (
