@@ -148,3 +148,4 @@ chiamata diretta al gestionale. Esempio: la sezione Prodotti usa l'azione `prodo
 - [La voce «Gare» di Junior: il Trofeo Athlon, iscrizione e pagamento dall'app (04/11/2026)](docs/claude/110-gare-trofeo-athlon-04-11-2026.md) · 3 KB
 - [«Entra» dal sito: il link dell'email apre l'app già dentro sulla pagina giusta, e un indirizzo aperto a freddo non si perde più (04/11/2026)](docs/claude/111-entra-dal-sito-04-11-2026.md) · 6 KB
 - [Brevetti per chi non è iscritto: una carta chiusa, in fondo, sotto le attività (04/11/2026)](docs/claude/112-brevetti-chiusi-in-fondo-per-chi-non-e-iscritto-04-11-2026.md) · 3 KB
+- [La carta Junior in Home è blu, come la testata della sezione (04/11/2026)](docs/claude/113-home-carta-junior-blu-come-la-sezione-04-11-2026.md) · 2 KB
