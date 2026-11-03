@@ -20,6 +20,7 @@ import { Quantita } from './Quantita'
 import { SegnapostoFoto } from './SegnapostoFoto'
 import { useVetrina } from './useVetrina'
 import { apriPagamento } from '@/lib/pagamentoEsterno'
+import { passaDalTotem } from '@/features/lab/totem/passaggio'
 
 // Il carrello e il pagamento (18/10/2026), come «Acquista e prenota» delle lezioni singole: «Vai al pagamento» apre
 // l'ordine da PerfectGym (**non addebita niente**: apre il link) e poi si paga sulla pagina protetta di Adyen,
@@ -67,6 +68,8 @@ export function Carrello() {
   }
 
   async function pagaConCarta(ordine: OrdineAperto) {
+    // Sul totem un addebito su una carta salvata passa dalle tre strade (`totem/passaggio.ts`).
+    if (!(await passaDalTotem({ cosa: 'carta salvata', percorso: '/shop/carrello' }))) return
     setProblema(null)
     setOccupato(true)
     const r = await pagaOrdineConCarta(ordine.ordine_id)

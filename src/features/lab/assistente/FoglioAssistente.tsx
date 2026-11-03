@@ -186,7 +186,10 @@ export function FoglioAssistente({ aperto, schermata, onChiudi }: { aperto: bool
   }, [aperto, voce.annulla])
 
   return (
-    <Modal visible={aperto} transparent animationType="slide" onRequestClose={onChiudi}>
+    // **Dissolvenza e non «slide»** (04/11/2026, telefoni Android con l'app installata: toccando il campo la tastiera si apriva e si richiudeva subito). Il «slide» di React Native Web
+    // lascia sul contenitore fisso del foglio una `transform: translateY(0%)` per sempre, anche a fine animazione: un campo di testo dentro un elemento fisso con una `transform` e' il caso
+    // in cui Chrome su Android (nella modalita' a schermo intero della PWA) perde il fuoco quando la tastiera ridimensiona la finestra. La dissolvenza lascia solo `opacity`.
+    <Modal visible={aperto} transparent animationType="fade" onRequestClose={onChiudi}>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={stili.velo}>
         <Pressable style={StyleSheet.absoluteFill} onPress={onChiudi} accessibilityLabel={t('Chiudi', 'Close')} />
         <View style={[stili.foglio, { backgroundColor: p.carta, paddingBottom: ins.bottom + spazio.due }]} accessibilityViewIsModal>

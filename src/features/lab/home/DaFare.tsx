@@ -1,7 +1,9 @@
 import { router } from 'expo-router'
+import { useEffect, useState } from 'react'
 import { StyleSheet, Text, View } from 'react-native'
 
-import type { Area } from '@/api/lab'
+import { controlloDati, type Area, type DatoDaControllare } from '@/api/lab'
+import { inModalitaTotem } from '@/lib/totem'
 import { vistaCorrente } from '../vista'
 import { spazio } from '@/theme'
 import { locale, t } from '@/lib/lingua'
@@ -29,7 +31,7 @@ function soldi(n: number): string {
 type Voce = { chiave: string; icona: 'attenzione' | 'certificato'; tono: 'errore' | 'attenzione'; titolo: string; sotto: string; /** Di chi si parla: in neretto sopra la riga di dettaglio. */ chi?: string; sezione: SezioneHome; urgenza: number }
 
 /** Le cose da fare, dalla piu' urgente. */
-export function vociDaFare(area: AreaTrovata): Voce[] {
+export function vociDaFare(area: AreaTrovata, dati: DatoDaControllare[] = []): Voce[] {
   const voci: Voce[] = []
   const conDebito = area.persone.filter((x) => x.debito)
   if (conDebito.length) {
@@ -80,12 +82,49 @@ export function vociDaFare(area: AreaTrovata): Voce[] {
       urgenza: urgenzaCertificato(s),
     })
   }
+  // Il cellulare mancante o non valido (04/11/2026, controllo all'accesso): si sistema dal Profilo. Poco urgente: sta sotto pagamenti e certificati.
+  if (dati.includes('telefono') || dati.includes('telefono_non_valido')) {
+    const manca = dati.includes('telefono')
+    voci.push({
+      chiave: 'dati-telefono',
+      icona: 'attenzione',
+      tono: 'attenzione',
+      titolo: manca ? t('Aggiungi il tuo cellulare', 'Add your mobile number') : t('Controlla il tuo cellulare', 'Check your mobile number'),
+      sotto: manca
+        ? t('Non ne abbiamo uno: ci serve per contattarti se c’è qualcosa sulle tue lezioni.', 'We don’t have one: we need it to reach you if something comes up with your classes.')
+        : t('Il numero che abbiamo non sembra un cellulare. Correggilo dal Profilo.', 'The number we have doesn’t look like a mobile. Fix it in your Profile.'),
+      sezione: 'profilo',
+      urgenza: 2,
+    })
+  }
   return voci.sort((a, b) => b.urgenza - a.urgenza)
+}
+
+/** Chi e' gia' stato controllato in questa apertura dell'app: una volta per persona, non a ogni ritorno sulla Home. */
+const controllati = new Set<number>()
+
+/** Il controllo dei dati all'accesso: una volta per sessione, mai in vista cliente né sul totem (la funzione lo rifiuterebbe, o la scheda e' di chi e' passato). */
+function useControlloDati(area: AreaTrovata): DatoDaControllare[] {
+  const [dati, setDati] = useState<DatoDaControllare[]>([])
+  const titolare = area.persone.find((x) => x.titolare)?.member_id ?? null
+  useEffect(() => {
+    if (!titolare || controllati.has(titolare) || vistaCorrente() || inModalitaTotem()) return
+    controllati.add(titolare)
+    let vivo = true
+    controlloDati().then((d) => {
+      if (vivo) setDati(d)
+    })
+    return () => {
+      vivo = false
+    }
+  }, [titolare])
+  return dati
 }
 
 export function DaFare({ area, onSezione }: { area: AreaTrovata; onSezione: (s: SezioneHome) => void }) {
   const p = usePalette()
-  const voci = vociDaFare(area)
+  const datiDaControllare = useControlloDati(area)
+  const voci = vociDaFare(area, datiDaControllare)
   if (!voci.length) return null
   const inSospeso = voci.some((v) => v.chiave === 'debito')
   const senzaMetodo = voci.some((v) => v.chiave.startsWith('metodo-'))

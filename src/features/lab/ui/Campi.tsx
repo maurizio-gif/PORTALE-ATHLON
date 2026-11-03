@@ -3,6 +3,7 @@ import { Platform, Pressable, StyleSheet, Text, TextInput, View, type TextInputP
 
 import { spazio } from '@/theme'
 import { t } from '@/lib/lingua'
+import { inModalitaTotem } from '@/lib/totem'
 
 import { Icona, type NomeIcona } from './Icona'
 import { Messaggio, Pulsante } from './kit'
@@ -215,6 +216,8 @@ function appInstallata(): boolean {
 export function IncollaCodice({ cifre = CIFRE, onCodice, disabilitato = false }: { cifre?: number; onCodice: (codice: string) => void; disabilitato?: boolean }) {
   const p = usePalette()
   const installata = appInstallata()
+  // Sul totem il codice si scrive a mano: gli appunti non ci sono, e quelli del dispositivo (condiviso) non sono di chi sta entrando (03/11/2026, Maurizio).
+  const sulTotem = inModalitaTotem()
   const [aMano, setAMano] = useState(installata)
   const [testo, setTesto] = useState('')
   const [avviso, setAvviso] = useState<string | null>(null)
@@ -222,7 +225,7 @@ export function IncollaCodice({ cifre = CIFRE, onCodice, disabilitato = false }:
   // Un incolla con dentro il codice vale ovunque cada: lo si prende qui e non si lascia
   // che il campo lo scriva (altrimenti il codice partirebbe due volte).
   useEffect(() => {
-    if (Platform.OS !== 'web' || typeof document === 'undefined' || disabilitato) return
+    if (Platform.OS !== 'web' || typeof document === 'undefined' || disabilitato || sulTotem) return
     const alIncolla = (e: ClipboardEvent) => {
       const codice = estraiCodice(e.clipboardData?.getData('text') ?? '', cifre)
       if (codice.length !== cifre) return
@@ -233,9 +236,9 @@ export function IncollaCodice({ cifre = CIFRE, onCodice, disabilitato = false }:
     }
     document.addEventListener('paste', alIncolla)
     return () => document.removeEventListener('paste', alIncolla)
-  }, [cifre, onCodice, disabilitato])
+  }, [cifre, onCodice, disabilitato, sulTotem])
 
-  if (Platform.OS !== 'web') return null
+  if (Platform.OS !== 'web' || sulTotem) return null
 
   async function incolla() {
     setAvviso(null)

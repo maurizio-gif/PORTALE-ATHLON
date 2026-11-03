@@ -1,4 +1,4 @@
-import { t } from "@/lib/lingua";
+import { locale, t } from "@/lib/lingua";
 
 // I brevetti della Scuola Nuoto Bambini (02/11/2026, richiesta di Maurizio). Ogni livello di PerfectGym (categoria di attivita' 28) e' un brevetto, e i livelli sono
 // **progressivi**: chi ha il M1 ha gia' conseguito A1, A2 e A3. Il contenuto di ogni livello (il programma e le prove) viene dal **libretto del club**
@@ -328,4 +328,26 @@ export function nomeBrevetto(b: Brevetto): string {
 /** Il nome del livello come sul libretto: «Stella Marina 1», «Cavalluccio Marino» (in inglese «Starfish 1», «Seahorse»). */
 export function nomeLivello(l: LivelloBrevetto): string {
   return l.numero ? `${nomeSpecie(l.specie)} ${l.numero}` : nomeSpecie(l.specie);
+}
+
+/** Il giorno come si legge sull'app: «26 ottobre 2026», nella lingua dell'app e nel fuso di Roma. */
+export function giornoBrevetto(iso: string): string {
+  return new Date(iso).toLocaleDateString(locale(), { day: "numeric", month: "long", year: "numeric", timeZone: "Europe/Rome" });
+}
+
+/**
+ * Le date in cui abbiamo visto arrivare ogni brevetto (03/11/2026): sigla -> data ISO. **Vengono solo dal nostro registro dei passaggi**
+ * (`junior_livelli_storico`): PerfectGym e il mirror non hanno nessuna data del livello (verificato: la relazione socio-livello porta solo `id`, `name`, `order`,
+ * `activityCategoryId`, `isDeleted` e un `version` che e' quello della definizione del livello, uguale per tutti i bambini che lo hanno). Le righe «al primo
+ * rilevamento» non contano: dicono solo che il livello c'era gia' il 22/10/2026, non quando e' arrivato. `passaggi` va dal piu' recente al piu' vecchio.
+ */
+export function dateDeiPassaggi(passaggi: { livello: string; primo_rilevamento: boolean; rilevato_il: string }[]): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const x of passaggi) {
+    if (x.primo_rilevamento) continue;
+    const codice = leggiBrevetto(x.livello).codice;
+    // Dal piu' recente: se un livello e' stato raggiunto due volte (un errore corretto), vale l'ultima.
+    if (codice && !out[codice]) out[codice] = x.rilevato_il;
+  }
+  return out;
 }

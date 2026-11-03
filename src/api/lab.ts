@@ -46,6 +46,8 @@ export type PersonaArea = {
   nome: string | null
   cognome: string | null
   numero: string | null
+  /** Il tipo di scheda su PerfectGym (`Member`, `Guest`, `Lead`); assente con una funzione di prima. */
+  tipo?: string | null
   data_nascita: string | null
   titolare: boolean
   email: string | null
@@ -670,6 +672,23 @@ function esitoAnagrafica(r: { ok: boolean; stato: number; dati: Record<string, a
 
 export async function leggiAnagrafica(): Promise<EsitoAnagrafica> {
   return esitoAnagrafica(await anagrafica({ azione: 'leggi' }), t('Non riusciamo a leggere i tuoi dati adesso.', 'We can’t load your details right now.'))
+}
+
+/** Cio' che la persona sistema da sola dal Profilo (04/11/2026). La data di nascita e le schede doppie le vede solo la segreteria: qui non arrivano. */
+export type DatoDaControllare = 'telefono' | 'telefono_non_valido'
+
+/**
+ * Il controllo dei dati all'accesso: la funzione guarda la scheda (e lascia un compito alla segreteria per cio' che la persona non puo' sistemare).
+ * Non solleva mai: se non risponde, o se siamo in vista cliente (la funzione la rifiuta), non c'e' niente da mostrare.
+ */
+export async function controlloDati(): Promise<DatoDaControllare[]> {
+  try {
+    const r = await anagrafica({ azione: 'controllo' })
+    const da = r.ok && Array.isArray(r.dati.da_completare) ? (r.dati.da_completare as unknown[]) : []
+    return da.filter((x): x is DatoDaControllare => x === 'telefono' || x === 'telefono_non_valido')
+  } catch {
+    return []
+  }
 }
 
 export async function salvaTelefono(telefono: string): Promise<EsitoAnagrafica> {

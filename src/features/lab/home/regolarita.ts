@@ -1,4 +1,5 @@
 import type { Area, ContrattoArea, PersonaArea } from '@/api/lab'
+import { acquistabileDaQuestoAccount, ETA_MINIMA_ABBONAMENTO, etaDa } from '@/lib/eta'
 import { meseAnno, metodoDaPerfectGym } from '@/lib/metodoPagamento'
 import type { Tono } from '@/theme'
 import { locale, t } from '@/lib/lingua'
@@ -56,6 +57,40 @@ export function eAbbonamento(c: Pick<ContrattoArea, 'canone' | 'tipo' | 'aggiunt
 /** Le persone del nucleo che hanno un abbonamento in vigore (i contratti dell'area sono tutti vivi: in corso, non ancora iniziati o sospesi). */
 export function personeConAbbonamento(area: AreaTrovata): Set<number> {
   return new Set(area.contratti.filter(eAbbonamento).map((c) => c.member_id))
+}
+
+/** Del contratto di un abbonamento (`contrattiAbbonamento`) serve solo di chi e', se e' in vigore e che tipo e': lo classifica il server. */
+export type ContrattoPerPrincipale = { member_id: number; in_vigore: boolean; categoria: 'principale' | 'aggiuntivo' | 'junior' }
+
+/**
+ * La persona ha un abbonamento adulti (principale) in vigore? Con l'elenco dei contratti (`contrattiAbbonamento`) lo dice la `categoria` che
+ * il server assegna a ogni contratto: **un corso Junior non e' un abbonamento adulti**. Senza elenco (non ancora letto) si ricade sui dati
+ * della Home: un abbonamento vero (`eAbbonamento`) che non sia `aggiuntivo`.
+ */
+export function haAbbonamentoPrincipale(area: AreaTrovata, membro: number, elenco?: ContrattoPerPrincipale[] | null): boolean {
+  if (elenco) return elenco.some((c) => c.member_id === membro && c.in_vigore && c.categoria === 'principale')
+  return area.contratti.some((c) => c.member_id === membro && eAbbonamento(c) && !c.aggiuntivo)
+}
+
+/** Ha una prova (Guest Pass) in corso: ha gia' il suo «Attiva abbonamento». */
+export function haProva(area: AreaTrovata, membro: number): boolean {
+  return area.contratti.some((c) => c.member_id === membro && c.tipo === 'guest_pass')
+}
+
+/**
+ * **Chi nel nucleo puo' avere un abbonamento adulti e non ce l'ha** (03/11/2026, richiesta di Maurizio): ogni persona dai 13 anni compiuti
+ * senza un abbonamento principale in vigore (`haAbbonamentoPrincipale`) merita un invito a sceglierne uno, **anche se il genitore ce l'ha gia'**
+ * e anche se il ragazzo (13-17) e' solo un figlio sulla scheda. Per i minorenni firma il genitore: lo dice il server (`portale-abbonamento`,
+ * `persone`). Restano fuori chi ha una prova in corso (`haProva`) e chi non ha la data di nascita (l'eta' non si sa: la scelta dell'abbonamento
+ * resta raggiungibile dal comando generale). Il titolare viene per primo.
+ *
+ * **Un adulto del nucleo non e' mai invitato** (04/11/2026, richiesta di Maurizio): da questo account si compra per se stessi e per i familiari **da 13 a 17 anni**,
+ * non per un altro adulto, che compra dal suo account (il server lo rifiuta comunque: `idoneita` in `portale-abbonamento`).
+ */
+export function senzaAbbonamento(area: AreaTrovata, oggi: Date = new Date(), elenco?: ContrattoPerPrincipale[] | null): PersonaArea[] {
+  return area.persone
+    .filter((x) => !haAbbonamentoPrincipale(area, x.member_id, elenco) && !haProva(area, x.member_id) && (x.titolare ? (etaDa(x.data_nascita, oggi) ?? -1) >= ETA_MINIMA_ABBONAMENTO : acquistabileDaQuestoAccount(false, etaDa(x.data_nascita, oggi))))
+    .sort((a, b) => Number(b.titolare) - Number(a.titolare))
 }
 
 function soldi(n: number): string {

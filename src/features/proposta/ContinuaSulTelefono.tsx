@@ -9,7 +9,9 @@ import {
   type ModalitaProposta,
   type PropostaCreata,
 } from '@/api/proposta'
+import { anteprimaAbbonamento, type PersonaDati } from '@/api/abbonamento'
 import { CodiceQr } from '@/components/CodiceQr'
+import { CorreggiDati } from '@/features/lab/abbonamento/CorreggiDati'
 import { uscitaTotem } from '@/features/lab/totem/uscita'
 import { Icona } from '@/features/lab/ui/Icona'
 import { Carta, Messaggio, Pulsante, Sezione } from '@/features/lab/ui/kit'
@@ -39,6 +41,7 @@ type Vista =
   | { v: 'scelta' }
   | { v: 'creo'; modalita: ModalitaProposta }
   | { v: 'errore'; errore: ErroreProposta }
+  | { v: 'dati'; modalita: ModalitaProposta }
   | { v: 'qr'; proposta: PropostaCreata }
   | { v: 'email'; proposta: PropostaCreata }
   | { v: 'assistita'; proposta: PropostaCreata }
@@ -56,6 +59,8 @@ export type DatiProposta = {
 export function ContinuaSulTelefono({ dati, onIndietro }: { dati: DatiProposta; onIndietro: () => void }) {
   const p = usePalette()
   const [vista, setVista] = useState<Vista>({ v: 'scelta' })
+  // Quante volte di fila i dati mancanti sono tornati: dopo tre la maschera non basta (un dato che da qui non si corregge) e si dice, invece di girare in tondo.
+  const giriDati = useRef(0)
 
   const crea = useCallback(
     async (modalita: ModalitaProposta) => {
@@ -64,8 +69,14 @@ export function ContinuaSulTelefono({ dati, onIndietro }: { dati: DatiProposta; 
       const r = await creaPropostaDaSessione({ member_id: dati.membro, piano_id: dati.pianoId, data_inizio: dati.inizio, modalita })
       if (!r.ok) {
         colpetto('errore')
+        // Mancano dati sulla scheda: si correggono qui, sul totem, e si riprende (non si manda la persona altrove).
+        if (r.motivo === 'dati_mancanti' && giriDati.current < 3) {
+          giriDati.current += 1
+          return setVista({ v: 'dati', modalita })
+        }
         return setVista({ v: 'errore', errore: r })
       }
+      giriDati.current = 0
       setVista({ v: modalita, proposta: r.proposta } as Vista)
     },
     [dati.membro, dati.pianoId, dati.inizio],
@@ -78,6 +89,18 @@ export function ContinuaSulTelefono({ dati, onIndietro }: { dati: DatiProposta; 
           {vista.modalita === 'email' ? t('Ti mando l’email…', 'Sending the email…') : t('Prepariamo la proposta…', 'Preparing the offer…')}
         </Text>
       </Carta>
+    )
+  }
+
+  if (vista.v === 'dati') {
+    return (
+      <CompletaDati
+        membro={dati.membro}
+        pianoId={dati.pianoId}
+        inizio={dati.inizio}
+        onCompleti={() => void crea(vista.modalita)}
+        onIndietro={() => setVista({ v: 'scelta' })}
+      />
     )
   }
 
@@ -132,7 +155,7 @@ export function ContinuaSulTelefono({ dati, onIndietro }: { dati: DatiProposta; 
   )
 }
 
-function Strada({ icona, titolo, testo, onPress }: { icona: 'telefono' | 'email' | 'persona'; titolo: string; testo: string; onPress: () => void }) {
+export function Strada({ icona, titolo, testo, onPress }: { icona: 'telefono' | 'email' | 'persona'; titolo: string; testo: string; onPress: () => void }) {
   const p = usePalette()
   return (
     <Tocco vibra="scelta" etichetta={titolo} onPress={onPress} style={[stili.strada, { backgroundColor: p.carta, borderColor: p.linea }]}>
@@ -144,6 +167,85 @@ function Strada({ icona, titolo, testo, onPress }: { icona: 'telefono' | 'email'
         <Text style={[stili.testo, { color: p.testoSecondario }]}>{testo}</Text>
       </View>
     </Tocco>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// I dati che mancano sulla scheda (03/11/2026, dal totem: «redirect sulla parte da aggiornare, cosi' la vedo e la aggiorno»)
+//
+// La proposta si compone coi dati che PerfectGym ha gia' (codice fiscale, indirizzo, telefono): se ne manca uno il server risponde `dati_mancanti`. Prima
+// la schermata mandava a «completali dal Profilo»; ora mostra qui la stessa maschera dell'acquisto di sempre (`CorreggiDati`, aperta, col suo elenco di
+// quello che serve) e, salvato, riprende da sola con la strada scelta. L'elenco e le persone da correggere le dice `anteprima`, la stessa del flusso normale.
+
+/** Oggi, a Roma, come `AAAA-MM-GG`. */
+function oggiRoma(): string {
+  return new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Rome', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date())
+}
+
+function CompletaDati({ membro, pianoId, inizio, onCompleti, onIndietro }: { membro: number; pianoId: number; inizio: string | null; onCompleti: () => void; onIndietro: () => void }) {
+  const p = usePalette()
+  const [persone, setPersone] = useState<PersonaDati[] | null>(null)
+  const [mancanti, setMancanti] = useState<string[]>([])
+  const [errore, setErrore] = useState<string | null>(null)
+  const [giro, setGiro] = useState(0)
+
+  useEffect(() => {
+    let vivo = true
+    setErrore(null)
+    setPersone(null)
+    anteprimaAbbonamento({ member_id: membro, piano_id: pianoId, data_inizio: inizio ?? oggiRoma() }).then((r) => {
+      if (!vivo) return
+      // Il contratto si compone: i dati ci sono (li ha completati qualcuno nel frattempo). Si riprende.
+      if (r.ok) return onCompleti()
+      if (r.persone_dati?.length) {
+        setPersone(r.persone_dati)
+        setMancanti(r.mancanti ?? [])
+      } else {
+        setErrore(r.errore)
+      }
+    })
+    return () => {
+      vivo = false
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [membro, pianoId, inizio, giro])
+
+  if (errore) {
+    return (
+      <View style={{ gap: spazio.quattro }}>
+        <Messaggio tono="attenzione" titolo={t('Non riusciamo a leggere i tuoi dati', 'We can’t read your details')}>
+          {errore}
+        </Messaggio>
+        <Pulsante testo={t('Riprova', 'Try again')} onPress={() => setGiro((g) => g + 1)} />
+        <Pulsante testo={t('Indietro', 'Back')} variante="fantasma" piccolo pieno={false} onPress={onIndietro} />
+      </View>
+    )
+  }
+  if (!persone) {
+    return (
+      <Carta piatta>
+        <Text style={[stili.testo, { color: p.testoSecondario }]}>{t('Controlliamo i tuoi dati…', 'Checking your details…')}</Text>
+      </Carta>
+    )
+  }
+  return (
+    <View style={{ gap: spazio.quattro }}>
+      <Text style={[stili.testo, { color: p.testoSecondario }]}>
+        {t('Per il contratto servono dei dati che mancano sulla tua scheda. Completali qui: poi si va avanti da solo.', 'The contract needs some details that are missing from your profile. Fill them in here: then it carries on by itself.')}
+      </Text>
+      {persone.map((d) => (
+        <CorreggiDati
+          key={`${d.member_id}-${d.codice_fiscale}-${d.paese}-${d.telefono}-${d.indirizzo?.via}-${d.indirizzo?.cap}`}
+          persona={d}
+          titolo={d.ruolo === 'genitore' ? t('Dati del genitore che firma', 'Details of the signing parent') : t('I tuoi dati', 'Your details')}
+          apertoDa
+          mancanti={mancanti}
+          // Dopo il salvataggio si rilegge: se manca ancora qualcosa (un'altra persona, un altro dato) la maschera riparte da quello.
+          onSalvato={() => setGiro((g) => g + 1)}
+        />
+      ))}
+      <Pulsante testo={t('Indietro', 'Back')} variante="fantasma" piccolo pieno={false} onPress={onIndietro} />
+    </View>
   )
 }
 

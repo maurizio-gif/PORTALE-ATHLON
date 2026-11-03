@@ -131,4 +131,16 @@ chiamata diretta al gestionale. Esempio: la sezione Prodotti usa l'azione `prodo
 - [Pagina d'accesso più snella: il tema in fondo, la lingua discreta (02/11/2026)](docs/claude/93-accesso-snellito-il-tema-in-fondo-02-11-2026.md) · 3 KB
 - [La resa grafica: la Home a due colonne da computer, l'hover, il bagliore che respira e «riduci movimento» (02/11/2026)](docs/claude/94-resa-grafica-home-a-due-colonne-hover-e-movimento-02-11-2026.md) · 4 KB
 - [Le survey dentro Club Life: scritte nell'app, e chi risponde è già noto (03/11/2026)](docs/claude/95-le-survey-del-sito-in-club-life-03-11-2026.md) · 9 KB
-- [Un pagamento in corso si vede e le quote non si pagano due volte: la schermata «Da pagare» e il riquadro in Home (03/11/2026)](docs/claude/96-pagamento-in-corso-nell-app-03-11-2026.md) · 2 KB
+- [«Brevetti»: il viaggio animato al posto del libretto da sfogliare, e la data dell'ultimo brevetto (03/11/2026)](docs/claude/96-brevetti-il-viaggio-animato-03-11-2026.md) · 9 KB
+- [«Brevetti»: le prove spuntate si vedono nell'app, senza «Il percorso»; il diplomino con le prove e la storia senza vuoti (03/11/2026)](docs/claude/97-brevetti-le-prove-spuntate-si-vedono-nell-app-03-11-2026.md) · 6 KB
+- [L'invito a fare l'abbonamento per chi, nel nucleo, non ce l'ha: dai 13 anni, anche se il genitore è già iscritto (03/11/2026)](docs/claude/98-invito-abbonamento-per-chi-nel-nucleo-non-ce-l-ha-03-11-2026.md) · 2 KB
+- [La Home a due colonne: lo stacco fra le carte e i riquadri (03/11/2026)](docs/claude/99-home-a-due-colonne-stacco-dai-riquadri-03-11-2026.md) · 2 KB
+- [Junior: l'invito ad attivare l'abbonamento adulti per un figlio da 13 a 17 anni (03/11/2026)](docs/claude/100-junior-invito-abbonamento-adulti-per-il-figlio-13-17-03-11-2026.md) · 3 KB
+- [Il listino degli abbonamenti: Premium prima, come la pagina del sito, e Athlon Health System fra le attività (03/11/2026)](docs/claude/101-listino-abbonamenti-premium-prima-e-athlon-health-system-03-11-2026.md) · 3 KB
+- [L'abbonamento dal nucleo: per i familiari solo da 13 a 17 anni, mai per un altro adulto (04/11/2026)](docs/claude/102-abbonamento-dal-nucleo-solo-13-17-anni-04-11-2026.md) · 2 KB
+- [La chat «Richiedi assistenza» su Android installata: la tastiera non si richiude più (04/11/2026)](docs/claude/103-chat-assistenza-android-pwa-tastiera-04-11-2026.md) · 2 KB
+- [Totem: ogni pagamento passa da QR, email o operatore (04/11/2026)](docs/claude/104-totem-ogni-pagamento-qr-email-operatore-04-11-2026.md) · 4 KB
+- [La Home scrive «Guest» a un Guest, non «Socio» (04/11/2026)](docs/claude/105-home-guest-al-posto-di-socio-04-11-2026.md) · 1 KB
+- [Il controllo dei dati all'accesso: «Aggiungi il tuo cellulare» in «Da fare» (04/11/2026)](docs/claude/106-controllo-dati-all-accesso-04-11-2026.md) · 1 KB
+- [Brevetti: ottenuto e in corso, e il libretto anche senza un abbonamento (04/11/2026)](docs/claude/107-brevetti-ottenuto-in-corso-e-senza-abbonamento-04-11-2026.md) · 3 KB
+- [Un pagamento in corso si vede e le quote non si pagano due volte: la schermata «Da pagare» e il riquadro in Home (03/11/2026)](docs/claude/108-pagamento-in-corso-nell-app-03-11-2026.md) · 2 KB

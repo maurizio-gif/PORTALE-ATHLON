@@ -43,6 +43,7 @@ import { Schermata } from './ui/Schermata'
 import { F, FUOCO, usePalette, velo } from './ui/tema'
 import { colpetto, Tocco } from './ui/Tocco'
 import { apriPagamento } from '@/lib/pagamentoEsterno'
+import { passaDalTotem } from '@/features/lab/totem/passaggio'
 
 // Il personal training del laboratorio (15/10/2026): la seconda faccia di
 // «Prenotazioni». Funziona come PerfectGym lo fa funzionare (vedi
@@ -246,6 +247,8 @@ function FoglioCompra({
   async function attivaSulConto(d: DatiConto | null): Promise<string | null> {
     if (cosa?.tipo !== 'pacchetto') return null
     if (!accetto) return t('Per attivare l’abbonamento servono i consensi del contratto.', 'To activate the membership you need to give the contract consents.')
+    // Un IBAN (nuovo o salvato) sul totem passa dalle tre strade, come una carta (`totem/passaggio.ts`).
+    if (!(await passaDalTotem({ cosa: 'conto', percorso: '/personal' }))) return null
     setErrore(null)
     setAttesa('conto')
     const r = await attivaPacchettoPersonal(
@@ -264,11 +267,14 @@ function FoglioCompra({
   }
 
   async function vai(url: string) {
-    await apriPagamento(url)
+    // Sul totem, scelto QR o email (o annullato) la pagina non si apre: la schermata torna com'era.
+    if (!(await apriPagamento(url))) setAttesa(null)
   }
 
   async function paga(conCarta: boolean) {
     if (!cosa) return
+    // Sul totem un addebito su una carta salvata passa dalle tre strade (`totem/passaggio.ts`).
+    if (conCarta && !(await passaDalTotem({ cosa: 'carta salvata', percorso: '/personal' }))) return
     setErrore(null)
     setAttesa(conCarta ? 'carta' : 'altra')
     if (cosa.tipo === 'seduta') {
@@ -857,6 +863,7 @@ export function Personal() {
   }
 
   async function pagaConCarta(acquistoId: string) {
+    if (!(await passaDalTotem({ cosa: 'carta salvata', percorso: '/personal' }))) return
     setErroreAzione(null)
     setAttesa(true)
     const r = await pagaPersonalConCarta(acquistoId)

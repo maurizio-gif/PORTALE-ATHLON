@@ -1,0 +1,9 @@
+## La chat «Richiedi assistenza» su Android installata: la tastiera non si richiude più (04/11/2026)
+
+Segnalazione: sui telefoni Android, con l'app **installata** (PWA a schermo intero), toccando il campo di testo della chat la tastiera si apre e si richiude subito, e non si riesce a scrivere. Nel browser e negli altri campi dell'app funziona.
+
+- **Causa probabile** (non confermata su un telefono): il foglio della chat è un `Modal` di React Native Web con `animationType="slide"`. Quell'animazione lascia sul contenitore **fisso** una `transform: translateY(0%)` **per sempre**, anche a fine animazione (provato in Chromium: l'antenato del campo ha `transform: matrix(1, 0, 0, 1, 0, 0)`). Un campo dentro un elemento fisso con una `transform` è il caso noto in cui Chrome su Android perde il fuoco quando la tastiera ridimensiona la finestra, e in modalità PWA la finestra si ridimensiona.
+- **Cosa è cambiato**: `FoglioAssistente.tsx` usa `animationType="fade"`: resta solo `opacity`, nessuna `transform` (provato: nessun antenato del campo con `transform`). Cambia solo l'entrata del foglio: dissolvenza al posto dello scorrimento dal basso.
+- **Scartato provando**: il foglio non si rifà a ogni ridimensionamento della finestra (nessuna scrittura sullo stile del campo durante sei ridimensionamenti), quindi non è un ricalcolo dell'altezza del campo né un rimontaggio.
+- **Provato** in Chromium (Pixel 7, touch, bundle web esportato, rete simulata): il campo resta a fuoco e accetta il testo con la finestra che si restringe come con la tastiera. **Non riprodotto il guasto** (Chromium non ha la tastiera di Android) e **non provato su un telefono Android vero**: va provato lì, con l'app installata.
+- **Altri fogli con `slide`** che hanno campi di testo (`ui/Foglio.tsx`, `CampoTelefono`, `CampoPaese`): non toccati, perché la segnalazione è solo sulla chat. Se il guasto compare anche lì, la cura è la stessa.

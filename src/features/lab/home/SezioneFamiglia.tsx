@@ -2,6 +2,7 @@ import { router, useFocusEffect } from 'expo-router'
 import { useCallback, useState } from 'react'
 import { Text, View } from 'react-native'
 
+import type { ContrattoElenco } from '@/api/abbonamento'
 import { AMBITI, statoConsensiMinori } from '@/api/consensiMinori'
 import { statoDelega, type DelegaAttiva } from '@/api/delega'
 import type { Area } from '@/api/lab'
@@ -11,16 +12,21 @@ import { t } from '@/lib/lingua'
 
 import { AggiungiComponente } from '../famiglia/AggiungiComponente'
 import { CHIAVE_GRUPPI_JUNIOR } from '../junior/Junior'
-import { scorda } from '../memoria'
-import { Avatar, Carta, Etichetta, Messaggio, Riga } from '../ui/kit'
+import { CHIAVE_CONTRATTI } from '../AbbonamentiMiei'
+import { inMemoria, scorda } from '../memoria'
+import { Avatar, Carta, Etichetta, Messaggio, Pulsante, Riga } from '../ui/kit'
 import { BollinoDebito } from '../ui/Irregolarita'
 import { F, usePalette } from '../ui/tema'
 import { vistaCorrente } from '../vista'
 import { nome, statoCertificato } from './certificato'
+import { senzaAbbonamento } from './regolarita'
 
 // La sezione Famiglia della Home: le persone del nucleo, con la data di
 // nascita, il certificato in sintesi e il bollino di un pagamento in sospeso.
 // Il dettaglio del certificato sta nella sezione Certificato.
+//
+// **Chi non ha un abbonamento** (03/11/2026, richiesta di Maurizio): sulla riga di ogni persona dai 13 anni senza abbonamento c'e' «Scegli l'abbonamento»
+// (`senzaAbbonamento`), anche se il genitore ce l'ha gia'; per un minorenne firma il genitore.
 //
 // In fondo «Aggiungi un componente» (31/10/2026, richiesta di Maurizio; lo stesso pulsante di Junior): un figlio, che la funzione
 // controlla non sia gia' al club, oppure un altro adulto a cui dare la delega sui figli (`/delega`). Mai in vista cliente.
@@ -35,6 +41,9 @@ type AreaTrovata = Extract<Area, { trovato: true }>
 export function SezioneFamiglia({ area, onAggiorna }: { area: AreaTrovata; onAggiorna: () => void }) {
   const p = usePalette()
   const [aggiunto, setAggiunto] = useState<string | null>(null)
+  // Chi ha 13 anni o piu' e non ha un abbonamento (anche se il genitore ce l'ha): sulla sua riga c'e' l'invito a sceglierlo (03/11/2026).
+  // Con l'elenco dei contratti (se la sezione Abbonamenti l'ha gia' letto) lo decide la categoria del server.
+  const senza = new Set(senzaAbbonamento(area, new Date(), inMemoria<{ ok: true; contratti: ContrattoElenco[] }>(CHIAVE_CONTRATTI)?.contratti).map((x) => x.member_id))
   const [deleghe, setDeleghe] = useState<DelegaAttiva[]>([])
   // Figli da 13 a 17 anni per cui il genitore puo' dare i consensi, e quanti ne ha dati (di quanti possibili).
   const [consensi, setConsensi] = useState<{ figli: number; dati: number } | null>(null)
@@ -75,6 +84,15 @@ export function SezioneFamiglia({ area, onAggiorna }: { area: AreaTrovata; onAgg
                     <Etichetta testo={t(`Certificato: ${s.testo.toLowerCase()}`, `Certificate: ${s.testo.toLowerCase()}`)} tono={s.tono} />
                     <BollinoDebito debito={x.debito} />
                   </View>
+                  {senza.has(x.member_id) ? (
+                    <Pulsante
+                      testo={x.titolare ? t('Scegli il tuo abbonamento', 'Choose your membership') : t('Scegli l’abbonamento', 'Choose a membership')}
+                      icona="avanti"
+                      piccolo
+                      pieno={false}
+                      onPress={() => router.navigate({ pathname: '/abbonamento', params: { membro: String(x.member_id) } })}
+                    />
+                  ) : null}
                 </View>
               }
             />

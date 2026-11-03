@@ -17,6 +17,7 @@ import { Schermata } from '../ui/Schermata'
 import { F, usePalette, type ToniTutti } from '../ui/tema'
 import { Tocco } from '../ui/Tocco'
 import { apriPagamento } from '@/lib/pagamentoEsterno'
+import { passaDalTotem } from '@/features/lab/totem/passaggio'
 
 // I pagamenti veri del socio e della famiglia (15/10/2026), da PerfectGym:
 // le quote scadute da saldare, i prossimi pagamenti e lo storico, ognuno col
@@ -252,6 +253,8 @@ export function DaPagare({ elenco, carta, inCorsoFrase, onApri, onAggiorna, veri
   }, [fase])
 
   async function paga(conCarta: boolean) {
+    // Sul totem un addebito su una carta salvata passa dalle tre strade (`totem/passaggio.ts`).
+    if (conCarta && !(await passaDalTotem({ cosa: 'carta salvata', percorso: '/pagamenti' }))) return
     setErrore(null)
     setFase(conCarta ? 'invio-carta' : 'invio-altra')
     const r = await saldaPagamenti(totale, conCarta)
@@ -271,12 +274,14 @@ export function DaPagare({ elenco, carta, inCorsoFrase, onApri, onAggiorna, veri
     }
     if (r.stato === 'redirect') {
       // Si esce dall'app per la pagina della carta, e si torna qui con `?saldo=1`.
-      if (Platform.OS === 'web') window.location.assign(r.url)
-      else {
-        // Il browser integrato si chiude quando la persona torna: solo allora si rilegge l'esito.
-        await apriPagamento(r.url)
-        if (vivo.current) setFase('verifica')
+      // `apriPagamento` sul web cambia pagina; sul totem passa prima dalle tre strade e, scelto QR o email (o annullato), non apre niente.
+      const aperta = await apriPagamento(r.url)
+      if (!aperta) {
+        if (vivo.current) setFase('pronto')
+        return
       }
+      // Nell'app il browser integrato si chiude quando la persona torna: solo allora si rilegge l'esito.
+      if (Platform.OS !== 'web' && vivo.current) setFase('verifica')
       return
     }
     setFase('verifica')

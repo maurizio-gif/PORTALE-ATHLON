@@ -9,6 +9,6 @@ Sul totem la persona entra con il suo login (il codice via email) e sceglie abbo
 Cose da sapere:
 - **Il token vive solo in memoria** (un `useRef` nella schermata): niente storage, niente indirizzo, niente log. Il totem e' di tutti.
 - **«Ho finito, esco»** (`uscitaTotem`) chiude la sessione di questo dispositivo e ricarica la pagina; e' il bottone finale di QR, email ed esito. Sulla pagina `/r/<token>` aperta sul totem (ritorno dal pagamento) la `FaseEsito` mostra lo stesso bottone al posto del rimando al sito.
-- **Dati mancanti sulla scheda** (`dati_mancanti`): non si firma da qui. La schermata dice di completarli dal Profilo o in segreteria e di riprendere. Il passo «Dati e firma» del flusso di sempre (che permette di correggerli) resta solo per il telefono.
+- **Dati mancanti sulla scheda** (`dati_mancanti`, 03/11/2026): la schermata mostra qui la maschera dell'acquisto di sempre (`CorreggiDati`, aperta, con l'elenco di quello che serve: codice fiscale, indirizzo, telefono, anche del genitore che firma). Salvati i dati riprende da sola con la strada scelta; dopo tre ritorni di fila dello stesso errore lo dice, invece di girare in tondo.
 - **Interruttore**: `vendita_assistita` spento = tutto risponde 503 `non_attivo` e la schermata lo dice.
 - **Provato**: `tsc` pulito sui file toccati, la prova dei moduli del totem (7 gruppi) e il build web. **Non provato**: la schermata in un browser con un login vero, `proposta_crea` dal vivo (serve una sessione), il QR letto da un telefono, l'assistita con un user number vero.

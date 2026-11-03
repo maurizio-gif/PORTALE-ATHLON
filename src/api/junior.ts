@@ -34,8 +34,13 @@ export type PersonaJunior = {
   /** Dai 3 mesi ai nati nell'anno piu' vecchio dei gruppi del Nuoto Agonistico: lo decide il database. */
   idoneo: boolean;
   motivo: string | null;
-  /** Il livello della Scuola Nuoto Bambini (`A1 - Stella Marina 1`…), se c'è: dal mirror, solo quello di adesso. Manca con una funzione di prima. */
+  /**
+   * Il brevetto **ottenuto** della Scuola Nuoto Bambini (`A1 - Stella Marina 1`…), se ce n'è uno. Dal 04/11/2026 (migrazione 20261104c) è quello che il bambino ha già ottenuto,
+   * non quello che sta facendo, come invece dava PerfectGym. Manca con una funzione di prima, e allora è quello che c'era (in corso).
+   */
   livello?: string | null;
+  /** Il brevetto **in corso**: il successivo a quello ottenuto (A1 se non ne ha). Vuoto se il bambino non è nel registro dei brevetti o se ha ottenuto l'ultimo. Manca con una funzione di prima. */
+  in_corso?: string | null;
   gruppi: { group_id: number; nome: string }[];
 };
 
@@ -227,7 +232,12 @@ export type PassaggioLivello = {
   /** La riga con cui abbiamo cominciato a guardare: la data e' quella del primo rilevamento, non del passaggio. */
   primo_rilevamento: boolean;
   rilevato_il: string;
+  /** Da dove e' venuto il passaggio (dal 03/11/2026): le prove del direttore tecnico, un'impostazione a mano, o PerfectGym (le righe di prima). Manca con una funzione di prima. */
+  fonte?: "perfectgym" | "prove" | "manuale";
 };
+
+/** Le prove del livello successivo che il direttore tecnico ha gia' spuntato: i numeri d'ordine (dal primo, come nel libretto) e quante sono in tutto. */
+export type ProssimoLivello = { codice: string; nome: string; totale: number; superate: number[] };
 
 export type EsitoLivelli =
   | {
@@ -236,6 +246,8 @@ export type EsitoLivelli =
       rilevato_dal: string | null;
       /** Dal piu' recente. */
       passaggi: PassaggioLivello[];
+      /** Dal 03/11/2026 il registro dei brevetti e' il nostro database: le prove si spuntano dal CRM una per volta e qui si vede a che punto sono. Null all'ultimo livello e con una funzione di prima. */
+      prossimo: ProssimoLivello | null;
     }
   | { ok: false; errore: string };
 
@@ -268,6 +280,10 @@ export async function livelliJunior(memberId: number): Promise<EsitoLivelli> {
     passaggi: Array.isArray(dati.passaggi)
       ? (dati.passaggi as PassaggioLivello[])
       : [],
+    prossimo:
+      dati.prossimo && typeof dati.prossimo === "object" && Array.isArray((dati.prossimo as ProssimoLivello).superate)
+        ? (dati.prossimo as ProssimoLivello)
+        : null,
   };
 }
 

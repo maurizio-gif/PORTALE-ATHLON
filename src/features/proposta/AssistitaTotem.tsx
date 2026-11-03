@@ -21,7 +21,7 @@ import { FaseEsito, FasePagamento } from './FasePagamento'
 //
 //   operatore -> contratto e firma -> pagamento -> esito
 //
-// L'operatore (segreteria o front office) digita il **suo user number**: la funzione risponde sempre la stessa cosa per un numero sbagliato,
+// L'operatore (segreteria o front office) digita il **suo codice** (sei cifre assegnate dal sistema, che vede in cima al CRM): la funzione risponde sempre la stessa cosa per un numero sbagliato,
 // per un operatore senza la sezione e per uno che non c'e' piu' (non dice quale), e scrive nel registro chi ha assistito quale proposta. Lo
 // sblocco vale finche' vive la proposta. L'identita' di chi compra l'ha gia' data il suo login con il codice via email: la proposta nasce verificata
 // e non si chiede la data di nascita. Il giorno d'inizio e' quello scelto prima, e qui si **conferma** (il server lo pretende per firmare).
@@ -144,7 +144,7 @@ export function AssistitaTotem({ proposta, inizio, nomePiano, onIndietro }: { pr
         />
       ) : null}
       {fase.f === 'pagamento' ? (
-        <FasePagamento token={token} firmato={firmato} errore={fase.errore ?? null} onPagato={() => setFase({ f: 'esito' })} onErrore={globale} />
+        <FasePagamento token={token} firmato={firmato} errore={fase.errore ?? null} assistita onPagato={() => setFase({ f: 'esito' })} onErrore={globale} />
       ) : null}
       {fase.f === 'esito' ? <FaseEsito token={token} numero={firmato?.numero ?? null} onRiprova={() => setFase({ f: 'pagamento' })} onErrore={globale} onFine={() => void uscitaTotem()} /> : null}
     </View>
@@ -195,14 +195,14 @@ function Operatore({
       </Carta>
       <Testo variante="attenuato">
         {t(
-          'Firmi e paghi qui, con una persona dello staff accanto. Chi ti assiste digita il suo numero utente.',
-          'You sign and pay here, with a staff member next to you. Whoever is helping you types their user number.',
+          'Firmi e paghi qui, con una persona dello staff accanto. Chi ti assiste digita il suo codice operatore.',
+          'You sign and pay here, with a staff member next to you. Whoever is helping you types their operator code.',
         )}
       </Testo>
       <Campo
-        etichetta={t('Numero utente dell’operatore', 'Staff user number')}
+        etichetta={t('Codice operatore', 'Operator code')}
         value={codice}
-        onChangeText={(v) => setCodice(v.replace(/\D/g, '').slice(0, 12))}
+        onChangeText={(v) => setCodice(v.replace(/\D/g, '').slice(0, 6))}
         keyboardType="number-pad"
         inputMode="numeric"
         secureTextEntry
