@@ -306,7 +306,7 @@ export function ElencoAbbonamenti({ area, onSezione }: { area: Extract<Area, { t
   const vigore = (elenco ?? []).filter((c) => c.in_vigore)
   const haPrincipale = vigore.some((c) => c.categoria === 'principale')
   const piuPersone = new Set(vigore.map((c) => c.member_id)).size > 1
-  const inviti = senzaAbbonamento(area)
+  const inviti = senzaAbbonamento(area, new Date(), elenco)
   // La regolarita' viene dai dati della Home (l'area): il metodo e il debito sono li'.
   const regolarita = (c: ContrattoElenco): Regolarita | null => {
     const k = area.contratti.find((x) => x.contract_id === c.contract_id)

@@ -25,6 +25,7 @@ import { CambioOrario } from "./CambioOrario";
 import { CorsiPersona, type ParteCorsi } from "./Corsi";
 import { concludiInCorso, iscrizioniInCorso, type InCorso } from "./inCorso";
 import { DirettoreTecnico } from "./DirettoreTecnico";
+import { InvitoAbbonamentoAdulti } from "./InvitoAbbonamentoAdulti";
 import { MenuIscritto, type VoceJunior } from "./MenuIscritto";
 import { TestataJunior } from "./Presentazione";
 import { SceltaFiglio } from "./SceltaFiglio";
@@ -194,6 +195,8 @@ export function Junior() {
             persona={persona}
             iscritto={personaIscritta ? true : eBaby(persona.data_nascita) ? (babyAbbonato?.id === persona.member_id ? babyAbbonato.si : null) : false}
           />
+          {/* Un figlio da 13 a 17 anni, iscritto o no ai corsi: l'invito ad attivare l'abbonamento adulti a suo nome (03/11/2026). */}
+          <InvitoAbbonamentoAdulti persona={persona} vista={vista} />
           {!personaIscritta && eBaby(persona.data_nascita) ? (
             // Chi e' in eta' per il Baby Nuoto: la lettura dei suoi dati parte subito, per dire in alto se ha l'abbonamento.
             <CorsiPersona persona={persona} vista={vista} parte={null} onDati={(d) => setBabyAbbonato({ id: persona.member_id, si: d.babyAbbonato })} />
