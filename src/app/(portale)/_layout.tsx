@@ -56,7 +56,8 @@ export default function LayoutLaboratorio() {
         ) : (
           <SchermataInArrivo />
         )}
-        <Avvio />
+        {/* Lo stesso `key` del ramo sotto: vedi il commento all'ultimo `<Avvio />`. */}
+        <Avvio key="avvio" />
       </View>
     )
   }
@@ -116,8 +117,13 @@ export default function LayoutLaboratorio() {
           cliente non si disegna. Il feedback dei tester e' una carta della Home (home/CartaFeedback). */}
       {/* Sul totem (lib/totem.ts) al suo posto c'e' «Esci»: l'assistente non ha senso su un pannello davanti al desk, e chi finisce deve poter uscire con un tocco. */}
       {sessione ? inModalitaTotem() ? <EsciTotem /> : <PulsanteAssistente /> : null}
-      {/* L'avvio animato: una volta a ogni apertura, sopra tutto (features/lab/avvio). */}
-      <Avvio />
+      {/* L'avvio animato: una volta a ogni apertura, sopra tutto (features/lab/avvio).
+          **Il `key` e' la ragione per cui si vede.** Chi ha gia' una sessione passa da questo ramo a quello di «Completa il profilo» (mentre
+          `useIngresso` chiede lo stato al server) e poi di nuovo qui: l'`<Avvio />` sta in posizioni diverse nei due rami, quindi senza
+          un `key` React smonta quello che sta girando e ne monta uno nuovo, che trova «gia' mostrato» (mostra.ts) e non disegna niente: si
+          vedeva «Un attimo…» e il logo non partiva mai (01/11/2026, da «Completa il profilo»). Con lo stesso `key` in tutti e due i rami
+          e' la stessa istanza, e l'animazione copre il passaggio. */}
+      <Avvio key="avvio" />
     </View>
   )
 }
