@@ -6,10 +6,10 @@ import { t } from "@/lib/lingua";
 import { spazio } from "@/theme";
 
 import { Icona } from "../ui/Icona";
-import { Carta, Messaggio, Pulsante } from "../ui/kit";
+import { Bollino, Carta, Etichetta, Messaggio, Pulsante, Sezione } from "../ui/kit";
 import { Tocco } from "../ui/Tocco";
 import { F, usePalette, velo } from "../ui/tema";
-import { attivitaDiPersona, chiaveDelGruppo } from "./attivita";
+import { ATTIVITA, attivitaDiPersona, chiaveDelGruppo } from "./attivita";
 import type { VoceCoda } from "./codaIscrizioni";
 import { eBaby } from "./comune";
 
@@ -54,6 +54,7 @@ export function TurniVicini({
   const [frequenza, setFrequenza] = useState<Frequenza>("tutte");
   const [esito, setEsito] = useState<EsitoTurniVicini | null>(null);
   const [tutte, setTutte] = useState(false);
+  const [aperta, setAperta] = useState(true);
   const giro = useRef(0);
 
   // I figli cambiano (uno aggiunto): i nuovi entrano fra i scelti, finche' c'e' posto.
@@ -96,24 +97,36 @@ export function TurniVicini({
   const visibili = tutte ? proposte : proposte.slice(0, PRIME);
   const daIscrivere = figli.filter((x) => scelti.includes(x.member_id) && !inScuolaNuoto(x));
 
-  return (
-    <Carta>
-      <View style={{ gap: spazio.tre }}>
-        <View style={{ gap: 4 }}>
-          <View style={stili.testa}>
-            <Icona nome="persone" size={18} colore={p.accento} />
-            <Text style={[stili.titolo, { color: p.testo }]} accessibilityRole="header">
-              {t("Turni vicini per i tuoi figli", "Nearby time slots for your children")}
-            </Text>
-          </View>
-          <Text style={[stili.nota, { color: p.testoSecondario }]}>
-            {t(
-              "Gli stessi giorni e l'inizio a non più di mezz'ora di distanza, con posti liberi: per portarli insieme.",
-              "Same days and start times no more than half an hour apart, with places available: so you can bring them together.",
-            )}
-          </Text>
-        </View>
+  const nomiScelti = figli.filter((x) => scelti.includes(x.member_id)).map((x) => x.nome ?? t("Senza nome", "No name"));
+  const nomiFigli =
+    nomiScelti.length > 1 ? `${nomiScelti.slice(0, -1).join(", ")} ${t("e", "and")} ${nomiScelti[nomiScelti.length - 1]}` : (nomiScelti[0] ?? "");
+  const snb = ATTIVITA.snb;
 
+  // Si presenta come la pagina di un figlio (04/11/2026, richiesta di Maurizio): «Scegli l'attività per …» e la carta dell'attività, ma
+  // dentro ci sono solo i turni che i figli possono fare insieme. Oggi l'attività con i turni coincidenti e' la Scuola Nuoto Bambini.
+  return (
+    <Sezione titolo={t(`Scegli l’attività per ${nomiFigli}`, `Choose the activity for ${nomiFigli}`)}>
+      <Carta>
+        <Tocco vibra="scelta" stato={{ expanded: aperta }} etichetta={snb.nome()} onPress={() => setAperta((x) => !x)} style={stili.testaCarta}>
+          <Bollino icona="goccia" tono="blu" size={44} />
+          <View style={{ flex: 1, minWidth: 0, gap: 4 }}>
+            <Text style={[stili.titolo, { color: p.testo }]}>{snb.nome()}</Text>
+            <Text style={[stili.nota, { color: p.testoSecondario }]}>
+              {t("I turni da fare insieme: stessi giorni, inizio entro mezz’ora.", "Time slots to do together: same days, starting within half an hour.")}
+            </Text>
+            {!aperta && esito?.ok ? (
+              <View style={stili.fila}>
+                <Etichetta
+                  testo={proposte.length ? t(`${proposte.length} turni insieme`, `${proposte.length} slots together`) : t("Nessun turno insieme", "No slots together")}
+                  tono={proposte.length ? "ok" : "neutro"}
+                />
+              </View>
+            ) : null}
+          </View>
+          <Icona nome={aperta ? "su" : "giu"} size={16} colore={p.testoSecondario} />
+        </Tocco>
+        {aperta ? (
+          <View style={{ gap: spazio.tre, marginTop: spazio.tre }}>
         {figli.length > 2 ? (
           <View style={{ gap: 6 }}>
             <Text style={[stili.etichetta, { color: p.testoSecondario }]}>{t("Per chi", "For")}</Text>
@@ -152,8 +165,8 @@ export function TurniVicini({
             {esito.tuttiIscritti
               ? t("Sono già tutti iscritti.", "They’re all enrolled already.")
               : t(
-                  "Con i posti di adesso non ci sono turni negli stessi giorni a meno di mezz'ora. Prova con un'altra frequenza, o scegli i turni di ognuno qui sotto.",
-                  "With the places available now there are no slots on the same days within half an hour. Try another frequency, or choose each child’s slot below.",
+                  "Con i posti di adesso non ci sono turni negli stessi giorni a meno di mezz'ora. Prova con un'altra frequenza, o scegli i turni dalla scheda di ogni figlio.",
+                  "With the places available now there are no slots on the same days within half an hour. Try another frequency, or choose from each child’s tab.",
                 )}
           </Messaggio>
         ) : (
@@ -172,14 +185,16 @@ export function TurniVicini({
             ) : null}
             <Text style={[stili.nota, { color: p.testoSecondario }]}>
               {t(
-                "I posti sono quelli di pochi minuti fa: l'ultima parola è dell'iscrizione. Ogni figlio ha il suo contratto e il suo pagamento.",
-                "Places are as of a few minutes ago: the enrollment has the final say. Each child has their own contract and payment.",
+                "«Iscrivi» li iscrive uno dopo l’altro: finito il primo, l’app ti porta al successivo. Ogni figlio ha il suo contratto e il suo pagamento. I posti sono quelli di pochi minuti fa.",
+                "«Enroll» enrolls them one after the other: when the first is done, the app takes you to the next. Each child has their own contract and payment. Places are as of a few minutes ago.",
               )}
             </Text>
           </View>
         )}
-      </View>
-    </Carta>
+          </View>
+        ) : null}
+      </Carta>
+    </Sezione>
   );
 }
 
@@ -264,6 +279,7 @@ function Scelta({ testo, attiva, onPress }: { testo: string; attiva: boolean; on
 
 const stili = StyleSheet.create({
   testa: { flexDirection: "row", alignItems: "center", gap: 6, flexWrap: "wrap" },
+  testaCarta: { flexDirection: "row", alignItems: "center", gap: spazio.tre },
   titolo: { fontFamily: F.extra, fontSize: 17, letterSpacing: -0.2 },
   nota: { fontFamily: F.medio, fontSize: 13, lineHeight: 18 },
   etichetta: { fontFamily: F.bold, fontSize: 12, textTransform: "uppercase", letterSpacing: 0.4 },
