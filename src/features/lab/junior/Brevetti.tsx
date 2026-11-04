@@ -10,6 +10,7 @@ import { Carta, Messaggio, Pulsante, SchedeInArrivo } from "../ui/kit";
 import { F, usePalette, velo } from "../ui/tema";
 import { dateDeiPassaggi, giornoBrevetto, leggiBrevetto, livelloDi, LIVELLI, nomeSpecie, posizioneDi } from "./datiBrevetti";
 import { nomeCompleto } from "./comune";
+import { CosaStaImparando } from "./CosaStaImparando";
 import { Dettagli } from "./Dettagli";
 import { datiLibretto, stampaLibretto } from "./esportaLibretto";
 import { FoglioDiploma } from "./FoglioDiploma";
@@ -75,28 +76,32 @@ export function Brevetti({ persona, vista }: { persona: PersonaJunior; vista: bo
     if (inCorso && primo) {
       const fatte = inCorso.superate.length;
       return (
-        <Carta>
-          <View style={stili.eroe}>
-            <PersonaggioAnimato specie={primo.specie} larghezza={72} altezza={72} effetti={false} etichetta={nomeSpecie(primo.specie)} />
-            <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
-              <Text style={[stili.piccolo, { color: p.testoSecondario }]}>{t("Brevetto in corso", "Badge in progress")}</Text>
-              <Text style={[stili.nome, { color: p.testo }]}>{nomeSpecie(primo.specie)}</Text>
-              <Text style={[stili.piccolo, { color: p.testoSecondario }]}>{t(`Livello ${primo.codice}`, `Level ${primo.codice}`)}</Text>
-            </View>
-          </View>
-          <View style={{ paddingHorizontal: spazio.tre, paddingBottom: spazio.tre, gap: 6 }}>
-            <Text style={[stili.piccolo, { color: p.testo, fontFamily: F.bold }]}>
-              {fatte > 0
-                ? t(`${fatte} prove su ${inCorso.totale}`, `${fatte} of ${inCorso.totale} tests`)
-                : t(`${persona.nome ?? "Il bambino"} non ha ancora ottenuto nessun brevetto: lo ottiene con tutte le prove.`, `${persona.nome ?? "Your child"} hasn’t earned a badge yet: they get it when all the tests are done.`)}
-            </Text>
-            {fatte > 0 ? (
-              <View style={[stili.barraProve, { backgroundColor: p.incavo }]} accessibilityRole="progressbar" accessibilityValue={{ min: 0, max: inCorso.totale, now: fatte }}>
-                <View style={[stili.barraProveRiempita, { backgroundColor: p.accento, width: `${(Math.min(fatte, inCorso.totale) / Math.max(inCorso.totale, 1)) * 100}%` }]} />
+        <>
+          <Carta>
+            <View style={stili.eroe}>
+              <PersonaggioAnimato specie={primo.specie} larghezza={72} altezza={72} effetti={false} etichetta={nomeSpecie(primo.specie)} />
+              <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
+                <Text style={[stili.piccolo, { color: p.testoSecondario }]}>{t("Brevetto in corso", "Badge in progress")}</Text>
+                <Text style={[stili.nome, { color: p.testo }]}>{nomeSpecie(primo.specie)}</Text>
+                <Text style={[stili.piccolo, { color: p.testoSecondario }]}>{t(`Livello ${primo.codice}`, `Level ${primo.codice}`)}</Text>
               </View>
-            ) : null}
-          </View>
-        </Carta>
+            </View>
+            <View style={{ paddingHorizontal: spazio.tre, paddingBottom: spazio.tre, gap: 6 }}>
+              <Text style={[stili.piccolo, { color: p.testo, fontFamily: F.bold }]}>
+                {fatte > 0
+                  ? t(`${fatte} prove su ${inCorso.totale}`, `${fatte} of ${inCorso.totale} tests`)
+                  : t(`${persona.nome ?? "Il bambino"} non ha ancora ottenuto nessun brevetto: lo ottiene con tutte le prove.`, `${persona.nome ?? "Your child"} hasn’t earned a badge yet: they get it when all the tests are done.`)}
+              </Text>
+              {fatte > 0 ? (
+                <View style={[stili.barraProve, { backgroundColor: p.incavo }]} accessibilityRole="progressbar" accessibilityValue={{ min: 0, max: inCorso.totale, now: fatte }}>
+                  <View style={[stili.barraProveRiempita, { backgroundColor: p.accento, width: `${(Math.min(fatte, inCorso.totale) / Math.max(inCorso.totale, 1)) * 100}%` }]} />
+                </View>
+              ) : null}
+            </View>
+          </Carta>
+          {/* Quello che sta imparando adesso: il programma di A1 (o del primo livello in corso), come per gli altri (04/11/2026). */}
+          <CosaStaImparando livello={primo} />
+        </>
       );
     }
     return (
