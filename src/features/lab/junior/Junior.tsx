@@ -33,6 +33,9 @@ import { MenuIscritto, type VoceJunior } from "./MenuIscritto";
 import { TestataJunior } from "./Presentazione";
 import { SceltaFiglio } from "./SceltaFiglio";
 import { SchedaAttivita } from "./SchedaAttivita";
+import { chiudiCoda, codaIscrizioni, iniziaCoda, type VoceCoda } from "./codaIscrizioni";
+import { CodaIscrizioniCarta, InvitoAltroFiglio, mostraInvitoAltroFiglio } from "./PiuFigli";
+import { mostraTurniVicini, TurniVicini } from "./TurniVicini";
 
 // La sezione Junior (21/10/2026, richiesta di Maurizio): i corsi per bambini e ragazzi (Scuola Nuoto mono e bisettimanale, Nuoto
 // Agonistico e Propaganda, Pallanuoto, Baby Nuoto) con i posti che restano.
@@ -165,6 +168,27 @@ export function Junior() {
     } else carica();
   }
 
+  // Piu' figli (04/11/2026): le iscrizioni avviate dai turni vicini, una dopo l'altra (`codaIscrizioni.ts`). Si rilegge a ogni ritorno
+  // sulla sezione (dopo il pagamento), quindi segue `esito`.
+  const [coda, setCoda] = useState<VoceCoda[]>(() => codaIscrizioni());
+  useFocusEffect(
+    useCallback(() => {
+      setCoda(codaIscrizioni());
+    }, []),
+  );
+  const iscrittoA = (memberId: number, groupId: number) =>
+    !!nucleo?.persone.find((x) => x.member_id === memberId)?.gruppi.some((g) => Number(g.group_id) === groupId);
+  function avviaCoda(voci: VoceCoda[]) {
+    iniziaCoda(voci);
+    setCoda(voci);
+    const prima = voci[0];
+    if (prima) router.navigate({ pathname: "/iscrizione", params: { group: prima.group_id, membro: String(prima.member_id) } });
+  }
+  function chiudiLaCoda() {
+    chiudiCoda();
+    setCoda([]);
+  }
+
   function iscrivi(g: GruppoJunior, membro: number) {
     router.navigate({
       pathname: "/iscrizione",
@@ -227,6 +251,20 @@ export function Junior() {
         onApriAggiungi={() => setAggiunto(null)}
       />
       {aggiunto ? <Messaggio tono="ok">{aggiunto}</Messaggio> : null}
+
+      {coda.length ? (
+        <CodaIscrizioniCarta
+          voci={coda}
+          iscritto={iscrittoA}
+          onContinua={(v) => router.navigate({ pathname: "/iscrizione", params: { group: v.group_id, membro: String(v.member_id) } })}
+          onChiudi={chiudiLaCoda}
+        />
+      ) : !vista && mostraTurniVicini(persone) ? (
+        <TurniVicini persone={persone} vista={vista} onIscrivi={avviaCoda} />
+      ) : null}
+      {!vista && !coda.length && mostraInvitoAltroFiglio(persone) ? (
+        <InvitoAltroFiglio onAggiunto={dopoAggiunta} onApri={() => setAggiunto(null)} />
+      ) : null}
 
       {senzaFigli ? (
         <Messaggio titolo={t("Aggiungi un figlio per vedere le attività", "Add a child to see the activities")}>

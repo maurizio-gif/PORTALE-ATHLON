@@ -505,3 +505,54 @@ export async function disdiciCorso(d: { memberId: number; contractId: number }):
         : (dati.errore ?? t("Non riusciamo a disdire adesso. Riprova fra qualche minuto.", "We can’t cancel right now. Try again in a few minutes.")),
   };
 }
+
+// ---------------------------------------------------------------------------
+// I turni vicini per piu' figli (04/11/2026, richiesta di Maurizio): due o piu' figli della Scuola Nuoto Bambini negli stessi giorni,
+// con l'inizio entro mezz'ora. Dalla funzione `portale-lab-junior`, azione `turni_vicini` (`public.junior_turni_vicini`, APP-ATHLON):
+// un figlio gia' iscritto resta fermo nel suo turno, e si cercano quelli degli altri vicini al suo.
+
+export type TurnoVicino = {
+  member_id: number;
+  group_id: string;
+  corso: string | null;
+  categoria: string | null;
+  frequenza: "mono" | "bi";
+  giorni: string | null;
+  /** L'ora d'inizio, «15:50». */
+  orario: string | null;
+  liberi: number | null;
+  /** Il bambino e' gia' iscritto a questo turno: resta com'e'. */
+  iscritto: boolean;
+};
+
+export type PropostaTurni = {
+  /** Minuti fra il turno che comincia prima e quello che comincia dopo. */
+  scarto: number;
+  /** I giorni in cui ci sono tutti: «Lunedì, Giovedì». */
+  giorni: string | null;
+  gruppi: TurnoVicino[];
+};
+
+export type EsitoTurniVicini =
+  | { ok: true; proposte: PropostaTurni[]; tuttiIscritti: boolean }
+  | { ok: false; errore: string };
+
+export async function turniVicini(bambini: { member_id: number; frequenza?: "mono" | "bi" | null }[]): Promise<EsitoTurniVicini> {
+  const { ok, dati } = await funzione("portale-lab-junior", {
+    azione: "turni_vicini",
+    bambini: bambini.map((b) => ({ member_id: b.member_id, frequenza: b.frequenza ?? null })),
+  });
+  if (!ok)
+    return {
+      ok: false,
+      errore:
+        dati.errore === "Azione sconosciuta." || dati.errore === "Unknown action."
+          ? t("I turni vicini non sono ancora attivi: riprova fra qualche minuto.", "Nearby time slots aren’t active yet: try again in a few minutes.")
+          : (dati.errore ?? GUASTO),
+    };
+  return {
+    ok: true,
+    proposte: Array.isArray(dati.proposte) ? (dati.proposte as PropostaTurni[]) : [],
+    tuttiIscritti: dati.tutti_iscritti === true,
+  };
+}
