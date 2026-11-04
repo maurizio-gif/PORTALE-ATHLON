@@ -30,6 +30,7 @@ import { Carta, Entra, Messaggio, Pulsante, Riga, SchedeInArrivo, Sezione } from
 import { SceltaLingua } from './ui/SceltaLingua'
 import { SceltaTema } from './ui/SceltaTema'
 import { PulsanteEsci } from './ui/Uscita'
+import { Realizzata } from './ui/Realizzata'
 import { F, usePalette } from './ui/tema'
 import { colpetto } from './ui/Tocco'
 
@@ -403,6 +404,7 @@ export function ProfiloContenuto({ onAnagrafica }: { /** La Home lo usa per la t
               onPress={() => router.push('/elimina-account' as never)}
             />
           </Carta>
+          <Realizzata />
         </Sezione>
       </Entra>
 
