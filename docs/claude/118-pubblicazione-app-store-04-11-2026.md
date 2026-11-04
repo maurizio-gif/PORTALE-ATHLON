@@ -9,7 +9,7 @@ Richiesta di Maurizio. Lo stato, letto il 04/11/2026:
 - **Su TestFlight c'è la build 7** (profilo `test`, 29/10/2026). Da allora sono cambiate cose native (la frase di Apple Salute in
   `app.json`, `react-native-health-connect`, `expo-build-properties`): **per la revisione serve una build nuova col profilo `production`**
   (canale `production`, numero di build incrementato da EAS):
-  `npx eas-cli@latest build -p ios --profile production --auto-submit`. Va su TestFlight, non in vendita.
+  `npx eas-cli@latest build -p ios --profile production --auto-submit`. Va su TestFlight, non in vendita. **`ascAppId` sta in `eas.json`** (`submit`, `1584157295`): senza, l'invio automatico fallisce in modalità non interattiva (`Set ascAppId in the submit profile`). La prima build `production` è la **8** (04/11/2026, commit `52a6eb3`).
 - **L'accesso per il revisore** è l'azione `revisione` di `portale-accesso` (`CLAUDE.md` di APP-ATHLON, «L'accesso del revisore di
   Apple»): un indirizzo di una scheda di prova su PerfectGym con un codice fisso di otto cifre. `entra()` (`src/api/lab.ts`) la prova
   solo quando il codice normale non vale. Senza, il revisore si ferma alla pagina d'accesso e l'app viene respinta (guideline 2.1).
@@ -35,6 +35,6 @@ Richiesta di Maurizio. Lo stato, letto il 04/11/2026:
   la risposta è che i video sono un accessorio dell'abbonamento al club, non si vendono da soli.
 - **I link universali** (`applinks:app.athlonroma.it` in `app.json`) non funzionano ancora: il dominio non serve
   `/.well-known/apple-app-site-association`. Non blocca la revisione; i link di `/r/` ed `/entra` si aprono nel browser invece che
-  nell'app. Per farli funzionare serve il Team ID di Apple.
+  nell'app. Per farli funzionare serve il file col Team ID di Apple, che è `RFSG2LMFH2` (POINT 2000 SRL, letto dalle credenziali EAS).
 - **Dopo il rilascio**, e non prima: `EXPO_PUBLIC_APP_STORE_URL=https://apps.apple.com/it/app/athlon-club/id1584157295` su Vercel, così la
   carta «Scarica l'app» (`src/lib/appNativa.ts`) mostra il pulsante. Prima porterebbe a scaricare la 2.2.

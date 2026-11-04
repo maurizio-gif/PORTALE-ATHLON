@@ -17,6 +17,7 @@ import { Icona } from './ui/Icona'
 import { Installa } from './ui/Installa'
 import { Bollino, Carta, Messaggio, Pulsante } from './ui/kit'
 import { SceltaLingua } from './ui/SceltaLingua'
+import { Realizzata } from './ui/Realizzata'
 import { SceltaTema } from './ui/SceltaTema'
 import { Schermata } from './ui/Schermata'
 import { F, FUOCO, NOTTE, usePalette, velo } from './ui/tema'
@@ -260,6 +261,7 @@ export function Accesso() {
         <Text style={{ color: p.testoTerzo, fontSize: 12, fontFamily: F.semi }}>{t('Tema', 'Theme')}</Text>
         <SceltaTema compatta />
       </View>
+      <Realizzata />
     </Schermata>
   )
 }
