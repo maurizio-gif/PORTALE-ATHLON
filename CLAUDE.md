@@ -161,3 +161,4 @@ chiamata diretta al gestionale. Esempio: la sezione Prodotti usa l'azione `prodo
 - [Il link del sito apre Junior con l'assistente: la registrazione di un figlio continua nell'app (04/11/2026)](docs/claude/123-junior-con-l-assistente-aperto-dal-link-del-sito-04-11-2026.md) · 2 KB
 - [«Iscriviti» dal sito apre «Attiva un abbonamento» con il piano già scelto (04/11/2026)](docs/claude/124-iscrizione-abbonamento-dal-link-del-sito-04-11-2026.md) · 2 KB
 - [Il link del sito apre Junior già sul bambino appena registrato (04/11/2026)](docs/claude/125-junior-aperta-sul-bambino-dal-link-del-sito-04-11-2026.md) · 1 KB
+- [La chat nella sezione Junior comincia dal corso del bambino (04/11/2026)](docs/claude/126-benvenuto-junior-nella-chat-04-11-2026.md) · 2 KB
