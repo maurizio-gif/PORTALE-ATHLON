@@ -1,5 +1,5 @@
 import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 
 import {
@@ -12,6 +12,7 @@ import {
 import { t } from "@/lib/lingua";
 import { spazio } from "@/theme";
 
+import { apriAssistente } from "../assistente/store";
 import { inMemoria, prendi, ricorda, scorda } from "../memoria";
 import { Etichetta, Messaggio, Pulsante, SchedeInArrivo } from "../ui/kit";
 import { Schermata } from "../ui/Schermata";
@@ -63,7 +64,9 @@ export function Junior() {
   const vista = !!vistaCorrente();
   // `?voce=gare`: il ritorno dal pagamento della gara e il link dall'evento aprono direttamente la voce «Gare» (04/11/2026).
   // `?voce=recuperi`: il link dell'email della disdetta di una lezione del corso, col recupero accreditato (04/11/2026).
-  const { voce: voceParam } = useLocalSearchParams<{ voce?: string }>();
+  // `?assistenza=1`: il link dell'email che il genitore riceve dopo aver registrato il figlio dal sito (chat o «Contattaci», Scuola Nuoto
+  // Bambini e Baby Nuoto, 04/11/2026). La chat dell'assistente si apre da sola, una volta: prende il posto di quella del sito.
+  const { voce: voceParam, assistenza } = useLocalSearchParams<{ voce?: string; assistenza?: string }>();
 
   const carica = useCallback(async () => {
     setEsito(await prendi(CHIAVE_GRUPPI_JUNIOR, gruppiJunior));
@@ -74,6 +77,25 @@ export function Junior() {
       carica();
     }, [carica]),
   );
+
+  // Si apre quando la sezione ha letto il nucleo (la chat si appoggia sulla schermata vera, non sull'attesa), e il parametro si toglie:
+  // tornando qui, o ricaricando, non si riapre. Il pulsante dell'assistente sta nel layout e puo' registrarsi un attimo dopo: qualche
+  // tentativo, poi si lascia stare (resta il pulsante «Richiedi assistenza» in alto).
+  const assistenzaAperta = useRef(false);
+  useEffect(() => {
+    if (assistenza !== "1" || !esito || assistenzaAperta.current || vistaCorrente()) return;
+    assistenzaAperta.current = true;
+    let tentativi = 0;
+    const prova = () => {
+      if (apriAssistente("junior") || ++tentativi >= 10) {
+        router.setParams({ assistenza: undefined });
+        return;
+      }
+      timer = setTimeout(prova, 300);
+    };
+    let timer = setTimeout(prova, 250);
+    return () => clearTimeout(timer);
+  }, [assistenza, esito]);
 
   const gruppi = useMemo(() => (esito?.ok ? esito.gruppi : []), [esito]);
   const nucleoServer = esito?.ok ? esito.nucleo : null;
