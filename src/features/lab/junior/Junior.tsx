@@ -66,7 +66,13 @@ export function Junior() {
   // `?voce=recuperi`: il link dell'email della disdetta di una lezione del corso, col recupero accreditato (04/11/2026).
   // `?assistenza=1`: il link dell'email che il genitore riceve dopo aver registrato il figlio dal sito (chat o «Contattaci», Scuola Nuoto
   // Bambini e Baby Nuoto, 04/11/2026). La chat dell'assistente si apre da sola, una volta: prende il posto di quella del sito.
-  const { voce: voceParam, assistenza } = useLocalSearchParams<{ voce?: string; assistenza?: string }>();
+  // `?figlio=<id>`: lo stesso link apre la sezione gia' sul bambino appena registrato (04/11/2026). Se non e' fra i figli di chi e'
+  // entrato (o il mirror non lo ha ancora), si apre il primo come sempre.
+  const { voce: voceParam, assistenza, figlio: figlioParam } = useLocalSearchParams<{ voce?: string; assistenza?: string; figlio?: string }>();
+
+  useEffect(() => {
+    if (typeof figlioParam === "string" && /^\d{1,10}$/.test(figlioParam)) setPersonaScelta(Number(figlioParam));
+  }, [figlioParam]);
 
   const carica = useCallback(async () => {
     setEsito(await prendi(CHIAVE_GRUPPI_JUNIOR, gruppiJunior));
