@@ -1,0 +1,7 @@
+## Il totale dell'impegno sotto «Vedi tutte le quote», e sul totem l'operatore entra da «staff» (04/11/2026)
+
+Richiesta di Maurizio, due cose piccole.
+
+- **Il totale dell'impegno si vede solo aprendo l'elenco delle quote** (`RiepilogoCosti.tsx`). Chiuso, il riquadro dice «Oggi paghi», le prime tre quote, «Vedi tutte le N quote ›» e la ricorrenza; aperto, tutte le quote e in fondo «Totale dell'impegno». «Mostra meno» lo nasconde di nuovo. Vale dove il riquadro compare: il passo «Il tuo piano di pagamento» di Abbonamento, la finestra «Il tuo contratto», la proposta dal link. **Con tre quote o meno il comando non c'è e il totale resta in vista**, o non lo si potrebbe vedere. `senzaTotale` (Junior, pagamento del Flex) non cambia.
+- **Sul totem le strade per la persona sono due, QR ed email.** «Continua qui con un operatore» non è più una scheda: è `AccessoStaff` (in `ContinuaSulTelefono.tsx`), una scritta piccola e sbiadita «STAFF» con il lucchetto in basso a destra, accanto a «Indietro»/«Annulla», con la zona del tocco allargata. Dietro c'è sempre il codice dell'operatore, quindi chi la tocca per caso non va avanti. Vale sia per la firma dell'abbonamento (`ContinuaSulTelefono`) sia per ogni altro pagamento dal totem (`PagamentoTotem`). Se il QR non si può disegnare, alla persona resta l'email.
+- **Provato**: `tsc` senza errori nuovi (45 di base) e un'anteprima disegnata con testi e colori dell'app. **Non provato**: l'app vera e il totem vero.

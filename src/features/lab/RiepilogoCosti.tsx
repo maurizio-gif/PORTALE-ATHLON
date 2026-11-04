@@ -107,7 +107,10 @@ export function RiepilogoCosti({
           </View>
         ) : null}
 
-        {senzaTotale ? null : (
+        {/* Il totale dell'impegno sta sotto «Vedi tutte le quote» (04/11/2026, Maurizio):
+            a colpo d'occhio si legge quello che si paga oggi e le prossime quote; chi apre
+            l'elenco intero vede anche il totale. Senza il comando (tre quote o meno) resta in vista. */}
+        {senzaTotale || (c.prossimi.length > MOSTRA && !tutte) ? null : (
         <View style={[riga, { borderTopWidth: 1, borderTopColor: p.linea, paddingTop: spazio.tre }]}>
           <Text style={[stili.voce, { color: p.testo, fontFamily: F.bold, flex: 1 }]}>
             {importi.formula === 'flex' ? t('Totale fino alla fine dell’impegno minimo', 'Total until the end of the minimum term') : t('Totale dell’impegno', 'Total commitment')}
