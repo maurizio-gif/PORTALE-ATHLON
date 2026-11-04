@@ -188,6 +188,12 @@ export function Junior() {
   function avviaCoda(voci: VoceCoda[]) {
     iniziaCoda(voci);
     setCoda(voci);
+    // Due o piu' figli: una procedura sola, con una firma e un pagamento (`IscrizioneFigli`). La coda resta: se il genitore si ferma a
+    // meta', la carta in alto dice a che punto e' e riprende uno alla volta.
+    if (voci.length >= 2) {
+      router.navigate({ pathname: "/iscrizione-figli", params: { voci: voci.map((v) => `${v.member_id}:${v.group_id}`).join(",") } });
+      return;
+    }
     const prima = voci[0];
     if (prima) router.navigate({ pathname: "/iscrizione", params: { group: prima.group_id, membro: String(prima.member_id) } });
   }
