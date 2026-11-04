@@ -77,3 +77,16 @@ export function azzeraAssistente() {
   stato = STATO_VUOTO
   ascoltatori.forEach((a) => a())
 }
+
+// Il corso del bambino che la sezione Junior ha davanti (04/11/2026): la chat aperta da li' (dal link del sito o dal pulsante) si apre
+// con un benvenuto su quel corso, scritto da noi, e non con i suggerimenti generici. Lo scrive `Junior.tsx` quando cambia il bambino scelto.
+export type TemaJunior = { corso: 'snb' | 'baby' | null; nome: string | null; iscritto: boolean }
+let temaJunior: TemaJunior | null = null
+
+export function impostaTemaJunior(tema: TemaJunior | null) {
+  temaJunior = tema
+}
+
+export function leggiTemaJunior(): TemaJunior | null {
+  return temaJunior
+}
