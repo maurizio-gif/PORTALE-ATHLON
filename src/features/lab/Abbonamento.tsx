@@ -211,7 +211,13 @@ type Firmato = { numero: string; importi: ImportiContratto; piano: string; nome:
 export function Abbonamento() {
   const p = usePalette()
   // `membro`: da un invito a fare l'abbonamento per una persona del nucleo (03/11/2026): la scelta si apre gia' su di lei.
-  const { contratto, cambio, membro: membroIndicato } = useLocalSearchParams<{ contratto?: string; cambio?: string; membro?: string }>()
+  // `piano`: dal pulsante «Iscriviti» del listino del sito (04/11/2026, `entra?d=abbonamento&p=…`): il piano si apre gia' scelto, se e' nel listino.
+  const {
+    contratto,
+    cambio,
+    membro: membroIndicato,
+    piano: pianoIndicato,
+  } = useLocalSearchParams<{ contratto?: string; cambio?: string; membro?: string; piano?: string }>()
   // L'ordine, scelto dal club: abbonamento, data, dati e firma, e solo poi il
   // pagamento. Il contratto non dice con cosa si paga: il metodo si sceglie dopo.
   const [passo, setPasso] = useState<1 | 2 | 3 | 4>(1)
@@ -289,6 +295,15 @@ export function Abbonamento() {
   useEffect(() => {
     if (!numero) carica()
   }, [carica, numero])
+  // Il piano scelto sul sito, una volta sola e solo se l'app lo ha nel listino: un id sconosciuto lascia la scelta alla persona. Nel cambio no:
+  // l'elenco li' esclude quello che si ha gia', e il link del sito non porta a un cambio.
+  const pianoApplicato = useRef(false)
+  useEffect(() => {
+    if (pianoApplicato.current || cambioId || !stato || typeof pianoIndicato !== 'string' || !/^\d+$/.test(pianoIndicato)) return
+    pianoApplicato.current = true
+    const id = Number(pianoIndicato)
+    if (stato.piani.some((x) => x.piano_id === id)) setPianoId((v) => v ?? id)
+  }, [stato, pianoIndicato, cambioId])
 
   const personaBase: PersonaAbbonamento | undefined = stato?.persone.find((x) => x.member_id === membro)
   // Nel cambio la persona e' quella del contratto e le date fra cui scegliere le dice `cambio_stato` (da domani a 30 giorni; un server vecchio manda solo il giorno dopo la fine).

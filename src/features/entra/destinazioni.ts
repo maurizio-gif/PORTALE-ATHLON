@@ -13,16 +13,23 @@ import { t } from '@/lib/lingua'
 // Per aggiungere una destinazione (la prossima funzione «diretta dal sito»): un `case` qui, la stessa riga in `DESTINAZIONI` del server
 // e il sito mette `data-accesso="<chiave>"` sul comando. Modulo puro (niente React): si prova da solo (`scripts/prova-entra.ts`).
 //
-// Le destinazioni sono cinque: `prenota` (il Calendario, gia' sulla categoria), `personal`, `gare` (Junior, voce Gare: l'iscrizione al
+// Le destinazioni sono sei: `prenota` (il Calendario, gia' sulla categoria), `personal`, `gare` (Junior, voce Gare: l'iscrizione al
 // Trofeo Athlon), `evento` (il Calendario sul giorno di un evento e sulla sua categoria) e `junior` (la sezione Junior con l'assistente aperto).
 // `gare` ed `evento` sono del 04/11/2026: sono la regola di ogni pagina evento del sito, il cui pulsante chiede l'email e manda questo link
 // invece di mandare al portale di PerfectGym. `junior` (04/11/2026) arriva al genitore dopo la registrazione del figlio dal sito.
+// `abbonamento` (04/11/2026) e' il pulsante «Iscriviti» del listino del sito: apre «Attiva un abbonamento» con il piano gia' scelto (`p`,
+// l'id del piano su PerfectGym, che e' anche il `piano_id` dell'app); un piano che non c'e' nel listino lascia la scelta alla persona.
 
 /** I nomi delle categorie del Calendario (`perfectgym.class_categories`): il filtro del Calendario confronta la stringa. */
 export const CATEGORIE = ['Corsi Fitness', 'Aqua Fitness', 'Nuoto Libero', 'Gym Floor', 'Scuola Nuoto Adulti', 'Group Reformer'] as const
 
 /** Le categorie degli eventi su PerfectGym (`class_categories` 37 e 39): quelle che `sito-eventi` manda per un evento del CRM. */
 export const CATEGORIE_EVENTO = ['Eventi Gratuiti', 'Master Class'] as const
+
+/** L'id di un piano (`piano_id`, cioe' il `PaymentPlanId` di PerfectGym), o `null`: come sul server, solo cifre. */
+export function pianoValido(p: string | null | undefined): string | null {
+  return p && /^\d{1,6}$/.test(p) ? p : null
+}
 
 /** Una data `AAAA-MM-GG` che esiste davvero (non il 31 novembre), o `null`: finisce in un indirizzo che chiunque puo' scrivere a mano. */
 export function giornoValido(g: string | null | undefined): string | null {
@@ -48,7 +55,13 @@ export type Arrivo = {
 }
 
 /** La destinazione chiesta dal link, o `null` se non e' una di quelle (il link e' stato scritto a mano o e' di un'altra versione). */
-export function arrivoDa(d: string | undefined, a?: string | null, g?: string | null, oggi: string = GIORNO_ROMA.format(new Date())): Arrivo | null {
+export function arrivoDa(
+  d: string | undefined,
+  a?: string | null,
+  g?: string | null,
+  oggi: string = GIORNO_ROMA.format(new Date()),
+  p?: string | null,
+): Arrivo | null {
   const attivita = a && (CATEGORIE as readonly string[]).includes(a) ? a : null
   switch (d) {
     case 'prenota':
@@ -85,6 +98,19 @@ export function arrivoDa(d: string | undefined, a?: string | null, g?: string | 
         ),
         bottone: t('Apri la sezione Junior', 'Open the Junior section'),
       }
+    case 'abbonamento': {
+      // Dal listino del sito: «Attiva un abbonamento» (`lab/Abbonamento.tsx`), con il piano gia' scelto se l'app lo trova fra i suoi.
+      const piano = pianoValido(p)
+      return {
+        href: piano ? { pathname: '/abbonamento', params: { piano } } : '/abbonamento',
+        titolo: t('Attiva il tuo abbonamento', 'Activate your membership'),
+        testo: t(
+          'Ti apriamo direttamente il listino, senza password: scegli la formula e la data di inizio, firmi il contratto e scegli come pagare.',
+          'We’ll open the price list for you directly, no password needed: choose the plan and start date, sign the contract and choose how to pay.',
+        ),
+        bottone: t('Scegli il tuo abbonamento', 'Choose your membership'),
+      }
+    }
     case 'evento': {
       // Le categorie degli eventi sono una lista a parte: una categoria dei corsi non entra qui, e viceversa (come sul server).
       const categoria = a && (CATEGORIE_EVENTO as readonly string[]).includes(a) ? a : null
