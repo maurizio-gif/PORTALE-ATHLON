@@ -160,3 +160,4 @@ chiamata diretta al gestionale. Esempio: la sezione Prodotti usa l'azione `prodo
 - [Le gare si pagano anche con il conto già salvato (SEPA), e il mandato copre i servizi del club (04/11/2026)](docs/claude/122-gare-addebito-sul-conto-salvato-04-11-2026.md) · 3 KB
 - [Il link del sito apre Junior con l'assistente: la registrazione di un figlio continua nell'app (04/11/2026)](docs/claude/123-junior-con-l-assistente-aperto-dal-link-del-sito-04-11-2026.md) · 2 KB
 - [«Iscriviti» dal sito apre «Attiva un abbonamento» con il piano già scelto (04/11/2026)](docs/claude/124-iscrizione-abbonamento-dal-link-del-sito-04-11-2026.md) · 2 KB
+- [Junior: cambio orario e recuperi nella fascia del turno, e «Passa al bisettimanale» (04/11/2026)](docs/claude/125-junior-fascia-del-turno-e-passa-al-bisettimanale-04-11-2026.md) · 2 KB
