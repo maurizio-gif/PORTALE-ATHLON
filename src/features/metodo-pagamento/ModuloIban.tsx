@@ -12,8 +12,10 @@ import { t, tv } from '@/lib/lingua'
 
 // Il modulo del conto corrente: IBAN, intestatario, il suo indirizzo, chi
 // gestisce l'addebito e l'autorizzazione SEPA. Ripreso dal CRM
-// (`_condivisi/ModuloIban.tsx`), testi compresi: il mandato e' la formula che
-// GoCardless chiede, e non si riscrive.
+// (`_condivisi/ModuloIban.tsx`), testi compresi. Il mandato dice a chi si autorizza l'addebito e per
+// cosa: dal 04/11/2026 (Maurizio) non solo le quote dell'abbonamento ma anche
+// gli altri servizi del club, anche per il nucleo (le gare, gli eventi), perche'
+// quei servizi si pagano sullo stesso mandato. Si cambia insieme al CRM.
 //
 // L'IBAN e l'indirizzo si controllano qui prima di mandarli, codice di
 // controllo compreso: un carattere sbagliato si corregge subito, invece di
@@ -122,12 +124,12 @@ export function ModuloIban({
             <>
               <Forte>Sul tuo estratto conto</Forte> l’addebito comparirà con i nomi di <Forte>GoCardless</Forte> e di <Forte>Point 2000</Forte>:
               è GoCardless che addebita l’importo, per conto di Point 2000 SSD (Athlon Club). Non è un addebito sconosciuto: sono le quote
-              del tuo abbonamento.
+              del tuo abbonamento e i servizi del club che hai scelto.
             </>,
             <>
               <Forte>On your bank statement</Forte> the debit will show the names <Forte>GoCardless</Forte> and <Forte>Point 2000</Forte>:
               GoCardless collects the amount on behalf of Point 2000 SSD (Athlon Club). It’s not an unknown charge: it’s the fees of your
-              membership.
+              membership and the club services you chose.
             </>,
           )}
         </Testo>
@@ -136,8 +138,8 @@ export function ModuloIban({
       <Casella spuntata={consenso} onCambia={() => setConsenso((v) => !v)} etichetta={t('Autorizzo l’addebito diretto SEPA', 'I authorize the SEPA direct debit')}>
         <Testo variante="piccolo" style={{ color: c.testo, fontStyle: 'italic' }}>
           {t(
-            'Autorizzo Società Sportiva Dilettantistica Point 2000 SSD (Centro Sportivo Athlon) e GoCardless, suo fornitore dei servizi di pagamento, a inviare istruzioni alla mia banca per addebitare su questo conto le quote del mio abbonamento con addebito diretto SEPA, e la mia banca a eseguire gli addebiti secondo queste istruzioni. Ho diritto al rimborso dalla mia banca secondo le condizioni del mio contratto con lei: il rimborso va chiesto entro 8 settimane dalla data dell’addebito.',
-            'Courtesy translation: the Italian text is the binding version. I authorize Società Sportiva Dilettantistica Point 2000 SSD (Centro Sportivo Athlon) and GoCardless, its payment service provider, to send instructions to my bank to debit the fees of my membership from this account by SEPA direct debit, and my bank to carry out the debits in accordance with those instructions. I am entitled to a refund from my bank under the terms and conditions of my agreement with it: a refund must be claimed within 8 weeks from the date of the debit.',
+            'Autorizzo Società Sportiva Dilettantistica Point 2000 SSD (Centro Sportivo Athlon) e GoCardless, suo fornitore dei servizi di pagamento, a inviare istruzioni alla mia banca per addebitare su questo conto, con addebito diretto SEPA, le quote del mio abbonamento e gli altri importi dei servizi che acquisto o richiedo al club, anche per i componenti del mio nucleo familiare (per esempio le iscrizioni alle gare e agli eventi), e la mia banca a eseguire gli addebiti secondo queste istruzioni. Ho diritto al rimborso dalla mia banca secondo le condizioni del mio contratto con lei: il rimborso va chiesto entro 8 settimane dalla data dell’addebito.',
+            'Courtesy translation: the Italian text is the binding version. I authorize Società Sportiva Dilettantistica Point 2000 SSD (Centro Sportivo Athlon) and GoCardless, its payment service provider, to send instructions to my bank to debit from this account, by SEPA direct debit, the fees of my membership and the other amounts for services I buy or request from the club, including for members of my family unit (for example registrations for races and events), and my bank to carry out the debits in accordance with those instructions. I am entitled to a refund from my bank under the terms and conditions of my agreement with it: a refund must be claimed within 8 weeks from the date of the debit.',
           )}
         </Testo>
       </Casella>

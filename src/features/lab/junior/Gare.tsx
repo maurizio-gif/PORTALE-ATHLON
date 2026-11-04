@@ -6,19 +6,23 @@ import Animated, { ZoomIn } from "react-native-reanimated";
 import { configurazioneAdyen, type SessioneAdyen } from "@/api/lab";
 import {
   carteSalvateGara,
+  contoSalvatoGara,
   esitoSessioneGara,
   iscriviAGara,
   leggiGare,
   pagaConCartaSalvata,
+  pagaConContoSalvato,
   pagaGara,
   sessioneGara,
   type CartaSalvata,
+  type ContoSalvato,
   type DatiGare,
   type GaraTrofeo,
   type IscrizioneMia,
   type PersonaGara,
 } from "@/api/gare";
 import type { PersonaJunior } from "@/api/junior";
+import { Casella } from "@/components/Casella";
 import { apriPagamento } from "@/lib/pagamentoEsterno";
 import { locale, t } from "@/lib/lingua";
 import { spazio } from "@/theme";
@@ -58,6 +62,11 @@ import { nomeCompleto } from "./comune";
 // **La carta gia' salvata** (04/11/2026, Maurizio: «se trova la carta salvata deve selezionarla e addebitare senza CVC e 3D Secure, che servono alla prima registrazione; se non c'e',
 // salva e paga»): prima del modulo `CassaGara` chiede al server le carte di chi paga (`carteSalvateGara`). Se ce n'e' una, si paga con un tocco (`pagaConCartaSalvata`, solo
 // sul server: va bene anche nell'app nativa); se la banca non autorizza o si preferisce un'altra carta, si passa al modulo. Il modulo **salva la carta pagando**, e lo dice prima.
+//
+// **Il conto gia' salvato** (04/11/2026, Maurizio: «mostrerei solamente se c'e' l'IBAN salvato: lo puo' selezionare come metodo solo se e' gia' salvato, non creiamo un mandato»):
+// accanto alle carte `CassaGara` propone il conto del genitore (`contoSalvatoGara`: solo se su PerfectGym c'e' un mandato SEPA valido, e solo con l'addebito sul conto acceso dal
+// server). Si sceglie, si spunta l'autorizzazione con l'importo e le ultime cifre (il testo lo scrive il server), e **l'iscrizione e' confermata subito**: l'addebito arriva in
+// qualche giorno lavorativo e la ricevuta per email quando la banca lo conferma. Se l'addebito non riesce, l'iscrizione resta e la carta della gara chiede di pagare con la carta.
 //
 // **Nessuna scadenza scritta** (Maurizio): le iscrizioni restano aperte fino a un minuto prima dell'inizio della gara, e la schermata non dice quando chiudono.
 
@@ -244,6 +253,9 @@ function CartaGara({
   const iscr = pg.iscrizioni.find((i) => i.gara_id === gara.id);
   const confermata = iscr?.stato === "confermata";
   const inAttesa = iscr?.stato === "in_attesa_pagamento";
+  // Pagata sul conto: in corso finche' la banca non conferma; non riuscita, si ripaga con la carta (l'iscrizione resta).
+  const sepa = mia?.pagamento === "sepa" ? (mia.sepa_stato ?? "in_corso") : null;
+  const sepaDaRipagare = confermata && (sepa === "fallito" || sepa === "contestato");
 
   // Il sesso lo dice il codice fiscale; la scelta del genitore c'e' solo se il codice non basta. Il sesso scelto e il modulo aperto stanno qui e non nel modulo: il
   // riquadro del turno, in alto, deve seguire la scelta.
@@ -267,7 +279,9 @@ function CartaGara({
         <View style={{ flex: 1, gap: 3 }}>
           <View style={stili.titoloRiga}>
             <Text style={[stili.titolo, { color: p.testo }]}>{t(`${gara.numero}ª gara`, `Race ${gara.numero}`)}</Text>
-            {confermata ? (
+            {sepaDaRipagare ? (
+              <Etichetta grande icona="attenzione" tono="attenzione" testo={t("Da pagare", "To pay")} />
+            ) : confermata ? (
               <Etichetta grande icona="spunta" tono="ok" testo={t("Iscritto", "Registered")} />
             ) : inAttesa ? (
               <Etichetta grande icona="attenzione" tono="attenzione" testo={t("Da pagare", "To pay")} />
@@ -293,12 +307,28 @@ function CartaGara({
 
       {!pg.ammesso ? (
         <Text style={[stili.corpo, { color: p.testoSecondario }]}>{motivoBreve(pg)}</Text>
+      ) : sepaDaRipagare && iscr && !gara.passata ? (
+        vista ? (
+          <Text style={[stili.corpo, { color: p.testoSecondario }]}>{t("L’addebito sul conto non è riuscito: la quota è da pagare.", "The direct debit failed: the fee is still to pay.")}</Text>
+        ) : cassa === iscr.id ? (
+          <CassaGara iscrizioneId={iscr.id} quotaCent={quotaCent} onAttendo={onPagamentoAperto} onSepa={onCambiato} onChiudi={() => setCassa(null)} />
+        ) : (
+          <View style={{ gap: spazio.tre }}>
+            <Messaggio tono="attenzione" titolo={t("L’addebito sul conto non è riuscito", "The direct debit didn’t go through")}>
+              {t("Il posto resta confermato. Paga la quota con la carta, qui sotto, oppure in segreteria.", "The place stays confirmed. Please pay the fee by card below, or at the front desk.")}
+            </Messaggio>
+            {gara.aperta ? <Pulsante testo={t(`Paga ${euro(quotaCent)} con carta`, `Pay ${euro(quotaCent)} by card`)} icona="carta" onPress={() => setCassa(iscr.id)} /> : null}
+          </View>
+        )
       ) : confermata ? (
         mia?.esito ? null : (
           <Messaggio tono="ok" titolo={t("Iscrizione confermata", "Registration confirmed")}>
             {isoTurno
               ? t(`Ti aspettiamo ${giorno(gara.inizio)}: convocazione alle ${ora(convocazione(isoTurno))}. Ti scriviamo anche per email con tutte le informazioni.`, `See you on ${giorno(gara.inizio)}: call time ${ora(convocazione(isoTurno))}. We’ll also email you all the details.`)
               : t(`Ti aspettiamo ${giorno(gara.inizio)}. La convocazione è 30 minuti prima dell’inizio del turno. Ti scriviamo anche per email con tutte le informazioni.`, `See you on ${giorno(gara.inizio)}. Call time is 30 minutes before your heat starts. We’ll also email you all the details.`)}
+            {sepa === "in_corso"
+              ? t(` L’addebito di ${euro(quotaCent)} sul conto è in corso: la banca lo esegue in qualche giorno lavorativo, e la ricevuta arriva per email quando è confermato.`, ` The ${euro(quotaCent)} direct debit is in progress: your bank processes it within a few working days, and the receipt arrives by email once it’s confirmed.`)
+              : ""}
           </Messaggio>
         )
       ) : gara.passata ? null : !gara.aperta && !inAttesa ? (
@@ -311,7 +341,7 @@ function CartaGara({
         <Text style={[stili.corpo, { color: p.testoSecondario }]}>{t("Vista cliente: qui non si può iscrivere.", "Client view: you can’t register from here.")}</Text>
       ) : inAttesa && iscr ? (
         cassa === iscr.id ? (
-          <CassaGara iscrizioneId={iscr.id} quotaCent={quotaCent} onAttendo={onPagamentoAperto} onChiudi={() => setCassa(null)} />
+          <CassaGara iscrizioneId={iscr.id} quotaCent={quotaCent} onAttendo={onPagamentoAperto} onSepa={onCambiato} onChiudi={() => setCassa(null)} />
         ) : (
           <Pagamento iscrizioneId={iscr.id} quotaCent={quotaCent} onCassa={setCassa} />
         )
@@ -585,10 +615,28 @@ type EsitoCassa = { tono: "ok" | "attenzione" | "errore"; titolo: string; testo:
 const MARCHE: Record<string, string> = { visa: "Visa", mc: "Mastercard", mastercard: "Mastercard", amex: "American Express", maestro: "Maestro", diners: "Diners", discover: "Discover", jcb: "JCB", cartebancaire: "Carte Bancaire" };
 const nomeCarta = (c: CartaSalvata) => MARCHE[c.marca] ?? (c.marca ? c.marca.charAt(0).toUpperCase() + c.marca.slice(1) : t("Carta", "Card"));
 
-function CassaGara({ iscrizioneId, quotaCent, onAttendo, onChiudi }: { iscrizioneId: number; quotaCent: number; onAttendo: (iscrizioneId: number) => void; onChiudi: () => void }) {
+// Nella scelta, il conto si distingue dalle carte con questo id (i token di Adyen non lo sono mai).
+const CONTO = "conto";
+
+function CassaGara({
+  iscrizioneId,
+  quotaCent,
+  onAttendo,
+  onSepa,
+  onChiudi,
+}: {
+  iscrizioneId: number;
+  quotaCent: number;
+  onAttendo: (iscrizioneId: number) => void;
+  /** Dopo l'addebito sul conto l'iscrizione e' gia' confermata: si rilegge e basta. */
+  onSepa: () => Promise<unknown>;
+  onChiudi: () => void;
+}) {
   const p = usePalette();
   const [fase, setFase] = useState<"carico" | "carte" | "nuova">("carico");
   const [carte, setCarte] = useState<CartaSalvata[]>([]);
+  const [conto, setConto] = useState<ContoSalvato | null>(null);
+  const [autorizzo, setAutorizzo] = useState(false);
   const [scelta, setScelta] = useState<string | null>(null);
   const [lavoro, setLavoro] = useState(false);
   const [sessione, setSessione] = useState<SessioneAdyen | null>(null);
@@ -597,15 +645,16 @@ function CassaGara({ iscrizioneId, quotaCent, onAttendo, onChiudi }: { iscrizion
   const [esito, setEsito] = useState<EsitoCassa | null>(null);
   const [giro, setGiro] = useState(0); // cambia per chiedere una sessione nuova
 
-  // 1. Le carte gia' salvate.
+  // 1. Le carte gia' salvate, e il conto gia' salvato su PerfectGym (se l'addebito sul conto e' acceso).
   useEffect(() => {
     let vivo = true;
     (async () => {
-      const c = await carteSalvateGara();
+      const [c, k] = await Promise.all([carteSalvateGara(), contoSalvatoGara(iscrizioneId)]);
       if (!vivo) return;
       setCarte(c);
-      setScelta(c[0]?.id ?? null);
-      setFase(c.length ? "carte" : "nuova");
+      setConto(k);
+      setScelta(c[0]?.id ?? (k ? CONTO : null));
+      setFase(c.length || k ? "carte" : "nuova");
     })();
     return () => {
       vivo = false;
@@ -675,6 +724,36 @@ function CassaGara({ iscrizioneId, quotaCent, onAttendo, onChiudi }: { iscrizion
     });
   }
 
+  // Il conto gia' salvato: l'addebito SEPA. L'iscrizione e' confermata subito; l'incasso arriva in qualche giorno lavorativo.
+  async function addebitaConto() {
+    if (!conto || !autorizzo) return;
+    setErrore(null);
+    setLavoro(true);
+    const r = await pagaConContoSalvato(iscrizioneId);
+    setLavoro(false);
+    if (!r.ok) {
+      if (r.contoPerso) {
+        setConto(null);
+        setScelta(carte[0]?.id ?? null);
+        if (!carte.length) setFase("nuova");
+      }
+      return setErrore(r.errore);
+    }
+    if ("giaPagata" in r) {
+      onAttendo(iscrizioneId);
+      return setEsito({ tono: "ok", titolo: t("Pagamento già ricevuto", "Payment already received"), testo: t("Stiamo confermando l’iscrizione.", "We’re confirming the registration.") });
+    }
+    setEsito({
+      tono: "ok",
+      titolo: t("Iscrizione confermata", "Registration confirmed"),
+      testo: t(
+        `Addebiteremo ${euro(quotaCent)} sul conto •••• ${conto.cifre}${r.dataAddebito ? ` intorno al ${new Date(`${r.dataAddebito}T12:00:00`).toLocaleDateString(locale(), { day: "numeric", month: "long" })}` : " nei prossimi giorni lavorativi"}. La ricevuta arriva per email quando la banca conferma l’addebito.`,
+        `We’ll debit ${euro(quotaCent)} from the account •••• ${conto.cifre}${r.dataAddebito ? ` around ${new Date(`${r.dataAddebito}T12:00:00`).toLocaleDateString(locale(), { day: "numeric", month: "long" })}` : " within the next few working days"}. The receipt arrives by email once the bank confirms the debit.`,
+      ),
+    });
+    await onSepa();
+  }
+
   // Il modulo di Adyen: finito, si chiede l'esito al server.
   const fine = useCallback(
     async (risultato: string | null) => {
@@ -718,12 +797,16 @@ function CassaGara({ iscrizioneId, quotaCent, onAttendo, onChiudi }: { iscrizion
   };
   const scelteAperte = fase === "carte" && !esito;
   const cartaScelta = carte.find((c) => c.id === scelta);
+  const contoScelto = scelta === CONTO && conto !== null;
+  const nomeConto = conto ? `${t("Conto", "Account")} •••• ${conto.cifre}` : "";
 
   return (
     <View style={{ gap: spazio.tre }}>
       <View style={stili.rigaIcona}>
         <Icona nome="carta" size={18} colore={p.accento} />
-        <Text style={[stili.corpo, { color: p.testo, fontFamily: F.bold, flex: 1 }]}>{t(`Paga ${euro(quotaCent)} con carta`, `Pay ${euro(quotaCent)} by card`)}</Text>
+        <Text style={[stili.corpo, { color: p.testo, fontFamily: F.bold, flex: 1 }]}>
+          {conto && fase === "carte" ? t(`Paga ${euro(quotaCent)}`, `Pay ${euro(quotaCent)}`) : t(`Paga ${euro(quotaCent)} con carta`, `Pay ${euro(quotaCent)} by card`)}
+        </Text>
       </View>
       {errore ? <Messaggio>{errore}</Messaggio> : null}
       {esito ? (
@@ -759,9 +842,36 @@ function CassaGara({ iscrizioneId, quotaCent, onAttendo, onChiudi }: { iscrizion
                 </Tocco>
               );
             })}
+            {conto ? (
+              <Tocco
+                vibra="scelta"
+                ruolo="radio"
+                stato={{ checked: contoScelto }}
+                etichetta={`${t("Addebito sul conto", "Direct debit from account")} •••• ${conto.cifre}${conto.banca ? `, ${conto.banca}` : ""}`}
+                onPress={() => setScelta(CONTO)}
+                style={[stili.cartaRiga, { backgroundColor: contoScelto ? velo(p, "accento", p.scuro ? 0.18 : 0.1) : p.carta, borderColor: contoScelto ? p.accento : p.linea }]}
+              >
+                <Icona nome="banca" size={18} colore={contoScelto ? p.accento : p.testoSecondario} />
+                <View style={{ flex: 1 }}>
+                  <Text style={{ color: p.testo, fontFamily: contoScelto ? F.extra : F.bold, fontSize: 15 }}>{nomeConto}</Text>
+                  <Text style={[stili.nota, { color: p.testoSecondario }]}>
+                    {conto.banca ? `${t("Addebito SEPA", "SEPA direct debit")} · ${conto.banca}` : t("Addebito SEPA, il conto già salvato", "SEPA direct debit, your saved account")}
+                  </Text>
+                </View>
+              </Tocco>
+            ) : null}
           </View>
-          <Pulsante testo={t(`Paga ${euro(quotaCent)}${cartaScelta ? ` con •••• ${cartaScelta.cifre}` : ""}`, `Pay ${euro(quotaCent)}${cartaScelta ? ` with •••• ${cartaScelta.cifre}` : ""}`)} icona="carta" inCorso={lavoro} onPress={addebita} />
-          <Pulsante testo={t("Usa un’altra carta", "Use another card")} variante="secondario" piccolo onPress={altraCarta} />
+          {contoScelto && conto ? (
+            <>
+              <Casella spuntata={autorizzo} onCambia={() => setAutorizzo((x) => !x)} etichetta={conto.consenso}>
+                <Text style={[stili.nota, { color: p.testo }]}>{conto.consenso}</Text>
+              </Casella>
+              <Pulsante testo={t(`Paga ${euro(quotaCent)} con il conto •••• ${conto.cifre}`, `Pay ${euro(quotaCent)} from account •••• ${conto.cifre}`)} icona="banca" inCorso={lavoro} disabilitato={!autorizzo} onPress={addebitaConto} />
+            </>
+          ) : (
+            <Pulsante testo={t(`Paga ${euro(quotaCent)}${cartaScelta ? ` con •••• ${cartaScelta.cifre}` : ""}`, `Pay ${euro(quotaCent)}${cartaScelta ? ` with •••• ${cartaScelta.cifre}` : ""}`)} icona="carta" inCorso={lavoro} onPress={addebita} />
+          )}
+          <Pulsante testo={carte.length ? t("Usa un’altra carta", "Use another card") : t("Paga con una carta", "Pay by card")} variante="secondario" piccolo onPress={altraCarta} />
         </>
       ) : null}
 
@@ -782,7 +892,9 @@ function CassaGara({ iscrizioneId, quotaCent, onAttendo, onChiudi }: { iscrizion
       {esito?.altra && fase === "carte" ? <Pulsante testo={t("Usa un’altra carta", "Use another card")} icona="carta" variante="secondario" onPress={altraCarta} /> : null}
       {!esito || esito.altra ? <Pulsante testo={t("Non adesso", "Not now")} variante="secondario" piccolo onPress={onChiudi} /> : null}
       <Text style={[stili.nota, { color: p.testoSecondario }]}>
-        {fase === "carte"
+        {fase === "carte" && contoScelto
+          ? t("L’iscrizione è confermata subito; l’addebito sul conto lo esegue la banca in qualche giorno lavorativo. La quota non è rimborsabile.", "Your registration is confirmed straight away; the bank processes the debit within a few working days. The fee is non-refundable.")
+          : fase === "carte"
           ? t("Addebitiamo la carta già salvata, senza altri codici. La quota non è rimborsabile.", "We charge the card you already saved, with no extra codes. The fee is non-refundable.")
           : t("I dati della carta li scrivi nel modulo sicuro di Adyen: non passano da noi. La quota non è rimborsabile.", "You enter your card details in Adyen’s secure form: they don’t pass through us. The fee is non-refundable.")}
       </Text>
