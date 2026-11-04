@@ -17,6 +17,8 @@ import { Schermata } from '../ui/Schermata'
 import { F, usePalette } from '../ui/tema'
 import { Tocco } from '../ui/Tocco'
 import { memoria, quanti } from './comune'
+import { conFotoDelCorso } from './copertine'
+import { leggiCorsiDelSito } from './corsiDelSito'
 
 // Athlon TV: gli showcase di Vimeo del club, una ventina, come copertine.
 // Toccandone uno si apre la sua galleria (tv/[raccolta]).
@@ -59,10 +61,13 @@ export function AthlonTv() {
 
   const carica = useCallback(async () => {
     setErrore(null)
-    const r = await leggiVetrine()
+    // La foto di ogni raccolta e' quella del suo corso (o del piu' simile): copertine.ts. Si aspettano insieme,
+    // cosi' la copertina non cambia sotto gli occhi; senza i corsi restano quelle che manda la funzione.
+    const [r, corsi] = await Promise.all([leggiVetrine(), leggiCorsiDelSito()])
     if (!r.ok) return setErrore(r.errore)
-    memoria.vetrine = r.vetrine
-    setVetrine(r.vetrine)
+    const elenco = r.vetrine.map((v) => conFotoDelCorso(v, corsi))
+    memoria.vetrine = elenco
+    setVetrine(elenco)
   }, [])
 
   useEffect(() => {

@@ -152,3 +152,4 @@ chiamata diretta al gestionale. Esempio: la sezione Prodotti usa l'azione `prodo
 - [«Invita i tuoi amici»: «ricevi 50 €», la pagina con foto, il plurale, i social, nessun limite di amici e «dal 2021» applicato dal server (04/11/2026)](docs/claude/114-invita-un-amico-50-euro-pagina-e-dal-2021-04-11-2026.md) · 10 KB
 - [Il test dei massimali: sette esercizi, il plank a tempo, e «quanti ne servono» (04/11/2026)](docs/claude/115-massimali-sette-esercizi-plank-a-tempo-e-numero-minimo-04-11-2026.md) · 3 KB
 - [«Brevetti»: niente pillola sul brevetto di adesso, e «Cosa sta imparando in questo momento» è il livello successivo (04/11/2026)](docs/claude/116-brevetti-cosa-sta-imparando-e-niente-pillola-04-11-2026.md) · 2 KB
+- [Athlon TV: le copertine delle raccolte sono le foto dei corsi, o del corso più simile (04/11/2026)](docs/claude/117-athlon-tv-copertine-delle-raccolte-sono-le-foto-dei-corsi-04-11-2026.md) · 4 KB

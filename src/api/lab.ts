@@ -174,6 +174,9 @@ export type SchedaLezione = {
   varianti?: { da: number; a: number; descrizione: string }[]
 }
 
+/** Di un corso di `lezioni.json` basta la foto (e il punto da tenere al centro): servono alle copertine di Athlon TV (`features/lab/tv/copertine.ts`). */
+export type CorsoDelSito = { foto: string | null; fuoco: string | null }
+
 export type PersonaCalendario = { member_id: number; nome: string | null; cognome: string | null; titolare: boolean }
 
 /** Una prenotazione in programma della persona, di qualunque giorno (non cominciata). */

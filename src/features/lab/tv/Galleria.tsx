@@ -17,6 +17,8 @@ import { Schermata } from '../ui/Schermata'
 import { F, usePalette } from '../ui/tema'
 import { Tocco } from '../ui/Tocco'
 import { durata, memoria, quanti } from './comune'
+import { conFotoDelCorso } from './copertine'
+import { leggiCorsiDelSito } from './corsiDelSito'
 
 // La galleria di uno showcase: la copertina col primo video da guardare,
 // poi tutti i video in griglia. Toccandone uno si apre il lettore.
@@ -56,10 +58,11 @@ export function Galleria() {
 
   const carica = useCallback(async () => {
     setErrore(null)
-    const r = await leggiVetrina(String(raccolta))
+    const [r, corsi] = await Promise.all([leggiVetrina(String(raccolta)), leggiCorsiDelSito()])
     if (!r.ok) return setErrore(r.errore)
     memoria.video.set(String(raccolta), r.video)
-    setVetrina(r.vetrina)
+    // Anche qui la testata e' la foto del corso, come la copertina dell'elenco (copertine.ts).
+    setVetrina(conFotoDelCorso(r.vetrina, corsi))
     setVideo(r.video)
   }, [raccolta])
 
