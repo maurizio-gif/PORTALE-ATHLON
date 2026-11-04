@@ -54,6 +54,14 @@ import { mostraTurniVicini, TurniVicini } from "./TurniVicini";
 // turni da qui: puo' chiedere un altro turno dello stesso tipo (`CambioOrario`).
 
 
+// `?voce=`: oltre a `gare` e `recuperi` (i link delle email e dell'evento), dal 04/11/2026 ogni voce del menu, perche' il pulsante dell'assistente porta
+// dritto al punto («come prenoto il recupero?» -> Recuperi del bambino, «voglio parlare col Direttore Tecnico» -> la sua voce). Una voce che il menu
+// di quel bambino non ha (le gare per il Baby Nuoto) si ignora: si torna alla prima, come sempre. Elenco chiuso, uguale a `VOCI_JUNIOR` della funzione.
+const VOCI_DA_LINK: readonly VoceJunior[] = ["abbonamento", "lezioni", "recuperi", "brevetti", "gare", "cambio", "dt", "attivita"];
+function voceDaParametro(v: unknown): VoceJunior | undefined {
+  return VOCI_DA_LINK.find((x) => x === v);
+}
+
 /** La tessera «Tutti i tuoi figli» nella scelta del bambino: un id che nessun membro ha. */
 const TUTTI = -1;
 export const CHIAVE_GRUPPI_JUNIOR = "junior:gruppi";
@@ -317,7 +325,7 @@ export function Junior() {
               vista={vista}
               inCorso={inCorso.find((x) => x.member_id === persona.member_id)}
               onInCorsoFinito={() => setGiroInCorso((n) => n + 1)}
-              voceIniziale={voceParam === "gare" || voceParam === "recuperi" ? voceParam : undefined}
+              voceIniziale={voceDaParametro(voceParam)}
             />
           ) : (
             <>
@@ -401,6 +409,10 @@ function AreaIscritto({
 }) {
   const baby = eBaby(persona.data_nascita);
   const [voce, setVoce] = useState<VoceJunior>(voceIniziale ?? "abbonamento");
+  // Il pulsante dell'assistente puo' portare qui mentre la sezione e' gia' aperta sullo stesso bambino: la voce chiesta si apre lo stesso (04/11/2026).
+  useEffect(() => {
+    if (voceIniziale) setVoce(voceIniziale);
+  }, [voceIniziale]);
   const [recuperabile, setRecuperabile] = useState<boolean | null>(null);
 
   const voci = useMemo(() => {

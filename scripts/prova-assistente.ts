@@ -100,8 +100,12 @@ function rottaEsiste(pathname: string): boolean {
   assert.deepEqual(hrefAssistente('piano', { id: 'abc-123' }), { pathname: '/allenamento/[scheda]', params: { scheda: 'abc-123' } })
   assert.equal(hrefAssistente('piano', { id: '../../x' }), '/allenamento', 'un id che non e un id non entra in un indirizzo')
   assert.equal(hrefAssistente('piano', {}), '/allenamento')
-  assert.deepEqual(hrefAssistente('junior', { anno: '2018' }), { pathname: '/junior', params: { anno: '2018' } })
-  assert.equal(hrefAssistente('junior', { anno: 'abcd' }), '/junior')
+  // Dal 04/11/2026 la sezione Junior si apre sul bambino e sulla voce; «anno» non la legge nessuno, e si lascia cadere.
+  assert.equal(hrefAssistente('junior', { anno: '2018' }), '/junior')
+  assert.deepEqual(hrefAssistente('junior', { figlio: '101', voce: 'recuperi' }), { pathname: '/junior', params: { figlio: '101', voce: 'recuperi' } })
+  assert.deepEqual(hrefAssistente('junior', { figlio: '101' }), { pathname: '/junior', params: { figlio: '101' } })
+  assert.deepEqual(hrefAssistente('junior', { voce: 'dt' }), { pathname: '/junior', params: { voce: 'dt' } })
+  assert.equal(hrefAssistente('junior', { figlio: 'persona.2', voce: 'pagamenti' }), '/junior')
   // L'articolo di Club Life da cui il modello ha preso l'informazione (la funzione manda l'id vero, mai il testo del modello).
   assert.deepEqual(hrefAssistente('club-life-voce', { voce: 'news:chiusura-29-ottobre-2026-interruzione-energia' }), { pathname: '/club-life/news/[id]', params: { id: 'chiusura-29-ottobre-2026-interruzione-energia' } })
   assert.deepEqual(hrefAssistente('club-life-voce', { voce: 'evento:athlon-club-night-si-cambia-pista-31-ottobre' }), { pathname: '/club-life/eventi/[id]', params: { id: 'athlon-club-night-si-cambia-pista-31-ottobre' } })

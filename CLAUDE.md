@@ -167,3 +167,4 @@ chiamata diretta al gestionale. Esempio: la sezione Prodotti usa l'azione `prodo
 - [La locandina di un evento per la storia di Instagram (04/11/2026)](docs/claude/129-locandina-evento-storia-instagram-04-11-2026.md) · 3 KB
 - [Più figli: i turni vicini in Junior, «Iscrivi …» una dopo l'altra, e «Hai un altro figlio?» (04/11/2026)](docs/claude/130-piu-figli-turni-vicini-04-11-2026.md) · 3 KB
 - [Junior: lezioni e recuperi in una voce sola, «Recuperi» (04/11/2026)](docs/claude/131-junior-lezioni-e-recuperi-in-una-voce-04-11-2026.md) · 2 KB
+- [L'assistente porta dritto nella voce giusta della sezione Junior (04/11/2026)](docs/claude/132-assistente-junior-dritto-al-punto-04-11-2026.md) · 2 KB

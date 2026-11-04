@@ -32,6 +32,9 @@ const SEZIONI_HOME: Partial<Record<DestinazioneAssistente, SezioneHome>> = {
 
 const GIORNO = /^\d{4}-\d{2}-\d{2}$/
 
+/** Le voci del menu Junior che il pulsante puo' aprire: uguali a `VOCI_JUNIOR` della funzione (`_shared/assistente/fatti.ts`). */
+const VOCI_JUNIOR: readonly string[] = ['abbonamento', 'recuperi', 'brevetti', 'gare', 'cambio', 'dt', 'attivita']
+
 // Una voce di Club Life, come la dice la funzione (`_shared/assistente/club.ts`): «news:<id>», «evento:<id>», «scheda:<area>/<slug>».
 // Gli id sono quelli del sito (lettere, cifre, trattini): un'altra forma non entra in un indirizzo.
 const ID_VOCE = /^[A-Za-z0-9_-]{1,120}$/
@@ -91,8 +94,14 @@ export function hrefAssistente(destinazione: string, parametri: Record<string, s
       return '/shop'
     case 'shop-ordini':
       return '/shop/ordini'
-    case 'junior':
-      return /^(19|20)\d{2}$/.test(parametri.anno ?? '') ? { pathname: '/junior', params: { anno: parametri.anno } } : '/junior'
+    // La sezione Junior gia' sul bambino e sulla voce (04/11/2026): «figlio» e' l'id che la funzione ha messo al posto di persona.N (un minore del nucleo),
+    // «voce» una del menu (`VOCI_DA_LINK` di `Junior.tsx`). «anno» resta per le risposte di prima: la sezione non lo legge.
+    case 'junior': {
+      const params: Record<string, string> = {}
+      if (/^\d{1,10}$/.test(parametri.figlio ?? '')) params.figlio = parametri.figlio
+      if (VOCI_JUNIOR.includes(parametri.voce ?? '')) params.voce = parametri.voce
+      return Object.keys(params).length ? { pathname: '/junior', params } : '/junior'
+    }
     // La prova (31/10/2026): il Guest Pass si attiva dall'app. Con una sessione la pagina prosegue dentro, senza email (`ProvaDallApp`). La funzione la propone solo a chi puo' averla.
     case 'prova':
       return '/richiesta/guest-pass'
