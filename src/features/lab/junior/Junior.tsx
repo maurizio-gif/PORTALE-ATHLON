@@ -62,6 +62,7 @@ export function Junior() {
   const [babyAbbonato, setBabyAbbonato] = useState<{ id: number; si: boolean } | null>(null);
   const vista = !!vistaCorrente();
   // `?voce=gare`: il ritorno dal pagamento della gara e il link dall'evento aprono direttamente la voce «Gare» (04/11/2026).
+  // `?voce=recuperi`: il link dell'email della disdetta di una lezione del corso, col recupero accreditato (04/11/2026).
   const { voce: voceParam } = useLocalSearchParams<{ voce?: string }>();
 
   const carica = useCallback(async () => {
@@ -216,7 +217,7 @@ export function Junior() {
               vista={vista}
               inCorso={inCorso.find((x) => x.member_id === persona.member_id)}
               onInCorsoFinito={() => setGiroInCorso((n) => n + 1)}
-              voceIniziale={voceParam === "gare" ? "gare" : undefined}
+              voceIniziale={voceParam === "gare" || voceParam === "recuperi" ? voceParam : undefined}
             />
           ) : (
             <>
