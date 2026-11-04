@@ -21,12 +21,15 @@ export function SceltaFiglio({
   onScegli,
   onAggiunto,
   onApriAggiungi,
+  tutti,
 }: {
   persone: PersonaJunior[];
   scelta: number | null;
   onScegli: (memberId: number) => void;
   onAggiunto: (nome: string, nucleo: NucleoJunior | null) => void;
   onApriAggiungi: () => void;
+  /** «Tutti i tuoi figli» (04/11/2026): con due o piu' figli in eta' da Scuola Nuoto, una tessera in piu' con i turni da fare insieme. */
+  tutti?: { scelto: boolean; onScegli: () => void } | null;
 }) {
   const p = usePalette();
   const nonIdonei = persone.filter((x) => !x.idoneo && x.motivo);
@@ -64,6 +67,29 @@ export function SceltaFiglio({
             </Tocco>
           );
         })}
+        {tutti ? (
+          <Tocco
+            vibra="scelta"
+            stato={{ selected: tutti.scelto }}
+            etichetta={t("Tutti i tuoi figli: i turni da fare insieme", "All your children: time slots to do together")}
+            onPress={tutti.onScegli}
+            style={[
+              stili.tessera,
+              {
+                backgroundColor: tutti.scelto ? velo(p, "accento", p.scuro ? 0.18 : 0.1) : p.carta,
+                borderColor: tutti.scelto ? p.accento : p.linea,
+              },
+            ]}
+          >
+            <View style={[stili.icona, { backgroundColor: velo(p, "accento", p.scuro ? 0.22 : 0.12) }]}>
+              <Icona nome="persone" size={16} colore={p.accento} />
+            </View>
+            <Text style={{ color: p.testo, fontFamily: tutti.scelto ? F.extra : F.bold, fontSize: 15 }} numberOfLines={1}>
+              {t("Tutti i tuoi figli", "All your children")}
+            </Text>
+            {tutti.scelto ? <Icona nome="spunta" size={14} colore={p.accento} /> : null}
+          </Tocco>
+        ) : null}
         <AggiungiComponente
           onApri={onApriAggiungi}
           onAggiunto={onAggiunto}
@@ -111,5 +137,6 @@ const stili = StyleSheet.create({
     borderRadius: 999,
     borderWidth: 1.5,
   },
+  icona: { width: 32, height: 32, borderRadius: 16, alignItems: "center", justifyContent: "center" },
   nota: { fontSize: 13, lineHeight: 19, fontFamily: F.medio, paddingHorizontal: 2 },
 });

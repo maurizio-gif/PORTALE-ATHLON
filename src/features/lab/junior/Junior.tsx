@@ -53,6 +53,9 @@ import { mostraTurniVicini, TurniVicini } from "./TurniVicini";
 // pochi minuti), e l'ultima parola sui posti e' della segreteria al momento dell'iscrizione. Il bambino iscritto non si iscrive ad altri
 // turni da qui: puo' chiedere un altro turno dello stesso tipo (`CambioOrario`).
 
+
+/** La tessera «Tutti i tuoi figli» nella scelta del bambino: un id che nessun membro ha. */
+const TUTTI = -1;
 export const CHIAVE_GRUPPI_JUNIOR = "junior:gruppi";
 
 export function Junior() {
@@ -138,9 +141,13 @@ export function Junior() {
   const idonee = persone.filter((x) => x.idoneo);
   // Chi ha dei brevetti si sceglie anche se non è in età per i corsi (04/11/2026): il libretto resta suo, iscritto o no.
   const scegliibili = persone.filter((x) => x.idoneo || haBrevetti(x));
-  const persona = scegliibili.find((x) => x.member_id === personaScelta) ?? idonee[0] ?? scegliibili[0] ?? null;
+  // «Tutti i tuoi figli» (04/11/2026, richiesta di Maurizio): accanto ai nomi, una tessera come quella di un figlio in piu', con dentro i
+  // turni che i figli in eta' da Scuola Nuoto possono fare insieme. Prima era una carta sopra la pagina del bambino scelto.
+  const tuttiPossibile = mostraTurniVicini(persone);
+  const tutti = tuttiPossibile && personaScelta === TUTTI;
+  const persona = tutti ? null : (scegliibili.find((x) => x.member_id === personaScelta) ?? idonee[0] ?? scegliibili[0] ?? null);
   // **Senza un figlio registrato non si mostra nessun turno** (02/11/2026): resta solo «Aggiungi».
-  const senzaFigli = !persona;
+  const senzaFigli = !persona && !tutti;
   const personaIscritta = !!persona && (persona.gruppi.length > 0);
 
   // Il corso del bambino scelto, per il benvenuto della chat (04/11/2026): aprendo l'assistente da qui, o dal link del sito, la chat comincia
@@ -238,11 +245,22 @@ export function Junior() {
 
   return (
     <Schermata {...intestazione}>
-      <TestataJunior nome={persona ? nomeCompleto(persona) : null} />
+      <TestataJunior nome={tutti ? t("I tuoi figli", "Your children") : persona ? nomeCompleto(persona) : null} />
 
       <SceltaFiglio
         persone={persone}
         scelta={persona?.member_id ?? null}
+        tutti={
+          tuttiPossibile
+            ? {
+                scelto: tutti,
+                onScegli: () => {
+                  setAggiunto(null);
+                  setPersonaScelta(TUTTI);
+                },
+              }
+            : null
+        }
         onScegli={(id) => {
           setAggiunto(null);
           setPersonaScelta(id);
@@ -259,14 +277,14 @@ export function Junior() {
           onContinua={(v) => router.navigate({ pathname: "/iscrizione", params: { group: v.group_id, membro: String(v.member_id) } })}
           onChiudi={chiudiLaCoda}
         />
-      ) : !vista && mostraTurniVicini(persone) ? (
-        <TurniVicini persone={persone} vista={vista} onIscrivi={avviaCoda} />
       ) : null}
       {!vista && !coda.length && mostraInvitoAltroFiglio(persone) ? (
         <InvitoAltroFiglio onAggiunto={dopoAggiunta} onApri={() => setAggiunto(null)} />
       ) : null}
 
-      {senzaFigli ? (
+      {tutti ? (
+        <TurniVicini persone={persone} vista={vista} onIscrivi={avviaCoda} />
+      ) : senzaFigli ? (
         <Messaggio titolo={t("Aggiungi un figlio per vedere le attività", "Add a child to see the activities")}>
           {t(
             `Una volta inserito vedrai le attività per la sua età${nucleo ? ` (dai ${nucleo.mesi_minimi} mesi ai nati nel ${nucleo.anno_minimo})` : ""}.`,
@@ -299,7 +317,9 @@ export function Junior() {
             <>
               {persona.idoneo ? (
                 <AttivitaDaScegliere
-                  key={persona.member_id}
+                  // Chiavi diverse per i due blocchi fratelli (attività e brevetti chiusi): con la stessa chiave, cambiando bambino, React sul
+                  // web lasciava in pagina le copie vecchie, una in più a ogni cambio, e quelle copie non si aprivano al tocco (04/11/2026).
+                  key={`attivita-${persona.member_id}`}
                   persona={persona}
                   gruppi={gruppi}
                   vista={vista}
@@ -317,7 +337,7 @@ export function Junior() {
                 />
               ) : null}
               {/* Senza un abbonamento i brevetti già ottenuti si vedono lo stesso (libretto, diploma), ma in fondo e chiusi, sotto le attività da scegliere (04/11/2026, richiesta di Maurizio). */}
-              {persona.livello ? <BrevettiChiusi key={persona.member_id} persona={persona} vista={vista} /> : null}
+              {persona.livello ? <BrevettiChiusi key={`brevetti-${persona.member_id}`} persona={persona} vista={vista} /> : null}
             </>
           )}
         </>
