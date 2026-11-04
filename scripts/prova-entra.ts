@@ -110,4 +110,12 @@ const ok = (n: string) => {
   ok('i testi ci sono')
 }
 
+{
+  const a = arrivoDa('junior', 'Gym Floor', '2026-11-15')
+  assert.deepEqual(a?.href, { pathname: '/junior', params: { assistenza: '1' } }, 'junior ignora categoria e giorno, e apre l\'assistente')
+  assert.ok(a.titolo && a.testo && a.bottone, 'titolo, testo e pulsante ci sono')
+  assert.match(a.bottone, /Junior/)
+  ok('junior porta alla sezione Junior con l\'assistente aperto')
+}
+
 console.log(`\n${passi} prove passate`)

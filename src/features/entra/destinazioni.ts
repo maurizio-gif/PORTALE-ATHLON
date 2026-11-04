@@ -13,9 +13,10 @@ import { t } from '@/lib/lingua'
 // Per aggiungere una destinazione (la prossima funzione «diretta dal sito»): un `case` qui, la stessa riga in `DESTINAZIONI` del server
 // e il sito mette `data-accesso="<chiave>"` sul comando. Modulo puro (niente React): si prova da solo (`scripts/prova-entra.ts`).
 //
-// Le destinazioni sono quattro: `prenota` (il Calendario, gia' sulla categoria), `personal`, `gare` (Junior, voce Gare: l'iscrizione al
-// Trofeo Athlon) ed `evento` (il Calendario sul giorno di un evento e sulla sua categoria). Gli ultimi due sono del 04/11/2026: sono la regola
-// di ogni pagina evento del sito, il cui pulsante chiede l'email e manda questo link invece di mandare al portale di PerfectGym.
+// Le destinazioni sono cinque: `prenota` (il Calendario, gia' sulla categoria), `personal`, `gare` (Junior, voce Gare: l'iscrizione al
+// Trofeo Athlon), `evento` (il Calendario sul giorno di un evento e sulla sua categoria) e `junior` (la sezione Junior con l'assistente aperto).
+// `gare` ed `evento` sono del 04/11/2026: sono la regola di ogni pagina evento del sito, il cui pulsante chiede l'email e manda questo link
+// invece di mandare al portale di PerfectGym. `junior` (04/11/2026) arriva al genitore dopo la registrazione del figlio dal sito.
 
 /** I nomi delle categorie del Calendario (`perfectgym.class_categories`): il filtro del Calendario confronta la stringa. */
 export const CATEGORIE = ['Corsi Fitness', 'Aqua Fitness', 'Nuoto Libero', 'Gym Floor', 'Scuola Nuoto Adulti', 'Group Reformer'] as const
@@ -70,6 +71,19 @@ export function arrivoDa(d: string | undefined, a?: string | null, g?: string | 
         titolo: t('Iscrivi tuo figlio alla gara', 'Enter your child in the race'),
         testo: t('Ti apriamo direttamente le gare nella sezione Junior, senza password.', 'We’ll open the races in the Junior section for you directly, no password needed.'),
         bottone: t('Apri le gare', 'Open the races'),
+      }
+    case 'junior':
+      // Il genitore che ha appena registrato il figlio dalla chat o da «Contattaci» del sito (Scuola Nuoto Bambini, Baby Nuoto): la
+      // sezione Junior, con l'assistente dell'app aperto (`assistenza=1`, letto da `junior/Junior.tsx`), che prende il posto della
+      // chat del sito.
+      return {
+        href: { pathname: '/junior', params: { assistenza: '1' } },
+        titolo: t('Iscrivi tuo figlio', 'Enrol your child'),
+        testo: t(
+          'Ti apriamo direttamente la sezione Junior, senza password: trovi i corsi per la sua età e i turni con posti liberi.',
+          'We’ll open the Junior section for you directly, no password needed: you’ll find the courses for their age and the slots with places left.',
+        ),
+        bottone: t('Apri la sezione Junior', 'Open the Junior section'),
       }
     case 'evento': {
       // Le categorie degli eventi sono una lista a parte: una categoria dei corsi non entra qui, e viceversa (come sul server).
