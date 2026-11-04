@@ -143,12 +143,20 @@ export async function laMiaArea(): Promise<EsitoArea> {
   // solo col messaggio della funzione, altrimenti e' un errore come gli altri.
   const nonAmmesso = error.code === '42501' && (vista ? /vista cliente/i : /tester/i).test(error.message)
   if (!nonAmmesso) console.error(vista ? 'portale_area_di:' : 'portale_la_mia_area:', error.code, error.message)
+  // In vista cliente si dice con quale indirizzo il browser e' entrato: se il link del CRM non ha aperto la sessione di chi guarda (token
+  // gia' usato o scaduto), resta quella che c'era, magari di un altro account, e senza il nome non si capisce perche' (04/11/2026).
+  const chi = vista && nonAmmesso ? (await supabase.auth.getSession()).data.session?.user.email ?? null : null
   return {
     ok: false,
     nonAmmesso,
     errore: nonAmmesso
       ? vista
-        ? t('Questo accesso non e’ abilitato alla vista cliente.', 'This account isn’t enabled for the member view.')
+        ? chi
+          ? t(
+              `Questo browser e’ entrato come ${chi}, che non e’ abilitato alla vista cliente. Torna al CRM e premi di nuovo «Vedi come cliente».`,
+              `This browser is signed in as ${chi}, which isn’t enabled for the member view. Go back to the CRM and press «View as member» again.`,
+            )
+          : t('Questo accesso non e’ abilitato alla vista cliente.', 'This account isn’t enabled for the member view.')
         : t('Questo indirizzo non ha ancora accesso al portale. Scrivi al club se pensi sia un errore.', 'This address doesn’t have access to the portal yet. Write to the club if you think this is a mistake.')
       : t('Non riusciamo a leggere i tuoi dati adesso. Riprova tra poco.', 'We can’t load your details right now. Try again shortly.'),
   }
