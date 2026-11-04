@@ -1,0 +1,11 @@
+## Le gare si pagano anche con il conto già salvato (SEPA), e il mandato copre i servizi del club (04/11/2026)
+
+Richiesta di Maurizio. Il lato server, le decisioni e cosa manca prima di accenderlo stanno nel `CLAUDE.md` di APP-ATHLON, «Le gare si pagano anche con l'addebito SEPA».
+
+- **In `CassaGara`** (`junior/Gare.tsx`), accanto alle carte salvate, compare il **conto del genitore**: «Conto •••• 34 · Addebito SEPA · banca». Compare **solo se su PerfectGym c'è già un mandato SEPA valido** (`contoSalvatoGara`, azione `conto`) e solo se il server ha acceso l'addebito sul conto. Nessun modulo IBAN e nessun mandato nuovo. Se c'è solo il conto, il pulsante sotto dice «Paga con una carta».
+- **Scelto il conto, si spunta l'autorizzazione** (`Casella`). Il testo lo scrive il server per quell'iscrizione: importo, ultime cifre, bambino, gara. Il pulsante «Paga 8,00 € con il conto •••• 34» resta spento finché la casella non è spuntata. **L'iscrizione è confermata subito**: la schermata dice quando la banca addebiterà (la `charge_date` di GoCardless) e che la ricevuta arriva per email quando l'addebito è confermato, poi rilegge le gare. Non si aspetta un webhook, come invece per la carta.
+- **Sulla carta della gara** (`IscrizioneMia.pagamento` e `sepa_stato`, da `gare_di`):
+  - con l'addebito in corso, il riquadro «Iscrizione confermata» aggiunge una riga sull'addebito;
+  - con l'addebito non riuscito o contestato, l'etichetta torna «Da pagare» e compare «L'addebito sul conto non è riuscito: il posto resta confermato». Sotto c'è «Paga con carta», solo a iscrizioni aperte (dopo, la quota si paga in segreteria). Il conto non si ripropone.
+- **Il testo del mandato** (`metodo-pagamento/ModuloIban.tsx`, uguale al CRM): autorizza anche «gli altri importi dei servizi che acquisto o richiedo al club, anche per i componenti del mio nucleo familiare (per esempio le iscrizioni alle gare e agli eventi)», non più solo «le quote del mio abbonamento». La riga dell'estratto conto dice «le quote del tuo abbonamento e i servizi del club che hai scelto». La versione inglese segue.
+- **Provato**: `tsc` senza errori nuovi (quelli di `docs/classifica-server` e `scripts/` c'erano già). **Non provato**: la schermata in un browser o su un telefono, e un addebito vero.

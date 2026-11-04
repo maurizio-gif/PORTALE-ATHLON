@@ -157,3 +157,4 @@ chiamata diretta al gestionale. Esempio: la sezione Prodotti usa l'azione `prodo
 - [«Realizzata da Ready 2 Digital»: il credito in fondo all'accesso e al Profilo (04/11/2026)](docs/claude/119-realizzata-da-ready-2-digital-04-11-2026.md) · 1 KB
 - [L'icona dell'app: il logo arancio su fondo nero, senza scritte (04/11/2026)](docs/claude/120-icona-dell-app-logo-arancio-su-nero-04-11-2026.md) · 1 KB
 - [I recuperi della Scuola Nuoto Bambini: al completo niente lista d'attesa (04/11/2026)](docs/claude/121-recuperi-scuola-nuoto-senza-lista-d-attesa-04-11-2026.md) · 2 KB
+- [Le gare si pagano anche con il conto già salvato (SEPA), e il mandato copre i servizi del club (04/11/2026)](docs/claude/122-gare-addebito-sul-conto-salvato-04-11-2026.md) · 3 KB

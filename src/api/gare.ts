@@ -73,6 +73,10 @@ export type IscrizioneMia = {
   tempo_cent: number | null;
   posizione: number | null;
   punti: number;
+  /** Come si e' pagato: `carta` o `sepa` (il conto gia' salvato su PerfectGym); `null` per le iscrizioni pagate prima del SEPA, con la carta. */
+  pagamento?: "carta" | "sepa" | null;
+  /** L'addebito SEPA: in corso (l'iscrizione e' gia' confermata), incassato, fallito o contestato (la quota si paga con la carta). */
+  sepa_stato?: "in_corso" | "incassato" | "fallito" | "contestato" | null;
 };
 
 export type DatiGare = {
@@ -175,3 +179,31 @@ export async function pagaConCartaSalvata(iscrizioneId: number, cartaId: string)
   return { ok: false, errore: dati.errore ?? t("Non riusciamo a fare il pagamento adesso. Riprova fra qualche minuto.", "We can’t take the payment right now. Try again in a few minutes."), cartaPersa: dati.codice === "carta" };
 }
 
+
+/** Il conto (IBAN) gia' salvato su PerfectGym da chi paga: solo le ultime cifre e la banca. `consenso` e' il testo da confermare, scritto dal server per quella iscrizione. */
+export type ContoSalvato = { cifre: string; banca: string | null; intestatario: string | null; consenso: string };
+
+/**
+ * Il conto da proporre accanto alle carte (04/11/2026, Maurizio: «lo puo' selezionare come metodo solo se e' gia' salvato: non creiamo un mandato»). `null` se non c'e', se
+ * l'addebito sul conto non e' acceso, o se il server non risponde: in tutti questi casi si paga con la carta. Mai un errore.
+ */
+export async function contoSalvatoGara(iscrizioneId: number): Promise<ContoSalvato | null> {
+  const { ok, dati } = await funzione("portale-lab-gare", { azione: "conto", iscrizione_id: iscrizioneId });
+  const c = dati?.conto;
+  if (!ok || !c || typeof c.cifre !== "string" || typeof dati.consenso !== "string") return null;
+  return { cifre: c.cifre, banca: typeof c.banca === "string" ? c.banca : null, intestatario: typeof c.intestatario === "string" ? c.intestatario : null, consenso: dati.consenso };
+}
+
+/** L'addebito SEPA: l'iscrizione e' confermata subito, l'incasso arriva in qualche giorno lavorativo (`data_addebito`, se GoCardless la dice). */
+export type EsitoContoGara = { ok: true; esito: "in_corso"; dataAddebito: string | null } | { ok: true; giaPagata: true } | { ok: false; errore: string; contoPerso?: boolean };
+
+export async function pagaConContoSalvato(iscrizioneId: number): Promise<EsitoContoGara> {
+  const { ok, dati } = await funzione("portale-lab-gare", { azione: "paga_conto", iscrizione_id: iscrizioneId, consenso: true });
+  if (ok && dati.gia_pagata) return { ok: true, giaPagata: true };
+  if (ok && dati.esito === "in_corso") return { ok: true, esito: "in_corso", dataAddebito: typeof dati.data_addebito === "string" ? dati.data_addebito : null };
+  return {
+    ok: false,
+    errore: dati?.errore ?? t("Non riusciamo a fare l’addebito adesso. Puoi pagare con la carta.", "We can’t make the debit right now. You can pay by card."),
+    contoPerso: dati?.codice === "conto" || dati?.codice === "sepa" || dati?.codice === "non_disponibile",
+  };
+}
