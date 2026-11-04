@@ -3,7 +3,7 @@
 //   LC_ALL=it_IT.UTF-8 npx tsx scripts/prova-entra.ts
 import assert from 'node:assert/strict'
 
-import { arrivoDa, CATEGORIE, CATEGORIE_EVENTO, giornoValido, pianoValido } from '../src/features/entra/destinazioni'
+import { arrivoDa, CATEGORIE, CATEGORIE_EVENTO, giornoValido, idValido, pianoValido } from '../src/features/entra/destinazioni'
 
 let passi = 0
 const ok = (n: string) => {
@@ -129,6 +129,16 @@ const ok = (n: string) => {
   assert.equal(pianoValido('254'), '254')
   assert.equal(pianoValido(''), null)
   ok('abbonamento: il listino con il piano scelto, solo cifre')
+}
+
+{
+  const OGGI = '2026-11-04'
+  assert.deepEqual(arrivoDa('junior', null, null, OGGI, null, '987654')?.href, { pathname: '/junior', params: { assistenza: '1', figlio: '987654' } })
+  assert.deepEqual(arrivoDa('junior', null, null, OGGI)?.href, { pathname: '/junior', params: { assistenza: '1' } })
+  assert.deepEqual(arrivoDa('junior', null, null, OGGI, null, '12a')?.href, { pathname: '/junior', params: { assistenza: '1' } }, 'un id non numerico non passa')
+  assert.equal(arrivoDa('prenota', null, null, OGGI, null, '987654')?.href, '/calendario', 'il bambino vale solo per junior')
+  assert.equal(idValido('12345678901'), null, 'troppo lungo')
+  ok('junior: si apre sul bambino del link, solo cifre')
 }
 
 console.log(`\n${passi} prove passate`)
