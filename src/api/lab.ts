@@ -29,8 +29,32 @@ export async function entra(email: string, codice: string): Promise<{ ok: true }
   const token = codice.replace(/\D/g, '')
   const { error } = await supabase.auth.verifyOtp({ email, token, type: 'email' })
   if (!error) return { ok: true }
+  if (await entraPerRevisione(email, token)) return { ok: true }
   if (/expired|invalid/i.test(error.message)) return { ok: false, errore: t('Codice sbagliato o scaduto. Controlla l’ultima email che ti abbiamo mandato.', 'Wrong or expired code. Check the latest email we sent you.') }
   return { ok: false, errore: t('Non siamo riusciti a farti entrare. Riprova tra poco.', 'We couldn’t sign you in. Try again shortly.') }
+}
+
+// L'accesso del revisore di Apple (04/11/2026): un indirizzo solo ha un codice fisso, scritto nelle note per la revisione su App Store
+// Connect, perche' il revisore non legge la casella a cui arriva il codice. Lo decide `portale-accesso` (azione `revisione`, segreti
+// `REVISIONE_APPLE_EMAIL` e `REVISIONE_APPLE_CODICE`, CLAUDE.md di APP-ATHLON): qui si chiede solo dopo che il codice normale non e'
+// valso, e se combacia si apre la sessione col token monouso che torna. Per chiunque altro risponde «no» e resta l'errore di sempre.
+async function entraPerRevisione(email: string, codice: string): Promise<boolean> {
+  try {
+    const r = await fetch(`${SUPABASE_URL}/functions/v1/portale-accesso`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...intestazioneLingua() },
+      body: JSON.stringify({ azione: 'revisione', email, codice }),
+    })
+    const dati = (await r.json().catch(() => null)) as { ok?: boolean; token_hash?: string } | null
+    if (!r.ok || !dati?.ok || !dati.token_hash) return false
+    for (const tipo of ['email', 'magiclink'] as const) {
+      const { error } = await supabase.auth.verifyOtp({ token_hash: dati.token_hash, type: tipo })
+      if (!error) return true
+    }
+    return false
+  } catch {
+    return false
+  }
 }
 
 /**

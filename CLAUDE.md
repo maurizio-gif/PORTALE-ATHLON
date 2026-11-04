@@ -153,3 +153,4 @@ chiamata diretta al gestionale. Esempio: la sezione Prodotti usa l'azione `prodo
 - [Il test dei massimali: sette esercizi, il plank a tempo, e «quanti ne servono» (04/11/2026)](docs/claude/115-massimali-sette-esercizi-plank-a-tempo-e-numero-minimo-04-11-2026.md) · 3 KB
 - [«Brevetti»: niente pillola sul brevetto di adesso, e «Cosa sta imparando in questo momento» è il livello successivo (04/11/2026)](docs/claude/116-brevetti-cosa-sta-imparando-e-niente-pillola-04-11-2026.md) · 2 KB
 - [Athlon TV: le copertine delle raccolte sono le foto dei corsi, o del corso più simile (04/11/2026)](docs/claude/117-athlon-tv-copertine-delle-raccolte-sono-le-foto-dei-corsi-04-11-2026.md) · 4 KB
+- [La pubblicazione ufficiale sull'App Store: la 3.0.0 sostituisce la 2.2 di Netpulse (04/11/2026)](docs/claude/118-pubblicazione-app-store-04-11-2026.md) · 4 KB
