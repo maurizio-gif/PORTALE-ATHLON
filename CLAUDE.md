@@ -156,3 +156,4 @@ chiamata diretta al gestionale. Esempio: la sezione Prodotti usa l'azione `prodo
 - [La pubblicazione ufficiale sull'App Store: la 3.0.0 sostituisce la 2.2 di Netpulse (04/11/2026)](docs/claude/118-pubblicazione-app-store-04-11-2026.md) · 4 KB
 - [«Realizzata da Ready 2 Digital»: il credito in fondo all'accesso e al Profilo (04/11/2026)](docs/claude/119-realizzata-da-ready-2-digital-04-11-2026.md) · 1 KB
 - [L'icona dell'app: il logo arancio su fondo nero, senza scritte (04/11/2026)](docs/claude/120-icona-dell-app-logo-arancio-su-nero-04-11-2026.md) · 1 KB
+- [I recuperi della Scuola Nuoto Bambini: al completo niente lista d'attesa (04/11/2026)](docs/claude/121-recuperi-scuola-nuoto-senza-lista-d-attesa-04-11-2026.md) · 2 KB
