@@ -150,4 +150,5 @@ chiamata diretta al gestionale. Esempio: la sezione Prodotti usa l'azione `prodo
 - [Brevetti per chi non è iscritto: una carta chiusa, in fondo, sotto le attività (04/11/2026)](docs/claude/112-brevetti-chiusi-in-fondo-per-chi-non-e-iscritto-04-11-2026.md) · 3 KB
 - [La carta Junior in Home è blu, come la testata della sezione (04/11/2026)](docs/claude/113-home-carta-junior-blu-come-la-sezione-04-11-2026.md) · 2 KB
 - [«Invita i tuoi amici»: «ricevi 50 €», la pagina con foto, il plurale, i social, nessun limite di amici e «dal 2021» applicato dal server (04/11/2026)](docs/claude/114-invita-un-amico-50-euro-pagina-e-dal-2021-04-11-2026.md) · 10 KB
-- [«Brevetti»: niente pillola sul brevetto di adesso, e «Cosa sta imparando in questo momento» è il livello successivo (04/11/2026)](docs/claude/115-brevetti-cosa-sta-imparando-e-niente-pillola-04-11-2026.md) · 2 KB
+- [Il test dei massimali: sette esercizi, il plank a tempo, e «quanti ne servono» (04/11/2026)](docs/claude/115-massimali-sette-esercizi-plank-a-tempo-e-numero-minimo-04-11-2026.md) · 3 KB
+- [«Brevetti»: niente pillola sul brevetto di adesso, e «Cosa sta imparando in questo momento» è il livello successivo (04/11/2026)](docs/claude/116-brevetti-cosa-sta-imparando-e-niente-pillola-04-11-2026.md) · 2 KB

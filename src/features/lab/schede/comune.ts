@@ -161,16 +161,22 @@ export type Obiettivo =
   | { tipo: 'kg'; kg: number; percentuale: number }
   /** Le ripetizioni da fare (a corpo libero, percentuale delle massime). */
   | { tipo: 'ripetizioni'; ripetizioni: number; percentuale: number }
+  /** I secondi di tenuta (il plank), percentuale della tenuta massima, a scatti di 5. */
+  | { tipo: 'secondi'; secondi: number; percentuale: number }
   /** La percentuale c'e', il massimale ancora no: si fa il test (o si tara alla prima seduta). */
   | { tipo: 'manca'; percentuale: number; daTest: boolean }
 
 /** Dalla percentuale della scheda e dal massimale del socio, il carico vero. */
 export function obiettivo(
-  e: { percentuale: number | null; incremento_kg: number | null; peso_minimo_kg: number | null; test: 'carico' | 'ripetizioni' | null },
-  massimale: { tipo: 'carico' | 'ripetizioni'; massimale: number } | undefined,
+  e: { percentuale: number | null; incremento_kg: number | null; peso_minimo_kg: number | null; test: 'carico' | 'ripetizioni' | 'secondi' | null },
+  massimale: { tipo: 'carico' | 'ripetizioni' | 'secondi'; massimale: number } | undefined,
 ): Obiettivo | null {
   if (!e.percentuale) return null
   if (!massimale) return { tipo: 'manca', percentuale: e.percentuale, daTest: !!e.test }
+  if (massimale.tipo === 'secondi') {
+    // Una tenuta si prescrive a scatti di 5 secondi, mai sotto i 5.
+    return { tipo: 'secondi', secondi: Math.max(5, Math.round((massimale.massimale * e.percentuale) / 100 / 5) * 5), percentuale: e.percentuale }
+  }
   if (massimale.tipo === 'ripetizioni') {
     return { tipo: 'ripetizioni', ripetizioni: Math.max(1, Math.round((massimale.massimale * e.percentuale) / 100)), percentuale: e.percentuale }
   }
@@ -186,6 +192,7 @@ export function descriviObiettivo(o: Obiettivo | null): string | null {
   if (!o) return null
   if (o.tipo === 'kg') return `${o.percentuale}% · ${kg(o.kg)} kg`
   if (o.tipo === 'ripetizioni') return t(`${o.percentuale}% · ${o.ripetizioni} ripetizioni`, `${o.percentuale}% · ${o.ripetizioni} reps`)
+  if (o.tipo === 'secondi') return t(`${o.percentuale}% · ${o.secondi} secondi`, `${o.percentuale}% · ${o.secondi} seconds`)
   return t(`${o.percentuale}% del massimale`, `${o.percentuale}% of your 1RM`)
 }
 
@@ -224,6 +231,7 @@ export function indicazione(e: EsercizioScheda, massimali: Massimale[]): Indicaz
     return { ...base, carico: `${stimato ? '≈ ' : ''}${kg(o.kg)} kg · ${o.percentuale}%`, kg: o.kg, stimato }
   }
   if (o.tipo === 'ripetizioni') return { ...base, serieRip: `${e.serie} × ${o.ripetizioni}`, carico: t(`${o.percentuale}% delle tue massime`, `${o.percentuale}% of your max reps`), ripetizioni: o.ripetizioni }
+  if (o.tipo === 'secondi') return { ...base, serieRip: `${e.serie} × ${o.secondi} s`, carico: t(`${o.percentuale}% della tua tenuta massima`, `${o.percentuale}% of your max hold`), ripetizioni: o.secondi }
   return { ...base, carico: t(`${o.percentuale}% del massimale`, `${o.percentuale}% of your 1RM`), manca: true, daTest: o.daTest }
 }
 

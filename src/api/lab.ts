@@ -817,14 +817,14 @@ export type EsercizioScheda = {
   /** L'incremento della macchina (5 kg, 2,5 kg) e il peso minimo: i chili si arrotondano per difetto a quelli. */
   incremento_kg: number | null
   peso_minimo_kg: number | null
-  /** Se l'esercizio e' nel test dei massimali, e come: a carico o a ripetizioni. */
-  test: 'carico' | 'ripetizioni' | null
+  /** Se l'esercizio e' nel test dei massimali, e come: a carico, a ripetizioni o a tempo (secondi di tenuta: il plank). */
+  test: 'carico' | 'ripetizioni' | 'secondi' | null
 }
 
-/** Il massimale del socio per un esercizio: i kg stimati per una ripetizione, o le ripetizioni massime. */
+/** Il massimale del socio per un esercizio: i kg stimati per una ripetizione, le ripetizioni massime, o i secondi di tenuta. */
 export type Massimale = {
   esercizio_id: string
-  tipo: 'carico' | 'ripetizioni'
+  tipo: 'carico' | 'ripetizioni' | 'secondi'
   massimale: number
   kg: number | null
   ripetizioni: number
@@ -838,7 +838,24 @@ export type Massimale = {
   creato_il: string
 }
 
-export type StatoTest = { ultimo: string | null; fatti: number; totale: number; giorni: number }
+/**
+ * Il test: quando e' stato fatto e quanti esercizi (`fatti` di `totale`). `minimo` sono gli esercizi che bastano per calcolare i chili (uno per gruppo: 3);
+ * `per_verifica` quelli che servono per controllare che i conti tornino (due per ogni distretto di carico e il plank: 5). Opzionali: un server di prima non li manda.
+ */
+export type StatoTest = { ultimo: string | null; fatti: number; totale: number; giorni: number; minimo?: number; per_verifica?: number }
+
+/** Lo stato del test di una persona, gruppo per gruppo (04/11/2026). */
+export type CoperturaTest = {
+  gruppi: Record<'superiore' | 'core' | 'inferiore', { fatti: number; minimo: number; per_verifica: number; stato: 'assente' | 'singola' | 'verificata' | 'discordante' }>
+  /** Un esercizio per gruppo: i chili si calcolano. */
+  calcolabile: boolean
+  /** Due per distretto di carico, e tornano fra loro. */
+  verificato: boolean
+  /** I distretti i cui test non tornano fra loro. */
+  discordanti: ('superiore' | 'inferiore')[]
+  minimo: number
+  per_verifica: number
+}
 
 export type GiornoSchedaLab = { id: string; nome: string; note: string | null; esercizi: EsercizioScheda[] }
 
@@ -937,7 +954,7 @@ export async function elencoSchede(): Promise<Esito<{ schede: RigaSchedaLab[]; u
   return { ok: false, errore: dati.errore ?? t('Non riusciamo a leggere i tuoi piani adesso.', 'We can’t load your plans right now.') }
 }
 
-export async function leggiSchedaLab(id: string): Promise<Esito<{ scheda: SchedaLab; precedenti: Precedente[]; massimali: Massimale[]; ultimoTest: string | null; giorniTest: number }>> {
+export async function leggiSchedaLab(id: string): Promise<Esito<{ scheda: SchedaLab; precedenti: Precedente[]; massimali: Massimale[]; ultimoTest: string | null; giorniTest: number; discordanti: string[] }>> {
   const { ok, dati } = await schedeLab({ azione: 'scheda', id })
   if (ok) {
     return {
@@ -947,6 +964,8 @@ export async function leggiSchedaLab(id: string): Promise<Esito<{ scheda: Scheda
       massimali: dati.massimali ?? [],
       ultimoTest: dati.ultimo_test ?? null,
       giorniTest: dati.giorni_test ?? 42,
+      // I distretti i cui test non tornano fra loro: le stime sono sul piu' prudente (04/11/2026).
+      discordanti: Array.isArray(dati.discordanti) ? dati.discordanti : [],
     }
   }
   return { ok: false, errore: dati.errore ?? t('Non riusciamo ad aprire il piano adesso.', 'We can’t open the plan right now.') }
@@ -1188,7 +1207,7 @@ export type EsercizioTest = {
   istruzioni: string[]
   muscoli_primari: string[]
   attrezzo: string | null
-  test: 'carico' | 'ripetizioni'
+  test: 'carico' | 'ripetizioni' | 'secondi'
   test_gruppo: 'superiore' | 'core' | 'inferiore'
   test_ordine: number | null
   incremento_kg: number | null
@@ -1196,9 +1215,9 @@ export type EsercizioTest = {
   ultimo: { kg: number | null; ripetizioni: number; massimale: number; creato_il: string } | null
 }
 
-export async function testMassimali(): Promise<Esito<{ esercizi: EsercizioTest[]; ultimo: string | null; giorni: number }>> {
+export async function testMassimali(): Promise<Esito<{ esercizi: EsercizioTest[]; ultimo: string | null; giorni: number; copertura: CoperturaTest | null }>> {
   const { ok, dati } = await schedeLab({ azione: 'test' })
-  if (ok) return { ok: true, esercizi: dati.esercizi, ultimo: dati.ultimo ?? null, giorni: dati.giorni ?? 42 }
+  if (ok) return { ok: true, esercizi: dati.esercizi, ultimo: dati.ultimo ?? null, giorni: dati.giorni ?? 42, copertura: dati.copertura ?? null }
   return { ok: false, errore: dati.errore ?? t('Non riusciamo ad aprire il test adesso.', 'We can’t open the test right now.') }
 }
 
@@ -1242,9 +1261,9 @@ export async function sessioneMobilita(r: { focus: string; minuti: number; zone?
   }
 }
 
-export async function salvaTestMassimale(esercizioId: string, kg: number | null, ripetizioni: number): Promise<Esito<{ massimale: number; tipo: 'carico' | 'ripetizioni' }>> {
+export async function salvaTestMassimale(esercizioId: string, kg: number | null, ripetizioni: number): Promise<Esito<{ massimale: number; tipo: 'carico' | 'ripetizioni' | 'secondi'; copertura: CoperturaTest | null }>> {
   const { ok, dati } = await schedeLab({ azione: 'salva_test', esercizio_id: esercizioId, kg, ripetizioni })
-  if (ok) return { ok: true, massimale: Number(dati.massimale), tipo: dati.tipo }
+  if (ok) return { ok: true, massimale: Number(dati.massimale), tipo: dati.tipo, copertura: dati.copertura ?? null }
   return { ok: false, errore: dati.errore ?? t('Il risultato non è stato salvato.', 'The result wasn’t saved.') }
 }
 
