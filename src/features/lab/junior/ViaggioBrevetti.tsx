@@ -25,9 +25,9 @@ import { spazio } from "@/theme";
 import { Icona } from "../ui/Icona";
 import { Pulsante } from "../ui/kit";
 import { useRiduciMovimento } from "../ui/movimento";
-import { F, usePalette } from "../ui/tema";
+import { F } from "../ui/tema";
 import { Tocco } from "../ui/Tocco";
-import { Dettagli } from "./Dettagli";
+import { CosaStaImparando } from "./CosaStaImparando";
 import { giornoBrevetto, LIVELLI, NOMI_CICLO, nomeLivello, type LivelloBrevetto } from "./datiBrevetti";
 import { PersonaggioAnimato } from "./PersonaggioAnimato";
 
@@ -520,7 +520,6 @@ export function ViaggioBrevetti({
   foto: string | null;
   onCondividi: (l: LivelloBrevetto) => void;
 }) {
-  const p = usePalette();
   const fermo = useRiduciMovimento();
   const [dim, setDim] = useState({ l: 0, a: 0 });
   const W = dim.l;
@@ -684,16 +683,7 @@ export function ViaggioBrevetti({
       </View>
 
       {/* Quello che si sta imparando adesso: il livello dopo quello ottenuto (il programma del libretto). All'ultimo livello non c'e' un successivo. */}
-      {successivo ? (
-        <Dettagli titolo={t(`Cosa sta imparando in questo momento: ${nomeLivello(successivo)}`, `What they’re learning right now: ${nomeLivello(successivo)}`)}>
-          {successivo.programma().map((x, k) => (
-            <View key={k} style={{ flexDirection: "row", gap: spazio.due, alignItems: "flex-start" }}>
-              <View style={{ width: 6, height: 6, borderRadius: 3, marginTop: 7, backgroundColor: p.accento }} />
-              <Text style={{ color: p.testoSecondario, fontFamily: F.medio, fontSize: 13, lineHeight: 19, flex: 1, minWidth: 0 }}>{x}</Text>
-            </View>
-          ))}
-        </Dettagli>
-      ) : null}
+      {successivo ? <CosaStaImparando livello={successivo} /> : null}
     </View>
   );
 }
