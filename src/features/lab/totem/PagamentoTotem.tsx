@@ -6,7 +6,7 @@ import { Avviso } from '@/components/Avviso'
 import { Bottone } from '@/components/Bottone'
 import { Campo } from '@/components/Campo'
 import { CodiceQr } from '@/components/CodiceQr'
-import { Strada } from '@/features/proposta/ContinuaSulTelefono'
+import { AccessoStaff, Strada } from '@/features/proposta/ContinuaSulTelefono'
 import { t } from '@/lib/lingua'
 import { matriceQr } from '@/lib/qr'
 import { spazio } from '@/theme'
@@ -17,7 +17,7 @@ import { colpetto } from '../ui/Tocco'
 import { ascoltaPassaggio, indirizzoSezione, passaggioCorrente, type RichiestaPassaggio } from './passaggio'
 import { uscitaTotem } from './uscita'
 
-// «Come vuoi continuare?» (04/11/2026, richiesta di Maurizio): su ogni pagamento fatto dal totem le tre strade, sempre — QR, email, con un operatore — perche' una carta non si digita su uno
+// «Come vuoi continuare?» (04/11/2026, richiesta di Maurizio): su ogni pagamento fatto dal totem le tre strade, sempre — QR, email, con un operatore (questa dal comando «staff», piccolo e sbiadito: alla persona se ne mostrano due) — perche' una carta non si digita su uno
 // schermo pubblico senza qualcuno del club accanto. Si apre da `passaDalTotem` (`passaggio.ts`), che il codice chiama prima di ogni pagamento; montata nel layout, solo sul totem.
 //
 // - **QR**: il telefono apre la pagina di pagamento di quello che si e' scelto (`url`) o, per un addebito su un metodo salvato, la stessa sezione dell'app (`percorso`), dove si entra con la propria email.
@@ -47,7 +47,7 @@ function Contenuto({ richiesta, risolvi }: { richiesta: RichiestaPassaggio; riso
   const [strada, setStrada] = useState<Via>('scelta')
   const conUrl = !!richiesta.url
   const destinazione = richiesta.url ?? indirizzoSezione(richiesta.percorso ?? '/')
-  // Un indirizzo troppo lungo per un QR non lo si disegna: si offrono l'email e l'operatore.
+  // Un indirizzo troppo lungo per un QR non lo si disegna: resta l'email (e, per l'operatore, il comando «staff»).
   const qrPossibile = useMemo(() => matriceQr(destinazione) !== null, [destinazione])
 
   return (
@@ -81,14 +81,12 @@ function Contenuto({ richiesta, risolvi }: { richiesta: RichiestaPassaggio; riso
               testo={t('Ti mandiamo il link: lo apri quando vuoi, anche a casa.', 'We’ll email you the link: open it whenever you like, even at home.')}
               onPress={() => setStrada('email')}
             />
-            <Strada
-              icona="persona"
-              titolo={t('Continua qui con un operatore', 'Carry on here with a staff member')}
-              testo={t('Paghi su questo schermo, con una persona dello staff accanto.', 'You pay on this screen, with a staff member next to you.')}
-              onPress={() => setStrada('operatore')}
-            />
           </View>
-          <Pulsante testo={t('Annulla', 'Cancel')} variante="fantasma" piccolo pieno={false} onPress={() => risolvi(false)} />
+          {/* La persona sceglie fra QR ed email; l'operatore entra dal comando sbiadito in fondo (04/11/2026). */}
+          <View style={stili.piede}>
+            <Pulsante testo={t('Annulla', 'Cancel')} variante="fantasma" piccolo pieno={false} onPress={() => risolvi(false)} />
+            <AccessoStaff onPress={() => setStrada('operatore')} />
+          </View>
         </View>
       ) : null}
 
@@ -226,4 +224,5 @@ const stili = StyleSheet.create({
   carta: { width: '100%', maxWidth: 560, gap: spazio.quattro },
   titolo: { fontFamily: F.extra, fontSize: 22, lineHeight: 28, letterSpacing: -0.4 },
   testo: { fontFamily: F.normale, fontSize: 15, lineHeight: 21 },
+  piede: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spazio.tre },
 })

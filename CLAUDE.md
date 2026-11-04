@@ -163,3 +163,4 @@ chiamata diretta al gestionale. Esempio: la sezione Prodotti usa l'azione `prodo
 - [Il link del sito apre Junior già sul bambino appena registrato (04/11/2026)](docs/claude/125-junior-aperta-sul-bambino-dal-link-del-sito-04-11-2026.md) · 1 KB
 - [La chat nella sezione Junior comincia dal corso del bambino (04/11/2026)](docs/claude/126-benvenuto-junior-nella-chat-04-11-2026.md) · 2 KB
 - [Junior: cambio orario e recuperi nella fascia del turno, e «Passa al bisettimanale» (04/11/2026)](docs/claude/127-junior-fascia-del-turno-e-passa-al-bisettimanale-04-11-2026.md) · 2 KB
+- [Il totale dell'impegno sotto «Vedi tutte le quote», e sul totem l'operatore entra da «staff» (04/11/2026)](docs/claude/128-totale-sotto-le-quote-e-staff-sul-totem-04-11-2026.md) · 2 KB

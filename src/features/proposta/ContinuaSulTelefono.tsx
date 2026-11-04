@@ -30,6 +30,9 @@ import { AssistitaTotem } from './AssistitaTotem'
 //   - email     lo stesso link arriva all'indirizzo del suo account. Sul totem non compare: il link non deve restare su uno schermo pubblico;
 //   - assistita continua qui, sul totem, con un operatore accanto che digita il suo user number (`AssistitaTotem`).
 //
+// Per chi sta davanti al totem le strade sono **due**, QR ed email (04/11/2026, Maurizio): la terza non e' una scelta della persona ma
+// dell'operatore, e sta in `AccessoStaff`, un comando piccolo e sbiadito in fondo che chi lavora al club sa dove trovare.
+//
 // Quello che conta lo decide il server: l'idoneita', i dati del contratto, il giorno, gli importi. Qui si scelgono tre strade e si mostra
 // quella presa. **Il token resta nella memoria di questa schermata**: niente storage, niente indirizzo, niente log (il totem e' di tutti).
 
@@ -141,16 +144,13 @@ export function ContinuaSulTelefono({ dati, onIndietro }: { dati: DatiProposta; 
             testo={t('Ti mandiamo il link: lo apri quando vuoi, anche a casa, e finisci da lì.', 'We’ll email you the link: open it whenever you like, even at home, and finish from there.')}
             onPress={() => crea('email')}
           />
-          <Strada
-            icona="persona"
-            titolo={t('Continua qui con un operatore', 'Carry on here with a staff member')}
-            testo={t('Firmi e paghi su questo schermo, con una persona dello staff accanto.', 'You sign and pay on this screen, with a staff member next to you.')}
-            onPress={() => crea('assistita')}
-          />
         </View>
       </Sezione>
 
-      <Pulsante testo={t('Indietro', 'Back')} variante="fantasma" piccolo pieno={false} onPress={onIndietro} />
+      <View style={stili.piede}>
+        <Pulsante testo={t('Indietro', 'Back')} variante="fantasma" piccolo pieno={false} onPress={onIndietro} />
+        <AccessoStaff onPress={() => crea('assistita')} />
+      </View>
     </View>
   )
 }
@@ -166,6 +166,26 @@ export function Strada({ icona, titolo, testo, onPress }: { icona: 'telefono' | 
         <Text style={[stili.titoloStrada, { color: p.testo }]}>{titolo}</Text>
         <Text style={[stili.testo, { color: p.testoSecondario }]}>{testo}</Text>
       </View>
+    </Tocco>
+  )
+}
+
+/**
+ * L'ingresso dell'operatore (04/11/2026): non e' una strada offerta alla persona, quindi non ha la forma delle altre due. Una
+ * scritta piccola e sbiadita in un angolo, con un lucchetto, che chi lavora al club conosce; dietro c'e' comunque il suo codice,
+ * quindi trovarla per caso non apre niente. La zona del tocco e' allargata (`hitSlop`) perche' resti comoda per chi la cerca.
+ */
+export function AccessoStaff({ onPress }: { onPress: () => void }) {
+  const p = usePalette()
+  return (
+    <Tocco
+      etichetta={t('Accesso operatore', 'Staff access')}
+      onPress={onPress}
+      hitSlop={14}
+      style={stili.staff}
+    >
+      <Icona nome="lucchetto" size={11} colore={p.testoSecondario} />
+      <Text style={[stili.staffTesto, { color: p.testoSecondario }]}>staff</Text>
     </Tocco>
   )
 }
@@ -413,4 +433,7 @@ const stili = StyleSheet.create({
   strada: { flexDirection: 'row', alignItems: 'center', gap: 14, minHeight: 88, padding: 14, borderRadius: 18, borderWidth: 1.5 },
   iconaStrada: { width: 52, height: 52, borderRadius: 26, alignItems: 'center', justifyContent: 'center' },
   titoloStrada: { fontFamily: F.extra, fontSize: 17, lineHeight: 23 },
+  piede: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spazio.tre },
+  staff: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingVertical: 6, paddingHorizontal: 8, opacity: 0.4 },
+  staffTesto: { fontFamily: F.medio, fontSize: 11, letterSpacing: 0.8, textTransform: 'uppercase' },
 })
