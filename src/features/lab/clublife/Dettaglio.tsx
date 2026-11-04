@@ -1,7 +1,7 @@
 import { Image } from 'expo-image'
 import { router, useLocalSearchParams } from 'expo-router'
-import { useState, type ReactNode } from 'react'
-import { StyleSheet, Text, View } from 'react-native'
+import { useEffect, useState, type ReactNode } from 'react'
+import { Linking, StyleSheet, Text, View } from 'react-native'
 
 import type { ClubLife, Comando } from '@/api/clubLife'
 import { t } from '@/lib/lingua'
@@ -13,9 +13,11 @@ import { Schermata } from '../ui/Schermata'
 import { F, raggio, usePalette } from '../ui/tema'
 import { Contenuto } from './Blocchi'
 import { dataNews, giornoEvento } from './comune'
-import { condividiEvento } from './condividi'
+import { condividiImmagine } from '../fit/condividiMese'
+import { condividiEvento, testoCondivisione } from './condividi'
 import { useClubLife } from './dati'
 import { apriLink, destinazione } from './link'
+import { FRASI, locandinaDisponibile, locandinaEvento, nomeLocandina, urlStoriaSito, type EventoLocandina } from './locandina'
 
 // Le tre schermate di dettaglio di Club Life: una news, un evento, una scheda
 // dell'Help Desk. Leggono la stessa copia dell'elenco (dati.ts), quindi si
@@ -109,6 +111,103 @@ function CondividiEvento({ e }: { e: { titolo: string; data: string; ora: string
   )
 }
 
+/**
+ * «Storia Instagram» (04/11/2026, richiesta di Maurizio): la locandina dell'evento in formato storia, la stessa della pagina del sito.
+ * Sul web si disegna qui (`locandina.ts`): si sceglie la frase, si vede l'anteprima, e si condivide (il foglio del telefono, da cui si sceglie
+ * Instagram e poi Storia) o si scarica. Nello stesso gesto il link dell'evento va negli appunti, per lo sticker «Link» della storia.
+ * Sull'app nativa non si puo' disegnare un file senza una build nuova: il comando apre la pagina dell'evento sul sito, gia' sulla locandina.
+ */
+function StoriaEvento({ e }: { e: EventoLocandina & { url: string; titolo: string; data: string } }) {
+  const p = usePalette()
+  const [aperta, setAperta] = useState(false)
+  const [frase, setFrase] = useState<string>(FRASI[0])
+  const [blob, setBlob] = useState<Blob | null>(null)
+  const [anteprima, setAnteprima] = useState<string | null>(null)
+  const [stato, setStato] = useState<'prepara' | 'pronta' | 'errore'>('prepara')
+  const [esito, setEsito] = useState<string | null>(null)
+  const web = locandinaDisponibile()
+
+  // L'immagine si prepara prima del tocco: `navigator.share` vuole un gesto, e un'attesa lunga prima di chiamarlo lo fa rifiutare.
+  useEffect(() => {
+    if (!aperta || !web) return
+    let vivo = true
+    let url: string | null = null
+    setStato('prepara')
+    setEsito(null)
+    locandinaEvento(e, frase).then((b) => {
+      if (!vivo) return
+      if (!b) return setStato('errore')
+      url = URL.createObjectURL(b)
+      setBlob(b)
+      setAnteprima(url)
+      setStato('pronta')
+    })
+    return () => {
+      vivo = false
+      if (url) URL.revokeObjectURL(url)
+    }
+  }, [aperta, frase, web, e])
+
+  const condivisibile =
+    web && blob !== null && typeof navigator !== 'undefined' && typeof navigator.share === 'function' && !!navigator.canShare?.({ files: [new File([blob], nomeLocandina(e), { type: 'image/png' })] })
+
+  async function copiaLink(): Promise<boolean> {
+    try {
+      await navigator.clipboard.writeText(e.url)
+      return true
+    } catch {
+      return false
+    }
+  }
+
+  async function esci(soloScarica: boolean) {
+    if (!blob) return
+    const copiato = await copiaLink()
+    const r = await condividiImmagine(async () => blob, nomeLocandina(e), testoCondivisione(e), soloScarica)
+    const link = copiato
+      ? t('Il link dell’evento è negli appunti, per lo sticker «Link».', 'The event link is on your clipboard, for the «Link» sticker.')
+      : t(`Il link per lo sticker: ${e.url}`, `The link for the sticker: ${e.url}`)
+    if (r === 'condiviso') setEsito(`${t('Scegli Instagram e poi «Storia».', 'Pick Instagram, then «Story».')} ${link}`)
+    else if (r === 'scaricato') setEsito(`${t('Immagine scaricata: pubblicala da Instagram come storia.', 'Image downloaded: post it as a story from Instagram.')} ${link}`)
+    else if (r === 'errore') setEsito(t('Non sono riuscito a preparare l’immagine.', 'I couldn’t prepare the image.'))
+  }
+
+  if (!web) {
+    return <Pulsante testo={t('Storia Instagram', 'Instagram story')} icona="fotocamera" variante="contorno" onPress={() => Linking.openURL(urlStoriaSito(e.url))} />
+  }
+  if (!aperta) {
+    return <Pulsante testo={t('Storia Instagram', 'Instagram story')} icona="fotocamera" variante="contorno" onPress={() => setAperta(true)} />
+  }
+  return (
+    <Carta style={{ gap: spazio.tre }}>
+      <Text style={[stili.sala, { color: p.testo }]}>{t('La tua locandina, in formato storia', 'Your poster, story format')}</Text>
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spazio.due }}>
+        {FRASI.map((f) => (
+          <Pulsante key={f} testo={f} piccolo variante={f === frase ? 'primario' : 'contorno'} onPress={() => setFrase(f)} />
+        ))}
+      </View>
+      <View style={[stili.anteprima, { backgroundColor: p.carbone }]}>
+        {stato === 'pronta' && anteprima ? (
+          <Image source={{ uri: anteprima }} accessibilityLabel={t(`Locandina: ${frase}, ${e.titolo}`, `Poster: ${frase}, ${e.titolo}`)} style={StyleSheet.absoluteFill} contentFit="contain" />
+        ) : (
+          <Text style={{ color: 'rgba(255,255,255,0.75)', fontFamily: F.medio, padding: spazio.tre, textAlign: 'center' }}>
+            {stato === 'errore' ? t('Non sono riuscito a preparare la locandina.', 'I couldn’t prepare the poster.') : t('Preparo la locandina…', 'Preparing the poster…')}
+          </Text>
+        )}
+      </View>
+      {condivisibile ? <Pulsante testo={t('Condividi su Instagram', 'Share to Instagram')} icona="condividi" onPress={() => esci(false)} /> : null}
+      <Pulsante testo={t('Scarica l’immagine', 'Download the image')} icona="scarica" variante="contorno" disabilitato={stato !== 'pronta'} onPress={() => esci(true)} />
+      <Text style={[stili.trainer, { color: p.testoSecondario }]}>
+        {t(
+          'Su Instagram crea una storia con questa immagine e aggiungi lo sticker «Link» con l’indirizzo dell’evento: te lo copiamo noi.',
+          'On Instagram, create a story with this image and add the «Link» sticker with the event address: we copy it for you.',
+        )}
+      </Text>
+      {esito ? <Messaggio tono="ok">{esito}</Messaggio> : null}
+    </Carta>
+  )
+}
+
 export function NewsDettaglio() {
   const { id } = useLocalSearchParams<{ id: string }>()
   const { dati, errore, riprova } = useClubLife()
@@ -152,6 +251,7 @@ export function EventoDettaglio() {
           </Carta>
           {e.prenotaSulSito ? <PrenotaDalCalendario data={e.data} categoria={e.categoria ?? null} /> : e.cta ? <Cta cta={e.cta} dati={dati} /> : null}
           <CondividiEvento e={e} />
+          <StoriaEvento e={e} />
           <Contenuto blocchi={e.blocchi} dati={dati} />
           {e.programma.map((sala) => (
             <View key={sala.sala} style={{ gap: spazio.due }}>
@@ -200,6 +300,7 @@ export function SchedaDettaglio() {
 
 const stili = StyleSheet.create({
   foto: { width: '100%', aspectRatio: 16 / 9, borderRadius: raggio.grande },
+  anteprima: { width: '62%', maxWidth: 260, alignSelf: 'center', aspectRatio: 9 / 16, borderRadius: raggio.grande, overflow: 'hidden', alignItems: 'center', justifyContent: 'center' },
   info: { flexDirection: 'row', gap: spazio.tre - 4, alignItems: 'flex-start' },
   infoTesto: { flex: 1, fontFamily: F.semi, fontSize: 15, lineHeight: 21 },
   sala: { fontFamily: F.extra, fontSize: 17, letterSpacing: -0.3, paddingHorizontal: 2 },
