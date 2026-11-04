@@ -48,7 +48,7 @@ export function RigaLezione({
           <Text style={[stili.quando, { color: p.testo }]}>{giornoOra(l.inizio)}</Text>
           {fascia ? <Text style={[stili.nota, { color: p.testoSecondario }]}>{FASCIA_SALA[fascia]}</Text> : null}
         </View>
-        <Text style={[stili.nota, { color: p.testoSecondario, flex: 1, textAlign: 'right' }]}>{l.iniziata ? tr('Già iniziata', 'Already started') : postiDi(l)}</Text>
+        <Text style={[stili.nota, { color: p.testoSecondario, flex: 1, textAlign: 'right' }]}>{l.iniziata ? tr('Già iniziata', 'Already started') : postiDi(l, l.categoria)}</Text>
       </View>
       {l.prenotazione || l.compresa === false ? (
         <View style={stili.etichette}>

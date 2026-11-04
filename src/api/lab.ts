@@ -157,6 +157,15 @@ export async function laMiaArea(): Promise<EsitoArea> {
 // ---------------------------------------------------------------------------
 // Il calendario (tappa 4): lezioni vere di PerfectGym, prenotazioni vere.
 
+/**
+ * Le categorie senza lista d'attesa (04/11/2026, richiesta di Maurizio): i recuperi della Scuola Nuoto Bambini. Una lezione al
+ * completo non offre «Lista d'attesa»: dice che e' piena e di scegliere un altro giorno. La regola la applica
+ * `portale-lab-calendario` (`senzaListaAttesa` in `_shared/lezioni-prenotabili.ts` di APP-ATHLON), che rifiuta anche se il
+ * pulsante arrivasse lo stesso: qui serve a non offrirla. I due repository non si importano, quindi l'elenco e' scritto due volte.
+ */
+export const senzaListaAttesa = (categoria: string | null | undefined): boolean =>
+  (categoria ?? '').toLowerCase().replace(/\s+/g, '') === 'recuperiscuolanuotobambini'
+
 export type Lezione = {
   class_id: number
   inizio: string

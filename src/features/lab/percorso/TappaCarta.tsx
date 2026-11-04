@@ -1,7 +1,7 @@
 import { router } from 'expo-router'
 import { StyleSheet, Text, View } from 'react-native'
 
-import type { Lezione, SchedaLezione } from '@/api/lab'
+import { senzaListaAttesa, type Lezione, type SchedaLezione } from '@/api/lab'
 import type { Alternativa, DatiLezione, FasciaSala, SlotSala, TappaSettimana } from '@/api/percorso'
 import { ora } from '@/lib/eventi'
 import { locale, t as tr } from '@/lib/lingua'
@@ -64,8 +64,10 @@ export function comeLezione(d: DatiLezione, categoria: string, scheda: string | 
 export const giornoOra = (iso: string) =>
   `${new Date(iso).toLocaleDateString(locale(), { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'Europe/Rome' })} · ${ora(iso)}`
 
-export function postiDi(d: DatiLezione): string {
+/** I posti di una lezione in parole. Con la categoria, un recupero della Scuola Nuoto Bambini pieno dice solo «Completa»: la lista d'attesa li' non c'e'. */
+export function postiDi(d: DatiLezione, categoria?: string): string {
   if (d.liberi > 0) return tr(`${d.liberi} ${d.liberi === 1 ? 'posto libero' : 'posti liberi'}`, `${d.liberi} ${d.liberi === 1 ? 'spot available' : 'spots available'}`)
+  if (senzaListaAttesa(categoria)) return tr('Completa', 'Full')
   return d.in_attesa > 0 ? tr(`Completa · ${d.in_attesa} in attesa`, `Full · ${d.in_attesa} waiting`) : tr('Completa · lista d’attesa', 'Full · waiting list')
 }
 

@@ -10,6 +10,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import {
   esitoAcquistoLezione,
   leggiGiorno,
+  senzaListaAttesa,
   type DaPagare,
   type EsitoAcquisto,
   type Giorno,
@@ -74,7 +75,8 @@ function minuti(inizio: string, fine: string): number {
 
 /** Chi aspetta un posto in una lezione completa: «3 in lista d'attesa». Senza il dato (funzione non ancora aggiornata) non dice niente. */
 function inAttesa(l: Lezione): string | null {
-  if (l.liberi > 0 || l.in_attesa === undefined) return null
+  // Nei recuperi della Scuola Nuoto Bambini la lista d'attesa non c'e' (04/11/2026): «nessuno in lista d'attesa» la farebbe sembrare un'opzione.
+  if (l.liberi > 0 || l.in_attesa === undefined || senzaListaAttesa(l.categoria)) return null
   return l.in_attesa === 0 ? t('nessuno in lista d’attesa', 'no one on the waiting list') : `${l.in_attesa} ${t('in lista d’attesa', 'on the waiting list')}`
 }
 
@@ -153,7 +155,8 @@ export type PropsLezione = {
 /**
  * I pulsanti di una lezione: prenota (o lista d'attesa), disdici, paga se la
  * lezione non e' compresa, e i motivi per cui non si prenota. Li usano la card
- * della lezione e la griglia dei turni della Gym Floor.
+ * della lezione e la griglia dei turni della Gym Floor. Un recupero della Scuola
+ * Nuoto Bambini al completo non offre la lista d'attesa (04/11/2026): lo dice e basta.
  */
 export function AzioniLezione({
   l,
@@ -208,6 +211,13 @@ export function AzioniLezione({
           <Icona nome="lucchetto" size={16} colore={p.testoSecondario} />
           <Text style={{ color: p.testoSecondario, fontFamily: F.semi, fontSize: 14 }}>{t('Prenotabile da', 'Bookable from')} {apertura(l.prenotabile_dal)}</Text>
         </View>
+      ) : l.liberi <= 0 && senzaListaAttesa(l.categoria) ? (
+        <Messaggio tono="attenzione">
+          {t(
+            'Questo recupero è al completo, e per i recuperi non c’è la lista d’attesa: scegli un altro giorno o un altro orario.',
+            'This make-up class is full, and make-up classes have no waiting list: choose another day or time.',
+          )}
+        </Messaggio>
       ) : daPagare ? (
         // Salva e paga: con la carta gia' salvata si paga con quella (o con
         // un'altra); senza, sulla pagina di Adyen, e la carta resta salvata.
