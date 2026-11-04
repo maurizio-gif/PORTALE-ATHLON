@@ -127,6 +127,11 @@ export function Gare({ persona, vista }: { persona: PersonaJunior; vista: boolea
           {t("Di solito ci vogliono pochi secondi. Puoi restare qui: appena arriva la conferma l’iscrizione risulta confermata.", "It usually takes a few seconds. You can stay here: as soon as it arrives your registration shows as confirmed.")}
         </Messaggio>
       ) : null}
+      {pg && !pg.ammesso ? (
+        <Messaggio tono="attenzione" titolo={titoloMotivo(pg)}>
+          {motivo(pg)}
+        </Messaggio>
+      ) : null}
       {!pg ? (
         <Messaggio tono="attenzione">{t("Per questa persona le gare non sono disponibili.", "Races aren’t available for this person.")}</Messaggio>
       ) : (
@@ -287,7 +292,7 @@ function CartaGara({
       {mia && mia.esito ? <Risultato mia={mia} /> : null}
 
       {!pg.ammesso ? (
-        <Text style={[stili.corpo, { color: p.testoSecondario }]}>{motivo(pg)}</Text>
+        <Text style={[stili.corpo, { color: p.testoSecondario }]}>{motivoBreve(pg)}</Text>
       ) : confermata ? (
         mia?.esito ? null : (
           <Messaggio tono="ok" titolo={t("Iscrizione confermata", "Registration confirmed")}>
@@ -810,13 +815,39 @@ const sessoTesto = (s: Sesso, singolare = false) =>
 /** «2021-22» -> «2021–22». */
 const fasciaTesto = (f: string) => f.replace("-", "–");
 
+/** Il nome per le frasi: «Emma», o un ripiego se la scheda non lo dice. */
+const nomeDi = (pg: PersonaGara) => pg.nome?.trim() || t("Questo bambino", "This child");
+
+/** Il livello di adesso del bambino, per dirgli dove e': «M1 - Anatroccolo 1», o `null` se su di lui non c'e' nessun livello. */
+const livelloAttuale = (pg: PersonaGara) => pg.livello_nome ?? pg.livello ?? null;
+
+function titoloMotivo(pg: PersonaGara): string {
+  const nome = nomeDi(pg);
+  if (pg.motivo === "livello") return t(`${nome} non ha ancora il livello per gareggiare`, `${nome} doesn’t have the level to compete yet`);
+  if (pg.motivo === "fuori_fascia") return t(`${nome} non rientra nelle categorie del Trofeo`, `${nome} isn’t in a Trophy category`);
+  if (pg.motivo === "data_nascita") return t(`Manca la data di nascita di ${nome}`, `${nome}’s date of birth is missing`);
+  return t(`${nome} non può iscriversi`, `${nome} can’t register`);
+}
+
 function motivo(pg: PersonaGara): string {
-  if (pg.motivo === "livello")
-    return t("Per gareggiare serve almeno il livello A3, già ottenuto. Il livello lo aggiorna la Direzione Tecnica.", "To compete you need at least level A3, already achieved. The Technical Director updates the level.");
+  const nome = nomeDi(pg);
+  if (pg.motivo === "livello") {
+    const attuale = livelloAttuale(pg);
+    return t(
+      `Il livello minimo per gareggiare è A3 - Stella Marina 3, già ottenuto. ${attuale ? `Adesso ${nome} è al livello ${attuale}.` : `Per ${nome} non risulta ancora nessun livello.`} Il livello lo aggiorna la Direzione Tecnica: appena arriva ad A3 potrai iscrivere ${nome} da qui.`,
+      `The minimum level to compete is A3 - Stella Marina 3, already achieved. ${attuale ? `${nome} is currently at level ${attuale}.` : `${nome} doesn’t have a level yet.`} The Technical Director updates the level: as soon as ${nome} reaches A3 you can register from here.`,
+    );
+  }
   if (pg.motivo === "fuori_fascia")
     return t("Quest’anno di nascita non è in nessuna categoria del Trofeo (2013–2022).", "This birth year isn’t in any Trophy category (2013–2022).");
   if (pg.motivo === "data_nascita") return t("Manca la data di nascita sulla scheda.", "The date of birth is missing from the profile.");
   return t("Non può iscriversi a questa gara.", "Can’t register for this race.");
+}
+
+/** La riga dentro ogni gara: il dettaglio sta nell'avviso in cima, qui basta dire perche' non c'e' il pulsante. */
+function motivoBreve(pg: PersonaGara): string {
+  if (pg.motivo === "livello") return t("Serve almeno il livello A3, già ottenuto.", "At least level A3 is required, already achieved.");
+  return motivo(pg);
 }
 
 const euro = (cent: number) => `${(cent / 100).toLocaleString(locale(), { minimumFractionDigits: 0, maximumFractionDigits: 2 })} €`;
