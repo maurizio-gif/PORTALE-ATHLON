@@ -31,6 +31,11 @@ export function pianoValido(p: string | null | undefined): string | null {
   return p && /^\d{1,6}$/.test(p) ? p : null
 }
 
+/** L'id di una scheda (il bambino da aprire in Junior), o `null`: solo cifre, come sul server. */
+export function idValido(f: string | null | undefined): string | null {
+  return f && /^\d{1,10}$/.test(f) ? f : null
+}
+
 /** Una data `AAAA-MM-GG` che esiste davvero (non il 31 novembre), o `null`: finisce in un indirizzo che chiunque puo' scrivere a mano. */
 export function giornoValido(g: string | null | undefined): string | null {
   if (!g || !/^\d{4}-\d{2}-\d{2}$/.test(g)) return null
@@ -61,6 +66,7 @@ export function arrivoDa(
   g?: string | null,
   oggi: string = GIORNO_ROMA.format(new Date()),
   p?: string | null,
+  f?: string | null,
 ): Arrivo | null {
   const attivita = a && (CATEGORIE as readonly string[]).includes(a) ? a : null
   switch (d) {
@@ -89,12 +95,15 @@ export function arrivoDa(
       // Il genitore che ha appena registrato il figlio dalla chat o da «Contattaci» del sito (Scuola Nuoto Bambini, Baby Nuoto): la
       // sezione Junior, con l'assistente dell'app aperto (`assistenza=1`, letto da `junior/Junior.tsx`), che prende il posto della
       // chat del sito.
+      // `f` (04/11/2026) e' il bambino appena registrato: la sezione si apre gia' su di lui, con i suoi turni (o le lezioni del
+      // Baby Nuoto). Solo cifre; se non e' nel nucleo di chi entra, la sezione lo ignora e apre il primo figlio come sempre.
+      const figlio = idValido(f)
       return {
-        href: { pathname: '/junior', params: { assistenza: '1' } },
+        href: { pathname: '/junior', params: figlio ? { assistenza: '1', figlio } : { assistenza: '1' } },
         titolo: t('Iscrivi tuo figlio', 'Enrol your child'),
         testo: t(
-          'Ti apriamo direttamente la sezione Junior, senza password: trovi i corsi per la sua età e i turni con posti liberi.',
-          'We’ll open the Junior section for you directly, no password needed: you’ll find the courses for their age and the slots with places left.',
+          'Ti apriamo direttamente la sezione Junior, senza password: trovi i turni ancora disponibili per la sua età, con i prezzi (o le lezioni del Baby Nuoto da prenotare).',
+          'We’ll open the Junior section for you directly, no password needed: you’ll find the slots still available for their age, with prices (or the Baby Nuoto classes to book).',
         ),
         bottone: t('Apri la sezione Junior', 'Open the Junior section'),
       }

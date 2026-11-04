@@ -12,7 +12,7 @@ import {
 import { t } from "@/lib/lingua";
 import { spazio } from "@/theme";
 
-import { apriAssistente } from "../assistente/store";
+import { apriAssistente, impostaTemaJunior } from "../assistente/store";
 import { inMemoria, prendi, ricorda, scorda } from "../memoria";
 import { Etichetta, Messaggio, Pulsante, SchedeInArrivo } from "../ui/kit";
 import { Schermata } from "../ui/Schermata";
@@ -66,7 +66,13 @@ export function Junior() {
   // `?voce=recuperi`: il link dell'email della disdetta di una lezione del corso, col recupero accreditato (04/11/2026).
   // `?assistenza=1`: il link dell'email che il genitore riceve dopo aver registrato il figlio dal sito (chat o «Contattaci», Scuola Nuoto
   // Bambini e Baby Nuoto, 04/11/2026). La chat dell'assistente si apre da sola, una volta: prende il posto di quella del sito.
-  const { voce: voceParam, assistenza } = useLocalSearchParams<{ voce?: string; assistenza?: string }>();
+  // `?figlio=<id>`: lo stesso link apre la sezione gia' sul bambino appena registrato (04/11/2026). Se non e' fra i figli di chi e'
+  // entrato (o il mirror non lo ha ancora), si apre il primo come sempre.
+  const { voce: voceParam, assistenza, figlio: figlioParam } = useLocalSearchParams<{ voce?: string; assistenza?: string; figlio?: string }>();
+
+  useEffect(() => {
+    if (typeof figlioParam === "string" && /^\d{1,10}$/.test(figlioParam)) setPersonaScelta(Number(figlioParam));
+  }, [figlioParam]);
 
   const carica = useCallback(async () => {
     setEsito(await prendi(CHIAVE_GRUPPI_JUNIOR, gruppiJunior));
@@ -133,6 +139,16 @@ export function Junior() {
   // **Senza un figlio registrato non si mostra nessun turno** (02/11/2026): resta solo «Aggiungi».
   const senzaFigli = !persona;
   const personaIscritta = !!persona && (persona.gruppi.length > 0);
+
+  // Il corso del bambino scelto, per il benvenuto della chat (04/11/2026): aprendo l'assistente da qui, o dal link del sito, la chat comincia
+  // da quel corso (`assistente/BenvenutoJunior.tsx`) e non dai suggerimenti generici. Uscendo dalla sezione si toglie.
+  const corsoTema: "snb" | "baby" | null = !persona ? null : eBaby(persona.data_nascita) ? "baby" : attivitaDiPersona(persona).includes("snb") ? "snb" : null;
+  const iscrittoTema = !!persona && (personaIscritta || (eBaby(persona.data_nascita) && babyAbbonato?.id === persona.member_id && babyAbbonato.si));
+  const nomeTema = persona ? nomeCompleto({ nome: persona.nome, cognome: null }) || null : null;
+  useEffect(() => {
+    impostaTemaJunior(persona ? { corso: corsoTema, nome: nomeTema, iscritto: iscrittoTema } : null);
+  }, [persona?.member_id, corsoTema, nomeTema, iscrittoTema]);
+  useEffect(() => () => impostaTemaJunior(null), []);
 
   function dopoAggiunta(nome: string, n: NucleoJunior | null) {
     setAggiunto(t(`${nome} è nel tuo nucleo familiare.`, `${nome} is now in your family members.`));

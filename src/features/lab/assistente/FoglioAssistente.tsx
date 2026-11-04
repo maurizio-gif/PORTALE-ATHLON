@@ -22,7 +22,8 @@ import { PrenotaDaChat } from './PrenotaDaChat'
 import { prenotaDaAzione } from './prenotaDaChat'
 import { ScriviAlTeam } from './ScriviAlTeam'
 import { teamDaAzione } from './teamDaChat'
-import type { Battuta } from './store'
+import { BenvenutoJunior } from './BenvenutoJunior'
+import { leggiTemaJunior, type Battuta } from './store'
 import { CARATTERI_MAX, mandaDomanda, ricominciaChat, useAssistente, votaRisposta } from './useAssistente'
 import { useDettatura } from './useDettatura'
 
@@ -218,7 +219,10 @@ export function FoglioAssistente({ aperto, schermata, onChiudi }: { aperto: bool
             keyboardShouldPersistTaps="handled"
             onContentSizeChange={() => scorri.current?.scrollToEnd({ animated: true })}
           >
-            {s.battute.length === 0 ? (
+            {s.battute.length === 0 && schermata === 'junior' && leggiTemaJunior() ? (
+              // Nella sezione Junior (e dal link del sito che la apre) la chat comincia dal corso del bambino, con un testo nostro (04/11/2026).
+              <BenvenutoJunior tema={leggiTemaJunior()!} onManda={manda} />
+            ) : s.battute.length === 0 ? (
               <View style={{ gap: spazio.tre }}>
                 <Text style={[stili.testo, { color: p.testoSecondario }]}>{t('Posso fare per te:', 'I can do this for you:')}</Text>
                 <View style={{ gap: spazio.due }}>
