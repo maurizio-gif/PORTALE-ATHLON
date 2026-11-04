@@ -41,7 +41,7 @@ import { COSA_FAI_IN_VASCA, eDiVasca, ETICHETTA_VASCA, inMetri, metriDelGiorno, 
 // **metri** della seduta, che sono una somma. Ogni blocco porta la sua parte — riscaldamento, tecnica, serie principale,
 // defaticamento — dalla nota. Il Percorso Athlon lo apre sul giorno di una tappa di Nuoto Libero (`?giorno=`).
 
-type Dati = { scheda: SchedaLab; precedenti: Precedente[]; massimali: Massimale[]; ultimoTest: string | null; giorniTest: number }
+type Dati = { scheda: SchedaLab; precedenti: Precedente[]; massimali: Massimale[]; ultimoTest: string | null; giorniTest: number; discordanti?: string[] }
 
 /** «10 × 40 kg, 10 × 40 kg, 8 × 42,5 kg». */
 export function serieInRiga(serie: { ripetizioni: number | null; kg: number | null; secondi: number | null }[]): string {
@@ -164,7 +164,7 @@ export function Scheda() {
   const carica = useCallback(async () => {
     setErrore(null)
     const r = await prendi(chiave, () => leggiSchedaLab(String(id)))
-    if (r.ok) setDati({ scheda: r.scheda, precedenti: r.precedenti, massimali: r.massimali, ultimoTest: r.ultimoTest, giorniTest: r.giorniTest })
+    if (r.ok) setDati({ scheda: r.scheda, precedenti: r.precedenti, massimali: r.massimali, ultimoTest: r.ultimoTest, giorniTest: r.giorniTest, discordanti: r.discordanti })
     else setErrore(r.errore)
   }, [chiave, id])
 
@@ -322,6 +322,15 @@ export function Scheda() {
                   )}
             {stimati.length ? ` ${SPIEGA_STIMA}` : ''}
           </Text>
+          {/* I test di un distretto non tornano fra loro (04/11/2026): le stime sono sul piu' prudente, e si invita a rifarne uno. */}
+          {stimati.length && dati.discordanti?.length ? (
+            <Messaggio tono="attenzione" titolo={t('I tuoi test non tornano fra loro', 'Your tests don’t match')}>
+              {t(
+                'Per questi chili abbiamo usato il test più prudente. Rifai quello che ti sembra sbagliato: nel test dei massimali due esercizi dello stesso gruppo devono dare risultati simili.',
+                'For these weights we used the more cautious test. Retake the one that seems off: in the 1RM test, two exercises from the same group should give similar results.',
+              )}
+            </Messaggio>
+          ) : null}
           {rifare ? (
             <Messaggio tono="attenzione" titolo={t('È ora di rifare il test', 'Time to retake the test')}>
               {t(
