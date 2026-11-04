@@ -25,7 +25,7 @@ import { spazio } from "@/theme";
 import { Icona } from "../ui/Icona";
 import { Pulsante } from "../ui/kit";
 import { useRiduciMovimento } from "../ui/movimento";
-import { F, FUOCO, usePalette } from "../ui/tema";
+import { F, usePalette } from "../ui/tema";
 import { Tocco } from "../ui/Tocco";
 import { Dettagli } from "./Dettagli";
 import { giornoBrevetto, LIVELLI, NOMI_CICLO, nomeLivello, type LivelloBrevetto } from "./datiBrevetti";
@@ -44,7 +44,10 @@ import { PersonaggioAnimato } from "./PersonaggioAnimato";
 //     poco. Ognuna ha il suo personaggio che galleggia, le prove (che si **spuntano una dopo l'altra** mentre la pagina arriva al centro, e si ritirano se si
 //     riparte), e **«Condividi questo brevetto»** se e' conseguito; quelli da conseguire hanno il personaggio in ombra e il lucchetto. Il brevetto di adesso ha
 //     il bordo arancio e il bagliore che respira.
-//   - **Sotto la scena**: «Cosa si impara» del brevetto che si sta guardando (il programma del libretto del club).
+//   - **Sotto la scena**: «Cosa sta imparando in questo momento» (04/11/2026, richiesta di Maurizio): il programma del libretto del club del **livello successivo a quello
+//     ottenuto**, cioe' quello che il bambino sta facendo adesso. Non segue piu' la pagina che si sfoglia: il brevetto ottenuto lo mostra la carta in cima, qui c'e' quello in corso.
+//     Resta finche' non si spuntano tutte le prove (il database fa passare il bambino di livello da solo); chi ha ottenuto l'ultimo brevetto non ha un successivo e la voce non c'e'.
+//     La pagina del brevetto di adesso non ha piu' la pillola «Il tuo brevetto di adesso»: ha il bordo arancio e il bagliore, e la carta in cima lo dice.
 //
 // **Le prove del prossimo brevetto avanzano da sole** (03/11/2026, richiesta di Maurizio): il direttore tecnico le spunta dal CRM **una per volta**, e l'app mostra quelle gia'
 // fatte sulla pagina del brevetto che viene dopo («3 su 6») e allunga il binario oltre il bambino, in proporzione, verso la tappa successiva. Con tutte le prove il database fa passare il
@@ -336,13 +339,8 @@ function RigaProva({
 }
 
 function ChipStato({ stato, fatte, totale }: { stato: Stato; fatte: number; totale: number }) {
-  if (stato === "corrente")
-    return (
-      <LinearGradient colors={[FUOCO[0], FUOCO[1]]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={stili.chip}>
-        <Icona nome="trofeo" size={13} colore="#fff" />
-        <Text style={[stili.chipTesto, { color: "#fff" }]}>{t("Il tuo brevetto di adesso", "Your current badge")}</Text>
-      </LinearGradient>
-    );
+  // Il brevetto di adesso non ha pillola (04/11/2026, richiesta di Maurizio: «rimuovi il badge "il brevetto di adesso"»): lo riconosci dal bordo arancio e dal bagliore.
+  if (stato === "corrente") return null;
   if (stato === "fatto")
     return (
       <View style={[stili.chip, { backgroundColor: "#DDF4E4" }]}>
@@ -685,14 +683,17 @@ export function ViaggioBrevetti({
         )}
       </View>
 
-      <Dettagli titolo={t(`Cosa si impara: ${nomeLivello(l)}`, `What you learn: ${nomeLivello(l)}`)}>
-        {l.programma().map((x, k) => (
-          <View key={k} style={{ flexDirection: "row", gap: spazio.due, alignItems: "flex-start" }}>
-            <View style={{ width: 6, height: 6, borderRadius: 3, marginTop: 7, backgroundColor: p.accento }} />
-            <Text style={{ color: p.testoSecondario, fontFamily: F.medio, fontSize: 13, lineHeight: 19, flex: 1, minWidth: 0 }}>{x}</Text>
-          </View>
-        ))}
-      </Dettagli>
+      {/* Quello che si sta imparando adesso: il livello dopo quello ottenuto (il programma del libretto). All'ultimo livello non c'e' un successivo. */}
+      {successivo ? (
+        <Dettagli titolo={t(`Cosa sta imparando in questo momento: ${nomeLivello(successivo)}`, `What they’re learning right now: ${nomeLivello(successivo)}`)}>
+          {successivo.programma().map((x, k) => (
+            <View key={k} style={{ flexDirection: "row", gap: spazio.due, alignItems: "flex-start" }}>
+              <View style={{ width: 6, height: 6, borderRadius: 3, marginTop: 7, backgroundColor: p.accento }} />
+              <Text style={{ color: p.testoSecondario, fontFamily: F.medio, fontSize: 13, lineHeight: 19, flex: 1, minWidth: 0 }}>{x}</Text>
+            </View>
+          ))}
+        </Dettagli>
+      ) : null}
     </View>
   );
 }

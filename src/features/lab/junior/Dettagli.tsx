@@ -33,5 +33,5 @@ export function Dettagli({ titolo, children }: { titolo: string; children: React
 
 const stili = StyleSheet.create({
   riga: { flexDirection: "row", alignItems: "center", gap: spazio.due, minHeight: 36 },
-  titolo: { fontFamily: F.bold, fontSize: 14 },
+  titolo: { fontFamily: F.bold, fontSize: 14, flexShrink: 1 },
 });
