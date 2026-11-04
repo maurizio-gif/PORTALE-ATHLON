@@ -295,6 +295,10 @@ function SezioneIscrizione({
     },
   });
   const mostra = (x: ParteCorsi) => !parte || parte === x;
+  // Lezioni e recuperi in una voce sola, «Recuperi» (04/11/2026, richiesta di Maurizio): in alto le prossime lezioni con la procedura
+  // (disdici la prenotazione e ti viene assegnato il recupero), sotto il saldo dei recuperi, sotto ancora la prenotazione del recupero.
+  // `lezioni` resta per chi non ha recuperi (la voce si chiama allora «Lezioni»).
+  const mostraLezioni = !parte || parte === "lezioni" || parte === "recuperi";
   return (
     <>
       {mostra("abbonamento") ? (
@@ -345,11 +349,70 @@ function SezioneIscrizione({
       </Sezione>
       ) : null}
 
+      {mostraLezioni ? (
+      <Sezione
+        titolo={t(
+          "Le tue prossime lezioni",
+          "Your upcoming classes",
+        )}
+        conteggio={i.prossime.length}
+      >
+        {i.recuperabile && !vista && !inDebito ? (
+          <Messaggio tono="attenzione" icona="rinnovo" titolo={t("Come si recupera una lezione", "How to make up a class")}>
+            {t(
+              "Se non potete venire, disdici la prenotazione della lezione qui sotto, fino a un’ora prima dell’inizio. Nel momento in cui la disdici ti viene assegnato il recupero: lo vedi nel saldo e lo prenoti più in basso, in un’altra lezione della stessa fascia.",
+              "If you can’t come, cancel the class booking below, up to one hour before it starts. As soon as you cancel, you’re given a make-up: you see it in the balance and book it further down, in another class of the same band.",
+            )}
+          </Messaggio>
+        ) : null}
+        <Text style={[stili.nota, { color: p.testoSecondario }]}>
+          {finestraLezioni(c)}
+        </Text>
+        {inDebito ? (
+          <Messaggio
+            tono="attenzione"
+            titolo={t("Lezioni in attesa del pagamento", "Classes waiting for payment")}
+          >
+            {t(
+              `Finché c’è una quota scaduta non si può disdire nessuna lezione: salda la quota e poi disdici. Le lezioni di un mese si vedono quando la sua quota è pagata. ${(i.sospese ?? 0) > 0 ? `${nLezioni(i.sospese ?? 0)} compariranno appena paghi` : "Paga"}${i.sospese_dal ? ` la quota di ${new Intl.DateTimeFormat("it-IT", { month: "long", timeZone: "UTC" }).format(new Date(i.sospese_dal))}` : " la quota"}: la trovi qui sopra, fra i pagamenti da fare.`,
+              `While a fee is overdue no class can be cancelled: pay the fee, then cancel. A month’s classes show up once its fee is paid. ${(i.sospese ?? 0) > 0 ? `${nLezioni(i.sospese ?? 0)} will appear as soon as you pay` : "Pay"}${i.sospese_dal ? ` the ${new Intl.DateTimeFormat("en-GB", { month: "long", timeZone: "UTC" }).format(new Date(i.sospese_dal))} fee` : " the fee"}: you’ll find it above, among the payments due.`,
+            )}
+          </Messaggio>
+        ) : null}
+        {i.prossime.length ? (
+          <View style={{ gap: spazio.due }}>
+            <ConAltre
+              visibili={6}
+              nome={tv<[string, string]>(
+                ["lezione", "lezioni"],
+                ["class", "classes"],
+              )}
+              voci={i.prossime.map((l) => (
+                <RigaPrenotata
+                  key={l.class_id}
+                  l={l}
+                  azioni={azioni}
+                  puoDisdire={i.recuperabile && !vista && !inDebito}
+                />
+              ))}
+            />
+          </View>
+        ) : (
+          <Text style={[stili.nota, { color: p.testoSecondario }]}>
+            {t(
+              "Non ci sono altre lezioni in programma fino alla fine del contratto.",
+              "There are no more classes scheduled until the end of the contract.",
+            )}
+          </Text>
+        )}
+      </Sezione>
+      ) : null}
+
       {i.recuperabile && mostra("recuperi") ? (
         <Sezione
           titolo={t(
-            "Le lezioni disdette e i recuperi",
-            "Cancelled classes and make-ups",
+            "Il saldo dei recuperi",
+            "Make-up balance",
           )}
         >
           <View style={stili.conteggi}>
@@ -409,65 +472,6 @@ function SezioneIscrizione({
             </Text>
           </Dettagli>
         </Sezione>
-      ) : null}
-
-      {mostra("lezioni") ? (
-      <Sezione
-        titolo={t(
-          "Le prossime lezioni del corso",
-          "Upcoming classes of the course",
-        )}
-        conteggio={i.prossime.length}
-      >
-        <Text style={[stili.nota, { color: p.testoSecondario }]}>
-          {finestraLezioni(c)}
-        </Text>
-        {inDebito ? (
-          <Messaggio
-            tono="attenzione"
-            titolo={t("Lezioni in attesa del pagamento", "Classes waiting for payment")}
-          >
-            {t(
-              `Finché c’è una quota scaduta non si può disdire nessuna lezione: salda la quota e poi disdici. Le lezioni di un mese si vedono quando la sua quota è pagata. ${(i.sospese ?? 0) > 0 ? `${nLezioni(i.sospese ?? 0)} compariranno appena paghi` : "Paga"}${i.sospese_dal ? ` la quota di ${new Intl.DateTimeFormat("it-IT", { month: "long", timeZone: "UTC" }).format(new Date(i.sospese_dal))}` : " la quota"}: la trovi qui sopra, fra i pagamenti da fare.`,
-              `While a fee is overdue no class can be cancelled: pay the fee, then cancel. A month’s classes show up once its fee is paid. ${(i.sospese ?? 0) > 0 ? `${nLezioni(i.sospese ?? 0)} will appear as soon as you pay` : "Pay"}${i.sospese_dal ? ` the ${new Intl.DateTimeFormat("en-GB", { month: "long", timeZone: "UTC" }).format(new Date(i.sospese_dal))} fee` : " the fee"}: you’ll find it above, among the payments due.`,
-            )}
-          </Messaggio>
-        ) : null}
-        {i.prossime.length ? (
-          <View style={{ gap: spazio.due }}>
-            <ConAltre
-              visibili={6}
-              nome={tv<[string, string]>(
-                ["lezione", "lezioni"],
-                ["class", "classes"],
-              )}
-              voci={i.prossime.map((l) => (
-                <RigaPrenotata
-                  key={l.class_id}
-                  l={l}
-                  azioni={azioni}
-                  puoDisdire={i.recuperabile && !vista && !inDebito}
-                />
-              ))}
-            />
-          </View>
-        ) : (
-          <Text style={[stili.nota, { color: p.testoSecondario }]}>
-            {t(
-              "Non ci sono altre lezioni in programma fino alla fine del contratto.",
-              "There are no more classes scheduled until the end of the contract.",
-            )}
-          </Text>
-        )}
-        {i.recuperabile && !vista && !inDebito ? (
-          <Text style={[stili.nota, { color: p.testoTerzo }]}>
-            {t(
-              "Puoi disdire una lezione fino a un’ora prima dell’inizio: poi la recuperi con una lezione di recupero, qui sotto.",
-              "You can cancel a class up to one hour before it starts: then you make it up with a make-up class, below.",
-            )}
-          </Text>
-        ) : null}
-      </Sezione>
       ) : null}
 
       {i.recuperabile && !vista && mostra("recuperi") ? (

@@ -188,6 +188,12 @@ export function Junior() {
   function avviaCoda(voci: VoceCoda[]) {
     iniziaCoda(voci);
     setCoda(voci);
+    // Due o piu' figli: una procedura sola, con una firma e un pagamento (`IscrizioneFigli`). La coda resta: se il genitore si ferma a
+    // meta', la carta in alto dice a che punto e' e riprende uno alla volta.
+    if (voci.length >= 2) {
+      router.navigate({ pathname: "/iscrizione-figli", params: { voci: voci.map((v) => `${v.member_id}:${v.group_id}`).join(",") } });
+      return;
+    }
     const prima = voci[0];
     if (prima) router.navigate({ pathname: "/iscrizione", params: { group: prima.group_id, membro: String(prima.member_id) } });
   }
@@ -398,8 +404,9 @@ function AreaIscritto({
   const [recuperabile, setRecuperabile] = useState<boolean | null>(null);
 
   const voci = useMemo(() => {
-    const v: VoceJunior[] = ["abbonamento", "lezioni"];
-    if (recuperabile !== false) v.push("recuperi");
+    // Lezioni e recuperi sono una voce sola, «Recuperi» (04/11/2026): le prossime lezioni, il saldo e la prenotazione del recupero.
+    // Chi non ha recuperi (un corso che non li prevede) la trova come «Lezioni», con le sole prossime lezioni.
+    const v: VoceJunior[] = ["abbonamento", recuperabile === false ? "lezioni" : "recuperi"];
     if (haBrevetti(persona)) v.push("brevetti");
     // Le gare (Trofeo Athlon): per i minorenni non in eta' da Baby Nuoto; se non e' ammesso, la voce dice perche'.
     if (!baby && persona.minorenne) v.push("gare");
@@ -409,7 +416,13 @@ function AreaIscritto({
     return v;
   }, [recuperabile, persona.livello, persona.in_corso, persona.minorenne, baby]);
   // Se la voce aperta sparisce dal menu (i recuperi, quando si scopre che non ci sono) si torna alla prima.
-  const attiva: VoceJunior = voci.includes(voce) ? voce : voci[0];
+  const attiva: VoceJunior = voci.includes(voce)
+    ? voce
+    : (voce === "recuperi" || voce === "lezioni") && voci.includes(voce === "recuperi" ? "lezioni" : "recuperi")
+      ? voce === "recuperi"
+        ? "lezioni"
+        : "recuperi"
+      : voci[0];
   const parte: ParteCorsi | null = attiva === "abbonamento" || attiva === "lezioni" || attiva === "recuperi" ? attiva : null;
 
   return (

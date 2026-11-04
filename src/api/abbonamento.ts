@@ -54,6 +54,8 @@ export type DaPagare = { numero: string; member_id: number; nome: string | null;
 
 export type StatoAbbonamento = {
   da_pagare: DaPagare | null
+  /** Tutti i contratti firmati e non pagati del nucleo (piu' figli iscritti insieme). Un server vecchio non lo manda. */
+  da_pagare_tutti?: DaPagare[]
   persone: PersonaAbbonamento[]
   piani: PianoAbbonamento[]
   quota_attivazione: number
@@ -240,13 +242,34 @@ export async function firmaAbbonamento(
 export type EsitoPagamento = { numero: string; stato: StatoContratto; url: string | null }
 
 /** Dopo la firma: sceglie il metodo e incassa la prima quota. Si ripete finche' non va a buon fine. */
-export async function pagaAbbonamento(numero: string, m: MetodoAbbonamento): Promise<{ ok: true; esito: EsitoPagamento } | { ok: false; errore: string }> {
-  const { ok, dati } = await abbonamento({ azione: 'paga', numero, ...m })
+export async function pagaAbbonamento(numero: string, m: MetodoAbbonamento, ritornoUrl?: string): Promise<{ ok: true; esito: EsitoPagamento } | { ok: false; errore: string }> {
+  const { ok, dati } = await abbonamento({ azione: 'paga', numero, ...m, ...(ritornoUrl ? { ritorno_url: ritornoUrl } : {}) })
   if (ok && dati.numero) return { ok: true, esito: { numero: String(dati.numero), stato: dati.stato as StatoContratto, url: typeof dati.url === 'string' ? dati.url : null } }
   return { ok: false, errore: dati.errore ?? t('Non siamo riusciti a completare il pagamento adesso.', 'We couldn’t complete the payment right now.') }
 }
 
-export type EsitoContratto = { stato: StatoContratto; pagamento: { ok: boolean; come?: string; in_corso?: boolean; errore?: string } | null; errore: string | null }
+export type EsitoContratto = {
+  stato: StatoContratto
+  pagamento: { ok: boolean; come?: string; in_corso?: boolean; errore?: string } | null
+  errore: string | null
+  /** Di chi e' e quanto si paga oggi (un server vecchio non lo manda). */
+  contratto?: { nome: string | null; titolo: string | null; totale_oggi: number }
+}
+
+export type EsitoPagaGruppo = { numero: string; ok: boolean; stato?: StatoContratto; errore?: string }
+
+/**
+ * Piu' figli iscritti insieme (04/11/2026): un IBAN solo per tutti i contratti. Il server salva il conto su ogni bambino e lo assegna al suo
+ * contratto (PerfectGym vuole una fonte per persona) e risponde contratto per contratto. La carta invece si paga un figlio alla volta.
+ */
+export async function pagaGruppo(
+  numeri: string[],
+  conto: { iban: string; intestatario: string; via: string; cap: string; citta: string },
+): Promise<{ ok: true; esiti: EsitoPagaGruppo[] } | { ok: false; errore: string }> {
+  const { ok, dati } = await abbonamento({ azione: 'paga_gruppo', numeri, metodo: 'conto', ...conto })
+  if (ok && Array.isArray(dati.esiti)) return { ok: true, esiti: dati.esiti as EsitoPagaGruppo[] }
+  return { ok: false, errore: dati.errore ?? t('Non siamo riusciti a completare il pagamento adesso.', 'We couldn’t complete the payment right now.') }
+}
 
 export async function esitoAbbonamento(numero: string): Promise<{ ok: true; esito: EsitoContratto } | { ok: false; errore: string }> {
   const { ok, dati } = await abbonamento({ azione: 'esito', numero })
