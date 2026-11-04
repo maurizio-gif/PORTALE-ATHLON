@@ -404,8 +404,9 @@ function AreaIscritto({
   const [recuperabile, setRecuperabile] = useState<boolean | null>(null);
 
   const voci = useMemo(() => {
-    const v: VoceJunior[] = ["abbonamento", "lezioni"];
-    if (recuperabile !== false) v.push("recuperi");
+    // Lezioni e recuperi sono una voce sola, «Recuperi» (04/11/2026): le prossime lezioni, il saldo e la prenotazione del recupero.
+    // Chi non ha recuperi (un corso che non li prevede) la trova come «Lezioni», con le sole prossime lezioni.
+    const v: VoceJunior[] = ["abbonamento", recuperabile === false ? "lezioni" : "recuperi"];
     if (haBrevetti(persona)) v.push("brevetti");
     // Le gare (Trofeo Athlon): per i minorenni non in eta' da Baby Nuoto; se non e' ammesso, la voce dice perche'.
     if (!baby && persona.minorenne) v.push("gare");
@@ -415,7 +416,13 @@ function AreaIscritto({
     return v;
   }, [recuperabile, persona.livello, persona.in_corso, persona.minorenne, baby]);
   // Se la voce aperta sparisce dal menu (i recuperi, quando si scopre che non ci sono) si torna alla prima.
-  const attiva: VoceJunior = voci.includes(voce) ? voce : voci[0];
+  const attiva: VoceJunior = voci.includes(voce)
+    ? voce
+    : (voce === "recuperi" || voce === "lezioni") && voci.includes(voce === "recuperi" ? "lezioni" : "recuperi")
+      ? voce === "recuperi"
+        ? "lezioni"
+        : "recuperi"
+      : voci[0];
   const parte: ParteCorsi | null = attiva === "abbonamento" || attiva === "lezioni" || attiva === "recuperi" ? attiva : null;
 
   return (

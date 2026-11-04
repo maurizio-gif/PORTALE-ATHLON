@@ -166,3 +166,4 @@ chiamata diretta al gestionale. Esempio: la sezione Prodotti usa l'azione `prodo
 - [Il totale dell'impegno sotto «Vedi tutte le quote», e sul totem l'operatore entra da «staff» (04/11/2026)](docs/claude/128-totale-sotto-le-quote-e-staff-sul-totem-04-11-2026.md) · 2 KB
 - [La locandina di un evento per la storia di Instagram (04/11/2026)](docs/claude/129-locandina-evento-storia-instagram-04-11-2026.md) · 3 KB
 - [Più figli: i turni vicini in Junior, «Iscrivi …» una dopo l'altra, e «Hai un altro figlio?» (04/11/2026)](docs/claude/130-piu-figli-turni-vicini-04-11-2026.md) · 3 KB
+- [Junior: lezioni e recuperi in una voce sola, «Recuperi» (04/11/2026)](docs/claude/131-junior-lezioni-e-recuperi-in-una-voce-04-11-2026.md) · 2 KB
