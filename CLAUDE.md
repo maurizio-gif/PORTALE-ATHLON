@@ -162,3 +162,4 @@ chiamata diretta al gestionale. Esempio: la sezione Prodotti usa l'azione `prodo
 - [«Iscriviti» dal sito apre «Attiva un abbonamento» con il piano già scelto (04/11/2026)](docs/claude/124-iscrizione-abbonamento-dal-link-del-sito-04-11-2026.md) · 2 KB
 - [Il link del sito apre Junior già sul bambino appena registrato (04/11/2026)](docs/claude/125-junior-aperta-sul-bambino-dal-link-del-sito-04-11-2026.md) · 1 KB
 - [La chat nella sezione Junior comincia dal corso del bambino (04/11/2026)](docs/claude/126-benvenuto-junior-nella-chat-04-11-2026.md) · 2 KB
+- [Junior: cambio orario e recuperi nella fascia del turno, e «Passa al bisettimanale» (04/11/2026)](docs/claude/127-junior-fascia-del-turno-e-passa-al-bisettimanale-04-11-2026.md) · 2 KB

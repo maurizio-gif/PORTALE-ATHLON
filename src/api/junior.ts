@@ -456,12 +456,19 @@ export const spostaDirettoreTecnico = (id: string, data: string, ora: string) =>
 
 export type EsitoCambioOrario = { ok: true; giaChiesto: boolean } | { ok: false; errore: string };
 
-/** Chiede alla segreteria di passare a un altro turno dello stesso tipo: non cambia niente da solo (lo fa la segreteria su PerfectGym). */
-export async function chiediCambioOrario(d: { memberId: number; groupId: string | number; nota?: string }): Promise<EsitoCambioOrario> {
+/** Chiede alla segreteria di passare a un altro turno dello stesso tipo, o al bisettimanale: non cambia niente da solo (lo fa la segreteria su PerfectGym). */
+export async function chiediCambioOrario(d: {
+  memberId: number;
+  groupId: string | number;
+  nota?: string;
+  /** `bisettimanale` (04/11/2026): da un monosettimanale a un bisettimanale della stessa fascia; la segreteria risponde con la procedura del cambio abbonamento. */
+  tipo?: "orario" | "bisettimanale";
+}): Promise<EsitoCambioOrario> {
   const { ok, stato, dati } = await funzione("portale-lab-junior", {
     azione: "cambio_orario",
     member_id: d.memberId,
     group_id: Number(d.groupId),
+    ...(d.tipo === "bisettimanale" ? { tipo: "bisettimanale" } : {}),
     ...(d.nota ? { nota: d.nota } : {}),
   });
   if (!ok) {
