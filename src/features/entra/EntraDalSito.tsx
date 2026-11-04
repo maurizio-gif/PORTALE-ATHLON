@@ -25,8 +25,8 @@ import { arrivoDa } from './destinazioni'
 //   - nessun token, nessuna sessione, o token che non vale piu'  ->  «link non valido» e la strada per entrare con l'email.
 // Una destinazione che non e' in lista (`destinazioni.ts`) porta alla Home. I nuovi, dopo l'accesso, passano da «Completa il profilo» del layout.
 
-export function EntraDalSito({ d, attivita, giorno }: { d: string; attivita?: string; giorno?: string }) {
-  const arrivo = arrivoDa(d, attivita, giorno)
+export function EntraDalSito({ d, attivita, giorno, piano }: { d: string; attivita?: string; giorno?: string; piano?: string }) {
+  const arrivo = arrivoDa(d, attivita, giorno, undefined, piano)
   const token = useRef<string | null | undefined>(undefined)
   const [fase, setFase] = useState<'carica' | 'tocco' | 'scaduto'>('carica')
   const [attesa, setAttesa] = useState(false)

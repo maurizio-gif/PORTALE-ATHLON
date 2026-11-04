@@ -3,7 +3,7 @@
 //   LC_ALL=it_IT.UTF-8 npx tsx scripts/prova-entra.ts
 import assert from 'node:assert/strict'
 
-import { arrivoDa, CATEGORIE, CATEGORIE_EVENTO, giornoValido } from '../src/features/entra/destinazioni'
+import { arrivoDa, CATEGORIE, CATEGORIE_EVENTO, giornoValido, pianoValido } from '../src/features/entra/destinazioni'
 
 let passi = 0
 const ok = (n: string) => {
@@ -116,6 +116,19 @@ const ok = (n: string) => {
   assert.ok(a.titolo && a.testo && a.bottone, 'titolo, testo e pulsante ci sono')
   assert.match(a.bottone, /Junior/)
   ok('junior porta alla sezione Junior con l\'assistente aperto')
+}
+
+{
+  const OGGI = '2026-11-04'
+  assert.deepEqual(arrivoDa('abbonamento', null, null, OGGI, '263')?.href, { pathname: '/abbonamento', params: { piano: '263' } })
+  assert.equal(arrivoDa('abbonamento', null, null, OGGI)?.href, '/abbonamento')
+  assert.equal(arrivoDa('abbonamento', null, null, OGGI, '/../shop')?.href, '/abbonamento', 'un piano che non e\' un numero non passa')
+  assert.equal(arrivoDa('abbonamento', null, null, OGGI, '1234567')?.href, '/abbonamento', 'troppo lungo')
+  assert.equal(arrivoDa('abbonamento', 'Gym Floor', '2026-11-10', OGGI)?.href, '/abbonamento', 'abbonamento ignora categoria e giorno')
+  assert.equal(arrivoDa('prenota', null, null, OGGI, '263')?.href, '/calendario', 'gli altri ignorano il piano')
+  assert.equal(pianoValido('254'), '254')
+  assert.equal(pianoValido(''), null)
+  ok('abbonamento: il listino con il piano scelto, solo cifre')
 }
 
 console.log(`\n${passi} prove passate`)

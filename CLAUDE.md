@@ -159,3 +159,4 @@ chiamata diretta al gestionale. Esempio: la sezione Prodotti usa l'azione `prodo
 - [I recuperi della Scuola Nuoto Bambini: al completo niente lista d'attesa (04/11/2026)](docs/claude/121-recuperi-scuola-nuoto-senza-lista-d-attesa-04-11-2026.md) · 2 KB
 - [Le gare si pagano anche con il conto già salvato (SEPA), e il mandato copre i servizi del club (04/11/2026)](docs/claude/122-gare-addebito-sul-conto-salvato-04-11-2026.md) · 3 KB
 - [Il link del sito apre Junior con l'assistente: la registrazione di un figlio continua nell'app (04/11/2026)](docs/claude/123-junior-con-l-assistente-aperto-dal-link-del-sito-04-11-2026.md) · 2 KB
+- [«Iscriviti» dal sito apre «Attiva un abbonamento» con il piano già scelto (04/11/2026)](docs/claude/124-iscrizione-abbonamento-dal-link-del-sito-04-11-2026.md) · 2 KB
