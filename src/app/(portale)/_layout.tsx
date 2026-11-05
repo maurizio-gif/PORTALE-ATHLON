@@ -53,7 +53,7 @@ export default function LayoutLaboratorio() {
   const gate = Boolean(sessione && ingresso.fase !== 'dentro')
   const contenutoGate = gate ? (
     ingresso.fase === 'completa' ? (
-      <CompletaProfilo key={ingresso.campi.join()} campi={ingresso.campi} onFatto={fatto} />
+      <CompletaProfilo key={ingresso.campi.join()} campi={ingresso.campi} precompila={ingresso.precompila} onFatto={fatto} />
     ) : ingresso.fase === 'segreteria' ? (
       <CompletaProfilo campi={[]} segreteria onFatto={fatto} />
     ) : ingresso.fase === 'errore' ? (

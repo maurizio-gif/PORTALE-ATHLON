@@ -18,6 +18,8 @@ export type StatoIngresso = {
   campi: CampoIngresso[]
   /** Con questa email ci sono solo schede di minorenni: da guardare in segreteria, non si completa da qui. */
   verifica?: boolean
+  /** Quello che la persona ha gia' scritto al club con questa email (il pannello del sito, un modulo): si mostra gia' scritto, da confermare (05/11/2026). */
+  precompila?: Partial<Record<'nome' | 'cognome' | 'telefono', string>>
 }
 
 /** La pagina d'accesso dice «prima volta qui?» solo se la registrazione e' aperta. Dato pubblico, non solleva mai. */
@@ -47,13 +49,22 @@ export async function statoIngresso(): Promise<{ ok: true; stato: StatoIngresso 
       ammesso: dati.ammesso === true,
       campi: Array.isArray(dati.campi) ? (dati.campi as CampoIngresso[]) : [],
       verifica: dati.verifica === true,
+      precompila: precompilaDa(dati.precompila),
     },
   }
 }
 
+function precompilaDa(v: unknown): StatoIngresso['precompila'] {
+  if (!v || typeof v !== 'object') return undefined
+  const o = v as Record<string, unknown>
+  const out: NonNullable<StatoIngresso['precompila']> = {}
+  for (const k of ['nome', 'cognome', 'telefono'] as const) if (typeof o[k] === 'string' && o[k]) out[k] = String(o[k]).slice(0, 80)
+  return Object.keys(out).length ? out : undefined
+}
+
 export type DatiProfilo = Partial<Record<CampoIngresso, string>> & { privacy?: boolean }
 
-export type EsitoProfilo = { ok: true } | { ok: false; errore: string; minorenne?: boolean; verifica?: boolean; serve?: CampoIngresso[] }
+export type EsitoProfilo = { ok: true } | { ok: false; errore: string; minorenne?: boolean; verifica?: boolean; somiglianza?: boolean; serve?: CampoIngresso[] }
 
 export async function completaProfilo(d: DatiProfilo): Promise<EsitoProfilo> {
   const { ok, dati } = await funzione('portale-registrazione', { azione: 'completa', ...d })
@@ -63,6 +74,7 @@ export async function completaProfilo(d: DatiProfilo): Promise<EsitoProfilo> {
     errore: String(dati.errore ?? PROVA),
     minorenne: dati.minorenne === true,
     verifica: dati.verifica === true,
+    somiglianza: dati.somiglianza === true,
     serve: Array.isArray(dati.serve) ? (dati.serve as CampoIngresso[]) : undefined,
   }
 }

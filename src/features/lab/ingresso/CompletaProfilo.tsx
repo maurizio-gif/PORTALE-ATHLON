@@ -3,7 +3,7 @@ import { Linking, StyleSheet, Text, View } from 'react-native'
 import Animated, { FadeInRight } from 'react-native-reanimated'
 
 import { esci } from '@/api/lab'
-import { completaProfilo, type CampoIngresso } from '@/api/registrazione'
+import { completaProfilo, type CampoIngresso, type StatoIngresso } from '@/api/registrazione'
 import { Casella } from '@/components/Casella'
 import { CampoData } from '@/components/CampoData'
 import { CampoTelefono } from '@/components/CampoTelefono'
@@ -26,16 +26,35 @@ import { colpetto, Tocco } from '../ui/Tocco'
 // anni entrano dall'account del genitore (Famiglia), non da qui. Se la scheda ha gia' la data non si chiede: restano solo i campi che mancano.
 // **Il consenso privacy** (presa visione dell'informativa) si chiede solo dove si crea la scheda, nella stessa schermata dei dati.
 
-export function CompletaProfilo({ campi: iniziali, segreteria: daSegreteria = false, onFatto }: { campi: CampoIngresso[]; /** Con questa email ci sono solo schede di minorenni: non si completa da qui. */ segreteria?: boolean; onFatto: () => void }) {
+// **I dati che il club ha gia' per questa email** (05/11/2026: il pannello del sito davanti al listino, un modulo) arrivano gia' scritti: la persona li
+// conferma, e scrive solo la data di nascita. Restano modificabili.
+//
+// **Gia' dei nostri con un altro indirizzo** (`somiglianza`): la funzione non crea un doppione e la segreteria collega questo indirizzo alla scheda vera.
+// Il messaggio e' quello della funzione; il pulsante porta a entrare con l'altro indirizzo, per chi lo usa ancora.
+
+export function CompletaProfilo({
+  campi: iniziali,
+  precompila,
+  segreteria: daSegreteria = false,
+  onFatto,
+}: {
+  campi: CampoIngresso[]
+  precompila?: StatoIngresso['precompila']
+  /** Con questa email ci sono solo schede di minorenni: non si completa da qui. */
+  segreteria?: boolean
+  onFatto: () => void
+}) {
   const p = usePalette()
   const [campi, setCampi] = useState<CampoIngresso[]>(iniziali)
   const [passo, setPasso] = useState<'nascita' | 'resto'>(iniziali.includes('nascita') ? 'nascita' : 'resto')
-  const [d, setD] = useState({ nascita: '', nome: '', cognome: '', telefono: '' })
+  const [d, setD] = useState({ nascita: '', nome: precompila?.nome ?? '', cognome: precompila?.cognome ?? '', telefono: precompila?.telefono ?? '' })
   const [privacy, setPrivacy] = useState(false)
   const [attesa, setAttesa] = useState(false)
   const [errore, setErrore] = useState<string | null>(null)
   const [minorenne, setMinorenne] = useState(false)
   const [segreteria, setSegreteria] = useState(daSegreteria)
+  /** Il messaggio della funzione quando la persona e' gia' del club con un altro indirizzo. */
+  const [giaNostro, setGiaNostro] = useState<string | null>(null)
 
   const oggi = new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Rome' })
   const resto = campi.filter((c) => c !== 'nascita')
@@ -60,6 +79,7 @@ export function CompletaProfilo({ campi: iniziali, segreteria: daSegreteria = fa
     }
     colpetto('errore')
     if (r.minorenne) return setMinorenne(true)
+    if (r.somiglianza) return setGiaNostro(r.errore)
     if (r.verifica) return setSegreteria(true)
     if (r.serve) {
       // La funzione dice che ora servono altri dati (la scheda e' cambiata nel frattempo): si ricomincia da quelli.
@@ -76,6 +96,19 @@ export function CompletaProfilo({ campi: iniziali, segreteria: daSegreteria = fa
     if (!maggiorenne(d.nascita, oggi)) return setMinorenne(true)
     if (resto.length) return setPasso('resto')
     invia()
+  }
+
+  if (giaNostro) {
+    return (
+      <Schermata titolo={t('Profilo', 'Profile')} nascondiTitolo barra={false} sopra={<Testata fase="profilo" titolo={t('Sei già\ndei nostri', 'You’re already\none of us')} sotto={t('Colleghiamo noi questo indirizzo al tuo profilo.', 'We’ll link this address to your profile.')} />}>
+        <Carta style={stili.modulo}>
+          <Messaggio tono="ok" titolo={t('Non serve un nuovo profilo', 'No new profile needed')}>
+            {giaNostro}
+          </Messaggio>
+          <Pulsante testo={t('Entra con l’altro indirizzo', 'Sign in with the other address')} variante="secondario" onPress={esci} />
+        </Carta>
+      </Schermata>
+    )
   }
 
   if (minorenne || segreteria) {

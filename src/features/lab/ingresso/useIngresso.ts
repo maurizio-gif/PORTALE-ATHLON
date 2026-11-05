@@ -1,7 +1,7 @@
 import type { Session } from '@supabase/supabase-js'
 import { useCallback, useEffect, useState } from 'react'
 
-import { completaProfilo, statoIngresso, type CampoIngresso } from '@/api/registrazione'
+import { completaProfilo, statoIngresso, type CampoIngresso, type StatoIngresso } from '@/api/registrazione'
 import { vistaCorrente } from '@/features/lab/vista'
 
 // Chi ha una sessione puo' non poter ancora entrare: e' nuovo, o la sua scheda non ha la data di nascita (01/11/2026, `portale-registrazione`).
@@ -16,7 +16,7 @@ import { vistaCorrente } from '@/features/lab/vista'
 export type Ingresso =
   | { fase: 'verifica' }
   | { fase: 'dentro' }
-  | { fase: 'completa'; campi: CampoIngresso[]; nuovo: boolean }
+  | { fase: 'completa'; campi: CampoIngresso[]; nuovo: boolean; precompila?: StatoIngresso['precompila'] }
   | { fase: 'segreteria' }
   | { fase: 'errore'; errore: string }
 
@@ -34,11 +34,11 @@ export function useIngresso(sessione: Session | null | undefined): { ingresso: I
       const r = await statoIngresso()
       if (!vivo) return
       if (!r.ok) return setIngresso({ fase: 'errore', errore: r.errore })
-      const { aperta, ammesso, campi, verifica } = r.stato
+      const { aperta, ammesso, campi, verifica, precompila } = r.stato
       if (!aperta) return setIngresso({ fase: 'dentro' })
       if (verifica) return setIngresso({ fase: 'segreteria' })
       if (ammesso) return setIngresso(campi.length ? { fase: 'completa', campi, nuovo: false } : { fase: 'dentro' })
-      if (campi.length) return setIngresso({ fase: 'completa', campi, nuovo: true })
+      if (campi.length) return setIngresso({ fase: 'completa', campi, nuovo: true, precompila })
       // Gia' al club con la scheda completa, ma non ancora fra chi entra: basta abilitarlo, senza chiedere niente.
       const c = await completaProfilo({})
       if (!vivo) return
