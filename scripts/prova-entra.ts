@@ -132,6 +132,13 @@ const ok = (n: string) => {
 }
 
 {
+  const a = arrivoDa('assistenza', 'Gym Floor', '2026-11-10')
+  assert.deepEqual(a?.href, { pathname: '/', params: { assistenza: '1' } }, 'assistenza: la Home con l\'assistente aperto, ignora il resto')
+  assert.ok(a && a.titolo && a.testo && a.bottone, 'titolo, testo e pulsante ci sono')
+  ok('assistenza: la Home con l\'assistente aperto (iscritto dalla chat del sito)')
+}
+
+{
   const OGGI = '2026-11-04'
   assert.deepEqual(arrivoDa('junior', null, null, OGGI, null, '987654')?.href, { pathname: '/junior', params: { assistenza: '1', figlio: '987654' } })
   assert.deepEqual(arrivoDa('junior', null, null, OGGI)?.href, { pathname: '/junior', params: { assistenza: '1' } })

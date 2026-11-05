@@ -107,6 +107,19 @@ export function arrivoDa(
         ),
         bottone: t('Apri la sezione Junior', 'Open the Junior section'),
       }
+    case 'assistenza':
+      // Chi e' gia' iscritto e apre la chat del sito (05/11/2026, decisione di Maurizio): la chat non risponde li', manda questo link.
+      // Si entra nella Home con l'assistente dell'app aperto (`assistenza=1`, letto da `AreaRiservata.tsx`), che conosce gli
+      // abbonamenti, i pagamenti e le prenotazioni della persona e porta nella sezione giusta.
+      return {
+        href: { pathname: '/', params: { assistenza: '1' } },
+        titolo: t('La tua area riservata', 'Your personal area'),
+        testo: t(
+          'Ti apriamo direttamente la tua area, senza password, con l’assistente pronto: lì conosco i tuoi abbonamenti, i pagamenti e le prenotazioni.',
+          'We’ll open your area for you directly, no password needed, with the assistant ready: there I know your memberships, payments and bookings.',
+        ),
+        bottone: t('Entra e scrivimi', 'Sign in and chat'),
+      }
     case 'abbonamento': {
       // Dal listino del sito: «Attiva un abbonamento» (`lab/Abbonamento.tsx`), con il piano gia' scelto se l'app lo trova fra i suoi.
       const piano = pianoValido(p)
