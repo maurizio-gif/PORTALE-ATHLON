@@ -14,7 +14,7 @@ tabelle, la natura servizio/marketing e il consenso, i tetti, il tracciamento e 
   **Cosa fa la persona dice com'è andata**: la comparsa è `vista` (si dice subito, una volta sola per notifica); il pulsante è `azione` e `aperta`; «Ok, letto» è `aperta`;
   **la X o un tocco fuori la chiudono e la lasciano solo `vista`**, perché chi chiude non ha letto per forza: la notifica resta fra le non lette del centro. Il server dà come finestre
   solo le notifiche create nelle ultime 48 ore e non ancora viste: una chiusura di tre giorni fa non salta fuori da sola.
-- **Compare «subito» in due modi** (`Notifiche.tsx`, montata una volta sola nel layout `(portale)`): l'app in primo piano chiede cosa c'è di nuovo **ogni venti secondi** (`nuove`,
+- **Compare «subito» in due modi** (`Notifiche.tsx`, montata una volta sola nel layout `(portale)`): l'app in primo piano chiede cosa c'è di nuovo **ogni minuto** (dal 05/11/2026: era ogni venti secondi, sezione «Go-live: il giro delle notifiche») (`nuove`,
   e subito all'apertura, e al ritorno dopo averla lasciata); e chi ha la push attiva la riceve col service worker, che dice all'app aperta di rileggere **subito**
   (`notifica-arrivata`). Un solo giro per tutta l'app (`store.ts`, una sola richiesta in volo alla volta). **La coda delle finestre si allunga e non si rimpiazza**: quella che la persona
   sta leggendo è già `vista` per il server, che alla risposta dopo non la ridarà, e rimpiazzare la coda la farebbe sparire sotto gli occhi.

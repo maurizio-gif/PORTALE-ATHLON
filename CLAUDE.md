@@ -168,3 +168,4 @@ chiamata diretta al gestionale. Esempio: la sezione Prodotti usa l'azione `prodo
 - [Più figli: i turni vicini in Junior, «Iscrivi …» una dopo l'altra, e «Hai un altro figlio?» (04/11/2026)](docs/claude/130-piu-figli-turni-vicini-04-11-2026.md) · 3 KB
 - [Junior: lezioni e recuperi in una voce sola, «Recuperi» (04/11/2026)](docs/claude/131-junior-lezioni-e-recuperi-in-una-voce-04-11-2026.md) · 2 KB
 - [L'assistente porta dritto nella voce giusta della sezione Junior (04/11/2026)](docs/claude/132-assistente-junior-dritto-al-punto-04-11-2026.md) · 2 KB
+- [Go-live: il giro delle notifiche ogni minuto, non ogni venti secondi (05/11/2026)](docs/claude/133-go-live-il-giro-delle-notifiche-ogni-minuto-05-11-2026.md) · 2 KB
