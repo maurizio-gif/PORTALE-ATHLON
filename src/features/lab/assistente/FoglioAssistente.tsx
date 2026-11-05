@@ -4,7 +4,7 @@ import { KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleShee
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { pulsanteToccato, type AzioneAssistente } from '@/api/assistente'
-import { t, tv } from '@/lib/lingua'
+import { t } from '@/lib/lingua'
 import { spazio } from '@/theme'
 
 import { Icona, type NomeIcona } from '../ui/Icona'
@@ -23,6 +23,7 @@ import { prenotaDaAzione } from './prenotaDaChat'
 import { ScriviAlTeam } from './ScriviAlTeam'
 import { teamDaAzione } from './teamDaChat'
 import { BenvenutoJunior } from './BenvenutoJunior'
+import { useProfilo, type ProfiloSocio } from '../clublife/moduli/profilo'
 import { leggiTemaJunior, type Battuta } from './store'
 import { CARATTERI_MAX, mandaDomanda, ricominciaChat, useAssistente, votaRisposta } from './useAssistente'
 import { useDettatura } from './useDettatura'
@@ -50,21 +51,32 @@ function adattaAltezza(el: unknown) {
   campo.style.height = `${Math.min(campo.scrollHeight, ALTEZZA_MAX)}px`
 }
 
-// I suggerimenti all'apertura (30/10/2026, richiesta di Maurizio). **Prima le cose che l'assistente sa fare con un tocco** (prenotare una lezione, pagare una quota
-// scaduta, aggiungere il metodo di pagamento: sono le funzioni da promuovere), poi due domande per sapere dove sono le cose. Toccarne uno manda quella frase come domanda.
+// I suggerimenti all'apertura. Dal 30/10/2026 erano cinque: tre cose che l'assistente sa fare con un tocco e due domande d'esempio.
+// **Dal 05/11/2026 sono tre in tutto** (richiesta di Maurizio): una riga di cose da toccare si legge; cinque sono una lista da scorrere.
+// E sono **mescolati secondo chi apre la chat**, invece di essere gli stessi per tutti: uno sulle attivita' degli adulti, uno sul
+// figlio quando nel nucleo c'e' un minorenne, uno sull'account o sull'iscrizione. Chi e' iscritto e chi ha un minorenne lo dice
+// `useProfilo`, che legge l'area che la Home ha gia' caricato (nessuna chiamata in piu'). Finche' non si sa, restano i primi tre di
+// prima: sono quelli che l'assistente sa fare con un tocco. Toccarne uno manda quella frase come domanda.
 type Funzione = { icona: NomeIcona; testo: string; sotto: string }
 
-const FUNZIONI = (): Funzione[] => [
-  { icona: 'calendario', testo: t('Aiutami a prenotare una lezione', 'Help me book a class'), sotto: t('Ti propongo una lezione e prenoti con un tocco', 'I’ll suggest one and you book with a tap') },
-  { icona: 'carta', testo: t('Voglio pagare una rata scaduta', 'I want to pay an overdue instalment'), sotto: t('Vedi le quote e paghi da qui', 'See what’s due and pay from here') },
-  { icona: 'wallet', testo: t('Voglio aggiungere il metodo di pagamento', 'I want to add a payment method'), sotto: t('Ti porto subito alla pagina giusta', 'I’ll take you straight to the right page') },
-]
+const PRENOTA = (): Funzione => ({ icona: 'calendario', testo: t('Aiutami a prenotare una lezione', 'Help me book a class'), sotto: t('Ti propongo una lezione e prenoti con un tocco', 'I’ll suggest one and you book with a tap') })
+const PAGA = (): Funzione => ({ icona: 'carta', testo: t('Voglio pagare una rata scaduta', 'I want to pay an overdue instalment'), sotto: t('Vedi le quote e paghi da qui', 'See what’s due and pay from here') })
+const METODO = (): Funzione => ({ icona: 'wallet', testo: t('Voglio aggiungere il metodo di pagamento', 'I want to add a payment method'), sotto: t('Ti porto subito alla pagina giusta', 'I’ll take you straight to the right page') })
+const ABBONAMENTO = (): Funzione => ({ icona: 'abbonamento', testo: t('Quale abbonamento fa per me?', 'Which membership is right for me?'), sotto: t('Ti dico cosa comprende ognuno, e lo attivi dall’app', 'I’ll tell you what each one includes, and you start it from the app') })
+const PROVA = (): Funzione => ({ icona: 'pass', testo: t('Posso provare il club prima di iscrivermi?', 'Can I try the club before joining?'), sotto: t('Ti dico se puoi e come si attiva', 'I’ll tell you if you can and how to start') })
+const RECUPERO = (): Funzione => ({ icona: 'famiglia', testo: t('Come recupera una lezione mio figlio?', 'How can my child make up a missed class?'), sotto: t('Ti porto ai recuperi della sezione Junior', 'I’ll take you to make-up classes in the Junior section') })
+const ISCRIVI_FIGLIO = (): Funzione => ({ icona: 'famiglia', testo: t('Voglio iscrivere mio figlio a un corso', 'I want to sign my child up for a course'), sotto: t('Ti mostro i turni per il suo anno nella sezione Junior', 'I’ll show you the groups for their year in the Junior section') })
 
-const ESEMPI = () =>
-  tv(
-    ['Dove vedo i miei pagamenti?', 'Come annullo una lezione?'],
-    ['Where can I see my payments?', 'How do I cancel a class?'],
-  )
+/** Tre suggerimenti, uno per tipo: le attivita' degli adulti, il figlio (se nel nucleo c'e' un minorenne), l'account o l'iscrizione. */
+function suggerimenti(profilo: ProfiloSocio | null): Funzione[] {
+  if (!profilo) return [PRENOTA(), PAGA(), METODO()]
+  // Le attivita' degli adulti guardano il titolare: un genitore che ha iscritto solo il figlio non ha lezioni da prenotare per se'.
+  const adulti = profilo.titolareIscritto ? PRENOTA() : ABBONAMENTO()
+  const figlio = profilo.figli ? (profilo.figlioIscritto ? RECUPERO() : ISCRIVI_FIGLIO()) : null
+  // Le quote e il metodo di pagamento valgono per chiunque nel nucleo abbia un abbonamento, anche solo il figlio.
+  const account = profilo.iscritto ? [PAGA(), METODO()] : [PROVA()]
+  return [adulti, ...(figlio ? [figlio] : []), ...account].slice(0, 3)
+}
 
 function Pulsanti({ azioni, messaggioId, onVai, onManda }: { azioni: AzioneAssistente[]; messaggioId: string | null; onVai: () => void; onManda: (domanda: string) => void }) {
   const p = usePalette()
@@ -167,6 +179,7 @@ export function FoglioAssistente({ aperto, schermata, onChiudi }: { aperto: bool
   const p = usePalette()
   const ins = useSafeAreaInsets()
   const s = useAssistente()
+  const profilo = useProfilo()
   const [testo, setTesto] = useState('')
   const scorri = useRef<ScrollView>(null)
   const campo = useRef<TextInput>(null)
@@ -226,7 +239,7 @@ export function FoglioAssistente({ aperto, schermata, onChiudi }: { aperto: bool
               <View style={{ gap: spazio.tre }}>
                 <Text style={[stili.testo, { color: p.testoSecondario }]}>{t('Posso fare per te:', 'I can do this for you:')}</Text>
                 <View style={{ gap: spazio.due }}>
-                  {FUNZIONI().map((f) => (
+                  {suggerimenti(profilo.profilo).map((f) => (
                     <Tocco key={f.testo} onPress={() => manda(f.testo)} etichetta={f.testo} style={[stili.funzione, { borderColor: p.accento, backgroundColor: p.fondo }]}>
                       <View style={[stili.funzioneIcona, { backgroundColor: p.accento }]}>
                         <Icona nome={f.icona} size={17} colore="#fff" />
@@ -235,15 +248,6 @@ export function FoglioAssistente({ aperto, schermata, onChiudi }: { aperto: bool
                         <Text style={[stili.testo, { color: p.testo, fontFamily: F.semi }]}>{f.testo}</Text>
                         <Text style={[stili.funzioneSotto, { color: p.testoSecondario }]}>{f.sotto}</Text>
                       </View>
-                      <Icona nome="avanti" size={14} colore={p.testoTerzo} />
-                    </Tocco>
-                  ))}
-                </View>
-                <Text style={[stili.testo, { color: p.testoSecondario }]}>{t('Oppure chiedimi, per esempio:', 'Or ask me, for example:')}</Text>
-                <View style={{ gap: spazio.due }}>
-                  {ESEMPI().map((e) => (
-                    <Tocco key={e} onPress={() => manda(e)} etichetta={e} style={[stili.esempio, { borderColor: p.linea, backgroundColor: p.fondo }]}>
-                      <Text style={[stili.testo, { color: p.testo, flex: 1 }]}>{e}</Text>
                       <Icona nome="avanti" size={14} colore={p.testoTerzo} />
                     </Tocco>
                   ))}
@@ -342,7 +346,6 @@ const stili = StyleSheet.create({
   funzione: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 12, paddingVertical: 11, borderRadius: 16, borderWidth: 1.5 },
   funzioneIcona: { width: 34, height: 34, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
   funzioneSotto: { fontFamily: F.medio, fontSize: 12.5, lineHeight: 17 },
-  esempio: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 14, paddingVertical: 12, borderRadius: 16, borderWidth: 1 },
   fondo: { paddingHorizontal: spazio.quattro - 4, gap: 8, paddingTop: 4 },
   campo: { flexDirection: 'row', alignItems: 'flex-end', gap: 8, borderWidth: 1, borderRadius: 22, paddingLeft: 14, paddingRight: 6, paddingVertical: 6 },
   input: { flex: 1, fontFamily: F.medio, fontSize: 15, lineHeight: 20, minHeight: 32, maxHeight: 110, paddingTop: 6, paddingBottom: 6 },

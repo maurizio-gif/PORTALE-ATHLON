@@ -3,7 +3,6 @@ import { StyleSheet, Text, View } from "react-native";
 
 import { aggiungiComponente, type NucleoJunior } from "@/api/junior";
 import { CampoData } from "@/components/CampoData";
-import { problemaCodiceFiscale } from "@/lib/codiceFiscale";
 import { t } from "@/lib/lingua";
 import { spazio } from "@/theme";
 
@@ -13,13 +12,13 @@ import { Messaggio, Pulsante } from "../ui/kit";
 import { F, usePalette } from "../ui/tema";
 import { Tocco } from "../ui/Tocco";
 
-// Aggiungere un componente al nucleo (21/10/2026, richiesta di Maurizio): un figlio, con nome, cognome, data di nascita e
-// codice fiscale, tutti obbligatori, e la dichiarazione di esserne il genitore o il tutore. L'app controlla quello che puo'
-// (il codice fiscale valido e coerente, la minore eta': `problemaCodiceFiscale`, lo stesso controllo del Guest Pass); il resto
-// lo rifa' la funzione `portale-lab-junior`, che guarda anche che la persona non ci sia gia', nel nucleo o al club, e crea la
-// scheda su PerfectGym agganciata al titolare. Niente parte prima di «Aggiungi».
+// Aggiungere un componente al nucleo (21/10/2026, richiesta di Maurizio): un figlio, con nome, cognome e data di nascita,
+// tutti obbligatori, e la dichiarazione di esserne il genitore o il tutore. **Il codice fiscale non si chiede** (05/11/2026,
+// Maurizio): lo pretende il contratto quando il bambino si iscrive a un corso, e lo si scrive li', in «Correggi i dati».
+// L'app controlla la minore eta'; il resto lo rifa' la funzione `portale-lab-junior`, che guarda anche che la persona non ci
+// sia gia', nel nucleo o al club, e crea la scheda su PerfectGym agganciata al titolare. Niente parte prima di «Aggiungi».
 
-const VUOTO = { nome: "", cognome: "", nascita: "", codice_fiscale: "" };
+const VUOTO = { nome: "", cognome: "", nascita: "" };
 
 // Il livello in acqua (05/11/2026, richiesta di Maurizio): le tre domande del modulo del sito, tutte obbligatorie, perche' la
 // segreteria e il Direttore Tecnico sappiano da dove parte il bambino. Si chiedono da tre anni in su (nati prima dei tre anni di
@@ -69,7 +68,6 @@ export function FoglioComponente({
   const [errore, setErrore] = useState<string | null>(null);
   const [invio, setInvio] = useState(false);
 
-  const erroreCf = problemaCodiceFiscale(d);
   const erroreEta =
     /^\d{4}-\d{2}-\d{2}$/.test(d.nascita) && anni(d.nascita) >= 18
       ? t("Risulta maggiorenne: chi ha 18 anni entra nell’app con la sua email.", "This person is an adult: anyone 18 or over signs in to the app with their own email.")
@@ -81,8 +79,6 @@ export function FoglioComponente({
     !!d.nome.trim() &&
     !!d.cognome.trim() &&
     !!d.nascita &&
-    d.codice_fiscale.replace(/\s/g, "").length === 16 &&
-    !erroreCf &&
     !erroreEta &&
     tutore;
 
@@ -98,7 +94,6 @@ export function FoglioComponente({
     setErrore(null);
     const r = await aggiungiComponente({
       ...d,
-      codice_fiscale: d.codice_fiscale.replace(/\s/g, "").toUpperCase(),
       tutore,
       ...(conLivello
         ? {
@@ -124,7 +119,7 @@ export function FoglioComponente({
       aperto={aperto}
       onChiudi={chiudi}
       titolo={t("Aggiungi un componente", "Add a family member")}
-      sottotitolo={t("Un figlio che non è ancora nel tuo nucleo familiare. Tutti i dati per intero, come sul documento.", "A child who isn’t in your family members yet. Enter all details in full, as on their ID.")}
+      sottotitolo={t("Un figlio che non è ancora nel tuo nucleo familiare. Nome e cognome per intero, come sul documento.", "A child who isn’t in your family members yet. First and last name in full, as on their ID.")}
     >
       <CampoTesto
         etichetta={t("Nome", "First name")}
@@ -154,21 +149,7 @@ export function FoglioComponente({
           sfondo={p.incavo}
         />
       </View>
-      <CampoTesto
-        etichetta={t("Codice fiscale", "Italian tax code")}
-        icona="documento"
-        value={d.codice_fiscale}
-        onChangeText={(v) =>
-          setD((x) => ({ ...x, codice_fiscale: v.toUpperCase() }))
-        }
-        autoCapitalize="characters"
-        autoComplete="off"
-        maxLength={16}
-        placeholder="RSSMRA18C15H501B"
-        errore={!!erroreCf}
-      />
       {erroreEta ? <Messaggio tono="attenzione">{erroreEta}</Messaggio> : null}
-      {erroreCf ? <Messaggio tono="attenzione">{erroreCf}</Messaggio> : null}
 
       {conLivello ? (
         <View style={stili.livello}>
