@@ -6,7 +6,8 @@ import { spazio } from '@/theme'
 import { locale, t } from '@/lib/lingua'
 
 import { useApriPdf } from '../apriPdf'
-import { inMemoria, prendi } from '../memoria'
+import { inMemoria, prendi, scorda } from '../memoria'
+import { FoglioPagatore } from '../pagatore/FoglioPagatore'
 import { Carta, LinkSezione, Messaggio, Pulsante, Riga, SchedeInArrivo, Sezione } from '../ui/kit'
 import { F, usePalette } from '../ui/tema'
 
@@ -82,6 +83,7 @@ export function SezioneDocumenti() {
   const p = usePalette()
   const { dati, errore, carica } = useDocumenti()
   const [aperto, setAperto] = useState<string | null>(null)
+  const [pagatoreAperto, setPagatoreAperto] = useState(false)
   const { apri: apriPdf, avviso } = useApriPdf()
 
   async function apri(d: Documento) {
@@ -105,6 +107,8 @@ export function SezioneDocumenti() {
   if (!dati) return <SchedeInArrivo quante={2} />
 
   const documenti = dati.documenti
+  // «Cambia soggetto pagatore»: ha senso per chi ha figli, cioe' una famiglia di piu' persone (solo allora i documenti portano `persona`).
+  const conFigli = documenti.some((d) => d.persona) && documenti.some((d) => d.tipo === 'ricevuta')
   if (!documenti.length) {
     return (
       <Carta piatta>
@@ -121,10 +125,31 @@ export function SezioneDocumenti() {
       {avviso}
       <Gruppo titolo={t('Contratti e moduli', 'Contracts and forms')} elenco={documenti.filter((d) => d.tipo === 'contratto')} aperto={aperto} onApri={apri} />
       <Gruppo titolo={t('Ricevute', 'Receipts')} elenco={documenti.filter((d) => d.tipo === 'ricevuta')} aperto={aperto} onApri={apri} />
+      {conFigli ? (
+        <Carta piatta>
+          <Text style={{ color: p.testo, fontFamily: F.semi, fontSize: 15, lineHeight: 22 }}>{t('Per la detrazione, a chi intestiamo le ricevute dei tuoi figli?', 'For the tax deduction, who should the receipts of your children be in the name of?')}</Text>
+          <Text style={{ color: p.testoSecondario, fontFamily: F.medio, fontSize: 13.5, lineHeight: 20, marginTop: 4, marginBottom: spazio.tre }}>
+            {t(
+              'Se ha pagato un altro genitore, indica nome, cognome e codice fiscale di chi ha pagato: rifacciamo le ricevute dell’anno scorso e da adesso quelle nuove portano il suo nome. Le originali restano qui.',
+              'If another parent paid, enter the first name, last name and tax code of whoever paid: we redo last year’s receipts and, from now on, new ones carry their name. The originals stay here.',
+            )}
+          </Text>
+          <Pulsante testo={t('Cambia soggetto pagatore', 'Change the payer')} variante="secondario" onPress={() => setPagatoreAperto(true)} />
+        </Carta>
+      ) : null}
       <Gruppo titolo={t('Altri documenti', 'Other documents')} elenco={documenti.filter((d) => d.tipo === 'altro')} aperto={aperto} onApri={apri} />
       <Text style={{ color: p.testoTerzo, fontFamily: F.medio, fontSize: 13, lineHeight: 19, paddingHorizontal: 4 }}>
         {t('Sono i documenti che il club ha reso visibili sulla tua scheda. Se ne manca uno che ti aspetti, scrivi al club.', 'These are the documents the club has made visible on your account. If one you expect is missing, write to the club.')}
       </Text>
+      <FoglioPagatore
+        aperto={pagatoreAperto}
+        onChiudi={() => setPagatoreAperto(false)}
+        onFatto={() => {
+          // Le copie nuove compaiono fra le ricevute: l'elenco si rilegge.
+          scorda(CHIAVE_DOCUMENTI)
+          carica()
+        }}
+      />
     </View>
   )
 }
