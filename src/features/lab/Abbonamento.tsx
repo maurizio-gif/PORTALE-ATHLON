@@ -42,6 +42,7 @@ import { BarraScelta, FORMULE, Listino } from './abbonamento/Listino'
 import { FirmaPad } from './FirmaPad'
 import { segnaPagataInCorso } from './junior/inCorso'
 import { scorda, scordaPrefisso } from './memoria'
+import { scordaAccesso } from './riservate/store'
 import { useSessione } from './useSessione'
 import { vistaCorrente } from './vista'
 import { dataLunga, RiepilogoCosti } from './RiepilogoCosti'
@@ -905,6 +906,8 @@ function EsitoContrattoVista({ numero, onFine, onRiprova }: { numero: string; on
         scorda('junior:gruppi')
         scorda('area')
         scorda('documenti:elenco')
+        // Un abbonamento nuovo apre Athlon Health System e Athlon TV (features/lab/riservate).
+        scordaAccesso()
         giri.current += 1
         if (!finito && giri.current < 15) timer = setTimeout(giro, 3000)
       }

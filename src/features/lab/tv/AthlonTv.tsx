@@ -11,6 +11,7 @@ import { t } from '@/lib/lingua'
 import { spazio } from '@/theme'
 
 import { posizione } from '../SchedaLezione'
+import { AvvisoAnteprima } from '../riservate/Riservate'
 import { Icona } from '../ui/Icona'
 import { Entra, Messaggio, Pulsante, Scheletro } from '../ui/kit'
 import { Schermata } from '../ui/Schermata'
@@ -79,6 +80,8 @@ export function AthlonTv() {
 
   return (
     <Schermata sopratitolo={t('I video del club', 'The club’s videos')} titolo="Athlon TV" sottotitolo={vetrine ? t(`${vetrine.length} raccolte · ${quanti(totale)}`, `${vetrine.length} ${vetrine.length === 1 ? 'collection' : 'collections'} · ${quanti(totale)}`) : undefined}>
+      {/* Le raccolte si vedono anche senza abbonamento (l'anteprima, 05/11/2026): i video, dentro, sono riservati (features/lab/riservate). */}
+      <AvvisoAnteprima sezione="tv" />
       {errore && !vetrine ? (
         <>
           <Messaggio>{errore}</Messaggio>

@@ -319,6 +319,22 @@ export async function contrattiAbbonamento(): Promise<{ ok: true; contratti: Con
   return { ok: false, errore: dati.errore ?? t('Non riusciamo a leggere i tuoi abbonamenti adesso.', 'We can’t load your memberships right now.') }
 }
 
+/**
+ * Le sezioni riservate (05/11/2026, richiesta di Maurizio): Athlon Health System e Athlon TV si aprono a chi ha un abbonamento principale attivo
+ * (suo: standard, omaggio, Employee, Guest Pass in corso). Se no l'app le mostra in anteprima e, al primo tocco, il modal: con il Guest Pass
+ * (`guest_pass`, il prezzo lo dice il server) a chi puo' attivarlo, «Attiva un abbonamento» agli altri. La regola sta nel database
+ * (`portale_accesso_riservate`, APP-ATHLON) e le funzioni delle due sezioni la applicano da se'.
+ */
+export type AccessoRiservate = { attivo: boolean; guest_pass: { prezzo: number } | null }
+
+/** Null se la funzione e' di prima (non conosce `accesso`) o non risponde: le sezioni restano aperte com'erano, e ci pensa il server a rifiutare. */
+export async function accessoRiservate(): Promise<AccessoRiservate | null> {
+  const { ok, dati } = await abbonamento({ azione: 'accesso' })
+  if (!ok || typeof dati.attivo !== 'boolean') return null
+  const prezzo = Number(dati.guest_pass?.prezzo)
+  return { attivo: dati.attivo, guest_pass: !dati.attivo && Number.isFinite(prezzo) && prezzo > 0 ? { prezzo } : null }
+}
+
 /** Il PDF firmato: un indirizzo che vale cinque minuti. */
 export async function documentoAbbonamento(numero: string): Promise<{ ok: true; url: string } | { ok: false; errore: string }> {
   const { ok, dati } = await abbonamento({ azione: 'documento', numero })

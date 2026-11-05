@@ -11,6 +11,7 @@ import { t } from '@/lib/lingua'
 import { spazio } from '@/theme'
 
 import { posizione } from '../SchedaLezione'
+import { Anteprima, AvvisoAnteprima } from '../riservate/Riservate'
 import { Icona } from '../ui/Icona'
 import { Entra, Messaggio, Pulsante, Scheletro } from '../ui/kit'
 import { Schermata } from '../ui/Schermata'
@@ -81,13 +82,16 @@ export function Galleria() {
       indietro="/tv"
       barra={false}
     >
+      <AvvisoAnteprima sezione="tv" />
       {errore && !video ? (
         <>
           <Messaggio>{errore}</Messaggio>
           <Pulsante testo={t('Riprova', 'Try again')} icona="aggiorna" onPress={carica} />
         </>
       ) : (
-        <>
+        // Guardare un video e' riservato a chi ha un abbonamento principale attivo (05/11/2026, features/lab/riservate): chi non ce l'ha vede la
+        // raccolta, con titoli e miniature, e al tocco su un video legge il modal. Il link del video, il server non glielo da'.
+        <Anteprima sezione="tv" style={{ gap: spazio.quattro + 4 }}>
           <Tocco onPress={() => primo && apriVideo(String(raccolta), primo)} spento={!primo} ruolo="link" etichetta={t('Guarda dall’inizio', 'Watch from the start')} scala={0.985}>
             <View style={[stili.testata, { backgroundColor: p.incavo }]}>
               {vetrina?.copertina || primo?.copertina ? (
@@ -122,7 +126,7 @@ export function Galleria() {
                   </View>
                 ))}
           </View>
-        </>
+        </Anteprima>
       )}
     </Schermata>
   )

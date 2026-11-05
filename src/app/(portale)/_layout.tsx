@@ -16,6 +16,7 @@ import { useIngresso } from '@/features/lab/ingresso/useIngresso'
 import { Notifiche } from '@/features/lab/notifiche/Notifiche'
 import { EsciTotem } from '@/features/lab/totem/EsciTotem'
 import { PagamentoTotem } from '@/features/lab/totem/PagamentoTotem'
+import { Cancello, ModalRiservata, sezioneDiRotta } from '@/features/lab/riservate/Riservate'
 import { BannerVista } from '@/features/lab/ui/BannerVista'
 import { BarraSchede } from '@/features/lab/ui/BarraSchede'
 import { SchermataInArrivo } from '@/features/lab/ui/Attesa'
@@ -70,7 +71,15 @@ export default function LayoutLaboratorio() {
       {/* In vista cliente (vista.ts) la striscia con di chi e'; sulla stessa
           app, solo per chi e' entrato: senza accesso non c'e' niente da guardare. */}
       {sessione && !gate ? <BannerVista /> : null}
-      <Stack screenLayout={({ children }) => (contenutoGate ?? children)} screenOptions={{ headerShown: false, animation: 'fade', contentStyle: { backgroundColor: p.fondo } }}>
+      <Stack
+        screenLayout={({ children, route }) => {
+          if (contenutoGate) return contenutoGate
+          // Le pagine interne di Athlon Health System e di Athlon TV (un piano, il diario, un video) sono riservate a chi ha un abbonamento
+          // principale attivo (features/lab/riservate): con le sezioni chiuse il modal e indietro. La schermata principale di ognuna resta in anteprima.
+          const sezione = sezioneDiRotta(route.name)
+          return sezione ? <Cancello sezione={sezione}>{children}</Cancello> : children
+        }}
+        screenOptions={{ headerShown: false, animation: 'fade', contentStyle: { backgroundColor: p.fondo } }}>
         <Stack.Screen name="pagamenti/[riferimento]" options={{ animation: 'slide_from_right' }} />
         <Stack.Screen name="pagamenti/storico" options={{ animation: 'slide_from_right' }} />
         <Stack.Screen name="tv/[raccolta]/index" options={{ animation: 'slide_from_right' }} />
@@ -115,6 +124,8 @@ export default function LayoutLaboratorio() {
         <Stack.Screen name="metodo-pagamento/fatto/[token]" options={{ animation: 'fade' }} />
       </Stack>
       {sessione && !gate ? <BarraSchede /> : null}
+      {/* Il modal delle sezioni riservate (features/lab/riservate): si apre dall'anteprima o da un indirizzo interno. */}
+      {sessione && !gate ? <ModalRiservata /> : null}
       {/* Le notifiche del club (features/lab/notifiche): il giro che le legge e la finestra che compare appena ne arriva una. Solo per
           chi e' entrato, e mai in vista cliente: chi guarda l'app di un socio non deve segnare come viste le sue notifiche. */}
       {sessione && !gate && !vistaCorrente() ? <Notifiche /> : null}
