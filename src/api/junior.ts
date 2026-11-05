@@ -92,7 +92,8 @@ export type NuovoComponente = {
   nome: string;
   cognome: string;
   nascita: string;
-  codice_fiscale: string;
+  /** Facoltativo dal 05/11/2026: l'app non lo chiede, lo pretende il contratto all'iscrizione a un corso. */
+  codice_fiscale?: string;
   tutore: boolean;
   /** Il livello in acqua (05/11/2026): solo da tre anni in su, tutte e tre insieme. */
   ha_frequentato?: boolean;
