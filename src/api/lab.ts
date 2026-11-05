@@ -996,7 +996,13 @@ export function abitudineDa(x: unknown): AbitudineTrain | null {
   }
 }
 
-export async function elencoSchede(): Promise<Esito<{ schede: RigaSchedaLab[]; ultimi: SedutaBreve[]; ai: { usate: number; massimo: number; in_prova?: boolean }; abitudine: AbitudineTrain | null; test: StatoTest }>> {
+/**
+ * I piani composti al mese, di sala e di vasca insieme (05/11/2026: tre nel mese di calendario). `rinnovo` e' il primo del mese
+ * dopo (`YYYY-MM-DD`); `in_prova` c'e' solo con una funzione di prima, che non applicava il limite.
+ */
+export type QuotaPiani = { usate: number; massimo: number; in_prova?: boolean; periodo?: 'mese'; rinnovo?: string }
+
+export async function elencoSchede(): Promise<Esito<{ schede: RigaSchedaLab[]; ultimi: SedutaBreve[]; ai: QuotaPiani; abitudine: AbitudineTrain | null; test: StatoTest }>> {
   const { ok, dati } = await schedeLab({ azione: 'elenco' })
   if (ok) return { ok: true, schede: dati.schede, ultimi: dati.ultimi, ai: dati.ai, abitudine: abitudineDa(dati.abitudine), test: dati.test ?? { ultimo: null, fatti: 0, totale: 0, giorni: 42 } }
   return { ok: false, errore: dati.errore ?? t('Non riusciamo a leggere i tuoi piani adesso.', 'We can’t load your plans right now.') }

@@ -138,10 +138,15 @@ export type PercorsoSalvato = PercorsoBozza & { id: string; creato_il: string; a
 export type Quota = {
   usate: number
   massimo: number
-  /** I consigli si contano in una settimana; il Percorso in trenta giorni (allora il campo non c'e'). */
-  periodo?: 'settimana'
-  /** In prova il limite si dice ma non si applica (`CONSIGLI_IN_PROVA` della funzione). */
+  /**
+   * I consigli si contano nel mese di calendario (05/11/2026: la prima richiesta e due rigenerazioni, `massimo` 3); prima in una
+   * settimana. Il Percorso in trenta giorni (allora il campo non c'e').
+   */
+  periodo?: 'settimana' | 'mese'
+  /** In prova il limite si dice ma non si applica (una funzione di prima del 05/11/2026). */
   in_prova?: boolean
+  /** Il primo del mese dopo (`YYYY-MM-DD`), quando si riparte: solo con `periodo: 'mese'`. */
+  rinnovo?: string
 }
 export type Idoneita = { categorie: string[] | null; incerta: boolean }
 export type SchedeLezioni = Record<string, SchedaLezione>
@@ -475,6 +480,8 @@ export type RispostaConsigli = {
   abitudine: AbitudineTrain | null
   /** Quando sono stati scritti: restano salvati, e le lezioni si rileggono a ogni apertura. null se non si sono salvati. */
   salvati_il: string | null
+  /** Quando il socio li ha modificati l'ultima volta (`consigli_modifica`), se li ha modificati. */
+  modificati_il: string | null
   /** Le risposte salvate, senza le limitazioni: servono a riaprire il questionario com'era (solo con `consigli_ultimi`). */
   questionario?: Partial<QuestionarioConsigli>
 }
@@ -513,6 +520,7 @@ function rispostaDa(dati: Record<string, any>): RispostaConsigli {
     abitudine: abitudineDa(dati.abitudine),
     quota: dati.quota ?? { usate: 0, massimo: 1, periodo: 'settimana' },
     salvati_il: typeof dati.salvati_il === 'string' ? dati.salvati_il : null,
+    modificati_il: typeof dati.modificati_il === 'string' ? dati.modificati_il : null,
     questionario: dati.questionario && typeof dati.questionario === 'object' ? dati.questionario : undefined,
   }
 }
@@ -526,6 +534,30 @@ export async function chiediConsigli(q: QuestionarioConsigli): Promise<Esito<{ r
   if (ok && Array.isArray(dati.consigli)) return { ok: true, risposta: rispostaDa(dati) }
   if (dati.errore === 'Azione sconosciuta.' || dati.errore === 'Unknown action.') return { ok: false, errore: t('I consigli non sono ancora attivi: riprova più avanti.', 'Recommendations aren’t active yet: try again later.'), stato: 503 }
   return errore(dati, stato, t('L’assistente non è riuscito a dare i consigli adesso. Riprova fra qualche minuto.', 'The assistant couldn’t give recommendations right now. Try again in a few minutes.'))
+}
+
+/**
+ * «Rigenera» (05/11/2026): consigli nuovi dalle stesse risposte, quelle salvate dalla funzione. Le limitazioni non si conservano:
+ * si mandano solo se il socio le ha scritte in questa apertura. Conta nella quota del mese come una richiesta nuova.
+ */
+export async function rigeneraConsigli(limitazioni: string): Promise<Esito<{ risposta: RispostaConsigli }>> {
+  const { ok, dati, stato } = await chiama({ azione: 'consigli', rigenera: true, ...(limitazioni.trim() ? { limitazioni: limitazioni.trim() } : {}) })
+  if (ok && Array.isArray(dati.consigli)) return { ok: true, risposta: rispostaDa(dati) }
+  return errore(dati, stato, t('L’assistente non è riuscito a dare i consigli adesso. Riprova fra qualche minuto.', 'The assistant couldn’t give recommendations right now. Try again in a few minutes.'))
+}
+
+/** Cosa resta dei consigli dopo la modifica: le lezioni nell'ordine, con le volte; le sedute (per ambiente); il personal. */
+export type ModificaConsigli = { consigli: { tipo: number; volte: number }[]; sedute: ('sala' | 'vasca')[]; personal: boolean }
+
+/**
+ * I consigli modificati dal socio (05/11/2026): niente AI e niente quota. La funzione controlla che le lezioni siano fra i
+ * consigli o le loro alternative, salva, e risponde come `consigli_ultimi`.
+ */
+export async function modificaConsigli(m: ModificaConsigli): Promise<Esito<{ risposta: RispostaConsigli }>> {
+  const { ok, dati, stato } = await chiama({ azione: 'consigli_modifica', ...m })
+  if (ok && Array.isArray(dati.consigli)) return { ok: true, risposta: rispostaDa(dati) }
+  if (dati.errore === 'Azione sconosciuta.' || dati.errore === 'Unknown action.') return { ok: false, errore: t('Modificare i consigli non è ancora possibile: riprova più avanti.', 'Editing tips isn’t available yet: try again later.'), stato: 503 }
+  return errore(dati, stato, t('Non siamo riusciti a salvare le modifiche adesso. Riprova fra qualche minuto.', 'We couldn’t save your changes right now. Try again in a few minutes.'))
 }
 
 /**

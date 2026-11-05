@@ -1,11 +1,16 @@
 import type { ReactNode } from 'react'
 import { StyleSheet, Text, View } from 'react-native'
 
+import type { QuotaPiani } from '@/api/lab'
 import { spazio } from '@/theme'
+
+import { inMemoria, ricorda } from '../memoria'
+import { restano, testoQuotaPiani } from '../quota'
 
 import { Icona } from '../ui/Icona'
 import { F, usePalette } from '../ui/tema'
 import { Tocco } from '../ui/Tocco'
+import { CHIAVE_ELENCO_PIANI } from './comune'
 
 // I pezzi del questionario a passi (`PassiSala.tsx`): la carta di una risposta, con il cerchio a destra (vuoto, o con la spunta), e la
 // griglia a due colonne per le risposte corte (i tre test). Una risposta unica ha `ruolo="radio"`, una multipla `checkbox`.
@@ -70,3 +75,31 @@ const stili = StyleSheet.create({
   cerchio: { width: 26, height: 26, borderRadius: 8, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center' },
   griglia: { flexDirection: 'row', flexWrap: 'wrap', gap: spazio.due + 2 },
 })
+
+// ---- la quota dei piani composti (05/11/2026: tre al mese, sala e vasca insieme) ----------------------------------------------
+// La legge l'elenco dei piani (`elenco`, in memoria): senza (si e' arrivati da un link) non si dice niente e decide la funzione, che
+// risponde 429 con le stesse parole.
+
+type ElencoInMemoria = { ai?: QuotaPiani }
+const quotaInMemoria = (): QuotaPiani | undefined => inMemoria<ElencoInMemoria>(CHIAVE_ELENCO_PIANI)?.ai
+
+/** I piani del mese sono finiti (solo se lo si sa e la funzione non e' quella di prima, in prova). */
+export function pianiFiniti(): boolean {
+  const q = quotaInMemoria()
+  return !!q && !q.in_prova && restano(q) === 0
+}
+
+/** Un piano composto: in memoria il conto sale di uno, cosi' la carta e il riepilogo dicono subito quanti ne restano. */
+export function contaPianoComposto() {
+  const e = inMemoria<ElencoInMemoria>(CHIAVE_ELENCO_PIANI)
+  if (e?.ai) ricorda(CHIAVE_ELENCO_PIANI, { ...e, ai: { ...e.ai, usate: e.ai.usate + 1 } })
+}
+
+/** La riga sotto il riepilogo: quanti piani si possono ancora comporre questo mese, o da quando. */
+export function NotaQuotaPiani() {
+  const p = usePalette()
+  const testo = testoQuotaPiani(quotaInMemoria())
+  if (!testo) return null
+  return <Text style={[stili.nota, { color: pianiFiniti() ? p.testo : p.testoSecondario, textAlign: 'center' }]}>{testo}</Text>
+}
+

@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { StyleSheet, Text, View } from 'react-native'
 import { useWindowDimensions } from '@/lib/finestra'
 
-import { elencoMisure, elencoSchede, type Misura, type RigaSchedaLab, type SedutaBreve, type StatoTest } from '@/api/lab'
+import { elencoMisure, elencoSchede, type Misura, type QuotaPiani, type RigaSchedaLab, type SedutaBreve, type StatoTest } from '@/api/lab'
 import { LARGO } from '@/components/Pagina'
 import { t } from '@/lib/lingua'
 import { spazio } from '@/theme'
@@ -26,6 +26,7 @@ import { useDatiCorpo } from '../fit/useDatiCorpo'
 import { useFit } from '../fit/useFit'
 import { CHIAVE_MISURE } from '../dati/Misure'
 import { inMemoria, prendi } from '../memoria'
+import { testoQuotaPiani } from '../quota'
 import { Icona, type NomeIcona } from '../ui/Icona'
 import { Carta, Entra, LinkSezione, Messaggio, Pulsante, Riga, SchedeInArrivo, Sezione, Tag } from '../ui/kit'
 import { Schermata } from '../ui/Schermata'
@@ -61,7 +62,7 @@ import { eDiVasca, ETICHETTA_VASCA } from './nuoto'
 // L'area scelta sta nell'indirizzo (`?area=food`, `?area=relax`), cosi' tornando indietro dal
 // diario o dai dispositivi si ritrova la sua area. L'indirizzo resta /allenamento: e' quello dei link gia' dati.
 
-type Dati = { schede: RigaSchedaLab[]; ultimi: SedutaBreve[]; ai: { usate: number; massimo: number; in_prova?: boolean }; test: StatoTest }
+type Dati = { schede: RigaSchedaLab[]; ultimi: SedutaBreve[]; ai: QuotaPiani; test: StatoTest }
 
 /** Il contatore delle calorie: gli allenamenti chiusi e le lezioni con la presenza. */
 /**
@@ -215,8 +216,12 @@ function CartaPersonal() {
  * uno strumento (il colore e' quello del club, non il viola dell'AI); che dietro ci sia un'intelligenza artificiale lo dice la
  * nota in fondo al questionario e quella sul piano composto. Chi preferisce partire da zero lo scrive a mano (`/allenamento/nuova`).
  */
-function CartaComponi({ restano, massimo, inProva = false, riempi = false }: { restano: number; massimo: number; inProva?: boolean; riempi?: boolean }) {
+function CartaComponi({ quota, riempi = false }: { quota: QuotaPiani; riempi?: boolean }) {
   const p = usePalette()
+  // Tre piani al mese, contati dalla funzione (05/11/2026); con una funzione di prima, in prova, nessun limite e nessuna riga.
+  const inProva = !!quota.in_prova
+  const restano = Math.max(0, quota.massimo - quota.usate)
+  const riga = testoQuotaPiani(quota)
   return (
     <View style={[stili.agente, { backgroundColor: p.carta, borderColor: p.linea, boxShadow: p.ombra, flexDirection: 'column', alignItems: 'stretch' }, riempi && { flex: 1 }]}>
       <Tocco onPress={() => router.push('/allenamento/agente')} etichetta={t('Componi il tuo piano di allenamento', 'Build your workout plan')} scala={0.985} spento={!restano && !inProva}>
@@ -227,20 +232,17 @@ function CartaComponi({ restano, massimo, inProva = false, riempi = false }: { r
           <View style={{ flex: 1, gap: 3 }}>
             <Text style={[stili.agenteTitolo, { color: p.testo }]}>{t('Componi il tuo piano', 'Build your plan')}</Text>
             <Text style={[stili.agenteTesto, { color: p.testoSecondario }]}>
-              {inProva
-                ? t(
-                    'Generiamo insieme il tuo piano, in sala o in vasca: rispondi a qualche domanda e in meno di un minuto hai una prima versione da modificare.',
-                    'Let’s build your plan together, in the gym or in the pool: answer a few questions and in under a minute you’ll have a first draft to edit.',
-                  )
-                : restano
-                ? t(
-                    `Generiamo insieme il tuo piano, in sala o in vasca: rispondi a qualche domanda e in meno di un minuto hai una prima versione da modificare. Puoi comporne ancora ${restano} questo mese.`,
-                    `Let’s build your plan together, in the gym or in the pool: answer a few questions and in under a minute you’ll have a first draft to edit. You can build ${restano} more this month.`,
-                  )
-                : t(
-                    `Hai già composto ${massimo} piani negli ultimi trenta giorni: per ora non è possibile comporne altri.`,
-                    `You’ve already built ${massimo} plans in the last thirty days: you can’t build more for now.`,
-                  )}
+              {inProva || restano
+                ? [
+                    t(
+                      'Generiamo insieme il tuo piano, in sala o in vasca: rispondi a qualche domanda e in meno di un minuto hai una prima versione da modificare.',
+                      'Let’s build your plan together, in the gym or in the pool: answer a few questions and in under a minute you’ll have a first draft to edit.',
+                    ),
+                    riga,
+                  ]
+                    .filter(Boolean)
+                    .join(' ')
+                : riga}
             </Text>
           </View>
           {restano || inProva ? <Icona nome="avanti" size={18} colore={p.testoTerzo} /> : null}
@@ -455,7 +457,6 @@ function ContenutoHub({ largo, corpoInCima }: { largo: boolean; /** La carta «D
  */
 function Train({ dati, largo, disp }: { dati: Dati; largo: boolean; disp: Dispositivi }) {
   const p = usePalette()
-  const restano = Math.max(0, dati.ai.massimo - dati.ai.usate)
   const mie = dati.schede.filter((s) => s.tipo !== 'standard')
   return (
     <>
@@ -489,7 +490,7 @@ function Train({ dati, largo, disp }: { dati: Dati; largo: boolean; disp: Dispos
         </Text>
         <View style={largo ? stili.fila3 : { gap: spazio.tre }}>
           <Entra indice={1} style={largo ? { flex: 1 } : undefined}>
-            <CartaComponi restano={restano} massimo={dati.ai.massimo} inProva={!!dati.ai.in_prova} riempi={largo} />
+            <CartaComponi quota={dati.ai} riempi={largo} />
           </Entra>
           <Entra indice={2} style={largo ? { flex: 1 } : undefined}>
             <CartaImporta riempi={largo} />
