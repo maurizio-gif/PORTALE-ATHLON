@@ -10,7 +10,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { contrattiAbbonamento } from '@/api/abbonamento'
 import { elencoDocumenti } from '@/api/documenti'
-import { laMiaArea, leggiAnagrafica, leggiGiorno, leggiVetrine, type Anagrafica, type Area, type EsitoAnagrafica, type PersonaArea } from '@/api/lab'
+import { laMiaArea, leggiAnagrafica, leggiGiorno, type Anagrafica, type Area, type EsitoAnagrafica, type PersonaArea } from '@/api/lab'
 import type { Tessera } from '@/api/tesseramenti'
 import { locale, t } from '@/lib/lingua'
 import { spazio } from '@/theme'
@@ -46,7 +46,6 @@ import { ProfiloContenuto } from './Profilo'
 import { AvatarFoto } from './profilo/AvatarFoto'
 import { FoglioFoto } from './profilo/FotoProfilo'
 import { conFotoLocale, ricordaFotoLocale } from './profilo/fotoLocale'
-import { memoria as memoriaTv } from './tv/comune'
 import { Icona } from './ui/Icona'
 import { Bagliore, Colonne, Entra, Messaggio, Pulsante, SchedeInArrivo } from './ui/kit'
 import { Installa } from './ui/Installa'
@@ -300,7 +299,9 @@ export function AreaRiservata({ email }: { email: string }) {
     if (!esito.ok) return setErrore({ testo: esito.errore, nonAmmesso: esito.nonAmmesso })
     setArea(esito.area)
     // Le schede che probabilmente si apriranno: i loro dati arrivano mentre si
-    // guarda la Home, cosi' toccandole sono gia' pronte.
+    // guarda la Home, cosi' toccandole sono gia' pronte. Le vetrine di Athlon TV (Vimeo) non si pre-caricano piu' dalla
+    // Home (05/11/2026): erano una funzione in piu' a ogni apertura per una schermata che si apre di rado, e Athlon TV le
+    // legge da se' quando si apre.
     if (esito.area.trovato) {
       precarica('giorno::', () => leggiGiorno())
       precarica(CHIAVE_CONTRATTI, contrattiAbbonamento)
@@ -313,7 +314,6 @@ export function AreaRiservata({ email }: { email: string }) {
         anagraficaRiletta.current = true
         prendi('anagrafica', leggiAnagrafica).then((r) => r.ok && setAnagrafica(conFotoLocale(r.anagrafica)))
       }
-      if (!memoriaTv.vetrine) leggiVetrine().then((r) => r.ok && (memoriaTv.vetrine = r.vetrine))
     }
   }, [])
 
