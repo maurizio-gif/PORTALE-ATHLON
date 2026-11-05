@@ -64,7 +64,18 @@ function precompilaDa(v: unknown): StatoIngresso['precompila'] {
 
 export type DatiProfilo = Partial<Record<CampoIngresso, string>> & { privacy?: boolean }
 
-export type EsitoProfilo = { ok: true } | { ok: false; errore: string; minorenne?: boolean; verifica?: boolean; somiglianza?: boolean; serve?: CampoIngresso[] }
+export type EsitoProfilo =
+  | { ok: true }
+  | {
+      ok: false
+      errore: string
+      minorenne?: boolean
+      verifica?: boolean
+      somiglianza?: boolean
+      serve?: CampoIngresso[]
+      /** Gia' del club con un altro indirizzo: si puo' collegare con un codice via SMS al cellulare della scheda, che finisce con queste due cifre (05/11/2026). */
+      sms?: { finale: string }
+    }
 
 export async function completaProfilo(d: DatiProfilo): Promise<EsitoProfilo> {
   const { ok, dati } = await funzione('portale-registrazione', { azione: 'completa', ...d })
@@ -76,5 +87,25 @@ export async function completaProfilo(d: DatiProfilo): Promise<EsitoProfilo> {
     verifica: dati.verifica === true,
     somiglianza: dati.somiglianza === true,
     serve: Array.isArray(dati.serve) ? (dati.serve as CampoIngresso[]) : undefined,
+    sms: smsDa(dati.sms),
   }
+}
+
+function smsDa(v: unknown): { finale: string } | undefined {
+  const f = v && typeof v === 'object' ? String((v as Record<string, unknown>).finale ?? '') : ''
+  return /^\d{2}$/.test(f) ? { finale: f } : undefined
+}
+
+/** Il codice via SMS al cellulare della scheda trovata (05/11/2026). */
+export async function inviaCodiceSms(): Promise<{ ok: true; finale: string } | { ok: false; errore: string }> {
+  const { ok, dati } = await funzione('portale-registrazione', { azione: 'sms_invia' })
+  if (ok) return { ok: true, finale: String(dati.finale ?? '') }
+  return { ok: false, errore: String(dati.errore ?? PROVA) }
+}
+
+/** Il codice scritto dalla persona: giusto, l'indirizzo e' collegato alla scheda e si entra. */
+export async function verificaCodiceSms(codice: string): Promise<{ ok: true } | { ok: false; errore: string }> {
+  const { ok, dati } = await funzione('portale-registrazione', { azione: 'sms_verifica', codice })
+  if (ok) return { ok: true }
+  return { ok: false, errore: String(dati.errore ?? PROVA) }
 }

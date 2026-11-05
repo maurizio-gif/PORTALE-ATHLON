@@ -178,3 +178,4 @@ chiamata diretta al gestionale. Esempio: la sezione Prodotti usa l'azione `prodo
 - [«Entra» con la destinazione `assistenza`: la Home con l'assistente aperto, per l'iscritto che scrive nella chat del sito (05/11/2026)](docs/claude/140-entra-assistenza-home-con-l-assistente-05-11-2026.md) · 1 KB
 - [L'assistente dell'app apre con tre suggerimenti, scelti secondo chi apre la chat (05/11/2026)](docs/claude/141-assistente-tre-suggerimenti-secondo-chi-apre-05-11-2026.md) · 2 KB
 - [«Aggiungi un componente» chiede nome, cognome e data di nascita: niente codice fiscale (05/11/2026)](docs/claude/142-aggiungi-un-componente-senza-codice-fiscale-05-11-2026.md) · 1 KB
+- [«Sei già dei nostri»: collegare questo indirizzo con un codice via SMS (05/11/2026)](docs/claude/143-collegare-l-indirizzo-con-un-codice-via-sms-05-11-2026.md) · 1 KB
