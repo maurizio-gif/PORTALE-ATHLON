@@ -450,9 +450,9 @@ export function AreaRiservata({ email }: { email: string }) {
           nota:
             inCorsoBanca.length === 1
               ? inCorsoBanca[0].scadenza
-                ? t(`addebito previsto ${dataCorta(inCorsoBanca[0].scadenza)} · ${soldi(inCorsoBanca[0].importo)}`, `debit expected ${dataCorta(inCorsoBanca[0].scadenza)} · ${soldi(inCorsoBanca[0].importo)}`)
+                ? t(`addebito previsto ${dataCorta(inCorsoBanca[0].scadenza).replace(' ', '\u00a0')} · ${soldi(inCorsoBanca[0].importo).replace(' ', '\u00a0')}`, `debit expected ${dataCorta(inCorsoBanca[0].scadenza).replace(' ', '\u00a0')} · ${soldi(inCorsoBanca[0].importo).replace(' ', '\u00a0')}`)
                 : t(`${soldi(inCorsoBanca[0].importo)} in pagamento`, `${soldi(inCorsoBanca[0].importo)} being paid`)
-              : t(`${inCorsoBanca.length} pagamenti · ${soldi(inCorsoBanca.reduce((tot, m) => tot + m.importo, 0))}`, `${inCorsoBanca.length} payments · ${soldi(inCorsoBanca.reduce((tot, m) => tot + m.importo, 0))}`),
+              : t(`${inCorsoBanca.length} pagamenti · ${soldi(inCorsoBanca.reduce((tot, m) => tot + m.importo, 0)).replace(' ', '\u00a0')}`, `${inCorsoBanca.length} payments · ${soldi(inCorsoBanca.reduce((tot, m) => tot + m.importo, 0)).replace(' ', '\u00a0')}`),
           allerta: 'attenzione',
         }
       : prossimo
