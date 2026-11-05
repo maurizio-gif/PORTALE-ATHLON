@@ -179,3 +179,4 @@ chiamata diretta al gestionale. Esempio: la sezione Prodotti usa l'azione `prodo
 - [L'assistente dell'app apre con tre suggerimenti, scelti secondo chi apre la chat (05/11/2026)](docs/claude/141-assistente-tre-suggerimenti-secondo-chi-apre-05-11-2026.md) · 2 KB
 - [«Aggiungi un componente» chiede nome, cognome e data di nascita: niente codice fiscale (05/11/2026)](docs/claude/142-aggiungi-un-componente-senza-codice-fiscale-05-11-2026.md) · 1 KB
 - [«Sei già dei nostri»: collegare questo indirizzo con un codice via SMS (05/11/2026)](docs/claude/143-collegare-l-indirizzo-con-un-codice-via-sms-05-11-2026.md) · 1 KB
+- [Le video guide nelle schede dell'Help Desk: si guardano al tocco, e sul telefono in verticale (05/11/2026)](docs/claude/144-video-guide-nell-help-desk-05-11-2026.md) · 3 KB

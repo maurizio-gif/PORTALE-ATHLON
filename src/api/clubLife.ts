@@ -17,6 +17,9 @@ export type Inline = { testo: string; b?: true; i?: true; link?: string }
 
 export type TipoModulo = 'appuntamento' | 'appuntamento-nuoto' | 'metodo-pagamento' | 'cambio-abbonamento'
 
+/** Un file video con la sua copertina e la sua misura. */
+export type Clip = { src: string; poster: string | null; larghezza: number; altezza: number }
+
 /** Il testo di un contenuto, nei blocchi che il sito ricava dalla sua pagina (data/blocchi.ts). */
 export type Blocco =
   | { t: 'titolo'; livello: 2 | 3 | 4; testo: Inline[] }
@@ -29,6 +32,8 @@ export type Blocco =
   | { t: 'pulsanti'; voci: { etichetta: string; url: string; primario: boolean }[] }
   | { t: 'codice'; etichetta: string; codice: string }
   | { t: 'immagine'; src: string; alt: string }
+  /** Una video guida: `alto` e' il taglio verticale, quando c'e'. */
+  | { t: 'video'; titolo: string; largo: Clip; alto: Clip | null }
   | { t: 'separatore' }
   /** Un modulo del sito (appuntamento, metodo di pagamento...): per ora si apre la' (url con l'ancora). */
   | { t: 'modulo'; tipo: TipoModulo; etichetta: string; url: string }
