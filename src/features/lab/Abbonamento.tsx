@@ -432,6 +432,7 @@ export function Abbonamento() {
       // Fatto: il vecchio e' chiuso e il nuovo e' in coda. Niente pagamento da qui: lo gestisce la segreteria. Le letture in memoria sono vecchie.
       scorda('abbonamenti:contratti')
       scorda('area')
+      scorda('documenti:elenco')
       setAnteprima(null)
       setCambioFatto(r.esito.cambio ?? (infoCambio && inizio ? { fine_vecchio: giornoPrima(inizio), inizio_nuovo: inizio } : null))
       return
@@ -903,6 +904,7 @@ function EsitoContrattoVista({ numero, onFine, onRiprova }: { numero: string; on
         scordaPrefisso('junior:corsi')
         scorda('junior:gruppi')
         scorda('area')
+        scorda('documenti:elenco')
         giri.current += 1
         if (!finito && giri.current < 15) timer = setTimeout(giro, 3000)
       }
