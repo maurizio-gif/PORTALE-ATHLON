@@ -170,4 +170,5 @@ chiamata diretta al gestionale. Esempio: la sezione Prodotti usa l'azione `prodo
 - [L'assistente porta dritto nella voce giusta della sezione Junior (04/11/2026)](docs/claude/132-assistente-junior-dritto-al-punto-04-11-2026.md) · 2 KB
 - [Go-live: il giro delle notifiche ogni minuto, non ogni venti secondi (05/11/2026)](docs/claude/133-go-live-il-giro-delle-notifiche-ogni-minuto-05-11-2026.md) · 2 KB
 - [Go-live: la Home non pre-carica le vetrine di Athlon TV, e i gruppi Junior solo a chi ha un figlio (05/11/2026)](docs/claude/134-go-live-home-piu-leggera-05-11-2026.md) · 2 KB
-- [Go-live: i polling dei pagamenti e delle notifiche rallentano da soli (05/11/2026)](docs/claude/135-go-live-polling-con-backoff-05-11-2026.md) · 2 KB
+- [Il questionario di livello in «Aggiungi un componente» (05/11/2026)](docs/claude/135-questionario-di-livello-in-aggiungi-un-componente-05-11-2026.md) · 1 KB
+- [Go-live: i polling dei pagamenti e delle notifiche rallentano da soli (05/11/2026)](docs/claude/136-go-live-polling-con-backoff-05-11-2026.md) · 2 KB
