@@ -6,6 +6,7 @@ import { esitoOrdine, type Ordine } from '@/api/shop'
 import { t } from '@/lib/lingua'
 import { spazio } from '@/theme'
 
+import { scorda } from '../memoria'
 import { Carta, Messaggio, Pulsante } from '../ui/kit'
 import { Schermata } from '../ui/Schermata'
 import { F, usePalette } from '../ui/tema'
@@ -41,6 +42,8 @@ export function EsitoOrdine({ id }: { id: string }) {
       setOrdine(r.ordine)
       if (r.ordine.stato === 'pagato') {
         svuotaCarrello()
+        // I prodotti della Home in memoria non hanno ancora questo ordine (e potrebbero essere freschi): alla prossima apertura si rileggono.
+        scorda('prodotti:elenco')
         colpetto('ok')
         return
       }

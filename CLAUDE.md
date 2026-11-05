@@ -173,3 +173,4 @@ chiamata diretta al gestionale. Esempio: la sezione Prodotti usa l'azione `prodo
 - [Il questionario di livello in «Aggiungi un componente» (05/11/2026)](docs/claude/135-questionario-di-livello-in-aggiungi-un-componente-05-11-2026.md) · 1 KB
 - [Go-live: i polling dei pagamenti e delle notifiche rallentano da soli (05/11/2026)](docs/claude/136-go-live-polling-con-backoff-05-11-2026.md) · 2 KB
 - [Il soggetto pagatore sulle ricevute dei figli: nel salvataggio del metodo di pagamento e «Cambia soggetto pagatore» in Documenti (05/11/2026)](docs/claude/137-soggetto-pagatore-sulle-ricevute-05-11-2026.md) · 5 KB
+- [Go-live: la memoria del laboratorio ha una freschezza, e le sezioni della Home non rileggono a ogni apertura (05/11/2026)](docs/claude/138-go-live-memoria-con-freschezza-05-11-2026.md) · 2 KB

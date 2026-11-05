@@ -9,6 +9,7 @@ import { MAX_BYTE, pesoLeggibile, type FileScelto } from '@/lib/fileCertificato'
 import { spazio } from '@/theme'
 import { t } from '@/lib/lingua'
 
+import { scorda } from '../memoria'
 import { Foglio } from '../ui/Foglio'
 import { Icona } from '../ui/Icona'
 import { Messaggio, Pulsante } from '../ui/kit'
@@ -85,7 +86,11 @@ export function FoglioCertificato({
     async (f: FileScelto) => {
       if (memberId == null) return { ok: false as const, errore: t('Non troviamo la persona a cui carichi il certificato.', 'We can’t find the person you’re uploading the certificate for.') }
       const esito = await caricaCertificato(memberId, f)
-      if (esito.ok) onCaricato()
+      if (esito.ok) {
+        // La mia area in memoria ha ancora il certificato di prima (e potrebbe essere fresca): si butta, cosi' la Home la rilegge.
+        scorda('area')
+        onCaricato()
+      }
       return esito
     },
     [memberId, onCaricato],
