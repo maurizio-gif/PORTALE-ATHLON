@@ -41,7 +41,7 @@ stessa data. Il resto dei Consigli (carte, sedute, personal, prenotazione) è co
     «Componi il mio piano» si spegne. Dopo un piano composto il conto in memoria sale di uno (`contaPianoComposto`).
   - Con una funzione di prima (quota in prova o settimanale) le righe non compaiono.
 - **Da pubblicare**: prima le funzioni (`portale-lab-percorso`, `portale-lab-schede`), poi l'app. Con le funzioni di prima «Modifica» dice
-  che non è ancora possibile e «Rigenera» non riesce. **Non pubblicato**: si aspetta il via di Maurizio.
+  che non è ancora possibile e «Rigenera» non riesce. **Le funzioni sono pubblicate** (05/11/2026 sera, col via di Maurizio: `CLAUDE.md` di APP-ATHLON); l'app esce con il merge di questo ramo.
 
 Per verificare: `tsc` con gli stessi 94 errori di `main` (nomi che differiscono solo per le maiuscole), nessuno nei file toccati. **Guardato in
 un browser** (05/11/2026: bundle web esportato con `EXPO_PUBLIC_SUPABASE_URL` locale e un server finto al posto delle funzioni): a 390 px, tema
