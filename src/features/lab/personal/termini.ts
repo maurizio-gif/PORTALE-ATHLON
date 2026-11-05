@@ -1,13 +1,13 @@
 // La sezione 9 dei «Termini e Condizioni Generali» (Abbonamenti aggiuntivi: personal), mostrata nel foglio
 // dell'Abbonamento PT (21/10/2026, richiesta di Maurizio). **E' testo di contratto: copiato alla lettera** da
-// `src/data/termini.json` del sito (SITO-ATHLON, documento «Termini e Condizioni Athlon Club — Aprile 2026»), che e' la
+// `src/data/termini.json` del sito (SITO-ATHLON, «Termini e Condizioni Athlon Club», versione Novembre 2026), che e' la
 // fonte e lo pubblica su /regolamento. Non si riscrive a pezzi: se il sito cambia la sezione 9, si ricopia da li'.
 // Non si legge dal sito a ogni apertura perche' il catalogo pubblico (`/contratto-abbonamento.json`) porta solo le
 // sezioni 1, 2, 3 e 7.
 
 import { tv } from '../../../lib/lingua'
 
-export const VERSIONE_TERMINI_PERSONAL = 'Aprile 2026'
+export const VERSIONE_TERMINI_PERSONAL = 'Novembre 2026'
 
 /**
  * Il testo del contratto non si traduce: in inglese, accanto all'estratto, si dice che i termini sono solo in italiano.
@@ -35,7 +35,7 @@ export const SEZIONE_9 = {
       id: '9.3',
       titolo: 'Disdetta',
       testo:
-        'per annullare il rinnovo automatico dell’abbonamento è possibile effettuare la disdetta direttamente dalla propria area riservata cliccando su > Abbonamenti > Disdici Rinnovo Automatico. La disdetta può essere effettuata almeno 10 giorni prima del successivo ciclo di pagamento NB 10 giorni equivalgono a 240 ore prima della mezzanotte del 1 giorno del mese. ● Mese con 31 Giorni la disdetta va effettuata entro la mezzanotte del 21 ● Mese con 30 Giorni la disdetta va effettuata entro la mezzanotte del 20 ● Mese con 28 Giorni la disdetta va effettuata entro la mezzanotte del 18 In caso di disdetta e successiva iscrizione si sarà tenuti al pagamento di una nuova quota di attivazione e alle nuove condizioni contrattuali del momento',
+        'per annullare il rinnovo automatico dell’abbonamento è possibile effettuare la disdetta con una richiesta dall’app Athlon Club (Richiedi assistenza › Scrivi al team). La disdetta può essere effettuata almeno 10 giorni prima del successivo ciclo di pagamento NB 10 giorni equivalgono a 240 ore prima della mezzanotte del 1 giorno del mese. ● Mese con 31 Giorni la disdetta va effettuata entro la mezzanotte del 21 ● Mese con 30 Giorni la disdetta va effettuata entro la mezzanotte del 20 ● Mese con 28 Giorni la disdetta va effettuata entro la mezzanotte del 18 In caso di disdetta e successiva iscrizione si sarà tenuti al pagamento di una nuova quota di attivazione e alle nuove condizioni contrattuali del momento',
     },
     {
       id: '9.4',
