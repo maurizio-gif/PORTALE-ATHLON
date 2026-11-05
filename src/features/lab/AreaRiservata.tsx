@@ -450,7 +450,7 @@ export function AreaRiservata({ email }: { email: string }) {
           nota:
             inCorsoBanca.length === 1
               ? inCorsoBanca[0].scadenza
-                ? t(`${soldi(inCorsoBanca[0].importo)} · addebito ${dataCorta(inCorsoBanca[0].scadenza)}`, `${soldi(inCorsoBanca[0].importo)} · debit ${dataCorta(inCorsoBanca[0].scadenza)}`)
+                ? t(`addebito previsto ${dataCorta(inCorsoBanca[0].scadenza)} · ${soldi(inCorsoBanca[0].importo)}`, `debit expected ${dataCorta(inCorsoBanca[0].scadenza)} · ${soldi(inCorsoBanca[0].importo)}`)
                 : t(`${soldi(inCorsoBanca[0].importo)} in pagamento`, `${soldi(inCorsoBanca[0].importo)} being paid`)
               : t(`${inCorsoBanca.length} pagamenti · ${soldi(inCorsoBanca.reduce((tot, m) => tot + m.importo, 0))}`, `${inCorsoBanca.length} payments · ${soldi(inCorsoBanca.reduce((tot, m) => tot + m.importo, 0))}`),
           allerta: 'attenzione',

@@ -19,7 +19,7 @@ import { Tocco } from '../ui/Tocco'
 import { apriPagamento } from '@/lib/pagamentoEsterno'
 import { passaDalTotem } from '@/features/lab/totem/passaggio'
 
-import { pagamentiInCorso, senzaInCorso } from './inCorso'
+import { giornoLungo, pagamentiInCorso, senzaInCorso, statoInCorso } from './inCorso'
 
 // I pagamenti veri del socio e della famiglia (15/10/2026), da PerfectGym:
 // le quote scadute da saldare, i prossimi pagamenti e lo storico, ognuno col
@@ -86,7 +86,10 @@ export function useMovimenti() {
 function RigaMovimento({ m, prima, onPress }: { m: Movimento; prima: boolean; onPress?: () => void }) {
   const p = usePalette()
   const e = ESITI[m.esito]
-  const sotto = [m.per ? t(`per ${m.per}`, `for ${m.per}`) : null, m.voci[0]?.dettaglio, m.metodo].filter(Boolean).join(' · ')
+  // Un pagamento in corso dice il suo stato al posto del metodo: «Addebito previsto per lunedì 9 novembre». Il metodo sta nel dettaglio.
+  const sotto = (m.esito === 'in_corso' && m.scadenza ? [m.per ? t(`per ${m.per}`, `for ${m.per}`) : null, statoInCorso(m)] : [m.per ? t(`per ${m.per}`, `for ${m.per}`) : null, m.voci[0]?.dettaglio, m.metodo])
+    .filter(Boolean)
+    .join(' · ')
   return (
     <Riga
       prima={prima}
@@ -99,7 +102,7 @@ function RigaMovimento({ m, prima, onPress }: { m: Movimento; prima: boolean; on
         <View style={{ alignItems: 'flex-end', gap: 2 }}>
           <Text style={[stili.importo, { color: m.esito === 'rimborso' ? p.blu : p.testo }]}>{`${m.esito === 'rimborso' ? '+' : ''}${soldi(m.importo)}`}</Text>
           <Text style={[stili.data, { color: p.testoTerzo }]}>
-            {m.esito === 'in_corso' && m.scadenza ? t(`addebito ${giorno(m.scadenza)}`, `debit ${giorno(m.scadenza)}`) : giorno(m.esito === 'da_pagare' ? m.scadenza : m.data)}
+            {m.esito === 'in_corso' && m.scadenza ? e.testo : giorno(m.esito === 'da_pagare' ? m.scadenza : m.data)}
           </Text>
         </View>
       }
@@ -148,7 +151,7 @@ function FoglioDettaglio({ scelto, onChiudi }: { scelto: Scelto; onChiudi: () =>
         // Un SEPA in corso ha due date: quando e' stato autorizzato e il giorno in cui la banca addebita.
         ...(scelto.m.esito === 'in_corso' && scelto.m.scadenza
           ? ([
-              [t('Addebito previsto', 'Debit expected'), giorno(scelto.m.scadenza, true)],
+              [t('Addebito previsto', 'Debit expected'), giornoLungo(scelto.m.scadenza, true)],
               [t('Autorizzato il', 'Authorised on'), giorno(scelto.m.data, true)],
             ] as [string, string][])
           : ([[scelto.m.esito === 'da_pagare' ? t('Scadenza', 'Due date') : t('Data', 'Date'), giorno(scelto.m.esito === 'da_pagare' ? scelto.m.scadenza : scelto.m.data, true)]] as [string, string][])),
@@ -158,7 +161,7 @@ function FoglioDettaglio({ scelto, onChiudi }: { scelto: Scelto; onChiudi: () =>
       ]
   const importo = futuro ? scelto.q.importo : scelto.m.importo
   return (
-    <Foglio aperto titolo={titolo} sottotitolo={futuro ? t('Prossimo pagamento', 'Next payment') : ESITI[scelto.m.esito].testo} onChiudi={onChiudi}>
+    <Foglio aperto titolo={titolo} sottotitolo={futuro ? t('Prossimo pagamento', 'Next payment') : scelto.m.esito === 'in_corso' ? statoInCorso(scelto.m) : ESITI[scelto.m.esito].testo} onChiudi={onChiudi}>
       <View style={{ gap: spazio.tre }}>
         <View style={{ alignItems: 'center', paddingVertical: spazio.due }}>
           <Numero valore={importo.toLocaleString(locale(), { minimumFractionDigits: 2, maximumFractionDigits: 2 })} unita="€" size={44} colore={!futuro && scelto.m.esito === 'da_pagare' ? p.errore : p.testo} />

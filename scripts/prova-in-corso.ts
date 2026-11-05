@@ -7,7 +7,8 @@
 //   npx tsx scripts/prova-in-corso.ts
 import assert from 'node:assert/strict'
 
-import { eInCorso, GIORNI_IN_CORSO, pagamentiInCorso, senzaInCorso } from '../src/features/lab/pagamenti/inCorso.ts'
+import { impostaLingua } from '../src/lib/lingua'
+import { eInCorso, giornoLungo, GIORNI_IN_CORSO, pagamentiInCorso, senzaInCorso, statoInCorso } from '../src/features/lab/pagamenti/inCorso.ts'
 
 const ADESSO = Date.parse('2026-11-06T09:00:00+01:00')
 const GIORNO = 24 * 60 * 60 * 1000
@@ -102,6 +103,22 @@ prova('l’elenco in ingresso non si modifica', () => {
   const copia = storico.map((m) => m.id)
   pagamentiInCorso(storico, ADESSO)
   assert.deepEqual(storico.map((m) => m.id), copia)
+})
+
+prova('lo stato di un SEPA in corso dice il giorno dell’addebito per esteso, in italiano e in inglese', () => {
+  impostaLingua('it')
+  assert.equal(giornoLungo('2026-11-09'), 'lunedì 9 novembre')
+  assert.equal(giornoLungo('2026-11-09', true), 'lunedì 9 novembre 2026')
+  assert.equal(statoInCorso(sepa), 'Addebito previsto per lunedì 9 novembre')
+  impostaLingua('en')
+  assert.match(statoInCorso(sepa), /^Debit expected on Monday,? (9 November|November 9)/)
+  impostaLingua('it')
+})
+
+prova('senza il giorno dell’addebito lo stato dice solo «In corso», e non inventa una data', () => {
+  const senza = riga('pg-7', { scadenza: null })
+  assert.equal(statoInCorso(senza), 'In corso')
+  assert.ok(!/previsto/i.test(statoInCorso(senza)))
 })
 
 console.log(`\n${n} gruppi di prove passati`)

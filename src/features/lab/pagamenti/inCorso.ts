@@ -1,4 +1,5 @@
 import type { Movimento } from '@/api/lab'
+import { locale, t } from '@/lib/lingua'
 
 // I pagamenti «in corso» che la sezione Pagamenti della Home mette in vista (05/11/2026, richiesta di Maurizio): un addebito SEPA
 // che la banca non ha ancora confermato — le gare del Trofeo Athlon, ma anche un SEPA di PerfectGym — e che per giorni non è
@@ -41,4 +42,15 @@ export function pagamentiInCorso(storico: Movimento[], adesso: number = Date.now
 /** Lo storico senza i pagamenti in corso: sono già nel loro riquadro, e fra gli «effettuati» ci vanno quando la banca li conferma. */
 export function senzaInCorso(storico: Movimento[], adesso: number = Date.now()): Movimento[] {
   return storico.filter((m) => !eInCorso(m, adesso))
+}
+
+/** «lunedì 9 novembre»: il giorno in cui la banca addebita, per esteso, all'ora di Roma. */
+export function giornoLungo(iso: string, conAnno = false): string {
+  const d = new Date(iso.length === 10 ? `${iso}T12:00:00` : iso)
+  return d.toLocaleDateString(locale(), { weekday: 'long', day: 'numeric', month: 'long', ...(conAnno ? { year: 'numeric' } : {}), timeZone: 'Europe/Rome' })
+}
+
+/** Lo stato di un pagamento in corso, in una riga: «Addebito previsto per lunedì 9 novembre», o «In corso» se la banca non ci ha dato un giorno. */
+export function statoInCorso(m: Movimento): string {
+  return m.scadenza ? t(`Addebito previsto per ${giornoLungo(m.scadenza)}`, `Debit expected on ${giornoLungo(m.scadenza)}`) : t('In corso', 'In progress')
 }
