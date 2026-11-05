@@ -226,13 +226,28 @@ export function ProvaPagamento() {
     carica()
   }, [carica])
 
-  // Finche' qualche addebito aspetta l'esito, si rilegge ogni 5 secondi: il
-  // webhook di Adyen arriva dopo il browser.
+  // Finche' qualche addebito aspetta l'esito, si rilegge: il webhook di Adyen arriva dopo il browser. Ogni 5 secondi i primi
+  // giri, poi sempre piu' di rado (10, 20, 30 s) e al massimo per dieci minuti (05/11/2026): prima era ogni 5 secondi senza
+  // fine, e un addebito SEPA resta «in corso» per giorni, quindi una schermata lasciata aperta chiamava il server per sempre.
   const inAttesa = dati?.abbonamenti.some((a) => a.pagamenti.some((x) => STATI_IN_CORSO.includes(x.stato))) ?? false
   useEffect(() => {
     if (!inAttesa || checkout) return
-    const t = setInterval(carica, 5000)
-    return () => clearInterval(t)
+    const inizio = Date.now()
+    let giro = 0
+    let t: ReturnType<typeof setTimeout> | null = null
+    const prossimo = () => {
+      if (Date.now() - inizio > 10 * 60_000) return
+      const attesa = Math.min(30_000, 5_000 * 2 ** Math.floor(giro / 3))
+      t = setTimeout(async () => {
+        giro++
+        await carica()
+        prossimo()
+      }, attesa)
+    }
+    prossimo()
+    return () => {
+      if (t) clearTimeout(t)
+    }
   }, [inAttesa, checkout, carica])
 
   async function scegli(piano: PianoLab) {
