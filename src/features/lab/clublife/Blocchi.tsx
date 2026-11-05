@@ -1,8 +1,12 @@
+import { useEventListener } from 'expo'
 import { Image } from 'expo-image'
-import { createContext, useContext, useState } from 'react'
+import { useIsFocused } from 'expo-router'
+import { useVideoPlayer, VideoView } from 'expo-video'
+import { createContext, useContext, useEffect, useRef, useState } from 'react'
 import { Platform, ScrollView, StyleSheet, Text, View, type StyleProp, type TextStyle } from 'react-native'
 
-import type { Blocco, ClubLife, Inline, TipoModulo } from '@/api/clubLife'
+import type { Blocco, Clip, ClubLife, Inline, TipoModulo } from '@/api/clubLife'
+import { useWindowDimensions } from '@/lib/finestra'
 import { t } from '@/lib/lingua'
 import { spazio } from '@/theme'
 
@@ -17,7 +21,8 @@ import { moduloAperto, useProfilo, type ProfiloSocio } from './moduli/profilo'
 // coi mattoni dell'app. I blocchi li ricava il sito dalla sua pagina
 // (data/blocchi.ts), quindi qui si dice la stessa cosa nella stessa struttura:
 // le domande dell'Help Desk restano fisarmoniche, i riquadri restano riquadri, le
-// tabelle scorrono di lato invece di stringersi fino a non leggersi.
+// tabelle scorrono di lato invece di stringersi fino a non leggersi, le video
+// guide partono al tocco.
 
 const ContestoBlocchi = createContext<{ dati: ClubLife | null; profilo: ProfiloSocio | null }>({ dati: null, profilo: null })
 
@@ -130,6 +135,70 @@ function Foto({ src, alt }: { src: string; alt: string }) {
   )
 }
 
+/** Sotto questa larghezza (un telefono, o la colonna stretta del web) si mostra il taglio verticale, se c'e'. */
+const LARGHEZZA_ALTO = 700
+
+/** Il video gia' avviato: il lettore si crea solo qui, cosi' chi non tocca la copertina non scarica niente. */
+function Lettore({ clip }: { clip: Clip }) {
+  const inPrimoPiano = useIsFocused()
+  const partito = useRef(false)
+  const player = useVideoPlayer(clip.src, (v) => {
+    v.loop = false
+    v.play()
+  })
+  // Sul web il play() della preparazione arriva prima del <video> e si perde: si riparte quando e' pronto, una volta sola
+  // (una pausa data dopo resta pausa).
+  useEventListener(player, 'statusChange', ({ status }) => {
+    if (status !== 'readyToPlay' || partito.current) return
+    partito.current = true
+    if (!player.playing) player.play()
+  })
+  // Si ferma quando si passa a un'altra schermata (tornando indietro la scheda si chiude e il lettore se ne va con lei).
+  useEffect(() => {
+    if (!inPrimoPiano) player.pause()
+  }, [player, inPrimoPiano])
+  // Larghezza e altezza scritte: sul web, con il solo absoluteFill, il <video> prende la sua misura vera e esce dalla cornice.
+  return <VideoView player={player} style={[StyleSheet.absoluteFill, { width: '100%', height: '100%' }]} contentFit="contain" nativeControls allowsPictureInPicture={false} playsInline />
+}
+
+/**
+ * Una video guida dell'app (05/11/2026, le guide di Bragg): la copertina col tasto play, e al tocco il video con i comandi
+ * del sistema (pausa, avanti, schermo intero). Non parte da solo: e' una spiegazione da scegliere, non uno sfondo, e pesa
+ * 7-17 MB. Sul telefono, se la scheda ha anche il taglio verticale, si vede quello, piu' stretto su uno schermo largo.
+ */
+function Guida({ titolo, largo, alto }: { titolo: string; largo: Clip; alto: Clip | null }) {
+  const p = usePalette()
+  const { width } = useWindowDimensions()
+  const [avviato, setAvviato] = useState(false)
+  const clip = alto && (Platform.OS !== 'web' || width < LARGHEZZA_ALTO) ? alto : largo
+  const verticale = clip.altezza > clip.larghezza
+  return (
+    <View style={{ gap: spazio.due }}>
+      <View
+        style={[
+          stili.video,
+          { aspectRatio: clip.larghezza / clip.altezza, backgroundColor: p.incavo },
+          verticale && { maxWidth: 420, alignSelf: 'center' },
+        ]}
+      >
+        {avviato ? (
+          <Lettore key={clip.src} clip={clip} />
+        ) : (
+          <Tocco onPress={() => setAvviato(true)} etichetta={titolo || t('Avvia il video', 'Play the video')} scala={0.99} vibra="leggero" style={StyleSheet.absoluteFill}>
+            {clip.poster ? <Image source={{ uri: clip.poster }} style={StyleSheet.absoluteFill} contentFit="cover" transition={200} /> : null}
+            <View style={stili.videoPlay}>
+              <View style={[stili.videoTasto, { backgroundColor: p.accento }]}>
+                <Icona nome="riproduci" size={26} colore="#fff" />
+              </View>
+            </View>
+          </Tocco>
+        )}
+      </View>
+      {titolo ? <Text style={[stili.piccolo, { color: p.testoSecondario }]}>{titolo}</Text> : null}
+    </View>
+  )
+}
+
 function Codice({ etichetta: nome, codice }: { etichetta: string; codice: string }) {
   const p = usePalette()
   const [copiato, setCopiato] = useState(false)
@@ -237,6 +306,8 @@ function UnBlocco({ b }: { b: Blocco }) {
       return <Codice etichetta={b.etichetta} codice={b.codice} />
     case 'immagine':
       return <Foto src={b.src} alt={b.alt} />
+    case 'video':
+      return <Guida titolo={b.titolo} largo={b.largo} alto={b.alto} />
     case 'separatore':
       return <View style={{ height: StyleSheet.hairlineWidth, backgroundColor: p.linea, marginVertical: spazio.uno }} />
     case 'modulo':
@@ -291,6 +362,9 @@ const stili = StyleSheet.create({
   rigaTabella: { flexDirection: 'row' },
   cella: { paddingHorizontal: spazio.tre - 4, paddingVertical: spazio.due + 2 },
   cellaTesto: { fontFamily: F.medio, fontSize: 14, lineHeight: 20 },
+  video: { width: '100%', borderRadius: raggio.medio, overflow: 'hidden' },
+  videoPlay: { ...StyleSheet.absoluteFill, alignItems: 'center', justifyContent: 'center' },
+  videoTasto: { width: 64, height: 64, borderRadius: 32, alignItems: 'center', justifyContent: 'center' },
   codice: { gap: spazio.due, alignItems: 'flex-start' },
   codiceNome: { fontFamily: F.extra, fontSize: 11.5, letterSpacing: 1.4 },
   codiceValore: { fontFamily: F.extra, fontSize: 26, letterSpacing: 0.5 },
