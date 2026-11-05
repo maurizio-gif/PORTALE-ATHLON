@@ -33,9 +33,11 @@ function figlioJunior(area: Extract<Area, { trovato: true }>): { nome: string | 
 
 export function CartaJunior({ area }: { area: Extract<Area, { trovato: true }> }) {
   const figlio = figlioJunior(area)
+  // I gruppi si pre-caricano solo per chi ha un figlio in eta' junior: per tutti gli altri era una funzione in piu' a ogni
+  // apertura della Home (05/11/2026), e la sezione Junior li legge da se' quando si apre.
   useEffect(() => {
-    precarica(CHIAVE_GRUPPI_JUNIOR, gruppiJunior)
-  }, [])
+    if (figlio) precarica(CHIAVE_GRUPPI_JUNIOR, gruppiJunior)
+  }, [figlio !== null])
   const nome = figlio?.nome ? figlio.nome.charAt(0).toUpperCase() + figlio.nome.slice(1).toLowerCase() : null
   const sotto = figlio
     ? t(
