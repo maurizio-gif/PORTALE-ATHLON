@@ -94,6 +94,10 @@ export type NuovoComponente = {
   nascita: string;
   codice_fiscale: string;
   tutore: boolean;
+  /** Il livello in acqua (05/11/2026): solo da tre anni in su, tutte e tre insieme. */
+  ha_frequentato?: boolean;
+  sa_nuotare?: boolean;
+  stile_libero?: boolean;
 };
 
 /**
