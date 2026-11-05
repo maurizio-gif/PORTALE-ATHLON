@@ -3,7 +3,7 @@ import { Linking, StyleSheet, Text, View } from 'react-native'
 import Animated, { FadeInRight } from 'react-native-reanimated'
 
 import { esci } from '@/api/lab'
-import { completaProfilo, type CampoIngresso, type StatoIngresso } from '@/api/registrazione'
+import { completaProfilo, inviaCodiceSms, verificaCodiceSms, type CampoIngresso, type StatoIngresso } from '@/api/registrazione'
 import { Casella } from '@/components/Casella'
 import { CampoData } from '@/components/CampoData'
 import { CampoTelefono } from '@/components/CampoTelefono'
@@ -31,6 +31,9 @@ import { colpetto, Tocco } from '../ui/Tocco'
 //
 // **Gia' dei nostri con un altro indirizzo** (`somiglianza`): la funzione non crea un doppione e la segreteria collega questo indirizzo alla scheda vera.
 // Il messaggio e' quello della funzione; il pulsante porta a entrare con l'altro indirizzo, per chi lo usa ancora.
+// **Con il codice via SMS** (05/11/2026, `portale-registrazione` azioni `sms_invia` e `sms_verifica`, quando la funzione lo offre con `sms.finale`):
+// la persona chiede un codice al cellulare della scheda trovata (vede solo le ultime due cifre), lo scrive, e il suo indirizzo e' collegato alla scheda:
+// e' dentro, senza aspettare la segreteria. «Il numero non è più mio» torna al messaggio di sempre.
 
 export function CompletaProfilo({
   campi: iniziali,
@@ -55,6 +58,8 @@ export function CompletaProfilo({
   const [segreteria, setSegreteria] = useState(daSegreteria)
   /** Il messaggio della funzione quando la persona e' gia' del club con un altro indirizzo. */
   const [giaNostro, setGiaNostro] = useState<string | null>(null)
+  /** Le ultime due cifre del cellulare della scheda, se la funzione offre il codice via SMS. */
+  const [smsFinale, setSmsFinale] = useState<string | null>(null)
 
   const oggi = new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Rome' })
   const resto = campi.filter((c) => c !== 'nascita')
@@ -79,7 +84,10 @@ export function CompletaProfilo({
     }
     colpetto('errore')
     if (r.minorenne) return setMinorenne(true)
-    if (r.somiglianza) return setGiaNostro(r.errore)
+    if (r.somiglianza) {
+      setSmsFinale(r.sms?.finale ?? null)
+      return setGiaNostro(r.errore)
+    }
     if (r.verifica) return setSegreteria(true)
     if (r.serve) {
       // La funzione dice che ora servono altri dati (la scheda e' cambiata nel frattempo): si ricomincia da quelli.
@@ -102,10 +110,16 @@ export function CompletaProfilo({
     return (
       <Schermata titolo={t('Profilo', 'Profile')} nascondiTitolo barra={false} sopra={<Testata fase="profilo" titolo={t('Sei già\ndei nostri', 'You’re already\none of us')} sotto={t('Colleghiamo noi questo indirizzo al tuo profilo.', 'We’ll link this address to your profile.')} />}>
         <Carta style={stili.modulo}>
-          <Messaggio tono="ok" titolo={t('Non serve un nuovo profilo', 'No new profile needed')}>
-            {giaNostro}
-          </Messaggio>
-          <Pulsante testo={t('Entra con l’altro indirizzo', 'Sign in with the other address')} variante="secondario" onPress={esci} />
+          {smsFinale ? (
+            <CollegaConSms finale={smsFinale} onFatto={onFatto} onNonMio={() => setSmsFinale(null)} />
+          ) : (
+            <>
+              <Messaggio tono="ok" titolo={t('Non serve un nuovo profilo', 'No new profile needed')}>
+                {giaNostro}
+              </Messaggio>
+              <Pulsante testo={t('Entra con l’altro indirizzo', 'Sign in with the other address')} variante="secondario" onPress={esci} />
+            </>
+          )}
         </Carta>
       </Schermata>
     )
@@ -183,7 +197,91 @@ export function CompletaProfilo({
   )
 }
 
+/**
+ * Il collegamento con il codice via SMS (05/11/2026): prima la proposta, poi il campo del codice. Il numero si vede solo con le ultime due cifre, ed
+ * e' quello della scheda del club, non quello scritto qui.
+ */
+function CollegaConSms({ finale, onFatto, onNonMio }: { finale: string; onFatto: () => void; onNonMio: () => void }) {
+  const p = usePalette()
+  const [inviato, setInviato] = useState(false)
+  const [codice, setCodice] = useState('')
+  const [attesa, setAttesa] = useState(false)
+  const [errore, setErrore] = useState<string | null>(null)
+  const numero = `••${finale}`
+
+  async function invia() {
+    setErrore(null)
+    setAttesa(true)
+    const r = await inviaCodiceSms()
+    setAttesa(false)
+    if (!r.ok) {
+      colpetto('errore')
+      return setErrore(r.errore)
+    }
+    colpetto('ok')
+    setCodice('')
+    setInviato(true)
+  }
+
+  async function verifica() {
+    setErrore(null)
+    const c = codice.replace(/\D/g, '')
+    if (c.length !== 6) return setErrore(t('Il codice ha sei cifre.', 'The code has six digits.'))
+    setAttesa(true)
+    const r = await verificaCodiceSms(c)
+    setAttesa(false)
+    if (!r.ok) {
+      colpetto('errore')
+      return setErrore(r.errore)
+    }
+    colpetto('ok')
+    onFatto()
+  }
+
+  if (!inviato) {
+    return (
+      <View style={{ gap: spazio.tre }}>
+        <Messaggio tono="ok" titolo={t('Collega questo indirizzo al tuo profilo', 'Link this address to your profile')}>
+          {t(
+            `Hai già un profilo al club. Ti mandiamo un codice via SMS al numero del tuo profilo, quello che finisce per ${numero}: scrivilo qui e da adesso entri con questo indirizzo.`,
+            `You already have a club profile. We’ll text a code to the number on your profile, the one ending in ${numero}: enter it here and from now on you sign in with this address.`,
+          )}
+        </Messaggio>
+        {errore ? <Messaggio>{errore}</Messaggio> : null}
+        <Pulsante testo={t(`Mandami il codice al ${numero}`, `Text the code to ${numero}`)} inCorso={attesa} onPress={invia} />
+        <Pulsante testo={t('Il numero non è più mio', 'That number isn’t mine anymore')} variante="fantasma" onPress={onNonMio} />
+      </View>
+    )
+  }
+
+  return (
+    <View style={{ gap: spazio.tre }}>
+      <Text style={[stili.testoSms, { color: p.testoSecondario }]}>
+        {t(`Ti abbiamo mandato un codice di sei cifre al numero che finisce per ${numero}. Vale 10 minuti.`, `We’ve texted a six-digit code to the number ending in ${numero}. It’s valid for 10 minutes.`)}
+      </Text>
+      <CampoTesto
+        etichetta={t('Codice', 'Code')}
+        icona="lucchetto"
+        value={codice}
+        onChangeText={(v) => setCodice(v.replace(/\D/g, '').slice(0, 6))}
+        keyboardType="number-pad"
+        inputMode="numeric"
+        autoComplete="sms-otp"
+        textContentType="oneTimeCode"
+        maxLength={6}
+        placeholder="123456"
+        errore={!!errore}
+      />
+      {errore ? <Messaggio>{errore}</Messaggio> : null}
+      <Pulsante testo={t('Collega ed entra', 'Link and sign in')} inCorso={attesa} disabilitato={codice.length !== 6} onPress={verifica} />
+      <Pulsante testo={t('Mandamelo di nuovo', 'Send it again')} variante="fantasma" disabilitato={attesa} onPress={invia} />
+      <Pulsante testo={t('Il numero non è più mio', 'That number isn’t mine anymore')} variante="fantasma" onPress={onNonMio} />
+    </View>
+  )
+}
+
 const stili = StyleSheet.create({
+  testoSms: { fontFamily: F.normale, fontSize: 15, lineHeight: 22 },
   modulo: { marginTop: -64, padding: spazio.quattro - 2, gap: spazio.tre + 4 },
   nota: { fontSize: 14.5, lineHeight: 21, fontFamily: F.medio },
 })
