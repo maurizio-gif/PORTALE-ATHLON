@@ -2,6 +2,8 @@ import { Image } from 'expo-image'
 import { LinearGradient } from 'expo-linear-gradient'
 import { router } from 'expo-router'
 import { useLocalSearchParams } from 'expo-router'
+import { apriAssistente } from './assistente/store'
+import { vistaCorrente } from './vista'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Platform, StyleSheet, Text, View, type ScrollView } from 'react-native'
 import { useWindowDimensions } from '@/lib/finestra'
@@ -259,7 +261,26 @@ export function AreaRiservata({ email }: { email: string }) {
   const documenti = useDocumenti()
   const prodotti = useProdotti()
   const tesseramenti = useTesseramenti()
-  const { sezione: parametro } = useLocalSearchParams<{ sezione?: string }>()
+  const { sezione: parametro, assistenza } = useLocalSearchParams<{ sezione?: string; assistenza?: string }>()
+
+  // Dal link della chat del sito per chi e' iscritto (`entra?d=assistenza`, 05/11/2026): l'assistente si apre da solo, una volta, e il
+  // parametro si toglie (ricaricando non si riapre). Il pulsante dell'assistente sta nel layout e puo' registrarsi un attimo dopo:
+  // qualche tentativo, poi si lascia stare, come in Junior.
+  const assistenzaAperta = useRef(false)
+  useEffect(() => {
+    if (assistenza !== '1' || assistenzaAperta.current || vistaCorrente()) return
+    assistenzaAperta.current = true
+    let tentativi = 0
+    const prova = () => {
+      if (apriAssistente('home') || ++tentativi >= 10) {
+        router.setParams({ assistenza: undefined })
+        return
+      }
+      timer = setTimeout(prova, 300)
+    }
+    let timer = setTimeout(prova, 400)
+    return () => clearTimeout(timer)
+  }, [assistenza])
   // Il Tesseramento c'e' solo se nel nucleo c'e' una tessera attiva: finche' non si sa, o se non
   // c'e', il riquadro non compare e un indirizzo che lo chiede porta alla sezione iniziale.
   const conTessera = (tesseramenti?.length ?? 0) > 0

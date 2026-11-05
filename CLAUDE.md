@@ -175,3 +175,4 @@ chiamata diretta al gestionale. Esempio: la sezione Prodotti usa l'azione `prodo
 - [Il soggetto pagatore sulle ricevute dei figli: nel salvataggio del metodo di pagamento e «Cambia soggetto pagatore» in Documenti (05/11/2026)](docs/claude/137-soggetto-pagatore-sulle-ricevute-05-11-2026.md) · 5 KB
 - [Go-live: la memoria del laboratorio ha una freschezza, e le sezioni della Home non rileggono a ogni apertura (05/11/2026)](docs/claude/138-go-live-memoria-con-freschezza-05-11-2026.md) · 2 KB
 - [«Completa il profilo» con i dati già scritti, e «Sei già dei nostri» al posto della segreteria (05/11/2026)](docs/claude/139-completa-il-profilo-gia-scritto-e-gia-dei-nostri-05-11-2026.md) · 1 KB
+- [«Entra» con la destinazione `assistenza`: la Home con l'assistente aperto, per l'iscritto che scrive nella chat del sito (05/11/2026)](docs/claude/140-entra-assistenza-home-con-l-assistente-05-11-2026.md) · 1 KB
