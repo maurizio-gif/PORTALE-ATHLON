@@ -47,13 +47,24 @@ export function notificheSpente(): boolean {
 
 let inVolo: Promise<void> | null = null
 
+// Dopo un errore del server o della rete il giro non insiste (05/11/2026): un minuto, poi due, quattro, fino a dieci. Con
+// migliaia di app aperte, un server in difficolta' riceveva ogni minuto le stesse richieste da tutti nello stesso momento.
+let erroriDiFila = 0
+let riprovaDa = 0
+function rinvia() {
+  erroriDiFila = Math.min(erroriDiFila + 1, 4)
+  riprovaDa = Date.now() + 60_000 * 2 ** (erroriDiFila - 1)
+}
+
 /** Rilegge cosa c'e' di nuovo. Una richiesta sola alla volta; non solleva mai. */
 export function rileggi(): Promise<void> {
   if (stato.spento) return Promise.resolve()
   if (inVolo) return inVolo
+  if (Date.now() < riprovaDa) return Promise.resolve()
   inVolo = leggiNuove()
     .then((r) => {
       if (r.ok) {
+        erroriDiFila = 0
         // **La coda delle finestre non si rimpiazza, si allunga**: quella che la persona sta leggendo e' gia' `vista` per il
         // server, che alla risposta dopo non la ridara' piu'; rimpiazzare la coda la farebbe sparire sotto gli occhi.
         // Si aggiunge solo cio' che non e' ne' in coda ne' gia' comparso.
@@ -64,9 +75,10 @@ export function rileggi(): Promise<void> {
         // inutile richiedere ogni minuto.
         imposta({ ...VUOTO, spento: true })
       }
-      // Rete assente o errore del server: resta quello che si sapeva, e si riprova al giro dopo.
+      else rinvia()
+      // Rete assente o errore del server: resta quello che si sapeva, e si riprova piu' avanti.
     })
-    .catch(() => undefined)
+    .catch(() => rinvia())
     .finally(() => {
       inVolo = null
     })
