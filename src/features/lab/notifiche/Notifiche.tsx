@@ -10,16 +10,18 @@ import { notificheSpente, rileggi, useNotifiche } from './store'
 //
 // Chiede cosa c'e' di nuovo (`rileggi`) in quattro momenti:
 //   - appena l'app e' aperta;
-//   - **ogni venti secondi** mentre e' in primo piano: e' cosi' che una notifica appena mandata dal CRM compare come finestra
-//     «subito» (entro venti secondi) anche a chi non ha attivato la push. Ferma quando l'app e' in secondo piano;
+//   - **ogni minuto** mentre e' in primo piano: e' cosi' che una notifica appena mandata dal CRM compare come finestra
+//     anche a chi non ha attivato la push (entro un minuto). Ferma quando l'app e' in secondo piano. Era ogni venti
+//     secondi fino al 05/11/2026: con migliaia di soci in primo piano erano cento richieste al secondo, la cosa piu'
+//     pesante che il portale facesse; chi ha la push attiva la finestra la vede subito comunque (`notifica-arrivata`);
 //   - quando si torna all'app dopo averla lasciata;
 //   - **subito** quando il service worker dice che e' arrivata una push (`notifica-arrivata`): e' il caso della finestra
 //     istantanea per chi ha la push attiva.
-// Se il server risponde «non per te» (403: non e' fra i tester) si smette: inutile richiedere ogni venti secondi.
+// Se il server risponde «non per te» (403: non e' fra i tester) si smette: inutile richiedere ogni minuto.
 //
 // **La finestra non copre l'avvio animato**: la prima non compare prima che l'avvio (3,25 secondi) sia finito.
 
-const OGNI_MS = 20_000
+const OGNI_MS = 60_000
 const PRIMA_MS = 800
 /** L'avvio animato dura 3,25 s (avvio/Avvio.tsx): la prima finestra aspetta che finisca, o gli starebbe sopra. */
 const ATTESA_AVVIO_MS = 3_700

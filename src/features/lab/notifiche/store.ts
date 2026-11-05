@@ -61,7 +61,7 @@ export function rileggi(): Promise<void> {
         imposta({ attivo: true, spento: false, nonLette: r.nonLette, finestre: [...stato.finestre, ...nuove] })
       } else if (r.stato === 401 || r.stato === 403 || r.stato === 404 || r.stato === 409) {
         // Non per questa persona (sessione scaduta, non e' fra i tester, nessuna scheda) o funzione non ancora pubblicata (404):
-        // inutile richiedere ogni venti secondi.
+        // inutile richiedere ogni minuto.
         imposta({ ...VUOTO, spento: true })
       }
       // Rete assente o errore del server: resta quello che si sapeva, e si riprova al giro dopo.
