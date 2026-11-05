@@ -7,7 +7,7 @@ import { problemaCodiceFiscale } from "@/lib/codiceFiscale";
 import { t } from "@/lib/lingua";
 import { spazio } from "@/theme";
 
-import { CampoTesto } from "../ui/Campi";
+import { CampoTesto, Scelte } from "../ui/Campi";
 import { Foglio } from "../ui/Foglio";
 import { Messaggio, Pulsante } from "../ui/kit";
 import { F, usePalette } from "../ui/tema";
@@ -20,6 +20,28 @@ import { Tocco } from "../ui/Tocco";
 // scheda su PerfectGym agganciata al titolare. Niente parte prima di «Aggiungi».
 
 const VUOTO = { nome: "", cognome: "", nascita: "", codice_fiscale: "" };
+
+// Il livello in acqua (05/11/2026, richiesta di Maurizio): le tre domande del modulo del sito, tutte obbligatorie, perche' la
+// segreteria e il Direttore Tecnico sappiano da dove parte il bambino. Si chiedono da tre anni in su (nati prima dei tre anni di
+// calendario, cioe' fuori dalle annate del Baby Nuoto, dove si entra in acqua col genitore e le domande non hanno senso). Le
+// risposte le salva `portale-lab-junior` e il CRM le mostra nella scheda del bambino.
+type Risposta = "si" | "no" | null;
+const LIVELLO_VUOTO: { ha_frequentato: Risposta; sa_nuotare: Risposta; stile_libero: Risposta } = {
+  ha_frequentato: null,
+  sa_nuotare: null,
+  stile_libero: null,
+};
+const DOMANDE_LIVELLO = [
+  { id: "ha_frequentato", it: "Ha mai frequentato un corso di nuoto?", en: "Has your child ever taken a swimming course?" },
+  { id: "sa_nuotare", it: "Sa nuotare senza ausili (braccioli, ciambella)?", en: "Can your child swim without aids (armbands, rubber ring)?" },
+  { id: "stile_libero", it: "Sa eseguire correttamente lo stile libero completo?", en: "Can your child swim full front crawl correctly?" },
+] as const;
+
+/** Le domande sul nuoto si fanno da tre anni di calendario in su (fuori dalle annate del Baby Nuoto). */
+export function chiedeLivello(nascita: string): boolean {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(nascita)) return false;
+  return Number(nascita.slice(0, 4)) <= Number(oggi().slice(0, 4)) - 3;
+}
 
 function oggi(): string {
   return new Date().toLocaleDateString("sv-SE", { timeZone: "Europe/Rome" });
@@ -43,6 +65,7 @@ export function FoglioComponente({
   const p = usePalette();
   const [d, setD] = useState(VUOTO);
   const [tutore, setTutore] = useState(false);
+  const [livello, setLivello] = useState(LIVELLO_VUOTO);
   const [errore, setErrore] = useState<string | null>(null);
   const [invio, setInvio] = useState(false);
 
@@ -51,7 +74,10 @@ export function FoglioComponente({
     /^\d{4}-\d{2}-\d{2}$/.test(d.nascita) && anni(d.nascita) >= 18
       ? t("Risulta maggiorenne: chi ha 18 anni entra nell’app con la sua email.", "This person is an adult: anyone 18 or over signs in to the app with their own email.")
       : null;
+  const conLivello = chiedeLivello(d.nascita);
+  const livelloCompleto = Object.values(livello).every((v) => v !== null);
   const pronto =
+    (!conLivello || livelloCompleto) &&
     !!d.nome.trim() &&
     !!d.cognome.trim() &&
     !!d.nascita &&
@@ -74,6 +100,13 @@ export function FoglioComponente({
       ...d,
       codice_fiscale: d.codice_fiscale.replace(/\s/g, "").toUpperCase(),
       tutore,
+      ...(conLivello
+        ? {
+            ha_frequentato: livello.ha_frequentato === "si",
+            sa_nuotare: livello.sa_nuotare === "si",
+            stile_libero: livello.stile_libero === "si",
+          }
+        : {}),
     });
     setInvio(false);
     if (!r.ok) {
@@ -82,6 +115,7 @@ export function FoglioComponente({
     }
     setD(VUOTO);
     setTutore(false);
+    setLivello(LIVELLO_VUOTO);
     onAggiunto(r.nome, r.nucleo);
   }
 
@@ -135,6 +169,27 @@ export function FoglioComponente({
       />
       {erroreEta ? <Messaggio tono="attenzione">{erroreEta}</Messaggio> : null}
       {erroreCf ? <Messaggio tono="attenzione">{erroreCf}</Messaggio> : null}
+
+      {conLivello ? (
+        <View style={stili.livello}>
+          <Text style={[stili.livelloTitolo, { color: p.testo }]}>
+            {t("Il suo livello in acqua", "Their level in the water")}
+          </Text>
+          {DOMANDE_LIVELLO.map((q) => (
+            <View key={q.id} style={stili.domanda}>
+              <Text style={[stili.domandaTesto, { color: p.testo }]}>{t(q.it, q.en)}</Text>
+              <Scelte
+                valori={[
+                  { valore: "si", testo: t("Sì", "Yes") },
+                  { valore: "no", testo: t("No", "No") },
+                ]}
+                scelto={livello[q.id]}
+                onScegli={(v) => setLivello((x) => ({ ...x, [q.id]: v }))}
+              />
+            </View>
+          ))}
+        </View>
+      ) : null}
 
       <Tocco
         onPress={() => setTutore((v) => !v)}
@@ -193,4 +248,8 @@ const stili = StyleSheet.create({
   spunta: { color: "#fff", fontSize: 14, fontFamily: F.extra, lineHeight: 16 },
   dichiarazione: { flex: 1, fontSize: 14, lineHeight: 20, fontFamily: F.semi },
   nota: { fontSize: 13, lineHeight: 19, fontFamily: F.medio },
+  livello: { gap: spazio.tre },
+  livelloTitolo: { fontSize: 15, lineHeight: 21, fontFamily: F.extra },
+  domanda: { gap: spazio.due },
+  domandaTesto: { fontSize: 14, lineHeight: 20, fontFamily: F.semi },
 });
