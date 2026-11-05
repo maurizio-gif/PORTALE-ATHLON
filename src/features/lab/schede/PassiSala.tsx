@@ -26,7 +26,7 @@ import { AnelloPassi } from './AnelloPassi'
 import { CHIAVE_ELENCO_PIANI } from './comune'
 import { MediaEsercizio } from './MediaEsercizio'
 import { useVideoCapacita } from './useVideoCapacita'
-import { Griglia, OpzioneCarta } from './PassiUI'
+import { contaPianoComposto, Griglia, NotaQuotaPiani, OpzioneCarta, pianiFiniti } from './PassiUI'
 import { aggiornaProfilo, daConsigli, daSala, daSalaCambiate, giaCercato, inSala, leggiProfilo, livelloDaSala, momentoDaVisiteAlPosto, profiloEffettivo, salaDaProfilo, segnaCercato, senzaToccate, soloMancanti, type CampoSala } from './profiloComune'
 import {
   accendi, CARDIO, DURATE_SALA, ESPERIENZE, eSalute, EVITA, FASCE, FOCUS, FOCUS_MAX, giorniConsigliati, giorniScelti, GIORNATE, INTENSITA, LIVELLI_PASSI, livelloDa, livelloScelto, nomeObiettivo, NESSUNO, OBIETTIVI, OBIETTIVO_SALUTE,
@@ -221,6 +221,7 @@ export function PassiSala({ dove, onDove, saltaDove, onVasca }: { dove: 'sala' |
       return setErrore(risposta.errore)
     }
     colpetto('ok')
+    contaPianoComposto()
     scartaBozza()
     mettiBozza(risposta.bozza)
     // Quello che ha confermato (non i fastidi) si ritrova nei Consigli, e in un piano di dopo.
@@ -432,6 +433,7 @@ export function PassiSala({ dove, onDove, saltaDove, onVasca }: { dove: 'sala' |
             ))}
           </Carta>
           {errore ? <Messaggio>{errore}</Messaggio> : null}
+          <NotaQuotaPiani />
           {/* La postilla: che dietro ci sia un'intelligenza artificiale si dice qui, in piccolo, e di nuovo sul piano composto. */}
           <Text style={[stili.piccola, { color: p.testoTerzo, textAlign: 'center' }]}>
             {t(
@@ -476,7 +478,7 @@ export function PassiSala({ dove, onDove, saltaDove, onVasca }: { dove: 'sala' |
               testo={ultimo ? t('Componi il mio piano', 'Build my plan') : t('Continua', 'Continue')}
               icona={ultimo ? 'peso' : undefined}
               onPress={ultimo ? invia : avanti}
-              disabilitato={!completo}
+              disabilitato={(ultimo && pianiFiniti()) || !completo}
             />
           </View>
         </View>

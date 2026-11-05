@@ -18,7 +18,7 @@ import { F, FUOCO, usePalette } from '../ui/tema'
 import { colpetto, Tocco } from '../ui/Tocco'
 import { AnelloPassi } from './AnelloPassi'
 import { STILI_ELENCO } from './nuoto'
-import { Griglia, OpzioneCarta } from './PassiUI'
+import { contaPianoComposto, Griglia, NotaQuotaPiani, OpzioneCarta, pianiFiniti } from './PassiUI'
 import { accendi, eSalute, NESSUNO } from './questionario'
 import {
   DISTANZE_VASCA, DURATE_VASCA, livelloVascaDa, livelloVascaScelto, LIVELLI_VASCA, OBIETTIVI_ACQUA, OBIETTIVO_ACQUA_SALUTE, passoVascaCompleto, PASSI_VASCA, puoComporreVasca, questionarioVascaDa,
@@ -150,6 +150,7 @@ export function PassiVasca({ saltaDove, onDove }: { saltaDove: boolean; onDove: 
       return setErrore(risposta.errore)
     }
     colpetto('ok')
+    contaPianoComposto()
     scartaBozza()
     mettiBozza(risposta.bozza)
     // Il piano e' composto: le risposte (con i fastidi) non servono piu'.
@@ -296,6 +297,7 @@ export function PassiVasca({ saltaDove, onDove }: { saltaDove: boolean; onDove: 
             ))}
           </Carta>
           {errore ? <Messaggio>{errore}</Messaggio> : null}
+          <NotaQuotaPiani />
           {/* La postilla: che dietro ci sia un'intelligenza artificiale si dice qui, in piccolo, e di nuovo sul piano composto. */}
           <Text style={[stili.piccola, { color: p.testoTerzo, textAlign: 'center' }]}>
             {t(
@@ -340,7 +342,7 @@ export function PassiVasca({ saltaDove, onDove }: { saltaDove: boolean; onDove: 
               testo={ultimo ? t('Componi il mio piano di nuoto', 'Build my swim plan') : t('Continua', 'Continue')}
               icona={ultimo ? 'goccia' : undefined}
               onPress={ultimo ? invia : avanti}
-              disabilitato={ultimo ? !puoComporreVasca(r) : !completo}
+              disabilitato={(ultimo && pianiFiniti()) || (ultimo ? !puoComporreVasca(r) : !completo)}
             />
           </View>
         </View>
