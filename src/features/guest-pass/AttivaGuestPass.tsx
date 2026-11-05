@@ -18,6 +18,7 @@ import { GuestPassAttivo } from '@/features/guest-pass/GuestPassAttivo'
 import { PerChi } from '@/features/guest-pass/PerChi'
 import { AttivitaComprese, PrezzoProva } from '@/features/guest-pass/ProvaTuttoIlClub'
 import { scorda } from '@/features/lab/memoria'
+import { scordaAccesso } from '@/features/lab/riservate/store'
 import { useSessione } from '@/features/lab/useSessione'
 import { vistaCorrente } from '@/features/lab/vista'
 import { Scelta } from '@/components/Scelta'
@@ -164,6 +165,8 @@ export function AttivaGuestPass({ token, nome, iniziale }: { token: string; nome
     if (!dallApp || !attivato) return
     scorda('area')
     scorda('benvenuto')
+    // Il Guest Pass apre Athlon Health System e Athlon TV: le sezioni non devono restare in anteprima (features/lab/riservate).
+    scordaAccesso()
   }, [dallApp, attivato])
 
   async function ricarica() {

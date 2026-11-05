@@ -33,6 +33,7 @@ import { F, FUOCO, MARE, NOTTE, ORTO, usePalette } from '../ui/tema'
 import { Tocco } from '../ui/Tocco'
 import { ricordaAbitudine } from './abitudineMemoria'
 import { Richiamo } from '../profilo/Richiamo'
+import { Anteprima, AvvisoAnteprima, useSezioniChiuse } from '../riservate/Riservate'
 import { CHIAVE_ELENCO_PIANI, etichettaPiano, giorniAlTest, giornoTest, LIVELLI, quando, testDaRifare } from './comune'
 import { eDiVasca, ETICHETTA_VASCA } from './nuoto'
 
@@ -310,10 +311,15 @@ export function Schede() {
   }, [dati.stato])
   return (
     <Schermata titolo="Athlon Health System" sottotitolo={t('Allenamento, alimentazione e recupero.', 'Training, nutrition and recovery.')}>
+      {/* Riservato a chi ha un abbonamento principale attivo (05/11/2026, features/lab/riservate): chi non ce l'ha vede la schermata com'e', in
+          anteprima, con questa carta in cima; ogni tocco sulle carte apre il modal. Le schede Train, Food e Recover restano libere. */}
+      <AvvisoAnteprima sezione="salute" />
       {daCompilare ? (
-        <Entra indice={0}>
-          <CartaDatiDaCompilare mancano={daCompilare.mancano} senzaConsenso={daCompilare.senzaConsenso} />
-        </Entra>
+        <Anteprima sezione="salute">
+          <Entra indice={0}>
+            <CartaDatiDaCompilare mancano={daCompilare.mancano} senzaConsenso={daCompilare.senzaConsenso} />
+          </Entra>
+        </Anteprima>
       ) : null}
       <ContenutoHub key={versione} largo={largo} corpoInCima={!!daCompilare} />
     </Schermata>
@@ -367,20 +373,36 @@ function ContenutoHub({ largo, corpoInCima }: { largo: boolean; /** La carta «D
     </Entra>
   )
 
+  const chiuse = useSezioniChiuse()
+
   return (
     <>
-      <Entra indice={0}>
-        <CartaPunteggio fit={fit} disp={disp} />
-      </Entra>
-      {/* «Il tuo mese in Athlon» (30/10/2026): compare solo quando c'e' un mese da mostrare, e subito sotto il punteggio. */}
-      <CartaSettimana />
-      <CartaMese />
-      {/* Dopo il punteggio, nell'ordine: «Il tuo corpo» compresso, i dispositivi e le abitudini. **La carta introduttiva («Il benessere e' un equilibrio»)
-          non c'e' piu'** (01/11/2026, richiesta di Maurizio: ripeteva quello che dice l'Athlon Health Score): la sua sostanza sta nei tre pilastri della
-          schermata del punteggio (`fit/Punteggio.tsx`). Il Balance sta nell'area Food. Su schermo largo: a sinistra corpo e dispositivi, a destra le abitudini. */}
-      {largo ? (
-        <View style={stili.fila3}>
-          <View style={{ flex: 1, gap: spazio.tre }}>
+      <Anteprima sezione="salute" style={{ gap: spazio.quattro + 4 }}>
+        <Entra indice={0}>
+          <CartaPunteggio fit={fit} disp={disp} />
+        </Entra>
+        {/* «Il tuo mese in Athlon» (30/10/2026): compare solo quando c'e' un mese da mostrare, e subito sotto il punteggio. */}
+        <CartaSettimana />
+        <CartaMese />
+        {/* Dopo il punteggio, nell'ordine: «Il tuo corpo» compresso, i dispositivi e le abitudini. **La carta introduttiva («Il benessere e' un equilibrio»)
+            non c'e' piu'** (01/11/2026, richiesta di Maurizio: ripeteva quello che dice l'Athlon Health Score): la sua sostanza sta nei tre pilastri della
+            schermata del punteggio (`fit/Punteggio.tsx`). Il Balance sta nell'area Food. Su schermo largo: a sinistra corpo e dispositivi, a destra le abitudini. */}
+        {largo ? (
+          <View style={stili.fila3}>
+            <View style={{ flex: 1, gap: spazio.tre }}>
+              {corpoInCima ? null : (
+                <Entra indice={1}>
+                  <CartaCorpo misure={misure} senzaConsenso={senzaConsenso} />
+                </Entra>
+              )}
+              <Entra indice={1}>
+                <CartaDispositivi disp={disp} />
+              </Entra>
+            </View>
+            <View style={{ flex: 1 }}>{abitudini}</View>
+          </View>
+        ) : (
+          <View style={{ gap: spazio.quattro + 4 }}>
             {corpoInCima ? null : (
               <Entra indice={1}>
                 <CartaCorpo misure={misure} senzaConsenso={senzaConsenso} />
@@ -389,44 +411,35 @@ function ContenutoHub({ largo, corpoInCima }: { largo: boolean; /** La carta «D
             <Entra indice={1}>
               <CartaDispositivi disp={disp} />
             </Entra>
+            {abitudini}
           </View>
-          <View style={{ flex: 1 }}>{abitudini}</View>
-        </View>
-      ) : (
-        <View style={{ gap: spazio.quattro + 4 }}>
-          {corpoInCima ? null : (
-            <Entra indice={1}>
-              <CartaCorpo misure={misure} senzaConsenso={senzaConsenso} />
-            </Entra>
-          )}
-          <Entra indice={1}>
-            <CartaDispositivi disp={disp} />
-          </Entra>
-          {abitudini}
-        </View>
-      )}
+        )}
+      </Anteprima>
 
       <Entra indice={2}>
         <Interruttore area={area} onScegli={scegli} relax={conRelax} />
       </Entra>
 
-      {area === 'food' ? (
-        <AreaFood dati={fit} />
-      ) : area === 'relax' ? (
-        <AreaRelax disp={disp} />
-      ) : !dati ? (
-        errore ? (
-          <>
-            <Messaggio>{errore}</Messaggio>
-            <Pulsante testo={t('Riprova', 'Try again')} icona="aggiorna" onPress={carica} />
-          </>
+      <Anteprima sezione="salute" style={{ gap: spazio.quattro + 4 }}>
+        {area === 'food' ? (
+          <AreaFood dati={fit} />
+        ) : area === 'relax' ? (
+          <AreaRelax disp={disp} />
+        ) : !dati ? (
+          errore ? (
+            <>
+              <Messaggio>{errore}</Messaggio>
+              <Pulsante testo={t('Riprova', 'Try again')} icona="aggiorna" onPress={carica} />
+            </>
+          ) : (
+            <SchedeInArrivo />
+          )
         ) : (
-          <SchedeInArrivo />
-        )
-      ) : (
-        <Train dati={dati} largo={largo} disp={disp} />
-      )}
-      <InvitoSaluteAllApertura disp={disp} />
+          <Train dati={dati} largo={largo} disp={disp} />
+        )}
+      </Anteprima>
+      {/* L'invito a collegare l'app Salute all'apertura: non in anteprima, dove collegarla non si puo'. */}
+      {chiuse ? null : <InvitoSaluteAllApertura disp={disp} />}
     </>
   )
 }

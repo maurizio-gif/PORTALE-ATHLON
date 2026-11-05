@@ -1,4 +1,5 @@
 import { SUPABASE_URL } from '@/config'
+import { segnaRifiuto } from '@/features/lab/riservate/store'
 import { vistaCorrente } from '@/features/lab/vista'
 import { supabase } from '@/lib/supabase'
 import { intestazioneLingua, t } from '@/lib/lingua'
@@ -252,6 +253,9 @@ export async function funzione(nome: string, corpo: Record<string, unknown>): Pr
       body: JSON.stringify(corpo),
     })
     const dati = ((await r.json().catch(() => null)) ?? {}) as Record<string, any>
+    // Un'azione riservata a chi ha un abbonamento attivo (Athlon Health System, Athlon TV): lo stato che arriva col rifiuto mette la sezione
+    // in anteprima (features/lab/riservate), anche se `accesso` non era ancora stato letto. Il modal no: lo apre il tocco, non una lettura.
+    if (r.status === 403 && dati.codice === 'riservata') segnaRifiuto(dati.accesso)
     return { ok: r.ok && dati.ok === true, stato: r.status, dati }
   } catch {
     return { ok: false, stato: 0, dati: { errore: t('Connessione non riuscita. Controlla la rete e riprova.', 'Connection failed. Check your network and try again.') } }

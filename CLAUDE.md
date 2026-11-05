@@ -181,3 +181,4 @@ chiamata diretta al gestionale. Esempio: la sezione Prodotti usa l'azione `prodo
 - [«Sei già dei nostri»: collegare questo indirizzo con un codice via SMS (05/11/2026)](docs/claude/143-collegare-l-indirizzo-con-un-codice-via-sms-05-11-2026.md) · 1 KB
 - [Le video guide nelle schede dell'Help Desk: si guardano al tocco, e sul telefono in verticale (05/11/2026)](docs/claude/144-video-guide-nell-help-desk-05-11-2026.md) · 3 KB
 - [I Termini di Novembre 2026: la sezione 9 del PT ricopiata, nessun altro cambio nell'app (05/11/2026)](docs/claude/145-termini-novembre-2026-sezione-9-ricopiata-05-11-2026.md) · 1 KB
+- [Athlon Health System e Athlon TV riservati a chi ha un abbonamento attivo: anteprima e modal (05/11/2026)](docs/claude/146-sezioni-riservate-anteprima-e-modal-05-11-2026.md) · 5 KB
