@@ -16,6 +16,10 @@ export type ProfiloSocio = {
   iscritto: boolean
   /** Un figlio minorenne del nucleo ha un abbonamento vivo, anche se parte piu' avanti. */
   figlioIscritto: boolean
+  /** Nel nucleo c'e' almeno un minorenne, iscritto o no (i suggerimenti dell'assistente, 05/11/2026). */
+  figli: boolean
+  /** Il titolare stesso ha un abbonamento vivo, non solo un figlio (i suggerimenti dell'assistente, 05/11/2026). */
+  titolareIscritto: boolean
 }
 
 const MAGGIORE_ETA = 18
@@ -26,7 +30,7 @@ const MAGGIORE_ETA = 18
  * arriva): una prova non e' un'iscrizione, quindi si riconoscono dal nome e si scartano.
  */
 export function profiloDa(area: Area): ProfiloSocio {
-  if (!area.trovato) return { iscritto: false, figlioIscritto: false }
+  if (!area.trovato) return { iscritto: false, figlioIscritto: false, figli: false, titolareIscritto: false }
   const veri = area.contratti.filter((c) => !/guest\s*pass/i.test(c.piano ?? ''))
   const figli = new Set(
     area.persone
@@ -36,7 +40,12 @@ export function profiloDa(area: Area): ProfiloSocio {
       })
       .map((x) => x.member_id),
   )
-  return { iscritto: veri.length > 0, figlioIscritto: veri.some((c) => figli.has(c.member_id)) }
+  return {
+    iscritto: veri.length > 0,
+    figlioIscritto: veri.some((c) => figli.has(c.member_id)),
+    figli: figli.size > 0,
+    titolareIscritto: veri.some((c) => c.member_id === area.titolare),
+  }
 }
 
 /**
