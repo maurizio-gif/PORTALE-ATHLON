@@ -172,3 +172,4 @@ chiamata diretta al gestionale. Esempio: la sezione Prodotti usa l'azione `prodo
 - [Go-live: la Home non pre-carica le vetrine di Athlon TV, e i gruppi Junior solo a chi ha un figlio (05/11/2026)](docs/claude/134-go-live-home-piu-leggera-05-11-2026.md) · 2 KB
 - [Il questionario di livello in «Aggiungi un componente» (05/11/2026)](docs/claude/135-questionario-di-livello-in-aggiungi-un-componente-05-11-2026.md) · 1 KB
 - [Go-live: i polling dei pagamenti e delle notifiche rallentano da soli (05/11/2026)](docs/claude/136-go-live-polling-con-backoff-05-11-2026.md) · 2 KB
+- [Il soggetto pagatore sulle ricevute dei figli: nel salvataggio del metodo di pagamento e «Cambia soggetto pagatore» in Documenti (05/11/2026)](docs/claude/137-soggetto-pagatore-sulle-ricevute-05-11-2026.md) · 5 KB

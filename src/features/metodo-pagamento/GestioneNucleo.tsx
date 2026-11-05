@@ -9,6 +9,7 @@ import { InfoAdyen } from '@/components/InfoAdyen'
 import { Pagina } from '@/components/Pagina'
 import { Forte, Testo } from '@/components/Testo'
 import { vaiA } from '@/lib/esterno'
+import type { PagatoreMetodo } from '@/features/lab/pagatore/PagatoreMetodo'
 import { passaDalTotem } from '@/features/lab/totem/passaggio'
 import { meseAnno, metodoDaSistemare, ultimeCifre, type ContrattoNucleo, type EsitoContratto } from '@/lib/metodoPagamento'
 import { spazio } from '@/theme'
@@ -40,6 +41,7 @@ export function GestioneNucleo({
   evidenziato = null,
   Cornice = Pagina,
   sopra = null,
+  pagatore,
 }: {
   Cornice?: Cornice
   token: string
@@ -49,6 +51,8 @@ export function GestioneNucleo({
   evidenziato?: number | null
   /** Sopra il riepilogo, quando tutti gli abbonamenti hanno gia' un metodo: nell'app, le quote da pagare. */
   sopra?: ReactNode
+  /** Nell'app: la casella del soggetto pagatore sulle ricevute dei figli, che si salva insieme al metodo (usePagatoreMetodo). Dal link dell'email non c'e': li' non c'e' una sessione. */
+  pagatore?: PagatoreMetodo
 }) {
   const daSistemare = (lista: ContrattoNucleo[]) => {
     if (evidenziato != null && lista.some((c) => c.contract_id === evidenziato)) return new Set([evidenziato])
@@ -95,6 +99,9 @@ export function GestioneNucleo({
   async function salvaIban(conto: DatiConto): Promise<string | null> {
     // Un IBAN nuovo sul totem passa dalle tre strade (`totem/passaggio.ts`): QR ed email riaprono la sezione sul telefono.
     if (!(await passaDalTotem({ cosa: 'metodo di pagamento', percorso: '/metodo-pagamento' }))) return null
+    // Il soggetto pagatore, se la persona l'ha chiesto: prima del metodo, e se non torna il metodo non si salva.
+    const prima = await pagatore?.prima(selezionati)
+    if (prima) return prima
     const { ok, dati } = await chiamaLink(token, 'iban', { contratti: [...scelti], ...conto })
     if (!ok) return dati.errore ?? t('Non siamo riusciti a salvarlo adesso. Riprova fra qualche minuto.', 'We couldn’t save it right now. Try again in a few minutes.')
     setRisultati(dati.risultati ?? [])
@@ -106,6 +113,12 @@ export function GestioneNucleo({
   async function vaiAllaCarta() {
     setErrore('')
     setAttesa(true)
+    const prima = await pagatore?.prima(selezionati)
+    if (prima) {
+      setErrore(prima)
+      setAttesa(false)
+      return
+    }
     const { ok, dati } = await chiamaLink(token, 'carta', { contratti: [...scelti] })
     if (ok && dati.url) {
       // Sul totem la pagina della carta passa dalle tre strade (`totem/passaggio.ts`): scelto QR o email, o annullato, non si apre.
@@ -140,6 +153,12 @@ export function GestioneNucleo({
   async function usaMetodo(m: MetodoSalvato) {
     setErrore('')
     setInUsoDi(m.fonte_id)
+    const prima = await pagatore?.prima(selezionati)
+    if (prima) {
+      setErrore(prima)
+      setInUsoDi(null)
+      return
+    }
     const { ok, dati } = await chiamaLink(token, 'usa_metodo', { contratti: [...scelti], fonte_id: m.fonte_id })
     setInUsoDi(null)
     if (!ok || !Array.isArray(dati.risultati)) {
@@ -293,6 +312,8 @@ export function GestioneNucleo({
           </View>
 
           <Testo variante="piccolo">{t('Il metodo che scegli prende il posto di quello attuale sugli abbonamenti selezionati.', 'The method you choose replaces the current one on the selected memberships.')}</Testo>
+
+          {pagatore?.render(selezionati)}
 
           {errore ? <Avviso>{errore}</Avviso> : null}
 

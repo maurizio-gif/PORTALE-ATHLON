@@ -7,6 +7,7 @@ import { GestioneNucleo } from '@/features/metodo-pagamento/GestioneNucleo'
 import type { ContrattoNucleo } from '@/lib/metodoPagamento'
 
 import { hrefSezione } from '../home/sezioni'
+import { usePagatoreMetodo } from '../pagatore/PagatoreMetodo'
 import { DaPagare, useMovimenti } from '../pagamenti/Movimenti'
 import { Messaggio, Pulsante, SchedeInArrivo } from '../ui/kit'
 import { Schermata } from '../ui/Schermata'
@@ -36,6 +37,8 @@ export function MetodoPagamento() {
   const [stato, setStato] = useState<Stato>({ fase: 'carica' })
   // Le quote scadute del nucleo: se ce ne sono, qui si propone di pagarle, prima di parlare di cambiare metodo.
   const { dati: pagamenti, rileggi } = useMovimenti()
+  // Il soggetto pagatore sulle ricevute dei figli (05/11/2026): si sceglie qui, insieme al metodo.
+  const pagatore = usePagatoreMetodo()
 
   const apri = useCallback(async () => {
     setStato({ fase: 'carica' })
@@ -59,6 +62,7 @@ export function MetodoPagamento() {
         nome={stato.nome}
         nomeTitolare={stato.nomeTitolare}
         iniziali={stato.contratti}
+        pagatore={pagatore}
         sopra={daSaldare.length ? <DaPagare elenco={daSaldare} carta={pagamenti?.cartaSaldo ?? null} inCorsoFrase={pagamenti?.inCorsoFrase ?? null} onAggiorna={rileggi} verificaSubito={false} /> : null}
       />
     )
