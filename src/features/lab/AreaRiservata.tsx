@@ -43,6 +43,7 @@ import { dataBreve } from '@/lib/metodoPagamento'
 import { riepilogoAbbonamenti } from './home/regolarita'
 import { SEZIONI, SEZIONE_INIZIALE, sezioneDa, type SezioneHome } from './home/sezioni'
 import { inMemoria, precarica, prendi, ricorda } from './memoria'
+import { pagamentiInCorso } from './pagamenti/inCorso'
 import { useMovimenti } from './pagamenti/Movimenti'
 import { ProfiloContenuto } from './Profilo'
 import { AvatarFoto } from './profilo/AvatarFoto'
@@ -435,12 +436,25 @@ export function AreaRiservata({ email }: { email: string }) {
   const daSaldare = movimenti.dati?.daSaldare.reduce((tot, m) => tot + m.importo, 0) ?? 0
   const prossimo = movimenti.dati?.futuri[0]
   const inCorso = !!movimenti.dati?.inCorsoFrase
+  // Un addebito SEPA che la banca non ha ancora confermato (05/11/2026): non e' una quota da saldare, ma e' un pagamento che sta succedendo.
+  const inCorsoBanca = movimenti.dati ? pagamentiInCorso(movimenti.dati.storico) : []
   const pagamenti: VoceRiquadro =
     // Un pagamento elettronico gia' in corso (03/11/2026): la quota e' ancora «da saldare» ma non e' un allarme, e non va pagata di nuovo.
     (debito > 0 || daSaldare > 0) && inCorso
       ? { valore: t('In corso', 'In progress'), nota: t(`${soldi(Math.max(debito, daSaldare))} in pagamento`, `${soldi(Math.max(debito, daSaldare))} being paid`), allerta: 'attenzione' }
       : debito > 0 || daSaldare > 0
       ? { valore: t('In sospeso', 'Outstanding'), nota: t(`${soldi(Math.max(debito, daSaldare))} da saldare`, `${soldi(Math.max(debito, daSaldare))} to pay`), allerta: 'errore' }
+      : inCorsoBanca.length
+      ? {
+          valore: t('In corso', 'In progress'),
+          nota:
+            inCorsoBanca.length === 1
+              ? inCorsoBanca[0].scadenza
+                ? t(`addebito previsto ${dataCorta(inCorsoBanca[0].scadenza).replace(' ', '\u00a0')} · ${soldi(inCorsoBanca[0].importo).replace(' ', '\u00a0')}`, `debit expected ${dataCorta(inCorsoBanca[0].scadenza).replace(' ', '\u00a0')} · ${soldi(inCorsoBanca[0].importo).replace(' ', '\u00a0')}`)
+                : t(`${soldi(inCorsoBanca[0].importo)} in pagamento`, `${soldi(inCorsoBanca[0].importo)} being paid`)
+              : t(`${inCorsoBanca.length} pagamenti · ${soldi(inCorsoBanca.reduce((tot, m) => tot + m.importo, 0)).replace(' ', '\u00a0')}`, `${inCorsoBanca.length} payments · ${soldi(inCorsoBanca.reduce((tot, m) => tot + m.importo, 0)).replace(' ', '\u00a0')}`),
+          allerta: 'attenzione',
+        }
       : prossimo
         ? { valore: dataCorta(prossimo.scadenza), nota: t(`prossimo addebito · ${soldi(prossimo.importo)}`, `next charge · ${soldi(prossimo.importo)}`) }
         : movimenti.dati

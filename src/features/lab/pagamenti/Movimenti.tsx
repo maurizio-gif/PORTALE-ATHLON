@@ -19,6 +19,8 @@ import { Tocco } from '../ui/Tocco'
 import { apriPagamento } from '@/lib/pagamentoEsterno'
 import { passaDalTotem } from '@/features/lab/totem/passaggio'
 
+import { giornoLungo, pagamentiInCorso, senzaInCorso, statoInCorso } from './inCorso'
+
 // I pagamenti veri del socio e della famiglia (15/10/2026), da PerfectGym:
 // le quote scadute da saldare, i prossimi pagamenti e lo storico, ognuno col
 // metodo e con a cosa corrisponde. Nella sezione Pagamenti della Home il riepilogo; lo storico
@@ -84,7 +86,10 @@ export function useMovimenti() {
 function RigaMovimento({ m, prima, onPress }: { m: Movimento; prima: boolean; onPress?: () => void }) {
   const p = usePalette()
   const e = ESITI[m.esito]
-  const sotto = [m.per ? t(`per ${m.per}`, `for ${m.per}`) : null, m.voci[0]?.dettaglio, m.metodo].filter(Boolean).join(' · ')
+  // Un pagamento in corso dice il suo stato al posto del metodo: «Addebito previsto per lunedì 9 novembre». Il metodo sta nel dettaglio.
+  const sotto = (m.esito === 'in_corso' && m.scadenza ? [m.per ? t(`per ${m.per}`, `for ${m.per}`) : null, statoInCorso(m)] : [m.per ? t(`per ${m.per}`, `for ${m.per}`) : null, m.voci[0]?.dettaglio, m.metodo])
+    .filter(Boolean)
+    .join(' · ')
   return (
     <Riga
       prima={prima}
@@ -96,7 +101,9 @@ function RigaMovimento({ m, prima, onPress }: { m: Movimento; prima: boolean; on
       coda={
         <View style={{ alignItems: 'flex-end', gap: 2 }}>
           <Text style={[stili.importo, { color: m.esito === 'rimborso' ? p.blu : p.testo }]}>{`${m.esito === 'rimborso' ? '+' : ''}${soldi(m.importo)}`}</Text>
-          <Text style={[stili.data, { color: p.testoTerzo }]}>{giorno(m.esito === 'da_pagare' ? m.scadenza : m.data)}</Text>
+          <Text style={[stili.data, { color: p.testoTerzo }]}>
+            {m.esito === 'in_corso' && m.scadenza ? e.testo : giorno(m.esito === 'da_pagare' ? m.scadenza : m.data)}
+          </Text>
         </View>
       }
     />
@@ -141,14 +148,20 @@ function FoglioDettaglio({ scelto, onChiudi }: { scelto: Scelto; onChiudi: () =>
         ...(scelto.q.totale !== scelto.q.importo ? ([[t('Già pagato', 'Already paid'), soldi(scelto.q.totale - scelto.q.importo)]] as [string, string][]) : []),
       ]
     : [
-        [scelto.m.esito === 'da_pagare' ? t('Scadenza', 'Due date') : t('Data', 'Date'), giorno(scelto.m.esito === 'da_pagare' ? scelto.m.scadenza : scelto.m.data, true)],
+        // Un SEPA in corso ha due date: quando e' stato autorizzato e il giorno in cui la banca addebita.
+        ...(scelto.m.esito === 'in_corso' && scelto.m.scadenza
+          ? ([
+              [t('Addebito previsto', 'Debit expected'), giornoLungo(scelto.m.scadenza, true)],
+              [t('Autorizzato il', 'Authorised on'), giorno(scelto.m.data, true)],
+            ] as [string, string][])
+          : ([[scelto.m.esito === 'da_pagare' ? t('Scadenza', 'Due date') : t('Data', 'Date'), giorno(scelto.m.esito === 'da_pagare' ? scelto.m.scadenza : scelto.m.data, true)]] as [string, string][])),
         [t('Stato', 'Status'), ESITI[scelto.m.esito].testo],
         ...(scelto.m.per ? ([[t('Per', 'For'), scelto.m.per]] as [string, string][]) : []),
         [t('Metodo', 'Method'), scelto.m.metodo ?? '—'],
       ]
   const importo = futuro ? scelto.q.importo : scelto.m.importo
   return (
-    <Foglio aperto titolo={titolo} sottotitolo={futuro ? t('Prossimo pagamento', 'Next payment') : ESITI[scelto.m.esito].testo} onChiudi={onChiudi}>
+    <Foglio aperto titolo={titolo} sottotitolo={futuro ? t('Prossimo pagamento', 'Next payment') : scelto.m.esito === 'in_corso' ? statoInCorso(scelto.m) : ESITI[scelto.m.esito].testo} onChiudi={onChiudi}>
       <View style={{ gap: spazio.tre }}>
         <View style={{ alignItems: 'center', paddingVertical: spazio.due }}>
           <Numero valore={importo.toLocaleString(locale(), { minimumFractionDigits: 2, maximumFractionDigits: 2 })} unita="€" size={44} colore={!futuro && scelto.m.esito === 'da_pagare' ? p.errore : p.testo} />
@@ -173,6 +186,7 @@ function FoglioDettaglio({ scelto, onChiudi }: { scelto: Scelto; onChiudi: () =>
           </View>
         ) : null}
         {!futuro && scelto.m.nota ? <Messaggio tono="attenzione">{scelto.m.nota}</Messaggio> : null}
+        {!futuro && scelto.m.esito === 'in_corso' ? <Messaggio tono="attenzione" icona="clessidra">{fraseInCorso([scelto.m])}</Messaggio> : null}
         {!futuro && scelto.m.esito === 'da_pagare' ? (
           <Text style={[stili.nota, { color: p.testoSecondario }]}>{t('La paghi da «Da pagare», nella sezione Pagamenti.', 'You can pay it from “Due now”, in the Payments section.')}</Text>
         ) : null}
@@ -189,6 +203,20 @@ function FoglioDettaglio({ scelto, onChiudi }: { scelto: Scelto; onChiudi: () =>
       </View>
     </Foglio>
   )
+}
+
+/** Cosa dire di uno o piu' pagamenti in corso: che non c'e' niente da fare, e dove si ritrovano quando la banca li conferma. */
+function fraseInCorso(elenco: Movimento[]): string {
+  const sepa = elenco.some((m) => !!m.scadenza)
+  const uno = elenco.length === 1
+  if (sepa) {
+    return uno
+      ? t('L’addebito sul conto è autorizzato: la banca lo conferma in alcuni giorni lavorativi. Non devi fare altro. Quando è confermato lo trovi fra i pagamenti effettuati.', 'The debit on your account is authorised: the bank confirms it within a few working days. There’s nothing else to do. Once confirmed you’ll find it among your payments made.')
+      : t('Gli addebiti sul conto sono autorizzati: la banca li conferma in alcuni giorni lavorativi. Non devi fare altro. Quando sono confermati li trovi fra i pagamenti effettuati.', 'The debits on your account are authorised: the bank confirms them within a few working days. There’s nothing else to do. Once confirmed you’ll find them among your payments made.')
+  }
+  return uno
+    ? t('Il pagamento è in corso: aspettiamo la conferma della banca. Non devi fare altro.', 'The payment is in progress: we’re waiting for the bank to confirm it. There’s nothing else to do.')
+    : t('I pagamenti sono in corso: aspettiamo la conferma della banca. Non devi fare altro.', 'The payments are in progress: we’re waiting for the bank to confirm them. There’s nothing else to do.')
 }
 
 const oggiRoma = () => new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Rome' }).format(new Date())
@@ -395,10 +423,24 @@ export function RiepilogoPagamenti({ onPagato }: { onPagato?: () => void } = {})
   }
 
   const prossimo = dati.futuri[0]
+  // I pagamenti che la banca non ha ancora confermato (un addebito SEPA): in vista, sopra i prossimi, e fuori dagli effettuati finche' non lo sono.
+  const inCorso = pagamentiInCorso(dati.storico)
+  const effettuati = senzaInCorso(dati.storico)
   return (
     <View style={{ gap: spazio.quattro }}>
       {dati.daSaldare.length ? (
         <DaPagare elenco={dati.daSaldare} carta={dati.cartaSaldo} inCorsoFrase={dati.inCorsoFrase} onApri={(m) => setScelto({ tipo: 'movimento', m })} onAggiorna={aggiorna} verificaSubito={ritorno} />
+      ) : null}
+
+      {inCorso.length ? (
+        <Sezione titolo={t('Pagamenti in corso', 'Payments in progress')} conteggio={inCorso.length}>
+          <Carta style={{ paddingVertical: spazio.uno }}>
+            {inCorso.map((m, i) => (
+              <RigaMovimento key={m.id} m={m} prima={i === 0} onPress={() => setScelto({ tipo: 'movimento', m })} />
+            ))}
+          </Carta>
+          <Messaggio tono="attenzione" icona="clessidra">{fraseInCorso(inCorso)}</Messaggio>
+        </Sezione>
       ) : null}
 
       <Sezione titolo={t('Prossimi pagamenti', 'Upcoming payments')} destra={dati.futuri.length > 3 ? <LinkSezione testo={t('Tutti', 'All')} onPress={() => router.push({ pathname: '/pagamenti/storico', params: { vista: 'futuri' } })} /> : undefined}>
@@ -416,20 +458,23 @@ export function RiepilogoPagamenti({ onPagato }: { onPagato?: () => void } = {})
         )}
       </Sezione>
 
-      <Sezione titolo={t('Pagamenti effettuati', 'Payments made')} destra={dati.storico.length ? <LinkSezione testo={t('Storico completo', 'Full history')} onPress={() => router.push('/pagamenti/storico')} /> : undefined}>
-        {dati.storico.length ? (
-          <Carta style={{ paddingVertical: spazio.uno }}>
-            {dati.storico.slice(0, 4).map((m, i) => (
-              <RigaMovimento key={m.id} m={m} prima={i === 0} onPress={() => setScelto({ tipo: 'movimento', m })} />
-            ))}
-          </Carta>
-        ) : (
-          <Carta style={{ flexDirection: 'row', alignItems: 'center', gap: spazio.tre }}>
-            <Icona nome="ricevuta" size={22} colore={p.testoTerzo} />
-            <Text style={[stili.nota, { color: p.testoSecondario, flex: 1 }]}>{t('Non ci sono ancora pagamenti registrati.', 'No payments recorded yet.')}</Text>
-          </Carta>
-        )}
-      </Sezione>
+      {/* Se tutto quello che c'e' e' ancora in corso, gli «effettuati» non hanno niente da dire: il racconto sta sopra. */}
+      {effettuati.length || !inCorso.length ? (
+        <Sezione titolo={t('Pagamenti effettuati', 'Payments made')} destra={dati.storico.length ? <LinkSezione testo={t('Storico completo', 'Full history')} onPress={() => router.push('/pagamenti/storico')} /> : undefined}>
+          {effettuati.length ? (
+            <Carta style={{ paddingVertical: spazio.uno }}>
+              {effettuati.slice(0, 4).map((m, i) => (
+                <RigaMovimento key={m.id} m={m} prima={i === 0} onPress={() => setScelto({ tipo: 'movimento', m })} />
+              ))}
+            </Carta>
+          ) : (
+            <Carta style={{ flexDirection: 'row', alignItems: 'center', gap: spazio.tre }}>
+              <Icona nome="ricevuta" size={22} colore={p.testoTerzo} />
+              <Text style={[stili.nota, { color: p.testoSecondario, flex: 1 }]}>{t('Non ci sono ancora pagamenti registrati.', 'No payments recorded yet.')}</Text>
+            </Carta>
+          )}
+        </Sezione>
+      ) : null}
 
       <FoglioDettaglio scelto={scelto} onChiudi={() => setScelto(null)} />
     </View>
