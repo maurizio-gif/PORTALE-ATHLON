@@ -77,6 +77,11 @@ export type PersonaArea = {
   titolare: boolean
   email: string | null
   telefono: string | null
+  /**
+   * Codice fiscale, email e cellulare di un figlio come sono su PerfectGym (06/11/2026). Solo per i figli del genitore: manca per il titolare e
+   * per i bambini raggiunti con una delega (decide il server). Assente con una funzione di prima.
+   */
+  dati?: { codice_fiscale: string | null; email: string | null; telefono: string | null } | null
   /** Un pagamento non andato (saldo negativo su PerfectGym), non quando un addebito e' ancora in corso. */
   debito?: { importo: number; dal: string | null } | null
 }

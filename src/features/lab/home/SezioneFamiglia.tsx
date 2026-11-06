@@ -19,6 +19,7 @@ import { BollinoDebito } from '../ui/Irregolarita'
 import { F, usePalette } from '../ui/tema'
 import { vistaCorrente } from '../vista'
 import { nome, statoCertificato } from './certificato'
+import { righeDatiFiglio, type RigaDato } from './datiFigli'
 import { senzaAbbonamento } from './regolarita'
 
 // La sezione Famiglia della Home: le persone del nucleo, con la data di
@@ -27,6 +28,9 @@ import { senzaAbbonamento } from './regolarita'
 //
 // **Chi non ha un abbonamento** (03/11/2026, richiesta di Maurizio): sulla riga di ogni persona dai 13 anni senza abbonamento c'e' «Scegli l'abbonamento»
 // (`senzaAbbonamento`), anche se il genitore ce l'ha gia'; per un minorenne firma il genitore.
+//
+// **I dati dei figli** (06/11/2026, richiesta di Maurizio): sotto «Familiare · nato/a il …», il codice fiscale e, solo se diversi da quelli del titolare,
+// email e cellulare (`datiFigli.ts`). Li manda il server solo per i figli del genitore (`dati`): senza, non c'e' nessuna riga.
 //
 // In fondo «Aggiungi un componente» (31/10/2026, richiesta di Maurizio; lo stesso pulsante di Junior): un figlio, che la funzione
 // controlla non sia gia' al club, oppure un altro adulto a cui dare la delega sui figli (`/delega`). Mai in vista cliente.
@@ -37,6 +41,9 @@ import { senzaAbbonamento } from './regolarita'
 // (`stato`) a ogni ritorno sulla sezione; senza risposta, o in vista cliente (la funzione e' chiusa), la riga non c'e'.
 
 type AreaTrovata = Extract<Area, { trovato: true }>
+
+const etichettaDato = (chiave: RigaDato['chiave']) =>
+  chiave === 'codice_fiscale' ? t('Codice fiscale', 'Tax code') : chiave === 'email' ? 'Email' : t('Cellulare', 'Mobile')
 
 export function SezioneFamiglia({ area, onAggiorna }: { area: AreaTrovata; onAggiorna: () => void }) {
   const p = usePalette()
@@ -69,6 +76,7 @@ export function SezioneFamiglia({ area, onAggiorna }: { area: AreaTrovata; onAgg
       <Carta style={{ paddingVertical: spazio.due }}>
         {area.persone.map((x, i) => {
           const s = statoCertificato(area.certificati.find((c) => c.member_id === x.member_id), x.data_nascita)
+          const dati = righeDatiFiglio(x, area.persone.find((y) => y.titolare))
           return (
             <Riga
               key={x.member_id}
@@ -80,6 +88,16 @@ export function SezioneFamiglia({ area, onAggiorna }: { area: AreaTrovata; onAgg
                   <Text style={{ color: p.testoSecondario, fontFamily: F.medio, fontSize: 13.5 }}>
                     {[x.titolare ? t('Tu, titolare', 'You, account holder') : t('Familiare', 'Family member'), dataBreve(x.data_nascita) ? t(`nato/a il ${dataBreve(x.data_nascita)}`, `born ${dataBreve(x.data_nascita)}`) : null].filter(Boolean).join(' · ')}
                   </Text>
+                  {dati.length ? (
+                    <View style={{ gap: 2 }}>
+                      {dati.map((r) => (
+                        <Text key={r.chiave} selectable style={{ color: p.testoSecondario, fontFamily: F.medio, fontSize: 13.5 }}>
+                          <Text style={{ color: p.testoTerzo }}>{etichettaDato(r.chiave)} · </Text>
+                          {r.valore}
+                        </Text>
+                      ))}
+                    </View>
+                  ) : null}
                   <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
                     <Etichetta testo={t(`Certificato: ${s.testo.toLowerCase()}`, `Certificate: ${s.testo.toLowerCase()}`)} tono={s.tono} />
                     <BollinoDebito debito={x.debito} />

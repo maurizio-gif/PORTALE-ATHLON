@@ -184,3 +184,4 @@ chiamata diretta al gestionale. Esempio: la sezione Prodotti usa l'azione `prodo
 - [Athlon Health System e Athlon TV riservati a chi ha un abbonamento attivo: anteprima e modal (05/11/2026)](docs/claude/146-sezioni-riservate-anteprima-e-modal-05-11-2026.md) · 5 KB
 - [I Consigli a passi, da modificare o rigenerare, e le quote al mese dell'AI (05/11/2026)](docs/claude/147-consigli-a-passi-modifica-e-quote-al-mese-05-11-2026.md) · 6 KB
 - [Un addebito SEPA in corso si vede nella sezione Pagamenti e nel riquadro della Home, col giorno dell'addebito (05/11/2026)](docs/claude/148-pagamenti-in-corso-nella-sezione-pagamenti-05-11-2026.md) · 5 KB
+- [La sezione Famiglia mostra i dati dei figli: codice fiscale, e email e cellulare se diversi (06/11/2026)](docs/claude/149-famiglia-dati-dei-figli-06-11-2026.md) · 3 KB
