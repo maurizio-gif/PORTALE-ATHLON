@@ -190,3 +190,4 @@ chiamata diretta al gestionale. Esempio: la sezione Prodotti usa l'azione `prodo
 - [Junior: i turni esauriti non si mostrano mai, e «Solo con posti liberi» non c'è più (06/11/2026)](docs/claude/152-junior-turni-esauriti-non-si-mostrano-mai-06-11-2026.md) · 3 KB
 - [«Aggiorna la tua email»: la pagina del link dell'SMS per chi ha la casella piena (06/11/2026)](docs/claude/153-aggiorna-email-dal-link-sms-06-11-2026.md) · 3 KB
 - [Il listino con due formule in vetrina e «Vuoi risparmiare?» per l'annuale in unica soluzione (06/11/2026)](docs/claude/154-listino-due-formule-e-vuoi-risparmiare-06-11-2026.md) · 3 KB
+- [Lo shop nativo nell'app: il questionario, il carrello a righe, la cassa come le gare, il preordine (06/11/2026)](docs/claude/155-shop-nativo-questionario-preordine-e-cassa-06-11-2026.md) · 8 KB
