@@ -628,8 +628,57 @@ function SezioneBaby({
             onCambiato={onCambiato}
           />
         </Sezione>
-      ) : null}
+      ) : (
+        <Sezione
+          titolo={t(
+            "Prenota una lezione di Baby Nuoto",
+            "Book a Baby Nuoto class",
+          )}
+        >
+          <Messaggio
+            tono="attenzione"
+            titolo={t(
+              "Vista cliente: qui si guarda e basta",
+              "Client view: look only",
+            )}
+          >
+            {spiegaVistaBaby(baby)}
+          </Messaggio>
+        </Sezione>
+      )}
     </>
+  );
+}
+
+/**
+ * Cosa vede il genitore al posto del pulsante e del calendario che la vista cliente nasconde (06/11/2026). Senza questa riga la sezione
+ * sembrava priva di abbonamento e prenotazione, mentre in vista cliente (sola lettura) i comandi che scrivono non si disegnano.
+ * Importi dai dati del server, mai scritti qui.
+ */
+function spiegaVistaBaby(baby: BabyJunior): string {
+  if (baby.abbonamento)
+    return t(
+      "Il genitore qui trova il calendario delle lezioni di Baby Nuoto e prenota: con l’abbonamento mensile la lezione è già compresa. Il calendario non si apre in vista cliente.",
+      "Here the parent finds the Baby Nuoto class calendar and books: with the monthly membership the class is already included. The calendar doesn’t open in client view.",
+    );
+  // Il pulsante del mensile c'e' solo se il server manda il mensile: la nota non nomina un comando che il genitore non vede.
+  const m = baby.mensile;
+  const s = baby.singola;
+  const pulsanteIt = m
+    ? `«Attiva l’abbonamento mensile» (${euroIt(m.canone)} al mese, più ${euroIt(m.quota_attivazione)} una tantum) e `
+    : "";
+  const pulsanteEn = m
+    ? `“Start the monthly membership” (${euroIt(m.canone)} a month, plus a one-off ${euroIt(m.quota_attivazione)}) and `
+    : "";
+  const singolaIt = s
+    ? `: senza abbonamento paga la lezione singola (${euroIt(s.prezzo)}) e prenota nello stesso passaggio.`
+    : ".";
+  const singolaEn = s
+    ? `: without a membership they pay for a single class (${euroIt(s.prezzo)}) and book in the same step.`
+    : ".";
+  return t(
+    `Il genitore qui trova ${pulsanteIt}il calendario delle lezioni da prenotare${singolaIt} In vista cliente ${m ? "i due comandi non si aprono" : "il calendario non si apre"}.`,
+    `Here the parent finds ${pulsanteEn}the calendar of classes to book${singolaEn} In client view ${m ? "the two controls don’t open" : "the calendar doesn’t open"}.`,
   );
 }
 
