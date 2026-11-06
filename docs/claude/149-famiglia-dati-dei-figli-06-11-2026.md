@@ -1,7 +1,7 @@
 ## La sezione Famiglia mostra i dati dei figli: codice fiscale, e email e cellulare se diversi (06/11/2026)
 
 Richiesta di Maurizio: sotto ogni figlio nella sezione Famiglia della Home, il codice fiscale, l'email e il cellulare («se diversi»). Lato server:
-`CLAUDE.md` di APP-ATHLON, stessa data (migrazione `20261106b_area_dati_figli.sql`, **da applicare prima dell'app**).
+`CLAUDE.md` di APP-ATHLON, stessa data (migrazione `20261106b_area_dati_figli.sql`, **applicata il 06/11/2026**: la funzione risponde già con `dati`).
 
 - **Cosa si vede**: sotto «Familiare · nato/a il …», fino a tre righe `Codice fiscale · …`, `Email · …`, `Cellulare · …` (in inglese `Tax code`,
   `Email`, `Mobile`), selezionabili per copiarle. Il codice fiscale c'è sempre, se c'è; **email e cellulare solo se diversi da quelli del titolare**:
@@ -15,5 +15,4 @@ Richiesta di Maurizio: sotto ogni figlio nella sezione Famiglia della Home, il c
 - **In vista cliente** è la stessa schermata del cliente, con gli stessi dati (`portale_area_di` passa dalla stessa funzione).
 - **Provato**: `scripts/prova-dati-figli.ts` (`npx tsx`, 9 prove: titolare, delega, contatti uguali e diversi, prefissi, vuoti); `npx tsc --noEmit`
   con gli stessi 45 errori di base di prima, nessuno nuovo.
-- **Non provato**: la schermata renderizzata (390 e 1280 px, chiaro e scuro, inglese), né con dati veri: finché la migrazione non è applicata non
-  c'è niente da vedere.
+- **Non provato**: la schermata renderizzata (390 e 1280 px, chiaro e scuro, inglese), né con dati veri.
