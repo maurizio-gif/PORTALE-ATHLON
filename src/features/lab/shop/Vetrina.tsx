@@ -18,9 +18,9 @@ import { BottoneCarrello } from './BottoneCarrello'
 import { SegnapostoFoto } from './SegnapostoFoto'
 import { useVetrina } from './useVetrina'
 
-// Lo shop (18/10/2026): gli articoli e il merchandising del club con foto e prezzi. Il catalogo e' quello di
-// PerfectGym, curato dalla segreteria (foto, descrizione, ordine): qui si sfoglia, e si compra dal carrello.
-// Si paga online (Adyen, attraverso PerfectGym) e si ritira in segreteria.
+// Lo shop (18/10/2026): gli articoli e il merchandising del club con foto e prezzi. Dal 06/11/2026 il catalogo e' nostro,
+// curato dalla segreteria dal CRM (foto, descrizione, ordine, preordini): qui si sfoglia, e si compra dal carrello.
+// Si paga online, direttamente su Adyen o con l'addebito sul conto (come le gare), e si ritira in segreteria.
 // Non ha una voce nella barra delle schede (19/10/2026, richiesta del club: si entra solo dalla carta «Shop» della Home):
 // e' una schermata di dettaglio, senza barra e con la freccia che torna alla Home. Articolo, carrello e ordini tornano qui.
 
@@ -40,6 +40,11 @@ function Scheda({ a, colonne }: { a: ArticoloShop; colonne: number }) {
           {a.esaurito ? (
             <View style={stili.esaurito}>
               <Tag testo={t('Esaurito', 'Sold out')} colore={p.testo} fondo={p.carta} />
+            </View>
+          ) : a.preordine ? (
+            // Un preordine si riconosce dalla vetrina: si paga adesso, si consegna quando la merce arriva. Chiuso, non si compra piu'.
+            <View style={stili.esaurito}>
+              <Tag testo={a.preordine_aperto ? t('Preordine', 'Pre-order') : t('Preordine chiuso', 'Pre-order closed')} colore={a.preordine_aperto ? p.accento : p.testo} fondo={p.carta} />
             </View>
           ) : null}
         </View>
