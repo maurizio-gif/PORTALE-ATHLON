@@ -51,7 +51,7 @@ const FINE_STAGIONE = "2027-06-20";
 // contratto con le dichiarazioni e la firma. Il genitore firma per il minorenne. Il contratto lo crea PerfectGym iscrivendo
 // al gruppo (`portale-abbonamento`, azioni `junior_anteprima` e `junior_firma`); **il pagamento e' quello degli abbonamenti**:
 // a firma fatta si torna a `/abbonamento`, che trova il contratto firmato e non pagato e riparte dalla scelta del metodo.
-// Prezzo, pro-rata e date arrivano dal server: qui si sceglie, si legge e si firma. In vista cliente non si arriva fin qui.
+// Prezzo, pro-rata e date arrivano dal server: qui si sceglie, si legge e si firma. In vista cliente (06/11/2026) si legge tutto, fino alla firma: i dati non si salvano, il contratto non si firma e il pagamento non c'e'.
 
 export function Iscrizione() {
   const p = usePalette();
@@ -180,7 +180,7 @@ export function Iscrizione() {
     anteprima.consensi.every((c) => !c.obbligatorio || consensi[c.chiave]);
 
   async function firma() {
-    if (!anteprima || !firmaPng || !inizio) return;
+    if (vista || !anteprima || !firmaPng || !inizio) return;
     setErroreFirma(null);
     setFirmando(true);
     const r = await firmaIscrizione(
@@ -227,21 +227,6 @@ export function Iscrizione() {
     barra: false,
   };
 
-  if (vista) {
-    return (
-      <Schermata {...intestazione}>
-        <Messaggio
-          tono="attenzione"
-          titolo={t("Solo dal suo account", "Only from their account")}
-        >
-          {t(
-            "L’iscrizione si firma dall’account del socio: da qui si guarda e basta.",
-            "The enrollment is signed from the member’s own account: from here you can only look.",
-          )}
-        </Messaggio>
-      </Schermata>
-    );
-  }
   if (fermo && errore)
     return (
       <Schermata {...intestazione}>
@@ -454,7 +439,7 @@ export function Iscrizione() {
                       ) : null}
                     </View>
                   </Carta>
-                  {personeDati.map((d) => (
+                  {(vista ? [] : personeDati).map((d) => (
                     <CorreggiDati
                       key={`${d.member_id}-${d.codice_fiscale}-${d.paese}-${d.telefono}-${d.indirizzo?.via}-${d.indirizzo?.cap}-${d.indirizzo?.paese}`}
                       persona={d}
@@ -503,7 +488,21 @@ export function Iscrizione() {
                       "The contract needs correct details: complete them below, then continue.",
                     )}
                   </Text>
-                  {personeDati.map((d) => (
+                  {vista ? (
+                    <Messaggio
+                      tono="attenzione"
+                      titolo={t(
+                        "Vista cliente: i dati non si salvano da qui",
+                        "Client view: details can’t be saved from here",
+                      )}
+                    >
+                      {t(
+                        `Qui il genitore completa i dati che mancano (${mancanti.join(", ")}) e poi prosegue con il contratto.`,
+                        `Here the parent completes the missing details (${mancanti.join(", ")}) and then goes on to the contract.`,
+                      )}
+                    </Messaggio>
+                  ) : null}
+                  {(vista ? [] : personeDati).map((d) => (
                     <CorreggiDati
                       key={`${d.member_id}-m`}
                       persona={d}
@@ -701,9 +700,17 @@ export function Iscrizione() {
               icona="impronta"
               onPress={firma}
               inCorso={firmando}
-              disabilitato={!obbligatoriOk || !firmaPng}
+              disabilitato={vista || !obbligatoriOk || !firmaPng}
             />
-            {!obbligatoriOk ? (
+            {vista ? (
+              <Text style={[stili.nota, { color: p.testoSecondario }]}>
+                {t(
+                  "Vista cliente: la firma e il pagamento si fanno dall’account del socio.",
+                  "Client view: signing and payment are done from the member’s own account.",
+                )}
+              </Text>
+            ) : null}
+            {!vista && !obbligatoriOk ? (
               <Text style={[stili.nota, { color: p.testoSecondario }]}>
                 {t(
                   "Spunta tutte le dichiarazioni obbligatorie per firmare.",
