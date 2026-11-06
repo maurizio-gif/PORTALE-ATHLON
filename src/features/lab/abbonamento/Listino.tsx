@@ -22,6 +22,12 @@ import { Tocco } from '../ui/Tocco'
 // abbonamento, **Premium prima** (`ordinaPiani`) e crema col bordo arancione, Smart scura; il nome grande in arancione; le attivita' comprese come tessere
 // con la loro icona (si toccano per il dettaglio); e il prezzo come protagonista: tre riquadri, Annuale a rate, Annuale in un'unica soluzione e Mensile Flex,
 // col risparmio sul Flex. Il riquadro toccato e' la scelta, e le condizioni del contratto compaiono sotto la scheda.
+//
+// **Due formule in vetrina, la terza in una postilla** (06/11/2026, come la pagina Abbonamenti del sito): due riquadri affiancati, Mensile Flex e Annuale
+// «Rateizzato in 12 mesi», con importi e titoli grandi; sotto, la riga piccola «Vuoi risparmiare? Paga l'annuale tutto anticipato» che al tocco si apre e
+// mostra il pulsante «Annuale in soluzione unica» con l'importo. Non e' un terzo abbonamento: e' un'opzione dello stesso. **Mai il totale delle rate**
+// (non deve spaventare) e nessuna cifra di risparmio sulla soluzione unica. Se di un abbonamento resta solo l'unica soluzione (nel cambio, la formula che
+// si ha gia' non si offre), sta in vetrina come un riquadro qualunque.
 
 /** Le formule in italiano: e' il testo che i moduli mandano al desk (cambio abbonamento), qualunque sia la lingua dell'app. */
 export const FORMULE_IT: Record<string, { titolo: string; sotto: string }> = {
@@ -75,13 +81,13 @@ const TEMA_SMART: Tema = {
   fondo: '#272423',
   bordo: '#272423',
   testo: '#FFFFFF',
-  muto: 'rgba(255,255,255,0.74)',
+  muto: '#FFFFFF',
   accento: '#FF7A33',
   tessera: 'rgba(255,255,255,0.07)',
   tesseraIcona: '#FF7A33',
   tesseraIconaFondo: 'rgba(255,122,51,0.2)',
   badgeFondo: 'rgba(255,255,255,0.12)',
-  badgeTesto: 'rgba(255,255,255,0.8)',
+  badgeTesto: '#FFFFFF',
   riquadro: 'rgba(255,255,255,0.06)',
   riquadroAttivo: '#3A2A22',
   riquadroBordo: 'rgba(255,255,255,0.14)',
@@ -106,12 +112,12 @@ function iconaAttivita(nome: string): NomeIcona {
 /** Il titolo e la riga sotto di ogni riquadro prezzo: corti, perche' sono tre in fila. */
 const RIQUADRO: Record<string, { titolo: string; sotto: string }> = tv(
   {
-    'annuale-rate': { titolo: 'Annuale', sotto: 'a rate mensili' },
+    'annuale-rate': { titolo: 'Annuale', sotto: 'Rateizzato in 12 mesi' },
     'annuale-unico': { titolo: 'Annuale', sotto: 'pagamento unico' },
     flex: { titolo: 'Mensile', sotto: 'Flex, senza vincoli' },
   },
   {
-    'annuale-rate': { titolo: 'Annual', sotto: 'monthly installments' },
+    'annuale-rate': { titolo: 'Annual', sotto: 'Paid in 12 installments' },
     'annuale-unico': { titolo: 'Annual', sotto: 'paid in full' },
     flex: { titolo: 'Monthly', sotto: 'Flex, no commitment' },
   },
@@ -150,8 +156,8 @@ function Riquadro({ x, nome, tema, attivo, onPress }: { x: PianoAbbonamento; nom
       style={[stili.riquadro, { backgroundColor: attivo ? tema.riquadroAttivo : tema.riquadro, borderColor: attivo ? '#FF5701' : tema.riquadroBordo }]}
     >
       <Text style={[stili.riquadroTitolo, { color: attivo ? tema.accento : tema.muto }]}>{r.titolo}</Text>
-      <Text style={{ color: tema.muto, fontFamily: F.medio, fontSize: 11.5, lineHeight: 15, marginTop: 2 }}>{r.sotto}</Text>
-      <Text style={{ color: tema.testo, fontFamily: F.extra, fontSize: 30, letterSpacing: -1, marginTop: spazio.due }} numberOfLines={1} adjustsFontSizeToFit>
+      <Text style={{ color: tema.muto, fontFamily: F.medio, fontSize: 12.5, lineHeight: 16, marginTop: 2 }}>{r.sotto}</Text>
+      <Text style={{ color: tema.testo, fontFamily: F.extra, fontSize: 38, letterSpacing: -1.2, marginTop: spazio.due }} numberOfLines={1} adjustsFontSizeToFit>
         {euro(x.importo)}
       </Text>
       <Text style={{ color: tema.muto, fontFamily: F.bold, fontSize: 11.5 }}>{periodo}</Text>
@@ -166,6 +172,14 @@ function Scheda({ nome, formule, pianoId, onScegli }: { nome: string; formule: P
   const dettaglio = base.attivita_dettaglio.length ? base.attivita_dettaglio : base.attivita.map((a) => ({ nome: a, testo: '', pagina: null }))
   const [aperta, setAperta] = useState<string | null>(null)
   const apertaTesto = dettaglio.find((a) => a.nome === aperta)?.testo ?? ''
+  // In vetrina Mensile Flex e Annuale a rate (in questo ordine); l'Annuale in unica soluzione sta nella postilla «Vuoi risparmiare?».
+  const unico = formule.find((x) => x.formula === 'annuale-unico')
+  const principali = formule.filter((x) => x.formula !== 'annuale-unico').sort((a, b) => Number(b.formula === 'flex') - Number(a.formula === 'flex'))
+  const inVetrina = principali.length ? principali : formule
+  const postilla = principali.length && unico ? unico : undefined
+  const [risp, setRisp] = useState(false)
+  const unicoScelto = !!postilla && postilla.piano_id === pianoId
+  const rispAperta = risp || unicoScelto
   return (
     <View style={[stili.scheda, { backgroundColor: tema.fondo, borderColor: tema.bordo }]}>
       <View style={{ padding: spazio.quattro, paddingBottom: spazio.due, gap: 2 }}>
@@ -217,10 +231,48 @@ function Scheda({ nome, formule, pianoId, onScegli }: { nome: string; formule: P
       <View style={{ padding: spazio.quattro, paddingTop: spazio.quattro, gap: spazio.due }}>
         <Text style={[stili.titoletto, { color: tema.muto }]}>{t('SCEGLI COME PAGARE', 'CHOOSE HOW TO PAY')}</Text>
         <View style={stili.riquadri} accessibilityRole="radiogroup">
-          {formule.map((x) => (
+          {inVetrina.map((x) => (
             <Riquadro key={x.piano_id} x={x} nome={nome} tema={tema} attivo={x.piano_id === pianoId} onPress={() => onScegli(x.piano_id)} />
           ))}
         </View>
+        {postilla ? (
+          <View style={{ gap: 6 }}>
+            <Tocco
+              ruolo="button"
+              vibra={null}
+              scala={0.99}
+              stato={{ expanded: rispAperta }}
+              etichetta={`${t('Vuoi risparmiare?', 'Want to save?')} ${t('Paga l’annuale tutto anticipato', 'Pay the full year upfront')}`}
+              onPress={() => setRisp(!rispAperta)}
+              style={stili.postilla}
+            >
+              <View style={{ flex: 1, minWidth: 0 }}>
+                <Text style={[stili.postillaQ, { color: tema.risparmio }]}>{t('VUOI RISPARMIARE?', 'WANT TO SAVE?')}</Text>
+                <Text style={{ color: tema.testo, fontFamily: F.bold, fontSize: 13 }}>{t('Paga l’annuale tutto anticipato', 'Pay the full year upfront')}</Text>
+              </View>
+              <Icona nome={rispAperta ? 'su' : 'giu'} size={16} colore={tema.testo} />
+            </Tocco>
+            {rispAperta ? (
+              <Tocco
+                vibra="scelta"
+                stato={{ selected: unicoScelto }}
+                etichetta={`${nome}, ${FORMULE[postilla.formula]?.titolo ?? postilla.etichetta}, ${euro(postilla.importo)} ${t('una volta sola', 'once')}`}
+                onPress={() => onScegli(postilla.piano_id)}
+                style={[stili.unico, { backgroundColor: unicoScelto ? tema.riquadroAttivo : tema.riquadro, borderColor: unicoScelto ? '#FF5701' : tema.riquadroBordo }]}
+              >
+                <Text style={{ flex: 1, minWidth: 0, color: unicoScelto ? tema.accento : tema.testo, fontFamily: F.extra, fontSize: 14 }}>
+                  {t('Annuale in soluzione unica', 'Annual, paid in full')}
+                </Text>
+                <View style={{ alignItems: 'flex-end' }}>
+                  <Text style={{ color: tema.testo, fontFamily: F.extra, fontSize: 26, letterSpacing: -0.8 }} numberOfLines={1}>
+                    {euro(postilla.importo)}
+                  </Text>
+                  <Text style={{ color: tema.muto, fontFamily: F.bold, fontSize: 11.5 }}>{t('una volta sola', 'once')}</Text>
+                </View>
+              </Tocco>
+            ) : null}
+          </View>
+        ) : null}
       </View>
     </View>
   )
@@ -290,8 +342,11 @@ const stili = StyleSheet.create({
   tessera: { width: '48.5%', flexDirection: 'row', alignItems: 'center', gap: 8, minHeight: 48, paddingVertical: 7, paddingHorizontal: 9, borderRadius: 14, borderWidth: 1.5 },
   tesseraIcona: { width: 28, height: 28, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
   riquadri: { flexDirection: 'row', gap: 8 },
-  riquadro: { flex: 1, minHeight: 150, paddingVertical: 11, paddingHorizontal: 9, borderRadius: 16, borderWidth: 2 },
+  riquadro: { flex: 1, minHeight: 160, paddingVertical: 12, paddingHorizontal: 10, borderRadius: 16, borderWidth: 2 },
   barra: { flexDirection: 'row', alignItems: 'center', gap: spazio.tre, backgroundColor: '#272423', borderRadius: 20, paddingVertical: 12, paddingLeft: spazio.quattro, paddingRight: spazio.tre, boxShadow: '0 10px 30px rgba(0,0,0,0.25)' } as object,
   barraEtichetta: { color: 'rgba(255,255,255,0.7)', fontFamily: F.extra, fontSize: 10.5, letterSpacing: 1.2 },
-  riquadroTitolo: { fontFamily: F.extra, fontSize: 11.5, letterSpacing: 0.8, textTransform: 'uppercase' },
+  riquadroTitolo: { fontFamily: F.extra, fontSize: 16, letterSpacing: 0.6, textTransform: 'uppercase' },
+  postilla: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 4, paddingHorizontal: 2 },
+  postillaQ: { fontFamily: F.extra, fontSize: 10.5, letterSpacing: 1.1 },
+  unico: { flexDirection: 'row', alignItems: 'center', gap: 10, borderWidth: 2, borderRadius: 16, paddingVertical: 12, paddingHorizontal: 14 },
 })

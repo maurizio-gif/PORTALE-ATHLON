@@ -1,0 +1,11 @@
+## Il listino con due formule in vetrina e «Vuoi risparmiare?» per l'annuale in unica soluzione (06/11/2026)
+
+Richiesta di Maurizio, stessa idea della pagina Abbonamenti del sito (pubblicata lo stesso giorno): **vendere due abbonamenti, Premium e Smart, e lasciare il risparmio come postilla**, senza che il listino sembri tre abbonamenti. Cambia solo `abbonamento/Listino.tsx`; l'ordine (`ordinaPiani`), la barra «La tua scelta» e le condizioni sotto la scheda sono quelli di prima.
+
+- **Due riquadri affiancati: Mensile Flex e Annuale.** Il Flex è a sinistra («Flex, senza vincoli»), l'Annuale a destra, con sotto **«Rateizzato in 12 mesi»** (prima «a rate mensili»: faceva pensare a un mensile). Titoli e importi sono più grandi di prima (titolo 16, importo 38). Il «Risparmi X € sul Flex» resta, in verde.
+- **L'annuale in unica soluzione sta dietro una riga piccola**: «VUOI RISPARMIARE? Paga l'annuale tutto anticipato», con la freccia. Si tocca, si apre, e compare il pulsante selezionabile **«Annuale in soluzione unica»** con l'importo e «una volta sola». Toccandolo diventa la scelta (bordo arancione, come i riquadri) e la barra in fondo dice «Annuale, in un'unica soluzione». Finché è scelto la riga resta aperta.
+- **Mai il totale delle rate**, e nessuna cifra di risparmio sull'unica soluzione: non deve spaventare chi sceglie. L'annuale a rate si spiega a parole.
+- **Se di un abbonamento resta solo l'unica soluzione** (nel cambio di abbonamento la formula che si ha già non si offre), sta in vetrina come un riquadro qualunque, senza postilla.
+- **Sullo Smart i testi non sono più grigio chiaro**: `TEMA_SMART.muto` e il testo del bollino sono bianchi pieni (richiesta di Maurizio sul sito, estesa qui).
+- **Le note di disdetta** («almeno 10 giorni prima del rinnovo» al posto di «entro 10 giorni dalla fine») arrivano dai dati del sito (`abbonamenti.ts`), quindi l'app le mostra dopo il deploy del sito, già fatto.
+- **Provato**: `tsc` senza errori nel file e in quelli che lo usano. **Non provato**: la schermata in un browser o su un telefono (la prova con i piani veri non è partita: Metro si confonde con le cartelle di lavoro sul disco interno), la postilla sul totem a 540 pixel, e il cambio di abbonamento con la formula attuale tolta.
