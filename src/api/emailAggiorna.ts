@@ -5,7 +5,7 @@ import { intestazioneLingua, t } from '@/lib/lingua'
 // nell'app: un SMS al cellulare della scheda porta a `app.athlonroma.it/email/<token>`, dove scrive un indirizzo nuovo, lo conferma con un codice che
 // gli arriva **su quell'indirizzo** (non un secondo SMS) e il club lo scrive su PerfectGym. Una funzione sola di APP-ATHLON, pubblica e senza sessione:
 // `email-aggiorna` (azioni `leggi`, `codice`, `conferma`). Il contratto e i perche' stanno nella sua testata e in
-// `docs/claude/159-link-aggiorna-email-sms-06-11-2026.md` di APP-ATHLON.
+// `docs/claude/160-link-aggiorna-email-sms-06-11-2026.md` di APP-ATHLON.
 //
 // L'app non decide niente: se il link vale, quale indirizzo e' accettato (il controllo dei refusi e' quello del server), se e' gia' di un altro profilo,
 // e cosa si scrive su PerfectGym sono della funzione. I testi d'errore arrivano gia' nella lingua della persona.

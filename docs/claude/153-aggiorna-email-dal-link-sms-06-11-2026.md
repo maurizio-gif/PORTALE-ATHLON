@@ -9,5 +9,5 @@ Richiesta di Maurizio. Chi ha l'indirizzo con la casella piena non riceve il cod
 - **Link di prova.** La funzione ha link `prova` che fanno tutto tranne scrivere su PerfectGym; la pagina allora aggiunge «Questa è una prova: nessun profilo è stato modificato».
 - **Il campo del codice** ha `autoComplete="one-time-code"` e `textContentType="oneTimeCode"`: sull'iPhone la tastiera propone il codice dell'email appena arrivata. È un campo normale e non le sei caselle del laboratorio (`CampoCodice`), perché la pagina sta fuori dal laboratorio e usa `Pagina`, `Campo` e `Bottone`.
 - **`vercel.json` non cambia**: `/email/<token>` ha già il ripiego su `index.html` di ogni percorso senza punto.
-- **Provato**: `tsc` (nessun errore in `src/`), e la pagina in un browser con il server simulato (vedi la PR). **Non provato**: la pagina contro la funzione vera e su un telefono.
-- **Ordine di pubblicazione**: migrazione e funzione di APP-ATHLON, **poi** questa pagina, **poi** gli SMS.
+- **Provato**: `tsc` (nessun errore in `src/`), e la pagina in un browser con il server simulato (44 verifiche: percorso intero, i quattro link chiusi, guasto, segreteria, prova, inglese). La funzione vera è stata provata a parte con link di prova (APP-ATHLON, nota 160). **Non provato**: la pagina contro la funzione vera e su un telefono.
+- **Ordine di pubblicazione**: migrazione e funzione di APP-ATHLON (pubblicate il 06/11/2026), **poi** questa pagina, **poi** gli SMS.
