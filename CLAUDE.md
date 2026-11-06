@@ -188,3 +188,4 @@ chiamata diretta al gestionale. Esempio: la sezione Prodotti usa l'azione `prodo
 - [Baby Nuoto: prenotare e attivare il mensile c'è già, e la vista cliente ora dice perché non lo mostra (06/11/2026)](docs/claude/150-baby-nuoto-in-vista-cliente-si-spiega-06-11-2026.md) · 3 KB
 - [La vista cliente mostra Junior fino alla firma e al pagamento (06/11/2026)](docs/claude/151-vista-cliente-mostra-junior-fino-alla-firma-06-11-2026.md) · 3 KB
 - [Junior: i turni esauriti non si mostrano mai, e «Solo con posti liberi» non c'è più (06/11/2026)](docs/claude/152-junior-turni-esauriti-non-si-mostrano-mai-06-11-2026.md) · 3 KB
+- [«Aggiorna la tua email»: la pagina del link dell'SMS per chi ha la casella piena (06/11/2026)](docs/claude/153-aggiorna-email-dal-link-sms-06-11-2026.md) · 3 KB
