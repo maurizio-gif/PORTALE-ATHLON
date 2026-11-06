@@ -336,7 +336,6 @@ export function Junior() {
                   key={`attivita-${persona.member_id}`}
                   persona={persona}
                   gruppi={gruppi}
-                  vista={vista}
                   puoIscriversi={(g) => chiPuoIscriversi(nucleo, g).some((x) => x.member_id === persona.member_id)}
                   onIscrivi={(g) => iscrivi(g, persona.member_id)}
                   contenutoBaby={
