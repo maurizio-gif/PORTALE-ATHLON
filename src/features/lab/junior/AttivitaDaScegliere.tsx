@@ -14,6 +14,7 @@ import { ATTIVITA, attivitaDiPersona, chiaveDelGruppo, type ChiaveAttivita } fro
 import {
   annoDi,
   calendarioGruppo,
+  esaurito,
   giorniDelAnno,
   gruppiDellAnno,
   quotaMensile,
@@ -72,10 +73,14 @@ export function AttivitaDaScegliere({
       {chiavi.map((k) => {
         const a = ATTIVITA[k];
         const on = aperta === k;
-        const delle = k === "baby" || anno == null ? [] : gruppi.filter((g) => g.anni.includes(anno) && chiaveDelGruppo(g) === k);
+        const dellAnno = k === "baby" || anno == null ? [] : gruppi.filter((g) => g.anni.includes(anno) && chiaveDelGruppo(g) === k);
+        // I turni da scegliere sono solo quelli con posti: un turno esaurito non si mostra mai (06/11/2026). Della carta chiusa resta
+        // la riga «Al completo» quando sono finiti tutti, perche' dice dell'attivita' e non elenca nessun turno.
+        const delle = dellAnno.filter((g) => !esaurito(g));
+        const tuttiEsauriti = dellAnno.length > 0 && !delle.length;
         const liberi = delle.reduce((s, g) => s + Math.max(g.liberi ?? 0, 0), 0);
-        // Il prezzo d'attacco: la quota piu' bassa fra i turni («da 89 € / mese»); se sono tutte uguali, quella.
-        const quote = delle.map((g) => quotaMensile(g)).filter((q): q is string => !!q);
+        // Il prezzo d'attacco: la quota piu' bassa fra i turni con posto («da 89 € / mese»); se sono tutte uguali, quella.
+        const quote = (delle.length ? delle : dellAnno).map((g) => quotaMensile(g)).filter((q): q is string => !!q);
         const numero = (q: string) => Number(/\d+/.exec(q)?.[0] ?? Infinity);
         const minima = quote.length ? quote.reduce((a, b) => (numero(b) < numero(a) ? b : a)) : null;
         const prezzo = minima && new Set(quote.map(numero)).size > 1 ? t(`da ${minima}`, `from ${minima}`) : minima;
@@ -94,14 +99,13 @@ export function AttivitaDaScegliere({
                 <Text style={[stili.claim, { color: p.testoSecondario }]} numberOfLines={on ? undefined : 2}>
                   {a.claim()}
                 </Text>
-                {!on && (prezzo || delle.length) ? (
+                {!on && (prezzo || dellAnno.length) ? (
                   <View style={stili.pillole}>
                     {prezzo ? <Etichetta testo={prezzo} tono="accento" /> : null}
-                    {delle.length ? (
-                      <Etichetta
-                        testo={liberi > 0 ? t(`${liberi} posti liberi`, `${liberi} spots left`) : t("Al completo", "Full")}
-                        tono={liberi > 0 ? "ok" : "neutro"}
-                      />
+                    {liberi > 0 ? (
+                      <Etichetta testo={t(`${liberi} posti liberi`, `${liberi} spots left`)} tono="ok" />
+                    ) : tuttiEsauriti ? (
+                      <Etichetta testo={t("Al completo", "Full")} tono="neutro" />
                     ) : null}
                   </View>
                 ) : null}
@@ -160,7 +164,10 @@ function Filtro({ attivo, testo, onPress, etichetta }: { attivo: boolean; testo:
   );
 }
 
-/** I turni di un'attivita' per l'anno del bambino, col filtro per giorno e per posti liberi, e «Iscriviti» su ogni turno. */
+/**
+ * I turni di un'attivita' per l'anno del bambino, col filtro per giorno e «Iscriviti» su ogni turno. Arrivano gia' senza gli esauriti
+ * (`gruppi` e' `delle` della carta, e `gruppiDellAnno` li scarta comunque): il filtro «Solo con posti liberi» non c'e' piu'.
+ */
 function TurniAttivita({
   chiave,
   gruppi,
@@ -178,13 +185,12 @@ function TurniAttivita({
 }) {
   const p = usePalette();
   const [giorni, setGiorni] = useState<number[]>([]);
-  const [soloLiberi, setSoloLiberi] = useState(false);
   const giorniAnno = useMemo(() => (anno == null ? [] : giorniDelAnno(gruppi, anno)), [gruppi, anno]);
   const attivi = giorni.filter((i) => giorniAnno.includes(i));
   const blocchi = useMemo(
-    () => (anno == null ? [] : gruppiDellAnno(gruppi, anno, soloLiberi, attivi)),
+    () => (anno == null ? [] : gruppiDellAnno(gruppi, anno, attivi)),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [gruppi, anno, soloLiberi, attivi.join(",")],
+    [gruppi, anno, attivi.join(",")],
   );
   const alternaGiorno = (i: number) => setGiorni((v) => (v.includes(i) ? v.filter((x) => x !== i) : [...v, i]));
 
@@ -204,23 +210,12 @@ function TurniAttivita({
       {chiave === "pallanuoto" ? (
         <Text style={[stili.nota, { color: p.testoSecondario }]}>{t("La pallanuoto è solo maschile.", "Water polo is boys only.")}</Text>
       ) : null}
-      {giorniAnno.length > 1 || gruppi.length > 1 ? (
+      {giorniAnno.length > 1 ? (
         <View style={stili.filtri}>
-          {giorniAnno.length > 1 ? (
-            <>
-              <Filtro attivo={!attivi.length} testo={t("Tutti", "All")} etichetta={t("Tutti i giorni", "Every day")} onPress={() => setGiorni([])} />
-              {giorniAnno.map((i) => (
-                <Filtro key={i} attivo={attivi.includes(i)} testo={SIGLE_GIORNI[i]} onPress={() => alternaGiorno(i)} />
-              ))}
-            </>
-          ) : null}
-          {gruppi.length > 1 ? (
-            <Filtro
-              attivo={soloLiberi}
-              testo={t("Solo con posti liberi", "Only with spots left")}
-              onPress={() => setSoloLiberi((v) => !v)}
-            />
-          ) : null}
+          <Filtro attivo={!attivi.length} testo={t("Tutti", "All")} etichetta={t("Tutti i giorni", "Every day")} onPress={() => setGiorni([])} />
+          {giorniAnno.map((i) => (
+            <Filtro key={i} attivo={attivi.includes(i)} testo={SIGLE_GIORNI[i]} onPress={() => alternaGiorno(i)} />
+          ))}
         </View>
       ) : null}
       {blocchi.length ? (
@@ -267,7 +262,7 @@ function TurniAttivita({
         ))
       ) : (
         <Messaggio tono="attenzione">
-          {t("Con questi filtri non c’è nessun turno. Prova a togliere un giorno o i posti liberi.", "No slots match these filters. Try removing a day or the available-spots filter.")}
+          {t("Con questi giorni non c’è nessun turno con posti. Prova a togliere un giorno.", "No slots with spots left on these days. Try removing a day.")}
         </Messaggio>
       )}
       <Text style={[stili.nota, { color: p.testoTerzo }]}>

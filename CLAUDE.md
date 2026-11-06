@@ -186,3 +186,4 @@ chiamata diretta al gestionale. Esempio: la sezione Prodotti usa l'azione `prodo
 - [Un addebito SEPA in corso si vede nella sezione Pagamenti e nel riquadro della Home, col giorno dell'addebito (05/11/2026)](docs/claude/148-pagamenti-in-corso-nella-sezione-pagamenti-05-11-2026.md) · 5 KB
 - [La sezione Famiglia mostra i dati dei figli: codice fiscale, e email e cellulare se diversi (06/11/2026)](docs/claude/149-famiglia-dati-dei-figli-06-11-2026.md) · 3 KB
 - [Baby Nuoto: prenotare e attivare il mensile c'è già, e la vista cliente ora dice perché non lo mostra (06/11/2026)](docs/claude/150-baby-nuoto-in-vista-cliente-si-spiega-06-11-2026.md) · 3 KB
+- [Junior: i turni esauriti non si mostrano mai, e «Solo con posti liberi» non c'è più (06/11/2026)](docs/claude/151-junior-turni-esauriti-non-si-mostrano-mai-06-11-2026.md) · 3 KB

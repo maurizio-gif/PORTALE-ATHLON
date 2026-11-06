@@ -151,17 +151,25 @@ export type BloccoCorso = {
   liberi: number;
 };
 
-/** I gruppi che accolgono quell'anno, divisi per corso e in ordine di settimana e di ora. */
+/**
+ * Un turno senza piu' posti (06/11/2026, richiesta di Maurizio: «non far mai vedere quelli esauriti»). **Non c'e' un filtro da accendere**:
+ * un turno completo non si elenca mai fra i turni da scegliere, perche' per iscriversi non c'e' lista d'attesa. Un turno di cui non si sa
+ * quanti posti restano (`liberi` nullo) non e' esaurito: resta, con «Posti da verificare», e la segreteria conferma all'iscrizione.
+ */
+export function esaurito(g: Pick<GruppoJunior, "liberi">): boolean {
+  return g.liberi != null && g.liberi <= 0;
+}
+
+/** I gruppi che accolgono quell'anno, divisi per corso e in ordine di settimana e di ora. Gli esauriti non ci sono mai (`esaurito`). */
 export function gruppiDellAnno(
   gruppi: GruppoJunior[],
   anno: number,
-  soloLiberi = false,
   giorni: number[] = [],
 ): BloccoCorso[] {
   const blocchi = new Map<string, GruppoJunior[]>();
   for (const g of gruppi) {
     if (!g.anni.includes(anno)) continue;
-    if (soloLiberi && !((g.liberi ?? 0) > 0)) continue;
+    if (esaurito(g)) continue;
     if (!passaGiorni(g, giorni)) continue;
     const c = nomeCorso(g);
     blocchi.set(c, [...(blocchi.get(c) ?? []), g]);
