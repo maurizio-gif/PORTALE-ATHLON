@@ -149,9 +149,9 @@ export function Articolo({ id }: { id: number }) {
         {a.descrizione ? <Text style={[stili.descrizione, { color: p.testoSecondario }]}>{a.descrizione}</Text> : null}
         {a.preordine ? (
           <View style={[stili.preordine, { backgroundColor: p.incavo }]}>
-            <Text style={[stili.nota, { color: p.testo, fontFamily: F.bold }]}>{t('Si paga adesso e si consegna quando la merce arriva.', 'You pay now and it’s handed over when the goods arrive.')}</Text>
-            {a.preordine_aperto && a.preordine_chiude ? <Text style={[stili.nota, { color: p.testoSecondario }]}>{t(`Si chiude il ${giornoEOra(a.preordine_chiude)}.`, `Closes on ${giornoEOra(a.preordine_chiude)}.`)}</Text> : null}
-            {a.consegna_prevista ? <Text style={[stili.nota, { color: p.testoSecondario }]}>{t(`Consegna prevista: ${a.consegna_prevista}`, `Expected delivery: ${a.consegna_prevista}`)}</Text> : null}
+            <Text style={[stili.rigaPreordine, { color: p.testo, fontFamily: F.bold }]}>{t('Si paga adesso e si consegna quando la merce arriva.', 'You pay now and it’s handed over when the goods arrive.')}</Text>
+            {a.preordine_aperto && a.preordine_chiude ? <Text style={[stili.rigaPreordine, { color: p.testoSecondario }]}>{t(`Si chiude il ${giornoEOra(a.preordine_chiude)}.`, `Closes on ${giornoEOra(a.preordine_chiude)}.`)}</Text> : null}
+            {a.consegna_prevista ? <Text style={[stili.rigaPreordine, { color: p.testoSecondario }]}>{t(`Consegna prevista: ${a.consegna_prevista}`, `Expected delivery: ${a.consegna_prevista}`)}</Text> : null}
           </View>
         ) : null}
         <Text style={[stili.nota, { color: p.testoTerzo }]}>{a.preordine && a.ritiro_testo ? a.ritiro_testo : t('Si ritira in segreteria, negli orari di apertura del club.', 'Pick up at reception during the club’s opening hours.')}</Text>
@@ -196,6 +196,7 @@ const stili = StyleSheet.create({
   testa: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spazio.tre },
   tag: { flexDirection: 'row', alignItems: 'center', gap: spazio.due, flexShrink: 1, flexWrap: 'wrap', justifyContent: 'flex-end' },
   preordine: { marginTop: spazio.tre, padding: spazio.tre, borderRadius: 14, gap: 4 },
+  rigaPreordine: { fontFamily: F.medio, fontSize: 13, lineHeight: 19 },
   prezzo: { fontFamily: F.extra, fontSize: 28, letterSpacing: -0.8 },
   descrizione: { fontFamily: F.medio, fontSize: 15, lineHeight: 23, marginTop: spazio.tre },
   nota: { fontFamily: F.medio, fontSize: 13, lineHeight: 19, marginTop: spazio.tre },

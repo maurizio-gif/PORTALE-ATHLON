@@ -133,8 +133,8 @@ function ScelteDiValori({ o, scelta, onScegli }: { o: Opzione; scelta: string | 
   )
 }
 
-const LARGHEZZA_PRIMA = 108
-const LARGHEZZA_COLONNA = 84
+const LARGHEZZA_PRIMA = 92
+const LARGHEZZA_COLONNA = 104
 
 /** La guida alle taglie: una tabella che, se non sta nella larghezza del foglio, scorre di lato dentro il foglio. */
 function Tabella({ tabella }: { tabella: TabellaOpzione }) {

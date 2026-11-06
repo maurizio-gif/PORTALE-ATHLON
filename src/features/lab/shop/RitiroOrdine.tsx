@@ -51,10 +51,13 @@ export function testiRitiro(stato: StatoRitiro, consegnato: string | null, conse
   }
 }
 
-/** La consegna prevista di un ordine: quella scritta sull'articolo (l'ordine non la porta). Serve solo mentre la merce non e' ancora arrivata. */
+/**
+ * La consegna prevista di un ordine: il server la mette nell'ordine (06/11/2026). Per una funzione di prima, che non la porta, si ricava ancora dalla vetrina (una volta, in memoria)
+ * quella scritta sull'articolo. Serve solo mentre la merce non e' ancora arrivata.
+ */
 function ConsegnaPrevista({ ordine, componi }: { ordine: Ordine; componi: (consegna: string | null) => ReactNode }) {
   const { dati } = useVetrina()
-  const consegna = ordine.righe.map((r) => dati?.articoli.find((a) => a.product_id === r.product_id)?.consegna_prevista ?? null).find(Boolean) ?? null
+  const consegna = ordine.consegna_prevista ?? ordine.righe.map((r) => dati?.articoli.find((a) => a.product_id === r.product_id)?.consegna_prevista ?? null).find(Boolean) ?? null
   return <>{componi(consegna)}</>
 }
 

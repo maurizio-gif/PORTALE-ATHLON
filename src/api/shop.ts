@@ -92,6 +92,8 @@ export type Ordine = {
   sepa_stato: 'in_corso' | 'incassato' | 'fallito' | 'contestato' | null
   preordine: boolean
   stato_ritiro: StatoRitiro | null
+  /** La consegna prevista scritta dal club sull'articolo in preordine (il server la mette nell'ordine); null se non c'e'. */
+  consegna_prevista: string | null
   arrivato_il: string | null
   consegnato_il: string | null
   righe: RigaOrdine[]
@@ -212,6 +214,7 @@ function ordineDa(g: Record<string, any>): Ordine {
     sepa_stato: g.sepa_stato === 'in_corso' || g.sepa_stato === 'incassato' || g.sepa_stato === 'fallito' || g.sepa_stato === 'contestato' ? g.sepa_stato : null,
     preordine,
     stato_ritiro,
+    consegna_prevista: typeof g.consegna_prevista === 'string' && g.consegna_prevista.trim() ? g.consegna_prevista.trim() : null,
     arrivato_il: typeof g.arrivato_il === 'string' ? g.arrivato_il : null,
     consegnato_il: consegnato,
     righe: (Array.isArray(g.righe) ? g.righe : []).map((r: Record<string, any>) => ({
