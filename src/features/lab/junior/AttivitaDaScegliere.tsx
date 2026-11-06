@@ -34,14 +34,12 @@ import { DaSapere } from "./SchedaAttivita";
 export function AttivitaDaScegliere({
   persona,
   gruppi,
-  vista,
   puoIscriversi,
   onIscrivi,
   contenutoBaby,
 }: {
   persona: PersonaJunior;
   gruppi: GruppoJunior[];
-  vista: boolean;
   /** Questa persona puo' iscriversi a quel turno (idonea, nell'anno giusto, posti, non gia' dentro). */
   puoIscriversi: (g: GruppoJunior) => boolean;
   onIscrivi: (g: GruppoJunior) => void;
@@ -131,7 +129,6 @@ export function AttivitaDaScegliere({
                     chiave={k}
                     gruppi={delle}
                     anno={anno}
-                    vista={vista}
                     puoIscriversi={puoIscriversi}
                     onIscrivi={onIscrivi}
                   />
@@ -172,14 +169,12 @@ function TurniAttivita({
   chiave,
   gruppi,
   anno,
-  vista,
   puoIscriversi,
   onIscrivi,
 }: {
   chiave: ChiaveAttivita;
   gruppi: GruppoJunior[];
   anno: number | null;
-  vista: boolean;
   puoIscriversi: (g: GruppoJunior) => boolean;
   onIscrivi: (g: GruppoJunior) => void;
 }) {
@@ -230,7 +225,7 @@ function TurniAttivita({
                 nome={tv<[string, string]>(["turno", "turni"], ["slot", "slots"])}
                 voci={b.gruppi.map((g, i) => {
                 const s = statoPosti(g);
-                const puo = !vista && puoIscriversi(g);
+                const puo = puoIscriversi(g);
                 return (
                   <Riga
                     key={g.id}

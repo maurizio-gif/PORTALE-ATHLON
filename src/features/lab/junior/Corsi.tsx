@@ -68,7 +68,8 @@ import {
 //
 // I conteggi sono **stime** dal mirror, che non dice chi ha annullato una lezione: la schermata lo dice. Disdire e prenotare
 // passano dalle stesse funzioni del Calendario, con le stesse regole di PerfectGym (disdetta entro un'ora prima, limiti,
-// acquisto della lezione se non e' compresa). **In vista cliente dello staff si legge e basta.**
+// acquisto della lezione se non e' compresa). **In vista cliente dello staff si vede tutto fino alla firma e al pagamento** (06/11/2026,
+// richiesta di Maurizio): i comandi si disegnano e i calendari si leggono, e a rifiutare la scrittura e' il server.
 
 type EsitoCorsi = ({ ok: true } & CorsiPersona) | { ok: false; errore: string };
 
@@ -198,7 +199,6 @@ export function CorsiPersona({
           nome={nome}
           memberId={persona.member_id}
           baby={esito.baby}
-          vista={vista}
           onCambiato={cambiato}
         />
       ) : null}
@@ -474,7 +474,7 @@ function SezioneIscrizione({
         </Sezione>
       ) : null}
 
-      {i.recuperabile && !vista && mostra("recuperi") ? (
+      {i.recuperabile && mostra("recuperi") ? (
         <Sezione titolo={t("Prenota un recupero", "Book a make-up")}>
           <CalendarioLezioni
             categoria="recuperi"
@@ -498,13 +498,11 @@ function SezioneBaby({
   nome,
   memberId,
   baby,
-  vista,
   onCambiato,
 }: {
   nome: string;
   memberId: number;
   baby: BabyJunior;
-  vista: boolean;
   onCambiato: () => Promise<void>;
 }) {
   const p = usePalette();
@@ -585,21 +583,19 @@ function SezioneBaby({
                     />
                   }
                 />
-                {!vista ? (
-                  <View style={{ padding: spazio.quattro, paddingTop: 0 }}>
-                    <Pulsante
-                      testo={t(
-                        "Attiva l’abbonamento mensile",
-                        "Start the monthly membership",
-                      )}
-                      onPress={() =>
-                        router.navigate(
-                          `/iscrizione?membro=${memberId}&baby=1` as const,
-                        )
-                      }
-                    />
-                  </View>
-                ) : null}
+                <View style={{ padding: spazio.quattro, paddingTop: 0 }}>
+                  <Pulsante
+                    testo={t(
+                      "Attiva l’abbonamento mensile",
+                      "Start the monthly membership",
+                    )}
+                    onPress={() =>
+                      router.navigate(
+                        `/iscrizione?membro=${memberId}&baby=1` as const,
+                      )
+                    }
+                  />
+                </View>
               </Carta>
             ) : null}
             <Text style={[stili.nota, { color: p.testoSecondario }]}>
@@ -611,74 +607,23 @@ function SezioneBaby({
           </View>
         )}
       </Sezione>
-      {!vista ? (
-        <Sezione
-          titolo={t(
-            "Prenota una lezione di Baby Nuoto",
-            "Book a Baby Nuoto class",
+      <Sezione
+        titolo={t(
+          "Prenota una lezione di Baby Nuoto",
+          "Book a Baby Nuoto class",
+        )}
+      >
+        <CalendarioLezioni
+          categoria="baby"
+          memberId={memberId}
+          vuoto={t(
+            "Nei prossimi giorni non ci sono lezioni di Baby Nuoto per la sua età.",
+            "There are no Baby Nuoto classes in the next few days for their age.",
           )}
-        >
-          <CalendarioLezioni
-            categoria="baby"
-            memberId={memberId}
-            vuoto={t(
-              "Nei prossimi giorni non ci sono lezioni di Baby Nuoto per la sua età.",
-              "There are no Baby Nuoto classes in the next few days for their age.",
-            )}
-            onCambiato={onCambiato}
-          />
-        </Sezione>
-      ) : (
-        <Sezione
-          titolo={t(
-            "Prenota una lezione di Baby Nuoto",
-            "Book a Baby Nuoto class",
-          )}
-        >
-          <Messaggio
-            tono="attenzione"
-            titolo={t(
-              "Vista cliente: qui si guarda e basta",
-              "Client view: look only",
-            )}
-          >
-            {spiegaVistaBaby(baby)}
-          </Messaggio>
-        </Sezione>
-      )}
+          onCambiato={onCambiato}
+        />
+      </Sezione>
     </>
-  );
-}
-
-/**
- * Cosa vede il genitore al posto del pulsante e del calendario che la vista cliente nasconde (06/11/2026). Senza questa riga la sezione
- * sembrava priva di abbonamento e prenotazione, mentre in vista cliente (sola lettura) i comandi che scrivono non si disegnano.
- * Importi dai dati del server, mai scritti qui.
- */
-function spiegaVistaBaby(baby: BabyJunior): string {
-  if (baby.abbonamento)
-    return t(
-      "Il genitore qui trova il calendario delle lezioni di Baby Nuoto e prenota: con l’abbonamento mensile la lezione è già compresa. Il calendario non si apre in vista cliente.",
-      "Here the parent finds the Baby Nuoto class calendar and books: with the monthly membership the class is already included. The calendar doesn’t open in client view.",
-    );
-  // Il pulsante del mensile c'e' solo se il server manda il mensile: la nota non nomina un comando che il genitore non vede.
-  const m = baby.mensile;
-  const s = baby.singola;
-  const pulsanteIt = m
-    ? `«Attiva l’abbonamento mensile» (${euroIt(m.canone)} al mese, più ${euroIt(m.quota_attivazione)} una tantum) e `
-    : "";
-  const pulsanteEn = m
-    ? `“Start the monthly membership” (${euroIt(m.canone)} a month, plus a one-off ${euroIt(m.quota_attivazione)}) and `
-    : "";
-  const singolaIt = s
-    ? `: senza abbonamento paga la lezione singola (${euroIt(s.prezzo)}) e prenota nello stesso passaggio.`
-    : ".";
-  const singolaEn = s
-    ? `: without a membership they pay for a single class (${euroIt(s.prezzo)}) and book in the same step.`
-    : ".";
-  return t(
-    `Il genitore qui trova ${pulsanteIt}il calendario delle lezioni da prenotare${singolaIt} In vista cliente ${m ? "i due comandi non si aprono" : "il calendario non si apre"}.`,
-    `Here the parent finds ${pulsanteEn}the calendar of classes to book${singolaEn} In client view ${m ? "the two controls don’t open" : "the calendar doesn’t open"}.`,
   );
 }
 
