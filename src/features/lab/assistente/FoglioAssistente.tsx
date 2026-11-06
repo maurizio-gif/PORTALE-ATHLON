@@ -59,7 +59,7 @@ function adattaAltezza(el: unknown) {
 // prima: sono quelli che l'assistente sa fare con un tocco. Toccarne uno manda quella frase come domanda.
 type Funzione = { icona: NomeIcona; testo: string; sotto: string }
 
-const PRENOTA = (): Funzione => ({ icona: 'calendario', testo: t('Aiutami a prenotare una lezione', 'Help me book a class'), sotto: t('Ti propongo una lezione e prenoti con un tocco', 'I’ll suggest one and you book with a tap') })
+const PRENOTA = (): Funzione => ({ icona: 'calendario', testo: t('Aiutami a prenotare una lezione', 'Help me book a class'), sotto: t('Ti aiuto a scegliere la lezione e prenoti con un tocco', 'I’ll help you choose a class and you book with a tap') })
 const PAGA = (): Funzione => ({ icona: 'carta', testo: t('Voglio pagare una rata scaduta', 'I want to pay an overdue instalment'), sotto: t('Vedi le quote e paghi da qui', 'See what’s due and pay from here') })
 const METODO = (): Funzione => ({ icona: 'wallet', testo: t('Voglio aggiungere il metodo di pagamento', 'I want to add a payment method'), sotto: t('Ti porto subito alla pagina giusta', 'I’ll take you straight to the right page') })
 const ABBONAMENTO = (): Funzione => ({ icona: 'abbonamento', testo: t('Quale abbonamento fa per me?', 'Which membership is right for me?'), sotto: t('Ti dico cosa comprende ognuno, e lo attivi dall’app', 'I’ll tell you what each one includes, and you start it from the app') })
