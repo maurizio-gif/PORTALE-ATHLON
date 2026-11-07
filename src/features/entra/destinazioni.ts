@@ -22,6 +22,7 @@ import { t } from '@/lib/lingua'
 // che il genitore trova dalla sezione Junior. Se il bambino non e' del nucleo di chi entra, la schermata non lo trova e lo dice (e il server non firma).
 // `abbonamento` (04/11/2026) e' il pulsante «Iscriviti» del listino del sito: apre «Attiva un abbonamento» con il piano gia' scelto (`p`,
 // l'id del piano su PerfectGym, che e' anche il `piano_id` dell'app); un piano che non c'e' nel listino lascia la scelta alla persona.
+// `certificato` (07/11/2026) e' il modulo della scheda «Certificato Medico» del sito: apre la Home sulla sezione Certificato.
 
 /** I nomi delle categorie del Calendario (`perfectgym.class_categories`): il filtro del Calendario confronta la stringa. */
 export const CATEGORIE = ['Corsi Fitness', 'Aqua Fitness', 'Nuoto Libero', 'Gym Floor', 'Scuola Nuoto Adulti', 'Group Reformer'] as const
@@ -145,6 +146,19 @@ export function arrivoDa(
           'We’ll open your area for you directly, no password needed, with the assistant ready: there I know your memberships, payments and bookings.',
         ),
         bottone: t('Entra e scrivimi', 'Sign in and chat'),
+      }
+    case 'certificato':
+      // La scheda «Certificato Medico» dell'Help Desk del sito (07/11/2026): chiede l'email e manda questo link. La Home sulla sezione
+      // Certificato (`/?sezione=certificato`, letta da `AreaRiservata.tsx`, sempre visibile), dove si sceglie per chi e si invia la foto o il PDF.
+      // Nessun parametro in piu': nemmeno un bambino, «per chi» si sceglie dentro la sezione.
+      return {
+        href: { pathname: '/', params: { sezione: 'certificato' } },
+        titolo: t('Carica il certificato medico', 'Upload your medical certificate'),
+        testo: t(
+          'Ti apriamo direttamente la sezione Certificato, senza password: scegli per chi lo carichi e invia una foto o un PDF.',
+          'We’ll open the Certificate section for you directly, no password needed: choose who you’re uploading it for and send a photo or a PDF.',
+        ),
+        bottone: t('Apri il certificato', 'Open the certificate'),
       }
     case 'abbonamento': {
       // Dal listino del sito: «Attiva un abbonamento» (`lab/Abbonamento.tsx`), con il piano gia' scelto se l'app lo trova fra i suoi.
