@@ -1,8 +1,6 @@
-import { LinearGradient } from 'expo-linear-gradient'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { StyleSheet, Text, View } from 'react-native'
-import Animated, { useAnimatedStyle, useSharedValue, withRepeat, withTiming, ZoomIn } from 'react-native-reanimated'
 
 import { configurazioneAdyen, esitoPagamento, STATI_IN_CORSO, statoPagamento, type StatoDelPagamento } from '@/api/lab'
 import { t } from '@/lib/lingua'
@@ -11,7 +9,8 @@ import { spazio } from '@/theme'
 import { riprendiDopoRedirect } from './adyen'
 import { euro, quando } from './etichettePagamenti'
 import { hrefSezione } from './home/sezioni'
-import { Icona, type NomeIcona } from './ui/Icona'
+import { CartaEsito, type StatoCartaEsito } from './ui/CartaEsito'
+import type { NomeIcona } from './ui/Icona'
 import { Carta, Messaggio, Numero, Pulsante, Riga, SchedeInArrivo } from './ui/kit'
 import { Schermata } from './ui/Schermata'
 import { F, usePalette } from './ui/tema'
@@ -48,27 +47,6 @@ function primaVolta(chiave: string): boolean {
     // senza sessionStorage si prova comunque
   }
   return true
-}
-
-/** Il cerchio grande dell'esito; finche' si aspetta, un'onda gli pulsa attorno. */
-function Esito({ tono, icona, inCorso }: { tono: 'ok' | 'attenzione' | 'errore'; icona: NomeIcona; inCorso: boolean }) {
-  const p = usePalette()
-  const onda = useSharedValue(0)
-  useEffect(() => {
-    onda.value = inCorso ? withRepeat(withTiming(1, { duration: 1600 }), -1, false) : 0
-  }, [inCorso, onda])
-  const stileOnda = useAnimatedStyle(() => ({ opacity: inCorso ? 0.45 * (1 - onda.value) : 0, transform: [{ scale: 1 + onda.value * 0.6 }] }))
-  const colori = tono === 'ok' ? (['#34C46A', '#16803C'] as const) : tono === 'errore' ? (['#FF6B5E', '#B3261E'] as const) : (['#F5B33B', '#C27800'] as const)
-  return (
-    <View style={stili.esito}>
-      <Animated.View style={[stili.onda, { backgroundColor: p[tono] }, stileOnda]} />
-      <Animated.View entering={ZoomIn.springify().damping(12)}>
-        <LinearGradient colors={colori} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[stili.cerchio, { boxShadow: `0 16px 40px ${colori[1]}55` }]}>
-          <Icona nome={icona} size={52} colore="#fff" />
-        </LinearGradient>
-      </Animated.View>
-    </View>
-  )
 }
 
 export function StatoPagamento() {
@@ -199,8 +177,8 @@ export function StatoPagamento() {
             : t('La pagina si aggiorna da sola. Puoi anche chiuderla e riaprire questo indirizzo più tardi.', 'This page updates by itself. You can also close it and reopen this address later.'),
       }
     : TITOLO[pag.stato]
-  const tono = pag.stato === 'autorizzato' ? 'ok' : inCorso || pag.stato === 'scaduto' ? 'attenzione' : 'errore'
-  const icona: NomeIcona = pag.stato === 'autorizzato' ? 'spunta' : tono === 'attenzione' ? 'clessidra' : 'chiudi'
+  // La carta dell'esito (07/11/2026): scura e pulsante finche' si aspetta, verde se e' andato, ambra se la banca non ha ancora risposto, rossa se no.
+  const statoCarta: StatoCartaEsito = pag.stato === 'autorizzato' ? 'ok' : inCorso ? 'in_corso' : pag.stato === 'scaduto' ? 'attenzione' : 'errore'
   const righe: { icona: NomeIcona; titolo: string; valore: string }[] = [
     { icona: 'ricevuta', titolo: t('Piano', 'Plan'), valore: pag.piano },
     { icona: 'calendario', titolo: t('Rata', 'Installment'), valore: t(`${pag.numero_rata} di ${pag.rate_totali}${pag.tentativo > 1 ? ` · tentativo ${pag.tentativo}` : ''}`, `${pag.numero_rata} of ${pag.rate_totali}${pag.tentativo > 1 ? ` · attempt ${pag.tentativo}` : ''}`) },
@@ -212,7 +190,7 @@ export function StatoPagamento() {
   return (
     <Schermata titolo={tit.titolo} nascondiTitolo indietro={hrefSezione('pagamenti')} barra={false}>
       <View style={{ alignItems: 'center', gap: spazio.tre, paddingTop: spazio.tre }}>
-        <Esito tono={tono} icona={icona} inCorso={inCorso} />
+        <CartaEsito stato={statoCarta} cifre={pag.ultime_quattro} marca={pag.metodo} />
         <Numero valore={euro(pag.importo_cent).replace(' €', '')} unita="€" size={52} />
         <Text style={[stili.titolo, { color: p.testo }]} accessibilityRole="header">
           {tit.titolo}
@@ -240,9 +218,6 @@ export function StatoPagamento() {
 }
 
 const stili = StyleSheet.create({
-  esito: { width: 150, height: 150, alignItems: 'center', justifyContent: 'center' },
-  onda: { position: 'absolute', width: 116, height: 116, borderRadius: 58 },
-  cerchio: { width: 116, height: 116, borderRadius: 58, alignItems: 'center', justifyContent: 'center' },
   titolo: { fontFamily: F.extra, fontSize: 26, letterSpacing: -0.8, textAlign: 'center' },
   testo: { fontFamily: F.medio, fontSize: 15, lineHeight: 22, textAlign: 'center', maxWidth: 420 },
 })

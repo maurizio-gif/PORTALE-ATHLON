@@ -28,6 +28,7 @@ import { locale, t } from "@/lib/lingua";
 import { spazio } from "@/theme";
 
 import { DropIn, pagamentoDisponibile, riprendiDopoRedirect } from "../adyen";
+import { CartaEsito, type StatoCartaEsito } from "../ui/CartaEsito";
 import { Icona } from "../ui/Icona";
 import { Bollino, Carta, Etichetta, Messaggio, Numero, Pulsante, SchedeInArrivo } from "../ui/kit";
 import { useRiduciMovimento } from "../ui/movimento";
@@ -610,7 +611,8 @@ function Pagamento({ iscrizioneId, quotaCent, onCassa }: { iscrizioneId: number;
  * registrazione, Maurizio). Se non ce n'e', o si sceglie un'altra carta, si scrive nel modulo sicuro di Adyen (Drop-in, solo web), che **salva la carta pagando**; nell'app
  * nativa, senza Drop-in, la carta nuova passa dal link nel browser integrato. In ogni caso la conferma dell'iscrizione e' del webhook di Adyen, non di questa schermata.
  */
-type EsitoCassa = { tono: "ok" | "attenzione" | "errore"; titolo: string; testo: string; altra?: boolean };
+// `inAttesa`: la banca non ha ancora risposto, la carta dell'esito continua a pulsare. `conto`: l'addebito e' sul conto (SEPA), e una carta di credito non si disegna.
+type EsitoCassa = { tono: "ok" | "attenzione" | "errore"; titolo: string; testo: string; altra?: boolean; inAttesa?: boolean; conto?: boolean };
 
 const MARCHE: Record<string, string> = { visa: "Visa", mc: "Mastercard", mastercard: "Mastercard", amex: "American Express", maestro: "Maestro", diners: "Diners", discover: "Discover", jcb: "JCB", cartebancaire: "Carte Bancaire" };
 const nomeCarta = (c: CartaSalvata) => MARCHE[c.marca] ?? (c.marca ? c.marca.charAt(0).toUpperCase() + c.marca.slice(1) : t("Carta", "Card"));
@@ -644,6 +646,9 @@ function CassaGara({
   const [errore, setErrore] = useState<string | null>(null);
   const [esito, setEsito] = useState<EsitoCassa | null>(null);
   const [giro, setGiro] = useState(0); // cambia per chiedere una sessione nuova
+  // La carta dell'esito (07/11/2026): mentre si aspetta il server («elaborando») e dopo, con l'esito. Le cifre sono quelle di una carta gia' salvata; col modulo di Adyen non si sanno.
+  const [elaborando, setElaborando] = useState(false);
+  const [cartaMostrata, setCartaMostrata] = useState<{ cifre: string; marca: string } | null>(null);
 
   // 1. Le carte gia' salvate, e il conto gia' salvato su PerfectGym (se l'addebito sul conto e' acceso).
   useEffect(() => {
@@ -691,7 +696,7 @@ function CassaGara({
       setEsito(
         stato === "completed"
           ? { tono: "ok", titolo: t("Pagamento ricevuto", "Payment received"), testo: t("Stiamo confermando l’iscrizione: di solito bastano pochi secondi.", "We’re confirming the registration: it usually takes a few seconds.") }
-          : { tono: "attenzione", titolo: t("Stiamo verificando il pagamento", "We’re checking the payment"), testo: t("La banca non ha ancora risposto. Se il pagamento va a buon fine l’iscrizione si conferma da sola.", "Your bank hasn’t replied yet. If the payment goes through the registration confirms itself.") },
+          : { tono: "attenzione", inAttesa: true, titolo: t("Stiamo verificando il pagamento", "We’re checking the payment"), testo: t("La banca non ha ancora risposto. Se il pagamento va a buon fine l’iscrizione si conferma da sola.", "Your bank hasn’t replied yet. If the payment goes through the registration confirms itself.") },
       );
     },
     [iscrizioneId, onAttendo],
@@ -703,9 +708,13 @@ function CassaGara({
     if (!carta) return;
     setErrore(null);
     setLavoro(true);
+    setCartaMostrata({ cifre: carta.cifre, marca: carta.marca });
+    setElaborando(true);
     const r = await pagaConCartaSalvata(iscrizioneId, carta.id);
     setLavoro(false);
+    setElaborando(false);
     if (!r.ok) {
+      setCartaMostrata(null);
       if (r.cartaPersa) {
         const restano = carte.filter((c) => c.id !== carta.id);
         setCarte(restano);
@@ -741,10 +750,11 @@ function CassaGara({
     }
     if ("giaPagata" in r) {
       onAttendo(iscrizioneId);
-      return setEsito({ tono: "ok", titolo: t("Pagamento già ricevuto", "Payment already received"), testo: t("Stiamo confermando l’iscrizione.", "We’re confirming the registration.") });
+      return setEsito({ tono: "ok", conto: true, titolo: t("Pagamento già ricevuto", "Payment already received"), testo: t("Stiamo confermando l’iscrizione.", "We’re confirming the registration.") });
     }
     setEsito({
       tono: "ok",
+      conto: true,
       titolo: t("Iscrizione confermata", "Registration confirmed"),
       testo: t(
         `Addebiteremo ${euro(quotaCent)} sul conto •••• ${conto.cifre}${r.dataAddebito ? ` intorno al ${new Date(`${r.dataAddebito}T12:00:00`).toLocaleDateString(locale(), { day: "numeric", month: "long" })}` : " nei prossimi giorni lavorativi"}. La ricevuta arriva per email quando la banca conferma l’addebito.`,
@@ -759,11 +769,19 @@ function CassaGara({
     async (risultato: string | null) => {
       const id = sessione?.sessione.id;
       let stato: string | null = null;
+      // Il pagamento nel modulo e' finito: mentre il server controlla l'esito il modulo lascia il posto alla carta che pulsa.
+      setCartaMostrata(null);
+      setElaborando(true);
       if (id && risultato) {
-        const e = await esitoSessioneGara(iscrizioneId, id, risultato);
-        if (e.ok) stato = e.adyen_status;
+        try {
+          const e = await esitoSessioneGara(iscrizioneId, id, risultato);
+          if (e.ok) stato = e.adyen_status;
+        } catch {
+          // l'esito non si legge: si va avanti come «in verifica», la conferma e' del webhook
+        }
       }
       setSessione(null); // il modulo si chiude
+      setElaborando(false);
       if (stato === "refused") {
         setEsito({ tono: "errore", titolo: t("Pagamento rifiutato", "Payment declined"), testo: t("La banca non ha autorizzato il pagamento. Non è stato addebitato nulla: puoi riprovare con un’altra carta.", "Your bank didn’t authorize the payment. Nothing was charged: you can try another card."), altra: true });
       } else if (stato === "canceled" || stato === "expired") {
@@ -792,10 +810,13 @@ function CassaGara({
   const altraCarta = () => {
     setEsito(null);
     setErrore(null);
+    setCartaMostrata(null);
+    setElaborando(false);
     setGiro((g) => g + 1);
     setFase("nuova");
   };
-  const scelteAperte = fase === "carte" && !esito;
+  const scelteAperte = fase === "carte" && !esito && !elaborando;
+  const statoCarta: StatoCartaEsito | null = elaborando ? "in_corso" : esito && !esito.conto ? (esito.tono === "ok" ? "ok" : esito.tono === "errore" ? "errore" : esito.inAttesa ? "in_corso" : "attenzione") : null;
   const cartaScelta = carte.find((c) => c.id === scelta);
   const contoScelto = scelta === CONTO && conto !== null;
   const nomeConto = conto ? `${t("Conto", "Account")} •••• ${conto.cifre}` : "";
@@ -808,6 +829,12 @@ function CassaGara({
           {conto && fase === "carte" ? t(`Paga ${euro(quotaCent)}`, `Pay ${euro(quotaCent)}`) : t(`Paga ${euro(quotaCent)} con carta`, `Pay ${euro(quotaCent)} by card`)}
         </Text>
       </View>
+      {statoCarta ? <CartaEsito stato={statoCarta} cifre={cartaMostrata?.cifre} marca={cartaMostrata?.marca} /> : null}
+      {elaborando ? (
+        <Text style={[stili.nota, { color: p.testoSecondario, textAlign: "center" }]} accessibilityLiveRegion="polite">
+          {t("Stiamo elaborando il pagamento in modo sicuro…", "Processing your payment securely…")}
+        </Text>
+      ) : null}
       {errore ? <Messaggio>{errore}</Messaggio> : null}
       {esito ? (
         <Messaggio tono={esito.tono} titolo={esito.titolo}>
@@ -877,8 +904,8 @@ function CassaGara({
 
       {fase === "nuova" && pagamentoDisponibile ? (
         <>
-          {sessione ? <DropIn sessione={sessione} onFine={fine} onErrore={setErrore} /> : !esito && !errore ? <SchedeInArrivo quante={1} /> : null}
-          {sessione && salva ? (
+          {sessione ? elaborando ? null : <DropIn sessione={sessione} onFine={fine} onErrore={setErrore} /> : !esito && !errore && !elaborando ? <SchedeInArrivo quante={1} /> : null}
+          {sessione && salva && !elaborando ? (
             <Text style={[stili.nota, { color: p.testoSecondario }]}>
               {t("Pagando, la carta viene salvata in modo sicuro su Adyen: la prossima volta la ritrovi già pronta, senza riscrivere i dati.", "When you pay, the card is saved securely with Adyen: next time it’s ready, without typing the details again.")}
             </Text>
@@ -890,7 +917,7 @@ function CassaGara({
 
       {fase === "nuova" && (errore || esito?.altra) && pagamentoDisponibile ? <Pulsante testo={t("Riprova", "Try again")} icona="aggiorna" variante="secondario" onPress={altraCarta} /> : null}
       {esito?.altra && fase === "carte" ? <Pulsante testo={t("Usa un’altra carta", "Use another card")} icona="carta" variante="secondario" onPress={altraCarta} /> : null}
-      {!esito || esito.altra ? <Pulsante testo={t("Non adesso", "Not now")} variante="secondario" piccolo onPress={onChiudi} /> : null}
+      {(!esito || esito.altra) && !elaborando ? <Pulsante testo={t("Non adesso", "Not now")} variante="secondario" piccolo onPress={onChiudi} /> : null}
       <Text style={[stili.nota, { color: p.testoSecondario }]}>
         {fase === "carte" && contoScelto
           ? t("L’iscrizione è confermata subito; l’addebito sul conto lo esegue la banca in qualche giorno lavorativo. La quota non è rimborsabile.", "Your registration is confirmed straight away; the bank processes the debit within a few working days. The fee is non-refundable.")
