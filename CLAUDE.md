@@ -191,4 +191,4 @@ chiamata diretta al gestionale. Esempio: la sezione Prodotti usa l'azione `prodo
 - [«Aggiorna la tua email»: la pagina del link dell'SMS per chi ha la casella piena (06/11/2026)](docs/claude/153-aggiorna-email-dal-link-sms-06-11-2026.md) · 3 KB
 - [Il listino con due formule in vetrina e «Vuoi risparmiare?» per l'annuale in unica soluzione (06/11/2026)](docs/claude/154-listino-due-formule-e-vuoi-risparmiare-06-11-2026.md) · 3 KB
 - [«Accedi o registrati»: un solo pulsante «Continua», e i vantaggi sotto (07/11/2026)](docs/claude/155-accedi-o-registrati-un-solo-pulsante-07-11-2026.md) · 4 KB
-- [L'accesso a bolle: la foto del club, «scorri verso l'alto» e bolle da spingere, davanti alla pagina con l'email (07/11/2026)](docs/claude/156-accesso-a-bolle-con-foto-del-club-07-11-2026.md) · 8 KB
+- [L'accesso a bolle: la foto del club, «scorri verso l'alto» e bolle da spingere, davanti alla pagina con l'email (07/11/2026)](docs/claude/156-accesso-a-bolle-con-foto-del-club-07-11-2026.md) · 9 KB

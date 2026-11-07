@@ -17,6 +17,7 @@ import { F, FUOCO } from '../ui/tema'
 import { colpetto, Tocco } from '../ui/Tocco'
 import { Bolle } from './Bolle'
 import type { Puntatore } from './bolle'
+import { SceltaLinguaApertura } from './SceltaLinguaApertura'
 
 // L'apertura dell'accesso (07/11/2026, richiesta di Maurizio, da un video di un'app Flutter; provata prima come demo): prima della pagina con
 // l'email, una schermata a tutto schermo in due tempi.
@@ -38,6 +39,31 @@ const SFONDO = ['#FF5E0A', '#E24A07', '#A93408', '#4A1A12', '#17100F', '#101113'
 const PUNTI_SFONDO = [0, 0.22, 0.42, 0.64, 0.84, 1] as const
 const VELO = ['rgba(16,17,19,0.74)', 'rgba(16,17,19,0.68)', 'rgba(16,17,19,0.86)'] as const
 const PUNTI_VELO = [0, 0.45, 1] as const
+
+/**
+ * Cambiare lingua ricarica la pagina (sul web, `lib/lingua.ts`): chi era gia' sulle bolle non deve ritrovarsi sulla foto e salire di nuovo.
+ * Prima del cambio si lascia un segno nella sessione del browser, che alla pagina nuova si legge una volta sola. Sull'app nativa la sessione
+ * del browser non c'e' e il riavvio riparte dalla foto.
+ */
+const CHIAVE_APERTA = 'athlon_apertura_aperta'
+function ricordaApertura() {
+  try {
+    globalThis.sessionStorage?.setItem(CHIAVE_APERTA, '1')
+  } catch {
+    // senza sessione del browser si riparte dalla foto
+  }
+}
+function eraAperta(): boolean {
+  try {
+    if (globalThis.sessionStorage?.getItem(CHIAVE_APERTA) === '1') {
+      globalThis.sessionStorage.removeItem(CHIAVE_APERTA)
+      return true
+    }
+  } catch {
+    // come sopra
+  }
+  return false
+}
 
 /** Quanto dura il passaggio dalla foto alle bolle, in ms. */
 const DURATA_MS = 1400
@@ -91,7 +117,7 @@ export function Apertura({ onContinua }: { onContinua: () => void }) {
   const ins = useSafeAreaInsets()
   const fermo = useRiduciMovimento()
   const largo = width >= LARGO
-  const [aperta, setAperta] = useState(false)
+  const [aperta, setAperta] = useState(eraAperta)
   const [arrastro, setArrastro] = useState(0)
   const [suggerimento, setSuggerimento] = useState(true)
   const ms = useTransizione(aperta, fermo)
@@ -264,11 +290,17 @@ export function Apertura({ onContinua }: { onContinua: () => void }) {
           </View>
         </View>
       ) : null}
+
+      {/* La lingua, in alto a destra, sia sulla foto sia sulle bolle. Per ultima: sta sopra tutto e prende i tocchi. */}
+      <View style={[stili.lingua, { top: ins.top + 14, right: largo ? 28 : 16 }]} pointerEvents="box-none">
+        <SceltaLinguaApertura prima={aperta ? ricordaApertura : undefined} />
+      </View>
     </View>
   )
 }
 
 const stili = StyleSheet.create({
+  lingua: { position: 'absolute' },
   radice: { flex: 1, overflow: 'hidden', backgroundColor: '#101113' },
   testi: { position: 'absolute', top: 0, bottom: 0, left: 0, right: 0 },
   chip: { flexDirection: 'row', alignItems: 'center', gap: 7, alignSelf: 'flex-start', borderRadius: 999, paddingHorizontal: 11, paddingVertical: 6, backgroundColor: 'rgba(255,255,255,0.14)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.28)' },
