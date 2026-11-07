@@ -1,7 +1,7 @@
 import { Image } from 'expo-image'
 import { LinearGradient } from 'expo-linear-gradient'
-import { useEffect, useState } from 'react'
-import { Linking, StyleSheet, Text, View } from 'react-native'
+import { useEffect, useRef, useState } from 'react'
+import { Linking, StyleSheet, Text, TextInput, View } from 'react-native'
 import Animated, { FadeInRight } from 'react-native-reanimated'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
@@ -36,10 +36,10 @@ import { colpetto, Tocco } from './ui/Tocco'
 
 
 /** La testata scura, con il bagliore arancio e gli anelli che allargano il marchio. Anche per «Completa il profilo» (`ingresso/`). */
-export function Testata({ fase, titolo, sotto }: { fase: 'email' | 'codice' | 'profilo'; /** Al posto del titolo e del sottotitolo della fase (le schermate che fermano «Completa il profilo»). */ titolo?: string; sotto?: string }) {
+export function Testata({ fase, titolo, sotto, senzaSotto = false }: { fase: 'email' | 'codice' | 'profilo'; /** Al posto del titolo e del sottotitolo della fase (le schermate che fermano «Completa il profilo»). */ titolo?: string; sotto?: string; /** Niente sottotitolo (07/11/2026): all'email, con la registrazione aperta, la stessa frase sta gia' nella carta e il pulsante deve restare sopra la fine della prima schermata. */ senzaSotto?: boolean }) {
   const ins = useSafeAreaInsets()
   return (
-    <LinearGradient colors={NOTTE} start={{ x: 0, y: 0 }} end={{ x: 0.4, y: 1 }} style={[stili.testata, { paddingTop: ins.top + spazio.cinque }]}>
+    <LinearGradient colors={NOTTE} start={{ x: 0, y: 0 }} end={{ x: 0.4, y: 1 }} style={[stili.testata, { paddingTop: ins.top + spazio.cinque }, senzaSotto && stili.testataBassa]}>
       <View style={stili.bagliore} />
       {[300, 460, 620].map((d, i) => (
         <View key={d} style={[stili.anello, { width: d, height: d, borderRadius: d / 2, right: -d / 2.4, top: -d / 3.2, opacity: 0.32 - i * 0.09 }]} />
@@ -57,13 +57,15 @@ export function Testata({ fase, titolo, sotto }: { fase: 'email' | 'codice' | 'p
           {titolo ? titolo : fase === 'email' ? t('Il tuo club,\nsempre con te', 'Your club,\nalways with you') : fase === 'codice' ? t('Controlla\nla posta', 'Check\nyour email') : t('Ancora\nun attimo', 'Just one\nmore step')}
           <Text style={{ color: FUOCO[1] }}>.</Text>
         </Text>
-        <Text style={stili.sotto}>
-          {sotto ? sotto : fase === 'email'
-            ? t('Prenotazioni, workout, abbonamenti e pagamenti in un posto solo. Entri con la tua email, senza password.', 'Bookings, workouts, memberships and payments all in one place. Sign in with your email, no password.')
-            : fase === 'codice'
-              ? t(`Ti abbiamo mandato un codice di ${CIFRE} cifre: scrivilo o incollalo qui sotto.`, `We sent you a ${CIFRE}-digit code: type or paste it below.`)
-              : t('Ci servono pochi dati per completare il tuo profilo, poi sei dentro.', 'We just need a few details to complete your profile, then you’re in.')}
-        </Text>
+        {senzaSotto && !sotto ? null : (
+          <Text style={stili.sotto}>
+            {sotto ? sotto : fase === 'email'
+              ? t('Prenotazioni, workout, abbonamenti e pagamenti in un posto solo. Entri con la tua email, senza password.', 'Bookings, workouts, memberships and payments all in one place. Sign in with your email, no password.')
+              : fase === 'codice'
+                ? t(`Ti abbiamo mandato un codice di ${CIFRE} cifre: scrivilo o incollalo qui sotto.`, `We sent you a ${CIFRE}-digit code: type or paste it below.`)
+                : t('Ci servono pochi dati per completare il tuo profilo, poi sei dentro.', 'We just need a few details to complete your profile, then you’re in.')}
+          </Text>
+        )}
       </View>
     </LinearGradient>
   )
@@ -81,6 +83,9 @@ function Passi({ fase }: { fase: 'email' | 'codice' }) {
   )
 }
 
+/** L'ultima risposta di «la registrazione e' aperta?»: si parte da questa (di partenza si', e' aperta) e la risposta del server la corregge, cosi' la pagina non cambia faccia ogni volta che si apre. */
+let registrazioneNota = true
+
 export function Accesso() {
   const p = usePalette()
   const [email, setEmail] = useState('')
@@ -88,11 +93,16 @@ export function Accesso() {
   const [fase, setFase] = useState<'email' | 'codice'>('email')
   const [attesa, setAttesa] = useState(false)
   const [errore, setErrore] = useState<string | null>(null)
-  // «Prima volta qui?»: solo se la registrazione e' aperta (interruttore sul server, 01/11/2026). Chi e' nuovo usa lo stesso percorso: email, codice, e poi i dati.
-  const [registrazione, setRegistrazione] = useState(false)
+  const campoEmail = useRef<TextInput>(null)
+  // Registrazione aperta (interruttore sul server, 01/11/2026): la pagina diventa «Accedi o registrati», un percorso solo e un pulsante solo
+  // («Continua», 07/11/2026, proposta A scelta da Maurizio). Chiusa, e' l'accesso di prima.
+  const [registrazione, setRegistrazione] = useState(registrazioneNota)
   useEffect(() => {
     let vivo = true
-    registrazioneAperta().then((a) => vivo && setRegistrazione(a))
+    registrazioneAperta().then((a) => {
+      registrazioneNota = a
+      if (vivo) setRegistrazione(a)
+    })
     return () => {
       vivo = false
     }
@@ -100,7 +110,11 @@ export function Accesso() {
 
   async function mandaCodice() {
     setErrore(null)
-    if (!emailValida(email)) return setErrore(t('Scrivi un indirizzo email valido.', 'Enter a valid email address.'))
+    // Il pulsante sta sotto il campo, ma sul telefono la tastiera e lo scorrimento possono portarlo via: col cursore nel campo l'errore si vede sempre.
+    if (!emailValida(email)) {
+      campoEmail.current?.focus()
+      return setErrore(t('Scrivi un indirizzo email valido.', 'Enter a valid email address.'))
+    }
     setAttesa(true)
     const esito = await chiediCodice(email.trim().toLowerCase())
     setAttesa(false)
@@ -114,7 +128,10 @@ export function Accesso() {
   // che sostituirebbe quello che ha in mano.
   function haGiaUnCodice() {
     setErrore(null)
-    if (!emailValida(email)) return setErrore(t('Scrivi prima l’indirizzo email a cui è arrivato il codice.', 'First enter the email address the code was sent to.'))
+    if (!emailValida(email)) {
+      campoEmail.current?.focus()
+      return setErrore(t('Scrivi prima l’indirizzo email a cui è arrivato il codice.', 'First enter the email address the code was sent to.'))
+    }
     setCodice('')
     setFase('codice')
   }
@@ -148,7 +165,7 @@ export function Accesso() {
   }
 
   return (
-    <Schermata titolo={t('Accesso', 'Sign in')} nascondiTitolo barra={false} sopra={<Testata fase={fase} />}>
+    <Schermata titolo={t('Accesso', 'Sign in')} nascondiTitolo barra={false} sopra={<Testata fase={fase} senzaSotto={registrazione && fase === 'email'} />}>
       <Carta style={stili.modulo}>
         {/* La lingua, in vista sia all'email sia al codice (lib/lingua.ts): di partenza e' l'italiano. Una riga sola, discreta: ogni voce e' scritta nella sua lingua, quindi niente etichetta.
             Il tema (02/11/2026, richiesta di Maurizio: «troppo impattante e crea confusione») non sta piu' qui: e' in fondo alla pagina, dopo l'informativa privacy. */}
@@ -159,7 +176,18 @@ export function Accesso() {
           <Passi fase={fase} />
           {fase === 'email' ? (
             <>
+              {registrazione ? (
+                // Una porta sola (07/11/2026): la pagina non sa se l'email e' gia' iscritta (e non deve dirlo), quindi non promette ne' «entri» ne' «ti registri».
+                <View style={{ gap: 6 }}>
+                  <Text style={[stili.cartaTitolo, { color: p.testo }]} accessibilityRole="header">{t('Accedi o registrati', 'Sign in or sign up')}</Text>
+                  <Text style={[stili.nota, { color: p.testoSecondario, fontSize: 14 }]}>
+                    {t('Scrivi la tua email. Se sei già iscritto entri, se sei nuovo ti creiamo il profilo: stesso percorso, ', 'Enter your email. If you’re already a member you’re in, if you’re new we’ll create your profile: same path, ')}
+                    <Text style={{ fontFamily: F.bold, color: p.testo }}>{t('niente password', 'no password')}</Text>.
+                  </Text>
+                </View>
+              ) : null}
               <CampoTesto
+                ref={campoEmail}
                 etichetta="Email"
                 icona="email"
                 value={email}
@@ -174,48 +202,41 @@ export function Accesso() {
                 errore={!!errore}
               />
               {errore ? <Messaggio>{errore}</Messaggio> : null}
-              <Pulsante testo={t('Mandami il codice', 'Send me the code')} icona="avanti" onPress={mandaCodice} inCorso={attesa} />
+              <Pulsante testo={registrazione ? t('Continua', 'Continue') : t('Mandami il codice', 'Send me the code')} icona="avanti" onPress={mandaCodice} inCorso={attesa} />
               <Pulsante testo={t('Ho già un codice', 'I already have a code')} variante="fantasma" piccolo onPress={haGiaUnCodice} disabilitato={attesa} />
               <Text style={[stili.nota, { color: p.testoSecondario }]}>
                 {t('Usa l’email con cui sei iscritto al club: è da lì che troviamo', 'Use the email you registered with at the club: that’s how we find')}{' '}
                 <Text style={{ fontFamily: F.bold, color: p.testo }}>{t('i tuoi abbonamenti e la tua famiglia', 'your memberships and your family')}</Text>.
               </Text>
               {registrazione ? (
-                // L'invito a registrarsi (02/11/2026, richiesta di Maurizio): oggi si fa quasi tutto sul sito e l'app si scarica solo per prenotare; l'obiettivo e'
-                // portare l'utente a fare le cose nell'app. Quindi non una nota in fondo, ma un riquadro in vista, con i motivi e un pulsante. Il percorso e' lo
-                // stesso di sempre (email, codice, e poi i dati): «Registrati» manda il codice come «Mandami il codice», e senza email dice di scriverla.
-                <View style={[stili.invito, { backgroundColor: velo(p, 'accento', 0.12), borderColor: velo(p, 'accento', 0.45) }]}>
-                  <View style={stili.invitoTesta}>
-                    <Bollino icona="stella" tono="accento" size={40} pieno />
-                    <Text style={[stili.invitoTitolo, { color: p.testo }]}>{t('Non sei ancora registrato?', 'Not registered yet?')}</Text>
+                // I motivi per registrarsi (02/11/2026, richiesta di Maurizio: oggi si fa quasi tutto sul sito, l'obiettivo e' portare l'utente a fare le cose nell'app).
+                // Dal 07/11/2026 non e' piu' un riquadro con un secondo pulsante «Registrati» in fondo alla pagina (a ~800 px dal campo: l'errore restava fuori vista):
+                // il pulsante e' uno e sta sotto l'email, e qui sotto c'e' solo il perche'. Voci vere: sono quelle che l'app fa oggi. La prova e' una riga sola, senza prezzo
+                // ne' dettagli (chi non ha diritto alla prova lo scopre quando prova ad attivarla; il prezzo e' `PREZZO_PROVA` di `lib/guestPass`).
+                <>
+                  <View style={[stili.filo, { backgroundColor: p.linea }]} />
+                  <View style={{ gap: spazio.tre }}>
+                    <Text style={[stili.etichettaBlocco, { color: p.testoSecondario }]}>{t('REGISTRARSI CONVIENE', 'WHY SIGN UP')}</Text>
+                    <View style={{ gap: 10 }}>
+                      {(
+                        [
+                          ['calendario', t('Prenoti lezioni e corsi in un tocco', 'Book classes and courses in one tap')],
+                          ['fulmine', t('Ti alleni con piani pensati per te', 'Train with plans made for you')],
+                          ['carta', t('Abbonamento e pagamenti sempre con te', 'Your membership and payments, always with you')],
+                        ] as const
+                      ).map(([icona, voce]) => (
+                        <View key={voce} style={stili.vantaggio}>
+                          <Bollino icona={icona} tono="accento" size={32} />
+                          <Text style={[stili.vantaggioTesto, { color: p.testo }]}>{voce}</Text>
+                        </View>
+                      ))}
+                    </View>
+                    <View style={[stili.prova, { backgroundColor: velo(p, 'accento', 0.1), borderColor: velo(p, 'accento', 0.4) }]}>
+                      <Bollino icona="regalo" tono="accento" size={32} pieno />
+                      <Text style={[stili.vantaggioTesto, { color: p.testo, fontFamily: F.extra, fontSize: 14.5 }]}>{t('Prova il club per una settimana', 'Try the club for a week')}</Text>
+                    </View>
                   </View>
-                  <Text style={[stili.nota, { color: p.testo, fontSize: 14.5 }]}>
-                    {t('Registrati all’app e scopri ', 'Sign up to the app and discover ')}
-                    <Text style={{ fontFamily: F.extra, color: p.accento }}>{t('le opportunità a te riservate', 'the opportunities reserved for you')}</Text>.
-                  </Text>
-                  <View style={{ gap: 6 }}>
-                    {[
-                      t('Prenoti lezioni e corsi in un tocco', 'Book classes and courses in one tap'),
-                      t('Ti alleni con piani pensati per te', 'Train with plans made for you'),
-                      t('Abbonamento e pagamenti sempre con te', 'Your membership and payments, always with you'),
-                    ].map((voce) => (
-                      <View key={voce} style={stili.invitoVoce}>
-                        <Icona nome="spunta" size={16} colore={p.accento} />
-                        <Text style={[stili.nota, { color: p.testoSecondario, flex: 1 }]}>{voce}</Text>
-                      </View>
-                    ))}
-                  </View>
-                  {/* La prova (Guest Pass, 02/11/2026, richiesta di Maurizio): una riga sola, senza dettagli e senza prezzo: serve a invogliare a registrarsi, il resto lo scopre dentro.
-                      Niente «per chi non e' socio»: chi non ha diritto alla prova lo scopre quando prova ad attivarla. */}
-                  <View style={stili.invitoProva}>
-                    <Bollino icona="regalo" tono="accento" size={30} pieno />
-                    <Text style={[stili.nota, { color: p.testo, flex: 1, fontSize: 14.5, fontFamily: F.extra }]}>{t('Prova il club per una settimana', 'Try the club for a week')}</Text>
-                  </View>
-                  <Pulsante testo={t('Registrati', 'Sign up')} icona="avanti" onPress={mandaCodice} inCorso={attesa} />
-                  <Text style={[stili.nota, { color: p.testoSecondario, fontSize: 12.5 }]}>
-                    {t('Scrivi la tua email qui sopra e tocca Registrati: niente password, ti serve un minuto. Dopo il codice ti chiediamo solo i dati per creare il tuo profilo.', 'Enter your email above and tap Sign up: no password, it takes a minute. After the code we only ask for the details to create your profile.')}
-                  </Text>
-                </View>
+                </>
               ) : null}
             </>
           ) : (
@@ -241,7 +262,8 @@ export function Accesso() {
           [
             ['lucchetto', t('Niente password', 'No password')],
             ['scudo', t('Accesso sicuro', 'Secure sign-in')],
-            ['tessera', t('Per i soci del club', 'For club members')],
+            // Con la registrazione aperta «per i soci del club» era falso: si registra chiunque (07/11/2026).
+            ['tessera', registrazione ? t('Ti registri in un minuto', 'Sign up in a minute') : t('Per i soci del club', 'For club members')],
           ] as const
         ).map(([icona, testo]) => (
           <View key={testo} style={stili.garanzia}>
@@ -267,6 +289,8 @@ export function Accesso() {
 }
 
 const stili = StyleSheet.create({
+  // Senza sottotitolo la testata e' piu' bassa anche sotto (07/11/2026): la carta resta agganciata (margine -64) e il modulo sale, cosi' il pulsante si vede senza scorrere.
+  testataBassa: { paddingBottom: 64 },
   testata: { paddingBottom: 100, borderBottomLeftRadius: 40, borderBottomRightRadius: 40, overflow: 'hidden' },
   bagliore: { position: 'absolute', width: 380, height: 380, borderRadius: 190, right: -120, top: -140, backgroundColor: '#FF5701', opacity: 0.35, filter: 'blur(60px)' } as object,
   chip: { flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'flex-start', borderRadius: 999, paddingHorizontal: 10, paddingVertical: 5, backgroundColor: 'rgba(255,255,255,0.08)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)' },
@@ -279,11 +303,12 @@ const stili = StyleSheet.create({
   modulo: { marginTop: -64, padding: spazio.quattro - 2 },
   passo: { height: 6, borderRadius: 3 },
   nota: { fontSize: 13.5, lineHeight: 20, fontFamily: F.medio },
-  invito: { borderWidth: 1.5, borderRadius: 22, padding: spazio.quattro - 2, gap: spazio.tre, marginTop: spazio.due },
-  invitoTesta: { flexDirection: 'row', alignItems: 'center', gap: spazio.tre },
-  invitoTitolo: { flex: 1, fontSize: 19, lineHeight: 24, fontFamily: F.extra, letterSpacing: -0.4 },
-  invitoProva: { flexDirection: 'row', alignItems: 'center', gap: spazio.tre },
-  invitoVoce: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  cartaTitolo: { fontSize: 23, lineHeight: 28, fontFamily: F.extra, letterSpacing: -0.6 },
+  filo: { height: 1 },
+  etichettaBlocco: { fontSize: 11, fontFamily: F.extra, letterSpacing: 1.3 },
+  vantaggio: { flexDirection: 'row', alignItems: 'center', gap: 11 },
+  vantaggioTesto: { flex: 1, fontSize: 14, lineHeight: 20, fontFamily: F.semi },
+  prova: { flexDirection: 'row', alignItems: 'center', gap: 11, borderWidth: 1, borderRadius: 16, paddingVertical: 10, paddingHorizontal: 12 },
   garanzie: { flexDirection: 'row', justifyContent: 'center', flexWrap: 'wrap', gap: spazio.tre, marginTop: -spazio.due },
   garanzia: { flexDirection: 'row', alignItems: 'center', gap: 5 },
   tema: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', flexWrap: 'wrap', gap: 10, marginTop: spazio.due },
