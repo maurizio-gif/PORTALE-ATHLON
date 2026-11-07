@@ -5,8 +5,11 @@ import { spazio } from '@/theme'
 import { t } from '@/lib/lingua'
 import { inModalitaTotem } from '@/lib/totem'
 
+import { PacmanSopra, useScenaCodice, type StatoCodice } from './CodicePacman'
 import { Icona, type NomeIcona } from './Icona'
 import { Messaggio, Pulsante } from './kit'
+import { useRiduciMovimento } from './movimento'
+import type { Misura } from './pacman'
 import { F, usePalette } from './tema'
 import { Tocco } from './Tocco'
 
@@ -125,6 +128,10 @@ export function estraiCodice(testo: string, cifre: number = CIFRE): string {
 /**
  * Il codice in caselle; sotto c'e' un campo vero, trasparente, che riceve le cifre (e l'autocompletamento).
  * Incollare passa da `IncollaCodice`: il campo trasparente non e' un posto affidabile per l'«Incolla» di iOS.
+ *
+ * `stato` (07/11/2026, Pacman: `CodicePacman.tsx`): `scrivi` e' il campo di sempre; `verifica` e' il codice partito, e Pacman mangia le
+ * caselle mentre la pagina aspetta il server; `ok` e' il «si'», con il cerchio verde e la spunta. Chi non passa `stato` (il cambio d'email
+ * nel Profilo) non cambia di una virgola. `onFinita` parte una volta, a spunta finita. In `verifica` e `ok` il campo non scrive piu'.
  */
 export function CampoCodice({
   value,
@@ -132,27 +139,45 @@ export function CampoCodice({
   onInvio,
   errore,
   cifre = CIFRE,
+  stato = 'scrivi',
+  onFinita,
 }: {
   value: string
   onChange: (v: string) => void
   onInvio: () => void
   errore: boolean
   cifre?: number
+  stato?: StatoCodice
+  onFinita?: () => void
 }) {
   const p = usePalette()
   const campo = useRef<TextInput>(null)
   const [fuoco, setFuoco] = useState(true)
   const caselle = Math.max(cifre, value.length)
+  const ridotto = useRiduciMovimento()
+  const [misure, setMisure] = useState<Misura[]>([])
+  const scena = useScenaCodice(stato, caselle, misure, ridotto, onFinita)
+  const animato = stato !== 'scrivi' && !ridotto
+  const ultima = misure[caselle - 1]
+  const etichetta = stato === 'verifica' ? t('VERIFICO…', 'VERIFYING…') : stato === 'ok' ? t('VERIFICATO', 'VERIFIED') : t('CODICE', 'CODE')
   return (
     <Pressable onPress={() => campo.current?.focus()} style={{ gap: spazio.due }} accessible={false}>
-      <Text style={[stili.etichetta, { color: p.testoSecondario }]}>{t('CODICE', 'CODE')}</Text>
+      {/* Una riga a voce alta per chi usa lo screen reader: l'animazione, da sola, non dice niente. */}
+      <Text style={[stili.etichetta, { color: stato === 'ok' ? p.ok : p.testoSecondario }]} accessibilityLiveRegion="polite">
+        {etichetta}
+      </Text>
       <View style={stili.caselle}>
         {Array.from({ length: caselle }, (_, i) => {
           const cifra = value[i] ?? ''
-          const qui = fuoco && i === Math.min(value.length, caselle - 1)
+          const qui = fuoco && stato === 'scrivi' && i === Math.min(value.length, caselle - 1)
+          const mangiata = animato ? (scena.mangiata[i] ?? 0) : 0
           return (
             <View
               key={i}
+              onLayout={(e) => {
+                const { x, width, height } = e.nativeEvent.layout
+                setMisure((m) => (m[i] && m[i].x === x && m[i].w === width && m[i].h === height ? m : Object.assign([...m], { [i]: { x, w: width, h: height } })))
+              }}
               style={[
                 stili.casella,
                 {
@@ -160,18 +185,24 @@ export function CampoCodice({
                   borderColor: errore ? p.errore : qui ? p.accento : cifra ? p.linea : 'transparent',
                   boxShadow: qui ? '0 0 0 4px rgba(255,87,1,0.15)' : undefined,
                 },
+                // Pacman la sta mangiando (o l'ha mangiata): si fa piccola e svanisce. A fine «si'» restano tutte nascoste, sotto la spunta.
+                animato ? { opacity: 1 - mangiata, transform: [{ scale: 1 - 0.5 * mangiata }] } : null,
               ]}
             >
               <Text style={[stili.cifra, { color: p.testo }]}>{cifra}</Text>
             </View>
           )
         })}
+        {animato && ultima ? <PacmanSopra scena={scena} larghezza={ultima.x + ultima.w} altezza={ultima.h} /> : null}
         <TextInput
           ref={campo}
           autoFocus
           accessibilityLabel={t(`Codice di ${cifre} cifre`, `${cifre}-digit code`)}
           value={value}
-          onChangeText={(v) => onChange(estraiCodice(v, cifre))}
+          onChangeText={(v) => {
+            // Mentre il codice e' in verifica le cifre non cambiano: la scena e' quella del codice partito.
+            if (stato === 'scrivi') onChange(estraiCodice(v, cifre))
+          }}
           onSubmitEditing={onInvio}
           onFocus={() => setFuoco(true)}
           onBlur={() => setFuoco(false)}
