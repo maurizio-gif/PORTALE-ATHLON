@@ -4,6 +4,7 @@
 import assert from 'node:assert/strict'
 
 import { arrivoDa, CATEGORIE, CATEGORIE_EVENTO, giornoValido, idValido, pianoValido } from '../src/features/entra/destinazioni'
+import { sezioneDa } from '../src/features/lab/home/sezioni'
 
 let passi = 0
 const ok = (n: string) => {
@@ -136,6 +137,19 @@ const ok = (n: string) => {
   assert.deepEqual(a?.href, { pathname: '/', params: { assistenza: '1' } }, 'assistenza: la Home con l\'assistente aperto, ignora il resto')
   assert.ok(a && a.titolo && a.testo && a.bottone, 'titolo, testo e pulsante ci sono')
   ok('assistenza: la Home con l\'assistente aperto (iscritto dalla chat del sito)')
+}
+
+{
+  // La scheda «Certificato Medico» del sito (07/11/2026): la Home sulla sezione Certificato, e niente altro nell'indirizzo.
+  const OGGI = '2026-11-07'
+  const a = arrivoDa('certificato', 'Gym Floor', '2026-11-10', OGGI, '263', '987654', '10867', '1')
+  assert.deepEqual(a?.href, { pathname: '/', params: { sezione: 'certificato' } }, 'certificato: la Home sulla sezione Certificato, ignora categoria, giorno, piano, bambino e turno')
+  assert.deepEqual(arrivoDa('certificato')?.href, { pathname: '/', params: { sezione: 'certificato' } }, 'senza nient\'altro e\' lo stesso')
+  assert.ok(a && a.titolo && a.testo && a.bottone, 'titolo, testo e pulsante ci sono')
+  assert.ok(/certificato/i.test(a!.titolo + a!.testo + a!.bottone), 'la schermata dice di che si tratta')
+  // `sezione` e' una sezione vera della Home: se qualcuno la rinomina, il link porterebbe alla sezione iniziale in silenzio.
+  assert.equal(sezioneDa((a!.href as { params: { sezione: string } }).params.sezione), 'certificato', 'la sezione esiste nella Home')
+  ok('certificato: la sezione Certificato della Home, senza altri parametri')
 }
 
 {

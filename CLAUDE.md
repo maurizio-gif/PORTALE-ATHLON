@@ -196,3 +196,4 @@ chiamata diretta al gestionale. Esempio: la sezione Prodotti usa l'azione `prodo
 - [Il Guest Pass dal link a passi, come l'abbonamento ma senza firma (07/11/2026)](docs/claude/158-guest-pass-a-passi-come-l-abbonamento-senza-firma-07-11-2026.md) · 6 KB
 - [Il codice di accesso con Pacman: mangia le caselle mentre si verifica, poi la spunta (07/11/2026)](docs/claude/159-codice-di-accesso-con-pacman-07-11-2026.md) · 6 KB
 - [«Gare»: il pagamento a passi, come l'abbonamento e il Guest Pass, ma più snello (07/11/2026)](docs/claude/160-gare-pagamento-a-passi-come-l-abbonamento-07-11-2026.md) · 5 KB
+- [«Entra» dal sito: la destinazione `certificato` apre la sezione Certificato (07/11/2026)](docs/claude/161-entra-certificato-dal-sito-07-11-2026.md) · 2 KB
