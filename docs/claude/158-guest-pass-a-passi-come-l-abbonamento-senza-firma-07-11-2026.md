@@ -11,7 +11,7 @@
 | 1 · **Dati** | la prova in vetrina (`PrezzoProva`, `AttivitaComprese`), per chi è (`PerChi`), i tuoi dati, «I miei dati sono corretti», la password se l'account è nuovo | Verifica |
 | 2 · **Giorno** | «La tua scelta» (Guest Pass · 1 settimana · prezzo · per chi) e i giorni d'inizio, in una griglia (tutti i 15 in vista, non una fila da scorrere) | Giorno |
 | 3 · **Pagamento** | il metodo come tre schede a scelta: un metodo già salvato (carta o conto), una carta nuova, un conto nuovo (il modulo IBAN si apre sotto) | Pagamento |
-| 4 · **Conferma** | il riepilogo, «Le condizioni in breve», «Regole di prenotazione», un riquadro «Niente da firmare», **un solo flag** e «Conferma e paga / attiva» | **Contratto e firma** (qui sparisce) |
+| 4 · **Conferma** | il riepilogo, «Le condizioni in breve», «Regole di prenotazione», **un solo flag** e «Conferma e paga / attiva» | **Contratto e firma** (qui sparisce) |
 
 **Cosa NON è cambiato.** Ogni regola, ogni controllo e ogni chiamata al server: `salva`, `conferma`, `scegli`, `iban`, `carta_esito`, `pagamento_esito`, `ripaga`, `anche_per`; i consensi (36 e 20) con il solo flag; il pronto-per-confermare (`pronto`: dati, per chi, password, consensi, giorno, metodo, e nessuna verifica della segreteria in corso); le correzioni dei dati che vanno su PerfectGym alla spunta; la password solo a chi crea l'account; l'invito (`non_nuovo`); il giorno d'inizio per un figlio (prima dei 18 anni); la vetrina dei 30/10. I passi sono **solo presentazione**: lo stato resta quello di prima, sul server.
 
@@ -20,7 +20,7 @@
 **La pagina «Manca il pagamento»** (Guest Pass registrato, quota da pagare) ha lo stesso vestito: `Sezione`, `Pulsante`, `Carta`, `CampoTesto`. La pagina finale **«Il tuo Guest Pass è attivo»** (`GuestPassAttivo`) **non è stata toccata**: è la lettera di conferma (sezione 27), e nell'abbonamento non ha un equivalente.
 
 **Scelte da guardare** (sono la parte «bozza»):
-- **La firma diventa un riquadro e un flag.** Il quarto passo dice «Niente da firmare» (`Messaggio` attenzione, come «Adesso il contratto» dell'abbonamento) e c'è una sola spunta per i consensi. Il testo del riquadro è mio: si cambia in un attimo.
+- **La firma diventa un flag.** Il quarto passo ha una sola spunta per i consensi, senza riquadri sul contratto (un riquadro «Niente da firmare», come «Adesso il contratto» dell'abbonamento, c'era nella prima bozza: tolto su richiesta di Maurizio). Sotto il pulsante una riga dice cosa succede alla conferma; il sottotitolo del passo dice che non c'è niente da firmare.
 - **I giorni in griglia, non in fila.** L'abbonamento li mette in una fila che scorre; qui sono quindici e tutti in vista (quattro per riga sul telefono, sette sul computer). Se li vuoi identici all'abbonamento si rimette la fila.
 - **La vetrina resta solo al passo 1**, sopra i dati (come il listino nel primo passo dell'abbonamento). Nei passi dopo non c'è: c'è «La tua scelta».
 - **L'«Indietro» a ogni passo** e un «Continua» che resta spento finché il passo non è completo, con sotto cosa manca.

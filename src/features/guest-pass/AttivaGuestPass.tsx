@@ -897,12 +897,6 @@ export function AttivaGuestPass({ token, nome, iniziale }: { token: string; nome
           </Sezione>
 
           {/* Al posto del contratto dell'abbonamento: niente firma, un solo flag. */}
-          <Messaggio tono="attenzione" titolo={t('Niente da firmare', 'Nothing to sign')} icona="documento">
-            {t(
-              'Il Guest Pass non ha un contratto da firmare: basta spuntare qui sotto. Poi, con la carta si apre la pagina protetta per pagare; con il conto l’addebito parte da solo.',
-              'The Guest Pass has no contract to sign: just tick the box below. Then, with a card the secure payment page opens; with a bank account the debit starts by itself.',
-            )}
-          </Messaggio>
           {p.consensi.length ? (
             <View style={{ gap: 4 }}>
               <Casella spuntata={tuttiIConsensi} onCambia={() => setAccetto((x) => !x)} etichetta={ACCETTO}>
