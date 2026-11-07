@@ -1,6 +1,7 @@
 import { useEffect, useId, useState } from 'react'
 import { Modal, Pressable, StyleSheet, Text, TextInput, View } from 'react-native'
 
+import { F, usePalette } from '@/features/lab/ui/tema'
 import { spazio, tinta, useColori } from '@/theme'
 import { locale, t, tv } from '@/lib/lingua'
 
@@ -55,6 +56,7 @@ export function CampoData({
   annoIniziale = new Date().getFullYear() - 30,
   errore = false,
   sfondo,
+  variante = 'base',
 }: {
   etichetta: string
   value: string
@@ -65,8 +67,12 @@ export function CampoData({
   annoIniziale?: number
   errore?: boolean
   sfondo?: string
+  /** «base» come `Campo` (i moduli del sito); «lab» come `CampoTesto` (le schermate dell'app e il Guest Pass a passi). */
+  variante?: 'base' | 'lab'
 }) {
   const c = useColori()
+  const p = usePalette()
+  const lab = variante === 'lab'
   const id = useId()
   const [testo, setTesto] = useState(dataItaliana(value))
   const [aperto, setAperto] = useState(false)
@@ -80,10 +86,16 @@ export function CampoData({
   const sbagliata = testo.length === 10 && !daTesto(testo, min, max)
   return (
     <View style={stili.campo}>
-      <Text nativeID={id} style={[stili.etichetta, { color: c.testo }]}>
-        {etichetta}
+      <Text nativeID={id} style={lab ? [stili.etichettaLab, { color: p.testoSecondario }] : [stili.etichetta, { color: c.testo }]}>
+        {lab ? etichetta.toUpperCase() : etichetta}
       </Text>
-      <View style={[stili.riga, { borderColor: errore || sbagliata ? c.errore : c.bordo, backgroundColor: sfondo ?? c.superficie }]}>
+      <View
+        style={[
+          stili.riga,
+          lab && stili.rigaLab,
+          { borderColor: errore || sbagliata ? c.errore : lab ? 'transparent' : c.bordo, backgroundColor: lab ? p.incavo : (sfondo ?? c.superficie) },
+        ]}
+      >
         <TextInput
           accessibilityLabelledBy={id}
           accessibilityLabel={`${etichetta}, ${t('giorno mese anno', 'day month year')}`}
@@ -99,7 +111,7 @@ export function CampoData({
           inputMode="numeric"
           autoComplete="birthdate-full"
           maxLength={10}
-          style={[stili.input, { color: c.testo }]}
+          style={[stili.input, lab && stili.inputLab, { color: lab ? p.testo : c.testo }]}
         />
         <Pressable
           accessibilityRole="button"
@@ -387,8 +399,11 @@ function Tasto({ testo, scelta, onPress, spenta = false }: { testo: string; scel
 const stili = StyleSheet.create({
   campo: { gap: spazio.due, flex: 1 },
   etichetta: { fontSize: 15, fontWeight: '600' },
+  etichettaLab: { fontSize: 11, fontFamily: F.extra, letterSpacing: 1.3 },
   riga: { minHeight: 50, borderWidth: 1, borderRadius: 10, flexDirection: 'row', alignItems: 'center', paddingLeft: spazio.tre, paddingRight: spazio.uno },
+  rigaLab: { minHeight: 58, borderWidth: 1.5, borderRadius: 18 },
   input: { flex: 1, minHeight: 48, fontSize: 16, letterSpacing: 0.5 },
+  inputLab: { minHeight: 52, fontSize: 17, fontFamily: F.semi },
   bottoneCalendario: { width: 42, height: 42, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
   velo: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: spazio.tre, backgroundColor: 'rgba(0,0,0,0.55)' },
   scheda: { width: '100%', maxWidth: 360, borderRadius: 20, borderWidth: 1, overflow: 'hidden', paddingBottom: spazio.due },

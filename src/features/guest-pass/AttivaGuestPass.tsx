@@ -1,12 +1,19 @@
+import {
+  PlusJakartaSans_400Regular,
+  PlusJakartaSans_500Medium,
+  PlusJakartaSans_600SemiBold,
+  PlusJakartaSans_700Bold,
+  PlusJakartaSans_800ExtraBold,
+  useFonts,
+} from '@expo-google-fonts/plus-jakarta-sans'
 import { router, useLocalSearchParams } from 'expo-router'
 import { useEffect, useRef, useState } from 'react'
-import { ActivityIndicator, Linking, Platform, ScrollView, StyleSheet, Text, View } from 'react-native'
+import { ActivityIndicator, Linking, Platform, StyleSheet, Text, View } from 'react-native'
 import { useWindowDimensions } from '@/lib/finestra'
 
 import { chiamaLink } from '@/api/link'
 import { Avviso } from '@/components/Avviso'
 import { Bottone } from '@/components/Bottone'
-import { Campo } from '@/components/Campo'
 import { CampoPaese } from '@/components/CampoPaese'
 import { CampoTelefono } from '@/components/CampoTelefono'
 import { CasellaResidenteEstero } from '@/components/CasellaResidenteEstero'
@@ -15,17 +22,20 @@ import { ChiGestisceCarta, ChiGestisceConto } from '@/components/ChiGestisce'
 import { Casella } from '@/components/Casella'
 import { Pagina } from '@/components/Pagina'
 import { GuestPassAttivo } from '@/features/guest-pass/GuestPassAttivo'
+import { Indicatore, SchedaScelta } from '@/features/lab/abbonamento/Passi'
+import { CampoTesto } from '@/features/lab/ui/Campi'
+import { Carta, Messaggio, Pulsante, Sezione } from '@/features/lab/ui/kit'
+import { F, usePalette } from '@/features/lab/ui/tema'
+import { Tocco } from '@/features/lab/ui/Tocco'
 import { PerChi } from '@/features/guest-pass/PerChi'
 import { AttivitaComprese, PrezzoProva } from '@/features/guest-pass/ProvaTuttoIlClub'
 import { scorda } from '@/features/lab/memoria'
 import { scordaAccesso } from '@/features/lab/riservate/store'
 import { useSessione } from '@/features/lab/useSessione'
 import { vistaCorrente } from '@/features/lab/vista'
-import { Scelta } from '@/components/Scelta'
 import { Forte, Testo } from '@/components/Testo'
 import {
   CAMPI,
-  CAMPI_RICHIESTI,
   cosaComprende,
   fineSettimana,
   giornoBreve,
@@ -40,30 +50,31 @@ import {
   type PaginaGuestPass,
 } from '@/lib/guestPass'
 
-import { problemaCodiceFiscale } from '@/lib/codiceFiscale'
-import { t, tv } from '@/lib/lingua'
+import { analisiDati, datiDa, metodoIniziale, passoIniziale, type Passo } from '@/lib/guestPassPassi'
+import { t } from '@/lib/lingua'
 import { apriPagamento } from '@/lib/pagamentoEsterno'
-import { spazio, tinta, useColori } from '@/theme'
+import { spazio, useColori } from '@/theme'
 
-// Il Guest Pass dal link (in prova): una pagina sola, in quattro blocchi.
-//   1. i tuoi dati: tutti, gia' compilati (da PerfectGym e da quello che la
-//      persona ha confermato sul sito) e modificabili; quelli che mancano —
-//      codice fiscale, nascita — sono obbligatori; l'indirizzo non si chiede (29/10/2026:
-//      e' un attrito in piu' per la prova, lo si chiede all'abbonamento). «I miei dati sono
-//      corretti»: senza, non si attiva. Le correzioni vanno su PerfectGym alla
-//      conferma, e un Lead si converte li';
-//   2. il giorno d'inizio, entro 14 giorni;
-//   3. come pagare: la carta o il conto gia' salvati (si mostrano), una carta
-//      nuova (si paga e si salva in un passo, sulla pagina di Adyen) o un IBAN
-//      nuovo; accanto, chi li custodisce (Adyen, GoCardless);
-//   4. il riepilogo (decisione del 13/10/2026): chi, da quando a quando,
-//      quanto e come si paga, senza impegno, cosa comprende, le regole di
-//      prenotazione, e un solo flag — Termini e Condizioni Generali,
-//      Regolamento del club e Condizioni di pagamento (consensi 36 e 20).
-//      Niente privacy (data sul sito), niente clausole
-//      vessatorie, niente firma.
-// Poi «Conferma e attiva»: solo allora il Guest Pass si carica su PerfectGym;
-// con la carta si paga la quota sulla pagina di PerfectGym e si torna qui.
+// Il Guest Pass dal link (in prova): la stessa procedura dell'abbonamento dal link — «Passo N di 4», un passo per volta, con lo stesso
+// indicatore (`Indicatore`), le stesse schede (`SchedaScelta`, `Carta`, `Sezione`) e gli stessi pulsanti — ma senza il contratto da
+// firmare (07/11/2026, richiesta di Maurizio: «uguale a quella dell'abbonamento, senza firma, a livello grafico allinearla»). Cosa si
+// chiede e in che ordine non e' cambiato; e' cambiato come si presenta: una cosa per volta invece di una pagina lunga.
+//   1. Dati: la prova in vetrina, per chi e', e i tuoi dati: tutti, gia' compilati (da PerfectGym e da quello che la persona ha
+//      confermato sul sito) e modificabili; quelli che mancano — codice fiscale, nascita — sono obbligatori; l'indirizzo non si chiede
+//      (29/10/2026: e' un attrito in piu' per la prova, lo si chiede all'abbonamento). «I miei dati sono corretti»: senza, non si va
+//      avanti. Le correzioni vanno su PerfectGym alla spunta, e un Lead si converte li';
+//   2. Giorno: il giorno d'inizio, entro 14 giorni;
+//   3. Pagamento: la carta o il conto gia' salvati (si mostrano), una carta nuova (si paga e si salva in un passo, sulla pagina di
+//      Adyen) o un IBAN nuovo; accanto, chi li custodisce (Adyen, GoCardless);
+//   4. Conferma — **al posto del contratto**: il riepilogo (decisione del 13/10/2026: chi, da quando a quando, quanto e come si paga,
+//      senza impegno, cosa comprende, le regole di prenotazione) e un solo flag — Termini e Condizioni Generali, Regolamento del club
+//      e Condizioni di pagamento (consensi 36 e 20). Niente privacy (data sul sito), niente clausole vessatorie, niente firma.
+// Poi «Conferma e attiva»: solo allora il Guest Pass si carica su PerfectGym; con la carta si paga la quota sulla pagina di PerfectGym
+// e si torna qui.
+//
+// **Da dove si riparte** (`passoIniziale`): chi riapre il link a meta' o torna dalla pagina della carta non ricomincia dai dati, ma dal
+// primo passo che manca (il server ha gia' i dati confermati, il giorno e il metodo). Non c'e' stato nuovo sul server: i passi sono solo
+// presentazione, e ogni controllo di prima (`pronto`, i consensi, il server alla conferma) e' rimasto dov'era.
 //
 // **Prima di tutto, per chi e'** (21/10/2026): il blocco «Per chi è il Guest Pass?» (`PerChi`), per se' o per un figlio
 // dai 13 ai 17 anni. Finche' non si sceglie, il resto non si vede. Per un figlio i dati del primo blocco sono quelli del
@@ -92,46 +103,50 @@ const ACCETTO = t('Accetto i Termini e Condizioni Generali, il Regolamento del c
 // Sopra questa larghezza (desktop) i dati vanno su due colonne; tablet e telefono una.
 const DUE_COLONNE = 1024
 
-/** Un gruppo di campi, col suo titoletto: due colonne su desktop. */
+/** Un gruppo di campi, col suo titoletto, in una scheda piatta come quelle dell'abbonamento: due colonne su desktop. */
 function Gruppo({ titolo, due, children }: { titolo: string; due: boolean; children: React.ReactNode[] }) {
-  const c = useColori()
+  const p = usePalette()
   return (
-    <View style={[stili.gruppo, { borderColor: c.bordo, backgroundColor: tinta(c.testo, 0.025) }]}>
-      <Text style={[stili.titoloGruppo, { color: c.accento }]}>{titolo.toUpperCase()}</Text>
-      <View style={due ? { flexDirection: 'row', flexWrap: 'wrap', marginHorizontal: -spazio.tre / 2 } : { gap: spazio.tre }}>
-        {children.map((figlio, i) => (
-          <View key={i} style={due ? { width: '50%', paddingHorizontal: spazio.tre / 2, paddingBottom: spazio.tre } : undefined}>
-            {figlio}
-          </View>
-        ))}
+    <Carta piatta>
+      <View style={{ gap: spazio.tre }}>
+        <Text style={{ color: p.testoSecondario, fontFamily: F.extra, fontSize: 12, letterSpacing: 1.2 }}>{titolo.toUpperCase()}</Text>
+        <View style={due ? { flexDirection: 'row', flexWrap: 'wrap', marginHorizontal: -spazio.tre / 2 } : { gap: spazio.tre }}>
+          {children.map((figlio, i) => (
+            <View key={i} style={due ? { width: '50%', paddingHorizontal: spazio.tre / 2, paddingBottom: spazio.tre } : undefined}>
+              {figlio}
+            </View>
+          ))}
+        </View>
       </View>
+    </Carta>
+  )
+}
+
+/** Una riga del riepilogo: la voce e, accanto, quello che vale. */
+function RigaRiepilogo({ nome, valore }: { nome: string; valore: string }) {
+  const p = usePalette()
+  return (
+    <View style={stili.riga}>
+      <Text style={[stili.chiave, { color: p.testoSecondario }]}>{nome}</Text>
+      <Text style={[stili.valore, { color: p.testo }]}>{valore}</Text>
     </View>
   )
 }
 
-function Blocco({ numero, titolo, fatto, children }: { numero: number; titolo: string; fatto: boolean; children: React.ReactNode }) {
-  const c = useColori()
-  return (
-    <View style={[stili.blocco, { borderColor: fatto ? c.ok : c.bordo, backgroundColor: c.superficie }]}>
-      <View style={stili.testaBlocco}>
-        <Text style={[stili.numero, { backgroundColor: fatto ? c.ok : c.accento, color: c.suAccento }]}>{fatto ? '✓' : numero}</Text>
-        <Text style={[stili.titoloBlocco, { color: c.testo }]}>{titolo}</Text>
-      </View>
-      {children}
-    </View>
-  )
-}
+// I passi (07/11/2026, richiesta di Maurizio): la pagina e' la stessa procedura dell'abbonamento dal link — Passo N di 4, una cosa
+// per volta — ma senza il contratto da firmare: il quarto passo e' un riepilogo con un solo flag.
+const NOMI_PASSI = () => [t('Dati', 'Details'), t('Giorno', 'Date'), t('Pagamento', 'Payment'), t('Conferma', 'Confirm')]
 
 export function AttivaGuestPass({ token, nome, iniziale }: { token: string; nome: string | null; iniziale: PaginaGuestPass }) {
   const c = useColori()
+  const pal = usePalette()
+  // Il carattere del portale lo carica il layout `(portale)`, e questa pagina sta fuori: i pezzi dell'abbonamento (`Indicatore`,
+  // `SchedaScelta`, `Pulsante`) lo usano, e senza questa riga sarebbero in un carattere di ripiego (come `AbbonamentoDaProposta`).
+  useFonts({ PlusJakartaSans_400Regular, PlusJakartaSans_500Medium, PlusJakartaSans_600SemiBold, PlusJakartaSans_700Bold, PlusJakartaSans_800ExtraBold })
   const { carta: tornatoCarta, pagato: tornatoPagato } = useLocalSearchParams<{ carta?: string; pagato?: string }>()
   const [p, setP] = useState(iniziale)
-  // Oltre ai campi del riepilogo, `residente_estero` ('1'/'0') e `paese`: le chiavi che `guest-pass` legge e scrive.
-  const daPerfectGym = (pp: PaginaGuestPass): Record<string, string> => ({
-    ...Object.fromEntries(Object.keys(CAMPI).map((k) => [k, String((pp.persona as Record<string, unknown>)[k] ?? '')])),
-    residente_estero: pp.persona.residente_estero ? '1' : '0',
-    paese: pp.persona.paese ?? '',
-  })
+  const daPerfectGym = datiDa
+  const [passo, setPasso] = useState<Passo>(() => passoIniziale(iniziale, !!tornatoCarta))
   const [dati, setDati] = useState<Record<string, string>>(daPerfectGym(iniziale))
   const [confermati, setConfermati] = useState(!!iniziale.scelte.dati_confermati)
   // La password non si salva fra un passo e l'altro: va su PerfectGym solo alla conferma.
@@ -142,11 +157,7 @@ export function AttivaGuestPass({ token, nome, iniziale }: { token: string; nome
   const [accetto, setAccetto] = useState(() => iniziale.consensi.every((k) => iniziale.scelte.consensi.includes(k.id)))
   const [inizio, setInizio] = useState<string | null>(iniziale.inizio.scelto)
   // La scelta del metodo: uno gia' salvato («s<id>»), una carta nuova o un IBAN nuovo.
-  const [sceltaMetodo, setSceltaMetodo] = useState<string | null>(() => {
-    const id = iniziale.scelte.payment_source_id
-    if (id && (iniziale.salvati ?? []).some((m) => m.id === id)) return `s${id}`
-    return iniziale.scelte.metodo
-  })
+  const [sceltaMetodo, setSceltaMetodo] = useState<string | null>(() => metodoIniziale(iniziale))
   const { width } = useWindowDimensions()
   const dueColonne = width >= DUE_COLONNE
   const [conto, setConto] = useState({ iban: '', intestatario: '', via: iniziale.persona.via ?? '', cap: iniziale.persona.cap ?? '', citta: iniziale.persona.citta ?? '' })
@@ -238,13 +249,10 @@ export function AttivaGuestPass({ token, nome, iniziale }: { token: string; nome
   const primoFiglio = figlio?.nome?.split(/\s+/)[0] ?? null
   // Con una funzione di prima non c'e' la scelta: e' per chi ha l'email, come sempre.
   const sceltoPerChi = !scelta || !!scelta.per
-  // Il blocco «Per chi» c'e' solo con la funzione nuova: gli altri si numerano dopo di lui.
-  const n0 = scelta ? 1 : 0
   const giorni = giorniFra(p.inizio.dal, p.inizio.al)
   const tuttiIConsensi = accetto
   const originali = daPerfectGym(p)
-  // Residente all'estero: niente codice fiscale (e niente controlli su di lui) e il Paese e' obbligatorio.
-  const estero = dati.residente_estero === '1'
+  const { estero, erroreCf, senzaPaese, completi: datiCompleti } = analisiDati(dati)
   const cambiati: Record<string, string> = Object.fromEntries(Object.entries(dati).filter(([k, v]) => v.trim() !== (originali[k] ?? '').trim()))
   if (estero) {
     // Con la spunta il codice fiscale non parte (insieme alla spunta il server risponde 400), e il Paese parte con lei.
@@ -254,10 +262,6 @@ export function AttivaGuestPass({ token, nome, iniziale }: { token: string; nome
     // Senza la spunta il Paese non si manda: l'indirizzo e' italiano.
     delete cambiati.paese
   }
-  // Il codice fiscale deve essere ben scritto e di questa persona (cognome, nome, nascita).
-  const erroreCf = estero ? null : problemaCodiceFiscale(dati)
-  const senzaPaese = estero && !dati.paese
-  const datiCompleti = CAMPI_RICHIESTI.every((k) => (estero && k === 'codice_fiscale') || (dati[k] ?? '').trim()) && !erroreCf && !senzaPaese
 
   function cambiaEstero() {
     setDati((x) => ({ ...x, residente_estero: x.residente_estero === '1' ? '0' : '1' }))
@@ -430,42 +434,56 @@ export function AttivaGuestPass({ token, nome, iniziale }: { token: string; nome
           `${perFiglio ? `${primoFiglio ? `${primoFiglio}’s` : 'Your child’s'} Guest Pass` : 'Your Guest Pass'} ${periodo ? `(${periodo}) ` : ''}is registered: to use it, the payment of ${p.resta ?? p.prezzo} € is still missing.`,
         )}
       >
-        {avviso ? <Avviso tono={avviso.tono}>{avviso.testo}</Avviso> : null}
+        {avviso ? <Messaggio tono={avviso.tono}>{avviso.testo}</Messaggio> : null}
         {occupato === 'pagamento' ? (
           <View style={{ flexDirection: 'row', gap: spazio.due, alignItems: 'center' }}>
             <ActivityIndicator color={c.accento} />
             <Testo>{t('Aspettiamo l’esito del pagamento…', 'Waiting for the payment result…')}</Testo>
           </View>
         ) : null}
-        {cartaSalvata ? (
-          <Bottone
-            testo={t(`Paga ${p.resta ?? p.prezzo} € con la ${nomeMetodo(cartaSalvata).replace(/^Carta/, 'carta')}`, `Pay ${p.resta ?? p.prezzo} € with your ${nomeMetodo(cartaSalvata).replace(/^Card/, 'card')}`)}
-            onPress={() => ripaga({ usa_salvato: cartaSalvata.id })}
-            inCorso={occupato === 'ripaga'}
-            disabilitato={!!occupato}
-          />
-        ) : null}
-        <Bottone
-          testo={cartaSalvata ? t('Paga con un’altra carta', 'Pay with another card') : t(`Paga ${p.resta ?? p.prezzo} € con la carta`, `Pay ${p.resta ?? p.prezzo} € by card`)}
-          variante={cartaSalvata ? 'contorno' : undefined}
-          onPress={() => ripaga({ nuova: true })}
-          inCorso={occupato === 'nuova'}
-          disabilitato={!!occupato}
-        />
-        <ChiGestisceCarta salvaPagando={!cartaSalvata} />
-        <Blocco numero={1} titolo={t('Oppure: addebito su conto', 'Or: direct debit')} fatto={false}>
-          <Testo variante="piccolo">{t(`Salva il conto e i ${p.prezzo} € li addebitiamo noi: il Guest Pass resta com’è.`, `Save your bank account and we’ll charge the ${p.prezzo} € ourselves: the Guest Pass stays as it is.`)}</Testo>
-          <ChiGestisceConto />
-          <Campo etichetta="IBAN" value={conto.iban} onChangeText={(v) => setConto((x) => ({ ...x, iban: v }))} autoCapitalize="characters" />
-          <Campo etichetta={t('Intestatario del conto', 'Account holder')} value={conto.intestatario} onChangeText={(v) => setConto((x) => ({ ...x, intestatario: v }))} />
-          <Campo etichetta={t('Via e numero civico', 'Street and number')} value={conto.via} onChangeText={(v) => setConto((x) => ({ ...x, via: v }))} />
-          <View style={{ flexDirection: 'row', gap: spazio.due }}>
-            <Campo etichetta={t('CAP', 'Postcode')} value={conto.cap} onChangeText={(v) => setConto((x) => ({ ...x, cap: v }))} keyboardType={estero ? 'default' : 'number-pad'} maxLength={estero ? 12 : undefined} />
-            <Campo etichetta={t('Città', 'City')} value={conto.citta} onChangeText={(v) => setConto((x) => ({ ...x, citta: v }))} />
+        <Sezione titolo={t('Come vuoi pagare', 'How do you want to pay')}>
+          <View style={{ gap: spazio.due }}>
+            {cartaSalvata ? (
+              <Pulsante
+                testo={t(`Paga ${p.resta ?? p.prezzo} € con la ${nomeMetodo(cartaSalvata).replace(/^Carta/, 'carta')}`, `Pay ${p.resta ?? p.prezzo} € with your ${nomeMetodo(cartaSalvata).replace(/^Card/, 'card')}`)}
+                icona="carta"
+                onPress={() => ripaga({ usa_salvato: cartaSalvata.id })}
+                inCorso={occupato === 'ripaga'}
+                disabilitato={!!occupato}
+              />
+            ) : null}
+            <Pulsante
+              testo={cartaSalvata ? t('Paga con un’altra carta', 'Pay with another card') : t(`Paga ${p.resta ?? p.prezzo} € con la carta`, `Pay ${p.resta ?? p.prezzo} € by card`)}
+              icona={cartaSalvata ? undefined : 'carta'}
+              variante={cartaSalvata ? 'contorno' : 'primario'}
+              onPress={() => ripaga({ nuova: true })}
+              inCorso={occupato === 'nuova'}
+              disabilitato={!!occupato}
+            />
           </View>
-          <Bottone testo={t('Salva il conto', 'Save bank account')} variante="contorno" onPress={salvaConto} inCorso={occupato === 'iban'} disabilitato={!!occupato} />
-        </Blocco>
-        {errore ? <Avviso>{errore}</Avviso> : null}
+          <ChiGestisceCarta salvaPagando={!cartaSalvata} />
+        </Sezione>
+        <Sezione titolo={t('Oppure: addebito su conto', 'Or: direct debit')}>
+          <Carta piatta>
+            <View style={{ gap: spazio.tre }}>
+              <Text style={[stili.nota, { color: pal.testoSecondario }]}>{t(`Salva il conto e i ${p.prezzo} € li addebitiamo noi: il Guest Pass resta com’è.`, `Save your bank account and we’ll charge the ${p.prezzo} € ourselves: the Guest Pass stays as it is.`)}</Text>
+              <ChiGestisceConto />
+              <CampoTesto etichetta="IBAN" icona="banca" value={conto.iban} onChangeText={(v) => setConto((x) => ({ ...x, iban: v.toUpperCase() }))} autoCapitalize="characters" autoCorrect={false} placeholder="IT60 X054 2811 1010 0000 0123 456" />
+              <CampoTesto etichetta={t('Intestatario del conto', 'Account holder')} value={conto.intestatario} onChangeText={(v) => setConto((x) => ({ ...x, intestatario: v }))} autoComplete="name" />
+              <CampoTesto etichetta={t('Via e numero civico', 'Street and number')} value={conto.via} onChangeText={(v) => setConto((x) => ({ ...x, via: v }))} autoComplete="street-address" />
+              <View style={{ flexDirection: 'row', gap: spazio.due }}>
+                <View style={{ flex: 1 }}>
+                  <CampoTesto etichetta={t('CAP', 'Postcode')} value={conto.cap} onChangeText={(v) => setConto((x) => ({ ...x, cap: v }))} keyboardType={estero ? 'default' : 'number-pad'} maxLength={estero ? 12 : undefined} />
+                </View>
+                <View style={{ flex: 1.6 }}>
+                  <CampoTesto etichetta={t('Città', 'City')} value={conto.citta} onChangeText={(v) => setConto((x) => ({ ...x, citta: v }))} />
+                </View>
+              </View>
+              <Pulsante testo={t('Salva il conto', 'Save bank account')} variante="contorno" onPress={salvaConto} inCorso={occupato === 'iban'} disabilitato={!!occupato} />
+            </View>
+          </Carta>
+        </Sezione>
+        {errore ? <Messaggio>{errore}</Messaggio> : null}
       </Pagina>
     )
   }
@@ -473,6 +491,8 @@ export function AttivaGuestPass({ token, nome, iniziale }: { token: string; nome
   const passwordObbligatoria = !!p.password?.obbligatoria
   const errorePassword = problemaPassword(password.nuova, password.conferma, passwordObbligatoria)
   const pronto = !p.verifica && sceltoPerChi && datiCompleti && confermati && !errorePassword && tuttiIConsensi && !!inizio && metodoPronto
+  // Si va avanti dal primo passo quando i dati sono completi e confermati (e la password, se si sta creando l'account, e' scritta bene).
+  const datiPronti = sceltoPerChi && datiCompleti && confermati && !errorePassword
   const metodoLeggibile = salvatoScelto
     ? salvatoScelto.tipo === 'carta'
       ? t(`${nomeMetodo(salvatoScelto)}, addebito alla conferma`, `${nomeMetodo(salvatoScelto)}, charged on confirmation`)
@@ -482,8 +502,28 @@ export function AttivaGuestPass({ token, nome, iniziale }: { token: string; nome
       : sceltaMetodo === 'iban'
         ? t('addebito su conto (SEPA)', 'direct debit (SEPA)')
         : null
+  const intestatario = perFiglio ? nomeFiglio || t('tuo figlio', 'your child') : [dati.nome, dati.cognome].filter(Boolean).join(' ')
+  const periodoScelto = inizio ? t(`dal ${giornoLungo(inizio)} al ${giornoLungo(fineSettimana(inizio))} compresi`, `from ${giornoLungo(inizio)} to ${giornoLungo(fineSettimana(inizio))} inclusive`) : null
+
+  function vai(n: Passo) {
+    setErrore(null)
+    setAvviso(null)
+    setPasso(n)
+  }
+
+  const SOTTOTITOLI = [
+    !sceltoPerChi
+      ? t('Scegli per chi attivarlo: poi si va avanti, un passo per volta.', 'Choose who it’s for: then we go on, one step at a time.')
+      : t('Controlla i tuoi dati: servono per registrarti al club.', 'Check your details: we need them to register you at the club.'),
+    t('Scegli quando cominciare: sono 7 giorni di fila.', 'Choose when to start: it’s 7 days in a row.'),
+    t('Scegli come pagare. Il Guest Pass non si rinnova: paghi una volta sola.', 'Choose how to pay. The Guest Pass doesn’t renew: you pay once.'),
+    t('Ultimo passo: controlla il riepilogo e conferma. Non c’è niente da firmare.', 'Last step: check the summary and confirm. There’s nothing to sign.'),
+  ]
+
   return (
+    // `key`: a ogni passo la pagina riparte dall'alto (come `AbbonamentoDaProposta`).
     <Pagina
+      key={passo}
       titolo={
         perFiglio && primoFiglio
           ? t(`Fai provare tutto il club a ${primoFiglio}`, `Let ${primoFiglio} try the whole club`)
@@ -495,370 +535,459 @@ export function AttivaGuestPass({ token, nome, iniziale }: { token: string; nome
               ? t(`Ciao ${nome}, prova tutto il club per una settimana`, `Hi ${nome}, try the whole club for a week`)
               : t('Prova tutto il club per una settimana', 'Try the whole club for a week')
       }
-      sottotitolo={t(
-        'Pochi passi e la tua settimana è pronta: controlla i dati, scegli quando cominciare e paga.',
-        'A few steps and your week is ready: check your details, choose when to start and pay.',
-      )}
+      sottotitolo={SOTTOTITOLI[passo - 1]}
     >
-      {avviso ? <Avviso tono={avviso.tono}>{avviso.testo}</Avviso> : null}
+      <Indicatore passo={passo} nomi={NOMI_PASSI()} />
+      {avviso ? <Messaggio tono={avviso.tono}>{avviso.testo}</Messaggio> : null}
       {/* Un'anagrafica simile: finche' la segreteria non risponde (per email) non si conferma. */}
-      {p.verifica ? <Avviso tono={p.verifica.stato === 'bloccata' ? 'errore' : 'attenzione'}>{p.verifica.testo}</Avviso> : null}
+      {p.verifica ? <Messaggio tono={p.verifica.stato === 'bloccata' ? 'errore' : 'attenzione'}>{p.verifica.testo}</Messaggio> : null}
       {/* L'invito e' per i nuovi iscritti (04/11/2026): a chi risulta iscritto dal 2021 si dice «non puoi aderire a questa iniziativa»: niente vantaggi. */}
       {p.invito_esito === 'non_nuovo' ? (
-        <Avviso tono="attenzione">
+        <Messaggio tono="attenzione">
           {t(
             `Non puoi aderire a questa iniziativa: è riservata a chi non è stato iscritto ad Athlon dal 2021, quindi l’invito non dà nessun vantaggio. Il Guest Pass, se puoi averlo, costa ${p.prezzo} €.`,
             `You can’t take part in this campaign: it’s only for people who haven’t been a member of Athlon since 2021, so the invitation gives no benefit. The Guest Pass, if you’re eligible, costs ${p.prezzo} €.`,
           )}
-        </Avviso>
+        </Messaggio>
       ) : null}
 
-      {/* La prova in vetrina (30/10/2026): il prezzo e, sotto, tutto quello che il Pass apre, a fisarmonica. Chi torna dalla
-          pagina di pagamento o ha gia' confermato i dati trova l'elenco chiuso: sta solo finendo, e non va spinto sotto la piega. */}
-      <PrezzoProva prezzo={p.prezzo} />
-      <AttivitaComprese ridotta={!!iniziale.scelte.dati_confermati || !!tornatoCarta || !!tornatoPagato} />
+      {/* ---------------------------------------------------------------- 1. Dati */}
+      {passo === 1 ? (
+        <>
+          {/* La prova in vetrina (30/10/2026): il prezzo e, sotto, tutto quello che il Pass apre, a fisarmonica. Chi torna dalla
+              pagina di pagamento o ha gia' confermato i dati trova l'elenco chiuso: sta solo finendo, e non va spinto sotto la piega. */}
+          <PrezzoProva prezzo={p.prezzo} />
+          <AttivitaComprese ridotta={!!iniziale.scelte.dati_confermati || !!tornatoCarta || !!tornatoPagato} />
 
-      {scelta ? (
-        <Blocco numero={1} titolo={t('Per chi è il Guest Pass', 'Who the Guest Pass is for')} fatto={!!scelta.per}>
-          <PerChi
-            token={token}
-            scelta={scelta}
-            onScelto={ricarica}
-            titolare={[dati.nome, dati.cognome].filter(Boolean).join(' ')}
-            comprende={t(
-              `Tutte le attività del Premium: ${[...ATTIVITA_PROVA.map((a) => a.nome), 'Athlon TV'].join(', ')}.`,
-              `All the Premium activities: ${[...ATTIVITA_PROVA.map((a) => a.nome), 'Athlon TV'].join(', ')}.`,
-            )}
-            quando={
-              inizio
-                ? t(`7 giorni, dal ${giornoLungo(inizio)} al ${giornoLungo(fineSettimana(inizio))} compresi.`, `7 days, from ${giornoLungo(inizio)} to ${giornoLungo(fineSettimana(inizio))} inclusive.`)
-                : t(`7 giorni consecutivi dal giorno che scegli, fra ${giornoLungo(p.inizio.dal)} e ${giornoLungo(p.inizio.al)}.`, `7 consecutive days from the day you choose, between ${giornoLungo(p.inizio.dal)} and ${giornoLungo(p.inizio.al)}.`)
-            }
-          />
-        </Blocco>
+          {scelta ? (
+            <Sezione titolo={t('Per chi è il Guest Pass', 'Who the Guest Pass is for')}>
+              <PerChi
+                token={token}
+                scelta={scelta}
+                onScelto={ricarica}
+                titolare={[dati.nome, dati.cognome].filter(Boolean).join(' ')}
+                comprende={t(
+                  `Tutte le attività del Premium: ${[...ATTIVITA_PROVA.map((a) => a.nome), 'Athlon TV'].join(', ')}.`,
+                  `All the Premium activities: ${[...ATTIVITA_PROVA.map((a) => a.nome), 'Athlon TV'].join(', ')}.`,
+                )}
+                quando={
+                  inizio
+                    ? t(`7 giorni, dal ${giornoLungo(inizio)} al ${giornoLungo(fineSettimana(inizio))} compresi.`, `7 days, from ${giornoLungo(inizio)} to ${giornoLungo(fineSettimana(inizio))} inclusive.`)
+                    : t(`7 giorni consecutivi dal giorno che scegli, fra ${giornoLungo(p.inizio.dal)} e ${giornoLungo(p.inizio.al)}.`, `7 consecutive days from the day you choose, between ${giornoLungo(p.inizio.dal)} and ${giornoLungo(p.inizio.al)}.`)
+                }
+              />
+            </Sezione>
+          ) : null}
+
+          {sceltoPerChi ? (
+            <>
+              <Sezione titolo={perFiglio ? t('I tuoi dati, come genitore', 'Your details, as the parent') : t('I tuoi dati', 'Your details')}>
+                <Nota>
+                  {perFiglio
+                    ? t(
+                        `Sei tu a pagare e ad attivare il Guest Pass di ${primoFiglio ?? 'tuo figlio'} come genitore: servono i tuoi dati. Quelli che mancano — di solito codice fiscale e data di nascita — servono per registrarti al club.`,
+                        `You pay for and activate ${primoFiglio ? `${primoFiglio}’s` : 'your child’s'} Guest Pass as the parent, so we need your details. The missing ones — usually tax code and date of birth — are needed to register you at the club.`,
+                      )
+                    : t(
+                        'Controlla i tuoi dati e correggili se serve. Quelli che mancano — di solito codice fiscale e data di nascita — servono per registrarti al club.',
+                        'Check your details and correct them if needed. The missing ones — usually tax code and date of birth — are needed to register you at the club.',
+                      )}
+                </Nota>
+                {GRUPPI.map((g) => (
+                  <Gruppo key={g.titolo} titolo={g.titolo} due={dueColonne}>
+                    {[
+                      ...g.campi.flatMap((k) => {
+                        const cambia = (v: string) => {
+                          setDati((x) => ({ ...x, [k]: v }))
+                          setConfermati(false)
+                          setErroreDati(null)
+                        }
+                        // Con la spunta il codice fiscale non c'e': resta la casella, sotto il posto che occupava.
+                        const casella = k === 'codice_fiscale' ? [<CasellaResidenteEstero key="estero" spuntata={estero} onCambia={cambiaEstero} lab />] : []
+                        // Residente all'estero: la casella e, sotto, il Paese (l'indirizzo non si chiede).
+                        if (k === 'codice_fiscale' && estero) {
+                          return [
+                            ...casella,
+                            <CampoPaese
+                              key="paese"
+                              variante="lab"
+                              value={dati.paese ?? ''}
+                              onChange={(v) => {
+                                setDati((x) => ({ ...x, paese: v }))
+                                setConfermati(false)
+                                setErroreDati(null)
+                              }}
+                              errore={senzaPaese}
+                            />,
+                          ]
+                        }
+                        if (k === 'telefono') {
+                          return [<CampoTelefono key={k} etichetta={CAMPI[k]} value={dati[k] ?? ''} onChange={cambia} errore={!(dati[k] ?? '').trim()} variante="lab" />]
+                        }
+                        if (k === 'nascita') {
+                          return [<CampoData key={k} etichetta={CAMPI[k]} value={dati[k] ?? ''} onChange={cambia} errore={!(dati[k] ?? '').trim()} variante="lab" />]
+                        }
+                        return [
+                          <CampoTesto
+                            key={k}
+                            etichetta={CAMPI[k]}
+                            value={dati[k] ?? ''}
+                            onChangeText={k === 'codice_fiscale' ? (v) => cambia(v.toUpperCase()) : cambia}
+                            autoCapitalize={k === 'codice_fiscale' ? 'characters' : k === 'email' ? 'none' : 'words'}
+                            keyboardType={k === 'email' ? 'email-address' : k === 'telefono' ? 'phone-pad' : 'default'}
+                            autoComplete={({ nome: 'given-name', cognome: 'family-name', email: 'email', telefono: 'tel' } as const)[k as 'nome']}
+                            maxLength={k === 'codice_fiscale' ? 16 : undefined}
+                            placeholder={k === 'codice_fiscale' ? 'RSSMRA80A01H501U' : k === 'telefono' ? '+39 340 123 4567' : undefined}
+                            errore={!(dati[k] ?? '').trim() || (k === 'codice_fiscale' && !!erroreCf)}
+                          />,
+                          ...casella,
+                        ]
+                      }),
+                    ]}
+                  </Gruppo>
+                ))}
+                {erroreCf ? <Messaggio>{erroreCf}</Messaggio> : null}
+                <Casella spuntata={confermati} onCambia={confermaDati} etichetta={t('I miei dati sono corretti', 'My details are correct')}>
+                  <Text style={{ color: pal.testo, fontFamily: F.bold, fontSize: 14, lineHeight: 20 }}>{t('I miei dati sono corretti', 'My details are correct')}</Text>
+                </Casella>
+                {occupato === 'dati' ? (
+                  <View style={{ flexDirection: 'row', gap: spazio.due, alignItems: 'center' }}>
+                    <ActivityIndicator color={c.accento} />
+                    <Nota>{t('Controlliamo i tuoi dati…', 'Checking your details…')}</Nota>
+                  </View>
+                ) : null}
+                {erroreDati ? <Messaggio>{erroreDati}</Messaggio> : null}
+                {Object.keys(cambiati).length && !confermati ? (
+                  <Nota>{t('Le correzioni vanno sulla tua scheda del club quando spunti «I miei dati sono corretti».', 'Your corrections go onto your club profile when you tick “My details are correct”.')}</Nota>
+                ) : null}
+                {/* La password solo a chi sta creando l'account (14/10/2026): chi era gia'
+                    Guest o Member ce l'ha, e se non la ricorda la reimposta dalla pagina finale. */}
+                {passwordObbligatoria ? (
+                  <>
+                    <Gruppo titolo={t('La tua password', 'Your password')} due={dueColonne}>
+                      <CampoTesto
+                        etichetta={t('Scegli la password', 'Choose a password')}
+                        value={password.nuova}
+                        onChangeText={(v) => setPassword((x) => ({ ...x, nuova: v }))}
+                        secureTextEntry
+                        autoCapitalize="none"
+                        autoComplete="new-password"
+                        errore={!password.nuova}
+                      />
+                      <CampoTesto
+                        etichetta={t('Ripeti la password', 'Repeat the password')}
+                        value={password.conferma}
+                        onChangeText={(v) => setPassword((x) => ({ ...x, conferma: v }))}
+                        secureTextEntry
+                        autoCapitalize="none"
+                        autoComplete="new-password"
+                        errore={!!password.nuova && password.conferma !== password.nuova}
+                      />
+                    </Gruppo>
+                    <Nota>
+                      {t(
+                        'Con la tua email e questa password entri nell’app Athlon Club e nel portale, per prenotare le lezioni. Almeno 8 caratteri, con lettere e numeri.',
+                        'With your email and this password you sign in to the Athlon Club app and the portal to book classes. At least 8 characters, with letters and numbers.',
+                      )}
+                    </Nota>
+                    {(password.nuova || password.conferma) && errorePassword ? <Messaggio tono="attenzione">{errorePassword}</Messaggio> : null}
+                  </>
+                ) : null}
+              </Sezione>
+
+              <Pulsante testo={t('Continua', 'Continue')} icona="avanti" onPress={() => vai(2)} disabilitato={!datiPronti} />
+              {!datiPronti ? (
+                <Nota>
+                  {errorePassword ? `${errorePassword} ` : ''}
+                  {erroreCf
+                    ? t('Controlla il codice fiscale.', 'Check your tax code.')
+                    : senzaPaese
+                      ? t('Scegli il Paese in cui risiedi.', 'Choose the country you live in.')
+                      : !datiCompleti
+                        ? t('Completa i tuoi dati.', 'Complete your details.')
+                        : !confermati
+                          ? t('Conferma che i tuoi dati sono corretti.', 'Confirm that your details are correct.')
+                          : ''}
+                </Nota>
+              ) : null}
+            </>
+          ) : null}
+        </>
       ) : null}
 
-      {sceltoPerChi ? (
-      <>
-      <Blocco numero={n0 + 1} titolo={perFiglio ? t('I tuoi dati, come genitore', 'Your details, as the parent') : t('I tuoi dati', 'Your details')} fatto={datiCompleti && confermati}>
-        <Testo variante="piccolo">
-          {perFiglio
-            ? t(
-                `Sei tu a pagare e ad attivare il Guest Pass di ${primoFiglio ?? 'tuo figlio'} come genitore: servono i tuoi dati. Quelli che mancano — di solito codice fiscale e data di nascita — servono per registrarti al club.`,
-                `You pay for and activate ${primoFiglio ? `${primoFiglio}’s` : 'your child’s'} Guest Pass as the parent, so we need your details. The missing ones — usually tax code and date of birth — are needed to register you at the club.`,
-              )
-            : t(
-                'Controlla i tuoi dati e correggili se serve. Quelli che mancano — di solito codice fiscale e data di nascita — servono per registrarti al club.',
-                'Check your details and correct them if needed. The missing ones — usually tax code and date of birth — are needed to register you at the club.',
-              )}
-        </Testo>
-        {GRUPPI.map((g) => (
-          <Gruppo key={g.titolo} titolo={g.titolo} due={dueColonne}>
-            {[
-              ...g.campi.flatMap((k) => {
-                const cambia = (v: string) => {
-                  setDati((x) => ({ ...x, [k]: v }))
-                  setConfermati(false)
-                  setErroreDati(null)
-                }
-                // Con la spunta il codice fiscale non c'e': resta la casella, sotto il posto che occupava.
-                const casella = k === 'codice_fiscale' ? [<CasellaResidenteEstero key="estero" spuntata={estero} onCambia={cambiaEstero} />] : []
-                // Residente all'estero: la casella e, sotto, il Paese (l'indirizzo non si chiede).
-                if (k === 'codice_fiscale' && estero) {
-                  return [
-                    ...casella,
-                    <CampoPaese
-                      key="paese"
-                      value={dati.paese ?? ''}
-                      onChange={(v) => {
-                        setDati((x) => ({ ...x, paese: v }))
-                        setConfermati(false)
-                        setErroreDati(null)
-                      }}
-                      errore={senzaPaese}
-                      style={{ backgroundColor: c.sfondo }}
-                    />,
-                  ]
-                }
-                if (k === 'telefono') {
-                  return [<CampoTelefono key={k} etichetta={CAMPI[k]} value={dati[k] ?? ''} onChange={cambia} errore={!(dati[k] ?? '').trim()} sfondo={c.sfondo} />]
-                }
-                if (k === 'nascita') {
-                  return [<CampoData key={k} etichetta={CAMPI[k]} value={dati[k] ?? ''} onChange={cambia} errore={!(dati[k] ?? '').trim()} sfondo={c.sfondo} />]
-                }
-                return [
-                  <Campo
-                    key={k}
-                    etichetta={CAMPI[k]}
-                    value={dati[k] ?? ''}
-                    onChangeText={k === 'codice_fiscale' ? (v) => cambia(v.toUpperCase()) : cambia}
-                    autoCapitalize={k === 'codice_fiscale' ? 'characters' : k === 'email' ? 'none' : 'words'}
-                    keyboardType={k === 'email' ? 'email-address' : k === 'telefono' ? 'phone-pad' : 'default'}
-                    autoComplete={({ nome: 'given-name', cognome: 'family-name', email: 'email', telefono: 'tel' } as const)[k as 'nome']}
-                    maxLength={k === 'codice_fiscale' ? 16 : undefined}
-                    placeholder={k === 'codice_fiscale' ? 'RSSMRA80A01H501U' : k === 'telefono' ? '+39 340 123 4567' : undefined}
-                    errore={!(dati[k] ?? '').trim() || (k === 'codice_fiscale' && !!erroreCf)}
-                    style={{ backgroundColor: c.sfondo }}
-                  />,
-                  ...casella,
-                ]
-              }),
-            ]}
-          </Gruppo>
-        ))}
-        {erroreCf ? <Avviso>{erroreCf}</Avviso> : null}
-        <Casella spuntata={confermati} onCambia={confermaDati} etichetta={t('I miei dati sono corretti', 'My details are correct')}>
-          <Testo style={{ fontWeight: '700' }}>{t('I miei dati sono corretti', 'My details are correct')}</Testo>
-        </Casella>
-        {occupato === 'dati' ? (
-          <View style={{ flexDirection: 'row', gap: spazio.due, alignItems: 'center' }}>
-            <ActivityIndicator color={c.accento} />
-            <Testo variante="piccolo">{t('Controlliamo i tuoi dati…', 'Checking your details…')}</Testo>
-          </View>
-        ) : null}
-        {erroreDati ? <Avviso>{erroreDati}</Avviso> : null}
-        {Object.keys(cambiati).length && !confermati ? (
-          <Testo variante="piccolo">{t('Le correzioni vanno sulla tua scheda del club quando spunti «I miei dati sono corretti».', 'Your corrections go onto your club profile when you tick “My details are correct”.')}</Testo>
-        ) : null}
-        {/* La password solo a chi sta creando l'account (14/10/2026): chi era gia'
-            Guest o Member ce l'ha, e se non la ricorda la reimposta dalla pagina finale. */}
-        {passwordObbligatoria ? (
-          <>
-            <Gruppo titolo={t('La tua password', 'Your password')} due={dueColonne}>
-              <Campo
-                etichetta={t('Scegli la password', 'Choose a password')}
-                value={password.nuova}
-                onChangeText={(v) => setPassword((x) => ({ ...x, nuova: v }))}
-                secureTextEntry
-                autoCapitalize="none"
-                autoComplete="new-password"
-                errore={!password.nuova}
-                style={{ backgroundColor: c.sfondo }}
-              />
-              <Campo
-                etichetta={t('Ripeti la password', 'Repeat the password')}
-                value={password.conferma}
-                onChangeText={(v) => setPassword((x) => ({ ...x, conferma: v }))}
-                secureTextEntry
-                autoCapitalize="none"
-                autoComplete="new-password"
-                errore={!!password.nuova && password.conferma !== password.nuova}
-                style={{ backgroundColor: c.sfondo }}
-              />
-            </Gruppo>
-            <Testo variante="piccolo">
-              {t(
-                'Con la tua email e questa password entri nell’app Athlon Club e nel portale, per prenotare le lezioni. Almeno 8 caratteri, con lettere e numeri.',
-                'With your email and this password you sign in to the Athlon Club app and the portal to book classes. At least 8 characters, with letters and numbers.',
-              )}
-            </Testo>
-            {(password.nuova || password.conferma) && errorePassword ? <Avviso tono="attenzione">{errorePassword}</Avviso> : null}
-          </>
-        ) : null}
-      </Blocco>
-
-      <Blocco numero={n0 + 2} titolo={t('Quando vuoi cominciare', 'When do you want to start')} fatto={!!inizio}>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: spazio.due }}>
-          {giorni.map((g) => {
-            const b = giornoBreve(g)
-            const attivo = g === inizio
-            const colore = attivo ? c.suAccento : c.testo
-            return (
-              <Scelta key={g} scelta={attivo} onPress={() => setInizio(g)} stile={{ minWidth: 64, alignItems: 'center' }} etichetta={giornoLungo(g)}>
-                <Text style={{ color: colore, fontSize: 11, textTransform: 'uppercase' }}>{b.settimana}</Text>
-                <Text style={{ color: colore, fontSize: 18, fontWeight: '700' }}>{b.numero}</Text>
-                <Text style={{ color: colore, fontSize: 11 }}>{b.mese}</Text>
-              </Scelta>
-            )
-          })}
-        </ScrollView>
-        {inizio ? <Testo variante="piccolo">{t(`Dal ${giornoLungo(inizio)} al ${giornoLungo(fineSettimana(inizio))}.`, `From ${giornoLungo(inizio)} to ${giornoLungo(fineSettimana(inizio))}.`)}</Testo> : null}
-        {perFiglio && giorni.length && giorni.length < 15 ? (
-          <Testo variante="piccolo">{t(`Il Guest Pass di ${primoFiglio ?? 'tuo figlio'} deve cominciare prima che compia 18 anni.`, `${primoFiglio ? `${primoFiglio}’s` : 'Your child’s'} Guest Pass must start before they turn 18.`)}</Testo>
-        ) : null}
-      </Blocco>
-
-      <Blocco numero={n0 + 3} titolo={t('Come vuoi pagare', 'How do you want to pay')} fatto={metodoPronto}>
-        {salvati.length ? <Testo variante="piccolo">{t('Hai già un metodo salvato al club: puoi usare quello.', 'You already have a payment method saved at the club: you can use that.')}</Testo> : null}
-        {(
-          [
-            { tipo: 'carta', titolo: t('Carte', 'Cards'), nuovo: 'carta', altro: t('Usa un’altra carta', 'Use another card'), primo: t('Paga con la carta', 'Pay by card') },
-            { tipo: 'iban', titolo: t('Conto corrente', 'Bank account'), nuovo: 'iban', altro: t('Usa un altro conto', 'Use another account'), primo: t('Addebito su conto', 'Direct debit') },
-          ] as const
-        ).map((g) => {
-          const suoi = salvati.filter((m) => m.tipo === g.tipo)
-          return (
-            <View key={g.tipo} style={{ gap: spazio.due }}>
-              <Text style={[stili.titoloGruppo, { color: c.accento }]}>{g.titolo.toUpperCase()}</Text>
-              {suoi.map((m) => (
-                <Scelta
-                  key={m.id}
-                  scelta={sceltaMetodo === `s${m.id}`}
-                  onPress={() => scegliMetodo(`s${m.id}`)}
-                  etichetta={nomeMetodo(m)}
-                  spento={!!occupato}
-                  stile={{ alignSelf: 'stretch' }}
-                >
-                  <Text style={{ color: sceltaMetodo === `s${m.id}` ? c.suAccento : c.testo, fontWeight: '600' }}>{nomeMetodo(m)}</Text>
-                </Scelta>
-              ))}
-              <Scelta
-                scelta={sceltaMetodo === g.nuovo}
-                onPress={() => scegliMetodo(g.nuovo)}
-                etichetta={suoi.length ? g.altro : g.primo}
-                spento={!!occupato}
-                stile={{ alignSelf: 'stretch' }}
-              >
-                <Text style={{ color: sceltaMetodo === g.nuovo ? c.suAccento : c.testo, fontWeight: '600' }}>
-                  {suoi.length ? `+ ${g.altro}` : g.primo}
-                </Text>
-              </Scelta>
-            </View>
-          )
-        })}
-        {salvatoScelto?.tipo === 'carta' ? (
-          <>
-            <Testo variante="piccolo">{t(`Alla conferma addebitiamo i ${p.prezzo} € su questa carta, senza riscriverla.`, `On confirmation we charge the ${p.prezzo} € to this card, without re-entering it.`)}</Testo>
-            <ChiGestisceCarta />
-          </>
-        ) : null}
-        {salvatoScelto?.tipo === 'iban' ? (
-          <>
-            <Testo variante="piccolo">{t(`I ${p.prezzo} € li addebitiamo su questo conto, dopo la conferma.`, `We charge the ${p.prezzo} € to this account after confirmation.`)}</Testo>
-            <ChiGestisceConto />
-          </>
-        ) : null}
-        {sceltaMetodo === 'carta' ? (
-          <>
-            <Testo variante="piccolo">
-              {t(`Alla conferma si apre la pagina protetta di Adyen: scrivi la carta e paghi i ${p.prezzo} € in un passo solo. Poi torni qui.`, `On confirmation, Adyen’s secure page opens: enter your card and pay the ${p.prezzo} € in a single step. Then you come back here.`)}
-            </Testo>
-            <ChiGestisceCarta salvaPagando />
-          </>
-        ) : null}
-        {sceltaMetodo === 'iban' ? (
-          p.scelte.metodo === 'iban' && p.scelte.metodo_pronto ? (
-            <>
-              <Avviso tono="ok">{t(`Conto salvato: i ${p.prezzo} € saranno addebitati sul conto.`, `Bank account saved: the ${p.prezzo} € will be charged to your account.`)}</Avviso>
-              <ChiGestisceConto />
-            </>
-          ) : (
-            <>
-              <View style={dueColonne ? { flexDirection: 'row', gap: spazio.tre } : { gap: spazio.tre }}>
-                <Campo etichetta="IBAN" value={conto.iban} onChangeText={(v) => setConto((x) => ({ ...x, iban: v.toUpperCase() }))} autoCapitalize="characters" placeholder="IT60 X054 2811 1010 0000 0123 456" style={{ backgroundColor: c.sfondo }} />
-                <Campo etichetta={t('Intestatario del conto', 'Account holder')} value={conto.intestatario} onChangeText={(v) => setConto((x) => ({ ...x, intestatario: v }))} style={{ backgroundColor: c.sfondo }} />
-              </View>
-              <View style={dueColonne ? { flexDirection: 'row', gap: spazio.tre } : { gap: spazio.tre }}>
-                <Campo etichetta={t('Via e numero civico', 'Street and number')} value={conto.via} onChangeText={(v) => setConto((x) => ({ ...x, via: v }))} style={{ backgroundColor: c.sfondo }} />
-                <View style={{ flexDirection: 'row', gap: spazio.due, flex: 1 }}>
-                  <Campo etichetta={t('CAP', 'Postcode')} value={conto.cap} onChangeText={(v) => setConto((x) => ({ ...x, cap: v }))} keyboardType={estero ? 'default' : 'number-pad'} maxLength={estero ? 12 : 5} style={{ backgroundColor: c.sfondo }} />
-                  <Campo etichetta={t('Città', 'City')} value={conto.citta} onChangeText={(v) => setConto((x) => ({ ...x, citta: v }))} style={{ backgroundColor: c.sfondo }} />
-                </View>
-              </View>
-              <ChiGestisceConto />
-              <Bottone testo={t('Salva il conto', 'Save bank account')} onPress={salvaConto} inCorso={occupato === 'iban'} disabilitato={!!occupato} />
-            </>
-          )
-        ) : null}
-      </Blocco>
-
-      <Blocco numero={n0 + 4} titolo={t('Riepilogo e condizioni', 'Summary and terms')} fatto={tuttiIConsensi && !!inizio && metodoPronto}>
-        <View style={[stili.contratto, { borderColor: c.bordo, backgroundColor: c.sfondo }]}>
-          <Text style={[stili.titoloContratto, { color: c.testo }]}>{t('Guest Pass Athlon Club · 1 settimana', 'Guest Pass Athlon Club · 1 week')}</Text>
-          {[
-            [t('Intestatario', 'Holder'), perFiglio ? nomeFiglio || t('tuo figlio', 'your child') : [dati.nome, dati.cognome].filter(Boolean).join(' ')],
-            ...(perFiglio ? [[t('Genitore che paga', 'Paying parent'), [dati.nome, dati.cognome].filter(Boolean).join(' ')]] : []),
-            [t('Validità', 'Valid'), inizio ? t(`dal ${giornoLungo(inizio)} al ${giornoLungo(fineSettimana(inizio))} compresi`, `from ${giornoLungo(inizio)} to ${giornoLungo(fineSettimana(inizio))} inclusive`) : t('scegli il giorno d’inizio', 'choose the start day')],
-            [t('Prezzo', 'Price'), t(`${p.prezzo} € una tantum`, `${p.prezzo} € one-off`)],
-            [t('Rinnovo', 'Renewal'), t('nessuno: finisce da solo, senza impegno e senza altri addebiti', 'none: it ends by itself, with no commitment and no further charges')],
-            [t('Pagamento', 'Payment'), metodoLeggibile ?? t('scegli come pagare', 'choose how to pay')],
-          ].map(([k, v]) => (
-            <View key={k} style={[stili.riga, { borderTopColor: c.bordo }]}>
-              <Text style={[stili.chiave, { color: c.testoSecondario }]}>{k}</Text>
-              <Text style={[stili.valore, { color: c.testo }]}>{v}</Text>
-            </View>
-          ))}
-          <Text style={[stili.sezione, { color: c.testo }]}>{t('Le condizioni in breve', 'The terms in brief')}</Text>
-          <View style={{ gap: spazio.uno + 2 }}>
-            {cosaComprende(p.prezzo).map((voce) => (
-              <View key={voce} style={{ flexDirection: 'row', gap: spazio.due }}>
-                <Text style={{ color: c.accento, fontWeight: '800' }}>✓</Text>
-                <Testo variante="piccolo" style={{ flex: 1, color: c.testo }}>
-                  {voce}
-                </Testo>
-              </View>
-            ))}
-          </View>
-          <Text style={[stili.sezione, { color: c.testo }]}>{t('Regole di prenotazione', 'Booking rules')}</Text>
-          {REGOLE_PRENOTAZIONE.map((regola) => (
-            <Testo key={regola} variante="piccolo">{`• ${regola}`}</Testo>
-          ))}
-          <Testo variante="piccolo">Società Sportiva Dilettantistica Point 2000 SSD, Via Ugo Ojetti 134, 00137 Roma.</Testo>
-        </View>
-        {p.consensi.length ? (
-          <View style={{ gap: 4 }}>
-            <Casella
-              spuntata={tuttiIConsensi}
-              onCambia={() => setAccetto((x) => !x)}
-              etichetta={ACCETTO}
-            >
-              <Testo variante="piccolo" style={{ color: c.testo }}>
-                {ACCETTO}
-              </Testo>
-            </Casella>
-            <Text
-              accessibilityRole="link"
-              style={{ color: c.accento, fontSize: 13, textDecorationLine: 'underline', marginLeft: 34 }}
-              onPress={() => apriAccanto(REGOLAMENTO_URL)}
-            >
-              {t('Leggi il Regolamento e i Termini e Condizioni ↗', 'Read the Rules and Terms and Conditions ↗')}
+      {/* ---------------------------------------------------------------- 2. Giorno */}
+      {passo === 2 ? (
+        <>
+          <Carta piatta>
+            <Text style={{ color: pal.testoSecondario, fontFamily: F.medio, fontSize: 12 }}>{t('La tua scelta', 'Your choice')}</Text>
+            <Text style={{ color: pal.testo, fontFamily: F.extra, fontSize: 18, letterSpacing: -0.3 }}>{t('Guest Pass Athlon Club · 1 settimana', 'Guest Pass Athlon Club · 1 week')}</Text>
+            <Text style={{ color: pal.testoSecondario, fontFamily: F.medio, fontSize: 13 }}>
+              {t(`${p.prezzo} € una tantum · per ${intestatario}`, `${p.prezzo} € one-off · for ${intestatario}`)}
             </Text>
-          </View>
-        ) : null}
-      </Blocco>
+          </Carta>
 
-      {errore ? <Avviso>{errore}</Avviso> : null}
-      {occupato === 'carta' && tornatoCarta ? <ActivityIndicator color={c.accento} /> : null}
-      <Bottone testo={metodo === 'carta' ? t(`Conferma e paga · ${p.prezzo} €`, `Confirm and pay · ${p.prezzo} €`) : t(`Conferma e attiva · ${p.prezzo} €`, `Confirm and activate · ${p.prezzo} €`)} onPress={conferma} inCorso={occupato === 'conferma'} disabilitato={!pronto || !!occupato} />
-      {!pronto ? (
-        <Testo variante="piccolo">
-          {errorePassword ? `${errorePassword} ` : ''}
-          {erroreCf
-            ? t('Controlla il codice fiscale. ', 'Check your tax code. ')
-            : senzaPaese
-              ? t('Scegli il Paese in cui risiedi. ', 'Choose the country you live in. ')
-              : !datiCompleti
-                ? t('Completa i tuoi dati. ', 'Complete your details. ')
-                : !confermati
-                  ? t('Conferma che i tuoi dati sono corretti. ', 'Confirm that your details are correct. ')
-                  : ''}
-          {!inizio ? t('Scegli il giorno d’inizio. ', 'Choose the start day. ') : ''}
-          {!metodoPronto ? t('Completa il metodo di pagamento. ', 'Complete the payment method. ') : ''}
-          {!tuttiIConsensi ? t('Accetta i Termini e Condizioni, il Regolamento e le Condizioni di pagamento.', 'Accept the Terms and Conditions, the Rules and the Payment Terms.') : ''}
-        </Testo>
-      ) : (
-        <Testo variante="piccolo">
-          {t('Confermando attivi il Guest Pass', 'By confirming you activate the Guest Pass')} <Forte>{t(`dal ${giornoLungo(inizio!)}`, `from ${giornoLungo(inizio!)}`)}</Forte>
-          {metodo === 'carta' ? t(` e paghi subito i ${p.prezzo} € con la carta.`, ` and pay the ${p.prezzo} € by card right away.`) : t(` con l’addebito dei ${p.prezzo} € sul conto.`, ` with the ${p.prezzo} € charged to your bank account.`)}
-        </Testo>
-      )}
-      </>
+          <Sezione titolo={t('Quando comincia', 'When it starts')}>
+            <View style={stili.giorni} accessibilityRole="radiogroup">
+              {giorni.map((g) => (
+                <GiornoTessera key={g} giorno={g} attivo={g === inizio} onPress={() => setInizio(g)} />
+              ))}
+            </View>
+            <Nota>
+              {t(
+                'Puoi farlo partire oggi o fino a due settimane dopo. Dura 7 giorni di fila, compreso quello d’inizio, e finisce da solo.',
+                'You can start it today or up to two weeks later. It lasts 7 days in a row, the first one included, and ends by itself.',
+              )}
+            </Nota>
+            {inizio ? (
+              <Messaggio tono="ok" icona="calendario">
+                {t(`Dal ${giornoLungo(inizio)} al ${giornoLungo(fineSettimana(inizio))} compresi.`, `From ${giornoLungo(inizio)} to ${giornoLungo(fineSettimana(inizio))} inclusive.`)}
+              </Messaggio>
+            ) : null}
+            {perFiglio && giorni.length && giorni.length < 15 ? (
+              <Nota>{t(`Il Guest Pass di ${primoFiglio ?? 'tuo figlio'} deve cominciare prima che compia 18 anni.`, `${primoFiglio ? `${primoFiglio}’s` : 'Your child’s'} Guest Pass must start before they turn 18.`)}</Nota>
+            ) : null}
+          </Sezione>
+
+          <Pulsante testo={t('Continua', 'Continue')} icona="avanti" onPress={() => vai(3)} disabilitato={!inizio} />
+          <Pulsante testo={t('Indietro', 'Back')} variante="fantasma" piccolo pieno={false} onPress={() => vai(1)} />
+        </>
+      ) : null}
+
+      {/* ---------------------------------------------------------------- 3. Pagamento */}
+      {passo === 3 ? (
+        <>
+          <Sezione titolo={t('Come paghi', 'How you pay')}>
+            {salvati.length ? <Nota>{t('Hai già un metodo salvato al club: puoi usare quello.', 'You already have a payment method saved at the club: you can use that.')}</Nota> : null}
+            <View style={{ gap: spazio.due }} accessibilityRole="radiogroup">
+              {salvati.map((m) => (
+                <SchedaScelta
+                  key={m.id}
+                  attiva={sceltaMetodo === `s${m.id}`}
+                  etichetta={nomeMetodo(m)}
+                  icona={m.tipo === 'carta' ? 'carta' : 'banca'}
+                  titolo={nomeMetodo(m)}
+                  sotto={m.tipo === 'carta' ? t('Salvata al club: la usiamo alla conferma, senza riscriverla.', 'Saved at the club: we use it on confirmation, without re-entering it.') : t('Salvato al club, con il mandato SEPA già firmato.', 'Saved at the club, with the SEPA mandate already signed.')}
+                  onPress={() => scegliMetodo(`s${m.id}`)}
+                  spenta={!!occupato}
+                />
+              ))}
+              <SchedaScelta
+                attiva={sceltaMetodo === 'carta'}
+                etichetta={cartaSalvata ? t('Usa un’altra carta', 'Use another card') : t('Paga con la carta', 'Pay by card')}
+                icona="carta"
+                titolo={cartaSalvata ? t('Un’altra carta', 'Another card') : t('Carta', 'Card')}
+                sotto={t(`Paghi i ${p.prezzo} € sulla pagina sicura di Adyen, che salva la carta.`, `You pay the ${p.prezzo} € on Adyen’s secure page, which saves your card.`)}
+                onPress={() => scegliMetodo('carta')}
+                spenta={!!occupato}
+              />
+              <SchedaScelta
+                attiva={sceltaMetodo === 'iban'}
+                etichetta={salvati.some((m) => m.tipo === 'iban') ? t('Usa un altro conto', 'Use another account') : t('Addebito su conto', 'Direct debit')}
+                icona="banca"
+                titolo={salvati.some((m) => m.tipo === 'iban') ? t('Un altro conto corrente', 'Another bank account') : t('Conto corrente (addebito SEPA)', 'Bank account (SEPA direct debit)')}
+                sotto={t(`Addebitiamo i ${p.prezzo} € sul tuo conto, con il mandato SEPA.`, `We charge the ${p.prezzo} € to your account, under the SEPA mandate.`)}
+                onPress={() => scegliMetodo('iban')}
+                spenta={!!occupato}
+              />
+            </View>
+            {salvatoScelto?.tipo === 'carta' ? (
+              <>
+                <Nota>{t(`Alla conferma addebitiamo i ${p.prezzo} € su questa carta, senza riscriverla.`, `On confirmation we charge the ${p.prezzo} € to this card, without re-entering it.`)}</Nota>
+                <ChiGestisceCarta />
+              </>
+            ) : null}
+            {salvatoScelto?.tipo === 'iban' ? (
+              <>
+                <Nota>{t(`I ${p.prezzo} € li addebitiamo su questo conto, dopo la conferma.`, `We charge the ${p.prezzo} € to this account after confirmation.`)}</Nota>
+                <ChiGestisceConto />
+              </>
+            ) : null}
+            {sceltaMetodo === 'carta' ? (
+              <>
+                <Nota>
+                  {t(`Alla conferma si apre la pagina protetta di Adyen: scrivi la carta e paghi i ${p.prezzo} € in un passo solo. Poi torni qui.`, `On confirmation, Adyen’s secure page opens: enter your card and pay the ${p.prezzo} € in a single step. Then you come back here.`)}
+                </Nota>
+                <ChiGestisceCarta salvaPagando />
+              </>
+            ) : null}
+            {sceltaMetodo === 'iban' ? (
+              p.scelte.metodo === 'iban' && p.scelte.metodo_pronto ? (
+                <>
+                  <Messaggio tono="ok">{t(`Conto salvato: i ${p.prezzo} € saranno addebitati sul conto.`, `Bank account saved: the ${p.prezzo} € will be charged to your account.`)}</Messaggio>
+                  <ChiGestisceConto />
+                </>
+              ) : (
+                <Carta piatta>
+                  <View style={{ gap: spazio.tre }}>
+                    <View style={dueColonne ? { flexDirection: 'row', gap: spazio.tre } : { gap: spazio.tre }}>
+                      <View style={{ flex: 1 }}>
+                        <CampoTesto etichetta="IBAN" icona="banca" value={conto.iban} onChangeText={(v) => setConto((x) => ({ ...x, iban: v.toUpperCase() }))} autoCapitalize="characters" autoCorrect={false} placeholder="IT60 X054 2811 1010 0000 0123 456" />
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <CampoTesto etichetta={t('Intestatario del conto', 'Account holder')} value={conto.intestatario} onChangeText={(v) => setConto((x) => ({ ...x, intestatario: v }))} autoComplete="name" />
+                      </View>
+                    </View>
+                    <View style={dueColonne ? { flexDirection: 'row', gap: spazio.tre } : { gap: spazio.tre }}>
+                      <View style={{ flex: 1 }}>
+                        <CampoTesto etichetta={t('Via e numero civico', 'Street and number')} value={conto.via} onChangeText={(v) => setConto((x) => ({ ...x, via: v }))} autoComplete="street-address" />
+                      </View>
+                      <View style={{ flex: 1, flexDirection: 'row', gap: spazio.due }}>
+                        <View style={{ flex: 1 }}>
+                          <CampoTesto etichetta={t('CAP', 'Postcode')} value={conto.cap} onChangeText={(v) => setConto((x) => ({ ...x, cap: v }))} keyboardType={estero ? 'default' : 'number-pad'} maxLength={estero ? 12 : 5} />
+                        </View>
+                        <View style={{ flex: 1.6 }}>
+                          <CampoTesto etichetta={t('Città', 'City')} value={conto.citta} onChangeText={(v) => setConto((x) => ({ ...x, citta: v }))} />
+                        </View>
+                      </View>
+                    </View>
+                    <ChiGestisceConto />
+                    <Pulsante testo={t('Salva il conto', 'Save bank account')} variante="secondario" onPress={salvaConto} inCorso={occupato === 'iban'} disabilitato={!!occupato} />
+                  </View>
+                </Carta>
+              )
+            ) : null}
+          </Sezione>
+
+          {errore ? <Messaggio>{errore}</Messaggio> : null}
+          <Pulsante testo={t('Continua', 'Continue')} icona="avanti" onPress={() => vai(4)} disabilitato={!metodoPronto || !!occupato} />
+          {!metodoPronto ? <Nota>{t('Scegli come pagare e completa il metodo per continuare.', 'Choose how to pay and complete the method to continue.')}</Nota> : null}
+          <Pulsante testo={t('Indietro', 'Back')} variante="fantasma" piccolo pieno={false} onPress={() => vai(2)} />
+        </>
+      ) : null}
+
+      {/* ---------------------------------------------------------------- 4. Conferma (al posto del contratto: un riepilogo e un solo flag) */}
+      {passo === 4 ? (
+        <>
+          <Sezione titolo={t('Il tuo Guest Pass', 'Your Guest Pass')}>
+            <Carta piatta>
+              <View style={{ gap: spazio.due }}>
+                <Text style={{ color: pal.testo, fontFamily: F.extra, fontSize: 18, letterSpacing: -0.3 }}>{t('Guest Pass Athlon Club · 1 settimana', 'Guest Pass Athlon Club · 1 week')}</Text>
+                <RigaRiepilogo nome={t('Intestatario', 'Holder')} valore={intestatario} />
+                {perFiglio ? <RigaRiepilogo nome={t('Genitore che paga', 'Paying parent')} valore={[dati.nome, dati.cognome].filter(Boolean).join(' ')} /> : null}
+                <RigaRiepilogo nome={t('Validità', 'Valid')} valore={periodoScelto ?? t('scegli il giorno d’inizio', 'choose the start day')} />
+                <RigaRiepilogo nome={t('Prezzo', 'Price')} valore={t(`${p.prezzo} € una tantum`, `${p.prezzo} € one-off`)} />
+                <RigaRiepilogo nome={t('Rinnovo', 'Renewal')} valore={t('nessuno: finisce da solo, senza impegno e senza altri addebiti', 'none: it ends by itself, with no commitment and no further charges')} />
+                <RigaRiepilogo nome={t('Pagamento', 'Payment')} valore={metodoLeggibile ?? t('scegli come pagare', 'choose how to pay')} />
+              </View>
+            </Carta>
+          </Sezione>
+
+          <Sezione titolo={t('Le condizioni in breve', 'The terms in brief')}>
+            <Carta piatta>
+              <View style={{ gap: spazio.uno + 2 }}>
+                {cosaComprende(p.prezzo).map((voce) => (
+                  <View key={voce} style={{ flexDirection: 'row', gap: spazio.due }}>
+                    <Text style={{ color: pal.accento, fontFamily: F.extra }}>✓</Text>
+                    <Text style={[stili.nota, { flex: 1, color: pal.testo }]}>{voce}</Text>
+                  </View>
+                ))}
+              </View>
+            </Carta>
+          </Sezione>
+
+          <Sezione titolo={t('Regole di prenotazione', 'Booking rules')}>
+            <Carta piatta>
+              <View style={{ gap: spazio.uno + 2 }}>
+                {REGOLE_PRENOTAZIONE.map((regola) => (
+                  <Text key={regola} style={[stili.nota, { color: pal.testo }]}>{`• ${regola}`}</Text>
+                ))}
+                <Text style={[stili.nota, { color: pal.testoSecondario }]}>Società Sportiva Dilettantistica Point 2000 SSD, Via Ugo Ojetti 134, 00137 Roma.</Text>
+              </View>
+            </Carta>
+          </Sezione>
+
+          {/* Al posto del contratto dell'abbonamento: niente firma, un solo flag. */}
+          <Messaggio tono="attenzione" titolo={t('Niente da firmare', 'Nothing to sign')} icona="documento">
+            {t(
+              'Il Guest Pass non ha un contratto da firmare: basta spuntare qui sotto. Poi, con la carta si apre la pagina protetta per pagare; con il conto l’addebito parte da solo.',
+              'The Guest Pass has no contract to sign: just tick the box below. Then, with a card the secure payment page opens; with a bank account the debit starts by itself.',
+            )}
+          </Messaggio>
+          {p.consensi.length ? (
+            <View style={{ gap: 4 }}>
+              <Casella spuntata={tuttiIConsensi} onCambia={() => setAccetto((x) => !x)} etichetta={ACCETTO}>
+                <Text style={{ color: pal.testo, fontFamily: F.medio, fontSize: 14, lineHeight: 20 }}>{ACCETTO}</Text>
+              </Casella>
+              <Text
+                accessibilityRole="link"
+                style={{ color: pal.accento, fontFamily: F.semi, fontSize: 13, textDecorationLine: 'underline', marginLeft: 34 }}
+                onPress={() => apriAccanto(REGOLAMENTO_URL)}
+              >
+                {t('Leggi il Regolamento e i Termini e Condizioni ↗', 'Read the Rules and Terms and Conditions ↗')}
+              </Text>
+            </View>
+          ) : null}
+
+          {errore ? <Messaggio>{errore}</Messaggio> : null}
+          {occupato === 'carta' && tornatoCarta ? <ActivityIndicator color={c.accento} /> : null}
+          <Pulsante
+            testo={metodo === 'carta' ? t(`Conferma e paga · ${p.prezzo} €`, `Confirm and pay · ${p.prezzo} €`) : t(`Conferma e attiva · ${p.prezzo} €`, `Confirm and activate · ${p.prezzo} €`)}
+            icona="spunta"
+            onPress={conferma}
+            inCorso={occupato === 'conferma'}
+            disabilitato={!pronto || !!occupato}
+          />
+          {!pronto ? (
+            <Nota>
+              {errorePassword ? `${errorePassword} ` : ''}
+              {erroreCf
+                ? t('Controlla il codice fiscale. ', 'Check your tax code. ')
+                : senzaPaese
+                  ? t('Scegli il Paese in cui risiedi. ', 'Choose the country you live in. ')
+                  : !datiCompleti
+                    ? t('Completa i tuoi dati. ', 'Complete your details. ')
+                    : !confermati
+                      ? t('Conferma che i tuoi dati sono corretti. ', 'Confirm that your details are correct. ')
+                      : ''}
+              {!inizio ? t('Scegli il giorno d’inizio. ', 'Choose the start day. ') : ''}
+              {!metodoPronto ? t('Completa il metodo di pagamento. ', 'Complete the payment method. ') : ''}
+              {!tuttiIConsensi ? t('Accetta i Termini e Condizioni, il Regolamento e le Condizioni di pagamento.', 'Accept the Terms and Conditions, the Rules and the Payment Terms.') : ''}
+            </Nota>
+          ) : (
+            <Nota>
+              {t('Confermando attivi il Guest Pass', 'By confirming you activate the Guest Pass')} <Forte>{t(`dal ${giornoLungo(inizio!)}`, `from ${giornoLungo(inizio!)}`)}</Forte>
+              {metodo === 'carta' ? t(` e paghi subito i ${p.prezzo} € con la carta.`, ` and pay the ${p.prezzo} € by card right away.`) : t(` con l’addebito dei ${p.prezzo} € sul conto.`, ` with the ${p.prezzo} € charged to your bank account.`)}
+            </Nota>
+          )}
+          <Pulsante testo={t('Indietro', 'Back')} variante="fantasma" piccolo pieno={false} onPress={() => vai(3)} disabilitato={!!occupato} />
+        </>
       ) : null}
     </Pagina>
   )
 }
 
+/** Un testo di servizio, piccolo e smorzato: le note sotto un comando. */
+function Nota({ children }: { children: React.ReactNode }) {
+  const p = usePalette()
+  return <Text style={[stili.nota, { color: p.testoSecondario }]}>{children}</Text>
+}
+
+/** Un giorno d'inizio da scegliere: giorno della settimana, numero, mese. Arancio quando e' scelto, come i giorni dell'abbonamento. */
+function GiornoTessera({ giorno, attivo, onPress }: { giorno: string; attivo: boolean; onPress: () => void }) {
+  const p = usePalette()
+  const b = giornoBreve(giorno)
+  const colore = attivo ? '#fff' : p.testo
+  return (
+    <Tocco
+      vibra="scelta"
+      ruolo="radio"
+      stato={{ selected: attivo }}
+      etichetta={giornoLungo(giorno)}
+      onPress={onPress}
+      style={[stili.giorno, attivo ? { backgroundColor: p.accento, borderColor: p.accento } : { backgroundColor: p.carta, borderColor: p.linea }]}
+    >
+      <Text style={{ color: colore, fontFamily: F.semi, fontSize: 11, textTransform: 'uppercase' }}>{b.settimana}</Text>
+      <Text style={{ color: colore, fontFamily: F.extra, fontSize: 20 }}>{b.numero}</Text>
+      <Text style={{ color: colore, fontFamily: F.semi, fontSize: 11 }}>{b.mese}</Text>
+    </Tocco>
+  )
+}
+
 const stili = StyleSheet.create({
-  blocco: { borderWidth: 1, borderRadius: 16, padding: spazio.tre, gap: spazio.due },
-  testaBlocco: { flexDirection: 'row', alignItems: 'center', gap: spazio.due },
-  numero: { width: 26, height: 26, borderRadius: 13, textAlign: 'center', lineHeight: 26, fontWeight: '800', overflow: 'hidden' },
-  titoloBlocco: { fontSize: 17, fontWeight: '700' },
-  contratto: { borderWidth: 1, borderRadius: 12, padding: spazio.tre, gap: spazio.uno + 2 },
-  titoloContratto: { fontSize: 16, fontWeight: '800', marginBottom: spazio.uno },
-  riga: { flexDirection: 'row', gap: spazio.tre, borderTopWidth: StyleSheet.hairlineWidth, paddingTop: spazio.uno + 2 },
-  chiave: { width: 130, fontSize: 13 },
-  valore: { flex: 1, fontSize: 13, fontWeight: '600' },
-  sezione: { fontSize: 14, fontWeight: '700', marginTop: spazio.due },
-  gruppo: { borderWidth: 1, borderRadius: 12, padding: spazio.tre, gap: spazio.tre },
-  titoloGruppo: { fontSize: 12, fontWeight: '800', letterSpacing: 1.2 },
+  riga: { flexDirection: 'row', gap: spazio.tre },
+  chiave: { width: 112, fontFamily: F.medio, fontSize: 13, lineHeight: 19 },
+  valore: { flex: 1, fontFamily: F.bold, fontSize: 14, lineHeight: 19 },
+  nota: { fontFamily: F.medio, fontSize: 13, lineHeight: 19 },
+  giorni: { flexDirection: 'row', flexWrap: 'wrap', gap: spazio.due },
+  giorno: { width: 64, minHeight: 78, borderRadius: 14, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center', paddingVertical: 8 },
 })
