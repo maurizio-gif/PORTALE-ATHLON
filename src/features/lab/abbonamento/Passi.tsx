@@ -43,6 +43,7 @@ export function SchedaScelta({
   titolo,
   sotto,
   destra,
+  spenta = false,
   children,
 }: {
   attiva: boolean
@@ -52,6 +53,8 @@ export function SchedaScelta({
   titolo: string
   sotto?: string
   destra?: ReactNode
+  /** Non si puo' scegliere (una persona non idonea, un salvataggio in corso): si vede, ma spenta. */
+  spenta?: boolean
   children?: ReactNode
 }) {
   const p = usePalette()
@@ -59,11 +62,12 @@ export function SchedaScelta({
     <Tocco
       vibra="scelta"
       ruolo="radio"
-      stato={{ selected: attiva }}
+      stato={{ selected: attiva, disabled: spenta }}
       etichetta={etichetta}
       onPress={onPress}
+      spento={spenta}
       scala={0.985}
-      style={[stili.scheda, attiva ? { borderColor: p.accento, backgroundColor: p.incavo } : { borderColor: p.linea, backgroundColor: p.carta }]}
+      style={[stili.scheda, attiva ? { borderColor: p.accento, backgroundColor: p.incavo } : { borderColor: p.linea, backgroundColor: p.carta }, spenta && { opacity: 0.5 }]}
     >
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: spazio.tre }}>
         <View style={[stili.pallino, { borderColor: attiva ? p.accento : p.testoTerzo, backgroundColor: attiva ? p.accento : 'transparent' }]}>

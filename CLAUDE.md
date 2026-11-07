@@ -193,3 +193,4 @@ chiamata diretta al gestionale. Esempio: la sezione Prodotti usa l'azione `prodo
 - [«Accedi o registrati»: un solo pulsante «Continua», e i vantaggi sotto (07/11/2026)](docs/claude/155-accedi-o-registrati-un-solo-pulsante-07-11-2026.md) · 4 KB
 - [L'accesso a bolle (07/11/2026): provata e tolta lo stesso giorno, «troppi step»; la nota dice com'era fatta e come riaverla](docs/claude/156-accesso-a-bolle-con-foto-del-club-07-11-2026.md) · 11 KB
 - [`/entra`: l'iscrizione di un figlio preparata dal CRM, per email o SMS (07/11/2026)](docs/claude/157-entra-iscrizione-preparata-dal-crm-07-11-2026.md) · 3 KB
+- [Il Guest Pass dal link a passi, come l'abbonamento ma senza firma — BOZZA (07/11/2026)](docs/claude/158-guest-pass-a-passi-come-l-abbonamento-senza-firma-07-11-2026.md) · 6 KB
