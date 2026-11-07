@@ -12,10 +12,13 @@ import { PRIVACY_URL } from '@/lib/guestPass'
 import { t } from '@/lib/lingua'
 import { spazio } from '@/theme'
 
+import { rilasciaEntrata, trattieniEntrata } from './entrata'
 import { CampoCodice, CampoTesto, CIFRE, IncollaCodice } from './ui/Campi'
+import type { StatoCodice } from './ui/CodicePacman'
 import { Icona } from './ui/Icona'
 import { Installa } from './ui/Installa'
 import { Bollino, Carta, Messaggio, Pulsante } from './ui/kit'
+import { useRiduciMovimento } from './ui/movimento'
 import { SceltaLingua } from './ui/SceltaLingua'
 import { Realizzata } from './ui/Realizzata'
 import { SceltaTema } from './ui/SceltaTema'
@@ -93,7 +96,12 @@ export function Accesso() {
   const [fase, setFase] = useState<'email' | 'codice'>('email')
   const [attesa, setAttesa] = useState(false)
   const [errore, setErrore] = useState<string | null>(null)
+  // Il codice in verifica (07/11/2026): Pacman mangia le caselle mentre si aspetta il server, poi la spunta (`ui/CodicePacman.tsx`).
+  const [stato, setStato] = useState<StatoCodice>('scrivi')
+  const animato = !useRiduciMovimento()
   const campoEmail = useRef<TextInput>(null)
+  // Se la pagina si smonta mentre trattiene l'entrata, la lascia andare (comunque si scioglie da sola: `entrata.ts`).
+  useEffect(() => () => rilasciaEntrata(), [])
   // Registrazione aperta (interruttore sul server, 01/11/2026): la pagina diventa «Accedi o registrati», un percorso solo e un pulsante solo
   // («Continua», 07/11/2026, proposta A scelta da Maurizio). Chiusa, e' l'accesso di prima.
   const [registrazione, setRegistrazione] = useState(registrazioneNota)
@@ -137,17 +145,31 @@ export function Accesso() {
   }
 
   async function verifica(scritto = codice) {
-    if (attesa) return
+    if (attesa || stato === 'ok') return
     setErrore(null)
     if (scritto.replace(/\D/g, '').length < CIFRE) return setErrore(t(`Il codice ha ${CIFRE} cifre.`, `The code has ${CIFRE} digits.`))
     setAttesa(true)
+    setStato('verifica')
+    // Si trattiene la sessione PRIMA di chiedere: Supabase la apre dentro `verifyOtp`, e senza trattenerla la pagina sparirebbe prima della spunta.
+    // «Riduci movimento»: niente animazione, niente attesa in piu'.
+    if (animato) trattieniEntrata()
     const esito = await entra(email.trim().toLowerCase(), scritto)
-    setAttesa(false)
     if (!esito.ok) {
+      rilasciaEntrata()
+      setStato('scrivi')
+      setAttesa(false)
       colpetto('errore')
-      setErrore(esito.errore)
+      return setErrore(esito.errore)
     }
-    // Se e' andata, la sessione cambia e la pagina passa da sola all'area.
+    if (!animato) {
+      setStato('scrivi')
+      setAttesa(false)
+      return
+    }
+    // Il «si'»: Pacman finisce la corsa, si disegna la spunta e `onFinita` (CampoCodice) lascia entrare. `attesa` resta vera: il pulsante non
+    // si puo' toccare un'altra volta (il codice e' monouso). Si riarma il limite di tempo del trattenimento.
+    trattieniEntrata()
+    setStato('ok')
   }
 
   // Appena il codice e' completo si entra: chi lo incolla o lo prende dai
@@ -245,7 +267,7 @@ export function Accesso() {
                 {t('Se', 'If')} <Text style={{ fontFamily: F.bold, color: p.testo }}>{email.trim()}</Text>{' '}
                 {t(`è l’email con cui sei iscritto, ti abbiamo mandato un codice di ${CIFRE} cifre.`, `is the email you registered with, we’ve sent you a ${CIFRE}-digit code.`)}
               </Text>
-              <CampoCodice value={codice} onChange={cambiaCodice} onInvio={() => verifica()} errore={!!errore} />
+              <CampoCodice value={codice} onChange={cambiaCodice} onInvio={() => verifica()} errore={!!errore} stato={stato} onFinita={rilasciaEntrata} />
               <IncollaCodice onCodice={usaCodice} disabilitato={attesa} />
               {errore ? <Messaggio>{errore}</Messaggio> : null}
               <Pulsante testo={t('Entra', 'Sign in')} icona="avanti" onPress={() => verifica()} inCorso={attesa} />
