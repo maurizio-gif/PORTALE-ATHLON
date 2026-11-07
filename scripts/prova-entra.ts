@@ -148,4 +148,22 @@ const ok = (n: string) => {
   ok('junior: si apre sul bambino del link, solo cifre')
 }
 
+{
+  // L'iscrizione di un figlio preparata dal CRM (07/11/2026).
+  const OGGI = '2026-11-07'
+  assert.deepEqual(arrivoDa('iscrizione', null, null, OGGI, null, '1234', '10867')?.href, { pathname: '/iscrizione', params: { group: '10867', membro: '1234' } })
+  assert.deepEqual(arrivoDa('iscrizione', null, null, OGGI, null, '77', null, '1')?.href, { pathname: '/iscrizione', params: { baby: '1', membro: '77' } })
+  assert.deepEqual(arrivoDa('iscrizione', null, null, OGGI, null, '77', '10867', '1')?.href, { pathname: '/iscrizione', params: { baby: '1', membro: '77' } }, 'Baby Nuoto vince sul turno')
+  assert.equal(arrivoDa('iscrizione', null, null, OGGI, null, null, '10867')?.href, '/junior', 'senza bambino si apre la sezione Junior')
+  assert.equal(arrivoDa('iscrizione', null, null, OGGI, null, '1234')?.href, '/junior', 'senza turno e senza Baby Nuoto, la sezione Junior')
+  assert.equal(arrivoDa('iscrizione', null, null, OGGI, null, '12a', '10867')?.href, '/junior', 'un bambino non numerico non passa')
+  assert.equal(arrivoDa('iscrizione', null, null, OGGI, null, '1234', '../../x')?.href, '/junior', 'un turno non numerico non passa')
+  assert.equal(arrivoDa('iscrizione', null, null, OGGI, null, '1234', '10867', 'si')?.href !== undefined, true)
+  assert.deepEqual(arrivoDa('iscrizione', null, null, OGGI, null, '1234', '10867', 'si')?.href, { pathname: '/iscrizione', params: { group: '10867', membro: '1234' } }, 'b vale solo se e\' 1')
+  assert.equal(arrivoDa('prenota', null, null, OGGI, null, '1234', '10867', '1')?.href, '/calendario', 'turno e Baby Nuoto valgono solo per l\'iscrizione')
+  const a = arrivoDa('iscrizione', null, null, OGGI, null, '1234', '10867')
+  assert.ok(a && a.titolo && a.testo && a.bottone, 'titolo, testo e pulsante ci sono')
+  ok('iscrizione: il turno o il Baby Nuoto per il bambino del link, solo cifre')
+}
+
 console.log(`\n${passi} prove passate`)
