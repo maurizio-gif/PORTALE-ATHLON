@@ -10,8 +10,10 @@ import { emailValida } from '@/api/richieste'
 import { registrazioneAperta } from '@/api/registrazione'
 import { PRIVACY_URL } from '@/lib/guestPass'
 import { t } from '@/lib/lingua'
+import { inModalitaTotem } from '@/lib/totem'
 import { spazio } from '@/theme'
 
+import { Apertura } from './accesso/Apertura'
 import { CampoCodice, CampoTesto, CIFRE, IncollaCodice } from './ui/Campi'
 import { Icona } from './ui/Icona'
 import { Installa } from './ui/Installa'
@@ -86,7 +88,30 @@ function Passi({ fase }: { fase: 'email' | 'codice' }) {
 /** L'ultima risposta di «la registrazione e' aperta?»: si parte da questa (di partenza si', e' aperta) e la risposta del server la corregge, cosi' la pagina non cambia faccia ogni volta che si apre. */
 let registrazioneNota = true
 
+/** L'apertura a bolle si e' gia' vista in questa apertura dell'app? Si vede una volta: chi esce e rientra va dritto alla pagina con l'email. */
+let aperturaVista = false
+
+/**
+ * L'accesso (07/11/2026): prima l'apertura a tutto schermo con la foto del club e le bolle (`accesso/Apertura.tsx`), poi la pagina con
+ * l'email e il codice, **identica a prima** (`ModuloAccesso`). Sul totem l'apertura non c'e': li' si entra da un'altra strada e lo schermo
+ * e' di tutti.
+ */
 export function Accesso() {
+  const [apertura, setApertura] = useState(() => !aperturaVista && !inModalitaTotem())
+  if (apertura) {
+    return (
+      <Apertura
+        onContinua={() => {
+          aperturaVista = true
+          setApertura(false)
+        }}
+      />
+    )
+  }
+  return <ModuloAccesso />
+}
+
+function ModuloAccesso() {
   const p = usePalette()
   const [email, setEmail] = useState('')
   const [codice, setCodice] = useState('')
