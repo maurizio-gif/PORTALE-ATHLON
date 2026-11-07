@@ -13,7 +13,7 @@ import { usePalette } from './tema'
 
 export type StatoCodice = 'scrivi' | 'verifica' | 'ok'
 
-/** Quanto spazio, sopra e sotto la riga delle caselle, ha il disegno per le scintille e il cerchio ingrandito. */
+/** Quanto spazio, sopra, sotto e ai lati della riga delle caselle, ha il disegno: Pacman e il cerchio ingrandito sono piu' larghi di una casella, e le scintille volano fuori dalla riga. */
 export const MARGINE = 44
 
 /**
@@ -95,20 +95,21 @@ export function useScenaCodice(stato: StatoCodice, n: number, misure: Misura[], 
 export function PacmanSopra({ scena: sc, larghezza, altezza }: { scena: Scena; larghezza: number; altezza: number }) {
   const p = usePalette()
   if (!sc.visibile || sc.r <= 0.2 || larghezza <= 0) return null
+  const cx = sc.x + MARGINE
   const cy = sc.y + MARGINE
   const verdi = [p.ok, '#7BE6A8', '#FFFFFF'] as const
   const L = spuntaLunghezza(sc.r)
   return (
-    <View pointerEvents="none" style={{ position: 'absolute', left: 0, top: -MARGINE, width: larghezza, height: altezza + MARGINE * 2 }}>
-      <Svg width={larghezza} height={altezza + MARGINE * 2}>
+    <View pointerEvents="none" style={{ position: 'absolute', left: -MARGINE, top: -MARGINE, width: larghezza + MARGINE * 2, height: altezza + MARGINE * 2 }}>
+      <Svg width={larghezza + MARGINE * 2} height={altezza + MARGINE * 2}>
         {/* L'alone: un cerchio morbido dietro Pacman, arancio e poi verde */}
-        <Circle cx={sc.x} cy={cy} r={sc.r * 1.35} fill={p.accento} opacity={0.14 * (1 - sc.verde)} />
-        <Circle cx={sc.x} cy={cy} r={sc.r * 1.35} fill={p.ok} opacity={0.18 * sc.verde} />
-        <Path d={pacmanPercorso(sc.x, cy, sc.r, sc.mezza)} fill={p.accento} opacity={1 - sc.verde} />
-        <Path d={pacmanPercorso(sc.x, cy, sc.r, sc.mezza)} fill={p.ok} opacity={sc.verde} />
+        <Circle cx={cx} cy={cy} r={sc.r * 1.35} fill={p.accento} opacity={0.14 * (1 - sc.verde)} />
+        <Circle cx={cx} cy={cy} r={sc.r * 1.35} fill={p.ok} opacity={0.18 * sc.verde} />
+        <Path d={pacmanPercorso(cx, cy, sc.r, sc.mezza)} fill={p.accento} opacity={1 - sc.verde} />
+        <Path d={pacmanPercorso(cx, cy, sc.r, sc.mezza)} fill={p.ok} opacity={sc.verde} />
         {sc.spunta > 0.02 ? (
           <Path
-            d={spuntaPercorso(sc.x, cy, sc.r)}
+            d={spuntaPercorso(cx, cy, sc.r)}
             stroke={p.scuro ? '#0B2A15' : '#FFFFFF'}
             strokeWidth={Math.max(2.6, sc.r * 0.15)}
             strokeLinecap="round"
@@ -118,11 +119,11 @@ export function PacmanSopra({ scena: sc, larghezza, altezza }: { scena: Scena; l
             strokeDashoffset={L * (1 - sc.spunta)}
           />
         ) : null}
-        {sc.anello > 0 && sc.anello < 1 ? <Circle cx={sc.x} cy={cy} r={sc.r * (1.05 + 0.9 * rallenta(sc.anello))} stroke={p.ok} strokeWidth={2} fill="none" opacity={0.8 * (1 - sc.anello)} /> : null}
+        {sc.anello > 0 && sc.anello < 1 ? <Circle cx={cx} cy={cy} r={sc.r * (1.05 + 0.9 * rallenta(sc.anello))} stroke={p.ok} strokeWidth={2} fill="none" opacity={0.8 * (1 - sc.anello)} /> : null}
         {sc.scintille > 0 && sc.scintille < 1
           ? SCINTILLE.map((s, i) => {
               const k = rallenta(sc.scintille)
-              const x = sc.x + s.dx * k
+              const x = cx + s.dx * k
               const y = cy + s.dy * k
               const d = s.dimensione * (1 - 0.45 * sc.scintille)
               const colore = verdi[s.tono]

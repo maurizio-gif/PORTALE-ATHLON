@@ -159,11 +159,13 @@ export function CampoCodice({
   const scena = useScenaCodice(stato, caselle, misure, ridotto, onFinita)
   const animato = stato !== 'scrivi' && !ridotto
   const ultima = misure[caselle - 1]
-  const etichetta = stato === 'verifica' ? t('VERIFICO…', 'VERIFYING…') : stato === 'ok' ? t('VERIFICATO', 'VERIFIED') : t('CODICE', 'CODE')
+  // «Verificato» compare quando Pacman ha finito la corsa e il cerchio diventa verde (scena.u), non appena risponde il server.
+  const verificato = stato === 'ok' && (ridotto || (scena.u !== null && scena.u >= 0))
+  const etichetta = verificato ? t('VERIFICATO', 'VERIFIED') : stato !== 'scrivi' ? t('VERIFICO…', 'VERIFYING…') : t('CODICE', 'CODE')
   return (
     <Pressable onPress={() => campo.current?.focus()} style={{ gap: spazio.due }} accessible={false}>
       {/* Una riga a voce alta per chi usa lo screen reader: l'animazione, da sola, non dice niente. */}
-      <Text style={[stili.etichetta, { color: stato === 'ok' ? p.ok : p.testoSecondario }]} accessibilityLiveRegion="polite">
+      <Text style={[stili.etichetta, { color: verificato ? p.ok : p.testoSecondario }]} accessibilityLiveRegion="polite">
         {etichetta}
       </Text>
       <View style={stili.caselle}>
