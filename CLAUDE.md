@@ -190,3 +190,4 @@ chiamata diretta al gestionale. Esempio: la sezione Prodotti usa l'azione `prodo
 - [Junior: i turni esauriti non si mostrano mai, e «Solo con posti liberi» non c'è più (06/11/2026)](docs/claude/152-junior-turni-esauriti-non-si-mostrano-mai-06-11-2026.md) · 3 KB
 - [«Aggiorna la tua email»: la pagina del link dell'SMS per chi ha la casella piena (06/11/2026)](docs/claude/153-aggiorna-email-dal-link-sms-06-11-2026.md) · 3 KB
 - [Il listino con due formule in vetrina e «Vuoi risparmiare?» per l'annuale in unica soluzione (06/11/2026)](docs/claude/154-listino-due-formule-e-vuoi-risparmiare-06-11-2026.md) · 3 KB
+- [«Accedi o registrati»: un solo pulsante «Continua», e i vantaggi sotto (07/11/2026)](docs/claude/155-accedi-o-registrati-un-solo-pulsante-07-11-2026.md) · 4 KB

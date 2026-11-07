@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState } from 'react'
+import { useEffect, useId, useRef, useState, type Ref } from 'react'
 import { Platform, Pressable, StyleSheet, Text, TextInput, View, type TextInputProps } from 'react-native'
 
 import { spazio } from '@/theme'
@@ -20,7 +20,7 @@ export function CampoTesto({
   errore = false,
   style,
   ...props
-}: TextInputProps & { etichetta: string; icona?: NomeIcona; errore?: boolean }) {
+}: TextInputProps & { etichetta: string; icona?: NomeIcona; errore?: boolean; /** Il campo vero (React 19: `ref` e' una prop, passa con `...props`): serve a portarci il cursore, per esempio dopo un errore. */ ref?: Ref<TextInput> }) {
   const p = usePalette()
   const id = useId()
   const [fuoco, setFuoco] = useState(false)
