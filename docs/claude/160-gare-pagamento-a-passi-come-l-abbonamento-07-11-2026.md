@@ -1,6 +1,6 @@
 ## «Gare»: il pagamento a passi, come l'abbonamento e il Guest Pass, ma più snello (07/11/2026)
 
-Richiesta di Maurizio: «sistema anche con la stessa logica grafica la prenotazione della gara da link: ovviamente è un prodotto e deve essere più snella». **Interpretazione mia, da confermare**: «la gara da link» è l'iscrizione al Trofeo Athlon (sezione 110, 122) a cui il genitore arriva dal link del sito (`/entra`, destinazione `gare`, sezione «Entra» dal sito: apre `/junior?voce=gare`). Non sono eventi di PerfectGym (le gare stanno in `gare*` sul database, e `eventi_prenotabili` non ne ha); la pagina «Prenota evento» dei link per email (`PrenotaEvento`, `/r/<token>`) è un'altra cosa e **non è stata toccata**. Se per «gara da link» intendevi un'altra cosa, o un link vero da mandare al genitore (come il Guest Pass e l'abbonamento dal CRM), serve una decisione tua prima di costruirlo. **Solo l'app**: nessuna funzione, nessuna migrazione.
+Richiesta di Maurizio (partita come bozza, **unita e pubblicata il 07/11/2026**, PR #306): «sistema anche con la stessa logica grafica la prenotazione della gara da link: ovviamente è un prodotto e deve essere più snella». **Interpretazione mia** (non l'ha corretta, ma non l'ha nemmeno confermata a parole): «la gara da link» è l'iscrizione al Trofeo Athlon (sezione 110, 122) a cui il genitore arriva dal link del sito (`/entra`, destinazione `gare`, sezione «Entra» dal sito: apre `/junior?voce=gare`). Non sono eventi di PerfectGym (le gare stanno in `gare*` sul database, e `eventi_prenotabili` non ne ha); la pagina «Prenota evento» dei link per email (`PrenotaEvento`, `/r/<token>`) è un'altra cosa e **non è stata toccata**. Se per «gara da link» intendevi un'altra cosa, o un link vero da mandare al genitore (come il Guest Pass e l'abbonamento dal CRM), serve una decisione tua prima di costruirlo. **Solo l'app**: nessuna funzione, nessuna migrazione.
 
 **Com'era.** L'iscrizione e il pagamento stavano dentro la carta della gara: il modulo si apriva e si chiudeva sotto la prova, e le carte salvate erano righe a bordo colorato, diverse dalle schede a scelta dell'abbonamento e del Guest Pass.
 
@@ -13,7 +13,7 @@ Richiesta di Maurizio: «sistema anche con la stessa logica grafica la prenotazi
 
 **Cosa NON è cambiato.** Ogni regola e ogni chiamata a `portale-lab-gare` (`iscrivi`, `carte`, `conto`, `paga_carta`, `paga_conto`, `sessione`, `esito`, `paga`), il Drop-in di Adyen e il ritorno dalla 3D Secure, il link nel browser integrato dell'app nativa (senza Drop-in), la conferma che resta del webhook, la quota non rimborsabile, la vista cliente (i comandi restano chiusi). `CassaGara` ha la stessa macchina a stati (`carico`, `carte`, `nuova`): è cambiato solo come si disegna. Anche «Manca il pagamento» (iscritto ma non pagato) e «L'addebito sul conto non è riuscito» aprono la stessa vista.
 
-**Scelte da guardare** (sono la parte «bozza»):
+**Scelte da guardare** (se qualcosa non va, si cambia da qui):
 - **Il passo 1 non ha un indicatore suo**: è la carta della gara, in mezzo alla lista delle tre gare; «Passo 2 di 2» compare quando si paga. Se vuoi «Passo 1 di 2» anche in cima alla carta, o una vista sola per tutto, si cambia.
 - **Un tocco in più non c'è**: «Iscrivi Sara e paga 8 €» crea l'iscrizione e apre subito il pagamento, come prima.
 - L'indicatore ha scritto «Gara» e «Pagamento».
