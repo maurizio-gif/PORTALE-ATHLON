@@ -1,4 +1,11 @@
-## L'accesso a bolle: la foto del club, «scorri verso l'alto» e bolle da spingere, davanti alla pagina con l'email (07/11/2026)
+## L'accesso a bolle (07/11/2026): provata e tolta lo stesso giorno, «troppi step»
+
+**STATO: TOLTA (07/11/2026). Non c'è più nell'app.** Maurizio, lo stesso giorno in cui è andata in produzione: «rimetti la schermata originaria, quindi togli le bolle, fai tutto come era all'inizio. Così è più snello, più veloce, se no sono troppi step». L'accesso è tornato **la pagina «Accedi o registrati» di `155-…`, un passo solo**, con il selettore della lingua in cima alla carta come prima. Il codice è tornato **identico a prima della PR #300** (un `revert` del merge: `src/`, `assets/` e `package*.json` non differiscono da prima). **Questa nota resta come memoria** di cosa si era fatto e perché non è rimasto: quello che segue descrive com'era, non com'è.
+
+- **Per riaverla**: annullare il commit di revert (`git revert <commit del revert>`), oppure ripartire dai commit `3cdb6d8` e `4cc8eee` (PR #300). Sull'**app nativa non è mai arrivata** (nessun aggiornamento EAS): è stata in produzione solo sul web, per poco.
+- **La lezione**: ogni schermata davanti alla pagina con l'email è un passo in più per chi entra, e qui la strada è «email, codice, dentro»: a Maurizio un passo in più è sembrato troppo. Una novità davanti all'accesso va misurata come un costo (un tocco in più a ogni apertura), non solo come un guadagno di resa grafica; e se si rifà, va provata prima con chi entra davvero, non solo in un browser.
+- **Resta valido, anche senza le bolle**: la lingua di partenza è **sempre l'italiano** (`lib/lingua.ts`, `delDispositivo`, decisione del 27/10), non quella del dispositivo: qualunque schermata che stia **prima** della pagina con l'email deve avere il selettore della lingua (qui era stata dimenticata, e corretta dopo); e `npx expo lint` in questo repository, senza ESLint configurato, **lo installa da solo** e modifica `package.json`, `package-lock.json` e crea `eslint.config.js`: si fa e poi si annulla.
+
 
 Richiesta di Maurizio (07/11/2026), partita da un video di Instagram («Interactive login screen made in Flutter»): **una schermata d'accesso come quella del video**. Provata prima come demo (un artefatto della sessione, con lo sfondo prima a video e poi, per scelta di Maurizio, a foto), poi portata qui. File: `features/lab/accesso/` (`Apertura.tsx`, `Bolle.tsx`, `bolle.ts`), il collegamento in `features/lab/Accesso.tsx`, due foto in `assets/images/accesso/`.
 
