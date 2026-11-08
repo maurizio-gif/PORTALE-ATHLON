@@ -25,5 +25,6 @@ fino al prossimo aggiornamento del file (ore, a volte giorni).
 - **Se qualcosa non va**: tenere premuto il link e scegliere «Apri in Safari» (o «Apri nel browser») entra come prima, e il token non è consumato finché non si tocca «Entra nell'app».
 - **Android non c'è**: serve `/.well-known/assetlinks.json` con l'impronta SHA-256 del certificato di firma di Google Play, che si legge dalla Play Console solo dopo l'approvazione. L'`intentFilter`
   di `app.json` ha solo `/r/` e va esteso allo stesso elenco.
-- **Provato**: il JSON è valido e l'export web lo copia identico in `dist/.well-known/`; la regola di riscrittura di `vercel.json` (`/((?!.*\.).*)`) non lo cattura, perché il percorso ha un punto. **Non provato**:
-  Vercel (header e assenza di redirect si vedono solo dopo il deploy) e iOS (nessun iPhone qui).
+- **Provato**: il JSON è valido e l'export web lo copia identico in `dist/.well-known/`; la regola di riscrittura di `vercel.json` (`/((?!.*\.).*)`) non lo cattura, perché il percorso ha un punto.
+  **Sull'anteprima di Vercel della PR** (letta con lo strumento autenticato, perché le anteprime sono protette dal login): `200`, `content-type: application/json`, `cache-control: public, max-age=3600`, nessun
+  `location`, JSON identico al file. **Non provato**: il dominio vero (`app.athlonroma.it`, dopo la pubblicazione) e iOS (nessun iPhone qui).
