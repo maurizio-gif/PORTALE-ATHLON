@@ -1,0 +1,18 @@
+{
+  "applinks": {
+    "details": [
+      {
+        "appIDs": ["RFSG2LMFH2.com.netpulse.centrosportivoathlon"],
+        "components": [
+          {
+            "comment": "La vista cliente del CRM (/?come=<email>#th=...) e' solo web: l'app nativa non la sa leggere. Va prima di '/'.",
+            "/": "/",
+            "?": { "come": "?*" },
+            "exclude": true
+          },
+          { "comment": "La Home: i pulsanti «Apri l'app» delle email e i link /?sezione=... (la Home legge ?sezione= anche nell'app). Gli altri percorsi (/entra, /delega/conferma/*, /r/*) si aggiungono dopo la prova del token con athlon://.", "/": "/" }
+        ]
+      }
+    ]
+  }
+}

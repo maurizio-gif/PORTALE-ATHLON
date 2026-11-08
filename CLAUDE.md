@@ -200,3 +200,4 @@ chiamata diretta al gestionale. Esempio: la sezione Prodotti usa l'azione `prodo
 - [Guide con video: una finestra alla prima apertura di una sezione, che porta alla scheda dell'Help Desk (08/11/2026)](docs/claude/162-guide-con-video-alla-prima-apertura-di-una-sezione-08-11-2026.md) · 4 KB
 - [Da iPhone e iPad, dal web, si propone l'app dell'App Store (08/11/2026)](docs/claude/163-installa-app-store-su-iphone-08-11-2026.md) · 4 KB
 - [`/entra` e la conferma della delega funzionano anche nell'app nativa: il token si legge dal link che l'ha aperta (08/11/2026)](docs/claude/164-entra-nell-app-nativa-token-dal-link-08-11-2026.md) · 5 KB
+- [I link delle email aprono l'app su iPhone: il file `apple-app-site-association` (08/11/2026, **pubblicato solo per `/`**)](docs/claude/165-link-universali-ios-apple-app-site-association-08-11-2026.md) · 4 KB
