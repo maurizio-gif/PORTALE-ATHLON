@@ -72,7 +72,7 @@ function racconto(a: Amico): { testo: string; tono: ToniTutti } {
     case 'prova_finita':
       return { testo: t(`Prova finita · può iscriversi fino al ${giorno(a.ultimo_giorno)}`, `Trial ended · can join until ${giorno(a.ultimo_giorno)}`), tono: 'attenzione' }
     case 'scaduto':
-      return { testo: t('Invito scaduto', 'Invitation expired'), tono: 'neutro' }
+      return { testo: t('Invito scaduto · il voucher non spetta', 'Invitation expired · no voucher'), tono: 'neutro' }
     case 'respinto':
       // Chi ha invitato deve saperlo (04/11/2026), per non aspettarsi un voucher che non arriva. Dice «non idoneo» e la regola
       // pubblica della campagna, mai il perche' per quella persona (date, piano): e' un dato suo.
@@ -108,7 +108,7 @@ function Copertina({ s }: { s: Idoneo }) {
         <Text style={stili.copertinaSotto}>
           {t('Tu ricevi ', 'You get ')}
           <Text style={stili.cifraChiara}>{euro(s.voucher)}</Text>
-          {t(' per ogni amico che si iscrive.', ' for every friend who joins.')}
+          {t(` per ogni amico che si iscrive entro ${s.giorni} giorni.`, ` for every friend who joins within ${s.giorni} days.`)}
         </Text>
       </View>
     </View>
@@ -148,8 +148,8 @@ function PerVoiDue({ s }: { s: Idoneo }) {
         </View>
         <Text style={[stili.corpo, { color: 'rgba(255,255,255,0.78)' }]}>
           {ti(
-            `Per ogni amico che si iscrive, la segreteria carica per te un voucher da ${s.voucher} € sul tuo abbonamento. Non c’è un limite agli amici che puoi invitare.`,
-            `For every friend who joins, the front desk adds a €${s.voucher} voucher to your membership. There’s no limit to how many friends you can invite.`,
+            `Per ogni amico che si iscrive entro il termine dell’invito, la segreteria carica per te un voucher da ${s.voucher} € sul tuo abbonamento. Non c’è un limite agli amici che puoi invitare.`,
+            `For every friend who joins within the invitation’s deadline, the front desk adds a €${s.voucher} voucher to your membership. There’s no limit to how many friends you can invite.`,
           )}
         </Text>
       </Carta>
@@ -352,8 +352,8 @@ export function Invita() {
             n={3}
             titolo={t('Provano il club o si iscrivono', 'They try the club or join')}
             testo={ti(
-              `Con il tuo invito possono provare il club e allenarsi con te per 1 settimana, pagando solo ${s.prezzo_prova} €. Se preferiscono, scelgono subito l’abbonamento.`,
-              `With your invitation they can try the club and train with you for 1 week, paying just €${s.prezzo_prova}. If they prefer, they can pick a membership right away.`,
+              `Con il tuo invito possono provare il club e allenarsi con te per 1 settimana, pagando solo ${s.prezzo_prova} €. Se preferiscono, scelgono subito l’abbonamento. L’invito vale ${s.giorni} giorni da quando lo accettano.`,
+              `With your invitation they can try the club and train with you for 1 week, paying just €${s.prezzo_prova}. If they prefer, they can pick a membership right away. The invitation is valid for ${s.giorni} days from when they accept it.`,
             )}
           />
           <Passo
@@ -361,8 +361,8 @@ export function Invita() {
             ultimo
             titolo={ti(`Tu ricevi ${s.voucher} € per ogni amico`, `You get €${s.voucher} for every friend`)}
             testo={ti(
-              `Per ogni amico che si iscrive, la segreteria carica il voucher da ${s.voucher} € sul tuo abbonamento. Lo segui qui sotto, in «I tuoi inviti».`,
-              `For every friend who joins, the front desk adds the €${s.voucher} voucher to your membership. You can follow it below, in “Your invitations”.`,
+              `Per ogni amico che si iscrive entro il termine, la segreteria carica il voucher da ${s.voucher} € sul tuo abbonamento. Oltre il termine il voucher non spetta. Lo segui qui sotto, in «I tuoi inviti».`,
+              `For every friend who joins within the deadline, the front desk adds the €${s.voucher} voucher to your membership. After the deadline the voucher is not due. You can follow it below, in “Your invitations”.`,
             )}
           />
         </Carta>
@@ -390,8 +390,8 @@ export function Invita() {
             icona="clessidra"
             titolo={t('Quanto tempo hanno', 'How long they have')}
             testo={t(
-              `Hanno ${s.giorni} giorni da quando accettano l’invito per iscriversi. Se nel frattempo cominciano la settimana di prova, possono iscriversi fino al giorno dopo la fine della prova.`,
-              `They have ${s.giorni} days from accepting the invitation to join. If they start the trial week in the meantime, they can join until the day after the trial ends.`,
+              `Hanno ${s.giorni} giorni da quando accettano l’invito per iscriversi. Se nel frattempo cominciano la settimana di prova, possono iscriversi fino al giorno dopo la fine della prova. Se l’iscrizione avviene oltre il termine, l’invito decade e il voucher non spetta.`,
+              `They have ${s.giorni} days from accepting the invitation to join. If they start the trial week in the meantime, they can join until the day after the trial ends. If the sign-up happens after the deadline, the invitation lapses and the voucher is not due.`,
             )}
           />
           <Regola
