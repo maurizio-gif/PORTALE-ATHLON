@@ -1,5 +1,5 @@
 import { router } from 'expo-router'
-import { useState } from 'react'
+import { useState, type ReactNode } from 'react'
 import { Platform, StyleSheet, Text, View } from 'react-native'
 
 import { inviaSondaggio } from '@/api/moduli'
@@ -16,7 +16,7 @@ import { colpetto, Tocco } from '../../ui/Tocco'
 import { apriFuori, hrefModulo } from '../link'
 import { Cornice, Fatto } from '../moduli/Cornice'
 import { inVista, useIdentita } from '../moduli/identita'
-import { agenteApp, etichettaVoto, formaNota, giudizioPositivo, mediaVoti, votiInOrdine } from './calcolo'
+import { agenteApp, formaNota, giudizioPositivo, mediaVoti, votiInOrdine } from './calcolo'
 import { survey as comporreSurvey, type SurveyClub, type TemaSurvey } from './dati'
 
 // Una survey del club dentro l'app (03/11/2026, richiesta di Maurizio): le stesse domande di `/surveys/<tema>/` del sito, **scritte nell'app**
@@ -32,8 +32,12 @@ import { survey as comporreSurvey, type SurveyClub, type TemaSurvey } from './da
  * Una domanda a stelle: il testo, cinque stelle da toccare, e sotto la parola della stella scelta («Molto»). Sul telefono il testo sta sopra
  * e le stelle sotto; da schermo largo (`LARGO`) stanno sulla stessa riga, il testo a sinistra e le stelle a destra: in una carta larga
  * mille punti le stelle schiacciate a sinistra lasciavano meta' carta vuota, e sette domande diventavano un'altezza di sette schermate.
+ *
+ * Le parole delle stelle sono quelle di chi la usa (`parole`, da «Per niente» a «Moltissimo» nelle survey del club, da «Male» a
+ * «Benissimo» in quella dell'app). `sotto` e' una riga di spiegazione sotto il testo, e `children` qualcosa sotto le stelle (i motivi per cui
+ * una funzione non convince): sono della survey dell'app e senza non cambia niente per le altre.
  */
-function DomandaStelle({ testo, voto, survey, onVoto }: { testo: string; voto: number | undefined; survey: SurveyClub; onVoto: (n: number) => void }) {
+export function DomandaStelle({ testo, sotto, voto, parole, onVoto, children }: { testo: string; sotto?: string; voto: number | undefined; parole: string[]; onVoto: (n: number) => void; children?: ReactNode }) {
   const p = usePalette()
   const { width } = useWindowDimensions()
   const largo = width >= LARGO
@@ -46,7 +50,7 @@ function DomandaStelle({ testo, voto, survey, onVoto }: { testo: string; voto: n
           scala={0.9}
           vibra="scelta"
           ruolo="radio"
-          etichetta={t(`${n} ${n === 1 ? 'stella' : 'stelle'} su 5: ${survey.stelle[n - 1]}`, `${n} ${n === 1 ? 'star' : 'stars'} out of 5`)}
+          etichetta={t(`${n} ${n === 1 ? 'stella' : 'stelle'} su 5: ${parole[n - 1]}`, `${n} ${n === 1 ? 'star' : 'stars'} out of 5`)}
           stato={{ selected: voto === n, checked: voto === n }}
           style={stili.bersaglioStella}
         >
@@ -58,25 +62,34 @@ function DomandaStelle({ testo, voto, survey, onVoto }: { testo: string; voto: n
   // La parola della stella scelta occupa sempre la sua riga (o la sua larghezza): scegliere non sposta niente.
   const parola = (
     <Text style={[stili.voto, { color: voto ? p.accento : p.testoTerzo }, largo && stili.votoLargo]} accessibilityLiveRegion="polite">
-      {etichettaVoto(survey, voto) || ' '}
+      {(voto && voto >= 1 && voto <= parole.length ? parole[voto - 1] : '') || ' '}
     </Text>
   )
-  return (
-    <Carta style={largo ? stili.cartaLarga : { gap: spazio.due }}>
-      <Text style={[stili.domanda, { color: p.testo }, largo && { flex: 1 }]} accessibilityRole="header">
+  const intestazione = (
+    <View style={largo ? { flex: 1, gap: 3 } : { gap: 3 }}>
+      <Text style={[stili.domanda, { color: p.testo }]} accessibilityRole="header">
         {testo}
       </Text>
-      {largo ? (
-        <View style={stili.stelleLarghe}>
-          {parola}
-          {stelle}
-        </View>
-      ) : (
-        <View>
-          {stelle}
-          {parola}
-        </View>
-      )}
+      {sotto ? <Text style={[stili.aiuto, { color: p.testoSecondario }]}>{sotto}</Text> : null}
+    </View>
+  )
+  return (
+    <Carta style={{ gap: spazio.tre }}>
+      <View style={largo ? stili.cartaLarga : { gap: spazio.due }}>
+        {intestazione}
+        {largo ? (
+          <View style={stili.stelleLarghe}>
+            {parola}
+            {stelle}
+          </View>
+        ) : (
+          <View>
+            {stelle}
+            {parola}
+          </View>
+        )}
+      </View>
+      {children}
     </Carta>
   )
 }
@@ -86,7 +99,7 @@ const MINIMO_NPS = 44
 const MASSIMO_NPS = 56
 
 /** L'NPS: undici tocchi, da 0 a 10. In una riga se ci stanno tutti a misura di dito, altrimenti in due (0–5 e 6–10). */
-function DomandaNps({ survey, nps, onNps }: { survey: SurveyClub; nps: number | null; onNps: (n: number) => void }) {
+export function DomandaNps({ domanda, nps, onNps }: { domanda: { testo: string; minimo: string; massimo: string }; nps: number | null; onNps: (n: number) => void }) {
   const p = usePalette()
   const [larghezza, setLarghezza] = useState(0)
   const unaRiga = larghezza >= 11 * MINIMO_NPS + 10 * GAP_NPS
@@ -97,9 +110,9 @@ function DomandaNps({ survey, nps, onNps }: { survey: SurveyClub; nps: number | 
   return (
     <Carta style={{ gap: spazio.tre }}>
       <Text style={[stili.domanda, { color: p.testo }]} accessibilityRole="header">
-        {survey.nps.testo}
+        {domanda.testo}
       </Text>
-      <View style={{ gap: GAP_NPS }} onLayout={(e) => setLarghezza(e.nativeEvent.layout.width)} accessibilityRole="radiogroup" accessibilityLabel={survey.nps.testo}>
+      <View style={{ gap: GAP_NPS }} onLayout={(e) => setLarghezza(e.nativeEvent.layout.width)} accessibilityRole="radiogroup" accessibilityLabel={domanda.testo}>
         {righe.map((riga, i) => (
           <View key={i} style={{ flexDirection: 'row', gap: GAP_NPS }}>
             {riga.map((n) => {
@@ -123,14 +136,14 @@ function DomandaNps({ survey, nps, onNps }: { survey: SurveyClub; nps: number | 
         ))}
       </View>
       <View style={stili.scala}>
-        <Text style={[stili.scalaTesto, { color: p.testoSecondario }]}>{`0 — ${survey.nps.minimo}`}</Text>
-        <Text style={[stili.scalaTesto, { color: p.testoSecondario, textAlign: 'right' }]}>{`10 — ${survey.nps.massimo}`}</Text>
+        <Text style={[stili.scalaTesto, { color: p.testoSecondario }]}>{`0 — ${domanda.minimo}`}</Text>
+        <Text style={[stili.scalaTesto, { color: p.testoSecondario, textAlign: 'right' }]}>{`10 — ${domanda.massimo}`}</Text>
       </View>
     </Carta>
   )
 }
 
-function Grazie({ positivo, survey }: { positivo: boolean; survey: SurveyClub }) {
+export function Grazie({ positivo, survey }: { positivo: boolean; survey: SurveyClub }) {
   const p = usePalette()
   // `dismissTo` e non `navigate`: torna al menu che e' gia' nello stack invece di impilarne una copia a ogni argomento, e se la survey si e' aperta da un
   // link (e il menu non c'e') lo apre.
@@ -216,7 +229,7 @@ function Modulo({ survey, tema, emailAccesso }: { survey: SurveyClub; tema: Tema
               key={d.id}
               testo={d.testo}
               voto={scelte[d.id]}
-              survey={survey}
+              parole={survey.stelle}
               onVoto={(n) => {
                 setScelte((prima) => ({ ...prima, [d.id]: n }))
                 setErrore(null)
@@ -224,7 +237,7 @@ function Modulo({ survey, tema, emailAccesso }: { survey: SurveyClub; tema: Tema
             />
           ))}
           <DomandaNps
-            survey={survey}
+            domanda={survey.nps}
             nps={nps}
             onNps={(n) => {
               setNps(n)
