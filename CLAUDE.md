@@ -198,3 +198,4 @@ chiamata diretta al gestionale. Esempio: la sezione Prodotti usa l'azione `prodo
 - [«Gare»: il pagamento a passi, come l'abbonamento e il Guest Pass, ma più snello (07/11/2026)](docs/claude/160-gare-pagamento-a-passi-come-l-abbonamento-07-11-2026.md) · 5 KB
 - [«Entra» dal sito: la destinazione `certificato` apre la sezione Certificato (07/11/2026)](docs/claude/161-entra-certificato-dal-sito-07-11-2026.md) · 2 KB
 - [Guide con video: una finestra alla prima apertura di una sezione, che porta alla scheda dell'Help Desk (08/11/2026)](docs/claude/162-guide-con-video-alla-prima-apertura-di-una-sezione-08-11-2026.md) · 4 KB
+- [L'invito vale 30 giorni, e oltre il termine decade e il voucher non spetta (08/11/2026)](docs/claude/163-invito-30-giorni-e-decadenza-del-voucher-08-11-2026.md) · 3 KB
