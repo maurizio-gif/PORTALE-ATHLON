@@ -203,3 +203,4 @@ chiamata diretta al gestionale. Esempio: la sezione Prodotti usa l'azione `prodo
 - [I link delle email aprono l'app su iPhone: il file `apple-app-site-association` (08/11/2026, **pubblicato solo per `/`**)](docs/claude/165-link-universali-ios-apple-app-site-association-08-11-2026.md) · 4 KB
 - [Il piano segue quello che la persona solleva: il timer dice i chili veri, e il massimale sale (08/11/2026)](docs/claude/166-il-piano-segue-quello-che-la-persona-solleva-08-11-2026.md) · 4 KB
 - [La survey dell'app, funzione per funzione: otto capitoli, e «cosa usi» sta nella presenza della voce (08/11/2026)](docs/claude/167-survey-dell-app-funzione-per-funzione-08-11-2026.md) · 9 KB
+- [Le richieste al team nell'app: si sceglie dove vuoi la risposta, e si legge (e si riscrive) in «Le tue richieste» (08/11/2026)](docs/claude/168-richieste-al-team-risposta-in-app-o-via-email-08-11-2026.md) · 5 KB

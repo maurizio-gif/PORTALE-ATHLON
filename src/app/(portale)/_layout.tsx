@@ -104,6 +104,8 @@ export default function LayoutLaboratorio() {
         <Stack.Screen name="allenamento/percorso-nuovo" options={{ animation: 'slide_from_bottom' }} />
         <Stack.Screen name="allenamento/percorso-modifica" options={{ animation: 'slide_from_right' }} />
         <Stack.Screen name="notifiche" options={{ animation: 'slide_from_right' }} />
+        <Stack.Screen name="assistenza/index" options={{ animation: 'slide_from_right' }} />
+        <Stack.Screen name="assistenza/[id]" options={{ animation: 'slide_from_right' }} />
         <Stack.Screen name="invita" options={{ animation: 'slide_from_right' }} />
         <Stack.Screen name="delega" options={{ animation: 'slide_from_right' }} />
         <Stack.Screen name="consensi-minori" options={{ animation: 'slide_from_right' }} />

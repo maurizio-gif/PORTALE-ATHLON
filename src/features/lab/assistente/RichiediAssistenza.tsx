@@ -1,3 +1,4 @@
+import { router } from 'expo-router'
 import { StyleSheet, Text, View } from 'react-native'
 
 import { t } from '@/lib/lingua'
@@ -13,6 +14,7 @@ import { apriAssistente } from './store'
 // «Richiedi assistenza» in Club Life, subito dopo gli orari (31/10/2026, richiesta di Maurizio): un bottone che **apre sempre la chat** dell'assistente, la stessa del pulsante in alto a destra.
 // Chi guarda gli orari o le news e ha un dubbio la trova li', senza cercare l'icona. Dalla chat l'assistente risponde, porta nel punto giusto e, se serve una persona, propone di scrivere al team.
 // **Mai in vista cliente** (come il pulsante: chi guarda l'app di un socio non conversa a suo nome).
+// Sotto, «Le tue richieste al team» (08/11/2026): e' l'ingresso fisso a quello che si e' scritto al team e alle sue risposte (`assistenza/`), per chi ha scelto la risposta in app e vuole rileggerla.
 export function RichiediAssistenza() {
   const p = usePalette()
   // Sul totem (lib/totem.ts) la chat dell'assistente non c'e': davanti c'e' il desk, e in alto a destra c'e' «Esci» al suo posto.
@@ -29,6 +31,7 @@ export function RichiediAssistenza() {
         </View>
       </View>
       <Pulsante testo={t('Richiedi assistenza', 'Get support')} icona="assistente" onPress={() => apriAssistente('club-life')} />
+      <Pulsante testo={t('Le tue richieste al team', 'Your requests to the team')} variante="fantasma" piccolo icona="avanti" onPress={() => router.push('/assistenza')} />
     </Carta>
   )
 }
