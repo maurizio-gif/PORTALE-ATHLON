@@ -10,10 +10,7 @@
             "?": { "come": "?*" },
             "exclude": true
           },
-          { "comment": "La Home: i pulsanti «Apri l'app» delle email e i link /?sezione=...", "/": "/" },
-          { "comment": "I link dal sito (prenota, gare, certificato, Junior, iscrizione): il token e' nel frammento, lo legge l'app (lib/urlApertura.ts).", "/": "/entra" },
-          { "comment": "La conferma della delega: stesso token nel frammento.", "/": "/delega/conferma/*" },
-          { "comment": "Guest Pass e ritorno dal pagamento con carta (/r/<token>, /r/<token>/fatto).", "/": "/r/*" }
+          { "comment": "La Home: i pulsanti «Apri l'app» delle email e i link /?sezione=... (la Home legge ?sezione= anche nell'app). Gli altri percorsi (/entra, /delega/conferma/*, /r/*) si aggiungono dopo la prova del token con athlon://.", "/": "/" }
         ]
       }
     ]
