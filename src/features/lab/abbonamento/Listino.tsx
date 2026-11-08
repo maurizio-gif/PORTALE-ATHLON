@@ -311,7 +311,7 @@ export function Listino({
 
 /**
  * «La tua scelta» (03/11/2026): sotto il listino una barra scura riassume cosa si e' scelto e porta avanti. Sul web resta in vista mentre si scorre (`sticky`, sopra la barra
- * delle schede); nell'app nativa sta in fondo al listino, perche' React Native non ha l'`sticky`. Non scrive la quota di attivazione: la dice la riga sopra, e con una
+ * delle schede); nell'app nativa, che non ha l'`sticky`, la tiene ferma `Schermata` fuori dallo scorrimento (`flottante`, 08/11/2026: nota 170). Non scrive la quota di attivazione: la dice la riga sopra, e con una
  * promozione o dopo una prova non e' dovuta.
  */
 export function BarraScelta({ piano, onContinua }: { piano: PianoAbbonamento | undefined; onContinua: () => void }) {

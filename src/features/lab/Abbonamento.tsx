@@ -531,8 +531,12 @@ export function Abbonamento() {
     if (n === 3) caricaContratto()
   }
 
+  // «La tua scelta» (08/11/2026): sul web sta nel listino e resta in vista con `sticky`; sull'app nativa, che non ha lo `sticky`, la tiene ferma
+  // `Schermata` fuori dallo scorrimento (`flottante`). Una volta sola, dove serve: mai tutte e due.
+  const barraScelta = passo === 1 && stato && persona?.puo_comprare ? <BarraScelta piano={piano} onContinua={() => vai(2)} /> : null
+
   return (
-    <Schermata titolo={t('Abbonamento', 'Membership')} sottotitolo={SOTTOTITOLI[passo - 1]} indietro={hrefSezione('abbonamenti')} scorrimento={scorrimento}>
+    <Schermata titolo={t('Abbonamento', 'Membership')} sottotitolo={SOTTOTITOLI[passo - 1]} indietro={hrefSezione('abbonamenti')} scorrimento={scorrimento} flottante={Platform.OS === 'web' ? undefined : barraScelta}>
       <View style={{ gap: spazio.quattro }}>
         <Indicatore passo={passo} nomi={NOMI_PASSI} />
         {errore ? <Messaggio>{errore}</Messaggio> : null}
@@ -577,7 +581,7 @@ export function Abbonamento() {
                     : ''}
                   {t('Tutto quello che scegli lo rivedi prima di firmare.', 'You’ll review everything you choose before signing.')}
                 </Text>
-                <BarraScelta piano={piano} onContinua={() => vai(2)} />
+                {Platform.OS === 'web' ? barraScelta : null}
                 <Pulsante testo={t('I miei abbonamenti', 'My memberships')} variante="fantasma" piccolo pieno={false} onPress={() => router.navigate(hrefSezione('abbonamenti'))} />
               </>
             ) : null}
