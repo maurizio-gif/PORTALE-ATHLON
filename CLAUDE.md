@@ -204,3 +204,4 @@ chiamata diretta al gestionale. Esempio: la sezione Prodotti usa l'azione `prodo
 - [Il piano segue quello che la persona solleva: il timer dice i chili veri, e il massimale sale (08/11/2026)](docs/claude/166-il-piano-segue-quello-che-la-persona-solleva-08-11-2026.md) · 4 KB
 - [La survey dell'app, funzione per funzione: otto capitoli, e «cosa usi» sta nella presenza della voce (08/11/2026)](docs/claude/167-survey-dell-app-funzione-per-funzione-08-11-2026.md) · 9 KB
 - [Le richieste al team nell'app: si sceglie dove vuoi la risposta, e si legge (e si riscrive) in «Le tue richieste» (08/11/2026)](docs/claude/168-richieste-al-team-risposta-in-app-o-via-email-08-11-2026.md) · 5 KB
+- [Si firma il contratto anche dall'app nativa (iPhone e Android): lo spazio di firma a schermo intero (08/11/2026)](docs/claude/169-firma-del-contratto-dall-app-nativa-08-11-2026.md) · 8 KB
