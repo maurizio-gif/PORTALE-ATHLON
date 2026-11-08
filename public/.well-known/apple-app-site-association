@@ -1,0 +1,21 @@
+{
+  "applinks": {
+    "details": [
+      {
+        "appIDs": ["RFSG2LMFH2.com.netpulse.centrosportivoathlon"],
+        "components": [
+          {
+            "comment": "La vista cliente del CRM (/?come=<email>#th=...) e' solo web: l'app nativa non la sa leggere. Va prima di '/'.",
+            "/": "/",
+            "?": { "come": "?*" },
+            "exclude": true
+          },
+          { "comment": "La Home: i pulsanti «Apri l'app» delle email e i link /?sezione=...", "/": "/" },
+          { "comment": "I link dal sito (prenota, gare, certificato, Junior, iscrizione): il token e' nel frammento, lo legge l'app (lib/urlApertura.ts).", "/": "/entra" },
+          { "comment": "La conferma della delega: stesso token nel frammento.", "/": "/delega/conferma/*" },
+          { "comment": "Guest Pass e ritorno dal pagamento con carta (/r/<token>, /r/<token>/fatto).", "/": "/r/*" }
+        ]
+      }
+    ]
+  }
+}
