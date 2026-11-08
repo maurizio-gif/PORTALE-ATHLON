@@ -7,7 +7,12 @@ import { StatusBar } from 'expo-status-bar'
 import { GuardiaTotem } from '@/features/lab/totem/GuardiaTotem'
 import { useLingua } from '@/lib/lingua-react'
 import { useSchemaColori } from '@/lib/schemaColori'
+import { ascoltaIndirizzi } from '@/lib/urlApertura'
 import { useColori } from '@/theme'
+
+// Il link che apre l'app porta, nell'email, un accesso monouso nel frammento (`#th=…`): si ascolta dall'avvio, prima che la pagina lo chieda
+// (`lib/urlApertura.ts`). Sul web non fa niente.
+void ascoltaIndirizzi()
 
 export default function Layout() {
   const c = useColori()
