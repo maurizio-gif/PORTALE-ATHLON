@@ -91,7 +91,7 @@ function Pulsanti({ azioni, messaggioId, onVai, onManda }: { azioni: AzioneAssis
         if (pagamento) return <PagaDaChat key={`${a.destinazione}${i}`} proposta={pagamento} messaggioId={messaggioId} />
         // «Scrivi al team» (31/10/2026): apre una carta nella chat, e la conversazione va al team solo quando la persona preme Invia.
         const team = teamDaAzione(a)
-        if (team) return <ScriviAlTeam key={`${a.destinazione}${i}`} proposta={team} messaggioId={messaggioId} />
+        if (team) return <ScriviAlTeam key={`${a.destinazione}${i}`} proposta={team} messaggioId={messaggioId} onVai={onVai} />
         // La telefonata col desk (31/10/2026): per chi non e' iscritto, apre il calendario del desk nella chat. L'orario lo sceglie e lo conferma la persona.
         const chiamata = chiamataDaAzione(a)
         if (chiamata) return <ChiamataDaChat key={`${a.destinazione}${i}`} proposta={chiamata} messaggioId={messaggioId} />

@@ -13,6 +13,7 @@ import { join } from 'node:path'
 import { DESTINAZIONI_ASSISTENTE, eDestinazioneAssistente, hrefAssistente, schermataAssistente } from '../src/features/lab/assistente/destinazioni'
 import { LettoreSse } from '../src/features/lab/assistente/sse'
 import { AZIONE_TEAM, MESSAGGIO_TEAM_MAX, teamDaAzione } from '../src/features/lab/assistente/teamDaChat'
+import * as R from '../src/features/lab/assistenza/richieste'
 import { AZIONE_CHIAMATA, chiamataDaAzione } from '../src/features/lab/assistente/chiamataDaChat'
 import { AZIONE_CHIARISCI, DOMANDA_CHIARIMENTO_MAX, chiarimentoDaAzione } from '../src/features/lab/assistente/chiarimentoDaChat'
 
@@ -200,6 +201,77 @@ function rottaEsiste(pathname: string): boolean {
   assert.equal(hrefAssistente('chiarisci', { testo: 'ciao' }), null, 'e non porta in nessuna schermata')
   assert.equal(DOMANDA_CHIARIMENTO_MAX, 500, 'lo stesso tetto del campo della chat e della funzione')
   ok('chiarisci: un pulsante che manda una domanda completa, non una destinazione; tetto uguale al campo della chat')
+}
+
+// ---------------------------------------------------------------------------
+// Le richieste al team nell'app (08/11/2026): dove risponde il team lo sceglie la persona, e la risposta si legge qui.
+{
+  assert.equal(R.CANALE_PREDEFINITO, 'app', 'la risposta in app e preselezionata: e il motivo per cui la funzione esiste')
+  assert.equal(R.MESSAGGIO_RICHIESTA_MAX, MESSAGGIO_TEAM_MAX, 'lo stesso tetto della carta «Scrivi al team» e della funzione')
+  ok('canale predefinito: nell app; stesso tetto della funzione')
+
+  // Lo stato in una parola: una risposta da leggere vince su tutto.
+  const r = (stato: 'nuovo' | 'risposto' | 'chiuso', non_lette = 0) => ({ stato, non_lette })
+  assert.equal(R.chiaveStato(r('nuovo')), 'in-attesa')
+  assert.equal(R.chiaveStato(r('risposto')), 'risposto')
+  assert.equal(R.chiaveStato(r('chiuso')), 'chiusa')
+  assert.equal(R.chiaveStato(r('risposto', 1)), 'nuova-risposta')
+  assert.equal(R.chiaveStato(r('chiuso', 2)), 'nuova-risposta', 'una risposta non letta si vede anche se il ticket e stato chiuso subito dopo')
+  assert.equal(R.chiaveStato(r('nuovo', 0)), 'in-attesa')
+  ok('chiaveStato: una risposta da leggere vince, poi chiusa, risposto, in attesa')
+
+  assert.equal(R.totaleNonLette([]), 0)
+  assert.equal(R.totaleNonLette([{ non_lette: 2 }, { non_lette: 0 }, { non_lette: 1 }]), 3)
+  assert.equal(R.totaleNonLette([{ non_lette: -4 }, { non_lette: 1 }]), 1, 'un numero negativo non toglie niente')
+  assert.equal(R.totaleNonLette([{ non_lette: NaN as unknown as number }]), 0)
+
+  // L'ordine: prima chi ha una risposta da leggere, poi per ultima attivita; l'originale non si tocca.
+  const elenco = [
+    { id: 'a', non_lette: 0, aggiornato_il: '2026-11-08T12:00:00Z' },
+    { id: 'b', non_lette: 1, aggiornato_il: '2026-11-01T09:00:00Z' },
+    { id: 'c', non_lette: 0, aggiornato_il: '2026-11-07T09:00:00Z' },
+    { id: 'd', non_lette: 3, aggiornato_il: '2026-11-05T09:00:00Z' },
+  ]
+  assert.deepEqual(R.ordinaRichieste(elenco).map((x) => x.id), ['d', 'b', 'a', 'c'])
+  assert.deepEqual(elenco.map((x) => x.id), ['a', 'b', 'c', 'd'], 'l array di partenza non cambia')
+  assert.deepEqual(R.ordinaRichieste([]), [])
+  ok('totaleNonLette e ordinaRichieste: le risposte da leggere in cima, poi le piu recenti')
+
+  assert.equal(R.controllaMessaggio(''), 'vuoto')
+  assert.equal(R.controllaMessaggio('   \n '), 'vuoto')
+  assert.equal(R.controllaMessaggio('ok'), null)
+  assert.equal(R.controllaMessaggio('x'.repeat(R.MESSAGGIO_RICHIESTA_MAX)), null)
+  assert.equal(R.controllaMessaggio('x'.repeat(R.MESSAGGIO_RICHIESTA_MAX + 1)), 'lungo')
+  assert.equal(R.controllaMessaggio(' ' + 'x'.repeat(R.MESSAGGIO_RICHIESTA_MAX) + ' '), null, 'gli spazi ai capi non contano')
+  ok('controllaMessaggio: vuoto, ok, tetto')
+
+  // Quello che si dice dopo l'invio e' il canale registrato dal server, non quello chiesto.
+  assert.deepEqual(R.canaleRegistrato('app', 'app'), { canale: 'app', scelta_ignorata: false })
+  assert.deepEqual(R.canaleRegistrato('email', 'email'), { canale: 'email', scelta_ignorata: false })
+  assert.deepEqual(R.canaleRegistrato('app', 'email'), { canale: 'email', scelta_ignorata: true }, 'una funzione di prima ignora la scelta: si dice email')
+  ok('canaleRegistrato: vale quello del server')
+
+  // La notifica «il team ti ha risposto» porta all'elenco: la destinazione e nei tre elenchi (app, funzione, CRM) e l'app la sa tradurre in un indirizzo.
+  const notifiche = readFileSync(join(RADICE, 'src/api/notifiche.ts'), 'utf8')
+  const blocco = (testo: string, da: string) => {
+    const i = testo.indexOf(da)
+    return [...testo.slice(i, testo.indexOf('] as const', i)).matchAll(/'([a-z-]+)'/g)].map((m) => m[1])
+  }
+  const app = blocco(notifiche, 'export const DESTINAZIONI')
+  assert.ok(app.includes('assistenza'))
+  assert.match(notifiche, /case 'assistenza':\s*(\/\/[^\n]*\n\s*)?return '\/assistenza'/, 'l app sa dove porta')
+  const fratello = join(RADICE, '..', 'APP-ATHLON/supabase/functions/_shared/notifiche-app.ts')
+  if (existsSync(fratello)) {
+    const server = blocco(readFileSync(fratello, 'utf8'), 'export const DESTINAZIONI')
+    assert.deepEqual([...server].sort(), [...app].sort(), 'le destinazioni delle notifiche sono le stesse nell app e nella funzione')
+    const crm = readFileSync(join(RADICE, '..', 'APP-ATHLON/lib/notificheApp.ts'), 'utf8')
+    const chiaviCrm = [...crm.slice(crm.indexOf('export const DESTINAZIONI_APP'), crm.indexOf('] as const', crm.indexOf('export const DESTINAZIONI_APP'))).matchAll(/chiave: '([a-z-]+)'/g)].map((m) => m[1])
+    assert.deepEqual([...chiaviCrm].sort(), [...app].sort(), 'e nel CRM')
+    ok('destinazione «assistenza»: nell app, nella funzione e nel CRM, e porta all elenco')
+  } else {
+    console.log('--  funzione e CRM non trovati accanto a questo repository: confronto saltato')
+    ok('destinazione «assistenza»: nell app e porta all elenco')
+  }
 }
 
 console.log(`\n${passi} gruppi di prove: ok`)
