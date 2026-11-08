@@ -4,9 +4,14 @@ import { Platform } from 'react-native'
 // viene spinto a installare l'app e a collegarla). **Apple Salute e Health Connect esistono solo nell'app nativa**: dal browser o dalla
 // PWA non si possono leggere, quindi per le abitudini che si spuntano da sole bisogna passare di li'.
 //
-// **I link agli store non sono scritti qui**: non li conosciamo (l'app e' passata da TestFlight) e un link inventato porterebbe fuori
-// strada. Si impostano alla pubblicazione con `EXPO_PUBLIC_APP_STORE_URL` e `EXPO_PUBLIC_PLAY_STORE_URL` (Vercel, ambiente del web).
-// Senza il link la carta dice cosa fare ma non mostra il pulsante «Scarica l'app».
+// **Il link dell'App Store e' scritto qui (08/11/2026)**: l'app 3.0.0 e' pubblicata e il rilascio e' aperto a tutti, quindi il link
+// non e' piu' un'incognita. `EXPO_PUBLIC_APP_STORE_URL` lo sostituisce, se un giorno serve un altro indirizzo (Vercel, ambiente del
+// web; vale solo se comincia per `https://`). **Quello di Google Play non c'e' ancora**: l'app Android e' in revisione, e un link
+// inventato porterebbe fuori strada. Si imposta all'approvazione con `EXPO_PUBLIC_PLAY_STORE_URL`; senza, la carta dice cosa fare ma
+// non mostra il pulsante «Scarica l'app».
+
+/** La pagina dell'app sull'App Store (it). L'ID e' quello di «Athlon Club», lo stesso del banner di Safari in `public/index.html`. */
+const APP_STORE_IOS = 'https://apps.apple.com/it/app/athlon-club/id1584157295'
 
 export type Telefono = 'ios' | 'android' | 'altro'
 
@@ -20,8 +25,8 @@ export function telefonoDelBrowser(): Telefono {
   return 'altro'
 }
 
-/** Il link dello store per quel telefono, o null se non e' stato impostato. */
+/** Il link dello store per quel telefono, o null se non c'e' (Android, finche' l'app non e' approvata). */
 export function linkAppNativa(telefono: Telefono): string | null {
-  const url = telefono === 'ios' ? process.env.EXPO_PUBLIC_APP_STORE_URL : telefono === 'android' ? process.env.EXPO_PUBLIC_PLAY_STORE_URL : undefined
+  const url = telefono === 'ios' ? process.env.EXPO_PUBLIC_APP_STORE_URL || APP_STORE_IOS : telefono === 'android' ? process.env.EXPO_PUBLIC_PLAY_STORE_URL : undefined
   return typeof url === 'string' && /^https:\/\//.test(url) ? url : null
 }
