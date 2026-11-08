@@ -9,7 +9,7 @@ import { CampoData } from '@/components/CampoData'
 import { CampoTelefono } from '@/components/CampoTelefono'
 import { Pagina } from '@/components/Pagina'
 import { Testo } from '@/components/Testo'
-import { entraConToken, leggiEToglieToken } from '@/features/lab/accessoDalCrm'
+import { entraConToken, leggiTokenDelLink } from '@/features/lab/accessoDalCrm'
 import { InCaricamento } from '@/features/link/Stati'
 import { t } from '@/lib/lingua'
 import { useColori } from '@/theme'
@@ -26,7 +26,7 @@ import { maggiorenne, mancantiConferma, type DatiConferma } from './regole'
 // con la scheda incompleta si chiede quello che manca (di solito la data di nascita); chi non e' al club scrive nome, cognome, data di nascita
 // e cellulare. La funzione ricontrolla alla conferma e, se mancano dati, risponde `serve` senza scrivere niente: la pagina li mostra.
 
-export function ConfermaDelega({ token }: { token: string }) {
+export function ConfermaDelega({ token, frammento }: { token: string; frammento?: string }) {
   const [anteprima, setAnteprima] = useState<AnteprimaConferma | undefined>(undefined)
   const [attesa, setAttesa] = useState(false)
   const [errore, setErrore] = useState<string | null>(null)
@@ -44,7 +44,11 @@ export function ConfermaDelega({ token }: { token: string }) {
   const accesso = useRef<string | null>(null)
 
   useEffect(() => {
-    accesso.current = leggiEToglieToken()
+    // Sul web il frammento della pagina, nell'app nativa il link che l'ha aperta (08/11/2026). Un doppio montaggio non cancella quello trovato.
+    leggiTokenDelLink('/delega/conferma', frammento).then((letto) => {
+      if (letto) accesso.current = letto
+    })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   useEffect(() => {

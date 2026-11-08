@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Bottone } from '@/components/Bottone'
 import { Pagina } from '@/components/Pagina'
 import { Testo } from '@/components/Testo'
-import { entraConToken, leggiEToglieToken } from '@/features/lab/accessoDalCrm'
+import { entraConToken, leggiTokenDelLink } from '@/features/lab/accessoDalCrm'
 import { InCaricamento } from '@/features/link/Stati'
 import { supabase } from '@/lib/supabase'
 import { t } from '@/lib/lingua'
@@ -15,7 +15,9 @@ import { arrivoDa } from './destinazioni'
 // frammento (`#th=<token>`). **La pagina non entra da sola**: dice dove sta per portare e chiede un tocco. I programmi che aprono i link delle
 // email per controllarli non toccano i bottoni, e l'accesso e' monouso: bruciato da un controllo, la persona troverebbe «link non valido».
 //
-// Il token si legge e si toglie dall'indirizzo subito (la cronologia non lo tiene) e si usa solo dopo il tocco. **Qui non si usa `useSessione`**:
+// Il token si legge e si toglie dall'indirizzo subito (la cronologia non lo tiene) e si usa solo dopo il tocco. **Nell'app nativa** (08/11/2026) non
+// c'e' nessun indirizzo da cui toglierlo: il token si prende dal link che ha aperto l'app (`lib/urlApertura.ts`) o dal parametro `'#'` che il router
+// lascia alla rotta (`frammento`), e la pagina e' la stessa. **Qui non si usa `useSessione`**:
 // quel gancio consuma da solo un `#th=` che trova (e' l'accesso dal CRM), cioe' bruciava il token prima del tocco. Per sapere se c'e' gia' una
 // sessione si chiede a Supabase direttamente.
 //
@@ -25,18 +27,23 @@ import { arrivoDa } from './destinazioni'
 //   - nessun token, nessuna sessione, o token che non vale piu'  ->  «link non valido» e la strada per entrare con l'email.
 // Una destinazione che non e' in lista (`destinazioni.ts`) porta alla Home. I nuovi, dopo l'accesso, passano da «Completa il profilo» del layout.
 
-export function EntraDalSito({ d, attivita, giorno, piano, figlio, turno, baby }: { d: string; attivita?: string; giorno?: string; piano?: string; figlio?: string; turno?: string; baby?: string }) {
+export function EntraDalSito({ d, attivita, giorno, piano, figlio, turno, baby, frammento }: { d: string; attivita?: string; giorno?: string; piano?: string; figlio?: string; turno?: string; baby?: string; frammento?: string }) {
   const arrivo = arrivoDa(d, attivita, giorno, undefined, piano, figlio, turno, baby)
   const token = useRef<string | null | undefined>(undefined)
+  // La lettura parte una volta sola, anche con il doppio montaggio dello sviluppo: sul web la seconda non troverebbe piu' niente (il frammento si
+  // toglie alla prima), e senza questa promessa la risposta della seconda cancellerebbe il token trovato dalla prima.
+  const lettura = useRef<Promise<string | null> | null>(null)
   const [fase, setFase] = useState<'carica' | 'tocco' | 'scaduto'>('carica')
   const [attesa, setAttesa] = useState(false)
 
   useEffect(() => {
-    // Una volta sola, anche con il doppio montaggio dello sviluppo: la seconda lettura non troverebbe piu' niente.
-    if (token.current === undefined) token.current = leggiEToglieToken()
+    lettura.current ??= leggiTokenDelLink('/entra', frammento)
     let vivo = true
     ;(async () => {
-      if (token.current) return vivo && setFase('tocco')
+      const letto = await lettura.current
+      if (token.current === undefined) token.current = letto
+      if (!vivo) return
+      if (token.current) return setFase('tocco')
       const { data } = await supabase.auth.getSession().catch(() => ({ data: { session: null } }))
       if (!vivo) return
       if (data.session) router.replace(arrivo?.href ?? '/')
