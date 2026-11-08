@@ -235,6 +235,50 @@ export function indicazione(e: EsercizioScheda, massimali: Massimale[]): Indicaz
   return { ...base, carico: t(`${o.percentuale}% del massimale`, `${o.percentuale}% of your 1RM`), manca: true, daTest: o.daTest }
 }
 
+/**
+ * I chili da proporre per la serie `n` di un esercizio (08/11/2026): quelli della serie di prima fatta oggi, poi quelli del piano
+ * (percentuale per massimale), poi quelli della stessa serie l'ultima volta, o dell'ultima serie di allora.
+ * Il campo di una serie e il timer del recupero la chiamano tutti e due: prima erano due conti diversi, e dopo una serie a 60 kg il timer
+ * scriveva «Carico: 40 kg · 60%» mentre il campo della serie dopo si riempiva con 60.
+ */
+export function chiliProposti(
+  ind: Pick<Indicazione, 'kg'>,
+  prima: number | null | undefined,
+  ultima: { numero: number; kg: number | null }[] | undefined,
+  n: number,
+): number | null {
+  return prima ?? ind.kg ?? ultima?.find((x) => x.numero === n)?.kg ?? ultima?.[ultima.length - 1]?.kg ?? null
+}
+
+/**
+ * La riga sotto il timer del recupero: cosa fare nella serie dopo. Se la serie di prima l'ha fatta oggi, il carico e' quello che ha
+ * usato, e il piano se e' diverso; altrimenti il piano, poi l'ultima volta, poi il carico a parole.
+ */
+export function dettaglioCarico(ind: Pick<Indicazione, 'kg' | 'carico'>, usati: number | null, ultimaVolta: string | null): string | null {
+  if (usati != null) {
+    if (ind.kg == null) return t(`Carico: ${kg(usati)} kg`, `Load: ${kg(usati)} kg`)
+    if (ind.kg !== usati) return t(`Carico: ${kg(usati)} kg · piano: ${kg(ind.kg)} kg`, `Load: ${kg(usati)} kg · plan: ${kg(ind.kg)} kg`)
+  }
+  if (ind.kg != null) return t(`Carico: ${ind.carico}`, `Load: ${ind.carico}`)
+  if (ultimaVolta) return t(`L’ultima volta: ${ultimaVolta}`, `Last time: ${ultimaVolta}`)
+  return ind.carico ? t(`Carico: ${ind.carico}`, `Load: ${ind.carico}`) : null
+}
+
+/** Quanto deve superare il piano la serie piu' pesante dell'ultima volta perche' lo si dica (10%). */
+export const SOGLIA_PIANO_PIU_LEGGERO = 1.1
+
+/** Il piano chiede meno di quello che la persona ha sollevato l'ultima volta (la serie piu' pesante supera i chili del piano di oltre il 10%). */
+export function pianoPiuLeggero(pianoKg: number | null, ultima: { kg: number | null }[] | undefined): boolean {
+  if (!pianoKg || pianoKg <= 0 || !ultima?.length) return false
+  const piuPesante = Math.max(0, ...ultima.map((s) => s.kg ?? 0))
+  return piuPesante > pianoKg * SOGLIA_PIANO_PIU_LEGGERO
+}
+
+export const SPIEGA_PIANO_PIU_LEGGERO = t(
+  'L’ultima volta hai sollevato più di quanto indica il piano. Se anche oggi fai di più, a fine seduta il massimale si alza e il piano ti segue.',
+  'Last time you lifted more than the plan says. If you do more today too, your max goes up at the end of the workout and the plan follows.',
+)
+
 export const SPIEGA_TARATURA = t(
   'Alla prima seduta scegli un peso con cui fai le ripetizioni indicate tenendone un paio di riserva: da lì calcoliamo i tuoi chili.',
   'In your first workout, pick a weight that lets you do the reps shown with a couple in reserve: from there we work out your weights.',
