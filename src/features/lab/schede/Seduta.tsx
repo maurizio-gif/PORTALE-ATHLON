@@ -13,7 +13,7 @@ import { Barra, Carta, Messaggio, Numero, Pulsante, SchedeInArrivo } from '../ui
 import { Schermata } from '../ui/Schermata'
 import { F, FUOCO, usePalette } from '../ui/tema'
 import { colpetto, Tocco } from '../ui/Tocco'
-import { aTempo, descriviPasso, dopo, gruppo, indicazione, recupero, SPIEGA_TARATURA, type Passo } from './comune'
+import { aTempo, chiliProposti, descriviPasso, dettaglioCarico, dopo, gruppo, indicazione, pianoPiuLeggero, recupero, SPIEGA_PIANO_PIU_LEGGERO, SPIEGA_TARATURA, type Passo } from './comune'
 import { MediaEsercizio } from './MediaEsercizio'
 import { Nota, serieInRiga } from './Scheda'
 import { applicaProgressione } from './progressione'
@@ -183,16 +183,15 @@ export function Seduta() {
   /**
    * La bozza di una serie: quella scritta, o le ripetizioni della scheda e i
    * chili: quelli della serie prima di oggi, poi quelli calcolati dalla
-   * percentuale e dal massimale, poi quelli della stessa serie l'ultima volta.
+   * percentuale e dal massimale, poi quelli della stessa serie l'ultima volta
+   * (`chiliProposti`, la stessa regola del timer del recupero).
    */
   const bozzaDi = useCallback(
     (e: EsercizioScheda, n: number): Bozza => {
       const b = bozze.get(chiaveSerie(e.id, n))
       if (b) return b
       const ind = indicazione(e, massimali)
-      const prima = fatte.get(chiaveSerie(e.id, n - 1))
-      const ultima = precedente(e.esercizio_id)?.serie
-      const kg = prima?.kg ?? ind.kg ?? ultima?.find((x) => x.numero === n)?.kg ?? ultima?.[ultima.length - 1]?.kg ?? null
+      const kg = chiliProposti(ind, fatte.get(chiaveSerie(e.id, n - 1))?.kg, precedente(e.esercizio_id)?.serie, n)
       return { ripetizioni: ind.ripetizioni != null ? String(ind.ripetizioni) : primoNumero(e.ripetizioni), kg: kg != null ? String(kg).replace('.', t(',', '.')) : '' }
     },
     [bozze, fatte, precedente, massimali],
@@ -209,6 +208,7 @@ export function Seduta() {
       ? { ripetizioni: null, kg: null, secondi: numero(b.ripetizioni) }
       : { ripetizioni: numero(b.ripetizioni), kg: numero(b.kg), secondi: null }
     const k = chiaveSerie(e.id, n)
+    const fatteOra = new Map(fatte).set(k, fatta) // con la serie appena segnata: il timer dice i chili che si riempiranno nel campo
     setFatte((m) => new Map(m).set(k, fatta))
     colpetto('ok')
     setErrore(null)
@@ -225,12 +225,7 @@ export function Seduta() {
         fine: Date.now() + rec * 1000,
         totale: rec,
         prossimo: descriviPasso(giorno, prossimo),
-        dettaglio: (() => {
-          const ind = indicazione(pe, massimali)
-          if (ind.kg != null) return t(`Carico: ${ind.carico}`, `Load: ${ind.carico}`)
-          if (ult) return t(`L’ultima volta: ${serieInRiga([ult])}`, `Last time: ${serieInRiga([ult])}`)
-          return ind.carico ? t(`Carico: ${ind.carico}`, `Load: ${ind.carico}`) : null
-        })(),
+        dettaglio: dettaglioCarico(indicazione(pe, massimali), fatteOra.get(chiaveSerie(pe.id, prossimo.serie - 1))?.kg ?? null, ult ? serieInRiga([ult]) : null),
       })
     }
     setOccupato(true)
@@ -378,6 +373,7 @@ export function Seduta() {
                   {precedente(e.esercizio_id) ? (
                     <Text style={[stili.piccola, { color: p.testoTerzo }]}>{t(`L’ultima volta: ${serieInRiga(precedente(e.esercizio_id)!.serie)}`, `Last time: ${serieInRiga(precedente(e.esercizio_id)!.serie)}`)}</Text>
                   ) : null}
+                  {pianoPiuLeggero(indicazione(e, massimali).kg, precedente(e.esercizio_id)?.serie) ? <Nota testo={SPIEGA_PIANO_PIU_LEGGERO} /> : null}
                   <View style={{ gap: spazio.due, marginTop: spazio.uno }}>
                     {Array.from({ length: e.serie }, (_, k) => k + 1).map((n) => (
                       <RigaSerie

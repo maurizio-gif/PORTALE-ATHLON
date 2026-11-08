@@ -201,3 +201,4 @@ chiamata diretta al gestionale. Esempio: la sezione Prodotti usa l'azione `prodo
 - [Da iPhone e iPad, dal web, si propone l'app dell'App Store (08/11/2026)](docs/claude/163-installa-app-store-su-iphone-08-11-2026.md) · 4 KB
 - [`/entra` e la conferma della delega funzionano anche nell'app nativa: il token si legge dal link che l'ha aperta (08/11/2026)](docs/claude/164-entra-nell-app-nativa-token-dal-link-08-11-2026.md) · 5 KB
 - [I link delle email aprono l'app su iPhone: il file `apple-app-site-association` (08/11/2026, **pubblicato solo per `/`**)](docs/claude/165-link-universali-ios-apple-app-site-association-08-11-2026.md) · 4 KB
+- [Il piano segue quello che la persona solleva: il timer dice i chili veri, e il massimale sale (08/11/2026)](docs/claude/166-il-piano-segue-quello-che-la-persona-solleva-08-11-2026.md) · 4 KB
