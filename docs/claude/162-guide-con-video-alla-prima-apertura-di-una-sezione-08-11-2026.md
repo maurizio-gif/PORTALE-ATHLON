@@ -15,6 +15,11 @@ finestra che le propone. **Solo JavaScript**: nessuna modifica a `app.json`, `pa
   (Guarda o Non ora), non quando compare: se l'app si chiude con la finestra aperta, o se arriva una notifica e la finestra si ritira, la guida torna
   alla prossima apertura della sezione. **«Non ora» vale come vista**: non c'è un rimando dopo qualche giorno (a differenza dell'invito alle push). La
   guida si rivede sempre dall'Help Desk. Se serve un rimando, si cambia `segnaVista` in `GuidaPrimaVolta.rispondi`.
+- **Solo nell'app, non sul web né nella PWA** (richiesta di Maurizio, stesso giorno): `guidaSuPiattaforma(Platform.OS)` in `guide.ts`, vera solo per
+  `ios` e `android`. Chi apre `app.athlonroma.it` da un browser non la vede mai, anche dopo che la PR è unita e il web si ripubblica da `main`.
+- **Una protezione intorno.** `GuidaPrimaVolta` è dentro un `Component` con `getDerivedStateFromError`: un errore mentre la finestra si disegna
+  la fa sparire (un avviso in console) e il portale va avanti. La finestra è un invito, e sta nel layout globale: un suo guasto non deve mai
+  portarsi dietro il resto. Non copre gli errori dentro i timer o le promesse, che comunque non smontano l'albero.
 - **Dove si monta.** Una sola volta nel layout del portale (`app/(portale)/_layout.tsx`), accanto alle notifiche, con `sessione.user.id`. Non si
   monta sul totem né in vista cliente: li' nessuno impara l'app, e lo staff non deve segnare come viste le guide di un socio.
 - **Cosa la tiene lontana.** L'avvio animato (3,7 s dall'apertura, come `Notifiche`), un istante (0,9 s) dopo l'arrivo nella sezione, una

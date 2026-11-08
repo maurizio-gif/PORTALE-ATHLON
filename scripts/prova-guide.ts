@@ -2,7 +2,7 @@
 // Prova di `guide/guide.ts` (puro): `LC_ALL=it_IT.UTF-8 npx tsx scripts/prova-guide.ts`
 import assert from 'node:assert/strict'
 
-import { CHIAVI_GUIDA, SCHEDA_DI_GUIDA, chiaveMemoria, giaVista, guidaDiRotta, schedaPresente, segnaVista } from '../src/features/lab/guide/guide'
+import { CHIAVI_GUIDA, SCHEDA_DI_GUIDA, chiaveMemoria, giaVista, guidaDiRotta, guidaSuPiattaforma, schedaPresente, segnaVista } from '../src/features/lab/guide/guide'
 
 // Le guide con il video alla prima apertura di una sezione (08/11/2026): quale guida va con quale schermata, e il «gia' visto».
 let n = 0
@@ -59,6 +59,13 @@ ok('senza memoria (o con una che solleva) non rompe: la guida risulta non vista 
   const rotta = { getItem: () => { throw new Error('storage bloccato') }, setItem: () => { throw new Error('storage bloccato') } }
   assert.equal(giaVista(rotta, 'u1', 'home'), false)
   assert.doesNotThrow(() => segnaVista(rotta, 'u1', 'home'))
+})
+ok('solo nell\'app: iOS e Android si, il web (e quindi la PWA) no', () => {
+  assert.equal(guidaSuPiattaforma('ios'), true)
+  assert.equal(guidaSuPiattaforma('android'), true)
+  assert.equal(guidaSuPiattaforma('web'), false)
+  assert.equal(guidaSuPiattaforma('windows'), false)
+  assert.equal(guidaSuPiattaforma(''), false)
 })
 ok('la finestra compare solo se la scheda c\'e\' nel feed', () => {
   const feed = [{ id: 'app/home' }, { id: 'generali/prenotazioni' }, { id: 'ahs/cos-e' }]

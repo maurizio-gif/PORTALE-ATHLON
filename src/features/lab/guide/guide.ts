@@ -35,6 +35,14 @@ export function guidaDiRotta(percorso: string, sezione?: string | null): ChiaveG
   return null
 }
 
+/**
+ * **Solo nell'app** (iOS e Android), non sul web e non nella PWA (08/11/2026, richiesta di Maurizio): chi apre `app.athlonroma.it` da un browser
+ * ha gia' le guide a un tocco dall'Help Desk, e la finestra e' un invito pensato per l'app installata. `os` e' `Platform.OS`.
+ */
+export function guidaSuPiattaforma(os: string): boolean {
+  return os === 'ios' || os === 'android'
+}
+
 /** Un archivio come `localStorage`: tanto basta, e cosi' si prova senza browser. */
 export type Memoria = Pick<Storage, 'getItem' | 'setItem'>
 

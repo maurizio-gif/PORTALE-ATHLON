@@ -1,6 +1,6 @@
 import { router, useGlobalSearchParams, usePathname } from 'expo-router'
-import { useEffect, useState } from 'react'
-import { Modal, Pressable, StyleSheet, Text, View } from 'react-native'
+import { Component, useEffect, useState, type ReactNode } from 'react'
+import { Modal, Platform, Pressable, StyleSheet, Text, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { spazio } from '@/theme'
@@ -13,7 +13,7 @@ import { Icona } from '../ui/Icona'
 import { Pulsante } from '../ui/kit'
 import { F, FUOCO, usePalette } from '../ui/tema'
 import { Tocco } from '../ui/Tocco'
-import { SCHEDA_DI_GUIDA, giaVista, guidaDiRotta, schedaPresente, segnaVista, type ChiaveGuida } from './guide'
+import { SCHEDA_DI_GUIDA, giaVista, guidaDiRotta, guidaSuPiattaforma, schedaPresente, segnaVista, type ChiaveGuida } from './guide'
 import { PAROLE_GUIDA, testiGuida } from './testi'
 
 // La finestra che propone la guida con il video la **prima volta** che si apre una sezione (08/11/2026, richiesta di Maurizio):
@@ -49,7 +49,33 @@ function memoria(): Storage | undefined {
   }
 }
 
+/**
+ * Solo nell'app nativa, e dentro una protezione: la finestra e' un invito, e un suo guasto non deve mai portarsi dietro il portale. Un errore
+ * mentre si disegna la fa sparire (con un avviso in console) e il resto dell'app va avanti.
+ */
 export function GuidaPrimaVolta({ utente }: { utente: string }) {
+  if (!guidaSuPiattaforma(Platform.OS)) return null
+  return (
+    <Protezione>
+      <Guida utente={utente} />
+    </Protezione>
+  )
+}
+
+class Protezione extends Component<{ children: ReactNode }, { guasto: boolean }> {
+  state = { guasto: false }
+  static getDerivedStateFromError() {
+    return { guasto: true }
+  }
+  componentDidCatch(errore: unknown) {
+    console.warn('GuidaPrimaVolta:', errore)
+  }
+  render() {
+    return this.state.guasto ? null : this.props.children
+  }
+}
+
+function Guida({ utente }: { utente: string }) {
   const percorso = usePathname()
   const { sezione } = useGlobalSearchParams<{ sezione?: string | string[] }>()
   const chiave = guidaDiRotta(percorso, Array.isArray(sezione) ? sezione[0] : sezione)
