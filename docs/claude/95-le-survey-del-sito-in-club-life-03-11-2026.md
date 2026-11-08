@@ -64,3 +64,4 @@ erano state ridotte a righe proprio perché spingevano l'Help Desk, la cosa per 
   schermata «argomento non disponibile» (si raggiunge solo con un indirizzo vecchio da una notifica); e l'apertura a freddo di un indirizzo di Club Life nel banco
   di prova, che rimbalza sulla Home (anche per `/calendario` e `/pagamenti`: non è delle survey).
 - **Da pubblicare**: solo il portale. Nessuna modifica al sito, nessuna migrazione e nessuna funzione: la tabella e la funzione sono quelle del sito.
+- **Dall'08/11/2026 c'è anche una survey dell'app, a capitoli** («L'app, funzione per funzione»): non è uno degli otto temi, non ha una copia sul sito e non entra nel confronto con `SITO_SURVEYS_TS`. Vedi la sezione 167.
