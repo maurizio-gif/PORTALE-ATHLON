@@ -1,7 +1,7 @@
 import { BlurView } from 'expo-blur'
 import { Image } from 'expo-image'
-import { router, useIsFocused, type Href } from 'expo-router'
-import type { ReactNode, Ref } from 'react'
+import { router, useIsFocused, usePathname, type Href } from 'expo-router'
+import { useState, type ReactNode, type Ref } from 'react'
 import { Platform, StyleSheet, Text, View } from 'react-native'
 import { useWindowDimensions } from '@/lib/finestra'
 import Animated, { interpolate, useAnimatedScrollHandler, useAnimatedStyle, useSharedValue, Extrapolation } from 'react-native-reanimated'
@@ -14,7 +14,7 @@ import { t } from '@/lib/lingua'
 import { LARGHEZZA_CON_SCRITTA, LARGHEZZA_PILLOLA, LARGHEZZA_PILLOLA_COMPATTA, SPOSTA_SE_OCCUPATO } from '../feedback/comune'
 import { useAzioneInAltoPresente, useSegnaAzioneInAlto } from '../feedback/posizione'
 import { vistaCorrente } from '../vista'
-import { ingombroBarra } from './BarraSchede'
+import { ingombroBarra, schedaAttiva } from './BarraSchede'
 import { Icona } from './Icona'
 import { F, usePalette } from './tema'
 import { Tocco } from './Tocco'
@@ -61,6 +61,7 @@ export function Schermata({
   sopra,
   nascondiTitolo = false,
   scorrimento,
+  flottante,
   children,
 }: {
   /** Per far scorrere la schermata da fuori (la Home scende all'elenco dei certificati). */
@@ -79,6 +80,13 @@ export function Schermata({
   barra?: boolean
   /** Qualcosa sopra il titolo, a tutta larghezza (la testata dell'accesso). */
   sopra?: ReactNode
+  /**
+   * Un comando che resta fermo in basso mentre si scorre (la barra «La tua scelta» del listino, 08/11/2026). Sta fuori dallo
+   * scorrimento, nella colonna della schermata, sopra la barra delle schede se la schermata ne ha una; in fondo il contenuto
+   * lascia lo spazio che prende (misurato, non stimato: la barra e' alta uno o due righi secondo il nome dell'abbonamento).
+   * Sul web si usa `position: sticky` dentro il contenuto, che React Native non ha: li' non si passa da qui.
+   */
+  flottante?: ReactNode
   children: ReactNode
 }) {
   const p = usePalette()
@@ -94,6 +102,12 @@ export function Schermata({
   const riservaDestra = vistaCorrente()
     ? 64
     : Math.max(0, (width - colonnaPillola) / 2) + spazio.tre + 2 + (occupato ? SPOSTA_SE_OCCUPATO : 0) + (occupato || width < LARGHEZZA_CON_SCRITTA ? LARGHEZZA_PILLOLA_COMPATTA : LARGHEZZA_PILLOLA) + spazio.due
+  // La pillola delle schede compare solo sulle cinque schermate principali: sulle altre (l'abbonamento, un contratto) non c'e', e il
+  // comando fermo sta vicino al bordo invece di restare alto sopra uno spazio vuoto.
+  const conBarra = barra && schedaAttiva(usePathname()) >= 0
+  const [altezzaFlottante, setAltezzaFlottante] = useState(0)
+  const bassoFlottante = conBarra ? ingombroBarra(ins.bottom) + spazio.due : Math.max(ins.bottom, spazio.tre) + spazio.due
+  const paddingBasso = flottante ? bassoFlottante + altezzaFlottante + spazio.quattro : barra ? ingombroBarra(ins.bottom) + spazio.tre : spazio.cinque + ins.bottom
   const y = useSharedValue(0)
   const onScroll = useAnimatedScrollHandler((e) => {
     y.value = e.contentOffset.y
@@ -126,7 +140,7 @@ export function Schermata({
         scrollEventThrottle={16}
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="on-drag"
-        contentContainerStyle={{ paddingBottom: barra ? ingombroBarra(ins.bottom) + spazio.tre : spazio.cinque + ins.bottom, paddingTop: sopra ? 0 : ins.top + spazio.tre }}
+        contentContainerStyle={{ paddingBottom: paddingBasso, paddingTop: sopra ? 0 : ins.top + spazio.tre }}
       >
         {sopra}
         <View style={[stili.colonna, { maxWidth }]}>
@@ -149,6 +163,15 @@ export function Schermata({
           <View style={[stili.contenuto, nascondiTitolo && { marginTop: 0 }]}>{children}</View>
         </View>
       </Animated.ScrollView>
+
+      {/* Il comando fermo in basso: fuori dallo scorrimento, e lascia passare i tocchi dove non c'e' lui. */}
+      {flottante ? (
+        <View pointerEvents="box-none" style={[stili.flottante, { bottom: bassoFlottante }]} onLayout={(e) => setAltezzaFlottante(e.nativeEvent.layout.height)}>
+          <View pointerEvents="box-none" style={[stili.colonna, { maxWidth }]}>
+            {flottante}
+          </View>
+        </View>
+      ) : null}
 
       {/* La testata sottile che compare scorrendo. Non prende i tocchi: anche
           trasparente, sopra la freccia indietro se li prendeva (14/10/2026). */}
@@ -186,6 +209,7 @@ export function BottoneTondo({ icona, onPress, etichetta }: { icona: Parameters<
 const stili = StyleSheet.create({
   fondo: { flex: 1 },
   colonna: { width: '100%', alignSelf: 'center', paddingHorizontal: spazio.tre + 2 },
+  flottante: { position: 'absolute', left: 0, right: 0, alignItems: 'center' },
   barraAlta: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: spazio.tre, minHeight: 44 },
   sinistra: { flexDirection: 'row', alignItems: 'center', gap: spazio.tre },
   marchio: { flexDirection: 'row', alignItems: 'center', gap: spazio.due },
