@@ -317,7 +317,23 @@ function SezioneIscrizione({
             sotto={i.gruppo}
             coda={<Etichetta testo={statoContratto(c.stato)} tono="ok" />}
           />
-          {c.canone != null && c.canone > 0 ? (
+          {c.stagionale && c.pagato_stagione != null && c.pagato_stagione > 0 ? (
+            // Lo stagionale (09/11/2026): quello che la famiglia ha gia' pagato per la stagione, non una quota al mese.
+            <Dato
+              etichetta={t("Quota", "Fee")}
+              valore={
+                c.importo_stagione != null && c.pagato_stagione < c.importo_stagione
+                  ? t(
+                      `${euroIt(c.pagato_stagione)} pagati su ${euroIt(c.importo_stagione)} della stagione`,
+                      `${euroIt(c.pagato_stagione)} paid of ${euroIt(c.importo_stagione)} for the season`,
+                    )
+                  : t(
+                      `${euroIt(c.pagato_stagione)} per tutta la stagione, già pagata`,
+                      `${euroIt(c.pagato_stagione)} for the whole season, already paid`,
+                    )
+              }
+            />
+          ) : c.canone != null && c.canone > 0 ? (
             <Dato
               etichetta={t("Quota", "Fee")}
               valore={t(

@@ -159,6 +159,9 @@ export type ContrattoJunior = {
   stagionale?: boolean;
   /** Si puo' disdire dall'app: solo i mensili. Assente (funzione di prima) vale come si'. */
   disdicibile?: boolean;
+  /** Solo per lo stagionale: l'importo della stagione e quanto ne e' gia' stato pagato (09/11/2026). */
+  importo_stagione?: number | null;
+  pagato_stagione?: number | null;
 };
 
 export type LezioneIscritto = {
