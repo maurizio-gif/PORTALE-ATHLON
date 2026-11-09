@@ -1,19 +1,19 @@
 import { t } from "../../../lib/lingua";
-import { LARGHEZZE_FONT } from "./larghezzeFont";
+import { CARATTERI, misuraTesto, type Elemento, type Misura, type Scena } from "../svg/scena";
 
 import type { DatiDiploma } from "./immagineBrevetto";
 
 // Il diplomino del brevetto **sull'app nativa** (09/11/2026, segnalazione di Maurizio dall'iPhone: «qui non si genera il diploma da app»). Sul web il diploma si
 // disegna con un canvas (`immagineBrevetto.ts`), che sul telefono non c'e': li' si condivideva solo il testo. Qui lo stesso disegno e' una **scena**: un elenco di
-// forme con le coordinate gia' calcolate (1080 punti di larghezza, 1350 o 1920 di altezza). `DiplomaSvg.tsx` la disegna con `react-native-svg` (che l'app ha gia')
+// forme con le coordinate gia' calcolate (1080 punti di larghezza, 1350 o 1920 di altezza). `DiplomaSvg.tsx` la disegna con `react-native-svg` (che l'app ha gia'; il disegno e' `svg/ScenaSvg.tsx`)
 // e ne ricava il PNG con `toDataURL`: nessun modulo nativo nuovo, quindi arriva con un aggiornamento (OTA), senza una build dello store.
 //
-// **E' una copia dell'impaginazione del canvas**, e va tenuta in pari: stesse misure (`GEOMETRIE`), stesso ordine di disegno, stessi colori. Il testo non si puo'
-// misurare con un canvas: la misura viene dalla tabella dei caratteri di Plus Jakarta Sans (`larghezzeFont.ts`, generata da `scripts/larghezze-font-diploma.py`).
+// **E' una copia dell'impaginazione del canvas**, e va tenuta in pari: stesse misure (l'oggetto `G`), stesso ordine di disegno, stessi colori. Il testo non si puo'
+// misurare con un canvas: la misura viene dalla tabella dei caratteri di Plus Jakarta Sans (`svg/larghezzeFont.ts`, generata da `scripts/larghezze-font-svg.py`).
 // Differenze volute dal canvas: le ombre morbide sono qualche cerchio traslucido (react-native-svg non ha il filtro sfocato che serve), e la foto si ritaglia dall'alto
 // (`xMidYMin slice`) invece che al 30% dell'altezza.
 //
-// Il file e' puro (non importa nulla di React Native): si prova da Node, con lo stesso disegno dentro un browser.
+// Le forme e la misura del testo sono quelle condivise (`svg/scena.ts`); il file e' puro (non importa nulla di React Native): si prova da Node, con lo stesso disegno dentro un browser.
 
 export type FormatoDiploma = "feed" | "storia";
 
@@ -27,38 +27,6 @@ const INCHIOSTRO = "#2B3350";
 const GRIGIO = "#5A6380";
 const ONDA = "#EDE6F0";
 const BOLLE = "rgba(150,140,185,0.38)";
-
-export type ChiImmagine = "logo" | "personaggio" | "foto";
-
-export type Elemento =
-  | { k: "fondo"; w: number; h: number }
-  | { k: "path"; d: string; fill?: string; stroke?: string; sw?: number; cap?: "round"; join?: "round" }
-  | { k: "cerchio"; cx: number; cy: number; r: number; fill?: string; stroke?: string; sw?: number }
-  | { k: "ellisse"; cx: number; cy: number; rx: number; ry: number; fill: string }
-  | { k: "rett"; x: number; y: number; w: number; h: number; rx: number; fill?: string; stroke?: string; sw?: number }
-  | { k: "testo"; x: number; y: number; testo: string; famiglia: string; px: number; fill: string; ancora: "start" | "middle" | "end" }
-  | { k: "immagine"; chi: ChiImmagine; x: number; y: number; w: number; h: number; allinea: string; ritaglio?: { cx: number; cy: number; r: number } }
-  /** Un riquadro tagliato in tondo (la foto del bambino): l'iniziale sta sotto la foto e resta se la foto non si carica. */
-  | { k: "tondo"; cx: number; cy: number; r: number; fill: string };
-
-export type Scena = { larghezza: number; altezza: number; elementi: Elemento[] };
-
-/** La larghezza (in punti) che il testo occupa col carattere e il corpo dati. Un carattere che la tabella non ha vale la media dei caratteri comuni. */
-export function misuraTesto(testo: string, famiglia: string, px: number): number {
-  const f = LARGHEZZE_FONT[famiglia] ?? LARGHEZZE_FONT.PlusJakartaSans_500Medium;
-  let somma = 0;
-  for (const ch of testo) somma += f.larg[ch] ?? f.media;
-  return (somma * px) / 1000;
-}
-
-export type Misura = (testo: string, famiglia: string, px: number) => number;
-
-/** I caratteri di `F` (`ui/tema.ts`), qui come nomi: il file e' puro. */
-const CARATTERI = {
-  extra: "PlusJakartaSans_800ExtraBold",
-  semi: "PlusJakartaSans_600SemiBold",
-  medio: "PlusJakartaSans_500Medium",
-} as const;
 
 /** Le proporzioni delle due immagini del club (larghezza / altezza), che l'impaginazione deve conoscere. `personaggio` e' null se il brevetto non ha il suo animale. */
 export type Proporzioni = { logo: number; personaggio: number | null };
@@ -139,7 +107,7 @@ export function scenaDiploma(d: DatiDiploma, formato: FormatoDiploma, proporzion
   const e: Elemento[] = [];
 
   // Lo sfondo: bianco con un velo azzurro in alto, come l'acqua vista dall'alto.
-  e.push({ k: "fondo", w: L, h: A });
+  e.push({ k: "sfumatura", x: 0, y: 0, w: L, h: A, stops: [[0, "#EAF6FF", 1], [0.45, "#FFFFFF", 1], [1, "#FFFFFF", 1]] });
 
   // L'onda lilla dei diplomi del club: dietro la foto e il personaggio, giu' fino a meta' del riquadro delle prove (o del livello, senza prove).
   const su = heroTop + hHero * 0.45;
@@ -180,7 +148,7 @@ export function scenaDiploma(d: DatiDiploma, formato: FormatoDiploma, proporzion
   e.push({ k: "cerchio", cx, cy, r: R + 26, fill: "#FFFFFF" });
   e.push({ k: "cerchio", cx, cy, r: R + 12, fill: ARANCIO });
   // Sotto la foto c'e' sempre l'iniziale: se la foto manca (o non si carica) resta quella.
-  e.push({ k: "tondo", cx, cy, r: R, fill: "#FFE3CC" });
+  e.push({ k: "cerchio", cx, cy, r: R, fill: "#FFE3CC" });
   const iniziale = (d.nome.trim()[0] ?? "").toUpperCase();
   const pxIniziale = R * 1.13;
   if (iniziale) e.push({ k: "testo", x: cx, y: cy + 8 + pxIniziale * 0.36, testo: iniziale, famiglia: CARATTERI.extra, px: pxIniziale, fill: ARANCIO, ancora: "middle" });

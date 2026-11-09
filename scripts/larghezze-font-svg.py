@@ -1,9 +1,9 @@
-"""Genera `src/features/lab/junior/larghezzeFont.ts`: le larghezze dei caratteri di Plus Jakarta Sans (le stesse di `F` in `ui/tema.ts`), per misurare
+"""Genera `src/features/lab/svg/larghezzeFont.ts`: le larghezze dei caratteri di Plus Jakarta Sans (le stesse di `F` in `ui/tema.ts`), per misurare
 il testo del diplomino sull'app nativa, dove non c'e' un canvas con `measureText`.
 
 Uso (serve fontTools: `pip install fonttools`, e `npm ci` per i file dei caratteri):
 
-    python3 scripts/larghezze-font-diploma.py > src/features/lab/junior/larghezzeFont.ts
+    python3 scripts/larghezze-font-svg.py > src/features/lab/svg/larghezzeFont.ts
 """
 import json
 import sys
@@ -33,6 +33,6 @@ for nome, percorso in FAMIGLIE.items():
     media = round(sum(larg[c] for c in "aeinorstlcdmpu" if c in larg) / len("aeinorstlcdmpu"))
     fuori[nome] = {"media": media, "larg": larg}
 
-print("// GENERATO da scripts/larghezze-font-diploma.py: non si modifica a mano.")
+print("// GENERATO da scripts/larghezze-font-svg.py: non si modifica a mano.")
 print("// Le larghezze dei caratteri di Plus Jakarta Sans (1000 = un em), per misurare il testo del diplomino sull'app nativa.")
 print("export const LARGHEZZE_FONT: Record<string, { media: number; larg: Record<string, number> }> = " + json.dumps(fuori, ensure_ascii=False, separators=(",", ":")) + ";")

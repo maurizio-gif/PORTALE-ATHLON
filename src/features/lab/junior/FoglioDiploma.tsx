@@ -12,7 +12,7 @@ import { Foglio } from "../ui/Foglio";
 import { Messaggio, Pulsante } from "../ui/kit";
 import { F, usePalette, velo } from "../ui/tema";
 import { Tocco } from "../ui/Tocco";
-import { condividiPngNativo } from "./condividiDiplomaNativo";
+import { condividiPngNativo } from "../svg/condividiPngNativo";
 import { DiplomaSvg, type DiplomaSvgRef } from "./DiplomaSvg";
 import { InvitoFoto, useFotoBambino } from "./FotoBambino";
 import { diplomaDisponibile, immagineDiploma, testoDiploma, type DatiDiploma } from "./immagineBrevetto";

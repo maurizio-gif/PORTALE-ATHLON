@@ -1,6 +1,6 @@
 import { Image } from 'expo-image'
 import { router, useLocalSearchParams } from 'expo-router'
-import { useEffect, useState, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { Linking, StyleSheet, Text, View } from 'react-native'
 
 import type { ClubLife, Comando } from '@/api/clubLife'
@@ -14,10 +14,12 @@ import { F, raggio, usePalette } from '../ui/tema'
 import { Contenuto } from './Blocchi'
 import { dataNews, giornoEvento } from './comune'
 import { condividiImmagine } from '../fit/condividiMese'
+import { condividiPngNativo } from '../svg/condividiPngNativo'
 import { condividiEvento, testoCondivisione } from './condividi'
 import { useClubLife } from './dati'
 import { apriLink, destinazione } from './link'
 import { FRASI, locandinaDisponibile, locandinaEvento, nomeLocandina, urlStoriaSito, type EventoLocandina } from './locandina'
+import { LocandinaSvg, type LocandinaSvgRef } from './LocandinaSvg'
 
 // Le tre schermate di dettaglio di Club Life: una news, un evento, una scheda
 // dell'Help Desk. Leggono la stessa copia dell'elenco (dati.ts), quindi si
@@ -115,7 +117,10 @@ function CondividiEvento({ e }: { e: { titolo: string; data: string; ora: string
  * «Storia Instagram» (04/11/2026, richiesta di Maurizio): la locandina dell'evento in formato storia, la stessa della pagina del sito.
  * Sul web si disegna qui (`locandina.ts`): si sceglie la frase, si vede l'anteprima, e si condivide (il foglio del telefono, da cui si sceglie
  * Instagram e poi Storia) o si scarica. Nello stesso gesto il link dell'evento va negli appunti, per lo sticker «Link» della storia.
- * Sull'app nativa non si puo' disegnare un file senza una build nuova: il comando apre la pagina dell'evento sul sito, gia' sulla locandina.
+ * **Sull'app nativa** (09/11/2026, richiesta di Maurizio: «anche la storia di Instagram per un evento si svolge fuori dall'app») la locandina e' un SVG (`LocandinaSvg`,
+ * `scenaLocandina.ts`) da cui si ricava il PNG, e «Condividi su Instagram» apre il foglio di condivisione del telefono: stessa schermata del web (frase, anteprima).
+ * Se il PNG non esce, il comando porta alla pagina dell'evento sul sito, gia' sulla locandina (`urlStoriaSito`), com'era. Dal telefono non si copia il link negli appunti
+ * (`expo-clipboard` non c'e' nell'app): lo si mostra selezionabile, per lo sticker «Link».
  */
 function StoriaEvento({ e }: { e: EventoLocandina & { url: string; titolo: string; data: string } }) {
   const p = usePalette()
@@ -126,6 +131,8 @@ function StoriaEvento({ e }: { e: EventoLocandina & { url: string; titolo: strin
   const [stato, setStato] = useState<'prepara' | 'pronta' | 'errore'>('prepara')
   const [esito, setEsito] = useState<string | null>(null)
   const web = locandinaDisponibile()
+  const svg = useRef<LocandinaSvgRef>(null)
+  const [lavoro, setLavoro] = useState(false)
 
   // L'immagine si prepara prima del tocco: `navigator.share` vuole un gesto, e un'attesa lunga prima di chiamarlo lo fa rifiutare.
   useEffect(() => {
@@ -172,9 +179,21 @@ function StoriaEvento({ e }: { e: EventoLocandina & { url: string; titolo: strin
     else if (r === 'errore') setEsito(t('Non sono riuscito a preparare l’immagine.', 'I couldn’t prepare the image.'))
   }
 
-  if (!web) {
-    return <Pulsante testo={t('Storia Instagram', 'Instagram story')} icona="fotocamera" variante="contorno" onPress={() => Linking.openURL(urlStoriaSito(e.url))} />
+  // Sull'app nativa: il PNG si ricava dallo SVG e si apre il foglio di condivisione; se non esce si va al sito, sulla locandina.
+  async function esciNativo() {
+    setLavoro(true)
+    setEsito(null)
+    const png = await svg.current?.png()
+    const r = await condividiPngNativo(png ?? null, nomeLocandina(e))
+    setLavoro(false)
+    if (r === 'condiviso') {
+      setEsito(t('Scegli Instagram e poi «Storia». Poi aggiungi lo sticker «Link» con l’indirizzo che trovi qui sotto.', 'Pick Instagram, then «Story». Then add the «Link» sticker with the address below.'))
+      return
+    }
+    setEsito(t('Non siamo riusciti a preparare l’immagine: apriamo la pagina dell’evento sul sito.', 'We couldn’t prepare the image, so we’re opening the event page on the website.'))
+    Linking.openURL(urlStoriaSito(e.url)).catch(() => undefined)
   }
+
   if (!aperta) {
     return <Pulsante testo={t('Storia Instagram', 'Instagram story')} icona="fotocamera" variante="contorno" onPress={() => setAperta(true)} />
   }
@@ -187,7 +206,9 @@ function StoriaEvento({ e }: { e: EventoLocandina & { url: string; titolo: strin
         ))}
       </View>
       <View style={[stili.anteprima, { backgroundColor: p.carbone }]}>
-        {stato === 'pronta' && anteprima ? (
+        {!web ? (
+          <LocandinaSvg ref={svg} e={e} giorno={giornoEvento(e.data)} frase={frase} />
+        ) : stato === 'pronta' && anteprima ? (
           <Image source={{ uri: anteprima }} accessibilityLabel={t(`Locandina: ${frase}, ${e.titolo}`, `Poster: ${frase}, ${e.titolo}`)} style={StyleSheet.absoluteFill} contentFit="contain" />
         ) : (
           <Text style={{ color: 'rgba(255,255,255,0.75)', fontFamily: F.medio, padding: spazio.tre, textAlign: 'center' }}>
@@ -195,14 +216,26 @@ function StoriaEvento({ e }: { e: EventoLocandina & { url: string; titolo: strin
           </Text>
         )}
       </View>
+      {!web ? <Pulsante testo={t('Condividi su Instagram', 'Share to Instagram')} icona="condividi" inCorso={lavoro} onPress={esciNativo} /> : null}
       {condivisibile ? <Pulsante testo={t('Condividi su Instagram', 'Share to Instagram')} icona="condividi" onPress={() => esci(false)} /> : null}
-      <Pulsante testo={t('Scarica l’immagine', 'Download the image')} icona="scarica" variante="contorno" disabilitato={stato !== 'pronta'} onPress={() => esci(true)} />
+      {web ? <Pulsante testo={t('Scarica l’immagine', 'Download the image')} icona="scarica" variante="contorno" disabilitato={stato !== 'pronta'} onPress={() => esci(true)} /> : null}
       <Text style={[stili.trainer, { color: p.testoSecondario }]}>
-        {t(
-          'Su Instagram crea una storia con questa immagine e aggiungi lo sticker «Link» con l’indirizzo dell’evento: te lo copiamo noi.',
-          'On Instagram, create a story with this image and add the «Link» sticker with the event address: we copy it for you.',
-        )}
+        {web
+          ? t(
+              'Su Instagram crea una storia con questa immagine e aggiungi lo sticker «Link» con l’indirizzo dell’evento: te lo copiamo noi.',
+              'On Instagram, create a story with this image and add the «Link» sticker with the event address: we copy it for you.',
+            )
+          : t(
+              'Su Instagram crea una storia con questa immagine e aggiungi lo sticker «Link» con l’indirizzo dell’evento: lo trovi qui sotto, tienilo premuto per copiarlo.',
+              'On Instagram, create a story with this image and add the «Link» sticker with the event address: you’ll find it below, press and hold to copy it.',
+            )}
       </Text>
+      {!web ? (
+        <Text selectable style={[stili.trainer, { color: p.testoSecondario }]}>
+          {t('Il link per lo sticker: ', 'The link for the sticker: ')}
+          {e.url}
+        </Text>
+      ) : null}
       {esito ? <Messaggio tono="ok">{esito}</Messaggio> : null}
     </Carta>
   )

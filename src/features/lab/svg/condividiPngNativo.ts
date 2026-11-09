@@ -1,7 +1,7 @@
 import { File, Paths } from "expo-file-system";
 import * as Sharing from "expo-sharing";
 
-// Condividere il PNG del diplomino **dall'app nativa** (09/11/2026): il PNG (base64, da `DiplomaSvg.png()`) diventa un file nella cache del telefono e si apre il foglio di
+// Condividere il PNG di un'immagine disegnata con SVG (il diplomino, la locandina di un evento) **dall'app nativa** (09/11/2026): il PNG (base64, da `ScenaSvg.png()`) diventa un file nella cache del telefono e si apre il foglio di
 // condivisione del sistema (Salva immagine, Instagram, WhatsApp, Messaggi…): lo stesso giro del PDF del libretto (`esportaLibretto.ts`). Non solleva mai.
 // Un PNG che pesa troppo poco e' un'immagine vuota: il disegno non ha preso le immagini, e non si condivide (la schermata dice che non e' riuscito).
 
