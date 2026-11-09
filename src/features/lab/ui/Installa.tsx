@@ -34,8 +34,12 @@ import { Tocco } from './Tocco'
 // vuole installare niente dallo store. Vale in tutti i browser dell'iPhone, anche
 // dentro Instagram e simili (dove la PWA non si installa e l'App Store si apre
 // lo stesso). Il link e' `linkAppNativa('ios')` (`lib/appNativa.ts`); senza, la
-// carta e' quella di prima. Su Android non cambia niente finche' l'app non e'
-// approvata su Google Play.
+// carta e' quella di prima.
+//
+// **Su Android si propone Google Play, e dal computer niente** (09/11/2026, richiesta
+// di Maurizio, con la 3.0.0 pubblicata anche su Google Play): stessa carta, con
+// «Scarica da Google Play» e Health Connect al posto di Apple Salute. Sul computer
+// la carta non compare piu', nemmeno quando il browser saprebbe installare la PWA.
 
 const CHIAVE = 'athlon:installa-dopo'
 const SETTIMANA = 7 * 86_400_000
@@ -214,7 +218,7 @@ function passi(c: Caso, dopoAccesso: boolean): { titolo: string; passi: Passo[] 
 
 /** Il riquadro «Installa l'app». `dopoAccesso`: nella pagina di accesso, prima di entrare. */
 export function Installa({ dopoAccesso = false }: { dopoAccesso?: boolean }) {
-  const [stato, setStato] = useState<{ caso: Caso; richiesta: boolean; store: string | null } | null>(null)
+  const [stato, setStato] = useState<{ caso: Caso; richiesta: boolean; store: string | null; android: boolean } | null>(null)
   const [aperti, setAperti] = useState(false)
   const [copiato, setCopiato] = useState(false)
 
@@ -225,10 +229,11 @@ export function Installa({ dopoAccesso = false }: { dopoAccesso?: boolean }) {
     const aggiorna = () => {
       const c = caso()
       const richiesta = !!w.__installa
-      // L'App Store solo a chi sta su un iPhone o un iPad, qualunque browser usi.
-      const store = telefonoDelBrowser() === 'ios' ? linkAppNativa('ios') : null
-      // Sul computer si mostra solo se il browser sa installare.
-      setStato(c === 'computer' && !richiesta ? null : { caso: c, richiesta, store })
+      // Lo store del telefono, qualunque browser usi: App Store su iPhone e iPad, Google Play su Android.
+      const telefono = telefonoDelBrowser()
+      const store = telefono === 'altro' ? null : linkAppNativa(telefono)
+      // Dal computer nessun invito a scaricare o installare (09/11/2026).
+      setStato(c === 'computer' || (telefono === 'altro' && c !== 'in-app') ? null : { caso: c, richiesta, store, android: telefono === 'android' })
     }
     aggiorna()
     window.addEventListener('athlon-installabile', aggiorna)
@@ -286,7 +291,12 @@ export function Installa({ dopoAccesso = false }: { dopoAccesso?: boolean }) {
         </View>
       </View>
       <Text style={stili.testo}>
-        {stato.store
+        {stato.store && stato.android
+          ? t(
+              'L’app Athlon Club è su Google Play: si apre con un tocco, ti avvisa delle novità del club e, con Health Connect, spunta da sola le tue abitudini. Entri con la tua email e un codice, come qui.',
+              'The Athlon Club app is on Google Play: it opens with one tap, tells you about club news and, with Health Connect, ticks off your habits by itself. You log in with your email and a code, just like here.',
+            )
+          : stato.store
           ? t(
               'L’app Athlon Club è sull’App Store: si apre con un tocco, ti avvisa delle novità del club e, con Apple Salute, spunta da sola le tue abitudini. Entri con la tua email e un codice, come qui.',
               'The Athlon Club app is on the App Store: it opens with one tap, tells you about club news and, with Apple Health, ticks off your habits by itself. You log in with your email and a code, just like here.',
@@ -302,11 +312,15 @@ export function Installa({ dopoAccesso = false }: { dopoAccesso?: boolean }) {
       </Text>
 
       {stato.store ? (
-        // Nella stessa scheda: l'App Store consegna l'app e la pagina resta dov'e' (se il browser non passa la mano, si vede la pagina dello store).
-        <Tocco onPress={() => window.location.assign(stato.store as string)} etichetta={t('Scarica dall’App Store', 'Download from the App Store')} style={stili.pulsante}>
+        // Nella stessa scheda: lo store consegna l'app e la pagina resta dov'e' (se il browser non passa la mano, si vede la pagina dello store).
+        <Tocco
+          onPress={() => window.location.assign(stato.store as string)}
+          etichetta={stato.android ? t('Scarica da Google Play', 'Get it on Google Play') : t('Scarica dall’App Store', 'Download from the App Store')}
+          style={stili.pulsante}
+        >
           <LinearGradient colors={FUOCO} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={stili.pulsanteFondo}>
             <Icona nome="scarica" size={18} colore="#fff" />
-            <Text style={stili.pulsanteTesto}>{t('Scarica dall’App Store', 'Download from the App Store')}</Text>
+            <Text style={stili.pulsanteTesto}>{stato.android ? t('Scarica da Google Play', 'Get it on Google Play') : t('Scarica dall’App Store', 'Download from the App Store')}</Text>
           </LinearGradient>
         </Tocco>
       ) : stato.richiesta ? (
