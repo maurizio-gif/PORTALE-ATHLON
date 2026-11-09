@@ -1,5 +1,8 @@
 ## Lo shop: Articoli e Merchandising, si compra dall'app e si ritira in segreteria
 
+> **Superata in parte il 06/11/2026** (sezione 173): lo shop non passa più da PerfectGym. Catalogo e prezzo sono del club, il pagamento è diretto su Adyen/GoCardless come le gare, c'è il questionario e il preordine, e `ordina` non apre più nessun link. Restano valide la carta Shop in Home come unico ingresso, le foto, il segnaposto, `Esaurito`, i tetti e la vista cliente in sola lettura.
+
+
 Richiesta del club (18/10/2026). Cartella `src/features/lab/shop/`, API `src/api/shop.ts`, rotte `src/app/(portale)/shop/`. Un negozio
 nell'app dei soci per le due categorie di PerfectGym **Articoli** e **Merchandising**: foto, prezzi, carrello, pagamento online con Adyen
 attraverso PerfectGym (come le lezioni singole), **ritiro in segreteria**, nessuna spedizione. Funzione `portale-lab-shop`, tabelle, bucket

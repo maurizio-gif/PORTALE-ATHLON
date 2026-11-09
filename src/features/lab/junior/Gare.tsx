@@ -28,6 +28,7 @@ import { locale, t } from "@/lib/lingua";
 import { spazio } from "@/theme";
 
 import { DropIn, pagamentoDisponibile, riprendiDopoRedirect } from "../adyen";
+import { nomeCarta, primaVolta } from "../pagamento/comune";
 import { Indicatore, SchedaScelta } from "../abbonamento/Passi";
 import { Icona } from "../ui/Icona";
 import { Bollino, Carta, Etichetta, Messaggio, Numero, Pulsante, SchedeInArrivo, Sezione } from "../ui/kit";
@@ -614,8 +615,7 @@ function Pagamento({ iscrizioneId, quotaCent, onCassa }: { iscrizioneId: number;
  */
 type EsitoCassa = { tono: "ok" | "attenzione" | "errore"; titolo: string; testo: string; altra?: boolean };
 
-const MARCHE: Record<string, string> = { visa: "Visa", mc: "Mastercard", mastercard: "Mastercard", amex: "American Express", maestro: "Maestro", diners: "Diners", discover: "Discover", jcb: "JCB", cartebancaire: "Carte Bancaire" };
-const nomeCarta = (c: CartaSalvata) => MARCHE[c.marca] ?? (c.marca ? c.marca.charAt(0).toUpperCase() + c.marca.slice(1) : t("Carta", "Card"));
+// `MARCHE` e `nomeCarta` stanno in `../pagamento/comune` (le usa anche la cassa dello shop).
 
 // Nella scelta, il conto si distingue dalle carte con questo id (i token di Adyen non lo sono mai).
 const CONTO = "conto";
@@ -946,17 +946,6 @@ function PagaGara({
       </Sezione>
     </View>
   );
-}
-
-/** Una volta sola per risultato: un ricaricamento non lo consegna due volte. */
-function primaVolta(chiave: string): boolean {
-  try {
-    if (globalThis.sessionStorage?.getItem(chiave)) return false;
-    globalThis.sessionStorage?.setItem(chiave, "1");
-  } catch {
-    // senza sessionStorage si prova comunque
-  }
-  return true;
 }
 
 /** L'ora del turno di questa categoria (fascia d'eta' del bambino e sesso). */
