@@ -497,7 +497,7 @@ export function AreaRiservata({ email }: { email: string }) {
         {fotoFatta ? <Messaggio tono="ok">{fotoFatta}</Messaggio> : null}
 
         {/* Il certificato scaduto o mancante di chi ha un abbonamento: subito sotto la testata, prima di tutto il resto (home/AvvisoCertificato). */}
-        <AvvisoCertificato area={area} onVai={() => vai('certificato', true)} />
+        <AvvisoCertificato area={area} onVai={() => vai('certificato', true)} onAggiorna={carica} />
 
         {/* Gli orari del club di oggi, con l'avviso in evidenza se c'e' una chiusura o un orario ridotto (clublife/OrariClub). */}
         <CartaOrariClub />

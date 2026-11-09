@@ -1,6 +1,6 @@
 import { Image } from "expo-image";
 import { useEffect, useRef, useState } from "react";
-import { Platform, StyleSheet, Text, View } from "react-native";
+import { Platform, Share, StyleSheet, Text, View } from "react-native";
 
 import type { PersonaJunior } from "@/api/junior";
 import { t } from "@/lib/lingua";
@@ -12,13 +12,16 @@ import { Foglio } from "../ui/Foglio";
 import { Messaggio, Pulsante } from "../ui/kit";
 import { F, usePalette, velo } from "../ui/tema";
 import { Tocco } from "../ui/Tocco";
+import { condividiPngNativo } from "./condividiDiplomaNativo";
+import { DiplomaSvg, type DiplomaSvgRef } from "./DiplomaSvg";
 import { InvitoFoto, useFotoBambino } from "./FotoBambino";
 import { diplomaDisponibile, immagineDiploma, testoDiploma, type DatiDiploma } from "./immagineBrevetto";
 
 // «Condividi il brevetto» (02/11/2026, richiesta di Maurizio): il genitore vede il diplomino del brevetto del figlio, sceglie il formato (post o storia), mette la
 // foto del bambino se manca (diventa la foto del suo profilo al club) e lo condivide sui social o lo scarica. **L'immagine nasce sul dispositivo** e non passa da
-// nessun server; l'unica cosa che parte e' la foto, e solo se il genitore la sceglie. Sull'app nativa non c'e' un'immagine (serve un modulo nuovo e una build):
-// si condivide il testo. In vista cliente non si cambia la foto.
+// nessun server; l'unica cosa che parte e' la foto, e solo se il genitore la sceglie. **Sull'app nativa** (09/11/2026, segnalazione di Maurizio: «qui non si genera il
+// diploma da app») il disegno e' un SVG (`DiplomaSvg`) e il PNG si ricava da li' (`toDataURL`): anteprima e formati come sul web, e «Condividi il brevetto» apre il foglio
+// di condivisione del telefono con l'immagine. Se l'immagine non si riesce a preparare si condivide il testo, com'era. In vista cliente non si cambia la foto.
 
 const FORMATI: { id: FormatoImmagine; testo: () => string; rapporto: number }[] = [
   { id: "feed", testo: () => t("Post", "Post"), rapporto: 1080 / 1350 },
@@ -49,6 +52,9 @@ export function FoglioDiploma({
   const [errore, setErrore] = useState<string | null>(null);
   const [esito, setEsito] = useState<string | null>(null);
   const web = diplomaDisponibile();
+  // Sull'app nativa il diploma e' un disegno SVG: l'anteprima e' lui, e da lui si ricava il PNG.
+  const nativo = Platform.OS !== "web";
+  const svg = useRef<DiplomaSvgRef>(null);
   const chiave = useRef(0);
 
   useEffect(() => {
@@ -78,7 +84,20 @@ export function FoglioDiploma({
   const fai = async (soloScarica: boolean) => {
     setLavoro(soloScarica ? "scarica" : "condividi");
     setEsito(null);
+    setErrore(null);
     const nomeFile = `athlon-brevetto-${(dati.codice || dati.brevetto).toLowerCase().replace(/[^a-z0-9]+/g, "-")}${formato === "storia" ? "-storia" : ""}.png`;
+    if (nativo) {
+      const png = await svg.current?.png();
+      const r = await condividiPngNativo(png ?? null, nomeFile);
+      if (r === "condiviso") setEsito(t("Fatto!", "Done!"));
+      else {
+        // L'immagine non e' venuta: si condivide almeno il testo, e la schermata lo dice.
+        setErrore(t("Non siamo riusciti a preparare l’immagine: abbiamo condiviso il testo.", "We couldn’t prepare the image, so we shared the text instead."));
+        await Share.share({ message: testoDiploma(diploma) }).catch(() => undefined);
+      }
+      setLavoro("");
+      return;
+    }
     const r = await condividiImmagine(() => immagineDiploma(diploma, formato), nomeFile, testoDiploma(diploma), soloScarica);
     setLavoro("");
     if (r === "errore") setErrore(t("Non siamo riusciti a preparare l’immagine. Riprova.", "We couldn’t prepare the image. Please try again."));
@@ -95,7 +114,7 @@ export function FoglioDiploma({
       onChiudi={onChiudi}
     >
       <View style={{ gap: spazio.tre }}>
-        {web ? (
+        {web || nativo ? (
           <>
             <View style={stili.formati}>
               {FORMATI.map((f) => {
@@ -118,7 +137,9 @@ export function FoglioDiploma({
               })}
             </View>
             <View style={[stili.anteprima, { aspectRatio: rapporto, backgroundColor: p.incavo, maxHeight: 460 }]}>
-              {anteprima ? (
+              {nativo && fotoLetta ? (
+                <DiplomaSvg ref={svg} dati={diploma} formato={formato} />
+              ) : anteprima ? (
                 <Image source={{ uri: anteprima }} style={StyleSheet.absoluteFill} contentFit="contain" accessibilityLabel={t("Anteprima del diploma", "Diploma preview")} />
               ) : (
                 <Text style={[stili.nota, { color: p.testoSecondario, textAlign: "center", margin: "auto" }]}>{t("Un momento…", "One moment…")}</Text>
