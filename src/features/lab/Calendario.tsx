@@ -69,6 +69,27 @@ function suDueRighe(chi: string): string {
   return resto.length ? `${nome}\n${resto.join(' ')}` : nome
 }
 
+/**
+ * Dove si fa la lezione (09/11/2026, richiesta di Maurizio): la zona di PerfectGym, «Sala A», «Sala B», «Sala C» (o la piscina). Il nome e' quello
+ * del club e non si traduce. Niente se la zona manca (la funzione non e' ancora aggiornata) o se ripete il nome dell'attivita': la Gym Floor sta in
+ * «Gym Floor», e scriverlo sotto «Gym Floor» e' rumore.
+ */
+function salaDi(x: { sala?: string | null; categoria: string }): string | null {
+  const s = x.sala?.trim()
+  if (!s || s.toLowerCase() === x.categoria.trim().toLowerCase()) return null
+  return s
+}
+
+/** La sala con la sua icona, in riga: sulla copertina (bianca), sotto un'altra riga di testo (colore della palette). */
+function Sala({ nome, colore, stile }: { nome: string; colore: string; stile: 'copertina' | 'riga' }) {
+  return (
+    <View style={stili.sala}>
+      <Icona nome="luogo" size={stile === 'copertina' ? 13 : 12} colore={colore} />
+      <Text style={[stile === 'copertina' ? stili.salaCopertina : stili.salaRiga, { color: colore }]}>{nome}</Text>
+    </View>
+  )
+}
+
 function minuti(inizio: string, fine: string): number {
   return Math.round((new Date(fine).getTime() - new Date(inizio).getTime()) / 60000)
 }
@@ -84,6 +105,7 @@ function inAttesa(l: Lezione): string | null {
 function Copertina({ l, scheda, onScheda }: { l: Lezione; scheda: SchedaLezione | null; onScheda: () => void }) {
   const p = usePalette()
   const b = l.prenotazione
+  const sala = salaDi(l)
   const tono = l.liberi <= 0 ? 'errore' : l.liberi < 5 ? 'attenzione' : 'ok'
   const corpo = (
     <View style={stili.copertina}>
@@ -121,6 +143,7 @@ function Copertina({ l, scheda, onScheda }: { l: Lezione; scheda: SchedaLezione 
         <Text style={stili.copertinaNome} numberOfLines={2}>
           {l.nome}
         </Text>
+        {sala ? <Sala nome={sala} colore="#fff" stile="copertina" /> : null}
         {l.istruttore ? <Text style={stili.copertinaIstruttore}>{t('con', 'with')} {l.istruttore}</Text> : null}
       </View>
       {scheda ? (
@@ -567,6 +590,7 @@ function TurniInGriglia({
               </View>
             )}
           </View>
+          {salaDi(scelto) ? <Sala nome={salaDi(scelto) as string} colore={p.testoSecondario} stile="riga" /> : null}
           <Assistente turno={scelto} come={assistente} />
           {/* Il Nuoto Libero ha un consumo indicativo; la Gym Floor niente (ha la stima della sua scheda): lo decide stimaCorso. */}
           <CalorieLezione l={scelto} scheda={scheda} titolare={titolare} variante="riga" />
@@ -649,6 +673,7 @@ function LezioniPrenotate({ lezioni, occupato, onAnnulla }: { lezioni: Prenotata
       <Carta style={{ paddingVertical: spazio.due, zIndex: 2 }}>
         {lezioni.map((l, i) => {
           const attesa = l.attesa
+          const sala = salaDi(l)
           return (
             <View key={l.class_id} style={{ zIndex: lezioni.length - i }}>
               <Riga
@@ -662,6 +687,7 @@ function LezioniPrenotate({ lezioni, occupato, onAnnulla }: { lezioni: Prenotata
                 sotto={
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 2, flexWrap: 'wrap' }}>
                     <Text style={{ color: p.testoSecondario, fontFamily: F.semi, fontSize: 13 }}>{maiuscola(giornoBreve(l.inizio))}</Text>
+                    {sala ? <Sala nome={sala} colore={p.testo} stile="riga" /> : null}
                     <Etichetta testo={attesa ? t('In lista d’attesa', 'On the waiting list') : t('Prenotata', 'Booked')} tono={attesa ? 'attenzione' : 'ok'} />
                     {attesa ? <InfoAttesa /> : null}
                   </View>
@@ -804,7 +830,7 @@ function CalendarioGiorno() {
         ...(g.prenotate
           ? {
               prenotate: prenotazione && lez
-                ? [...resto, { class_id: classId, nome: lez.nome, categoria: lez.categoria, inizio: lez.inizio, attesa: prenotazione.attesa }].sort((x, y) => x.inizio.localeCompare(y.inizio))
+                ? [...resto, { class_id: classId, nome: lez.nome, categoria: lez.categoria, inizio: lez.inizio, attesa: prenotazione.attesa, sala: lez.sala ?? null }].sort((x, y) => x.inizio.localeCompare(y.inizio))
                 : resto,
             }
           : {}),
@@ -863,7 +889,7 @@ function CalendarioGiorno() {
   // Tutte le prenotazioni in programma, sopra i giorni. Con la funzione di prima si hanno solo quelle del giorno scelto.
   const mie: Prenotata[] =
     giorno.prenotate ??
-    giorno.lezioni.filter((l) => l.prenotazione && !l.iniziata).map((l) => ({ class_id: l.class_id, nome: l.nome, categoria: l.categoria, inizio: l.inizio, attesa: !!l.prenotazione?.attesa }))
+    giorno.lezioni.filter((l) => l.prenotazione && !l.iniziata).map((l) => ({ class_id: l.class_id, nome: l.nome, categoria: l.categoria, inizio: l.inizio, attesa: !!l.prenotazione?.attesa, sala: l.sala ?? null }))
   // Le lezioni gia' cominciate non si prenotano piu': si tengono solo quelle
   // con una prenotazione, che dicono «ci sei andato».
   const visibili = giorno.lezioni.filter((l) => !l.iniziata || l.prenotazione)
@@ -1134,6 +1160,7 @@ function CalendarioGiorno() {
             ? [
                 { valore: ora(aperta.inizio), etichetta: t('Inizio', 'Start') },
                 { valore: `${minuti(aperta.inizio, aperta.fine)} min`, etichetta: t('Durata', 'Duration') },
+                ...(salaDi(aperta) ? [{ valore: salaDi(aperta) as string, etichetta: t('Dove', 'Where') }] : []),
                 // Nelle attivita' a turni l'istruttore cambia da un turno all'altro (e nella Gym Floor e' un nome finto): si contano i turni.
                 A_TURNI.some((a) => a.categoria === aperta.categoria)
                   ? { valore: String(giorno.lezioni.filter((l) => l.categoria === aperta.categoria && !l.iniziata).length), etichetta: t('Turni', 'Sessions') }
@@ -1166,6 +1193,9 @@ const stili = StyleSheet.create({
   copertinaAlto: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: spazio.due },
   copertinaNome: { color: '#fff', fontFamily: F.extra, fontSize: 25, lineHeight: 29, letterSpacing: -0.8, maxWidth: '85%' },
   copertinaIstruttore: { color: 'rgba(255,255,255,0.78)', fontFamily: F.semi, fontSize: 13.5 },
+  sala: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+  salaCopertina: { fontFamily: F.extra, fontSize: 14 },
+  salaRiga: { fontFamily: F.bold, fontSize: 13 },
   vetrino: { flexDirection: 'row', alignItems: 'center', gap: 6, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 5, backgroundColor: 'rgba(0,0,0,0.45)' },
   vetrinoTesto: { color: '#fff', fontFamily: F.extra, fontSize: 12 },
   puntino: { width: 7, height: 7, borderRadius: 4 },

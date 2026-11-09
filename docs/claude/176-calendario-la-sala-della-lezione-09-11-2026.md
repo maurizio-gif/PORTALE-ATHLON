@@ -1,0 +1,17 @@
+## Il Calendario dice in che sala si fa la lezione: Sala A, B, C (09/11/2026)
+
+Richiesta di Maurizio: nel calendario di prenotazione degli adulti, **la sala** (Sala A, B, C) deve vedersi **sia quando si prenota sia quando si vede la lezione prenotata**. Il dato arriva da `portale-lab-calendario` (APP-ATHLON, `CLAUDE.md`, sezione 187): è la zona della lezione su PerfectGym (`club_zones`).
+
+- **`sala` è un campo facoltativo** di `Lezione` e di `Prenotata` (`api/lab.ts`). Con la funzione di prima il campo manca e la schermata è quella di sempre: nessun errore, nessuna riga vuota.
+- **`salaDi()` (`Calendario.tsx`)** decide cosa si mostra: la zona, ma **niente se manca o se ripete il nome dell'attività**. La Gym Floor sta in «Gym Floor» e scriverlo sotto «Gym Floor» è rumore. Il nome della sala è del club e **non si traduce** (come le attività e i prodotti); si traduce solo l'etichetta «Dove» / «Where».
+- **Dove si vede:**
+  - **la copertina di ogni lezione**, una riga con l'icona `luogo` sotto il nome, in bianco e in grassetto («📍 Sala A»), sopra «con <istruttore>». Vale per le lezioni prenotate e no: la card prenotata ha solo il bordo e il vetrino «Prenotata» in più;
+  - **«Le tue prenotazioni»** (sopra i giorni): accanto al giorno, «Mar 10 nov · 📍 Sala B». Una prenotazione senza zona mostra solo il giorno;
+  - **il foglio di dettaglio** della lezione: una cifra in più, «Dove», fra la durata e l'istruttore (`FoglioLezione` accetta già un numero qualsiasi di cifre; un nome lungo come «Piscina Grande» va a capo nella cella);
+  - **le attività a turni** (Gym Floor, Nuoto Libero): la sala del **turno scelto**, sotto l'orario. La Gym Floor non ne ha una riga (zona uguale all'attività), il Nuoto Libero dice «Piscina Grande».
+- **Dopo un clic** (`aggiorna`) e nel ripiego di `mie` la prenotazione porta la `sala` della lezione, così «Le tue prenotazioni» non la perde quando si prenota o si disdice senza ricaricare il giorno.
+- **Non toccati, di proposito:** le tappe e «Prenota la settimana» del Percorso, i Consigli, la prenotazione da chat, la Home e la sezione Junior. La richiesta era il Calendario degli adulti; se si vuole la sala anche là, il dato va aggiunto alle rispettive funzioni (`portale-lab-percorso`, …).
+- **Le piscine compaiono come le sale** («Piscina Piccola» per l'Aqua Fitness, «Piscina Grande» per il Nuoto Libero e la Scuola Nuoto Adulti): il dato è la stessa zona e un'eccezione per nome sarebbe un elenco da tenere in pari. Se non le si vuole, basta che `salaDi()` accetti solo i nomi che cominciano per «Sala».
+- **Provato:** `tsc --noEmit` con le dipendenze installate: **0 errori in `src/`, prima e dopo** (gli altri sono in `docs/` e `scripts/`, già presenti). Bundle web esportato (`expo export -p web`) e Chromium con sessione e funzioni simulate (`page.route`, nessuna richiesta esce): a 390 px la copertina, «Le tue prenotazioni» con la lezione senza zona, il turno scelto del Nuoto Libero, e il foglio di dettaglio con «Dove · Sala A». Nessun errore di pagina anche in inglese e a 1280 px (questi due non guardati a occhio).
+- **Non provato:** con i dati veri e la funzione pubblicata, e su un telefono vero.
+- **Ordine di pubblicazione:** la funzione `portale-lab-calendario` prima, l'app dopo. L'app prima della funzione non rompe niente: semplicemente non mostra la sala.

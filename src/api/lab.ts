@@ -188,6 +188,8 @@ export type Lezione = {
   /** La macrocategoria di PerfectGym: Corsi Fitness, Group Reformer, Aqua Fitness, … */
   categoria: string
   istruttore: string | null
+  /** Dove si fa (09/11/2026): la zona su PerfectGym, «Sala A», «Sala B», «Sala C», «Piscina Grande»… Manca finche' la funzione non e' aggiornata. */
+  sala?: string | null
   posti: number
   iscritti: number
   liberi: number
@@ -227,7 +229,7 @@ export type CorsoDelSito = { foto: string | null; fuoco: string | null }
 export type PersonaCalendario = { member_id: number; nome: string | null; cognome: string | null; titolare: boolean }
 
 /** Una prenotazione in programma della persona, di qualunque giorno (non cominciata). */
-export type Prenotata = { class_id: number; nome: string; categoria: string; inizio: string; attesa: boolean }
+export type Prenotata = { class_id: number; nome: string; categoria: string; inizio: string; attesa: boolean; sala?: string | null }
 
 export type Giorno = {
   persone: PersonaCalendario[]
