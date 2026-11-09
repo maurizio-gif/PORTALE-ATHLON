@@ -523,7 +523,7 @@ function SedutePrenotate({ sedute, ore, onAnnulla }: { sedute: SedutaPersonal[];
               prima={i === 0}
               testa={
                 <LinearGradient colors={FUOCO} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={stili.orario}>
-                  <Text style={stili.orarioTesto}>{ora(s.inizio)}</Text>
+                  <Text style={stili.orarioTesto} numberOfLines={1} maxFontSizeMultiplier={1.3}>{ora(s.inizio)}</Text>
                 </LinearGradient>
               }
               titolo={`${maiuscola(giornoEsteso(giornoDi(s.inizio)))}`}
@@ -1345,7 +1345,9 @@ const stili = StyleSheet.create({
   puntino: { width: 6, height: 6, borderRadius: 3, marginTop: 2 },
   giornoTitolo: { fontSize: 20, fontFamily: F.extra, letterSpacing: -0.5 },
   nota: { fontSize: 13.5, lineHeight: 20, fontFamily: F.medio },
-  orario: { width: 56, height: 44, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
+  // minWidth/minHeight e non width/height: con il testo di sistema ingrandito l'orario («10:30») veniva tagliato in «10:3». Il testo del riquadro
+  // cresce al massimo di 1,3 volte (resta un'etichetta di forma fissa), il riquadro si allarga se serve.
+  orario: { minWidth: 56, minHeight: 44, paddingHorizontal: 8, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
   orarioTesto: { color: '#fff', fontFamily: F.extra, fontSize: 14, fontVariant: ['tabular-nums'] },
   fascia: { fontFamily: F.extra, fontSize: 11, letterSpacing: 1.2 },
   orari: { flexDirection: 'row', flexWrap: 'wrap', marginHorizontal: -4 },

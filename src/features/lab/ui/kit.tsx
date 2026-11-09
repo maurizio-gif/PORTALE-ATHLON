@@ -216,6 +216,9 @@ export function LinkSezione({ testo, onPress }: { testo: string; onPress: () => 
 
 // ---------------------------------------------------------------------------
 
+/** Da quanto in su la dimensione del testo di sistema e' «grande» per le righe: iOS «xxxL» e' 1,35, i primi livelli di accessibilita' 1,6. */
+export const SOGLIA_TESTO_GRANDE = 1.3
+
 /** Una riga di un elenco dentro una Carta: bollino (o avatar), titolo, sottotitolo, coda. */
 export function Riga({
   icona,
@@ -241,13 +244,29 @@ export function Riga({
   stileTitolo?: TextStyle
 }) {
   const p = usePalette()
-  const corpo = (
-    <View style={[stili.riga, !prima && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: p.scuro ? 'rgba(255,255,255,0.09)' : 'rgba(17,17,20,0.09)' }]}>
+  const { fontScale } = useWindowDimensions()
+  // Con la dimensione del testo di sistema molto grande (chi ha scelto «Testo più grande» sul telefono) il titolo, affiancato al
+  // pulsante in coda, restava largo due lettere e andava a capo una per riga (09/11/2026, foto di Maurizio da un iPhone). Oltre la
+  // soglia la coda scende sotto il titolo e il titolo ha tutta la riga. Sotto, niente cambia di un pixel.
+  const impilata = !!coda && fontScale > SOGLIA_TESTO_GRANDE
+  const linea = !prima && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: p.scuro ? 'rgba(255,255,255,0.09)' : 'rgba(17,17,20,0.09)' }
+  const principale = (
+    <>
       {testa ?? (icona ? <Bollino icona={icona} tono={tono} size={40} /> : null)}
       <View style={{ flex: 1, gap: 3 }}>
         <Text style={[stili.rigaTitolo, { color: p.testo }, stileTitolo]}>{titolo}</Text>
         {typeof sotto === 'string' ? <Text style={[stili.rigaSotto, { color: p.testoSecondario }]}>{sotto}</Text> : sotto}
       </View>
+    </>
+  )
+  const corpo = impilata ? (
+    <View style={[stili.rigaImpilata, linea]}>
+      <View style={stili.rigaPrincipale}>{principale}</View>
+      <View style={stili.rigaCodaSotto}>{coda}</View>
+    </View>
+  ) : (
+    <View style={[stili.riga, linea]}>
+      {principale}
       {coda}
       {onPress && !coda ? <Icona nome="avanti" size={16} colore={p.testoTerzo} /> : null}
     </View>
@@ -515,6 +534,9 @@ const stili = StyleSheet.create({
   sezioneTesta: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 2 },
   sezioneTitolo: { fontSize: 20, fontFamily: F.extra, letterSpacing: -0.5 },
   riga: { flexDirection: 'row', alignItems: 'center', gap: spazio.tre - 2, paddingVertical: spazio.tre - 4 },
+  rigaImpilata: { gap: spazio.due + 2, paddingVertical: spazio.tre - 4 },
+  rigaPrincipale: { flexDirection: 'row', alignItems: 'center', gap: spazio.tre - 2 },
+  rigaCodaSotto: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap' },
   rigaTitolo: { fontSize: 15.5, fontFamily: F.bold },
   rigaSotto: { fontSize: 13, lineHeight: 18, fontFamily: F.medio },
 })
