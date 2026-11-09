@@ -1,0 +1,9 @@
+## Dal web: Google Play su Android, App Store su iPhone, e dal computer nessun invito (09/11/2026)
+
+Richiesta di Maurizio, con la 3.0.0 pubblicata anche su Google Play: chi apre il portale dal web vede l'invito a scaricare l'app dello store del suo telefono, e chi lo apre dal computer non vede niente. Prosegue la sezione 163, che lo faceva per iPhone e iPad.
+
+- **`lib/appNativa.ts`** ha il link di Google Play scritto nel codice (`https://play.google.com/store/apps/details?id=it.athlonroma.app`, senza il `pcampaignid=web_share` del link di condivisione). `EXPO_PUBLIC_PLAY_STORE_URL` lo sostituisce, come `EXPO_PUBLIC_APP_STORE_URL` per l'App Store; non serve impostarlo su Vercel.
+- **La carta «Installa l'app»** (`features/lab/ui/Installa.tsx`, nella Home e nella pagina d'accesso) su Android dice «Scarica l'app Athlon Club», ha il pulsante «Scarica da Google Play» e parla di Health Connect al posto di Apple Salute. I passi per installare la versione web restano dietro «Preferisci la versione web?». Vale in tutti i browser di Android, anche dentro Instagram e simili.
+- **Sul computer la carta non compare più**, nemmeno quando il browser saprebbe installare la versione web (prima compariva col pulsante «Installa»). Un iPad si riconosce come iPhone e vede l'App Store; un Mac no.
+- **Non cambia**: sull'app nativa, sul totem e nella versione web già installata la carta non c'è; «Non ora» la nasconde per una settimana. Con il link, anche la carta delle abitudini (`fit/Abitudini.tsx`) su Android ha ora il pulsante per scaricare l'app.
+- **Provato** (Chromium su `expo export -p web`, Supabase intercettato, pagina d'accesso): con l'user agent di Android la carta c'è e il pulsante porta a Google Play; con quello di iPhone porta all'App Store; con Windows e Mac nessuna carta. `tsc` pulito. **Non provato** su un telefono vero.
