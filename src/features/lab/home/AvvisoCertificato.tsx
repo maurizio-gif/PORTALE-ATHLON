@@ -1,15 +1,19 @@
-import { StyleSheet, Text, View } from 'react-native'
+import { useState } from 'react'
+import { Platform, StyleSheet, Text, View } from 'react-native'
 import { useWindowDimensions } from '@/lib/finestra'
 
 import type { Area, PersonaArea } from '@/api/lab'
 import { spazio } from '@/theme'
 import { t } from '@/lib/lingua'
 
+import { Foglio } from '../ui/Foglio'
 import { Bollino, Carta, Entra, Pulsante } from '../ui/kit'
 import { F, usePalette, velo } from '../ui/tema'
 import { vistaCorrente } from '../vista'
+import { FoglioCertificato } from './CaricaCertificato'
 import { nome, statoCertificato, testoProroga, urgenzaCertificato, type StatoCertificato } from './certificato'
 import { personeConAbbonamento } from './regolarita'
+import { SezioneCertificato } from './SezioneCertificato'
 
 // L'avviso del certificato medico, subito sotto la testata della Home (20/10/2026, richiesta del club).
 // Compare solo per chi **ha un abbonamento** e ha il certificato **scaduto o mancante**: chi non ha un
@@ -20,6 +24,10 @@ import { personeConAbbonamento } from './regolarita'
 //
 // Tutto da `portale_la_mia_area`, gia' letta: nessuna chiamata in piu'. Un abbonamento e' quello di
 // `eAbbonamento` (con una quota, o principale a quota zero: omaggi ed employee), di ogni persona del nucleo.
+//
+// **Il pulsante** (09/11/2026, segnalazione di Maurizio dall'iPhone: «non porta da nessuna parte»): sul web porta alla sezione Certificato della Home (`onVai`, che scorre ai
+// riquadri). **Sull'app nativa non si affida allo scorrimento**: con una persona sola apre subito il foglio per caricare il certificato (lo stesso della sezione), con piu'
+// persone apre un foglio con l'elenco (la sezione Certificato) da cui si sceglie. In vista cliente resta `onVai`, che non carica niente.
 
 type AreaTrovata = Extract<Area, { trovato: true }>
 
@@ -43,41 +51,58 @@ function chi(a: Avviso): string {
   return a.persona.titolare ? t('Tu', 'You') : nome(a.persona)
 }
 
-export function AvvisoCertificato({ area, onVai }: { area: AreaTrovata; onVai: () => void }) {
+export function AvvisoCertificato({ area, onVai, onAggiorna }: { area: AreaTrovata; onVai: () => void; /** Il certificato e' arrivato: la Home si rilegge. */ onAggiorna: () => void }) {
   const p = usePalette()
+  // Il foglio aperto, e per chi: resta anche quando l'avviso se ne va (il certificato e' arrivato e la Home si e' riletta), o sparirebbe con lui il «Lo stiamo controllando».
+  const [foglio, setFoglio] = useState<{ tipo: 'persona'; persona: PersonaArea } | { tipo: 'elenco' } | null>(null)
   const { width } = useWindowDimensions()
   const avvisi = personeDaAvvisare(area)
-  if (!avvisi.length) return null
+  const nelFoglio = Platform.OS !== 'web' && !vistaCorrente()
+  const fogli =
+    nelFoglio && foglio ? (
+      <>
+        <FoglioCertificato aperto={foglio.tipo === 'persona'} persona={foglio.tipo === 'persona' ? foglio.persona : null} onChiudi={() => setFoglio(null)} onCaricato={onAggiorna} />
+        <Foglio aperto={foglio.tipo === 'elenco'} titolo={t('Certificati medici', 'Medical certificates')} onChiudi={() => setFoglio(null)}>
+          <SezioneCertificato area={area} onAggiorna={onAggiorna} />
+        </Foglio>
+      </>
+    ) : null
+  // I fogli stanno sempre nello stesso posto (dopo l'avviso, che puo' non esserci): se cambiassero di posto, React li rifarebbe da capo e perderebbero lo stato.
+  if (!avvisi.length) return fogli ? <>{null}{fogli}</> : null
   const unico = avvisi.length === 1 ? avvisi[0] : null
   const titolo = unico ? t(`Certificato medico ${unico.s.testo.toLowerCase()}`, `Medical certificate ${unico.s.testo.toLowerCase()}`) : t('Certificati medici da sistemare', 'Medical certificates to sort out')
   // Chi guarda l'app di un cliente (lo staff, in sola lettura) vede la sezione ma non puo' caricare niente.
+  const vai = () => (nelFoglio ? setFoglio(unico ? { tipo: 'persona', persona: unico.persona } : { tipo: 'elenco' }) : onVai())
   const testoPulsante = vistaCorrente() ? t('Vedi il certificato', 'View the certificate') : avvisi.length > 1 ? t('Sistema i certificati', 'Sort out the certificates') : t('Carica il certificato', 'Upload certificate')
   return (
-    <Entra indice={1}>
-      <Carta style={[stili.carta, { borderColor: p.errore, backgroundColor: velo(p, 'errore', p.scuro ? 0.13 : 0.06) }]}>
-        <View accessibilityRole="alert" style={{ gap: spazio.tre }}>
-          <View style={stili.testa}>
-            {/* Pieno in chiaro; in scuro il rosso e' pallido e l'icona bianca non si leggerebbe: li' il bollino e' a velo, con l'icona rossa. */}
-            <Bollino icona="certificato" tono="errore" pieno={!p.scuro} />
-            <View style={{ flex: 1, gap: 2 }}>
-              <Text style={[stili.titolo, { color: p.testo }]}>{titolo}</Text>
-              <Text style={[stili.sotto, { color: p.testoSecondario }]}>{t('Si consegna da qui, con una foto o un PDF.', 'You can hand it in here, with a photo or a PDF.')}</Text>
-            </View>
-          </View>
-          <View style={{ gap: spazio.due }}>
-            {avvisi.map((a) => (
-              <View key={a.persona.member_id} style={{ gap: 1 }}>
-                <Text style={{ color: p.testo, fontFamily: F.semi, fontSize: 13.5 }}>{unico ? chi(a) : `${chi(a)} · ${a.s.testo}`}</Text>
-                <Text style={[stili.sotto, { color: p.testoSecondario }]}>{a.s.dettaglio}</Text>
-                {a.s.proroga ? <Text style={{ color: p.testo, fontFamily: F.semi, fontSize: 13.5 }}>{testoProroga(a.s.proroga.fine)}</Text> : null}
+    <>
+      <Entra indice={1}>
+        <Carta style={[stili.carta, { borderColor: p.errore, backgroundColor: velo(p, 'errore', p.scuro ? 0.13 : 0.06) }]}>
+          <View accessibilityRole="alert" style={{ gap: spazio.tre }}>
+            <View style={stili.testa}>
+              {/* Pieno in chiaro; in scuro il rosso e' pallido e l'icona bianca non si leggerebbe: li' il bollino e' a velo, con l'icona rossa. */}
+              <Bollino icona="certificato" tono="errore" pieno={!p.scuro} />
+              <View style={{ flex: 1, gap: 2 }}>
+                <Text style={[stili.titolo, { color: p.testo }]}>{titolo}</Text>
+                <Text style={[stili.sotto, { color: p.testoSecondario }]}>{t('Si consegna da qui, con una foto o un PDF.', 'You can hand it in here, with a photo or a PDF.')}</Text>
               </View>
-            ))}
+            </View>
+            <View style={{ gap: spazio.due }}>
+              {avvisi.map((a) => (
+                <View key={a.persona.member_id} style={{ gap: 1 }}>
+                  <Text style={{ color: p.testo, fontFamily: F.semi, fontSize: 13.5 }}>{unico ? chi(a) : `${chi(a)} · ${a.s.testo}`}</Text>
+                  <Text style={[stili.sotto, { color: p.testoSecondario }]}>{a.s.dettaglio}</Text>
+                  {a.s.proroga ? <Text style={{ color: p.testo, fontFamily: F.semi, fontSize: 13.5 }}>{testoProroga(a.s.proroga.fine)}</Text> : null}
+                </View>
+              ))}
+            </View>
+            {/* A tutta larghezza sul telefono, dove si tocca col pollice; sul desktop quanto il testo. */}
+            <Pulsante testo={testoPulsante} icona="avanti" onPress={vai} pieno={width < 700} />
           </View>
-          {/* A tutta larghezza sul telefono, dove si tocca col pollice; sul desktop quanto il testo. */}
-          <Pulsante testo={testoPulsante} icona="avanti" onPress={onVai} pieno={width < 700} />
-        </View>
-      </Carta>
-    </Entra>
+        </Carta>
+      </Entra>
+      {fogli}
+    </>
   )
 }
 

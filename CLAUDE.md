@@ -206,3 +206,5 @@ chiamata diretta al gestionale. Esempio: la sezione Prodotti usa l'azione `prodo
 - [Le richieste al team nell'app: si sceglie dove vuoi la risposta, e si legge (e si riscrive) in «Le tue richieste» (08/11/2026)](docs/claude/168-richieste-al-team-risposta-in-app-o-via-email-08-11-2026.md) · 5 KB
 - [Si firma il contratto anche dall'app nativa (iPhone e Android): lo spazio di firma a schermo intero (08/11/2026)](docs/claude/169-firma-del-contratto-dall-app-nativa-08-11-2026.md) · 8 KB
 - [«La tua scelta · Continua» resta ferma in basso anche sull'app nativa (08/11/2026)](docs/claude/170-barra-la-tua-scelta-ferma-in-basso-sull-app-nativa-08-11-2026.md) · 4 KB
+- [Il diplomino si genera anche dall'app nativa, e «Carica il certificato» apre il foglio senza scorrere (09/11/2026)](docs/claude/171-diploma-nativo-e-avviso-certificato-sull-app-09-11-2026.md) · 7 KB
+- [La storia di Instagram di un evento si genera anche dall'app nativa: la scena SVG è in comune con il diplomino (09/11/2026)](docs/claude/172-storia-instagram-di-un-evento-nativa-09-11-2026.md) · 4 KB
