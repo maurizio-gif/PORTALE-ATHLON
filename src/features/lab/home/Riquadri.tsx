@@ -1,5 +1,5 @@
 import { LinearGradient } from 'expo-linear-gradient'
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, type ReactNode } from 'react'
 import { ScrollView, StyleSheet, Text, View } from 'react-native'
 import Animated, { ZoomIn } from 'react-native-reanimated'
 import { useWindowDimensions } from '@/lib/finestra'
@@ -33,6 +33,9 @@ const ASPETTO: Record<SezioneHome, { titolo: string; icona: NomeIcona; tono: Ton
   abbonamenti: { titolo: t('Abbonamenti', 'Memberships'), icona: 'abbonamento', tono: 'accento', colori: FUOCO },
   pagamenti: { titolo: t('Pagamenti', 'Payments'), icona: 'carta', tono: 'attenzione', colori: ['#F59E0B', '#B45309'] },
   prodotti: { titolo: t('Prodotti', 'Products'), icona: 'pass', tono: 'neutro', colori: ['#EC4899', '#9D174D'] },
+  // Dodici caratteri come «Tesseramento», il piu' lungo che stava in una riga di otto riquadri: «Mie prenotazioni» si troncava. La sezione che
+  // si apre si intitola «Le mie prenotazioni», e dice subito che e' la storia (il calendario e' la scheda in basso).
+  prenotazioni: { titolo: t('Prenotazioni', 'Bookings'), icona: 'calendario', tono: 'neutro', colori: ['#6366F1', '#3730A3'] },
   documenti: { titolo: t('Documenti', 'Documents'), icona: 'documento', tono: 'neutro', colori: ['#14B8A6', '#0E7C70'] },
   certificato: { titolo: t('Certificato', 'Certificate'), icona: 'certificato', tono: 'ok', colori: ['#34A36B', '#1B6B43'] },
   famiglia: { titolo: t('Famiglia', 'Family'), icona: 'famiglia', tono: 'blu', colori: MARE },
@@ -41,6 +44,8 @@ const ASPETTO: Record<SezioneHome, { titolo: string; icona: NomeIcona; tono: Ton
 }
 
 const LARGHEZZA = 160
+/** Quanti riquadri stanno in una riga da schermo largo prima che i titoli si taglino. */
+const RIQUADRI_PER_RIGA = 8
 const SPAZIO_FRA = spazio.tre - 4
 
 /** La grandezza del valore: un numero sta grande, una parola o una data piu' piccola. */
@@ -123,11 +128,24 @@ export function Riquadri({ voci, scelta, onScegli, sezioni = SEZIONI }: { voci: 
   const riquadri = sezioni.map((s) => <Riquadro key={s} sezione={s} voce={voci[s]} scelto={s === scelta} onPress={() => onScegli(s)} larghezza={largo ? undefined : LARGHEZZA} />)
 
   if (largo) {
+    // In una riga ne stanno al piu' otto: a 1440 punti sono ~129 l'uno, e il titolo piu' lungo («Tesseramento») ci sta appena. Con la
+    // Prenotazioni (09/11/2026) chi ha anche una tessera ne ha nove, ~113 l'uno, e si troncavano anche «Abbonamenti» e «Tesseramento»: oltre otto
+    // si va su due righe, alla pari (5 + 4), con una cella vuota in fondo alla seconda perche' le colonne restino uguali.
+    const perRiga = riquadri.length > RIQUADRI_PER_RIGA ? Math.ceil(riquadri.length / 2) : riquadri.length
+    const righe: ReactNode[][] = []
+    for (let i = 0; i < riquadri.length; i += perRiga) righe.push(riquadri.slice(i, i + perRiga))
     return (
-      <View style={{ flexDirection: 'row', gap: spazio.tre }} accessibilityRole="tablist">
-        {riquadri.map((r, i) => (
-          <View key={i} style={{ flex: 1, minWidth: 0, flexDirection: 'column' }}>
-            {r}
+      <View style={{ gap: spazio.tre }} accessibilityRole="tablist">
+        {righe.map((riga, k) => (
+          <View key={k} style={{ flexDirection: 'row', gap: spazio.tre }}>
+            {riga.map((r, i) => (
+              <View key={i} style={{ flex: 1, minWidth: 0, flexDirection: 'column' }}>
+                {r}
+              </View>
+            ))}
+            {Array.from({ length: perRiga - riga.length }, (_, j) => (
+              <View key={`vuota${j}`} style={{ flex: 1, minWidth: 0 }} />
+            ))}
           </View>
         ))}
       </View>

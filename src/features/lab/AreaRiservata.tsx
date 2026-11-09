@@ -36,6 +36,7 @@ import { SezioneCertificato } from './home/SezioneCertificato'
 import { SezioneFamiglia } from './home/SezioneFamiglia'
 import { SezioneDocumenti, useDocumenti, CHIAVE_DOCUMENTI } from './home/SezioneDocumenti'
 import { SezionePagamenti } from './home/SezionePagamenti'
+import { SezionePrenotazioni, useStoricoPrenotazioni } from './home/SezionePrenotazioni'
 import { SezioneProdotti, useProdotti } from './home/SezioneProdotti'
 import { SezioneTesseramento, useTesseramenti } from './home/SezioneTesseramento'
 import { giorni, nome, oggi, statoCertificato, urgenzaCertificato } from './home/certificato'
@@ -261,6 +262,7 @@ export function AreaRiservata({ email }: { email: string }) {
   const movimenti = useMovimenti()
   const documenti = useDocumenti()
   const prodotti = useProdotti()
+  const storico = useStoricoPrenotazioni()
   const tesseramenti = useTesseramenti()
   const { sezione: parametro, assistenza } = useLocalSearchParams<{ sezione?: string; assistenza?: string }>()
 
@@ -473,6 +475,14 @@ export function AreaRiservata({ email }: { email: string }) {
         : prodotti.errore
           ? { valore: t('Apri', 'Open'), nota: t('lezioni, accessi, recuperi', 'classes, visits, make-up classes') }
           : { valore: '…', nota: t('un attimo', 'one moment') },
+    // Il riquadro delle prenotazioni passate: quante volte c'era (e quante no) negli ultimi 90 giorni. Le disdette non sono assenze.
+    prenotazioni: storico.dati
+      ? storico.dati.voci.length
+        ? { valore: String(storico.dati.presenze), nota: t(`${storico.dati.presenze === 1 ? 'presenza' : 'presenze'} · ${storico.dati.assenze} ${storico.dati.assenze === 1 ? 'assenza' : 'assenze'}`, `attended · ${storico.dati.assenze} missed`) }
+        : { valore: '0', nota: t(`nessuna in ${storico.dati.giorni} giorni`, `none in ${storico.dati.giorni} days`) }
+      : storico.errore
+        ? { valore: t('Apri', 'Open'), nota: t('storico delle lezioni', 'your class history') }
+        : { valore: '…', nota: t('un attimo', 'one moment') },
     documenti:
       nDocumenti != null
         ? { valore: String(nDocumenti), nota: nDocumenti === 1 ? t('documento', 'document') : t('documenti', 'documents') }
@@ -543,6 +553,7 @@ export function AreaRiservata({ email }: { email: string }) {
         {sezione === 'abbonamenti' ? <ElencoAbbonamenti area={area} onSezione={(s) => vai(s, true)} /> : null}
         {sezione === 'pagamenti' ? <SezionePagamenti area={area} onAggiorna={carica} /> : null}
         {sezione === 'prodotti' ? <SezioneProdotti /> : null}
+        {sezione === 'prenotazioni' ? <SezionePrenotazioni /> : null}
         {sezione === 'documenti' ? <SezioneDocumenti /> : null}
         {sezione === 'certificato' ? <SezioneCertificato area={area} onAggiorna={carica} /> : null}
         {sezione === 'famiglia' ? <SezioneFamiglia area={area} onAggiorna={carica} /> : null}

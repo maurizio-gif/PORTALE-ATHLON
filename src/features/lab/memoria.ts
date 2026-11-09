@@ -40,6 +40,8 @@ const FRESCHEZZA: Record<string, number> = {
   'abbonamenti:contratti': 2 * 60_000,
   'documenti:elenco': 5 * 60_000,
   'prodotti:elenco': 5 * 60_000,
+  // Lo storico cambia col tempo (una lezione appena finita passa da «Da confermare» a «Presente»), non con un clic dell'app.
+  'prenotazioni:storico': 2 * 60_000,
   'tesseramenti:elenco': 5 * 60_000,
   'pagamenti:movimenti': 2 * 60_000,
 }

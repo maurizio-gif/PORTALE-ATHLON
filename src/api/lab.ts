@@ -300,6 +300,58 @@ export async function presenzeLezioni(): Promise<Esito<{ presenze: PresenzaLezio
   return { ok: false, errore: dati.errore ?? t('Non riusciamo a leggere le tue lezioni adesso.', 'We can’t load your classes right now.') }
 }
 
+/**
+ * Una prenotazione passata del titolare, con la presenza (09/11/2026, il riquadro «Prenotazioni» della Home). `esito`:
+ *   presente       segnata dalla reception o dal trainer
+ *   assente        passato il tempo per segnarla (3 ore dall'inizio per una lezione), non c'e'
+ *   da_confermare  ancora in tempo per segnarla: non e' un'assenza
+ *   annullata      disdetta: non conta fra le assenze
+ */
+export type EsitoPrenotazione = 'presente' | 'assente' | 'da_confermare' | 'annullata'
+export type PrenotazionePassata = {
+  tipo: 'lezione' | 'pt'
+  id: number
+  inizio: string
+  fine: string | null
+  nome: string
+  /** La zona su PerfectGym («Sala A», «Piscina Grande»); null se manca e per i PT. */
+  sala: string | null
+  istruttore: string | null
+  esito: EsitoPrenotazione
+}
+export type StoricoPrenotazioni = {
+  /** Quanti giorni indietro arriva l'elenco: i conteggi sono su questi. */
+  giorni: number
+  /** Dalla piu' recente. */
+  voci: PrenotazionePassata[]
+  presenze: number
+  assenze: number
+  da_confermare: number
+  annullate: number
+}
+
+/**
+ * Le prenotazioni degli ultimi 90 giorni con il flag se la persona era presente. Con una funzione di prima (che non conosce l'azione)
+ * risponde 400 e la sezione dice che non riesce a leggerle: niente di rotto, e il riquadro resta apribile.
+ */
+export async function storicoPrenotazioni(): Promise<Esito<StoricoPrenotazioni>> {
+  const { ok, stato, dati } = await calendario({ azione: 'storico' })
+  if (ok && Array.isArray(dati.voci)) {
+    return {
+      ok: true,
+      giorni: Number(dati.giorni) || 90,
+      voci: dati.voci as PrenotazionePassata[],
+      presenze: Number(dati.presenze) || 0,
+      assenze: Number(dati.assenze) || 0,
+      da_confermare: Number(dati.da_confermare) || 0,
+      annullate: Number(dati.annullate) || 0,
+    }
+  }
+  // 400 e' «Azione sconosciuta»: la funzione non e' ancora quella nuova. Il testo del server non e' per la persona.
+  const generico = t('Non riusciamo a leggere le tue prenotazioni adesso.', 'We can’t load your bookings right now.')
+  return { ok: false, errore: stato === 400 ? generico : (dati.errore ?? generico) }
+}
+
 /** Una lezione a cui il titolare e' stato presente di recente e a cui non ha ancora dato le stelle. */
 export type LezioneDaValutare = { class_id: number; inizio: string; fine: string; nome: string; istruttore: string | null }
 

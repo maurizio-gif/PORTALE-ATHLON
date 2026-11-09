@@ -215,3 +215,4 @@ chiamata diretta al gestionale. Esempio: la sezione Prodotti usa l'azione `prodo
 - [Il cambio abbonamento: dopo la firma si paga, niente più «se ne occupa la segreteria» (09/11/2026)](docs/claude/177-cambio-abbonamento-si-paga-dopo-la-firma-09-11-2026.md) · 1 KB
 - [I link delle email aprono l'app su Android: il file `assetlinks.json` (09/11/2026)](docs/claude/178-link-android-assetlinks-09-11-2026.md) · 2 KB
 - [Dal web: Google Play su Android, App Store su iPhone, e dal computer nessun invito (09/11/2026)](docs/claude/179-installa-google-play-su-android-e-niente-dal-computer-09-11-2026.md) · 2 KB
+- [«Prenotazioni» nella Home: lo storico degli ultimi 90 giorni, con il flag se c'eri (09/11/2026)](docs/claude/180-le-mie-prenotazioni-storico-con-presenza-09-11-2026.md) · 3 KB
