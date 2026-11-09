@@ -336,8 +336,13 @@ export function disdettaVera(c: { disdetta: string | null; fine: string | null }
   return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 0)).getUTCDate() === d.getUTCDate();
 }
 
-/** Il rinnovo di un abbonamento junior, in una riga. */
-export function rinnovoJunior(c: { disdetta: string | null; fine: string | null }): string {
+/** Il rinnovo di un abbonamento junior, in una riga. Lo stagionale e' pagato per tutta la stagione: non si rinnova e non si disdice. */
+export function rinnovoJunior(c: { disdetta: string | null; fine: string | null; stagionale?: boolean }): string {
+  if (c.stagionale)
+    return t(
+      `Abbonamento stagionale, già pagato per tutta la stagione: vale fino al ${dataIt(c.fine)}, non si rinnova e non si disdice`,
+      `Season membership, already paid for the whole season: valid until ${dataIt(c.fine)}, doesn’t renew and can’t be cancelled`,
+    );
   if (disdettaVera(c))
     return t(`Disdetto: finisce il ${dataIt(c.fine)} e non si rinnova`, `Cancelled: ends on ${dataIt(c.fine)} and won’t renew`);
   return t(
@@ -372,7 +377,13 @@ export function oggiRoma(): string {
 export function finestraLezioni(c: {
   fine: string | null;
   disdetta: string | null;
+  stagionale?: boolean;
 }): string {
+  if (c.stagionale)
+    return t(
+      `Qui vedi le lezioni di questo mese e del prossimo. Il tuo abbonamento stagionale è già pagato fino al ${dataIt(c.fine)}.`,
+      `Here you can see this month’s and next month’s classes. Your season membership is already paid until ${dataIt(c.fine)}.`,
+    );
   if (disdettaVera(c))
     return t(
       `Qui vedi le lezioni fino al ${dataIt(c.fine)}, quando finisce il tuo abbonamento.`,

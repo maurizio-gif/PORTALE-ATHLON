@@ -336,7 +336,8 @@ function SezioneIscrizione({
           />
         </Carta>
         <PagamentiContratto contrattoId={c.id} />
-        {!vista ? (
+        {/* Solo i mensili si disdicono (09/11/2026): lo stagionale e' gia' pagato per tutta la stagione. */}
+        {!vista && c.disdicibile !== false ? (
           <DisdiciAbbonamento
             disdetto={disdettaVera(c)}
             nome={nome}

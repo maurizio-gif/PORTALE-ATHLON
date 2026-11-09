@@ -152,6 +152,13 @@ export type ContrattoJunior = {
   rinnovo_automatico: boolean | null;
   /** Il giorno in cui e' stata data la disdetta, se c'e'. */
   disdetta: string | null;
+  /**
+   * Stagionale (09/11/2026): la stagione intera e' gia' pagata in anticipo; il canone e' 0, non si rinnova e non si disdice. Il canone
+   * di un mensile e' la cifra che la famiglia paga ogni mese, anche scontata (non il listino); 0 se non c'e' nessuna quota.
+   */
+  stagionale?: boolean;
+  /** Si puo' disdire dall'app: solo i mensili. Assente (funzione di prima) vale come si'. */
+  disdicibile?: boolean;
 };
 
 export type LezioneIscritto = {
