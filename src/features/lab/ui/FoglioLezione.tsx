@@ -42,7 +42,7 @@ export function FoglioLezione({
   scheda: SchedaLezione | null
   titolo: string
   categoria?: string
-  /** Le tre cifre in alto: ora, durata, istruttore (nome e cognome su due righe, con «\n»). */
+  /** Le cifre in alto: ora, durata, dove (la sala, se si sa), istruttore (nome e cognome su due righe, con «\n»). */
   dettagli?: { valore: string; etichetta: string }[]
   /** Un blocco in piu' sotto le caratteristiche (le calorie stimate): ha le sue regole su cosa mostrare. */
   extra?: ReactNode

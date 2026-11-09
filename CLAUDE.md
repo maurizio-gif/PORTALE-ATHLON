@@ -211,3 +211,4 @@ chiamata diretta al gestionale. Esempio: la sezione Prodotti usa l'azione `prodo
 - [Lo shop nativo nell'app: il questionario, il carrello a righe, la cassa come le gare, il preordine (06/11/2026)](docs/claude/173-shop-nativo-questionario-preordine-e-cassa-06-11-2026.md) · 8 KB
 - [I ragazzi da 13 a 17 anni entrano con il loro indirizzo: la sessione è limitata dal server, l'interfaccia non ancora (09/11/2026)](docs/claude/174-ragazzi-13-17-sessione-limitata-09-11-2026.md) · 3 KB
 - [Il testo di sistema molto grande: la coda di una riga scende sotto il titolo, e l'orario non si taglia (09/11/2026)](docs/claude/175-testo-di-sistema-grande-righe-e-orari-09-11-2026.md) · 3 KB
+- [Il Calendario dice in che sala si fa la lezione: Sala A, B, C, sia per prenotare sia sulla lezione prenotata (09/11/2026)](docs/claude/176-calendario-la-sala-della-lezione-09-11-2026.md) · 3 KB
