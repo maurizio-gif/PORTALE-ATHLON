@@ -1,7 +1,7 @@
 import { Image } from 'expo-image'
 import { router } from 'expo-router'
 import { useState } from 'react'
-import { ScrollView, StyleSheet, Text, View, type NativeScrollEvent, type NativeSyntheticEvent } from 'react-native'
+import { StyleSheet, Text, View } from 'react-native'
 
 import type { Scelte, ValoreScelta } from '@/api/shop'
 import { euro } from '@/lib/eventi'
@@ -22,7 +22,7 @@ import { giornoEOra } from './quando'
 import { opzioniMancanti, testoMancante } from './scelte'
 import { useVetrina } from './useVetrina'
 
-// La pagina di un articolo: le foto (si scorrono), il prezzo, la descrizione e «Aggiungi al carrello». Quanti
+// La pagina di un articolo: le foto (tutte insieme in una griglia a due colonne, non una alla volta), il prezzo, la descrizione e «Aggiungi al carrello». Quanti
 // pezzi si possono mettere lo dice la vetrina (`quantita_max`): un articolo si compra al massimo in cinque pezzi per ordine.
 //
 // **Il questionario sta prima del carrello** (06/11/2026): un articolo con `opzioni` (il Kit Agonismo: chi e' l'atleta, la taglia della t-shirt e dello short)
@@ -36,7 +36,6 @@ export function Articolo({ id }: { id: number }) {
   const { quantita } = useCarrello()
   const [scelti, setScelti] = useState(1)
   const [larghezza, setLarghezza] = useState(0)
-  const [foto, setFoto] = useState(0)
   const [aggiunto, setAggiunto] = useState(false)
   const [risposte, setRisposte] = useState<Scelte>({})
   const inVista = vistaCorrente() !== null
@@ -51,9 +50,9 @@ export function Articolo({ id }: { id: number }) {
   const mancanti = a ? opzioniMancanti(a, risposte, persone) : []
   const chiuso = !!a && a.preordine && !a.preordine_aperto
 
-  const scorri = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
-    if (larghezza) setFoto(Math.round(e.nativeEvent.contentOffset.x / larghezza))
-  }
+  // Il lato di una tessera: meta' della larghezza meno lo spazio fra le due colonne, ma mai oltre LATO_MAX: su un computer o un tablet le tessere restano piccole
+  // (e le foto in fila) invece di ingrandirsi fino a sgranare. Finche' la pagina non e' misurata, una misura da telefono.
+  const lato = larghezza ? Math.min(Math.floor((larghezza - SPAZIO_FOTO) / 2), LATO_MAX) : 160
 
   if (!dati) {
     return (
@@ -103,39 +102,32 @@ export function Articolo({ id }: { id: number }) {
 
   return (
     <Schermata titolo={a.nome} sopratitolo={a.categoria} indietro="/shop" barra={false} destra={inVista ? undefined : <BottoneCarrello />}>
-      <View onLayout={(e) => setLarghezza(e.nativeEvent.layout.width)} style={{ gap: spazio.due }}>
-        {a.foto.length ? (
-          <ScrollView
-            horizontal
-            pagingEnabled
-            showsHorizontalScrollIndicator={false}
-            onScroll={scorri}
-            scrollEventThrottle={16}
-            style={[stili.galleria, { backgroundColor: p.incavo }]}
-          >
+      <View onLayout={(e) => setLarghezza(e.nativeEvent.layout.width)}>
+        {a.foto.length > 1 ? (
+          // Tutte le foto insieme, gia' aperte (09/11/2026, richiesta di Maurizio: una alla volta a tutta larghezza le ingrandiva e le sgranava). Due colonne di tessere quadrate
+          // con la foto intera (`contain`, mai ritagliata) su fondo bianco: e' lo sfondo con cui il CRM le salva.
+          <View style={stili.griglia}>
             {a.foto.map((u, i) => (
-              <Image
-                key={u}
-                source={{ uri: u }}
-                style={{ width: larghezza || 320, aspectRatio: 1 }}
-                contentFit="cover"
-                transition={200}
-                accessibilityLabel={t(`${a.nome}, foto ${i + 1} di ${a.foto.length}`, `${a.nome}, photo ${i + 1} of ${a.foto.length}`)}
-              />
+              <View key={u} style={[stili.tessera, { width: lato, height: lato, borderColor: p.linea }]}>
+                <Image
+                  source={{ uri: u }}
+                  style={StyleSheet.absoluteFill}
+                  contentFit="contain"
+                  transition={200}
+                  accessibilityLabel={t(`${a.nome}, foto ${i + 1} di ${a.foto.length}`, `${a.nome}, photo ${i + 1} of ${a.foto.length}`)}
+                />
+              </View>
             ))}
-          </ScrollView>
+          </View>
+        ) : a.foto.length === 1 ? (
+          <View style={[stili.tessera, { width: '100%', maxWidth: FOTO_SINGOLA_MAX, aspectRatio: 1, borderColor: p.linea }]}>
+            <Image source={{ uri: a.foto[0] }} style={StyleSheet.absoluteFill} contentFit="contain" transition={200} accessibilityLabel={a.nome} />
+          </View>
         ) : (
           <View style={[stili.galleria, { backgroundColor: p.incavo, width: '100%', aspectRatio: 1 }]}>
             <SegnapostoFoto size={56} />
           </View>
         )}
-        {a.foto.length > 1 ? (
-          <View style={stili.puntini} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
-            {a.foto.map((u, i) => (
-              <View key={u} style={[stili.puntino, { backgroundColor: i === foto ? p.accento : p.linea }]} />
-            ))}
-          </View>
-        ) : null}
       </View>
 
       <Carta>
@@ -189,10 +181,16 @@ export function Articolo({ id }: { id: number }) {
   )
 }
 
+const SPAZIO_FOTO = spazio.due
+/** Il lato massimo di una tessera, in punti: le foto del club sono piccole (spesso 300-900 px) e oltre questa misura si vedono sgranate. */
+const LATO_MAX = 220
+/** La foto di un articolo che ne ha una sola: a tutta larghezza sul telefono, ma non oltre questa misura. */
+const FOTO_SINGOLA_MAX = 420
+
 const stili = StyleSheet.create({
   galleria: { borderRadius: 28, overflow: 'hidden' },
-  puntini: { flexDirection: 'row', justifyContent: 'center', gap: 6 },
-  puntino: { width: 8, height: 8, borderRadius: 4 },
+  griglia: { flexDirection: 'row', flexWrap: 'wrap', gap: SPAZIO_FOTO },
+  tessera: { borderRadius: 20, overflow: 'hidden', backgroundColor: '#FFFFFF', borderWidth: StyleSheet.hairlineWidth },
   testa: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spazio.tre },
   tag: { flexDirection: 'row', alignItems: 'center', gap: spazio.due, flexShrink: 1, flexWrap: 'wrap', justifyContent: 'flex-end' },
   preordine: { marginTop: spazio.tre, padding: spazio.tre, borderRadius: 14, gap: 4 },
