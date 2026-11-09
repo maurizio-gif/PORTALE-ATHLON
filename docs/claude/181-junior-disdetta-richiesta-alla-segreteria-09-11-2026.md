@@ -11,6 +11,7 @@ nostro motore. Lato server: `CLAUDE.md` di APP-ATHLON, sezione 192.
 - **Dopo l'invio**, e finché la richiesta è aperta, al posto del comando c'è «Richiesta di disdetta inviata»: la segreteria la registra e
   conferma per email, l'abbonamento finisce il … e non si rinnova. Quando la segreteria l'ha fatta e il mirror non ha ancora la fine nuova,
   si legge «Disdetta registrata».
+- **Anche le righe «Rinnovo» e la nota delle lezioni** (`rinnovoJunior`, `finestraLezioni` in `comune.ts`) leggono la richiesta. Prima la scheda diceva «si rinnova automaticamente» accanto a «non si rinnova». Ora, in attesa, la riga dice «Disdetta richiesta: finisce il … e non si rinnova, appena la segreteria la registra»; fatta, dice «Disdetto: finisce il …». Il mirror, quando ha la fine nuova, vince.
 - **`ContrattoJunior.disdetta_richiesta`** (`{ fine, il, stato }`) arriva con i corsi, e `Corsi.tsx` lo passa al componente.
   **`disdiciCorso`** (`src/api/junior.ts`) restituisce `richiesta`, `giaChiesta` e `stato`. Con la funzione di prima, che scriveva su
   PerfectGym, la risposta non ha `richiesta` e vale come disdetta fatta.
