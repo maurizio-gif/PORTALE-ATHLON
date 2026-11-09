@@ -14,12 +14,22 @@ export function nomePersona(p: Pick<PersonaShop, 'nome' | 'cognome'>): string {
   return [p.nome, p.cognome].map((x) => x?.trim()).filter(Boolean).join(' ')
 }
 
+/**
+ * Chi del nucleo si puo' scegliere per questa domanda: tutti, oppure — se la domanda ha un limite di eta' (il Kit Agonismo, da 7 a 18 anni) — solo gli `ammessi` che il server ha
+ * calcolato. L'app non conta gli anni: ha l'anno di nascita e non la data intera, e un conto a meta' sbaglierebbe nei giorni intorno al compleanno.
+ */
+export function personeAmmesse(o: Pick<Opzione, 'ammessi'>, persone: PersonaShop[]): PersonaShop[] {
+  const ammessi = o.ammessi
+  return Array.isArray(ammessi) ? persone.filter((p) => ammessi.includes(p.member_id)) : persone
+}
+
 /** Il valore rimandato per questa domanda, se e' ancora una risposta valida; altrimenti `null`. */
 function rispostaValida(o: Opzione, scelte: Scelte | undefined, persone: PersonaShop[]): string | number | null {
   const v = scelte?.[o.id]
   if (o.tipo === 'persona') {
     if (!v || typeof v === 'string' || !Number.isInteger(v.member_id)) return null
-    return persone.some((p) => p.member_id === v.member_id) ? v.member_id : null
+    // Chi non e' (piu') ammesso conta come «manca»: per esempio un atleta che ha compiuto 19 anni dopo che il kit era nel carrello.
+    return personeAmmesse(o, persone).some((p) => p.member_id === v.member_id) ? v.member_id : null
   }
   if (typeof v !== 'string') return null
   return (o.valori ?? []).some((x) => x.v === v) ? v : null

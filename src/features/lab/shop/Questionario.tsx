@@ -10,7 +10,7 @@ import { Icona } from '../ui/Icona'
 import { Messaggio } from '../ui/kit'
 import { F, usePalette, velo } from '../ui/tema'
 import { Tocco } from '../ui/Tocco'
-import { nomePersona } from './scelte'
+import { nomePersona, personeAmmesse } from './scelte'
 
 // Il questionario prima del carrello (06/11/2026): per il Kit Agonismo, chi e' l'atleta e le due taglie. Le domande, gli aiuti e le tabelle arrivano dal
 // server **gia' nella lingua della richiesta**: qui si disegnano e basta, e si rimanda il valore `v`.
@@ -58,15 +58,36 @@ function Domanda({ o, persone, risposta, onCambia }: { o: Opzione; persone: Pers
           </Foglio>
         </>
       ) : null}
-      {o.tipo === 'persona' ? <ScelteDiPersona persone={persone} scelta={typeof risposta === 'object' ? risposta.member_id : null} onScegli={(id) => onCambia({ member_id: id })} /> : <ScelteDiValori o={o} scelta={typeof risposta === 'string' ? risposta : null} onScegli={onCambia} />}
+      {o.tipo === 'persona' ? (
+        <ScelteDiPersona persone={personeAmmesse(o, persone)} fascia={fasciaEta(o)} scelta={typeof risposta === 'object' ? risposta.member_id : null} onScegli={(id) => onCambia({ member_id: id })} />
+      ) : (
+        <ScelteDiValori o={o} scelta={typeof risposta === 'string' ? risposta : null} onScegli={onCambia} />
+      )}
     </View>
   )
 }
 
-function ScelteDiPersona({ persone, scelta, onScegli }: { persone: PersonaShop[]; scelta: number | null; onScegli: (memberId: number) => void }) {
+/** La fascia d'eta' di una domanda in parole («da 7 a 18 anni»), o `null` se non ha limiti. Gli estremi sono compresi: anni compiuti il giorno dell'acquisto. */
+function fasciaEta(o: Pick<Opzione, 'eta_min' | 'eta_max'>): string | null {
+  const a = o.eta_min ?? null
+  const b = o.eta_max ?? null
+  if (a !== null && b !== null) return t(`da ${a} a ${b} anni`, `aged ${a} to ${b}`)
+  if (a !== null) return t(`almeno ${a} anni`, `at least ${a} years old`)
+  if (b !== null) return t(`fino a ${b} anni`, `up to ${b} years old`)
+  return null
+}
+
+function ScelteDiPersona({ persone, fascia, scelta, onScegli }: { persone: PersonaShop[]; fascia: string | null; scelta: number | null; onScegli: (memberId: number) => void }) {
   const p = usePalette()
   if (!persone.length) {
-    return <Messaggio tono="attenzione">{t('Non troviamo nessuno nel tuo nucleo a cui intestare questo articolo.', 'We can’t find anyone in your household to order this item for.')}</Messaggio>
+    // Con un limite di eta' il server nasconde l'articolo a un nucleo senza nessuno di quell'eta': qui si arriva solo con una vetrina vecchia in memoria.
+    return (
+      <Messaggio tono="attenzione">
+        {fascia
+          ? t(`Nel tuo nucleo non c’è nessuno che abbia ${fascia}: questo articolo non si può ordinare.`, `There’s no one in your household ${fascia}: this item can’t be ordered.`)
+          : t('Non troviamo nessuno nel tuo nucleo a cui intestare questo articolo.', 'We can’t find anyone in your household to order this item for.')}
+      </Messaggio>
+    )
   }
   return (
     <View style={{ gap: spazio.due }} accessibilityRole="radiogroup">
