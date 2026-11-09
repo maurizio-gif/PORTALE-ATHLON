@@ -1,0 +1,17 @@
+[
+  {
+    "relation": [
+      "delegate_permission/common.handle_all_urls",
+      "delegate_permission/common.get_login_creds"
+    ],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "it.athlonroma.app",
+      "sha256_cert_fingerprints": [
+        "D2:CB:3F:4A:66:12:6D:1C:A2:A7:AF:D3:A8:CE:78:01:52:F6:DA:08:EF:07:11:54:83:12:FA:BF:F7:35:B2:A1",
+        "64:5D:75:D5:41:01:ED:4C:B2:F9:B8:79:09:A1:98:26:A6:D9:75:C0:4E:99:13:49:61:20:43:D5:11:9D:A7:04",
+        "30:16:A4:F1:E1:71:96:35:F7:B1:64:1C:36:ED:8F:7B:26:FC:A0:EC:66:70:CA:3D:D0:FE:45:1A:1B:1B:13:73"
+      ]
+    }
+  }
+]
