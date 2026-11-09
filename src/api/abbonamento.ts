@@ -220,7 +220,8 @@ export async function salvaDatiAbbonamento(memberId: number, cambi: CambiDati): 
 }
 
 export type StatoContratto = 'firmato' | 'contratto_creato' | 'completato' | 'errore'
-export type EsitoFirma = { numero: string; stato: StatoContratto; totale_oggi: number; cambio: { fine_vecchio: string; inizio_nuovo: string } | null }
+/** `cambio.da_pagare`: c'e' una quota gia' dovuta da pagare subito (PerfectGym mette a debito il contratto appena creato). Un server vecchio non lo manda. */
+export type EsitoFirma = { numero: string; stato: StatoContratto; totale_oggi: number; cambio: { fine_vecchio: string; inizio_nuovo: string; da_pagare?: boolean } | null }
 
 export async function firmaAbbonamento(
   s: SceltaAbbonamento,
@@ -232,8 +233,16 @@ export async function firmaAbbonamento(
 ): Promise<{ ok: true; esito: EsitoFirma } | { ok: false; errore: string; serveMetodo?: boolean }> {
   const { ok, dati } = await abbonamento({ azione: 'firma', ...s, dati_confermati: true, impronta, consensi, firma_png: firmaPng, ...(metodoCambio ? { metodo: metodoCambio } : {}) })
   if (ok && dati.numero) {
-    const c = dati.cambio && typeof dati.cambio === 'object' ? (dati.cambio as { fine_vecchio?: string; inizio_nuovo?: string }) : null
-    return { ok: true, esito: { numero: String(dati.numero), stato: dati.stato as StatoContratto, totale_oggi: Number(dati.totale_oggi ?? 0), cambio: c?.fine_vecchio && c.inizio_nuovo ? { fine_vecchio: c.fine_vecchio, inizio_nuovo: c.inizio_nuovo } : null } }
+    const c = dati.cambio && typeof dati.cambio === 'object' ? (dati.cambio as { fine_vecchio?: string; inizio_nuovo?: string; da_pagare?: boolean }) : null
+    return {
+      ok: true,
+      esito: {
+        numero: String(dati.numero),
+        stato: dati.stato as StatoContratto,
+        totale_oggi: Number(dati.totale_oggi ?? 0),
+        cambio: c?.fine_vecchio && c.inizio_nuovo ? { fine_vecchio: c.fine_vecchio, inizio_nuovo: c.inizio_nuovo, da_pagare: c.da_pagare === true } : null,
+      },
+    }
   }
   if (dati.serve_metodo) return { ok: false, serveMetodo: true, errore: dati.errore ?? t('Prima aggiungi o scegli il metodo di pagamento.', 'First add or choose a payment method.') }
   return { ok: false, errore: dati.errore ?? t('Non siamo riusciti a registrare il contratto adesso.', 'We couldn’t register the contract right now.') }

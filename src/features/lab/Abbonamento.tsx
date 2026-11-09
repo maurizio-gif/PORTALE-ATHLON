@@ -260,6 +260,8 @@ export function Abbonamento() {
   const [infoCambio, setInfoCambio] = useState<StatoCambio | null>(null)
   const [metodoCambio, setMetodoCambio] = useState<'carta' | 'conto' | null>(null)
   const [cambioFatto, setCambioFatto] = useState<{ fine_vecchio: string; inizio_nuovo: string } | null>(null)
+  /** Il cambio firmato con una quota da pagare subito: le date si ricordano nel passo del pagamento. */
+  const [dateCambio, setDateCambio] = useState<{ fine_vecchio: string; inizio_nuovo: string } | null>(null)
   const caricaCambio = useCallback(async () => {
     if (!cambioId) return
     const r = await statoCambioAbbonamento(cambioId)
@@ -430,12 +432,23 @@ export function Abbonamento() {
     setFoglio(false)
     setFirmando(false)
     if (cambioId) {
-      // Fatto: il vecchio e' chiuso e il nuovo e' in coda. Niente pagamento da qui: lo gestisce la segreteria. Le letture in memoria sono vecchie.
+      // Fatto: il vecchio e' chiuso e il nuovo e' in coda. Le letture in memoria sono vecchie.
       scorda('abbonamenti:contratti')
       scorda('area')
       scorda('documenti:elenco')
       setAnteprima(null)
-      setCambioFatto(r.esito.cambio ?? (infoCambio && inizio ? { fine_vecchio: giornoPrima(inizio), inizio_nuovo: inizio } : null))
+      const date = r.esito.cambio ?? (infoCambio && inizio ? { fine_vecchio: giornoPrima(inizio), inizio_nuovo: inizio, da_pagare: false } : null)
+      // PerfectGym mette il nuovo contratto a debito appena creato (09/11/2026, Maurizio): quello che e' gia' dovuto si paga adesso, qui, come in un'iscrizione
+      // nuova, con il metodo scelto prima della firma gia' proposto. Prima si chiudeva con «se ne occupa la segreteria» e la quota restava aperta.
+      if (date?.da_pagare) {
+        setDateCambio(date)
+        setMetodo(metodoCambio === 'conto' ? 'conto' : 'carta')
+        setUsaContoSalvato(true)
+        setFirmato({ numero: r.esito.numero, importi: anteprima.importi, piano: `${piano.abbonamento} · ${FORMULE[piano.formula].titolo}`, nome: persona?.nome ?? null, errore: null })
+        vai(4)
+        return
+      }
+      setCambioFatto(date)
       return
     }
     setFirmato({ numero: r.esito.numero, importi: anteprima.importi, piano: `${piano.abbonamento} · ${FORMULE[piano.formula].titolo}`, nome: persona?.nome ?? null, errore: null })
@@ -479,8 +492,8 @@ export function Abbonamento() {
         <View style={{ gap: spazio.quattro }}>
           <Messaggio tono="ok" titolo={t('Cambio registrato', 'Change recorded')} icona="ok">
             {t(
-              `Il tuo abbonamento attuale finisce il ${dataLunga(cambioFatto.fine_vecchio)} e il nuovo parte il ${dataLunga(cambioFatto.inizio_nuovo)}. Non c’è nessun pagamento da fare adesso: della parte economica si occupa la segreteria.`,
-              `Your current membership ends on ${dataLunga(cambioFatto.fine_vecchio)} and the new one starts on ${dataLunga(cambioFatto.inizio_nuovo)}. There’s nothing to pay now: the front desk takes care of the payment side.`,
+              `Il tuo abbonamento attuale finisce il ${dataLunga(cambioFatto.fine_vecchio)} e il nuovo parte il ${dataLunga(cambioFatto.inizio_nuovo)}. Oggi non c’è niente da pagare: le quote del nuovo abbonamento si addebitano sul metodo che hai scelto, quando scadono.`,
+              `Your current membership ends on ${dataLunga(cambioFatto.fine_vecchio)} and the new one starts on ${dataLunga(cambioFatto.inizio_nuovo)}. There’s nothing to pay today: the new membership’s payments are charged to the method you chose, when they’re due.`,
             )}
           </Messaggio>
           <Pulsante testo={t('Vai ai miei abbonamenti', 'Go to my memberships')} onPress={() => router.replace(hrefSezione('abbonamenti'))} />
@@ -726,13 +739,13 @@ export function Abbonamento() {
                   </Messaggio>
                 )}
                 <Pulsante testo={infoCambio.metodi.carta || infoCambio.metodi.conto ? t('Aggiungi un altro metodo', 'Add another method') : t('Aggiungi il metodo di pagamento', 'Add a payment method')} icona="carta" variante={infoCambio.metodi.carta || infoCambio.metodi.conto ? 'fantasma' : 'secondario'} piccolo={!!(infoCambio.metodi.carta || infoCambio.metodi.conto)} onPress={() => router.push('/metodo-pagamento')} />
-                <Text style={[stili.nota, { color: p.testoSecondario }]}>{t('Non addebitiamo niente adesso: il metodo serve solo per le quote future, che gestisce la segreteria.', 'We don’t charge anything now: the method is only for future payments, which the front desk handles.')}</Text>
+                <Text style={[stili.nota, { color: p.testoSecondario }]}>{t('Su questo metodo si addebitano le quote del nuovo abbonamento. Quello che è già dovuto lo paghi subito dopo la firma.', 'The new membership’s payments are charged to this method. Anything already due you pay right after signing.')}</Text>
               </Sezione>
             ) : null}
 
             <Messaggio tono="attenzione" titolo={t('Adesso il contratto', 'Now the contract')} icona="documento">
               {infoCambio
-                ? t('Lo leggi, spunti le dichiarazioni e firmi con il dito o con il mouse. Alla firma il tuo abbonamento attuale viene chiuso il giorno prima della data scelta e il nuovo parte quel giorno. Non c’è nessun pagamento adesso.', 'You read it, tick the declarations and sign with a finger or a mouse. When you sign, your current membership is closed the day before the date you chose and the new one starts that day. There’s no payment now.')
+                ? t('Lo leggi, spunti le dichiarazioni e firmi con il dito o con il mouse. Alla firma il tuo abbonamento attuale viene chiuso il giorno prima della data scelta e il nuovo parte quel giorno. Subito dopo paghi la quota del nuovo abbonamento.', 'You read it, tick the declarations and sign with a finger or a mouse. When you sign, your current membership is closed the day before the date you chose and the new one starts that day. Right after, you pay the new membership’s fee.')
                 : persona.firmatario === 'genitore'
                 ? t('Lo leggi, spunti le dichiarazioni e firma il genitore, con il dito o con il mouse. Il pagamento viene dopo: carta o conto corrente, lo scegli allora.', 'You read it, tick the declarations and the parent signs, with a finger or a mouse. Payment comes next: you choose card or bank account then.')
                 : t('Lo leggi, spunti le dichiarazioni e firmi con il dito o con il mouse. Il pagamento viene dopo: carta o conto corrente, lo scegli allora.', 'You read it, tick the declarations and sign with a finger or a mouse. Payment comes next: you choose card or bank account then.')}
@@ -746,8 +759,13 @@ export function Abbonamento() {
 
         {passo === 4 && stato && firmato ? (
           <>
-            <Messaggio tono="ok" titolo={t('Contratto firmato', 'Contract signed')} icona="ok">
-              {t(`${firmato.piano}${firmato.nome ? ` · ${firmato.nome}` : ''}. Il contratto non vincola il metodo di pagamento: scegli ora come pagare, e lo potrai cambiare.`, `${firmato.piano}${firmato.nome ? ` · ${firmato.nome}` : ''}. The contract doesn’t tie you to a payment method: choose how to pay now, and you can change it later.`)}
+            <Messaggio tono="ok" titolo={dateCambio ? t('Cambio firmato: manca il pagamento', 'Change signed: payment still to do') : t('Contratto firmato', 'Contract signed')} icona="ok">
+              {dateCambio
+                ? t(
+                    `${firmato.piano}. Il tuo abbonamento attuale finisce il ${dataLunga(dateCambio.fine_vecchio)} e il nuovo parte il ${dataLunga(dateCambio.inizio_nuovo)}. Per completare il cambio paga ora la quota del nuovo abbonamento.`,
+                    `${firmato.piano}. Your current membership ends on ${dataLunga(dateCambio.fine_vecchio)} and the new one starts on ${dataLunga(dateCambio.inizio_nuovo)}. To complete the change, pay the new membership’s fee now.`,
+                  )
+                : t(`${firmato.piano}${firmato.nome ? ` · ${firmato.nome}` : ''}. Il contratto non vincola il metodo di pagamento: scegli ora come pagare, e lo potrai cambiare.`, `${firmato.piano}${firmato.nome ? ` · ${firmato.nome}` : ''}. The contract doesn’t tie you to a payment method: choose how to pay now, and you can change it later.`)}
             </Messaggio>
             {firmato.errore ? <Messaggio tono="errore">{firmato.errore}</Messaggio> : null}
 
