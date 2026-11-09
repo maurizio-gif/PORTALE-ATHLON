@@ -1,0 +1,8 @@
+## I link delle email aprono l'app su Android: il file `assetlinks.json` (09/11/2026)
+
+Dopo la pubblicazione su Google Play (3.0.0, 09/11/2026), la pagina «Link diretti» di Play Console segnalava app.athlonroma.it con «Controlli del dominio non superati»: l'app dichiara i link `https://app.athlonroma.it/…`, ma il sito non diceva ad Android che l'app è nostra, quindi i link delle email si aprivano nel browser. È il gemello Android di `apple-app-site-association` (sezione 165).
+
+- **`public/.well-known/assetlinks.json`** è lo snippet che genera Play Console (Espandi la base utenti → Link diretti → il dominio), copiato così com'è: pacchetto `it.athlonroma.app`, le relazioni `handle_all_urls` (i link aprono l'app) e `get_login_creds` (condivisione delle credenziali), e tre impronte SHA-256. Fra le tre c'è quella della chiave con cui Google firma l'app scaricata dal Play Store: **si tengono tutte e tre**, togliendo quella giusta i link tornano al browser senza nessun errore.
+- **`vercel.json`** lo serve come `application/json` con un'ora di cache. La riscrittura verso `index.html` non lo tocca, perché il percorso ha un punto.
+- **Se cambia la chiave di firma** (o si aggiunge un'altra app), lo snippet nuovo si ricopia da Play Console: le impronte non si scrivono a mano.
+- **Per verificare**, dopo il deploy: `curl -s https://app.athlonroma.it/.well-known/assetlinks.json` risponde col file e `content-type: application/json`; in Play Console, Link diretti, si ricontrolla il dominio; sul telefono `adb shell pm get-app-links it.athlonroma.app` dice `verified`. Android verifica all'installazione o all'aggiornamento: chi aveva già l'app la verifica al prossimo aggiornamento (o reinstallando).
