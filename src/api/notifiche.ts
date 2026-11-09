@@ -16,7 +16,7 @@ import { t } from '@/lib/lingua'
  * Le schermate a cui il pulsante di una notifica porta: lo stesso elenco di `app_notifica_destinazioni()` nel database e di
  * `lib/notificheApp.ts` del CRM. Una chiave che l'app non conosce non e' un pulsante (la notifica si legge e basta).
  */
-export const DESTINAZIONI = ['home', 'calendario', 'abbonamenti', 'pagamenti', 'certificato', 'profilo', 'allenamento', 'shop', 'club-life', 'personal', 'tv'] as const
+export const DESTINAZIONI = ['home', 'calendario', 'abbonamenti', 'pagamenti', 'certificato', 'profilo', 'allenamento', 'shop', 'club-life', 'personal', 'tv', 'assistenza'] as const
 export type DestinazioneNotifica = (typeof DESTINAZIONI)[number]
 
 function eDestinazione(v: unknown): v is DestinazioneNotifica {
@@ -46,6 +46,9 @@ export function hrefDestinazione(d: DestinazioneNotifica): Href {
       return '/personal'
     case 'tv':
       return '/tv'
+    case 'assistenza':
+      // Le richieste al team (08/11/2026): la notifica «il team ti ha risposto» porta all'elenco, dove la risposta nuova ha il suo pallino.
+      return '/assistenza'
   }
 }
 

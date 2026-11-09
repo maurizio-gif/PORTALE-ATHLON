@@ -4,6 +4,7 @@
 import assert from 'node:assert/strict'
 
 import { arrivoDa, CATEGORIE, CATEGORIE_EVENTO, giornoValido, idValido, pianoValido } from '../src/features/entra/destinazioni'
+import { sezioneDa } from '../src/features/lab/home/sezioni'
 
 let passi = 0
 const ok = (n: string) => {
@@ -139,6 +140,19 @@ const ok = (n: string) => {
 }
 
 {
+  // La scheda «Certificato Medico» del sito (07/11/2026): la Home sulla sezione Certificato, e niente altro nell'indirizzo.
+  const OGGI = '2026-11-07'
+  const a = arrivoDa('certificato', 'Gym Floor', '2026-11-10', OGGI, '263', '987654', '10867', '1')
+  assert.deepEqual(a?.href, { pathname: '/', params: { sezione: 'certificato' } }, 'certificato: la Home sulla sezione Certificato, ignora categoria, giorno, piano, bambino e turno')
+  assert.deepEqual(arrivoDa('certificato')?.href, { pathname: '/', params: { sezione: 'certificato' } }, 'senza nient\'altro e\' lo stesso')
+  assert.ok(a && a.titolo && a.testo && a.bottone, 'titolo, testo e pulsante ci sono')
+  assert.ok(/certificato/i.test(a!.titolo + a!.testo + a!.bottone), 'la schermata dice di che si tratta')
+  // `sezione` e' una sezione vera della Home: se qualcuno la rinomina, il link porterebbe alla sezione iniziale in silenzio.
+  assert.equal(sezioneDa((a!.href as { params: { sezione: string } }).params.sezione), 'certificato', 'la sezione esiste nella Home')
+  ok('certificato: la sezione Certificato della Home, senza altri parametri')
+}
+
+{
   const OGGI = '2026-11-04'
   assert.deepEqual(arrivoDa('junior', null, null, OGGI, null, '987654')?.href, { pathname: '/junior', params: { assistenza: '1', figlio: '987654' } })
   assert.deepEqual(arrivoDa('junior', null, null, OGGI)?.href, { pathname: '/junior', params: { assistenza: '1' } })
@@ -146,6 +160,24 @@ const ok = (n: string) => {
   assert.equal(arrivoDa('prenota', null, null, OGGI, null, '987654')?.href, '/calendario', 'il bambino vale solo per junior')
   assert.equal(idValido('12345678901'), null, 'troppo lungo')
   ok('junior: si apre sul bambino del link, solo cifre')
+}
+
+{
+  // L'iscrizione di un figlio preparata dal CRM (07/11/2026).
+  const OGGI = '2026-11-07'
+  assert.deepEqual(arrivoDa('iscrizione', null, null, OGGI, null, '1234', '10867')?.href, { pathname: '/iscrizione', params: { group: '10867', membro: '1234' } })
+  assert.deepEqual(arrivoDa('iscrizione', null, null, OGGI, null, '77', null, '1')?.href, { pathname: '/iscrizione', params: { baby: '1', membro: '77' } })
+  assert.deepEqual(arrivoDa('iscrizione', null, null, OGGI, null, '77', '10867', '1')?.href, { pathname: '/iscrizione', params: { baby: '1', membro: '77' } }, 'Baby Nuoto vince sul turno')
+  assert.equal(arrivoDa('iscrizione', null, null, OGGI, null, null, '10867')?.href, '/junior', 'senza bambino si apre la sezione Junior')
+  assert.equal(arrivoDa('iscrizione', null, null, OGGI, null, '1234')?.href, '/junior', 'senza turno e senza Baby Nuoto, la sezione Junior')
+  assert.equal(arrivoDa('iscrizione', null, null, OGGI, null, '12a', '10867')?.href, '/junior', 'un bambino non numerico non passa')
+  assert.equal(arrivoDa('iscrizione', null, null, OGGI, null, '1234', '../../x')?.href, '/junior', 'un turno non numerico non passa')
+  assert.equal(arrivoDa('iscrizione', null, null, OGGI, null, '1234', '10867', 'si')?.href !== undefined, true)
+  assert.deepEqual(arrivoDa('iscrizione', null, null, OGGI, null, '1234', '10867', 'si')?.href, { pathname: '/iscrizione', params: { group: '10867', membro: '1234' } }, 'b vale solo se e\' 1')
+  assert.equal(arrivoDa('prenota', null, null, OGGI, null, '1234', '10867', '1')?.href, '/calendario', 'turno e Baby Nuoto valgono solo per l\'iscrizione')
+  const a = arrivoDa('iscrizione', null, null, OGGI, null, '1234', '10867')
+  assert.ok(a && a.titolo && a.testo && a.bottone, 'titolo, testo e pulsante ci sono')
+  ok('iscrizione: il turno o il Baby Nuoto per il bambino del link, solo cifre')
 }
 
 console.log(`\n${passi} prove passate`)

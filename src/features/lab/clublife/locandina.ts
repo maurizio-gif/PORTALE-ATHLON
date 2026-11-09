@@ -10,8 +10,9 @@ import { giornoEvento } from './comune'
 // (SITO-ATHLON, `components/CondividiEvento.astro`), 1080 x 1920, con la foto, il logo, una frase in prima persona («Anch'io partecipo»,
 // «Vieni con me»), l'occhiello, il titolo, la data e l'indirizzo. Se cambia l'una, va cambiata l'altra.
 //
-// - **Solo sul web.** Sull'app nativa disegnare un file vuole un modulo nuovo (`react-native-view-shot`) e quindi una build: li' il comando apre
-//   la pagina dell'evento sul sito con `?athlon-storia=1`, che apre da se' il passo della locandina (`urlStoriaSito`).
+// - **Questo file e' il canvas, quindi solo il web.** Sull'app nativa la stessa locandina e' una scena SVG (`scenaLocandina.ts`, `LocandinaSvg.tsx`, dal 09/11/2026):
+//   **se cambia l'impaginazione va cambiata anche li'**. Se il PNG nativo non esce, il comando apre la pagina dell'evento sul sito con `?athlon-storia=1`,
+//   che apre da se' il passo della locandina (`urlStoriaSito`).
 // - **Foto, logo e carattere del titolo arrivano da www.athlonroma.it**, cioe' da un altro dominio: entrano nel canvas solo perche' il sito li
 //   serve con `Access-Control-Allow-Origin` (`vercel.json`, `/wp-content/…`). Se non arrivano si disegna lo stesso: senza foto sul fondo scuro,
 //   col pittogramma dell'app al posto del logo, con Plus Jakarta al posto di Tusker.

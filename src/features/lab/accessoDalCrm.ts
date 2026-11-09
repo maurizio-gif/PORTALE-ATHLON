@@ -1,5 +1,6 @@
 import { Platform } from 'react-native'
 
+import { tokenDelLinkAperto } from '@/lib/urlApertura'
 import { supabase } from '@/lib/supabase'
 
 // L'accesso automatico della vista cliente (31/10/2026). Il pulsante «Vedi come cliente» del CRM non apre
@@ -15,7 +16,8 @@ import { supabase } from '@/lib/supabase'
 // `X-Athlon-Come` con la sessione di chi guarda, che il server controlla.
 //
 // Se il token non vale (gia' usato, scaduto, rete) non succede niente di grave: si resta dove si era e, senza
-// una sessione, si vede la pagina di accesso come prima. Solo sul web.
+// una sessione, si vede la pagina di accesso come prima. L'accesso dal CRM (`?come=`) e' solo sul web; i link `/entra` e la conferma della
+// delega valgono anche nell'app nativa (`leggiTokenDelLink`, 08/11/2026).
 //
 // Una promessa sola per pagina: piu' schermate chiedono la sessione insieme, e il frammento lo legge e lo toglie
 // la prima; le altre aspettano lo stesso esito (e vedono la sessione gia' aperta).
@@ -38,6 +40,19 @@ export function leggiEToglieToken(): string | null {
   } catch {
     return null
   }
+}
+
+/**
+ * Il token del link con cui si e' arrivati, **sul web e nell'app nativa** (08/11/2026). Sul web e' `leggiEToglieToken` (il frammento della pagina,
+ * che toglie dall'indirizzo); nell'app il frammento non c'e' in nessuna pagina, e il token si prende dall'indirizzo che ha aperto l'app
+ * (`lib/urlApertura.ts`). `percorso` e' quello della pagina che lo chiede (`/entra`, `/delega/conferma`): un token visto per un'altra non vale.
+ * `frammentoDelRouter` e' il parametro `'#'` della rotta (`th=…`), dove il router nativo lascia il frammento. Un token gia' provato non si riprende.
+ * **Sul web la lettura e' subito, non dopo un `await`**: il frammento si toglie dall'indirizzo in quel momento.
+ */
+export async function leggiTokenDelLink(percorso: string, frammentoDelRouter?: string | null): Promise<string | null> {
+  if (Platform.OS === 'web') return leggiEToglieToken()
+  const token = await tokenDelLinkAperto(percorso, frammentoDelRouter)
+  return token && !usati.has(token) ? token : null
 }
 
 // I token gia' provati in questa pagina. Il router del web rimette `#th=…` nell'indirizzo dopo che lo si e' tolto, quindi chi legge il

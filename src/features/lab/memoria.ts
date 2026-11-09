@@ -3,6 +3,7 @@ import { esci } from '@/api/lab'
 import { azzeraRimandoPush } from './notifiche/invitoPush'
 import { azzeraAssistente } from './assistente/store'
 import { azzeraRiservate } from './riservate/store'
+import { azzeraSurveyApp } from './clublife/survey/statoApp'
 import { azzeraOrariClub } from './clublife/useOrariClub'
 import { azzeraNotifiche } from './notifiche/store'
 import { scollegaDispositivo } from './notifiche/push'
@@ -116,6 +117,8 @@ export async function esciDalLaboratorio(opzioni: { soloQuestoDispositivo?: bool
   azzeraAssistente()
   azzeraRiservate()
   azzeraOrariClub()
+  // I giudizi della survey dell'app, a meta' o appena scritti, sono di chi c'era.
+  azzeraSurveyApp()
   // Il «non ora» dell'invito alle notifiche e' del dispositivo: chi entra dopo non lo eredita.
   azzeraRimandoPush()
   dimentica()

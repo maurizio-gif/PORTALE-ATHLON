@@ -11,6 +11,7 @@ import { View } from 'react-native'
 
 import { PulsanteAssistente } from '@/features/lab/assistente/PulsanteAssistente'
 import { Avvio } from '@/features/lab/avvio/Avvio'
+import { GuidaPrimaVolta } from '@/features/lab/guide/GuidaPrimaVolta'
 import { CompletaProfilo } from '@/features/lab/ingresso/CompletaProfilo'
 import { useIngresso } from '@/features/lab/ingresso/useIngresso'
 import { Notifiche } from '@/features/lab/notifiche/Notifiche'
@@ -103,6 +104,8 @@ export default function LayoutLaboratorio() {
         <Stack.Screen name="allenamento/percorso-nuovo" options={{ animation: 'slide_from_bottom' }} />
         <Stack.Screen name="allenamento/percorso-modifica" options={{ animation: 'slide_from_right' }} />
         <Stack.Screen name="notifiche" options={{ animation: 'slide_from_right' }} />
+        <Stack.Screen name="assistenza/index" options={{ animation: 'slide_from_right' }} />
+        <Stack.Screen name="assistenza/[id]" options={{ animation: 'slide_from_right' }} />
         <Stack.Screen name="invita" options={{ animation: 'slide_from_right' }} />
         <Stack.Screen name="delega" options={{ animation: 'slide_from_right' }} />
         <Stack.Screen name="consensi-minori" options={{ animation: 'slide_from_right' }} />
@@ -129,6 +132,9 @@ export default function LayoutLaboratorio() {
       {/* Le notifiche del club (features/lab/notifiche): il giro che le legge e la finestra che compare appena ne arriva una. Solo per
           chi e' entrato, e mai in vista cliente: chi guarda l'app di un socio non deve segnare come viste le sue notifiche. */}
       {sessione && !gate && !vistaCorrente() ? <Notifiche /> : null}
+      {/* La finestra che propone la guida con il video la prima volta che si apre una sezione (features/lab/guide). Non sul totem e non in
+          vista cliente: li' nessuno impara l'app, e lo staff non deve segnare come viste le guide di un socio. */}
+      {sessione && !gate && !vistaCorrente() && !inModalitaTotem() ? <GuidaPrimaVolta utente={sessione.user.id} /> : null}
       {/* Il pulsante «Assistente virtuale», in alto a destra e sempre visibile (features/lab/assistente): apre la chat, che resta
           montata qui e non si perde cambiando schermata. Solo con una sessione, e prima dell'avvio animato, che lo copre. In vista
           cliente non si disegna. Il feedback dei tester e' una carta della Home (home/CartaFeedback). */}

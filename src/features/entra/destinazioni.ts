@@ -17,8 +17,12 @@ import { t } from '@/lib/lingua'
 // Trofeo Athlon), `evento` (il Calendario sul giorno di un evento e sulla sua categoria) e `junior` (la sezione Junior con l'assistente aperto).
 // `gare` ed `evento` sono del 04/11/2026: sono la regola di ogni pagina evento del sito, il cui pulsante chiede l'email e manda questo link
 // invece di mandare al portale di PerfectGym. `junior` (04/11/2026) arriva al genitore dopo la registrazione del figlio dal sito.
+// `iscrizione` (07/11/2026) la prepara un operatore dalla scheda del CRM, non il sito: il genitore riceve il link per email o per SMS e firma e paga
+// l'iscrizione di un figlio a un turno (`f`: il bambino, `t`: il turno, l'id del gruppo) o al Baby Nuoto (`b=1`): apre `/iscrizione`, la schermata
+// che il genitore trova dalla sezione Junior. Se il bambino non e' del nucleo di chi entra, la schermata non lo trova e lo dice (e il server non firma).
 // `abbonamento` (04/11/2026) e' il pulsante «Iscriviti» del listino del sito: apre «Attiva un abbonamento» con il piano gia' scelto (`p`,
 // l'id del piano su PerfectGym, che e' anche il `piano_id` dell'app); un piano che non c'e' nel listino lascia la scelta alla persona.
+// `certificato` (07/11/2026) e' il modulo della scheda «Certificato Medico» del sito: apre la Home sulla sezione Certificato.
 
 /** I nomi delle categorie del Calendario (`perfectgym.class_categories`): il filtro del Calendario confronta la stringa. */
 export const CATEGORIE = ['Corsi Fitness', 'Aqua Fitness', 'Nuoto Libero', 'Gym Floor', 'Scuola Nuoto Adulti', 'Group Reformer'] as const
@@ -67,6 +71,8 @@ export function arrivoDa(
   oggi: string = GIORNO_ROMA.format(new Date()),
   p?: string | null,
   f?: string | null,
+  turno?: string | null,
+  baby?: string | null,
 ): Arrivo | null {
   const attivita = a && (CATEGORIE as readonly string[]).includes(a) ? a : null
   switch (d) {
@@ -107,6 +113,27 @@ export function arrivoDa(
         ),
         bottone: t('Apri la sezione Junior', 'Open the Junior section'),
       }
+    case 'iscrizione': {
+      // L'iscrizione di un figlio preparata dal CRM (07/11/2026). Senza il bambino, o senza turno e senza Baby Nuoto, il link non sa dove andare:
+      // si apre la sezione Junior, dove il genitore sceglie.
+      const bambino = idValido(f)
+      const gruppo = idValido(turno)
+      const href: Href =
+        bambino && baby === '1'
+          ? { pathname: '/iscrizione', params: { baby: '1', membro: bambino } }
+          : bambino && gruppo
+            ? { pathname: '/iscrizione', params: { group: gruppo, membro: bambino } }
+            : '/junior'
+      return {
+        href,
+        titolo: t('Completa l’iscrizione', 'Complete the enrolment'),
+        testo: t(
+          'Ti apriamo direttamente l’iscrizione preparata con la segreteria, senza password: leggi il contratto, lo firmi e scegli come pagare.',
+          'We’ll open the enrolment you prepared with the club desk for you directly, no password needed: read the contract, sign it and choose how to pay.',
+        ),
+        bottone: t('Apri l’iscrizione', 'Open the enrolment'),
+      }
+    }
     case 'assistenza':
       // Chi e' gia' iscritto e apre la chat del sito (05/11/2026, decisione di Maurizio): la chat non risponde li', manda questo link.
       // Si entra nella Home con l'assistente dell'app aperto (`assistenza=1`, letto da `AreaRiservata.tsx`), che conosce gli
@@ -119,6 +146,19 @@ export function arrivoDa(
           'We’ll open your area for you directly, no password needed, with the assistant ready: there I know your memberships, payments and bookings.',
         ),
         bottone: t('Entra e scrivimi', 'Sign in and chat'),
+      }
+    case 'certificato':
+      // La scheda «Certificato Medico» dell'Help Desk del sito (07/11/2026): chiede l'email e manda questo link. La Home sulla sezione
+      // Certificato (`/?sezione=certificato`, letta da `AreaRiservata.tsx`, sempre visibile), dove si sceglie per chi e si invia la foto o il PDF.
+      // Nessun parametro in piu': nemmeno un bambino, «per chi» si sceglie dentro la sezione.
+      return {
+        href: { pathname: '/', params: { sezione: 'certificato' } },
+        titolo: t('Carica il certificato medico', 'Upload your medical certificate'),
+        testo: t(
+          'Ti apriamo direttamente la sezione Certificato, senza password: scegli per chi lo carichi e invia una foto o un PDF.',
+          'We’ll open the Certificate section for you directly, no password needed: choose who you’re uploading it for and send a photo or a PDF.',
+        ),
+        bottone: t('Apri il certificato', 'Open the certificate'),
       }
     case 'abbonamento': {
       // Dal listino del sito: «Attiva un abbonamento» (`lab/Abbonamento.tsx`), con il piano gia' scelto se l'app lo trova fra i suoi.

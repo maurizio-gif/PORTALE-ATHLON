@@ -29,10 +29,10 @@ import { spazio } from "@/theme";
 
 import { DropIn, pagamentoDisponibile, riprendiDopoRedirect } from "../adyen";
 import { nomeCarta, primaVolta } from "../pagamento/comune";
+import { Indicatore, SchedaScelta } from "../abbonamento/Passi";
 import { Icona } from "../ui/Icona";
-import { Bollino, Carta, Etichetta, Messaggio, Numero, Pulsante, SchedeInArrivo } from "../ui/kit";
+import { Bollino, Carta, Etichetta, Messaggio, Numero, Pulsante, SchedeInArrivo, Sezione } from "../ui/kit";
 import { useRiduciMovimento } from "../ui/movimento";
-import { Tocco } from "../ui/Tocco";
 import { F, FUOCO, usePalette, velo } from "../ui/tema";
 import { nomeCompleto } from "./comune";
 
@@ -73,11 +73,16 @@ import { nomeCompleto } from "./comune";
 
 type Sesso = "Male" | "Female";
 
+/** Cosa serve per pagare una gara nella sua vista: la gara, il bambino, l'iscrizione e il turno (l'ora e la categoria) che la carta ha appena mostrato. */
+type DaPagare = { gara: GaraTrofeo; pg: PersonaGara; iscrizioneId: number; iso: string | null; sesso: Sesso | null };
+
 export function Gare({ persona, vista }: { persona: PersonaJunior; vista: boolean }) {
   const [dati, setDati] = useState<(DatiGare & { ok: true }) | { ok: false; errore: string } | undefined>();
   // `attendo` e' l'iscrizione di cui si aspetta la conferma; -1 = una qualunque (si torna dalla 3D Secure senza sapere quale).
   const [attendo, setAttendo] = useState<number | null>(null);
   const giri = useRef(0);
+  // Il pagamento aperto (07/11/2026): si paga in una vista sua, «Passo 2 di 2», e non piu' dentro la carta della gara.
+  const [paga, setPaga] = useState<DaPagare | null>(null);
   const { sessionId, redirectResult } = useLocalSearchParams<{ sessionId?: string; redirectResult?: string }>();
 
   const carica = useCallback(async () => {
@@ -129,6 +134,10 @@ export function Gare({ persona, vista }: { persona: PersonaJunior; vista: boolea
   const pg = dati.persone.find((x) => x.member_id === persona.member_id);
   const mie = dati.mie.filter((x) => x.member_id === persona.member_id);
 
+  if (paga) {
+    return <PagaGara da={paga} quotaCent={dati.quota_cent} onAttendo={setAttendo} onSepa={carica} onChiudi={() => setPaga(null)} />;
+  }
+
   return (
     <View style={{ gap: spazio.tre }}>
       <Presentazione quotaCent={dati.quota_cent} />
@@ -154,7 +163,7 @@ export function Gare({ persona, vista }: { persona: PersonaJunior; vista: boolea
             quotaCent={dati.quota_cent}
             vista={vista}
             onCambiato={carica}
-            onPagamentoAperto={(id) => setAttendo(id)}
+            onPaga={setPaga}
           />
         ))
       )}
@@ -239,7 +248,7 @@ function CartaGara({
   quotaCent,
   vista,
   onCambiato,
-  onPagamentoAperto,
+  onPaga,
 }: {
   gara: GaraTrofeo;
   pg: PersonaGara;
@@ -247,7 +256,8 @@ function CartaGara({
   quotaCent: number;
   vista: boolean;
   onCambiato: () => Promise<unknown>;
-  onPagamentoAperto: (iscrizioneId: number) => void;
+  /** Apre il pagamento di un'iscrizione nella sua vista (`PagaGara`). */
+  onPaga: (da: DaPagare) => void;
 }) {
   const p = usePalette();
   const prova = pg.gruppo ? gara.prove[pg.gruppo]?.descrizione : undefined;
@@ -264,14 +274,14 @@ function CartaGara({
   const sessoScheda: Sesso | null = pg.sesso === "Male" || pg.sesso === "Female" ? pg.sesso : null;
   const [scelto, setScelto] = useState<Sesso | null>(sessoScheda);
   const [aperto, setAperto] = useState(false);
-  // L'iscrizione che si sta pagando nella carta, col Drop-in (solo sul web).
-  const [cassa, setCassa] = useState<number | null>(null);
 
   const iscritto = confermata || inAttesa;
   const sessoUsato: Sesso | null = sessoCf ?? (iscritto ? (mia?.sesso ?? scelto) : scelto);
   const isoTurno = iscritto ? (mia?.turno_inizio ?? (sessoUsato ? turnoDi(gara, pg, sessoUsato) : null)) : sessoUsato ? turnoDi(gara, pg, sessoUsato) : null;
   // Il riquadro c'e' se la gara ha i turni e la persona puo' gareggiare. Col sesso da scegliere compare solo a modulo aperto (con l'invito a scegliere).
   const mostraTurno = pg.ammesso && !gara.passata && gara.turni.length > 0 && (iscritto || sessoCf !== null || aperto);
+  // Il pagamento si apre con quello che la carta sa adesso: la gara, il bambino, il turno e la categoria.
+  const apriCassa = (iscrizioneId: number) => onPaga({ gara, pg, iscrizioneId, iso: isoTurno, sesso: sessoUsato });
 
   return (
     <Carta style={{ gap: spazio.tre }}>
@@ -311,14 +321,12 @@ function CartaGara({
       ) : sepaDaRipagare && iscr && !gara.passata ? (
         vista ? (
           <Text style={[stili.corpo, { color: p.testoSecondario }]}>{t("L’addebito sul conto non è riuscito: la quota è da pagare.", "The direct debit failed: the fee is still to pay.")}</Text>
-        ) : cassa === iscr.id ? (
-          <CassaGara iscrizioneId={iscr.id} quotaCent={quotaCent} onAttendo={onPagamentoAperto} onSepa={onCambiato} onChiudi={() => setCassa(null)} />
         ) : (
           <View style={{ gap: spazio.tre }}>
             <Messaggio tono="attenzione" titolo={t("L’addebito sul conto non è riuscito", "The direct debit didn’t go through")}>
               {t("Il posto resta confermato. Paga la quota con la carta, qui sotto, oppure in segreteria.", "The place stays confirmed. Please pay the fee by card below, or at the front desk.")}
             </Messaggio>
-            {gara.aperta ? <Pulsante testo={t(`Paga ${euro(quotaCent)} con carta`, `Pay ${euro(quotaCent)} by card`)} icona="carta" onPress={() => setCassa(iscr.id)} /> : null}
+            {gara.aperta ? <Pulsante testo={t(`Paga ${euro(quotaCent)} con carta`, `Pay ${euro(quotaCent)} by card`)} icona="carta" onPress={() => apriCassa(iscr.id)} /> : null}
           </View>
         )
       ) : confermata ? (
@@ -341,11 +349,7 @@ function CartaGara({
       ) : vista ? (
         <Text style={[stili.corpo, { color: p.testoSecondario }]}>{t("Vista cliente: qui non si può iscrivere.", "Client view: you can’t register from here.")}</Text>
       ) : inAttesa && iscr ? (
-        cassa === iscr.id ? (
-          <CassaGara iscrizioneId={iscr.id} quotaCent={quotaCent} onAttendo={onPagamentoAperto} onSepa={onCambiato} onChiudi={() => setCassa(null)} />
-        ) : (
-          <Pagamento iscrizioneId={iscr.id} quotaCent={quotaCent} onCassa={setCassa} />
-        )
+        <Pagamento iscrizioneId={iscr.id} quotaCent={quotaCent} onCassa={apriCassa} />
       ) : (
         <FormIscrizione
           gara={gara}
@@ -358,7 +362,7 @@ function CartaGara({
           scelto={scelto}
           onScelto={setScelto}
           onFatto={onCambiato}
-          onCassa={setCassa}
+          onCassa={apriCassa}
         />
       )}
     </Carta>
@@ -556,28 +560,26 @@ function FormIscrizione({
       <Text style={[stili.corpo, { color: p.testo, fontFamily: F.bold }]}>
         {t(`${nome} è un maschio o una femmina?`, `Is ${nome} a boy or a girl?`)}
       </Text>
-      <View style={stili.fila} accessibilityRole="radiogroup">
+      <View style={{ gap: spazio.due }} accessibilityRole="radiogroup">
         {([["Male", t("Maschio", "Boy")], ["Female", t("Femmina", "Girl")]] as const).map(([v, testo]) => {
           const on = scelto === v;
           const iso = turnoDi(gara, pg, v);
           return (
-            <Tocco
+            <SchedaScelta
               key={v}
-              vibra="scelta"
-              ruolo="radio"
-              stato={{ checked: on }}
+              attiva={on}
               etichetta={iso ? `${testo}, ${t("inizio gara alle", "race starts at")} ${ora(iso)}` : testo}
+              titolo={testo}
+              destra={
+                iso ? (
+                  <View style={stili.sceltaOra}>
+                    <Icona nome="orologio" size={14} colore={on ? p.accento : p.testoSecondario} />
+                    <Text style={{ color: on ? p.accento : p.testoSecondario, fontFamily: F.extra, fontSize: 16, fontVariant: ["tabular-nums"] }}>{ora(iso)}</Text>
+                  </View>
+                ) : undefined
+              }
               onPress={() => onScelto(v)}
-              style={[stili.scelta, { backgroundColor: on ? velo(p, "accento", p.scuro ? 0.18 : 0.1) : p.carta, borderColor: on ? p.accento : p.linea }]}
-            >
-              <Text style={{ color: p.testo, fontFamily: on ? F.extra : F.bold, fontSize: 15 }}>{testo}</Text>
-              {iso ? (
-                <View style={stili.sceltaOra}>
-                  <Icona nome="orologio" size={13} colore={on ? p.accento : p.testoSecondario} />
-                  <Text style={{ color: on ? p.accento : p.testoSecondario, fontFamily: F.extra, fontSize: 15, fontVariant: ["tabular-nums"] }}>{ora(iso)}</Text>
-                </View>
-              ) : null}
-            </Tocco>
+            />
           );
         })}
       </View>
@@ -795,19 +797,25 @@ function CassaGara({
     setGiro((g) => g + 1);
     setFase("nuova");
   };
+  // Si torna a una carta (o al conto) salvato dopo aver scelto «Un'altra carta»: il modulo si chiude.
+  const sceltaSalvata = (id: string) => {
+    setScelta(id);
+    if (fase !== "carte") {
+      setSessione(null);
+      setErrore(null);
+      setEsito(null);
+      setFase("carte");
+    }
+  };
   const scelteAperte = fase === "carte" && !esito;
+  // Con qualcosa di salvato la scelta e' sempre in vista, anche con «Un'altra carta» scelta (si puo' tornare indietro); senza, si va dritti al modulo.
+  const mostraScelte = (carte.length > 0 || conto !== null) && !esito && (fase === "carte" || fase === "nuova");
   const cartaScelta = carte.find((c) => c.id === scelta);
   const contoScelto = scelta === CONTO && conto !== null;
   const nomeConto = conto ? `${t("Conto", "Account")} •••• ${conto.cifre}` : "";
 
   return (
     <View style={{ gap: spazio.tre }}>
-      <View style={stili.rigaIcona}>
-        <Icona nome="carta" size={18} colore={p.accento} />
-        <Text style={[stili.corpo, { color: p.testo, fontFamily: F.bold, flex: 1 }]}>
-          {conto && fase === "carte" ? t(`Paga ${euro(quotaCent)}`, `Pay ${euro(quotaCent)}`) : t(`Paga ${euro(quotaCent)} con carta`, `Pay ${euro(quotaCent)} by card`)}
-        </Text>
-      </View>
       {errore ? <Messaggio>{errore}</Messaggio> : null}
       {esito ? (
         <Messaggio tono={esito.tono} titolo={esito.titolo}>
@@ -817,62 +825,51 @@ function CassaGara({
 
       {fase === "carico" ? <SchedeInArrivo quante={1} /> : null}
 
+      {mostraScelte ? (
+        <View style={{ gap: spazio.due }} accessibilityRole="radiogroup">
+          {carte.map((c) => (
+            <SchedaScelta
+              key={c.id}
+              attiva={fase === "carte" && c.id === scelta}
+              etichetta={`${nomeCarta(c)} •••• ${c.cifre}${c.scade ? `, ${t("scade", "expires")} ${c.scade}` : ""}`}
+              icona="carta"
+              titolo={`${nomeCarta(c)} •••• ${c.cifre}`}
+              sotto={c.scade ? t(`Scade ${c.scade} · addebito con un tocco, senza codici`, `Expires ${c.scade} · charged in one tap, no codes`) : t("Addebito con un tocco, senza codici", "Charged in one tap, no codes")}
+              onPress={() => sceltaSalvata(c.id)}
+            />
+          ))}
+          {conto ? (
+            <SchedaScelta
+              attiva={fase === "carte" && contoScelto}
+              etichetta={`${t("Addebito sul conto", "Direct debit from account")} •••• ${conto.cifre}${conto.banca ? `, ${conto.banca}` : ""}`}
+              icona="banca"
+              titolo={nomeConto}
+              sotto={conto.banca ? `${t("Addebito SEPA", "SEPA direct debit")} · ${conto.banca}` : t("Addebito SEPA, il conto già salvato", "SEPA direct debit, your saved account")}
+              onPress={() => sceltaSalvata(CONTO)}
+            />
+          ) : null}
+          <SchedaScelta
+            attiva={fase === "nuova"}
+            etichetta={t("Usa un’altra carta", "Use another card")}
+            icona="carta"
+            titolo={t("Un’altra carta", "Another card")}
+            sotto={t("La scrivi nel modulo sicuro di Adyen e si salva per la prossima volta.", "You enter it in Adyen’s secure form and it’s saved for next time.")}
+            onPress={fase === "nuova" ? () => {} : altraCarta}
+          />
+        </View>
+      ) : null}
+
       {scelteAperte ? (
-        <>
-          <View style={{ gap: spazio.due }} accessibilityRole="radiogroup">
-            {carte.map((c) => {
-              const on = c.id === scelta;
-              return (
-                <Tocco
-                  key={c.id}
-                  vibra="scelta"
-                  ruolo="radio"
-                  stato={{ checked: on }}
-                  etichetta={`${nomeCarta(c)} •••• ${c.cifre}${c.scade ? `, ${t("scade", "expires")} ${c.scade}` : ""}`}
-                  onPress={() => setScelta(c.id)}
-                  style={[stili.cartaRiga, { backgroundColor: on ? velo(p, "accento", p.scuro ? 0.18 : 0.1) : p.carta, borderColor: on ? p.accento : p.linea }]}
-                >
-                  <Icona nome="carta" size={18} colore={on ? p.accento : p.testoSecondario} />
-                  <View style={{ flex: 1 }}>
-                    <Text style={{ color: p.testo, fontFamily: on ? F.extra : F.bold, fontSize: 15 }}>
-                      {nomeCarta(c)} •••• {c.cifre}
-                    </Text>
-                    {c.scade ? <Text style={[stili.nota, { color: p.testoSecondario }]}>{t(`Scade ${c.scade}`, `Expires ${c.scade}`)}</Text> : null}
-                  </View>
-                </Tocco>
-              );
-            })}
-            {conto ? (
-              <Tocco
-                vibra="scelta"
-                ruolo="radio"
-                stato={{ checked: contoScelto }}
-                etichetta={`${t("Addebito sul conto", "Direct debit from account")} •••• ${conto.cifre}${conto.banca ? `, ${conto.banca}` : ""}`}
-                onPress={() => setScelta(CONTO)}
-                style={[stili.cartaRiga, { backgroundColor: contoScelto ? velo(p, "accento", p.scuro ? 0.18 : 0.1) : p.carta, borderColor: contoScelto ? p.accento : p.linea }]}
-              >
-                <Icona nome="banca" size={18} colore={contoScelto ? p.accento : p.testoSecondario} />
-                <View style={{ flex: 1 }}>
-                  <Text style={{ color: p.testo, fontFamily: contoScelto ? F.extra : F.bold, fontSize: 15 }}>{nomeConto}</Text>
-                  <Text style={[stili.nota, { color: p.testoSecondario }]}>
-                    {conto.banca ? `${t("Addebito SEPA", "SEPA direct debit")} · ${conto.banca}` : t("Addebito SEPA, il conto già salvato", "SEPA direct debit, your saved account")}
-                  </Text>
-                </View>
-              </Tocco>
-            ) : null}
-          </View>
-          {contoScelto && conto ? (
-            <>
-              <Casella spuntata={autorizzo} onCambia={() => setAutorizzo((x) => !x)} etichetta={conto.consenso}>
-                <Text style={[stili.nota, { color: p.testo }]}>{conto.consenso}</Text>
-              </Casella>
-              <Pulsante testo={t(`Paga ${euro(quotaCent)} con il conto •••• ${conto.cifre}`, `Pay ${euro(quotaCent)} from account •••• ${conto.cifre}`)} icona="banca" inCorso={lavoro} disabilitato={!autorizzo} onPress={addebitaConto} />
-            </>
-          ) : (
-            <Pulsante testo={t(`Paga ${euro(quotaCent)}${cartaScelta ? ` con •••• ${cartaScelta.cifre}` : ""}`, `Pay ${euro(quotaCent)}${cartaScelta ? ` with •••• ${cartaScelta.cifre}` : ""}`)} icona="carta" inCorso={lavoro} onPress={addebita} />
-          )}
-          <Pulsante testo={carte.length ? t("Usa un’altra carta", "Use another card") : t("Paga con una carta", "Pay by card")} variante="secondario" piccolo onPress={altraCarta} />
-        </>
+        contoScelto && conto ? (
+          <>
+            <Casella spuntata={autorizzo} onCambia={() => setAutorizzo((x) => !x)} etichetta={conto.consenso}>
+              <Text style={[stili.nota, { color: p.testo }]}>{conto.consenso}</Text>
+            </Casella>
+            <Pulsante testo={t(`Paga ${euro(quotaCent)} con il conto •••• ${conto.cifre}`, `Pay ${euro(quotaCent)} from account •••• ${conto.cifre}`)} icona="banca" inCorso={lavoro} disabilitato={!autorizzo} onPress={addebitaConto} />
+          </>
+        ) : (
+          <Pulsante testo={t(`Paga ${euro(quotaCent)}${cartaScelta ? ` con •••• ${cartaScelta.cifre}` : ""}`, `Pay ${euro(quotaCent)}${cartaScelta ? ` with •••• ${cartaScelta.cifre}` : ""}`)} icona="carta" inCorso={lavoro} onPress={addebita} />
+        )
       ) : null}
 
       {fase === "nuova" && pagamentoDisponibile ? (
@@ -890,7 +887,11 @@ function CassaGara({
 
       {fase === "nuova" && (errore || esito?.altra) && pagamentoDisponibile ? <Pulsante testo={t("Riprova", "Try again")} icona="aggiorna" variante="secondario" onPress={altraCarta} /> : null}
       {esito?.altra && fase === "carte" ? <Pulsante testo={t("Usa un’altra carta", "Use another card")} icona="carta" variante="secondario" onPress={altraCarta} /> : null}
-      {!esito || esito.altra ? <Pulsante testo={t("Non adesso", "Not now")} variante="secondario" piccolo onPress={onChiudi} /> : null}
+      {esito && !esito.altra ? (
+        <Pulsante testo={t("Torna alle gare", "Back to the races")} onPress={onChiudi} />
+      ) : (
+        <Pulsante testo={t("Indietro", "Back")} variante="fantasma" piccolo pieno={false} onPress={onChiudi} />
+      )}
       <Text style={[stili.nota, { color: p.testoSecondario }]}>
         {fase === "carte" && contoScelto
           ? t("L’iscrizione è confermata subito; l’addebito sul conto lo esegue la banca in qualche giorno lavorativo. La quota non è rimborsabile.", "Your registration is confirmed straight away; the bank processes the debit within a few working days. The fee is non-refundable.")
@@ -898,6 +899,51 @@ function CassaGara({
           ? t("Addebitiamo la carta già salvata, senza altri codici. La quota non è rimborsabile.", "We charge the card you already saved, with no extra codes. The fee is non-refundable.")
           : t("I dati della carta li scrivi nel modulo sicuro di Adyen: non passano da noi. La quota non è rimborsabile.", "You enter your card details in Adyen’s secure form: they don’t pass through us. The fee is non-refundable.")}
       </Text>
+    </View>
+  );
+}
+
+/**
+ * Il pagamento di una gara, in una vista sua (07/11/2026, richiesta di Maurizio: «sistema con la stessa logica grafica la prenotazione della gara da link, ovviamente e' un
+ * prodotto e deve essere piu' snella»). Come l'abbonamento e il Guest Pass: «Passo 2 di 2», le schede a scelta col pallino e un pulsante grande, ma **solo due passi**: il
+ * primo e' la carta della gara (che cosa, per chi, a che ora), il secondo il pagamento. Niente dati da confermare e niente contratto: e' un prodotto da 8 €.
+ * Sopra il pagamento si rivede in breve quello che si sta comprando — la gara, il bambino, la quota — e il turno, che e' la cosa che il genitore deve ricordare.
+ * La vista **non cambia nessuna regola**: `CassaGara` e il server sono quelli di prima (carta salvata con un tocco, conto salvato, modulo di Adyen, link nell'app nativa).
+ */
+function PagaGara({
+  da,
+  quotaCent,
+  onAttendo,
+  onSepa,
+  onChiudi,
+}: {
+  da: DaPagare;
+  quotaCent: number;
+  onAttendo: (iscrizioneId: number) => void;
+  onSepa: () => Promise<unknown>;
+  onChiudi: () => void;
+}) {
+  const p = usePalette();
+  const { gara, pg, iscrizioneId, iso, sesso } = da;
+  return (
+    <View style={{ gap: spazio.quattro }}>
+      <Indicatore passo={2} nomi={[t("Gara", "Race"), t("Pagamento", "Payment")]} />
+      <Carta piatta>
+        <View style={stili.testa}>
+          <TesseraData iso={gara.inizio} />
+          <View style={{ flex: 1, gap: 2 }}>
+            <Text style={[stili.corpo, { color: p.testoSecondario, fontSize: 12 }]}>{t("La tua scelta", "Your choice")}</Text>
+            <Text style={[stili.titolo, { color: p.testo }]}>{t(`${gara.numero}ª gara · Trofeo Athlon`, `Race ${gara.numero} · Athlon Trophy`)}</Text>
+            <Text style={[stili.corpo, { color: p.testoSecondario }]}>
+              {t(`${euro(quotaCent)} una tantum · per ${nomeDi(pg)}`, `${euro(quotaCent)} one-off · for ${nomeDi(pg)}`)}
+            </Text>
+          </View>
+        </View>
+      </Carta>
+      {iso ? <TurnoEvidenza nome={pg.nome} iso={iso} sesso={sesso} fascia={pg.fascia} /> : null}
+      <Sezione titolo={t("Come paghi", "How you pay")}>
+        <CassaGara iscrizioneId={iscrizioneId} quotaCent={quotaCent} onAttendo={onAttendo} onSepa={onSepa} onChiudi={onChiudi} />
+      </Sezione>
     </View>
   );
 }
@@ -1007,7 +1053,5 @@ const stili = StyleSheet.create({
   risultato: { padding: spazio.tre, borderRadius: 14, borderWidth: 1.5, gap: 2 },
 
   // I pulsanti del sesso, ciascuno con la sua ora.
-  scelta: { flex: 1, minHeight: 68, alignItems: "center", justifyContent: "center", gap: 3, borderRadius: 14, borderWidth: 1.5, paddingVertical: spazio.due },
   sceltaOra: { flexDirection: "row", alignItems: "center", gap: 4 },
-  cartaRiga: { flexDirection: "row", alignItems: "center", gap: spazio.tre, minHeight: 56, borderRadius: 14, borderWidth: 1.5, paddingVertical: spazio.due, paddingHorizontal: spazio.tre },
 });

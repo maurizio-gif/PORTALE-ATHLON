@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { Platform, StyleSheet, Text, View } from 'react-native'
 
 import { spazio } from '@/theme'
+import { linkAppNativa, telefonoDelBrowser } from '@/lib/appNativa'
 import { lingua, t } from '@/lib/lingua'
 import { inModalitaTotem } from '@/lib/totem'
 
@@ -26,6 +27,15 @@ import { Tocco } from './Tocco'
 // «Non ora» la nasconde per una settimana, non per sempre: l'app installata
 // e' quella che vogliamo che usino. Su iPhone l'app installata ha un accesso
 // suo, separato da Safari: per questo la si propone anche prima di entrare.
+//
+// **Su iPhone e iPad si propone l'app vera, dall'App Store** (08/11/2026, richiesta
+// di Maurizio, con l'app 3.0.0 pubblicata): il pulsante e' «Scarica dall'App Store»
+// e i passi della PWA restano dietro «Preferisci la versione web?», per chi non
+// vuole installare niente dallo store. Vale in tutti i browser dell'iPhone, anche
+// dentro Instagram e simili (dove la PWA non si installa e l'App Store si apre
+// lo stesso). Il link e' `linkAppNativa('ios')` (`lib/appNativa.ts`); senza, la
+// carta e' quella di prima. Su Android non cambia niente finche' l'app non e'
+// approvata su Google Play.
 
 const CHIAVE = 'athlon:installa-dopo'
 const SETTIMANA = 7 * 86_400_000
@@ -204,7 +214,7 @@ function passi(c: Caso, dopoAccesso: boolean): { titolo: string; passi: Passo[] 
 
 /** Il riquadro «Installa l'app». `dopoAccesso`: nella pagina di accesso, prima di entrare. */
 export function Installa({ dopoAccesso = false }: { dopoAccesso?: boolean }) {
-  const [stato, setStato] = useState<{ caso: Caso; richiesta: boolean } | null>(null)
+  const [stato, setStato] = useState<{ caso: Caso; richiesta: boolean; store: string | null } | null>(null)
   const [aperti, setAperti] = useState(false)
   const [copiato, setCopiato] = useState(false)
 
@@ -215,8 +225,10 @@ export function Installa({ dopoAccesso = false }: { dopoAccesso?: boolean }) {
     const aggiorna = () => {
       const c = caso()
       const richiesta = !!w.__installa
+      // L'App Store solo a chi sta su un iPhone o un iPad, qualunque browser usi.
+      const store = telefonoDelBrowser() === 'ios' ? linkAppNativa('ios') : null
       // Sul computer si mostra solo se il browser sa installare.
-      setStato(c === 'computer' && !richiesta ? null : { caso: c, richiesta })
+      setStato(c === 'computer' && !richiesta ? null : { caso: c, richiesta, store })
     }
     aggiorna()
     window.addEventListener('athlon-installabile', aggiorna)
@@ -260,8 +272,8 @@ export function Installa({ dopoAccesso = false }: { dopoAccesso?: boolean }) {
   }
 
   const guida = passi(stato.caso, dopoAccesso)
-  // Col pulsante del browser i passi sono il ripiego: chiusi, si aprono a richiesta.
-  const mostraPassi = !stato.richiesta || aperti
+  // Col pulsante del browser, o con quello dell'App Store, i passi sono il ripiego: chiusi, si aprono a richiesta.
+  const mostraPassi = (!stato.richiesta && !stato.store) || aperti
 
   return (
     <LinearGradient colors={NOTTE} start={{ x: 0, y: 0 }} end={{ x: 0.6, y: 1 }} style={stili.riquadro}>
@@ -270,21 +282,34 @@ export function Installa({ dopoAccesso = false }: { dopoAccesso?: boolean }) {
         <Image source={{ uri: '/apple-touch-icon.png' }} style={stili.icona} accessibilityIgnoresInvertColors />
         <View style={{ flex: 1, gap: 3 }}>
           <Text style={stili.occhiello}>{dopoAccesso ? t('PRIMA DI ENTRARE', 'BEFORE YOU LOG IN') : t('CONSIGLIATO', 'RECOMMENDED')}</Text>
-          <Text style={stili.titolo}>{t('Installa l’app sul telefono', 'Install the app on your phone')}</Text>
+          <Text style={stili.titolo}>{stato.store ? t('Scarica l’app Athlon Club', 'Get the Athlon Club app') : t('Installa l’app sul telefono', 'Install the app on your phone')}</Text>
         </View>
       </View>
       <Text style={stili.testo}>
-        {t(
-          'Athlon Club 4.0 si salva sulla schermata Home come un’app: si apre a tutto schermo con un tocco, senza cercarla nel browser. Non serve passare dall’App Store o da Google Play.',
-          'Athlon Club 4.0 saves to your Home Screen like an app: it opens full screen with one tap, without looking for it in the browser. No need to go through the App Store or Google Play.',
-        )}
+        {stato.store
+          ? t(
+              'L’app Athlon Club è sull’App Store: si apre con un tocco, ti avvisa delle novità del club e, con Apple Salute, spunta da sola le tue abitudini. Entri con la tua email e un codice, come qui.',
+              'The Athlon Club app is on the App Store: it opens with one tap, tells you about club news and, with Apple Health, ticks off your habits by itself. You log in with your email and a code, just like here.',
+            )
+          : t(
+              'Athlon Club 4.0 si salva sulla schermata Home come un’app: si apre a tutto schermo con un tocco, senza cercarla nel browser. Non serve passare dall’App Store o da Google Play.',
+              'Athlon Club 4.0 saves to your Home Screen like an app: it opens full screen with one tap, without looking for it in the browser. No need to go through the App Store or Google Play.',
+            )}
         {/* Su iPhone le notifiche del club arrivano solo all'app installata (25/10/2026): e' il motivo in piu' per farlo. */}
-        {stato.caso === 'ios-safari' || stato.caso === 'ios-altro'
+        {!stato.store && (stato.caso === 'ios-safari' || stato.caso === 'ios-altro')
           ? t(' Su iPhone è anche l’unico modo per ricevere le notifiche del club.', ' On iPhone it’s also the only way to receive the club’s notifications.')
           : null}
       </Text>
 
-      {stato.richiesta ? (
+      {stato.store ? (
+        // Nella stessa scheda: l'App Store consegna l'app e la pagina resta dov'e' (se il browser non passa la mano, si vede la pagina dello store).
+        <Tocco onPress={() => window.location.assign(stato.store as string)} etichetta={t('Scarica dall’App Store', 'Download from the App Store')} style={stili.pulsante}>
+          <LinearGradient colors={FUOCO} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={stili.pulsanteFondo}>
+            <Icona nome="scarica" size={18} colore="#fff" />
+            <Text style={stili.pulsanteTesto}>{t('Scarica dall’App Store', 'Download from the App Store')}</Text>
+          </LinearGradient>
+        </Tocco>
+      ) : stato.richiesta ? (
         <Tocco onPress={installa} etichetta={t('Installa l’app', 'Install the app')} style={stili.pulsante}>
           <LinearGradient colors={FUOCO} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={stili.pulsanteFondo}>
             <Icona nome="scarica" size={18} colore="#fff" />
@@ -318,7 +343,9 @@ export function Installa({ dopoAccesso = false }: { dopoAccesso?: boolean }) {
         </View>
       ) : (
         <Tocco onPress={() => setAperti(true)} etichetta={t('Mostra i passi', 'Show the steps')} ruolo="link">
-          <Text style={stili.link}>{t('Non si apre? Ecco i passi', 'Doesn’t open? Here are the steps')}</Text>
+          <Text style={stili.link}>
+            {stato.store ? t('Preferisci la versione web? Ecco i passi', 'Prefer the web version? Here are the steps') : t('Non si apre? Ecco i passi', 'Doesn’t open? Here are the steps')}
+          </Text>
         </Tocco>
       )}
 

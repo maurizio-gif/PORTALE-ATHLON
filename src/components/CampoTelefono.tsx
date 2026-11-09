@@ -2,6 +2,7 @@ import { useEffect, useId, useMemo, useState } from 'react'
 import { FlatList, KeyboardAvoidingView, Modal, Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
+import { F, usePalette } from '@/features/lab/ui/tema'
 import { dividiTelefono, PREFISSO, unisciTelefono, VOCI_PREFISSO } from '@/lib/prefissi'
 import { spazio, useColori } from '@/theme'
 import { t } from '@/lib/lingua'
@@ -19,6 +20,7 @@ export function CampoTelefono({
   etichetta = t('Cellulare', 'Mobile'),
   errore = false,
   sfondo,
+  variante = 'base',
 }: {
   value: string
   onChange: (telefono: string) => void
@@ -26,8 +28,12 @@ export function CampoTelefono({
   errore?: boolean
   /** Lo sfondo dei due riquadri (il Guest Pass da' quello della pagina). */
   sfondo?: string
+  /** «base» come `Campo` (i moduli del sito); «lab» come `CampoTesto` (le schermate dell'app e il Guest Pass a passi). */
+  variante?: 'base' | 'lab'
 }) {
   const c = useColori()
+  const p = usePalette()
+  const lab = variante === 'lab'
   const ins = useSafeAreaInsets()
   const id = useId()
   const iniziale = dividiTelefono(value)
@@ -59,8 +65,8 @@ export function CampoTelefono({
 
   return (
     <View style={stili.campo}>
-      <Text nativeID={id} style={[stili.etichetta, { color: c.testo }]}>
-        {etichetta}
+      <Text nativeID={id} style={lab ? [stili.etichettaLab, { color: p.testoSecondario }] : [stili.etichetta, { color: c.testo }]}>
+        {lab ? etichetta.toUpperCase() : etichetta}
       </Text>
       <View style={stili.riga}>
         <Pressable
@@ -68,9 +74,14 @@ export function CampoTelefono({
           accessibilityLabel={`${t('Prefisso', 'Country code')}: +${PREFISSO[paese] ?? '39'}`}
           accessibilityState={{ expanded: aperto }}
           onPress={() => setAperto(true)}
-          style={[stili.riquadro, stili.prefisso, { borderColor: errore ? c.errore : c.bordo, backgroundColor: sfondo ?? c.superficie }]}
+          style={[
+            stili.riquadro,
+            lab && stili.riquadroLab,
+            stili.prefisso,
+            { borderColor: errore ? c.errore : lab ? 'transparent' : c.bordo, backgroundColor: lab ? p.incavo : (sfondo ?? c.superficie) },
+          ]}
         >
-          <Text style={{ color: c.testo, fontSize: 16, fontWeight: '600' }}>+{PREFISSO[paese] ?? '39'}</Text>
+          <Text style={lab ? { color: p.testo, fontSize: 17, fontFamily: F.semi } : { color: c.testo, fontSize: 16, fontWeight: '600' }}>+{PREFISSO[paese] ?? '39'}</Text>
           <Text style={{ color: c.testoSecondario, fontSize: 14 }}>▾</Text>
         </Pressable>
         <TextInput
@@ -94,7 +105,13 @@ export function CampoTelefono({
           autoComplete="tel-national"
           placeholder={paese === 'IT' ? '340 123 4567' : t('Numero', 'Number')}
           placeholderTextColor={c.testoSecondario}
-          style={[stili.riquadro, stili.numero, { color: c.testo, borderColor: errore ? c.errore : c.bordo, backgroundColor: sfondo ?? c.superficie }]}
+          style={[
+            stili.riquadro,
+            lab && stili.riquadroLab,
+            stili.numero,
+            lab && { fontFamily: F.semi, fontSize: 17 },
+            { color: lab ? p.testo : c.testo, borderColor: errore ? c.errore : lab ? 'transparent' : c.bordo, backgroundColor: lab ? p.incavo : (sfondo ?? c.superficie) },
+          ]}
         />
       </View>
 
@@ -160,8 +177,10 @@ export function CampoTelefono({
 const stili = StyleSheet.create({
   campo: { gap: spazio.due, flex: 1 },
   etichetta: { fontSize: 15, fontWeight: '600' },
+  etichettaLab: { fontSize: 11, fontFamily: F.extra, letterSpacing: 1.3 },
   riga: { flexDirection: 'row', gap: spazio.due },
   riquadro: { minHeight: 50, borderWidth: 1, borderRadius: 10, paddingHorizontal: spazio.tre },
+  riquadroLab: { minHeight: 58, borderWidth: 1.5, borderRadius: 18 },
   prefisso: { flexDirection: 'row', alignItems: 'center', gap: spazio.uno, flexShrink: 0 },
   numero: { flex: 1, minWidth: 0, fontSize: 16 },
   velo: { flex: 1, backgroundColor: 'rgba(0,0,0,0.55)', justifyContent: 'flex-end', alignItems: 'center' },

@@ -123,16 +123,98 @@ export function pulsanteToccato(messaggioId: string, destinazione: string): void
   funzione('portale-lab-assistente', { azione: 'toccato', messaggio_id: messaggioId, destinazione }).catch(() => undefined)
 }
 
+/** Dove il team risponde (08/11/2026): lo sceglie la persona quando invia, e non cambia. */
+export type CanaleTicket = 'app' | 'email'
+
 /**
  * «Scrivi al team» (31/10/2026): la persona ha toccato Invia sulla carta che l'assistente le ha proposto. La funzione manda al desk la conversazione (le ultime battute, lette dal
  * registro del server) e quello che la persona ha aggiunto: email a desk@, compito in Agenda sulla sua scheda. Non solleva mai.
+ *
+ * **Il canale lo decide il server** (08/11/2026): l'app dice dove la persona vuole la risposta, la funzione risponde con quello che ha registrato. Una funzione di prima ignora `canale`
+ * e non lo restituisce: allora il ticket e' per email, e chi chiama lo deve dire alla persona (`canale` della risposta, mai quello chiesto).
  */
-export async function scriviAlTeam(conversazioneId: string, messaggio: string, allegato?: { nome: string; base64: string } | null): Promise<{ ok: true } | { ok: false; errore: string }> {
-  const { ok, stato, dati } = await funzione('portale-lab-assistente', { azione: 'ticket', conversazione_id: conversazioneId, messaggio, ...(allegato ? { allegato: { nome: allegato.nome, base64: allegato.base64 } } : {}) })
-  if (ok) return { ok: true }
+export async function scriviAlTeam(
+  conversazioneId: string,
+  messaggio: string,
+  allegato: { nome: string; base64: string } | null | undefined,
+  canale: CanaleTicket,
+): Promise<{ ok: true; ticketId: string | null; canale: CanaleTicket } | { ok: false; errore: string }> {
+  const { ok, stato, dati } = await funzione('portale-lab-assistente', {
+    azione: 'ticket',
+    conversazione_id: conversazioneId,
+    messaggio,
+    canale,
+    ...(allegato ? { allegato: { nome: allegato.nome, base64: allegato.base64 } } : {}),
+  })
+  if (ok) return { ok: true, ticketId: typeof dati.ticket_id === 'string' ? dati.ticket_id : null, canale: dati.canale === 'app' ? 'app' : 'email' }
   // Una funzione non ancora aggiornata risponde «Azione sconosciuta.»: non e' una cosa da leggere alla persona.
   if (dati.errore === 'Azione sconosciuta.' || dati.errore === 'Unknown action.' || stato === 404) {
     return { ok: false, errore: t('Il team non è ancora raggiungibile da qui: riprova fra qualche giorno.', 'The team can’t be reached from here yet: try again in a few days.') }
   }
   return { ok: false, errore: typeof dati.errore === 'string' && dati.errore ? dati.errore : t('Non siamo riusciti a mandarla adesso. Riprova fra qualche minuto.', 'We couldn’t send it right now. Please try again in a few minutes.') }
+}
+
+// ---------------------------------------------------------------------------
+// Le richieste al team nell'app (08/11/2026): l'elenco, il filo di una richiesta e il messaggio con cui la persona riscrive. Le funzioni non sollevano mai.
+
+export type StatoRichiesta = 'nuovo' | 'risposto' | 'chiuso'
+
+/** Una richiesta nell'elenco. `non_lette` sono le risposte del team in app che la persona non ha ancora aperto. */
+export type RichiestaTeam = {
+  id: string
+  creato_il: string
+  aggiornato_il: string
+  stato: StatoRichiesta
+  canale: CanaleTicket
+  non_lette: number
+  anteprima: string
+  /** Chi ha detto l'ultima cosa: il team (ha risposto) o la persona (aspetta). */
+  ultimo_autore: 'team' | 'cliente'
+}
+
+export type MessaggioRichiesta = {
+  id: string
+  autore: 'team' | 'cliente'
+  testo: string
+  creato_il: string
+  canale: CanaleTicket
+  /** Falsa per una risposta del team in app che la persona non aveva ancora aperto prima di questa lettura: si mostra come «nuova». */
+  letta: boolean
+}
+
+export type DettaglioRichiesta = {
+  id: string
+  creato_il: string
+  stato: StatoRichiesta
+  canale: CanaleTicket
+  /** Se la persona puo' scrivere ancora (risposta in app, non chiusa) e, se no, perche'. */
+  puo_scrivere: boolean
+  motivo_no: 'email' | 'chiuso' | null
+  /** Quello che la persona aveva aggiunto aprendo la richiesta, se ha scritto qualcosa. */
+  messaggio: string | null
+  allegato: { nome: string; tipo: string; byte: number } | null
+}
+
+const ERRORE_RICHIESTE = () => t('Non riusciamo a leggere le tue richieste adesso. Riprova fra qualche minuto.', 'We can’t load your requests right now. Please try again in a few minutes.')
+
+/** Le sue richieste al team, dalla piu' recente. Con una funzione non ancora aggiornata («Azione sconosciuta.») l'elenco e' vuoto: non c'e' niente da mostrare, e nessun errore da leggere. */
+export async function elencoRichieste(): Promise<{ ok: true; richieste: RichiestaTeam[] } | { ok: false; errore: string }> {
+  const { ok, stato, dati } = await funzione('portale-lab-assistente', { azione: 'ticket_elenco' })
+  if (ok) return { ok: true, richieste: Array.isArray(dati.ticket) ? (dati.ticket as RichiestaTeam[]) : [] }
+  if (stato === 404 || dati.errore === 'Azione sconosciuta.') return { ok: true, richieste: [] }
+  return { ok: false, errore: typeof dati.errore === 'string' && dati.errore ? dati.errore : ERRORE_RICHIESTE() }
+}
+
+/** Il filo di una richiesta. Aprirla segna lette le risposte del team in app e la loro notifica. */
+export async function leggiRichiesta(id: string): Promise<{ ok: true; richiesta: DettaglioRichiesta; messaggi: MessaggioRichiesta[] } | { ok: false; errore: string; nonTrovata: boolean }> {
+  const { ok, stato, dati } = await funzione('portale-lab-assistente', { azione: 'ticket_leggi', ticket_id: id })
+  if (ok && dati.ticket) return { ok: true, richiesta: dati.ticket as DettaglioRichiesta, messaggi: Array.isArray(dati.messaggi) ? (dati.messaggi as MessaggioRichiesta[]) : [] }
+  return { ok: false, nonTrovata: stato === 404, errore: typeof dati.errore === 'string' && dati.errore ? dati.errore : ERRORE_RICHIESTE() }
+}
+
+/** La persona riscrive nel filo di una richiesta con la risposta in app. */
+export async function scriviNellaRichiesta(id: string, testo: string): Promise<{ ok: true } | { ok: false; errore: string }> {
+  const { ok, dati } = await funzione('portale-lab-assistente', { azione: 'ticket_scrivi', ticket_id: id, testo })
+  if (ok) return { ok: true }
+  return { ok: false, errore: typeof dati.errore === 'string' && dati.errore ? dati.errore : t('Non siamo riusciti a mandarlo adesso. Riprova fra qualche minuto.', 'We couldn’t send it right now. Please try again in a few minutes.') }
 }

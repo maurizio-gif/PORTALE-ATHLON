@@ -190,4 +190,22 @@ chiamata diretta al gestionale. Esempio: la sezione Prodotti usa l'azione `prodo
 - [Junior: i turni esauriti non si mostrano mai, e «Solo con posti liberi» non c'è più (06/11/2026)](docs/claude/152-junior-turni-esauriti-non-si-mostrano-mai-06-11-2026.md) · 3 KB
 - [«Aggiorna la tua email»: la pagina del link dell'SMS per chi ha la casella piena (06/11/2026)](docs/claude/153-aggiorna-email-dal-link-sms-06-11-2026.md) · 3 KB
 - [Il listino con due formule in vetrina e «Vuoi risparmiare?» per l'annuale in unica soluzione (06/11/2026)](docs/claude/154-listino-due-formule-e-vuoi-risparmiare-06-11-2026.md) · 3 KB
-- [Lo shop nativo nell'app: il questionario, il carrello a righe, la cassa come le gare, il preordine (06/11/2026)](docs/claude/155-shop-nativo-questionario-preordine-e-cassa-06-11-2026.md) · 8 KB
+- [«Accedi o registrati»: un solo pulsante «Continua», e i vantaggi sotto (07/11/2026)](docs/claude/155-accedi-o-registrati-un-solo-pulsante-07-11-2026.md) · 4 KB
+- [L'accesso a bolle (07/11/2026): provata e tolta lo stesso giorno, «troppi step»; la nota dice com'era fatta e come riaverla](docs/claude/156-accesso-a-bolle-con-foto-del-club-07-11-2026.md) · 11 KB
+- [`/entra`: l'iscrizione di un figlio preparata dal CRM, per email o SMS (07/11/2026)](docs/claude/157-entra-iscrizione-preparata-dal-crm-07-11-2026.md) · 3 KB
+- [Il Guest Pass dal link a passi, come l'abbonamento ma senza firma (07/11/2026)](docs/claude/158-guest-pass-a-passi-come-l-abbonamento-senza-firma-07-11-2026.md) · 6 KB
+- [Il codice di accesso con Pacman: mangia le caselle mentre si verifica, poi la spunta (07/11/2026)](docs/claude/159-codice-di-accesso-con-pacman-07-11-2026.md) · 6 KB
+- [«Gare»: il pagamento a passi, come l'abbonamento e il Guest Pass, ma più snello (07/11/2026)](docs/claude/160-gare-pagamento-a-passi-come-l-abbonamento-07-11-2026.md) · 5 KB
+- [«Entra» dal sito: la destinazione `certificato` apre la sezione Certificato (07/11/2026)](docs/claude/161-entra-certificato-dal-sito-07-11-2026.md) · 2 KB
+- [Guide con video: una finestra alla prima apertura di una sezione, che porta alla scheda dell'Help Desk (08/11/2026)](docs/claude/162-guide-con-video-alla-prima-apertura-di-una-sezione-08-11-2026.md) · 4 KB
+- [Da iPhone e iPad, dal web, si propone l'app dell'App Store (08/11/2026)](docs/claude/163-installa-app-store-su-iphone-08-11-2026.md) · 4 KB
+- [`/entra` e la conferma della delega funzionano anche nell'app nativa: il token si legge dal link che l'ha aperta (08/11/2026)](docs/claude/164-entra-nell-app-nativa-token-dal-link-08-11-2026.md) · 5 KB
+- [I link delle email aprono l'app su iPhone: il file `apple-app-site-association` (08/11/2026, **pubblicato solo per `/`**)](docs/claude/165-link-universali-ios-apple-app-site-association-08-11-2026.md) · 4 KB
+- [Il piano segue quello che la persona solleva: il timer dice i chili veri, e il massimale sale (08/11/2026)](docs/claude/166-il-piano-segue-quello-che-la-persona-solleva-08-11-2026.md) · 4 KB
+- [La survey dell'app, funzione per funzione: otto capitoli, e «cosa usi» sta nella presenza della voce (08/11/2026)](docs/claude/167-survey-dell-app-funzione-per-funzione-08-11-2026.md) · 9 KB
+- [Le richieste al team nell'app: si sceglie dove vuoi la risposta, e si legge (e si riscrive) in «Le tue richieste» (08/11/2026)](docs/claude/168-richieste-al-team-risposta-in-app-o-via-email-08-11-2026.md) · 5 KB
+- [Si firma il contratto anche dall'app nativa (iPhone e Android): lo spazio di firma a schermo intero (08/11/2026)](docs/claude/169-firma-del-contratto-dall-app-nativa-08-11-2026.md) · 8 KB
+- [«La tua scelta · Continua» resta ferma in basso anche sull'app nativa (08/11/2026)](docs/claude/170-barra-la-tua-scelta-ferma-in-basso-sull-app-nativa-08-11-2026.md) · 4 KB
+- [Il diplomino si genera anche dall'app nativa, e «Carica il certificato» apre il foglio senza scorrere (09/11/2026)](docs/claude/171-diploma-nativo-e-avviso-certificato-sull-app-09-11-2026.md) · 7 KB
+- [La storia di Instagram di un evento si genera anche dall'app nativa: la scena SVG è in comune con il diplomino (09/11/2026)](docs/claude/172-storia-instagram-di-un-evento-nativa-09-11-2026.md) · 4 KB
+- [Lo shop nativo nell'app: il questionario, il carrello a righe, la cassa come le gare, il preordine (06/11/2026)](docs/claude/173-shop-nativo-questionario-preordine-e-cassa-06-11-2026.md) · 8 KB
