@@ -162,6 +162,11 @@ export type ContrattoJunior = {
   /** Solo per lo stagionale: l'importo della stagione e quanto ne e' gia' stato pagato (09/11/2026). */
   importo_stagione?: number | null;
   pagato_stagione?: number | null;
+  /**
+   * La disdetta chiesta dall'app (09/11/2026): dal 09/11 e' una richiesta che la segreteria registra su PerfectGym. C'e' finche' la
+   * richiesta e' aperta o fatta (e il mirror non ha ancora la fine nuova): l'app la mostra al posto del comando.
+   */
+  disdetta_richiesta?: { fine: string; il: string; stato: "in_attesa" | "fatta" } | null;
 };
 
 export type LezioneIscritto = {
@@ -498,11 +503,15 @@ export async function chiediCambioOrario(d: {
   return { ok: true, giaChiesto: dati.gia_chiesto === true };
 }
 
-export type EsitoDisdetta = { ok: true; fine: string } | { ok: false; errore: string; giaDisdetto?: boolean };
+export type EsitoDisdetta =
+  | { ok: true; fine: string; richiesta: boolean; giaChiesta: boolean; stato: "in_attesa" | "fatta" | null }
+  | { ok: false; errore: string; giaDisdetto?: boolean };
 
 /**
- * Disdice l'abbonamento mensile di un gruppo (22/10/2026): la fine la decide la regola dei 10 giorni (entro il 21 di un mese da 31
- * giorni finisce a fine mese, dopo a fine del mese dopo). Scrive su PerfectGym (`Contracts/Cancel`), poi rilegge.
+ * Chiede la disdetta dell'abbonamento mensile di un gruppo (22/10/2026; dal 09/11/2026 una richiesta alla segreteria, perche' PerfectGym
+ * non accetta la disdetta dall'app): la fine la decide la regola dei 10 giorni al giorno della richiesta (entro il 21 di un mese da 31
+ * giorni finisce a fine mese, dopo a fine del mese dopo). La segreteria la registra e la famiglia riceve la conferma per email.
+ * Con la funzione di prima (che scriveva su PerfectGym) la risposta non ha `richiesta`: vale come disdetta fatta.
  */
 export async function disdiciCorso(d: { memberId: number; contractId: number }): Promise<EsitoDisdetta> {
   const { ok, stato, dati } = await funzione("portale-lab-junior", {
@@ -510,14 +519,22 @@ export async function disdiciCorso(d: { memberId: number; contractId: number }):
     member_id: d.memberId,
     contract_id: d.contractId,
   });
-  if (ok && typeof dati.fine === "string") return { ok: true, fine: dati.fine };
+  if (ok && typeof dati.fine === "string") {
+    return {
+      ok: true,
+      fine: dati.fine,
+      richiesta: dati.richiesta === true,
+      giaChiesta: dati.gia_chiesta === true,
+      stato: dati.stato === "in_attesa" || dati.stato === "fatta" ? dati.stato : null,
+    };
+  }
   return {
     ok: false,
     giaDisdetto: dati.gia_disdetto === true,
     errore:
       stato === 400 && dati.errore === "Azione sconosciuta."
         ? t("La disdetta dall’app non è ancora attiva: scrivi al team dall’assistente virtuale.", "Cancelling from the app isn’t active yet: write to the team from the virtual assistant.")
-        : (dati.errore ?? t("Non riusciamo a disdire adesso. Riprova fra qualche minuto.", "We can’t cancel right now. Try again in a few minutes.")),
+        : (dati.errore ?? t("Non riusciamo a inviare la richiesta adesso. Riprova fra qualche minuto.", "We can’t send the request right now. Try again in a few minutes.")),
   };
 }
 

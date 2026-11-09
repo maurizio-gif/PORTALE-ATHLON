@@ -356,6 +356,7 @@ function SezioneIscrizione({
         {!vista && c.disdicibile !== false ? (
           <DisdiciAbbonamento
             disdetto={disdettaVera(c)}
+            richiesta={c.disdetta_richiesta ?? null}
             nome={nome}
             memberId={memberId}
             contractId={c.id}

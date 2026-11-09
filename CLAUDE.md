@@ -213,3 +213,4 @@ chiamata diretta al gestionale. Esempio: la sezione Prodotti usa l'azione `prodo
 - [Il testo di sistema molto grande: la coda di una riga scende sotto il titolo, e l'orario non si taglia (09/11/2026)](docs/claude/175-testo-di-sistema-grande-righe-e-orari-09-11-2026.md) · 3 KB
 - [Il Calendario dice in che sala si fa la lezione: Sala A, B, C, sia per prenotare sia sulla lezione prenotata (09/11/2026)](docs/claude/176-calendario-la-sala-della-lezione-09-11-2026.md) · 3 KB
 - [Junior: lo stagionale non si disdice e non è «al mese» (09/11/2026)](docs/claude/177-junior-stagionale-non-si-disdice-09-11-2026.md) · 1 KB
+- [Junior: «Disdici l'abbonamento» invia una richiesta alla segreteria (09/11/2026)](docs/claude/178-junior-disdetta-richiesta-alla-segreteria-09-11-2026.md) · 2 KB
