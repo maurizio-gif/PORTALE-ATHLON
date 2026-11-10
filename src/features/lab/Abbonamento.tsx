@@ -8,6 +8,7 @@ import {
   anteprimaAbbonamento,
   esitoAbbonamento,
   firmaAbbonamento,
+  importiAdesso,
   pagaAbbonamento,
   riepilogoAbbonamento,
   statoAbbonamento,
@@ -43,6 +44,7 @@ import { FirmaPad } from './FirmaPad'
 import { segnaPagataInCorso } from './junior/inCorso'
 import { scorda, scordaPrefisso } from './memoria'
 import { scordaAccesso } from './riservate/store'
+import { useImportiAdesso } from './useImportiAdesso'
 import { useSessione } from './useSessione'
 import { vistaCorrente } from './vista'
 import { dataLunga, RiepilogoCosti } from './RiepilogoCosti'
@@ -243,6 +245,8 @@ export function Abbonamento() {
   const [firmando, setFirmando] = useState(false)
   const [errorefirma, setErroreFirma] = useState<string | null>(null)
   const [firmato, setFirmato] = useState<Firmato | null>(null)
+  // Quello che si paga adesso (10/11/2026): il credito sul conto puo' arrivare dopo la firma, e la schermata del pagamento lo dice (`useImportiAdesso`).
+  const importiPagamento = useImportiAdesso(firmato?.numero ?? null, firmato?.importi ?? null, () => (firmato ? importiAdesso(firmato.numero) : Promise.resolve(null)))
   /** Il pagamento: scelto dopo la firma. */
   const [metodo, setMetodo] = useState<'carta' | 'conto'>('carta')
   const [contoNuovo, setContoNuovo] = useState<DatiConto | null>(null)
@@ -827,12 +831,12 @@ export function Abbonamento() {
             </Sezione>
 
             <Sezione titolo={t('Il tuo piano di pagamento', 'Your payment plan')}>
-              <RiepilogoCosti importi={firmato.importi} metodo={metodo} senzaTotale={firmato.importi.formula === 'flex'} />
+              <RiepilogoCosti importi={importiPagamento ?? firmato.importi} metodo={metodo} senzaTotale={firmato.importi.formula === 'flex'} />
             </Sezione>
 
             {errorePagamento ? <Messaggio>{errorePagamento}</Messaggio> : null}
             <Pulsante
-              testo={metodo === 'conto' ? t('Conferma e attiva', 'Confirm and activate') : stato.metodi.carta ? t(`Paga ${euro(firmato.importi.calendario.totale_oggi)}`, `Pay ${euro(firmato.importi.calendario.totale_oggi)}`) : t('Vai al pagamento sicuro', 'Go to secure payment')}
+              testo={metodo === 'conto' || (importiPagamento ?? firmato.importi).calendario.totale_oggi === 0 ? t('Conferma e attiva', 'Confirm and activate') : stato.metodi.carta ? t(`Paga ${euro((importiPagamento ?? firmato.importi).calendario.totale_oggi)}`, `Pay ${euro((importiPagamento ?? firmato.importi).calendario.totale_oggi)}`) : t('Vai al pagamento sicuro', 'Go to secure payment')}
               icona="carta"
               onPress={paga}
               inCorso={pagando}

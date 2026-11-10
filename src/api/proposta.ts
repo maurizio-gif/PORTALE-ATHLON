@@ -1,4 +1,4 @@
-import type { AnteprimaContratto, EsitoContratto, EsitoFirma, EsitoPagamento, Formula, MetodoAbbonamento, StatoContratto } from '@/api/abbonamento'
+import type { AnteprimaContratto, EsitoContratto, EsitoFirma, EsitoPagamento, Formula, ImportiContratto, MetodoAbbonamento, StatoContratto } from '@/api/abbonamento'
 import { funzione } from '@/api/lab'
 import { SUPABASE_URL } from '@/config'
 import { intestazioneLingua, t } from '@/lib/lingua'
@@ -184,6 +184,12 @@ export async function pagaProposta(token: string, m: MetodoProposta): Promise<{ 
     return { ok: true, esito: { numero: String(r.dati.numero), stato: r.dati.stato as StatoContratto, url: typeof r.dati.url === 'string' ? r.dati.url : null } }
   }
   return { ok: false, ...errore(r, t('Non siamo riusciti a completare il pagamento adesso.', 'We couldn’t complete the payment right now.')) }
+}
+
+/** Gli importi del contratto firmato di questa proposta con quello che si paga **adesso** (10/11/2026): vedi `importiAdesso`. `null` se non risponde o non e' firmata. */
+export async function importiAdessoProposta(token: string): Promise<ImportiContratto | null> {
+  const r = await chiama('portale-abbonamento', { azione: 'proposta_dovuto', token })
+  return r.ok && r.dati.importi && typeof r.dati.importi === 'object' ? (r.dati.importi as ImportiContratto) : null
 }
 
 /** `non_firmata`: la proposta e' verificata ma il contratto non c'e' ancora. */
