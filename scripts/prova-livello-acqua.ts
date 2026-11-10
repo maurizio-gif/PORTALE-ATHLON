@@ -5,7 +5,7 @@
 //   npx tsx scripts/prova-livello-acqua.ts
 import assert from 'node:assert/strict'
 
-import { applicaRisposta, chiedeLivello, domandaChiusa, livelloCompleto, livelloMancante, LIVELLO_VUOTO } from '../src/features/lab/junior/livelloAcqua.ts'
+import { applicaRisposta, chiedeLivello, domandaChiusa, livelloCompleto, livelloMancante, LIVELLO_VUOTO, menoMesi, questionarioDaAggiornare, questionarioScaduto, MESI_VALIDITA_QUESTIONARIO } from '../src/features/lab/junior/livelloAcqua.ts'
 
 let n = 0
 const prova = (nome: string, f: () => void) => {
@@ -113,6 +113,57 @@ prova('la domanda risposta dalla cascata e\' chiusa', () => {
   assert.equal(domandaChiusa(R('si', 'no', 'no'), 'sa_nuotare'), false, 'dopo un si la seconda si risponde')
   assert.equal(domandaChiusa(R('si', 'no', 'no'), 'stile_libero'), true)
   assert.equal(domandaChiusa(R('si', null, null), 'stile_libero'), false, 'una domanda senza risposta davanti non chiude niente')
+})
+
+// ---- quando si propone (10/11/2026, Maurizio): solo se non c'e' un livello reale, e si rifa dopo sei mesi ----
+const RISPOSTE = (quando) => ({ ha_frequentato: true, sa_nuotare: false, stile_libero: false, quando })
+prova('ogni quanto: sei mesi', () => assert.equal(MESI_VALIDITA_QUESTIONARIO, 6))
+prova('il giorno di sei mesi prima', () => {
+  assert.equal(menoMesi('2026-11-10', 6), '2026-05-10')
+  assert.equal(menoMesi('2026-08-31', 6), '2026-02-28', 'il 31 agosto meno sei mesi e\' la fine di febbraio, non il 3 marzo')
+  assert.equal(menoMesi('2028-08-31', 6), '2028-02-29', 'anno bisestile')
+  assert.equal(menoMesi('2026-03-15', 6), '2025-09-15', 'a cavallo dell\'anno')
+  assert.equal(menoMesi('2026-01-31', 6), '2025-07-31')
+})
+prova('le risposte scadono dopo sei mesi, non prima', () => {
+  assert.equal(questionarioScaduto('2026-05-09T10:00:00.000Z', OGGI), true, 'un giorno oltre i sei mesi')
+  assert.equal(questionarioScaduto('2026-05-10T10:00:00.000Z', OGGI), false, 'esattamente sei mesi fa: non ancora piu\' vecchie')
+  assert.equal(questionarioScaduto('2026-11-09T10:00:00.000Z', OGGI), false, 'di ieri')
+  assert.equal(questionarioScaduto('2025-01-01T00:00:00.000Z', OGGI), true, 'di quasi due anni fa')
+})
+prova('una data che non si legge non scade: un dato illeggibile non ferma nessuno', () => {
+  assert.equal(questionarioScaduto('', OGGI), false)
+  assert.equal(questionarioScaduto(null, OGGI), false)
+  assert.equal(questionarioScaduto('non e\' una data', OGGI), false)
+})
+prova('il giorno e\' quello di Roma: le 23:30 UTC del 9 maggio sono gia\' il 10', () => {
+  assert.equal(questionarioScaduto('2026-05-09T23:30:00.000Z', OGGI), false)
+  assert.equal(questionarioScaduto('2026-05-09T21:30:00.000Z', OGGI), true, 'le 23:30 a Roma del 9')
+})
+prova('chi ha un livello reale registrato non si interroga MAI: ne\' senza risposte, ne\' con risposte vecchie', () => {
+  assert.equal(livelloMancante(figlio({ livello: 'A2 - Stella Marina 2' }), OGGI), false, 'senza risposte')
+  assert.equal(livelloMancante(figlio({ livello: 'B1 - Cavalluccio Marino', livello_acqua: RISPOSTE('2025-01-01T00:00:00.000Z') }), OGGI), false, 'con risposte di due anni fa')
+})
+prova('chi non ha un livello reale: senza risposte si compila, con risposte vecchie si rifa, con risposte fresche no', () => {
+  assert.equal(livelloMancante(figlio({ livello: null }), OGGI), true, 'senza risposte (e senza livello: il registro ha la riga vuota)')
+  assert.equal(livelloMancante(figlio({ livello: null, livello_acqua: RISPOSTE('2026-05-09T10:00:00.000Z') }), OGGI), true, 'risposte oltre sei mesi: si rifa')
+  assert.equal(livelloMancante(figlio({ livello: null, livello_acqua: RISPOSTE('2026-09-01T10:00:00.000Z') }), OGGI), false, 'risposte di settembre: valgono ancora')
+})
+prova('le altre condizioni valgono anche per chi deve rifarlo', () => {
+  const vecchie = RISPOSTE('2025-01-01T00:00:00.000Z')
+  assert.equal(livelloMancante(figlio({ livello_acqua: vecchie, titolare: true }), OGGI), false, 'il titolare no')
+  assert.equal(livelloMancante(figlio({ livello_acqua: vecchie, minorenne: false }), OGGI), false, 'un maggiorenne no')
+  assert.equal(livelloMancante(figlio({ livello_acqua: vecchie, idoneo: false }), OGGI), false, 'chi non e\' in eta\' per i corsi no')
+  assert.equal(livelloMancante(figlio({ livello_acqua: vecchie, data_nascita: '2024-02-01' }), OGGI), false, 'il Baby Nuoto no')
+})
+prova('campo assente: non si ferma nessuno, nemmeno con un livello vuoto', () => {
+  const f = figlio({ livello: null })
+  delete f.livello_acqua
+  assert.equal(livelloMancante(f, OGGI), false)
+})
+prova('«compila» o «aggiorna»: chi ha delle risposte le aggiorna', () => {
+  assert.equal(questionarioDaAggiornare(figlio({ livello_acqua: RISPOSTE('2025-01-01T00:00:00.000Z') })), true)
+  assert.equal(questionarioDaAggiornare(figlio()), false)
 })
 
 console.log(`\n${n} prove passate`)
