@@ -2,7 +2,7 @@
   "expo": {
     "name": "Athlon Club",
     "slug": "portale-athlon-club",
-    "version": "3.0.0",
+    "version": "3.1.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "athlon",
@@ -96,13 +96,16 @@
         }
       ],
       "react-native-health-connect",
+      "@adyen/react-native",
+      "./plugins/with-bouncycastle-allineato",
       [
         "expo-build-properties",
         {
           "android": {
             "compileSdkVersion": 36,
             "targetSdkVersion": 36,
-            "minSdkVersion": 26
+            "minSdkVersion": 26,
+            "kotlinVersion": "2.3.0"
           }
         }
       ]

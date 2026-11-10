@@ -13,6 +13,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@adyen/react-native": "^2.14.0",
     "@expo-google-fonts/plus-jakarta-sans": "^0.4.2",
     "@kingstinct/react-native-healthkit": "^16.2.0",
     "@supabase/supabase-js": "^2.117.3",

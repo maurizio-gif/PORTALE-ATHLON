@@ -2,6 +2,7 @@ import { SUPABASE_URL } from '@/config'
 import { segnaRifiuto } from '@/features/lab/riservate/store'
 import { vistaCorrente } from '@/features/lab/vista'
 import { supabase } from '@/lib/supabase'
+import { canaleNativo } from '@/lib/adyenNativo'
 import { intestazioneLingua, t } from '@/lib/lingua'
 
 // Il laboratorio (binario B): login proprio, fuori da PerfectGym, solo per i
@@ -661,6 +662,10 @@ export type SessioneAdyen = {
   clientKey: string
   environment: string
   sessione: { id: string; sessionData: string }
+  /** Solo per il Drop-in nativo dell'app: l'indirizzo di ritorno dato ad Adyen insieme alla sessione, che l'SDK deve rimandarle (`lib/adyenNativo.ts`). */
+  ritornoNativo?: string
+  /** Solo per il Drop-in nativo: l'importo della sessione, in centesimi, per il pulsante «Paga». Lo dice il server, non lo si rifa dal telefono. */
+  importoCent?: number
 }
 
 type Esito<T> = ({ ok: true } & T) | { ok: false; errore: string; /** La funzione ha risposto 404: la cosa chiesta non c'e' (per questa persona), e riprovare non cambia niente. */ nonTrovato?: boolean }
@@ -674,8 +679,10 @@ export async function elencoPagamenti(): Promise<Esito<{ piani: PianoLab[]; abbo
 }
 
 export async function avviaPagamento(pianoId: string): Promise<Esito<SessioneAdyen>> {
-  const { ok, dati } = await pagamenti({ azione: 'checkout', piano_id: pianoId })
-  if (ok) return { ok: true, riferimento: dati.riferimento, clientKey: dati.clientKey, environment: dati.environment, sessione: dati.sessione }
+  // Nell'app nativa con l'SDK di Adyen la sessione e' per l'app (iOS o Android); sul web e senza l'SDK `canale` e' vuoto e la sessione e' quella di sempre.
+  const canale = await canaleNativo('pagamenti')
+  const { ok, dati } = await pagamenti({ azione: 'checkout', piano_id: pianoId, ...canale })
+  if (ok) return { ok: true, riferimento: dati.riferimento, clientKey: dati.clientKey, environment: dati.environment, sessione: dati.sessione, ritornoNativo: canale.ritorno_nativo, importoCent: typeof dati.importo_cent === 'number' ? dati.importo_cent : undefined }
   return { ok: false, errore: dati.errore ?? t('Non siamo riusciti ad aprire il pagamento adesso.', 'We couldn’t open the payment right now.') }
 }
 

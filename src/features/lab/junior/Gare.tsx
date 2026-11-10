@@ -58,7 +58,8 @@ import { nomeCompleto } from "./comune";
 // **Si paga nella carta, col Drop-in di Adyen** (04/11/2026, Maurizio: «mi apre un altro link: usa l'altra modalita' di Adyen che gia' avevamo, l'embed nel nostro sito, metti i dati
 // della carta e ti da' il risultato li'»): sul web, dopo l'iscrizione, la carta della gara si apre su `CassaGara` con il modulo di Adyen (`../adyen`, la stessa sessione e lo stesso
 // riferimento `GARA-<id>` del link). Finito il pagamento si chiede l'esito al server (`esitoSessioneGara`: «ricevuto», «rifiutato») e si rilegge finche' il webhook non conferma
-// l'iscrizione. **Nell'app nativa il Drop-in non c'e'** (`pagamentoDisponibile` falso) e la carta nuova passa dal link di prima, nel browser integrato.
+// l'iscrizione. **Nell'app** (10/11/2026) il Drop-in e' quello **nativo** di Adyen, un foglio dell'app con la 3D Secure dentro l'SDK (`../adyen`); **senza l'SDK nella build**
+// (`pagamentoDisponibile` falso) la carta nuova passa dal link di prima, nel browser integrato.
 //
 // **La carta gia' salvata** (04/11/2026, Maurizio: «se trova la carta salvata deve selezionarla e addebitare senza CVC e 3D Secure, che servono alla prima registrazione; se non c'e',
 // salva e paga»): prima del modulo `CassaGara` chiede al server le carte di chi paga (`carteSalvateGara`). Se ce n'e' una, si paga con un tocco (`pagaConCartaSalvata`, solo
@@ -610,8 +611,8 @@ function Pagamento({ iscrizioneId, quotaCent, onCassa }: { iscrizioneId: number;
 
 /**
  * Il pagamento nella carta. Prima si guardano le carte **gia' salvate** di chi paga: se ce n'e' una si addebita con un tocco, senza CVC ne' 3D Secure (servono alla prima
- * registrazione, Maurizio). Se non ce n'e', o si sceglie un'altra carta, si scrive nel modulo sicuro di Adyen (Drop-in, solo web), che **salva la carta pagando**; nell'app
- * nativa, senza Drop-in, la carta nuova passa dal link nel browser integrato. In ogni caso la conferma dell'iscrizione e' del webhook di Adyen, non di questa schermata.
+ * registrazione, Maurizio). Se non ce n'e', o si sceglie un'altra carta, si scrive nel modulo sicuro di Adyen (Drop-in: nella pagina sul web, un foglio nativo nell'app), che **salva
+ * la carta pagando**; senza l'SDK nella build la carta nuova passa dal link nel browser integrato. In ogni caso la conferma dell'iscrizione e' del webhook di Adyen, non di questa schermata.
  */
 type EsitoCassa = { tono: "ok" | "attenzione" | "errore"; titolo: string; testo: string; altra?: boolean };
 
@@ -663,7 +664,7 @@ function CassaGara({
     };
   }, [iscrizioneId]);
 
-  // 2. La carta nuova col modulo di Adyen (solo web): la sessione la prepara il server.
+  // 2. La carta nuova col modulo di Adyen (web, o il Drop-in nativo nell'app): la sessione la prepara il server.
   useEffect(() => {
     if (fase !== "nuova" || !pagamentoDisponibile) return;
     let vivo = true;
@@ -778,7 +779,7 @@ function CassaGara({
     [sessione, iscrizioneId, ricevuto],
   );
 
-  // Nell'app nativa il modulo non c'e': la carta nuova passa dal link, nel browser integrato.
+  // Senza l'SDK di Adyen nella build il modulo non c'e': la carta nuova passa dal link, nel browser integrato.
   async function apriLink() {
     setErrore(null);
     setLavoro(true);

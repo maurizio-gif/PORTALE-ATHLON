@@ -35,9 +35,10 @@ import { colpetto, Tocco } from '../ui/Tocco'
 //   1. **La carta gia' salvata, con un tocco**: «Paga 79 € con •••• 1234», senza CVC ne' 3D Secure (servono alla prima registrazione). Con piu' carte, una lista.
 //   2. **Il conto gia' salvato su PerfectGym** (addebito SEPA sul mandato che c'e': nessun IBAN da scrivere, nessun mandato nuovo). Si sceglie, si spunta
 //      l'autorizzazione col testo che scrive il server (importo, ultime cifre), e l'ordine e' **pagato subito**: l'incasso lo fa la banca in qualche giorno.
-//   3. **Una carta nuova col Drop-in di Adyen** (solo web), che **salva la carta pagando** e lo dice prima. Dopo una 3D Secure Adyen riporta su
-//      `/shop/ordine/<id>` con `sessionId` e `redirectResult` (li consegna `EsitoOrdine`).
-//   4. **Nell'app nativa** il Drop-in non c'e' (`pagamentoDisponibile` falso): la carta nuova passa dal link nel browser integrato.
+//   3. **Una carta nuova col Drop-in di Adyen**, che **salva la carta pagando** e lo dice prima. Sul web e' il modulo nella pagina; nell'app (dal 10/11/2026) e' il Drop-in
+//      **nativo** di Adyen, un foglio dell'app con la 3D Secure dentro l'SDK (`adyen.tsx`). Sul web, dopo una 3D Secure, Adyen riporta su `/shop/ordine/<id>` con `sessionId` e
+//      `redirectResult` (li consegna `EsitoOrdine`).
+//   4. **Senza l'SDK nella build** (`pagamentoDisponibile` falso: Expo Go, un development build di prima) la carta nuova passa dal link nel browser integrato, come prima.
 //
 // **La conferma del pagamento non e' di questa schermata**: e' del webhook di Adyen (carta) o di GoCardless (SEPA). Qui si chiede il pagamento e, quando e' partito,
 // si va alla pagina dell'ordine (`EsitoOrdine`), che chiede com'e' andata finche' non lo sa. Solo se la banca rifiuta si resta qui, con «Riprova».
@@ -102,7 +103,7 @@ export function CassaShop({ ordineId, totale, soloCarta = false, chiudi, onChiud
     }
   }, [ordineId, soloCarta, vaiAlModulo])
 
-  // 2. La carta nuova col modulo di Adyen (solo web): la sessione la prepara il server.
+  // 2. La carta nuova col modulo di Adyen (web, o il Drop-in nativo nell'app): la sessione la prepara il server.
   useEffect(() => {
     if (fase !== 'nuova' || !pagamentoDisponibile) return
     let vivo = true
@@ -198,7 +199,7 @@ export function CassaShop({ ordineId, totale, soloCarta = false, chiudi, onChiud
     [sessione, ordineId, vaiAllEsito],
   )
 
-  // Nell'app nativa il modulo non c'e': la carta nuova passa dal link, nel browser integrato.
+  // Senza l'SDK di Adyen nella build il modulo non c'e': la carta nuova passa dal link, nel browser integrato.
   async function apriLink() {
     setErrore(null)
     setLavoro(true)
