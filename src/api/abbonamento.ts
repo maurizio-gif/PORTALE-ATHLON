@@ -89,11 +89,15 @@ export type ConsensoContratto = { chiave: string; perfectgym_id: number; obbliga
 
 /** Quello che si paga e quando: oggi alla firma, poi ogni quota con la sua data. */
 export type CalendarioPagamenti = {
-  oggi: { label: string; importo: number; nota?: string }[]
+  /** Con un credito sul conto c'e' una voce **negativa** con `credito: true`: e' quello che si scala (10/11/2026). `totale_oggi` e' gia' al netto. */
+  oggi: { label: string; importo: number; nota?: string; credito?: true }[]
   totale_oggi: number
   prossimi: { data: string; label: string; importo: number }[]
   ricorrenza: { dal: string; importo: number; ogni: 'mese' | 'anno'; nota: string } | null
+  /** Le quote di `prossimi` sono di listino: il credito che avanza le scala in ordine. Il totale dell'impegno e' al netto. */
   totale_impegno: number
+  /** Il credito che la persona ha sul conto (saldo positivo di PerfectGym) e come si usa. Assente se non ce n'e'. */
+  credito?: { disponibile: number; oggi: number; sulle_quote: number; resto: number }
 }
 
 export type ImportiContratto = {
@@ -249,6 +253,15 @@ export async function firmaAbbonamento(
 }
 
 export type EsitoPagamento = { numero: string; stato: StatoContratto; url: string | null }
+
+/**
+ * Gli importi del contratto firmato con quello che si paga **adesso** (10/11/2026): il credito sul conto puo' arrivare dopo la firma (il desk lo registra a
+ * contratto creato), e il server dice quello che PerfectGym incassera' davvero, con la riga del credito. `null` se non risponde: restano quelli della firma.
+ */
+export async function importiAdesso(numero: string): Promise<ImportiContratto | null> {
+  const { ok, dati } = await abbonamento({ azione: 'dovuto', numero })
+  return ok && dati.importi && typeof dati.importi === 'object' ? (dati.importi as ImportiContratto) : null
+}
 
 /** Dopo la firma: sceglie il metodo e incassa la prima quota. Si ripete finche' non va a buon fine. */
 export async function pagaAbbonamento(numero: string, m: MetodoAbbonamento, ritornoUrl?: string): Promise<{ ok: true; esito: EsitoPagamento } | { ok: false; errore: string }> {

@@ -66,7 +66,9 @@ export function RiepilogoCosti({
           <Text style={[stili.sopra, { color: p.testoSecondario }]}>{t('Oggi paghi', 'You pay today')}</Text>
           <Text style={{ color: p.testo, fontFamily: F.extra, fontSize: 34, letterSpacing: -1 }}>{euro(c.totale_oggi)}</Text>
           <Text style={[stili.nota, { color: p.testoSecondario }]}>
-            {metodo === 'conto'
+            {c.totale_oggi === 0 && c.credito
+              ? t('Il credito che hai sul conto copre tutto: oggi non si addebita niente.', 'The credit on your account covers everything: nothing is charged today.')
+              : metodo === 'conto'
               ? t('Si addebitano sul conto corrente, con l’addebito diretto SEPA.', 'Charged to your bank account by SEPA direct debit.')
               : metodo === 'carta'
                 ? t('Si addebitano sulla carta.', 'Charged to your card.')
@@ -77,10 +79,23 @@ export function RiepilogoCosti({
         <View style={{ gap: 6 }}>
           {c.oggi.map((v) => (
             <View key={v.label} style={riga}>
-              <Text style={[stili.voce, { color: p.testo, flex: 1 }]}>{v.label}</Text>
-              <Text style={[stili.importo, { color: v.nota ? p.ok : p.testo }]}>{v.nota ? t('non dovuta', 'not due') : euro(v.importo)}</Text>
+              <Text style={[stili.voce, { color: v.credito ? p.ok : p.testo, flex: 1 }]}>{v.label}</Text>
+              <Text style={[stili.importo, { color: v.nota || v.credito ? p.ok : p.testo }]}>
+                {v.nota ? t('non dovuta', 'not due') : v.credito ? `− ${euro(Math.abs(v.importo))}` : euro(v.importo)}
+              </Text>
             </View>
           ))}
+          {/* Il credito che avanza dopo oggi (10/11/2026): PerfectGym lo scala dalle quote che seguono, nell'ordine in cui scadono. */}
+          {c.credito && (c.credito.sulle_quote > 0 || c.credito.resto > 0) ? (
+            <Text style={[stili.nota, { color: p.testoSecondario }]}>
+              {c.credito.sulle_quote > 0
+                ? t(`Il credito che avanza (${euro(c.credito.sulle_quote)}) scala le prime quote. `, `The remaining credit (${euro(c.credito.sulle_quote)}) is taken off your first payments. `)
+                : ''}
+              {c.credito.resto > 0
+                ? t(`${euro(c.credito.resto)} restano sul tuo conto e si scalano dai prossimi addebiti.`, `${euro(c.credito.resto)} stay on your account and are taken off your next charges.`)
+                : ''}
+            </Text>
+          ) : null}
         </View>
 
         {c.prossimi.length || c.ricorrenza ? (
