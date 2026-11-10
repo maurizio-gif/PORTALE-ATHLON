@@ -1,4 +1,4 @@
-import { Image } from 'expo-image'
+import { Image, type ImageSource } from 'expo-image'
 import { LinearGradient } from 'expo-linear-gradient'
 import { useEffect, useRef, useState } from 'react'
 import { Animated, Easing, Linking, Platform, Pressable, StyleSheet, Text, View } from 'react-native'
@@ -70,6 +70,19 @@ function Glifo({ chiave, colore, size = 20 }: { chiave: string; colore: string; 
   )
 }
 
+/**
+ * La foto di un'attivita', per `chiave` come le icone (10/11/2026, richiesta di Maurizio: la foto della Scuola Nuoto Adulti nel
+ * portale). E' una foto del club, tenuta qui in `assets/images/attivita/` (WebP 1280 px, come `invita/amici-in-sala.webp`), e non
+ * un file del sito come quelle della sezione Junior. **Solo chi ce l'ha la mostra**: le altre attivita' restano com'erano, e
+ * `lib/guestPass.ts` resta fatto di soli dati, senza immagini.
+ */
+const FOTO: Record<string, { fonte: ImageSource; testo: string }> = {
+  'scuola-nuoto-adulti': {
+    fonte: require('@/../assets/images/attivita/scuola-nuoto-adulti.webp'),
+    testo: t('Una persona nuota a stile libero nella vasca del club, fra le corsie', 'A swimmer doing freestyle in the club pool, between the lanes'),
+  },
+}
+
 /** Il blocco che entra: sfuma e sale di pochi punti. Chiuso non c'e': niente da animare in uscita. */
 function Appare({ children }: { children: React.ReactNode }) {
   const v = useRef(new Animated.Value(0)).current
@@ -131,6 +144,7 @@ function Freccia({ aperta, colore }: { aperta: boolean; colore: string }) {
 
 function Riga({ a, aperta, primo, onToggle }: { a: AttivitaProva; aperta: boolean; primo: boolean; onToggle: () => void }) {
   const c = useColori()
+  const foto = FOTO[a.chiave]
   return (
     <View style={!primo ? { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: c.bordo } : undefined}>
       <Pressable
@@ -152,6 +166,18 @@ function Riga({ a, aperta, primo, onToggle }: { a: AttivitaProva; aperta: boolea
       </Pressable>
       {aperta ? (
         <Appare>
+          {foto ? (
+            <View style={stili.foto}>
+              <Image
+                source={foto.fonte}
+                accessibilityLabel={foto.testo}
+                style={[stili.fotoImmagine, { backgroundColor: tinta(c.accento, 0.08) }]}
+                contentFit="cover"
+                contentPosition={{ top: '35%' }}
+                transition={150}
+              />
+            </View>
+          ) : null}
           <View style={stili.corpoRiga}>
             <Text style={[stili.dettaglio, { color: c.testo }]}>{a.dettaglio}</Text>
             <Text accessibilityRole="link" style={[stili.link, { color: c.accento }]} onPress={() => apriAccanto(a.url)}>
@@ -226,6 +252,9 @@ const stili = StyleSheet.create({
   icona: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
   nome: { fontSize: 16, fontWeight: '700' },
   breve: { fontSize: 13, lineHeight: 18 },
+  // La foto sta sopra il testo, per tutta la larghezza del riquadro aperto (16:9, con l'inquadratura un po' in alto: il nuotatore resta dentro).
+  foto: { paddingHorizontal: spazio.tre, paddingTop: spazio.due, paddingBottom: spazio.tre },
+  fotoImmagine: { width: '100%', aspectRatio: 16 / 9, borderRadius: 14, overflow: 'hidden' },
   corpoRiga: { paddingLeft: spazio.tre + 40 + spazio.tre, paddingRight: spazio.tre, paddingBottom: spazio.tre, gap: spazio.due + 2 },
   dettaglio: { fontSize: 14, lineHeight: 21 },
   link: { fontSize: 14, fontWeight: '700', textDecorationLine: 'underline' },
