@@ -61,7 +61,7 @@ export function AvvisoCertificato({ area, onVai, onAggiorna }: { area: AreaTrova
   const fogli =
     nelFoglio && foglio ? (
       <>
-        <FoglioCertificato aperto={foglio.tipo === 'persona'} persona={foglio.tipo === 'persona' ? foglio.persona : null} onChiudi={() => setFoglio(null)} onCaricato={onAggiorna} />
+        <FoglioCertificato aperto={foglio.tipo === 'persona'} persona={foglio.tipo === 'persona' ? foglio.persona : null} persone={area.persone} onChiudi={() => setFoglio(null)} onCaricato={onAggiorna} />
         <Foglio aperto={foglio.tipo === 'elenco'} titolo={t('Certificati medici', 'Medical certificates')} onChiudi={() => setFoglio(null)}>
           <SezioneCertificato area={area} onAggiorna={onAggiorna} />
         </Foglio>

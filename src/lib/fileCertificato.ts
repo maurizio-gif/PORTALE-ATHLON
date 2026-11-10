@@ -1,12 +1,16 @@
 import * as DocumentPicker from 'expo-document-picker'
 import { Platform } from 'react-native'
 import { t } from './lingua'
+import { MAX_BYTE, MAX_FILE, pesoLeggibile } from './elencoFileCertificato'
 import { scattaFoto, type FileGrezzo } from './fileScheda'
+
+// I limiti e i conti sull'elenco dei file stanno in `elencoFileCertificato` (puro, si prova con tsx); chi importa da qui li trova lo stesso.
+export { MAX_BYTE, MAX_FILE, pesoLeggibile }
 
 // Il file del certificato medico: lo si sceglie, lo si controlla e lo si porta in
 // base64, che e' come la funzione lo riceve (come l'allegato dell'Help Desk del sito).
 //
-// **Formati: JPG, PNG, PDF; fino a 8 MB.** Sono gli stessi controlli della funzione
+// **Formati: JPG, PNG, PDF; fino a 8 MB (e fino a tre file, 8 MB in tutto: `elencoFileCertificato`).** Sono gli stessi controlli della funzione
 // (`_shared/certificati.ts`, APP-ATHLON): qui servono a dirlo subito e con parole
 // chiare, la' sono l'ultima parola e guardano i primi byte del file, non il nome.
 //
@@ -19,7 +23,6 @@ import { scattaFoto, type FileGrezzo } from './fileScheda'
 // dei file senza scegliere non fa partire nessun evento: la promessa non si risolve mai.
 // Per questo la sola attesa visibile comincia dopo la scelta (`preparaFile`).
 
-export const MAX_BYTE = 8 * 1024 * 1024
 const RIDUCI_SOPRA = 2.5 * 1024 * 1024
 const LATO_MASSIMO = 2400
 
@@ -60,11 +63,6 @@ function tipoDi(a: { name: string; mimeType?: string }): TipoCertificato | null 
   if (estensione === 'png') return 'image/png'
   if (estensione === 'pdf') return 'application/pdf'
   return null
-}
-
-/** Il peso come lo si legge: «2,4 MB», «380 kB». */
-export function pesoLeggibile(byte: number): string {
-  return byte >= 1024 * 1024 ? `${(byte / 1024 / 1024).toFixed(1).replace('.', t(',', '.'))} MB` : `${Math.max(1, Math.round(byte / 1024))} kB`
 }
 
 function inBase64(blob: Blob): Promise<string> {

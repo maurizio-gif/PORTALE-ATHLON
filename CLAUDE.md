@@ -218,3 +218,4 @@ chiamata diretta al gestionale. Esempio: la sezione Prodotti usa l'azione `prodo
 - [Junior: lo stagionale non si disdice e non è «al mese» (09/11/2026)](docs/claude/180-junior-stagionale-non-si-disdice-09-11-2026.md) · 1 KB
 - [Junior: «Disdici l'abbonamento» invia una richiesta alla segreteria (09/11/2026)](docs/claude/181-junior-disdetta-richiesta-alla-segreteria-09-11-2026.md) · 2 KB
 - [La chat «Richiedi assistenza» sull'app Android nativa: la tastiera non copre più il campo (10/11/2026)](docs/claude/182-chat-assistenza-android-nativo-tastiera-10-11-2026.md) · 4 KB
+- [Il certificato: fino a tre file, e prima si dice per chi lo carichi (10/11/2026)](docs/claude/183-certificato-fino-a-tre-file-e-per-chi-lo-carichi-10-11-2026.md) · 7 KB

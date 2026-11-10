@@ -14,7 +14,7 @@ link che il CRM manda per email (`src/features/certificato/CaricaDaLink.tsx`).
   situazione di prima** (scaduto da N giorni, mai consegnato, in scadenza: il rifiuto non la nasconde dietro una parola sola)
   e lo rimette in «Da fare», con il comando per caricarne uno nuovo. **Un certificato valido non si copre mai con «in verifica»**: lo stato di verifica prevale solo dove il
   certificato è da consegnare o in allarme (`statoCertificato` in `certificato.tsx`).
-- **Un file solo, jpg, png o pdf, fino a 8 MB.** Il tipo lo decide il server dai primi byte; sul web una foto troppo
+- **Da uno a tre file (dal 10/11/2026: il certificato e l'ECG a parte), jpg, png o pdf, 8 MB in tutto; prima del file si dice per chi si carica** (sezione «Il certificato: fino a tre file, e prima si dice per chi lo carichi»). Il tipo lo decide il server dai primi byte; sul web una foto troppo
   grande si riduce prima dell'invio (`src/lib/fileCertificato.ts`). Il selettore è `expo-document-picker`: su iOS e
   Android serve una nuova build.
 - **Nella «vista cliente» dello staff non si carica**: la funzione non è fra le letture, quindi è bloccata, e il
