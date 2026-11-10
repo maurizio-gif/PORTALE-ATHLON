@@ -217,3 +217,4 @@ chiamata diretta al gestionale. Esempio: la sezione Prodotti usa l'azione `prodo
 - [Dal web: Google Play su Android, App Store su iPhone, e dal computer nessun invito (09/11/2026)](docs/claude/179-installa-google-play-su-android-e-niente-dal-computer-09-11-2026.md) · 2 KB
 - [Junior: lo stagionale non si disdice e non è «al mese» (09/11/2026)](docs/claude/180-junior-stagionale-non-si-disdice-09-11-2026.md) · 1 KB
 - [Junior: «Disdici l'abbonamento» invia una richiesta alla segreteria (09/11/2026)](docs/claude/181-junior-disdetta-richiesta-alla-segreteria-09-11-2026.md) · 2 KB
+- [La chat «Richiedi assistenza» sull'app Android nativa: la tastiera non copre più il campo (10/11/2026)](docs/claude/182-chat-assistenza-android-nativo-tastiera-10-11-2026.md) · 4 KB

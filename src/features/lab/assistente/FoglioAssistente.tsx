@@ -1,10 +1,13 @@
 import { router } from 'expo-router'
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
-import { KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native'
+import { BackHandler, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View, type LayoutChangeEvent } from 'react-native'
+import Animated, { FadeIn, FadeOut } from 'react-native-reanimated'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { pulsanteToccato, type AzioneAssistente } from '@/api/assistente'
 import { t } from '@/lib/lingua'
+import { quantoAlzare } from '@/lib/alzaPerTastiera'
+import { useAltezzaTastiera } from '@/lib/tastiera'
 import { spazio } from '@/theme'
 
 import { Icona, type NomeIcona } from '../ui/Icona'
@@ -184,6 +187,40 @@ export function FoglioAssistente({ aperto, schermata, onChiudi }: { aperto: bool
   const scorri = useRef<ScrollView>(null)
   const campo = useRef<TextInput>(null)
   const voce = useDettatura(setTesto)
+  const android = Platform.OS === 'android'
+
+  // **Su Android nativo il foglio non e' un `Modal`** (10/11/2026, segnalazione di Maurizio: «quando si scrive in chat la tastiera copre il campo e non si
+  // riesce a scrivere»). Un `Modal` e' una finestra a parte, e dall'app per Android 16 (`targetSdk` 36) il sistema disegna le finestre a schermo
+  // intero senza ridimensionarle quando compare la tastiera: il campo, in fondo al foglio, restava sotto. Le notifiche della tastiera (`Keyboard`)
+  // arrivano dalla finestra dell'attivita', non da quella del `Modal`: il foglio sta quindi nella stessa finestra della schermata, sopra a tutto
+  // (`stili.sopra`), e la tastiera lo alza (`sollevamento`). Su iOS e sul web resta il `Modal` di prima.
+  const tastiera = useAltezzaTastiera(android && aperto)
+  // Altezza del livello adesso e la piu' alta vista: la differenza e' quanto ha gia' tolto il sistema, se la finestra si ridimensiona (versioni e
+  // telefoni che lo fanno ancora). Si alza solo di quello che manca: con la finestra ridimensionata non si alza due volte.
+  const [livello, setLivello] = useState({ massima: 0, adesso: 0 })
+  const alLayout = (e: LayoutChangeEvent) => {
+    const h = e.nativeEvent.layout.height
+    setLivello((l) => ({ massima: Math.max(l.massima, h), adesso: h }))
+  }
+  // A tastiera chiusa la misura buona e' quella di adesso: se la finestra e' cambiata (schermo diviso) la massima vecchia non vale piu'.
+  useEffect(() => {
+    if (tastiera === 0) setLivello((l) => ({ massima: l.adesso, adesso: l.adesso }))
+  }, [tastiera])
+  // La tastiera sale dal bordo di sotto dello schermo di `tastiera` piu' la barra di navigazione che copre.
+  const sollevamento = quantoAlzare(tastiera, ins.bottom, livello.massima, livello.adesso)
+  // Il foglio si accorcia con la tastiera, e l'ultimo messaggio deve restare in vista.
+  useEffect(() => {
+    if (tastiera > 0) scorri.current?.scrollToEnd({ animated: true })
+  }, [tastiera])
+  // Senza `Modal` il tasto «indietro» di Android non chiude piu' niente da solo.
+  useEffect(() => {
+    if (!android || !aperto) return
+    const ascolto = BackHandler.addEventListener('hardwareBackPress', () => {
+      onChiudi()
+      return true
+    })
+    return () => ascolto.remove()
+  }, [android, aperto, onChiudi])
   const puoMandare = !s.inCorso && testo.trim().length > 0 && testo.length <= CARATTERI_MAX
 
   const manda = (domanda: string) => {
@@ -199,124 +236,141 @@ export function FoglioAssistente({ aperto, schermata, onChiudi }: { aperto: bool
     if (!aperto) voce.annulla()
   }, [aperto, voce.annulla])
 
+  // Con la tastiera su (Android) il foglio riempie lo spazio che resta, sotto la barra di stato; a tastiera chiusa e' alto l'88%, come sempre.
+  const pieno = android && tastiera > 0
+
+  const corpo = (
+    <>
+      <Pressable style={StyleSheet.absoluteFill} onPress={onChiudi} accessibilityLabel={t('Chiudi', 'Close')} />
+      <View style={[stili.foglio, pieno ? stili.foglioPieno : stili.foglioAlto, { backgroundColor: p.carta, paddingBottom: (pieno ? 0 : ins.bottom) + spazio.due }]} accessibilityViewIsModal>
+        <View style={[stili.maniglia, { backgroundColor: p.incavo }]} />
+        <View style={stili.testata}>
+          <View style={{ flex: 1, gap: 2 }}>
+            <Text style={[stili.titolo, { color: p.testo }]} accessibilityRole="header">
+              {t('Assistente virtuale', 'Virtual assistant')}
+            </Text>
+            <Text style={[stili.sotto, { color: p.testoSecondario }]}>{t('Chiedimi dove trovare le cose o cosa risulta sul tuo account.', 'Ask me where to find things or what shows on your account.')}</Text>
+          </View>
+          {s.battute.length > 0 ? (
+            <Tocco onPress={ricominciaChat} etichetta={t('Ricomincia la conversazione', 'Start over')} style={[stili.icona, { backgroundColor: p.incavo }]}>
+              <Icona nome="aggiorna" size={16} colore={p.testo} />
+            </Tocco>
+          ) : null}
+          <Tocco onPress={onChiudi} etichetta={t('Chiudi', 'Close')} style={[stili.icona, { backgroundColor: p.incavo }]}>
+            <Icona nome="chiudi" size={17} colore={p.testo} />
+          </Tocco>
+        </View>
+
+        <ScrollView
+          ref={scorri}
+          style={{ flex: 1 }}
+          contentContainerStyle={{ gap: spazio.tre, padding: spazio.tre + 4, paddingBottom: spazio.tre }}
+          keyboardShouldPersistTaps="handled"
+          onContentSizeChange={() => scorri.current?.scrollToEnd({ animated: true })}
+        >
+          {s.battute.length === 0 && schermata === 'junior' && leggiTemaJunior() ? (
+            // Nella sezione Junior (e dal link del sito che la apre) la chat comincia dal corso del bambino, con un testo nostro (04/11/2026).
+            <BenvenutoJunior tema={leggiTemaJunior()!} onManda={manda} />
+          ) : s.battute.length === 0 ? (
+            <View style={{ gap: spazio.tre }}>
+              <Text style={[stili.testo, { color: p.testoSecondario }]}>{t('Posso fare per te:', 'I can do this for you:')}</Text>
+              <View style={{ gap: spazio.due }}>
+                {suggerimenti(profilo.profilo).map((f) => (
+                  <Tocco key={f.testo} onPress={() => manda(f.testo)} etichetta={f.testo} style={[stili.funzione, { borderColor: p.accento, backgroundColor: p.fondo }]}>
+                    <View style={[stili.funzioneIcona, { backgroundColor: p.accento }]}>
+                      <Icona nome={f.icona} size={17} colore="#fff" />
+                    </View>
+                    <View style={{ flex: 1, gap: 1 }}>
+                      <Text style={[stili.testo, { color: p.testo, fontFamily: F.semi }]}>{f.testo}</Text>
+                      <Text style={[stili.funzioneSotto, { color: p.testoSecondario }]}>{f.sotto}</Text>
+                    </View>
+                    <Icona nome="avanti" size={14} colore={p.testoTerzo} />
+                  </Tocco>
+                ))}
+              </View>
+            </View>
+          ) : null}
+          {s.battute.map((b) => (
+            <Fumetto key={b.id} b={b} onVai={onChiudi} onManda={manda} />
+          ))}
+          {s.errore ? <Messaggio tono={s.nonAttivo ? 'attenzione' : 'errore'}>{s.errore}</Messaggio> : null}
+        </ScrollView>
+
+        <View style={stili.fondo}>
+          <View style={[stili.campo, { borderColor: p.linea, backgroundColor: p.fondo }]}>
+            <TextInput
+              // Il riferimento serve sul web: appena il campo compare, anche con una bozza gia' scritta, si porta alla sua altezza.
+              ref={(el) => {
+                campo.current = el
+                adattaAltezza(el)
+              }}
+              value={testo}
+              onChangeText={setTesto}
+              placeholder={voce.ascolto ? t('Ti ascolto…', 'Listening…') : t('Scrivi qui…', 'Write here…')}
+              placeholderTextColor={p.testoTerzo}
+              multiline
+              // Una riga di partenza: sul web react-native-web ne darebbe due. Poi cresce `adattaAltezza`.
+              numberOfLines={1}
+              maxLength={CARATTERI_MAX}
+              returnKeyType="send"
+              submitBehavior="submit"
+              onSubmitEditing={() => puoMandare && manda(testo)}
+              // Sul web un campo su piu' righe va a capo con Invio: qui Invio manda, Maiusc+Invio va a capo.
+              onKeyPress={(e) => {
+                const n = e.nativeEvent as unknown as { key?: string; shiftKey?: boolean }
+                if (Platform.OS === 'web' && n.key === 'Enter' && !n.shiftKey) {
+                  e.preventDefault()
+                  if (puoMandare) manda(testo)
+                }
+              }}
+              accessibilityLabel={t('La tua domanda', 'Your question')}
+              style={[stili.input, { color: p.testo }, Platform.OS === 'web' ? ({ outlineStyle: 'none' } as object) : null]}
+            />
+            {voce.disponibile ? (
+              <Tocco
+                onPress={() => voce.tocca(testo)}
+                etichetta={voce.ascolto ? t('Smetti di dettare', 'Stop dictating') : t('Detta la domanda con la voce', 'Dictate your question')}
+                stato={{ selected: voce.ascolto }}
+                style={[stili.invia, { backgroundColor: voce.ascolto ? p.accento : p.incavo }]}
+              >
+                {voce.ascolto ? <Richiamo raggio={18} colore={p.accento} ingrandimento={1.45} finoAlFatto /> : null}
+                <Icona nome="microfono" size={17} colore={voce.ascolto ? '#fff' : p.accento} />
+              </Tocco>
+            ) : null}
+            <Tocco onPress={() => puoMandare && manda(testo)} spento={!puoMandare} etichetta={t('Invia', 'Send')} style={[stili.invia, { backgroundColor: puoMandare ? p.accento : p.incavo }]}>
+              <Icona nome="invia" size={16} colore={puoMandare ? '#fff' : p.testoTerzo} />
+            </Tocco>
+          </View>
+          {voce.errore ? <Text style={[stili.postilla, { color: p.testoSecondario }]}>{voce.errore}</Text> : null}
+          <Text style={[stili.postilla, { color: p.testoTerzo }]}>
+            {t(
+              'Assistente automatico: può sbagliare e non fa niente al posto tuo. Le domande e le risposte vengono lette dal club per migliorarlo: non scrivere dati sulla salute.',
+              'Automated assistant: it can make mistakes and doesn’t do anything on your behalf. Questions and answers are read by the club to improve it: don’t write health information.',
+            )}
+            {voce.disponibile
+              ? t(' Il microfono trascrive la voce con il servizio del tuo browser: puoi rileggere e correggere il testo prima di inviarlo.', ' The microphone transcribes your voice with your browser’s service: you can review and edit the text before sending it.')
+              : ''}
+          </Text>
+        </View>
+      </View>
+    </>
+  )
+
+  if (android) {
+    return aperto ? (
+      <Animated.View entering={FadeIn.duration(160)} exiting={FadeOut.duration(120)} onLayout={alLayout} style={[stili.velo, stili.sopra, { paddingTop: pieno ? ins.top + spazio.due : 0, paddingBottom: sollevamento }]}>
+        {corpo}
+      </Animated.View>
+    ) : null
+  }
+
   return (
     // **Dissolvenza e non «slide»** (04/11/2026, telefoni Android con l'app installata: toccando il campo la tastiera si apriva e si richiudeva subito). Il «slide» di React Native Web
     // lascia sul contenitore fisso del foglio una `transform: translateY(0%)` per sempre, anche a fine animazione: un campo di testo dentro un elemento fisso con una `transform` e' il caso
     // in cui Chrome su Android (nella modalita' a schermo intero della PWA) perde il fuoco quando la tastiera ridimensiona la finestra. La dissolvenza lascia solo `opacity`.
     <Modal visible={aperto} transparent animationType="fade" onRequestClose={onChiudi}>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={stili.velo}>
-        <Pressable style={StyleSheet.absoluteFill} onPress={onChiudi} accessibilityLabel={t('Chiudi', 'Close')} />
-        <View style={[stili.foglio, { backgroundColor: p.carta, paddingBottom: ins.bottom + spazio.due }]} accessibilityViewIsModal>
-          <View style={[stili.maniglia, { backgroundColor: p.incavo }]} />
-          <View style={stili.testata}>
-            <View style={{ flex: 1, gap: 2 }}>
-              <Text style={[stili.titolo, { color: p.testo }]} accessibilityRole="header">
-                {t('Assistente virtuale', 'Virtual assistant')}
-              </Text>
-              <Text style={[stili.sotto, { color: p.testoSecondario }]}>{t('Chiedimi dove trovare le cose o cosa risulta sul tuo account.', 'Ask me where to find things or what shows on your account.')}</Text>
-            </View>
-            {s.battute.length > 0 ? (
-              <Tocco onPress={ricominciaChat} etichetta={t('Ricomincia la conversazione', 'Start over')} style={[stili.icona, { backgroundColor: p.incavo }]}>
-                <Icona nome="aggiorna" size={16} colore={p.testo} />
-              </Tocco>
-            ) : null}
-            <Tocco onPress={onChiudi} etichetta={t('Chiudi', 'Close')} style={[stili.icona, { backgroundColor: p.incavo }]}>
-              <Icona nome="chiudi" size={17} colore={p.testo} />
-            </Tocco>
-          </View>
-
-          <ScrollView
-            ref={scorri}
-            style={{ flex: 1 }}
-            contentContainerStyle={{ gap: spazio.tre, padding: spazio.tre + 4, paddingBottom: spazio.tre }}
-            keyboardShouldPersistTaps="handled"
-            onContentSizeChange={() => scorri.current?.scrollToEnd({ animated: true })}
-          >
-            {s.battute.length === 0 && schermata === 'junior' && leggiTemaJunior() ? (
-              // Nella sezione Junior (e dal link del sito che la apre) la chat comincia dal corso del bambino, con un testo nostro (04/11/2026).
-              <BenvenutoJunior tema={leggiTemaJunior()!} onManda={manda} />
-            ) : s.battute.length === 0 ? (
-              <View style={{ gap: spazio.tre }}>
-                <Text style={[stili.testo, { color: p.testoSecondario }]}>{t('Posso fare per te:', 'I can do this for you:')}</Text>
-                <View style={{ gap: spazio.due }}>
-                  {suggerimenti(profilo.profilo).map((f) => (
-                    <Tocco key={f.testo} onPress={() => manda(f.testo)} etichetta={f.testo} style={[stili.funzione, { borderColor: p.accento, backgroundColor: p.fondo }]}>
-                      <View style={[stili.funzioneIcona, { backgroundColor: p.accento }]}>
-                        <Icona nome={f.icona} size={17} colore="#fff" />
-                      </View>
-                      <View style={{ flex: 1, gap: 1 }}>
-                        <Text style={[stili.testo, { color: p.testo, fontFamily: F.semi }]}>{f.testo}</Text>
-                        <Text style={[stili.funzioneSotto, { color: p.testoSecondario }]}>{f.sotto}</Text>
-                      </View>
-                      <Icona nome="avanti" size={14} colore={p.testoTerzo} />
-                    </Tocco>
-                  ))}
-                </View>
-              </View>
-            ) : null}
-            {s.battute.map((b) => (
-              <Fumetto key={b.id} b={b} onVai={onChiudi} onManda={manda} />
-            ))}
-            {s.errore ? <Messaggio tono={s.nonAttivo ? 'attenzione' : 'errore'}>{s.errore}</Messaggio> : null}
-          </ScrollView>
-
-          <View style={stili.fondo}>
-            <View style={[stili.campo, { borderColor: p.linea, backgroundColor: p.fondo }]}>
-              <TextInput
-                // Il riferimento serve sul web: appena il campo compare, anche con una bozza gia' scritta, si porta alla sua altezza.
-                ref={(el) => {
-                  campo.current = el
-                  adattaAltezza(el)
-                }}
-                value={testo}
-                onChangeText={setTesto}
-                placeholder={voce.ascolto ? t('Ti ascolto…', 'Listening…') : t('Scrivi qui…', 'Write here…')}
-                placeholderTextColor={p.testoTerzo}
-                multiline
-                // Una riga di partenza: sul web react-native-web ne darebbe due. Poi cresce `adattaAltezza`.
-                numberOfLines={1}
-                maxLength={CARATTERI_MAX}
-                returnKeyType="send"
-                submitBehavior="submit"
-                onSubmitEditing={() => puoMandare && manda(testo)}
-                // Sul web un campo su piu' righe va a capo con Invio: qui Invio manda, Maiusc+Invio va a capo.
-                onKeyPress={(e) => {
-                  const n = e.nativeEvent as unknown as { key?: string; shiftKey?: boolean }
-                  if (Platform.OS === 'web' && n.key === 'Enter' && !n.shiftKey) {
-                    e.preventDefault()
-                    if (puoMandare) manda(testo)
-                  }
-                }}
-                accessibilityLabel={t('La tua domanda', 'Your question')}
-                style={[stili.input, { color: p.testo }, Platform.OS === 'web' ? ({ outlineStyle: 'none' } as object) : null]}
-              />
-              {voce.disponibile ? (
-                <Tocco
-                  onPress={() => voce.tocca(testo)}
-                  etichetta={voce.ascolto ? t('Smetti di dettare', 'Stop dictating') : t('Detta la domanda con la voce', 'Dictate your question')}
-                  stato={{ selected: voce.ascolto }}
-                  style={[stili.invia, { backgroundColor: voce.ascolto ? p.accento : p.incavo }]}
-                >
-                  {voce.ascolto ? <Richiamo raggio={18} colore={p.accento} ingrandimento={1.45} finoAlFatto /> : null}
-                  <Icona nome="microfono" size={17} colore={voce.ascolto ? '#fff' : p.accento} />
-                </Tocco>
-              ) : null}
-              <Tocco onPress={() => puoMandare && manda(testo)} spento={!puoMandare} etichetta={t('Invia', 'Send')} style={[stili.invia, { backgroundColor: puoMandare ? p.accento : p.incavo }]}>
-                <Icona nome="invia" size={16} colore={puoMandare ? '#fff' : p.testoTerzo} />
-              </Tocco>
-            </View>
-            {voce.errore ? <Text style={[stili.postilla, { color: p.testoSecondario }]}>{voce.errore}</Text> : null}
-            <Text style={[stili.postilla, { color: p.testoTerzo }]}>
-              {t(
-                'Assistente automatico: può sbagliare e non fa niente al posto tuo. Le domande e le risposte vengono lette dal club per migliorarlo: non scrivere dati sulla salute.',
-                'Automated assistant: it can make mistakes and doesn’t do anything on your behalf. Questions and answers are read by the club to improve it: don’t write health information.',
-              )}
-              {voce.disponibile
-                ? t(' Il microfono trascrive la voce con il servizio del tuo browser: puoi rileggere e correggere il testo prima di inviarlo.', ' The microphone transcribes your voice with your browser’s service: you can review and edit the text before sending it.')
-                : ''}
-            </Text>
-          </View>
-        </View>
+        {corpo}
       </KeyboardAvoidingView>
     </Modal>
   )
@@ -324,7 +378,11 @@ export function FoglioAssistente({ aperto, schermata, onChiudi }: { aperto: bool
 
 const stili = StyleSheet.create({
   velo: { flex: 1, backgroundColor: 'rgba(0,0,0,0.55)', justifyContent: 'flex-end', alignItems: 'center' },
-  foglio: { width: '100%', maxWidth: 560, height: '88%', borderTopLeftRadius: 34, borderTopRightRadius: 34 },
+  // Sopra a tutto, nella finestra della schermata (Android nativo): `zIndex` per l'ordine fra fratelli, `elevation` perche' su Android una vista con ombra (la barra delle schede) sta sopra a una con elevazione 0.
+  sopra: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 100, elevation: 100 },
+  foglio: { width: '100%', maxWidth: 560, borderTopLeftRadius: 34, borderTopRightRadius: 34 },
+  foglioAlto: { height: '88%' },
+  foglioPieno: { flex: 1 },
   maniglia: { width: 44, height: 5, borderRadius: 3, alignSelf: 'center', marginTop: 10, marginBottom: 6 },
   testata: { flexDirection: 'row', alignItems: 'flex-start', gap: spazio.due, paddingHorizontal: spazio.quattro - 4, paddingTop: spazio.due },
   titolo: { fontFamily: F.extra, fontSize: 22, letterSpacing: -0.6 },
