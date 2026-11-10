@@ -18,7 +18,8 @@ import { passaDalTotem } from '@/features/lab/totem/passaggio'
 // finche' la prenotazione non c'e'. Dal Percorso si passa quindi per il Calendario, e si ritorna al Percorso
 // da sé (la settimana si rilegge a ogni ritorno).
 
-export type PrenotazioneFatta = { booking_id: number; attesa: boolean }
+/** `posizione`: il posto in coda se si e' finiti in lista d'attesa (1 = il primo); null se non si sa. */
+export type PrenotazioneFatta = { booking_id: number; attesa: boolean; posizione?: number | null }
 
 export type DopoLaPrenotazione = {
   prenotata: (classId: number, prenotazione: PrenotazioneFatta) => void
@@ -35,7 +36,7 @@ export function usePrenotazioneLezione(memberId: number | null | undefined, dopo
     const esito = await prenotaLezione(classId, memberId)
     setOccupato(false)
     if (!esito.ok) return esito
-    dopo.prenotata(classId, { booking_id: esito.booking_id ?? 0, attesa: esito.esito === 'attesa' })
+    dopo.prenotata(classId, { booking_id: esito.booking_id ?? 0, attesa: esito.esito === 'attesa', posizione: esito.esito === 'attesa' ? esito.posizione : null })
     return null
   }
 
