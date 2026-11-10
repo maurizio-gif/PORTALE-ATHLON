@@ -301,15 +301,14 @@ export async function presenzeLezioni(): Promise<Esito<{ presenze: PresenzaLezio
 }
 
 /**
- * Una prenotazione passata del titolare, con la presenza (09/11/2026, il riquadro «Prenotazioni» della Home). `esito`:
- *   presente       segnata dalla reception o dal trainer
- *   assente        passato il tempo per segnarla (3 ore dall'inizio per una lezione), non c'e'
- *   da_confermare  ancora in tempo per segnarla: non e' un'assenza
- *   annullata      disdetta: non conta fra le assenze
- *   null           nessun segno: la presenza si mostra solo per cinque categorie (Corsi Fitness, Group Reformer, Aqua Fitness, Scuola Nuoto
- *                  Adulti, Nuoto Libero, 10/11/2026). La prenotazione si vede lo stesso; il personal training non ha il segno.
+ * Una prenotazione passata del titolare (09/11/2026, il riquadro «Prenotazioni» della Home). Dal 10/11/2026 (richiesta di Maurizio) lo
+ * storico e' degli ultimi 30 giorni e si divide in due elenchi, entrambi decisi dalla funzione:
+ *   `voci`      le lezioni con la presenza o l'assenza, solo di cinque categorie (Corsi Fitness, Group Reformer, Aqua Fitness, Scuola Nuoto
+ *               Adulti, Nuoto Libero). `esito` e' `presente` o `assente`. Non ci sono le disdette, le lezioni ancora «da confermare» (l'istruttore
+ *               ha tre ore dall'inizio per segnarle), la Gym Floor, gli eventi e i corsi junior.
+ *   `personal`  le sedute di personal training non annullate, a parte, con `esito: null`: il segno non c'e'.
  */
-export type EsitoPrenotazione = 'presente' | 'assente' | 'da_confermare' | 'annullata'
+export type EsitoPrenotazione = 'presente' | 'assente'
 export type PrenotazionePassata = {
   tipo: 'lezione' | 'pt'
   id: number
@@ -319,22 +318,23 @@ export type PrenotazionePassata = {
   /** La zona su PerfectGym («Sala A», «Piscina Grande»); null se manca e per i PT. */
   sala: string | null
   istruttore: string | null
+  /** Presente o assente per una lezione; null per il personal training. */
   esito: EsitoPrenotazione | null
 }
 export type StoricoPrenotazioni = {
   /** Quanti giorni indietro arriva l'elenco: i conteggi sono su questi. */
   giorni: number
-  /** Dalla piu' recente. */
+  /** Le lezioni con presenza o assenza, dalla piu' recente. */
   voci: PrenotazionePassata[]
-  /** Presenze, assenze e da confermare contano solo le cinque categorie con il segno; le annullate tutte. */
+  /** Il personal training, a parte e senza segno, dal piu' recente. */
+  personal: PrenotazionePassata[]
+  /** Presenze e assenze delle lezioni di `voci`. */
   presenze: number
   assenze: number
-  da_confermare: number
-  annullate: number
 }
 
 /**
- * Le prenotazioni degli ultimi 90 giorni con il flag se la persona era presente. Con una funzione di prima (che non conosce l'azione)
+ * Le lezioni con presenza o assenza e, a parte, i personal degli ultimi 30 giorni. Con una funzione di prima (che non conosce l'azione)
  * risponde 400 e la sezione dice che non riesce a leggerle: niente di rotto, e il riquadro resta apribile.
  */
 export async function storicoPrenotazioni(): Promise<Esito<StoricoPrenotazioni>> {
@@ -342,12 +342,11 @@ export async function storicoPrenotazioni(): Promise<Esito<StoricoPrenotazioni>>
   if (ok && Array.isArray(dati.voci)) {
     return {
       ok: true,
-      giorni: Number(dati.giorni) || 90,
+      giorni: Number(dati.giorni) || 30,
       voci: dati.voci as PrenotazionePassata[],
+      personal: Array.isArray(dati.personal) ? (dati.personal as PrenotazionePassata[]) : [],
       presenze: Number(dati.presenze) || 0,
       assenze: Number(dati.assenze) || 0,
-      da_confermare: Number(dati.da_confermare) || 0,
-      annullate: Number(dati.annullate) || 0,
     }
   }
   // 400 e' «Azione sconosciuta»: la funzione non e' ancora quella nuova. Il testo del server non e' per la persona.

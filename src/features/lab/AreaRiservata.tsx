@@ -475,11 +475,12 @@ export function AreaRiservata({ email }: { email: string }) {
         : prodotti.errore
           ? { valore: t('Apri', 'Open'), nota: t('lezioni, accessi, recuperi', 'classes, visits, make-up classes') }
           : { valore: '…', nota: t('un attimo', 'one moment') },
-    // Il riquadro delle prenotazioni passate: quante volte c'era (e quante no) negli ultimi 90 giorni. Le disdette non sono assenze.
+    // Il riquadro delle prenotazioni passate: quante volte c'era (e quante no) alle lezioni degli ultimi 30 giorni. Senza disdette e
+    // senza personal training (che sta a parte): con nessuna lezione dice «nessuna lezione», anche se ci sono dei personal.
     prenotazioni: storico.dati
       ? storico.dati.voci.length
         ? { valore: String(storico.dati.presenze), nota: t(`${storico.dati.presenze === 1 ? 'presenza' : 'presenze'} · ${storico.dati.assenze} ${storico.dati.assenze === 1 ? 'assenza' : 'assenze'}`, `attended · ${storico.dati.assenze} missed`) }
-        : { valore: '0', nota: t(`nessuna in ${storico.dati.giorni} giorni`, `none in ${storico.dati.giorni} days`) }
+        : { valore: '0', nota: t(`nessuna lezione in ${storico.dati.giorni} giorni`, `no classes in ${storico.dati.giorni} days`) }
       : storico.errore
         ? { valore: t('Apri', 'Open'), nota: t('storico delle lezioni', 'your class history') }
         : { valore: '…', nota: t('un attimo', 'one moment') },
