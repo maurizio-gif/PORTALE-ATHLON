@@ -34,7 +34,7 @@ const ASPETTO: Record<SezioneHome, { titolo: string; icona: NomeIcona; tono: Ton
   pagamenti: { titolo: t('Pagamenti', 'Payments'), icona: 'carta', tono: 'attenzione', colori: ['#F59E0B', '#B45309'] },
   prodotti: { titolo: t('Prodotti', 'Products'), icona: 'pass', tono: 'neutro', colori: ['#EC4899', '#9D174D'] },
   // Dodici caratteri come «Tesseramento», il piu' lungo che stava in una riga di otto riquadri: «Mie prenotazioni» si troncava. La sezione che
-  // si apre si intitola «Le mie prenotazioni», e dice subito che e' la storia (il calendario e' la scheda in basso).
+  // si apre e' la storia degli ultimi 30 giorni (lezioni con presenza o assenza, e il personal training a parte); il calendario e' la scheda in basso.
   prenotazioni: { titolo: t('Prenotazioni', 'Bookings'), icona: 'calendario', tono: 'neutro', colori: ['#6366F1', '#3730A3'] },
   documenti: { titolo: t('Documenti', 'Documents'), icona: 'documento', tono: 'neutro', colori: ['#14B8A6', '#0E7C70'] },
   certificato: { titolo: t('Certificato', 'Certificate'), icona: 'certificato', tono: 'ok', colori: ['#34A36B', '#1B6B43'] },
