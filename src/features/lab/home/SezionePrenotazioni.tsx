@@ -21,6 +21,11 @@ import { F, usePalette, velo, coloreTono, type ToniTutti } from '../ui/tema'
 // **Il segno presente/assente c'e' solo per cinque categorie**: Corsi Fitness, Group Reformer, Aqua Fitness, Scuola Nuoto Adulti e Nuoto
 // Libero. Sono quelle in cui la presenza si segna davvero, e un'assenza dichiarata dove nessuno la segna e' un'informazione sbagliata.
 //
+// **Dalla sera del 10/11/2026 si vedono anche gli eventi** (Eventi Gratuiti e Master Class, richiesta di Maurizio), nello stesso elenco delle lezioni
+// (`voci`, che la funzione decide). **Il segno degli eventi e' certo o non c'e'**: «Presente» solo se la presenza e' segnata (la riga ha la pillola),
+// altrimenti la riga non ha pillola e mai «Assente». Misurato il 10/11/2026: negli ultimi 30 giorni gli Eventi Gratuiti hanno 0 presenze segnate su 87,
+// le Master Class 19 su 19. Il riepilogo conta le pillole che si vedono.
+//
 // **La presenza e' quella del club**, la stessa della scheda del CRM: la segna la reception o il trainer, non la persona. Una lezione
 // appena finita non compare finche' l'istruttore puo' ancora segnarla (tre ore dall'inizio): dire «Assente» a chi c'era e' un'informazione
 // sbagliata, e «Da confermare» non c'e' piu' fra le cose da mostrare.
@@ -149,9 +154,9 @@ export function SezionePrenotazioni() {
     return (
       <View style={{ gap: spazio.tre }}>
         <Carta piatta>
-          <Text style={{ color: pal.testo, fontFamily: F.semi, fontSize: 15, lineHeight: 22 }}>{t(`Nessuna lezione negli ultimi ${dati.giorni} giorni.`, `No classes in the last ${dati.giorni} days.`)}</Text>
+          <Text style={{ color: pal.testo, fontFamily: F.semi, fontSize: 15, lineHeight: 22 }}>{t(`Nessuna lezione o evento negli ultimi ${dati.giorni} giorni.`, `No classes or events in the last ${dati.giorni} days.`)}</Text>
           <Text style={{ color: pal.testoSecondario, fontFamily: F.medio, fontSize: 13.5, lineHeight: 20, marginTop: 4 }}>
-            {t('Le lezioni a cui ti prenoti compaiono qui, segnate come presente o assente.', 'The classes you book show up here, marked as attended or missed.')}
+            {t('Le lezioni e gli eventi a cui ti prenoti compaiono qui, segnati come presente o assente dove il club registra la presenza.', 'The classes and events you book show up here, marked as attended or missed wherever the club records attendance.')}
           </Text>
         </Carta>
         <Pulsante testo={t('Prenota una lezione', 'Book a class')} icona="calendario" variante="secondario" onPress={() => router.push('/calendario')} />
@@ -164,6 +169,10 @@ export function SezionePrenotazioni() {
       'La presenza la segna il club e si mostra per Corsi Fitness, Group Reformer, Aqua Fitness, Scuola Nuoto Adulti e Nuoto Libero. Una lezione compare quando la presenza è segnata o è passato il tempo per segnarla (tre ore dall’inizio). Le lezioni disdette non compaiono.',
       'Attendance is recorded by the club and shown for Corsi Fitness, Group Reformer, Aqua Fitness, Scuola Nuoto Adulti and Nuoto Libero. A class appears once its attendance is recorded or the time to record it has passed (three hours after the start). Cancelled classes are not shown.',
     ),
+    // Gli eventi (e solo loro) arrivano senza il segno quando la presenza non è registrata.
+    dati.voci.some((v) => v.esito === null)
+      ? t('Gli eventi si vedono anche senza il segno: lì la presenza non sempre viene registrata, e quando manca non diciamo «Assente».', 'Events are listed even without a mark: attendance isn’t always recorded there, and when it’s missing we don’t say “Missed”.')
+      : null,
     dati.personal.length ? t('Il personal training è in un elenco a parte, senza il segno.', 'Personal training is in a separate list, without attendance.') : null,
   ]
     .filter((v): v is string => !!v)
@@ -171,7 +180,7 @@ export function SezionePrenotazioni() {
 
   return (
     <View style={{ gap: spazio.quattro }}>
-      {dati.voci.length ? (
+      {dati.presenze + dati.assenze > 0 ? (
         <Carta>
           <Text style={[stili.riepilogoTitolo, { color: pal.testoSecondario }]}>{t(`Ultimi ${dati.giorni} giorni`, `Last ${dati.giorni} days`)}</Text>
           <View style={stili.cifre}>
@@ -182,9 +191,9 @@ export function SezionePrenotazioni() {
       ) : null}
 
       <Elenco
-        titolo={t('Lezioni', 'Classes')}
+        titolo={t('Lezioni ed eventi', 'Classes and events')}
         voci={dati.voci}
-        vuoto={t(`Nessuna lezione con presenza o assenza negli ultimi ${dati.giorni} giorni.`, `No classes with attendance or absence in the last ${dati.giorni} days.`)}
+        vuoto={t(`Nessuna lezione o evento negli ultimi ${dati.giorni} giorni.`, `No classes or events in the last ${dati.giorni} days.`)}
       />
 
       {dati.personal.length ? <Elenco titolo={t('Personal training', 'Personal training')} voci={dati.personal} /> : null}
