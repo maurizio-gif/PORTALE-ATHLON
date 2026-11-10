@@ -21,6 +21,7 @@ import {
 } from '@/api/lab'
 import { InfoAdyen } from '@/components/InfoAdyen'
 import { euro, giornoEsteso, ora } from '@/lib/eventi'
+import { FOTO_SCUOLA_NUOTO_ADULTI } from '@/lib/fotoAttivita'
 import { locale, t, tv } from '@/lib/lingua'
 import { spazio } from '@/theme'
 
@@ -103,16 +104,25 @@ function inAttesa(l: Lezione): string | null {
   return l.in_attesa === 0 ? t('nessuno in lista d’attesa', 'no one on the waiting list') : `${l.in_attesa} ${t('in lista d’attesa', 'on the waiting list')}`
 }
 
-/** La copertina della lezione: la foto del sito, sfumata, col nome sopra. */
+/**
+ * La copertina della lezione: la foto del sito, sfumata, col nome sopra.
+ *
+ * **Senza foto dal sito** (la Scuola Nuoto Adulti non ha una scheda sul sito, e le sue lezioni finivano sul fondo scuro con la sagoma da sala
+ * pesi, 10/11/2026, richiesta di Maurizio) quella categoria usa la foto del club di una persona che nuota (`lib/fotoAttivita.ts`). Le altre
+ * categorie senza foto restano sul fondo scuro; una foto del sito, dove c'e', vince sempre.
+ */
 function Copertina({ l, scheda, onScheda }: { l: Lezione; scheda: SchedaLezione | null; onScheda: () => void }) {
   const p = usePalette()
   const b = l.prenotazione
   const sala = salaDi(l)
   const tono = l.liberi <= 0 ? 'errore' : l.liberi < 5 ? 'attenzione' : 'ok'
+  const fotoClub = !scheda?.foto && l.categoria === 'Scuola Nuoto Adulti' ? FOTO_SCUOLA_NUOTO_ADULTI : null
   const corpo = (
     <View style={stili.copertina}>
       {scheda?.foto ? (
         <Image source={{ uri: scheda.foto }} style={StyleSheet.absoluteFill} contentFit="cover" contentPosition={posizione(scheda.fuoco)} transition={200} />
+      ) : fotoClub ? (
+        <Image source={fotoClub} style={StyleSheet.absoluteFill} contentFit="cover" contentPosition={{ top: '70%' }} transition={200} />
       ) : (
         <LinearGradient colors={NOTTE} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill}>
           <View style={{ position: 'absolute', right: -10, top: -6, transform: [{ rotate: '-14deg' }] }}>
