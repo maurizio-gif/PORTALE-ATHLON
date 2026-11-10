@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Animated, Easing, Linking, Platform, Pressable, StyleSheet, Text, View } from 'react-native'
 import Svg, { Circle, Path } from 'react-native-svg'
 
+import { FOTO_SCUOLA_NUOTO_ADULTI } from '@/lib/fotoAttivita'
 import { ATTIVITA_PROVA, type AttivitaProva } from '@/lib/guestPass'
 import { t } from '@/lib/lingua'
 import { spazio, tinta, useColori } from '@/theme'
@@ -72,13 +73,12 @@ function Glifo({ chiave, colore, size = 20 }: { chiave: string; colore: string; 
 
 /**
  * La foto di un'attivita', per `chiave` come le icone (10/11/2026, richiesta di Maurizio: la foto della Scuola Nuoto Adulti nel
- * portale). E' una foto del club, tenuta qui in `assets/images/attivita/` (WebP 1280 px, come `invita/amici-in-sala.webp`), e non
- * un file del sito come quelle della sezione Junior. **Solo chi ce l'ha la mostra**: le altre attivita' restano com'erano, e
- * `lib/guestPass.ts` resta fatto di soli dati, senza immagini.
+ * portale). E' una foto del club (i file sono in `lib/fotoAttivita.ts`), e non un file del sito come quelle della sezione Junior.
+ * **Solo chi ce l'ha la mostra**: le altre attivita' restano com'erano, e `lib/guestPass.ts` resta fatto di soli dati, senza immagini.
  */
 const FOTO: Record<string, { fonte: ImageSource; testo: string }> = {
   'scuola-nuoto-adulti': {
-    fonte: require('@/../assets/images/attivita/scuola-nuoto-adulti.webp'),
+    fonte: FOTO_SCUOLA_NUOTO_ADULTI,
     testo: t('Una persona nuota a stile libero nella vasca del club, fra le corsie', 'A swimmer doing freestyle in the club pool, between the lanes'),
   },
 }
