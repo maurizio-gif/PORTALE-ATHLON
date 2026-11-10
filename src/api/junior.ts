@@ -41,8 +41,22 @@ export type PersonaJunior = {
   livello?: string | null;
   /** Il brevetto **in corso**: il successivo a quello ottenuto (A1 se non ne ha). Vuoto se il bambino non è nel registro dei brevetti o se ha ottenuto l'ultimo. Manca con una funzione di prima. */
   in_corso?: string | null;
+  /**
+   * Il questionario di livello in acqua compilato dal genitore (10/11/2026): le tre risposte e quando, o `null` se non l'ha mai fatto.
+   * Solo per i minorenni del nucleo, non per il titolare. **Manca** con una funzione di prima o se la lettura non e' riuscita: allora non
+   * si sa, e la sezione non ferma nessuno (`livelloMancante`).
+   */
+  livello_acqua?: LivelloAcquaDichiarato | null;
   gruppi: { group_id: number; nome: string }[];
 };
+
+/** Le tre risposte del questionario di livello, come le salva `junior_livello_iniziale`. */
+export type RisposteLivelloAcqua = {
+  ha_frequentato: boolean;
+  sa_nuotare: boolean;
+  stile_libero: boolean;
+};
+export type LivelloAcquaDichiarato = RisposteLivelloAcqua & { quando: string };
 
 export type NucleoJunior = {
   trovato: boolean;
@@ -134,6 +148,35 @@ export async function aggiungiComponente(
       : (dati.errore ??
         t("Non siamo riusciti ad aggiungerlo adesso. Riprova fra qualche minuto.", "We couldn’t add them right now. Try again in a few minutes.")),
     giaNelNucleo: dati.gia_nel_nucleo === true,
+  };
+}
+
+/**
+ * Il questionario di livello di un bambino gia' nel nucleo (10/11/2026, richiesta di Maurizio): chi non l'ha mai compilato lo fa prima
+ * di vedere i turni. La funzione controlla che sia un minorenne del nucleo di chi e' entrato e lo salva (`junior_livello_iniziale`,
+ * `origine = 'app'`); in vista cliente e' chiusa.
+ */
+export async function salvaLivelloAcqua(
+  memberId: number,
+  r: RisposteLivelloAcqua,
+): Promise<{ ok: true; livello: LivelloAcquaDichiarato } | { ok: false; errore: string }> {
+  const { ok, stato, dati } = await funzione("portale-lab-junior", {
+    azione: "livello",
+    member_id: memberId,
+    ...r,
+  });
+  if (ok && dati.livello_acqua && typeof dati.livello_acqua === "object") {
+    return { ok: true, livello: dati.livello_acqua as LivelloAcquaDichiarato };
+  }
+  const nonAttivo =
+    stato === 400 &&
+    (dati.errore === "Azione sconosciuta." || dati.errore === "Unknown action.");
+  return {
+    ok: false,
+    errore: nonAttivo
+      ? t("Il questionario da qui non è ancora attivo: riprova fra qualche giorno.", "The questionnaire isn’t available from here yet: try again in a few days.")
+      : (dati.errore ??
+        t("Non siamo riusciti a salvare le risposte adesso. Riprova fra qualche minuto.", "We couldn’t save the answers right now. Try again in a few minutes.")),
   };
 }
 
