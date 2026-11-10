@@ -12,7 +12,7 @@ import { Messaggio, Pulsante } from "../ui/kit";
 import { F, usePalette } from "../ui/tema";
 import { Tocco } from "../ui/Tocco";
 import { DomandeLivello } from "./DomandeLivello";
-import { chiedeLivello, livelloCompleto, LIVELLO_VUOTO, oggi } from "./livelloAcqua";
+import { applicaRisposta, chiedeLivello, livelloCompleto, LIVELLO_VUOTO, oggi } from "./livelloAcqua";
 
 // Aggiungere un componente al nucleo (21/10/2026, richiesta di Maurizio): un figlio, con nome, cognome e data di nascita,
 // tutti obbligatori, e la dichiarazione di esserne il genitore o il tutore. **Il codice fiscale non si chiede** (05/11/2026,
@@ -136,7 +136,7 @@ export function FoglioComponente({
         <DomandeLivello
           titolo={t("Il suo livello in acqua", "Their level in the water")}
           risposte={livello}
-          onCambia={(id, v) => setLivello((x) => ({ ...x, [id]: v }))}
+          onCambia={(id, v) => setLivello((x) => applicaRisposta(x, id, v))}
         />
       ) : null}
 

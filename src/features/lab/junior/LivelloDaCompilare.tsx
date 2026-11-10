@@ -9,14 +9,14 @@ import { Foglio } from "../ui/Foglio";
 import { Bollino, Carta, Messaggio, Pulsante } from "../ui/kit";
 import { F, usePalette } from "../ui/tema";
 import { DomandeLivello } from "./DomandeLivello";
-import { LIVELLO_VUOTO, livelloCompleto } from "./livelloAcqua";
+import { applicaRisposta, LIVELLO_VUOTO, livelloCompleto, MESI_VALIDITA_QUESTIONARIO, questionarioDaAggiornare } from "./livelloAcqua";
 
 // Il questionario di livello per chi e' gia' registrato (10/11/2026, richiesta di Maurizio): il bambino aggiunto prima che il questionario
 // esistesse, o da una strada che non lo chiedeva, non ha risposte. **Prima di vedere i turni** il genitore le scrive: al posto dei turni
 // compare questa carta, con un solo comando («Compila il questionario»; uno per figlio se sono piu' d'uno nella vista «Tutti i tuoi figli»)
 // che apre le tre domande. Salvate (`portale-lab-junior`, azione `livello`), la sezione rilegge il nucleo e i turni compaiono.
-// Chi decide a chi si mostra e' `livelloMancante` (`livelloAcqua.ts`). In vista cliente non si compila: la carta si vede com'e' per il genitore,
-// col comando spento.
+// Chi decide a chi si mostra e' `livelloMancante` (`livelloAcqua.ts`): **solo chi non ha un livello reale registrato**, e chi ha delle risposte piu' vecchie di sei mesi lo rifa
+// (10/11/2026): allora la carta dice «aggiorna» e non «compila». In vista cliente non si compila: la carta si vede com'e' per il genitore, col comando spento.
 
 function elenco(nomi: string[]): string {
   if (nomi.length < 2) return nomi[0] ?? "";
@@ -41,6 +41,9 @@ export function LivelloDaCompilare({
   const [aperto, setAperto] = useState(false);
   const piu = persone.length > 1;
   const nomi = elenco(persone.map(nomeDi));
+  // Chi ha gia' delle risposte (ma vecchie) le aggiorna; se per qualcuno e' la prima volta la carta resta «compila».
+  const aggiorna = persone.every(questionarioDaAggiornare);
+  const mesi = MESI_VALIDITA_QUESTIONARIO;
 
   function apri(x: PersonaJunior) {
     setScelta(x);
@@ -55,10 +58,22 @@ export function LivelloDaCompilare({
             <Bollino icona="goccia" tono="blu" size={44} />
             <View style={{ flex: 1, minWidth: 0, gap: 4 }}>
               <Text style={[stili.titolo, { color: p.testo }]} accessibilityRole="header">
-                {t("Prima dei turni, il questionario di livello", "Before the slots, the level questionnaire")}
+                {aggiorna
+                  ? t("Prima dei turni, aggiorna il questionario di livello", "Before the slots, update the level questionnaire")
+                  : t("Prima dei turni, il questionario di livello", "Before the slots, the level questionnaire")}
               </Text>
               <Text style={[stili.testo, { color: p.testoSecondario }]}>
-                {piu
+                {aggiorna
+                  ? piu
+                    ? t(
+                        `Il questionario sul livello in acqua di ${nomi} risale a più di ${mesi} mesi fa: prima di vedere i turni aggiornalo, sono tre domande per ognuno, ci vuole meno di un minuto.`,
+                        `The questionnaire about ${nomi}’s level in the water is more than ${mesi} months old: update it before you see the slots, three questions each, under a minute.`,
+                      )
+                    : t(
+                        `Il questionario sul livello in acqua di ${nomi} risale a più di ${mesi} mesi fa: prima di vedere i turni aggiornalo, sono tre domande, ci vuole meno di un minuto.`,
+                        `The questionnaire about ${nomi}’s level in the water is more than ${mesi} months old: update it before you see the slots, three questions, under a minute.`,
+                      )
+                  : piu
                   ? t(
                       `Prima di vedere i turni compila il questionario sul livello in acqua di ${nomi}: sono tre domande per ognuno, ci vuole meno di un minuto.`,
                       `Before you see the slots, fill in the questionnaire about ${nomi}’s level in the water: three questions each, under a minute.`,
@@ -79,7 +94,15 @@ export function LivelloDaCompilare({
             {persone.map((x) => (
               <Pulsante
                 key={x.member_id}
-                testo={piu ? t(`Compila per ${nomeDi(x)}`, `Fill in for ${nomeDi(x)}`) : t("Compila il questionario", "Fill in the questionnaire")}
+                testo={
+                  aggiorna
+                    ? piu
+                      ? t(`Aggiorna per ${nomeDi(x)}`, `Update for ${nomeDi(x)}`)
+                      : t("Aggiorna il questionario", "Update the questionnaire")
+                    : piu
+                    ? t(`Compila per ${nomeDi(x)}`, `Fill in for ${nomeDi(x)}`)
+                    : t("Compila il questionario", "Fill in the questionnaire")
+                }
                 icona="avanti"
                 disabilitato={vista}
                 onPress={() => apri(x)}
@@ -151,7 +174,7 @@ function FoglioLivello({
       titolo={t("Questionario di livello", "Level questionnaire")}
       sottotitolo={t(`Il livello in acqua di ${nome}: tre domande sul nuoto.`, `${nome}’s level in the water: three questions about swimming.`)}
     >
-      <DomandeLivello risposte={risposte} onCambia={(id, v) => setRisposte((x) => ({ ...x, [id]: v }))} />
+      <DomandeLivello risposte={risposte} onCambia={(id, v) => setRisposte((x) => applicaRisposta(x, id, v))} />
       {errore ? <Messaggio>{errore}</Messaggio> : null}
       <Pulsante
         testo={t("Salva le risposte", "Save the answers")}
