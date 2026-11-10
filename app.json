@@ -97,6 +97,7 @@
       ],
       "react-native-health-connect",
       "@adyen/react-native",
+      "./plugins/with-bouncycastle-allineato",
       [
         "expo-build-properties",
         {
