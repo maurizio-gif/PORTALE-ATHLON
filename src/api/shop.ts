@@ -1,4 +1,5 @@
 import { funzione, type SessioneAdyen } from '@/api/lab'
+import { canaleNativo } from '@/lib/adyenNativo'
 import { t } from '@/lib/lingua'
 
 // Lo shop dell'app. Dal 06/11/2026 (decisione di Maurizio) **non e' piu' di PerfectGym**: il catalogo e' nostro (CRM → Shop), il pagamento e'
@@ -253,12 +254,25 @@ const giaPagato = (dati: Record<string, any>) => dati.gia_pagato === true || dat
 /** `salva`: il Drop-in salva la carta pagando (lo si dice prima che la persona la scriva). */
 export type EsitoSessioneOrdine = ({ ok: true; salva: boolean } & SessioneAdyen) | { ok: true; giaPagato: true } | { ok: false; errore: string }
 
-/** La sessione Adyen per pagare **dentro l'app**, col Drop-in (solo web: nell'app nativa si usa il link di `linkPagamentoOrdine`). */
+/**
+ * La sessione Adyen per pagare **dentro l'app**, col Drop-in: quello del browser sul web, quello nativo dell'SDK di Adyen su iPhone e Android (10/11/2026). Il link di
+ * `linkPagamentoOrdine` resta per le build senza l'SDK (`lib/adyenNativo.ts`).
+ */
 export async function sessioneOrdine(ordineId: string): Promise<EsitoSessioneOrdine> {
-  const { ok, dati } = await shop({ azione: 'sessione', ordine_id: ordineId, ritorno: ritornoOrdine(ordineId) })
+  const canale = await canaleNativo(`shop/ordine/${ordineId}`)
+  const { ok, dati } = await shop({ azione: 'sessione', ordine_id: ordineId, ritorno: ritornoOrdine(ordineId), ...canale })
   if (!ok) return { ok: false, errore: dati.errore ?? t('Non riusciamo a preparare il pagamento adesso. Riprova fra qualche minuto.', 'We can’t set up the payment right now. Try again in a few minutes.') }
   if (giaPagato(dati)) return { ok: true, giaPagato: true }
-  return { ok: true, salva: dati.salva === true, riferimento: String(dati.riferimento), clientKey: String(dati.clientKey), environment: String(dati.environment), sessione: dati.sessione }
+  return {
+    ok: true,
+    salva: dati.salva === true,
+    riferimento: String(dati.riferimento),
+    clientKey: String(dati.clientKey),
+    environment: String(dati.environment),
+    sessione: dati.sessione,
+    ritornoNativo: canale.ritorno_nativo,
+    importoCent: typeof dati.importo_cent === 'number' ? dati.importo_cent : undefined,
+  }
 }
 
 /** Com'e' andata la sessione, chiesto ad Adyen dal server (`completed`, `refused`, `paymentPending`, `canceled`, `expired`). Non conferma niente. */
@@ -316,7 +330,7 @@ export async function pagaOrdineConConto(ordineId: string): Promise<EsitoContoOr
 
 export type EsitoLinkOrdine = { ok: true; url: string } | { ok: true; giaPagato: true; url?: undefined } | { ok: false; errore: string }
 
-/** Il link di pagamento Adyen: si apre nel browser integrato dell'app nativa (dove il Drop-in non c'e'). La conferma resta del webhook. */
+/** Il link di pagamento Adyen: si apre nel browser integrato dell'app nativa **senza** l'SDK (le build di prima, Expo Go). La conferma resta del webhook. */
 export async function linkPagamentoOrdine(ordineId: string): Promise<EsitoLinkOrdine> {
   const { ok, dati } = await shop({ azione: 'paga', ordine_id: ordineId, ritorno: ritornoOrdine(ordineId) })
   if (!ok) return { ok: false, errore: dati.errore ?? t('Non riusciamo a preparare il pagamento adesso. Riprova fra qualche minuto.', 'We can’t set up the payment right now. Try again in a few minutes.') }
