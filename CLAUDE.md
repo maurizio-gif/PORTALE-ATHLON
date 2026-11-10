@@ -219,3 +219,4 @@ chiamata diretta al gestionale. Esempio: la sezione Prodotti usa l'azione `prodo
 - [Junior: «Disdici l'abbonamento» invia una richiesta alla segreteria (09/11/2026)](docs/claude/181-junior-disdetta-richiesta-alla-segreteria-09-11-2026.md) · 2 KB
 - [La chat «Richiedi assistenza» sull'app Android nativa: la tastiera non copre più il campo (10/11/2026)](docs/claude/182-chat-assistenza-android-nativo-tastiera-10-11-2026.md) · 4 KB
 - [Il credito sul conto si scala dall'iscrizione, e la schermata del pagamento dice quello che si paga adesso (10/11/2026)](docs/claude/183-credito-sul-conto-all-iscrizione-10-11-2026.md) · 3 KB
+- [«Sei già dei nostri»: l'indirizzo che ci risulta, in parte nascosto, e «Non lo riconosco» per chi ha davvero cambiato email (10/11/2026)](docs/claude/184-sei-gia-dei-nostri-indirizzo-che-ci-risulta-10-11-2026.md) · 2 KB
