@@ -31,6 +31,32 @@ export function chiedeLivello(nascita: string, giorno: string = oggi()): boolean
   return Number(nascita.slice(0, 4)) <= Number(giorno.slice(0, 4)) - 3;
 }
 
+const ORDINE = ["ha_frequentato", "sa_nuotare", "stile_libero"] as const;
+
+/**
+ * Una risposta al questionario, **con la cascata** (10/11/2026, richiesta di Maurizio): le tre domande sono consequenziali, e dalle risposte il club attribuisce un livello
+ * provvisorio (si · no · no: A1, si · si · no: A3, si · si · si: B2). Chi non ha mai fatto un corso non sa nuotare senza ausili ne' fare lo stile libero; chi non sa nuotare senza
+ * ausili non sa fare lo stile libero. Quindi:
+ *  - **«no» a una domanda: «no» anche a quelle dopo**, senza chiederle;
+ *  - **«si» a una domanda che era «no»: quelle dopo tornano da rispondere**, perche' i loro «no» erano una conseguenza e non una risposta: chi cambia idea non si ritrova «no» che non ha dato.
+ * Il database applica la stessa regola a ogni risposta che arriva (migrazione 20261110a di APP-ATHLON): questa e' quella che si vede mentre si compila.
+ */
+export function applicaRisposta(r: RisposteLivello, id: keyof RisposteLivello, v: Exclude<Risposta, null>): RisposteLivello {
+  // Una domanda a cui la cascata ha gia' risposto «no» non si cambia: l'interfaccia la spegne, e anche chi la chiamasse lo stesso non ottiene una risposta incoerente.
+  if (domandaChiusa(r, id)) return r;
+  const prossima: RisposteLivello = { ...r, [id]: v };
+  const dopo = ORDINE.slice(ORDINE.indexOf(id) + 1);
+  if (v === "no") for (const k of dopo) prossima[k] = "no";
+  else if (r[id] === "no") for (const k of dopo) prossima[k] = null;
+  return prossima;
+}
+
+/** Questa domanda e' gia' risposta dalla cascata («no» a quella prima): non si tocca. */
+export function domandaChiusa(r: RisposteLivello, id: keyof RisposteLivello): boolean {
+  const i = ORDINE.indexOf(id);
+  return i > 0 && r[ORDINE[i - 1]] === "no";
+}
+
 /** Le tre risposte ci sono tutte. */
 export function livelloCompleto(r: RisposteLivello): boolean {
   return Object.values(r).every((v) => v !== null);

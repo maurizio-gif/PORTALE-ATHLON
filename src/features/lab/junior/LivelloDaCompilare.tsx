@@ -9,7 +9,7 @@ import { Foglio } from "../ui/Foglio";
 import { Bollino, Carta, Messaggio, Pulsante } from "../ui/kit";
 import { F, usePalette } from "../ui/tema";
 import { DomandeLivello } from "./DomandeLivello";
-import { LIVELLO_VUOTO, livelloCompleto } from "./livelloAcqua";
+import { applicaRisposta, LIVELLO_VUOTO, livelloCompleto } from "./livelloAcqua";
 
 // Il questionario di livello per chi e' gia' registrato (10/11/2026, richiesta di Maurizio): il bambino aggiunto prima che il questionario
 // esistesse, o da una strada che non lo chiedeva, non ha risposte. **Prima di vedere i turni** il genitore le scrive: al posto dei turni
@@ -151,7 +151,7 @@ function FoglioLivello({
       titolo={t("Questionario di livello", "Level questionnaire")}
       sottotitolo={t(`Il livello in acqua di ${nome}: tre domande sul nuoto.`, `${nome}’s level in the water: three questions about swimming.`)}
     >
-      <DomandeLivello risposte={risposte} onCambia={(id, v) => setRisposte((x) => ({ ...x, [id]: v }))} />
+      <DomandeLivello risposte={risposte} onCambia={(id, v) => setRisposte((x) => applicaRisposta(x, id, v))} />
       {errore ? <Messaggio>{errore}</Messaggio> : null}
       <Pulsante
         testo={t("Salva le risposte", "Save the answers")}

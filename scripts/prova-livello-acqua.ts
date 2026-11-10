@@ -5,7 +5,7 @@
 //   npx tsx scripts/prova-livello-acqua.ts
 import assert from 'node:assert/strict'
 
-import { chiedeLivello, livelloCompleto, livelloMancante, LIVELLO_VUOTO } from '../src/features/lab/junior/livelloAcqua.ts'
+import { applicaRisposta, chiedeLivello, domandaChiusa, livelloCompleto, livelloMancante, LIVELLO_VUOTO } from '../src/features/lab/junior/livelloAcqua.ts'
 
 let n = 0
 const prova = (nome: string, f: () => void) => {
@@ -65,6 +65,54 @@ prova('le tre risposte: tutte insieme', () => {
   assert.equal(livelloCompleto(LIVELLO_VUOTO), false)
   assert.equal(livelloCompleto({ ha_frequentato: 'si', sa_nuotare: 'no', stile_libero: null }), false)
   assert.equal(livelloCompleto({ ha_frequentato: 'si', sa_nuotare: 'no', stile_libero: 'no' }), true)
+})
+
+// ---- le risposte sono consequenziali (10/11/2026): «no» a una domanda e' «no» a quelle dopo ----
+const R = (a, b, c) => ({ ha_frequentato: a, sa_nuotare: b, stile_libero: c })
+prova('«no» alla prima: no anche alle altre due', () => {
+  assert.deepEqual(applicaRisposta(LIVELLO_VUOTO, 'ha_frequentato', 'no'), R('no', 'no', 'no'))
+  assert.deepEqual(applicaRisposta(R('si', 'si', 'si'), 'ha_frequentato', 'no'), R('no', 'no', 'no'), 'anche se avevano risposto si')
+})
+prova('«no» alla seconda: no anche alla terza, la prima resta', () => {
+  assert.deepEqual(applicaRisposta(R('si', null, null), 'sa_nuotare', 'no'), R('si', 'no', 'no'))
+  assert.deepEqual(applicaRisposta(R('si', 'si', 'si'), 'sa_nuotare', 'no'), R('si', 'no', 'no'))
+})
+prova('«no» alla terza: cambia solo lei', () => assert.deepEqual(applicaRisposta(R('si', 'si', null), 'stile_libero', 'no'), R('si', 'si', 'no')))
+prova('«si» non spegne niente', () => {
+  assert.deepEqual(applicaRisposta(LIVELLO_VUOTO, 'ha_frequentato', 'si'), R('si', null, null))
+  assert.deepEqual(applicaRisposta(R('si', null, null), 'sa_nuotare', 'si'), R('si', 'si', null))
+  assert.deepEqual(applicaRisposta(R('si', 'si', 'no'), 'stile_libero', 'si'), R('si', 'si', 'si'), 'la terza era un no dato da lui: si cambia')
+})
+prova('chi cambia idea da «no» a «si» non si ritrova «no» che non ha dato: le successive tornano da rispondere', () => {
+  assert.deepEqual(applicaRisposta(R('no', 'no', 'no'), 'ha_frequentato', 'si'), R('si', null, null))
+  assert.deepEqual(applicaRisposta(R('si', 'no', 'no'), 'sa_nuotare', 'si'), R('si', 'si', null))
+})
+prova('rispondere di nuovo «si» a una domanda che era gia\' «si» non cancella le successive', () => {
+  assert.deepEqual(applicaRisposta(R('si', 'si', 'no'), 'ha_frequentato', 'si'), R('si', 'si', 'no'))
+  assert.deepEqual(applicaRisposta(R('si', 'si', 'si'), 'sa_nuotare', 'si'), R('si', 'si', 'si'))
+})
+prova('ogni risposta data dalla cascata e\' una delle quattro coerenti', () => {
+  const COERENTI = new Set(['no,no,no', 'si,no,no', 'si,si,no', 'si,si,si'])
+  const valori = ['si', 'no']
+  const ids = ['ha_frequentato', 'sa_nuotare', 'stile_libero']
+  // Tutte le sequenze di tre tocchi (con qualunque ordine delle domande): se alla fine le tre risposte ci sono, sono coerenti.
+  for (const i of ids) for (const j of ids) for (const k of ids) for (const a of valori) for (const b of valori) for (const c of valori) {
+    const r = applicaRisposta(applicaRisposta(applicaRisposta(LIVELLO_VUOTO, i, a), j, b), k, c)
+    if (livelloCompleto(r)) assert.ok(COERENTI.has(`${r.ha_frequentato},${r.sa_nuotare},${r.stile_libero}`), JSON.stringify(r))
+  }
+})
+prova('una domanda chiusa dalla cascata non si cambia, nemmeno chiamando la funzione', () => {
+  assert.deepEqual(applicaRisposta(R('no', 'no', 'no'), 'sa_nuotare', 'si'), R('no', 'no', 'no'))
+  assert.deepEqual(applicaRisposta(R('no', 'no', 'no'), 'stile_libero', 'si'), R('no', 'no', 'no'))
+  assert.deepEqual(applicaRisposta(R('si', 'no', 'no'), 'stile_libero', 'si'), R('si', 'no', 'no'))
+})
+prova('la domanda risposta dalla cascata e\' chiusa', () => {
+  assert.equal(domandaChiusa(LIVELLO_VUOTO, 'ha_frequentato'), false, 'la prima non e\' mai chiusa')
+  assert.equal(domandaChiusa(R('no', 'no', 'no'), 'sa_nuotare'), true)
+  assert.equal(domandaChiusa(R('no', 'no', 'no'), 'stile_libero'), true)
+  assert.equal(domandaChiusa(R('si', 'no', 'no'), 'sa_nuotare'), false, 'dopo un si la seconda si risponde')
+  assert.equal(domandaChiusa(R('si', 'no', 'no'), 'stile_libero'), true)
+  assert.equal(domandaChiusa(R('si', null, null), 'stile_libero'), false, 'una domanda senza risposta davanti non chiude niente')
 })
 
 console.log(`\n${n} prove passate`)
