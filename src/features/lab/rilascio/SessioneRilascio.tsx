@@ -24,7 +24,7 @@ import { componiSessione, MINUTI_RILASCIO, nomeFocusRilascio, vociFocusRilascio,
 // Il rilascio con il foam roller (01/11/2026, richiesta di Maurizio): una sessione a richiesta in Recover, accanto a quella di mobilita'. Si sceglie la zona,
 // il tempo e, se serve, un fastidio (che toglie gli esercizi che lo caricano, e non si conserva); gli esercizi stanno in `esercizi.ts` e la sessione si
 // compone qui, senza chiamare nessuna funzione. Si fanno con la `Corsa` della mobilita' (stesso cronometro, stesse pause).
-// **I video non ci sono ancora**: al loro posto un segnaposto «Video in arrivo», esercizio per esercizio (vedi `esercizi.ts` per come si sostituisce).
+// **I video ci sono per tutti gli esercizi** (dal 10/11/2026, vedi `esercizi.ts`); un esercizio senza `video` e senza `immagini` mostra ancora il segnaposto «Video in arrivo».
 // **Non somma i minuti a nessuna abitudine** (l'abitudine «Mobilita'» e' del server e il rilascio e' un'altra cosa), ma dal 02/11/2026 **i minuti vanno al punteggio
 // di Recover** a fine sessione (`RegistraRecupero`). Descrive e propone, non cura: chi ha dolore o un problema di salute chiede al medico o al fisioterapista.
 
