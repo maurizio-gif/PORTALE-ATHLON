@@ -208,7 +208,7 @@ chiamata diretta al gestionale. Esempio: la sezione Prodotti usa l'azione `prodo
 - [«La tua scelta · Continua» resta ferma in basso anche sull'app nativa (08/11/2026)](docs/claude/170-barra-la-tua-scelta-ferma-in-basso-sull-app-nativa-08-11-2026.md) · 4 KB
 - [Il diplomino si genera anche dall'app nativa, e «Carica il certificato» apre il foglio senza scorrere (09/11/2026)](docs/claude/171-diploma-nativo-e-avviso-certificato-sull-app-09-11-2026.md) · 7 KB
 - [La storia di Instagram di un evento si genera anche dall'app nativa: la scena SVG è in comune con il diplomino (09/11/2026)](docs/claude/172-storia-instagram-di-un-evento-nativa-09-11-2026.md) · 4 KB
-- [Lo shop nativo nell'app: il questionario, il carrello a righe, la cassa come le gare, il preordine (06/11/2026)](docs/claude/173-shop-nativo-questionario-preordine-e-cassa-06-11-2026.md) · 8 KB
+- [Lo shop nativo nell'app: il questionario, il carrello a righe, la cassa come le gare, il preordine (06/11/2026)](docs/claude/173-shop-nativo-questionario-preordine-e-cassa-06-11-2026.md) · 11 KB
 - [I ragazzi da 13 a 17 anni entrano con il loro indirizzo: la sessione è limitata dal server, l'interfaccia non ancora (09/11/2026)](docs/claude/174-ragazzi-13-17-sessione-limitata-09-11-2026.md) · 3 KB
 - [Il testo di sistema molto grande: la coda di una riga scende sotto il titolo, e l'orario non si taglia (09/11/2026)](docs/claude/175-testo-di-sistema-grande-righe-e-orari-09-11-2026.md) · 3 KB
 - [Il Calendario dice in che sala si fa la lezione: Sala A, B, C, sia per prenotare sia sulla lezione prenotata (09/11/2026)](docs/claude/176-calendario-la-sala-della-lezione-09-11-2026.md) · 3 KB
@@ -222,4 +222,5 @@ chiamata diretta al gestionale. Esempio: la sezione Prodotti usa l'azione `prodo
 - [«Sei già dei nostri»: l'indirizzo che ci risulta, in parte nascosto, e «Non lo riconosco» per chi ha davvero cambiato email (10/11/2026)](docs/claude/184-sei-gia-dei-nostri-indirizzo-che-ci-risulta-10-11-2026.md) · 2 KB
 - [Il questionario di livello prima dei turni, anche per chi è già registrato: al posto dei turni compare «Compila il questionario» (10/11/2026)](docs/claude/185-questionario-di-livello-prima-dei-turni-10-11-2026.md) · 4 KB
 - [Il questionario di livello è a cascata: «no» a una domanda è «no» anche alle successive, e il livello provvisorio non si vede mai nell'app (10/11/2026)](docs/claude/186-questionario-di-livello-risposte-a-cascata-10-11-2026.md) · 3 KB
-- [Il questionario di livello si propone solo a chi non ha un livello reale, e si rifà dopo sei mesi (10/11/2026)](docs/claude/187-questionario-di-livello-quando-si-propone-10-11-2026.md) · 4 KB
+- [«Prenotazioni» nella Home: lo storico degli ultimi 90 giorni, con il flag se c'eri (09/11/2026)](docs/claude/187-le-mie-prenotazioni-storico-con-presenza-09-11-2026.md) · 3 KB
+- [Il questionario di livello si propone solo a chi non ha un livello reale, e si rifà dopo sei mesi (10/11/2026)](docs/claude/188-questionario-di-livello-quando-si-propone-10-11-2026.md) · 4 KB
