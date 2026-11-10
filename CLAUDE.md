@@ -224,3 +224,4 @@ chiamata diretta al gestionale. Esempio: la sezione Prodotti usa l'azione `prodo
 - [Il questionario di livello è a cascata: «no» a una domanda è «no» anche alle successive, e il livello provvisorio non si vede mai nell'app (10/11/2026)](docs/claude/186-questionario-di-livello-risposte-a-cascata-10-11-2026.md) · 3 KB
 - [«Prenotazioni» nella Home: lo storico degli ultimi 90 giorni, con il flag se c'eri (09/11/2026)](docs/claude/187-le-mie-prenotazioni-storico-con-presenza-09-11-2026.md) · 3 KB
 - [Il questionario di livello si propone solo a chi non ha un livello reale, e si rifà dopo sei mesi (10/11/2026)](docs/claude/188-questionario-di-livello-quando-si-propone-10-11-2026.md) · 4 KB
+- [Il Guest Pass di un figlio: la carta si salva sul genitore, e se l'addebito lo fa PerfectGym la pagina dice «sulla carta» (10/11/2026)](docs/claude/189-guest-pass-figlio-addebito-sulla-carta-10-11-2026.md) · 3 KB

@@ -88,6 +88,8 @@ export type PaginaGuestPass = {
   pagamento: string | null
   /** Per un Guest Pass attivato: come sta il pagamento, e quanto resta. */
   pagamento_stato?: 'pagato' | 'addebito' | 'da_pagare' | 'sconosciuto' | null
+  /** Se il pagamento e' un addebito: su un conto (IBAN) o sulla carta del genitore (Guest Pass di un figlio, 10/11/2026). Manca con una funzione di prima. */
+  addebito_su?: 'conto' | 'carta' | null
   resta?: number | null
 }
 

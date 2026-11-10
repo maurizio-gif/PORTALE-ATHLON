@@ -154,6 +154,7 @@ export function GuestPassAttivo({
   fine,
   prezzo,
   addebito,
+  addebitoSu = null,
   avviso,
   figlio = null,
   dopo = null,
@@ -169,6 +170,8 @@ export function GuestPassAttivo({
   prezzo: number
   /** Pagato con addebito su conto: i soldi arrivano dopo, e lo si dice. */
   addebito: boolean
+  /** Su cosa si addebita: un conto (IBAN) o la carta del genitore (Guest Pass di un figlio, 10/11/2026). Senza, e' un conto. */
+  addebitoSu?: 'conto' | 'carta' | null
   avviso: { testo: string; tono: Tono } | null
   /**
    * Il Guest Pass e' di un figlio (21/10/2026): `nome` e `cognome` sono del genitore, che ha pagato ed entra nell'app;
@@ -211,7 +214,11 @@ export function GuestPassAttivo({
       ) : null}
       {addebito ? (
         <Entra indice={i++}>
-          <Testo variante="attenuato">{t(`I ${prezzo} € saranno addebitati sul conto che hai indicato.`, `The ${prezzo} € will be charged to the bank account you entered.`)}</Testo>
+          <Testo variante="attenuato">
+            {addebitoSu === 'carta'
+              ? t(`I ${prezzo} € saranno addebitati sulla carta che hai salvato.`, `The ${prezzo} € will be charged to the card you saved.`)
+              : t(`I ${prezzo} € saranno addebitati sul conto che hai indicato.`, `The ${prezzo} € will be charged to the bank account you entered.`)}
+          </Testo>
         </Entra>
       ) : null}
 
