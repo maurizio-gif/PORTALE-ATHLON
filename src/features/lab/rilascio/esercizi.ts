@@ -6,9 +6,9 @@ import type { ZonaFastidio } from '../fit/mobilita'
 // a richiesta in Recover, accanto a quella di mobilita'. **Gli esercizi stanno qui, nell'app** (non nella libreria del server: MoveKit non ha esercizi di
 // rilascio, solo un'estensione toracica sul rullo), e la sessione si compone qui (`componiSessione`, pura: si prova con `npx tsx scripts/prova-rilascio.ts`).
 //
-// **I video non ci sono ancora**: ogni esercizio ha `video: null` e la schermata mostra un segnaposto «Video in arrivo». Quando il tecnico li gira, si
-// caricano nel bucket pubblico `esercizi` (dal CRM o dalla console) e qui si scrive il percorso, per esempio `rilascio/polpacci.mp4`: `MediaEsercizio`
-// lo risolve da solo (`urlEsercizio`) e il segnaposto sparisce, esercizio per esercizio. Stessa cosa per `immagini` (il poster, 16:9).
+// **I video ci sono dal 10/11/2026** (girati dal club, uno per esercizio): stanno nel bucket pubblico `esercizi`, in `rilascio/<id>.mp4` con il poster
+// `rilascio/<id>.jpg` (16:9, 960 px, H.264 senza audio, come quelli di MoveKit), e qui si scrive il percorso: `MediaEsercizio` lo risolve da solo
+// (`urlEsercizio`). **Un esercizio nuovo senza `video` e senza `immagini` mostra ancora il segnaposto «Video in arrivo»** (`SegnapostoVideo`).
 //
 // **Cosa dice e cosa no.** Il foam roller puo' dare la sensazione di muscoli piu' sciolti e un movimento migliore subito dopo; **non cura contratture, dolori
 // o «aderenze»**, e non si parla di «trigger point» come di una terapia (le prove sono deboli e il meccanismo e' discusso). Come per Food, sono consigli di
@@ -61,8 +61,8 @@ export const ESERCIZI: EsercizioRilascio[] = [
     perLato: true,
     attenzione: null,
     evita: ['polsi_gomiti', 'caviglie'],
-    video: null,
-    immagini: [],
+    video: 'rilascio/polpacci.mp4',
+    immagini: ['rilascio/polpacci.jpg'],
   },
   {
     id: 'dietro-coscia',
@@ -77,8 +77,8 @@ export const ESERCIZI: EsercizioRilascio[] = [
     perLato: true,
     attenzione: null,
     evita: ['polsi_gomiti', 'lombare'],
-    video: null,
-    immagini: [],
+    video: 'rilascio/dietro-coscia.mp4',
+    immagini: ['rilascio/dietro-coscia.jpg'],
   },
   {
     id: 'davanti-coscia',
@@ -93,8 +93,8 @@ export const ESERCIZI: EsercizioRilascio[] = [
     perLato: true,
     attenzione: t('Se la schiena si inarca o la zona lombare protesta, salta questo esercizio.', 'If your back arches or your lower back complains, skip this exercise.'),
     evita: ['spalle', 'polsi_gomiti', 'lombare'],
-    video: null,
-    immagini: [],
+    video: 'rilascio/davanti-coscia.mp4',
+    immagini: ['rilascio/davanti-coscia.jpg'],
   },
   {
     id: 'interno-coscia',
@@ -109,8 +109,8 @@ export const ESERCIZI: EsercizioRilascio[] = [
     perLato: true,
     attenzione: t('È una zona delicata: pressione leggera, e se senti dolore acuto fermati.', 'This is a delicate area: light pressure, and stop if you feel sharp pain.'),
     evita: ['anche', 'ginocchia', 'spalle'],
-    video: null,
-    immagini: [],
+    video: 'rilascio/interno-coscia.mp4',
+    immagini: ['rilascio/interno-coscia.jpg'],
   },
   {
     id: 'glutei',
@@ -125,8 +125,8 @@ export const ESERCIZI: EsercizioRilascio[] = [
     perLato: true,
     attenzione: null,
     evita: ['anche', 'lombare', 'polsi_gomiti', 'ginocchia'],
-    video: null,
-    immagini: [],
+    video: 'rilascio/glutei.mp4',
+    immagini: ['rilascio/glutei.jpg'],
   },
   {
     id: 'dorsale-alta',
@@ -141,8 +141,8 @@ export const ESERCIZI: EsercizioRilascio[] = [
     perLato: false,
     attenzione: t('Mai sulla zona lombare e mai sul collo: il rullo non va sotto la fine delle costole né sopra le spalle.', 'Never on the lower back or the neck: the roller stays above the bottom of your ribs and below your shoulders.'),
     evita: ['cervicale', 'lombare', 'spalle'],
-    video: null,
-    immagini: [],
+    video: 'rilascio/dorsale-alta.mp4',
+    immagini: ['rilascio/dorsale-alta.jpg'],
   },
   {
     id: 'grande-dorsale',
@@ -157,8 +157,8 @@ export const ESERCIZI: EsercizioRilascio[] = [
     perLato: true,
     attenzione: null,
     evita: ['spalle', 'polsi_gomiti'],
-    video: null,
-    immagini: [],
+    video: 'rilascio/grande-dorsale.mp4',
+    immagini: ['rilascio/grande-dorsale.jpg'],
   },
   {
     id: 'apertura-petto',
@@ -173,8 +173,8 @@ export const ESERCIZI: EsercizioRilascio[] = [
     perLato: false,
     attenzione: t('Se il rullo ti fa perdere l’equilibrio o senti formicolio alle braccia, esci dalla posizione.', 'If the roller makes you lose your balance or your arms tingle, come out of the position.'),
     evita: ['spalle', 'cervicale'],
-    video: null,
-    immagini: [],
+    video: 'rilascio/apertura-petto.mp4',
+    immagini: ['rilascio/apertura-petto.jpg'],
   },
 ]
 
