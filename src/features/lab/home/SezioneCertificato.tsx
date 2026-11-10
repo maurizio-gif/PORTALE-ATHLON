@@ -47,7 +47,7 @@ export function SezioneCertificato({ area, onAggiorna }: { area: AreaTrovata; on
       <Text style={{ color: p.testoTerzo, fontFamily: F.medio, fontSize: 13, lineHeight: 19, paddingHorizontal: 4 }}>
         {t('Il certificato si consegna in formato digitale: tocca «Carica il certificato» e scegli una foto o un PDF. Toccando la «i» vedi quale serve.', 'The certificate is handed in digitally: tap “Upload certificate” and choose a photo or a PDF. Tap the “i” to see which one you need.')}
       </Text>
-      <FoglioCertificato aperto={aperto} persona={per} onChiudi={() => setAperto(false)} onCaricato={onAggiorna} />
+      <FoglioCertificato aperto={aperto} persona={per} persone={area.persone} onChiudi={() => setAperto(false)} onCaricato={onAggiorna} />
     </View>
   )
 }

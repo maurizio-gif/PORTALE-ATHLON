@@ -15,7 +15,10 @@ export const CERTIFICATO_ISTRUZIONI = {
   tipo: t('Certificato di idoneità all’attività sportiva non agonistica.', 'A certificate of fitness for non-competitive sports (certificato di idoneità all’attività sportiva non agonistica).'),
   escluso: t('Non vanno bene il certificato di «sana e robusta costituzione» né quello «ludico motorio».', 'A «sana e robusta costituzione» (general good health) certificate or a «ludico motorio» (recreational activity) certificate won’t do.'),
   /** Cosa deve riportare. */
-  ecg: t('Deve riportare scritto che è stato eseguito l’ECG, con la data di esecuzione. Basta averlo fatto almeno una volta nella vita.', 'It must state that an ECG was performed, with the date it was done. Having one at least once in your life is enough.'),
+  ecg: t(
+    'Deve riportare scritto che è stato eseguito l’ECG, con la data di esecuzione. Basta averlo fatto almeno una volta nella vita. Se l’ECG è su un foglio a parte, caricalo insieme al certificato: puoi mandare fino a 3 file.',
+    'It must state that an ECG was performed, with the date it was done. Having one at least once in your life is enough. If the ECG is on a separate sheet, upload it together with the certificate: you can send up to 3 files.',
+  ),
   /** Chi puo' rilasciarlo. */
   chiTitolo: t('Può essere redatto da:', 'It can be issued by:'),
   chi: tv(
