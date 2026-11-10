@@ -199,7 +199,7 @@ export type Lezione = {
   iniziata: boolean
   /** Se la prenotazione non e' ancora aperta: da quando (ISO). Si apre tre giorni prima. */
   prenotabile_dal: string | null
-  prenotazione: { booking_id: number; attesa: boolean } | null
+  prenotazione: { booking_id: number; attesa: boolean; posizione?: number | null } | null
   /**
    * Il limite delle prenotazioni attive della categoria, se e' gia' pieno (tre
    * per Corsi Fitness, Aqua Fitness e Scuola Nuoto Adulti, una per Group
@@ -229,8 +229,11 @@ export type CorsoDelSito = { foto: string | null; fuoco: string | null }
 
 export type PersonaCalendario = { member_id: number; nome: string | null; cognome: string | null; titolare: boolean }
 
-/** Una prenotazione in programma della persona, di qualunque giorno (non cominciata). */
-export type Prenotata = { class_id: number; nome: string; categoria: string; inizio: string; attesa: boolean; sala?: string | null }
+/**
+ * Una prenotazione in programma della persona, di qualunque giorno (non cominciata).
+ * `posizione` (10/11/2026) c'e' solo se e' in lista d'attesa: il posto in coda, 1 = il primo; null se la funzione non ha saputo calcolarlo, e manca finche' la funzione non e' aggiornata.
+ */
+export type Prenotata = { class_id: number; nome: string; categoria: string; inizio: string; attesa: boolean; sala?: string | null; posizione?: number | null }
 
 export type Giorno = {
   persone: PersonaCalendario[]
@@ -388,10 +391,10 @@ export async function prenotaLezione(
   classId: number,
   memberId: number,
 ): Promise<
-  { ok: true; esito: 'prenotato' | 'attesa'; booking_id: number | null } | ({ ok: false; errore: string } & Partial<DaPagare>)
+  { ok: true; esito: 'prenotato' | 'attesa'; booking_id: number | null; posizione: number | null } | ({ ok: false; errore: string } & Partial<DaPagare>)
 > {
   const { ok, dati } = await calendario({ azione: 'prenota', class_id: classId, member_id: memberId })
-  if (ok) return { ok: true, esito: dati.esito, booking_id: dati.booking_id ?? null }
+  if (ok) return { ok: true, esito: dati.esito, booking_id: dati.booking_id ?? null, posizione: typeof dati.posizione === 'number' ? dati.posizione : null }
   // Manca il prodotto (niente abbonamento che comprenda la lezione) e PerfectGym
   // lo vende: il link di pagamento e' gia' aperto.
   if (dati.da_pagare && dati.prodotto) {

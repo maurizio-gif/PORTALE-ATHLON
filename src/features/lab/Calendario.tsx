@@ -27,6 +27,7 @@ import { spazio } from '@/theme'
 import { inMemoria, prendi, ricorda } from './memoria'
 import { CalorieLezione, CorpoPerLezioni } from './schede/CalorieLezione'
 import { posizione } from './SchedaLezione'
+import { testoPosizione } from './posizioneAttesa'
 import { ingombroBarra } from './ui/BarraSchede'
 import { FoglioLezione } from './ui/FoglioLezione'
 import { Icona, type NomeIcona } from './ui/Icona'
@@ -674,6 +675,7 @@ function LezioniPrenotate({ lezioni, occupato, onAnnulla }: { lezioni: Prenotata
         {lezioni.map((l, i) => {
           const attesa = l.attesa
           const sala = salaDi(l)
+          const posto = attesa ? testoPosizione(l.posizione) : null
           return (
             <View key={l.class_id} style={{ zIndex: lezioni.length - i }}>
               <Riga
@@ -685,12 +687,21 @@ function LezioniPrenotate({ lezioni, occupato, onAnnulla }: { lezioni: Prenotata
                 }
                 titolo={l.nome}
                 sotto={
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 2, flexWrap: 'wrap' }}>
-                    <Text style={{ color: p.testoSecondario, fontFamily: F.semi, fontSize: 13 }}>{maiuscola(giornoBreve(l.inizio))}</Text>
-                    {sala ? <Sala nome={sala} colore={p.testo} stile="riga" /> : null}
-                    <Etichetta testo={attesa ? t('In lista d’attesa', 'On the waiting list') : t('Prenotata', 'Booked')} tono={attesa ? 'attenzione' : 'ok'} />
-                    {attesa ? <InfoAttesa /> : null}
-                  </View>
+                  <>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 2, flexWrap: 'wrap' }}>
+                      <Text style={{ color: p.testoSecondario, fontFamily: F.semi, fontSize: 13 }}>{maiuscola(giornoBreve(l.inizio))}</Text>
+                      {sala ? <Sala nome={sala} colore={p.testo} stile="riga" /> : null}
+                      <Etichetta testo={attesa ? t('In lista d’attesa', 'On the waiting list') : t('Prenotata', 'Booked')} tono={attesa ? 'attenzione' : 'ok'} />
+                      {attesa ? <InfoAttesa /> : null}
+                    </View>
+                    {/* Il posto in coda sta sotto la pillola, in due righe, e non dentro: sul telefono la colonna e' stretta, e la pillola uscirebbe. */}
+                    {posto ? (
+                      <View style={{ gap: 1 }}>
+                        <Text style={{ color: p.testo, fontFamily: F.bold, fontSize: 13, lineHeight: 18 }}>{posto.posizione}</Text>
+                        <Text style={{ color: p.testoSecondario, fontFamily: F.semi, fontSize: 13, lineHeight: 18 }}>{posto.davanti}</Text>
+                      </View>
+                    ) : null}
+                  </>
                 }
                 coda={
                   conferma === l.class_id ? (
@@ -830,7 +841,7 @@ function CalendarioGiorno() {
         ...(g.prenotate
           ? {
               prenotate: prenotazione && lez
-                ? [...resto, { class_id: classId, nome: lez.nome, categoria: lez.categoria, inizio: lez.inizio, attesa: prenotazione.attesa, sala: lez.sala ?? null }].sort((x, y) => x.inizio.localeCompare(y.inizio))
+                ? [...resto, { class_id: classId, nome: lez.nome, categoria: lez.categoria, inizio: lez.inizio, attesa: prenotazione.attesa, sala: lez.sala ?? null, ...(prenotazione.attesa ? { posizione: prenotazione.posizione ?? null } : {}) }].sort((x, y) => x.inizio.localeCompare(y.inizio))
                 : resto,
             }
           : {}),
