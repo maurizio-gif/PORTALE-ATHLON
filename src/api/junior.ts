@@ -41,8 +41,22 @@ export type PersonaJunior = {
   livello?: string | null;
   /** Il brevetto **in corso**: il successivo a quello ottenuto (A1 se non ne ha). Vuoto se il bambino non è nel registro dei brevetti o se ha ottenuto l'ultimo. Manca con una funzione di prima. */
   in_corso?: string | null;
+  /**
+   * Il questionario di livello in acqua compilato dal genitore (10/11/2026): le tre risposte e quando, o `null` se non l'ha mai fatto.
+   * Solo per i minorenni del nucleo, non per il titolare. **Manca** con una funzione di prima o se la lettura non e' riuscita: allora non
+   * si sa, e la sezione non ferma nessuno (`livelloMancante`).
+   */
+  livello_acqua?: LivelloAcquaDichiarato | null;
   gruppi: { group_id: number; nome: string }[];
 };
+
+/** Le tre risposte del questionario di livello, come le salva `junior_livello_iniziale`. */
+export type RisposteLivelloAcqua = {
+  ha_frequentato: boolean;
+  sa_nuotare: boolean;
+  stile_libero: boolean;
+};
+export type LivelloAcquaDichiarato = RisposteLivelloAcqua & { quando: string };
 
 export type NucleoJunior = {
   trovato: boolean;
@@ -137,6 +151,35 @@ export async function aggiungiComponente(
   };
 }
 
+/**
+ * Il questionario di livello di un bambino gia' nel nucleo (10/11/2026, richiesta di Maurizio): chi non l'ha mai compilato lo fa prima
+ * di vedere i turni. La funzione controlla che sia un minorenne del nucleo di chi e' entrato e lo salva (`junior_livello_iniziale`,
+ * `origine = 'app'`); in vista cliente e' chiusa.
+ */
+export async function salvaLivelloAcqua(
+  memberId: number,
+  r: RisposteLivelloAcqua,
+): Promise<{ ok: true; livello: LivelloAcquaDichiarato } | { ok: false; errore: string }> {
+  const { ok, stato, dati } = await funzione("portale-lab-junior", {
+    azione: "livello",
+    member_id: memberId,
+    ...r,
+  });
+  if (ok && dati.livello_acqua && typeof dati.livello_acqua === "object") {
+    return { ok: true, livello: dati.livello_acqua as LivelloAcquaDichiarato };
+  }
+  const nonAttivo =
+    stato === 400 &&
+    (dati.errore === "Azione sconosciuta." || dati.errore === "Unknown action.");
+  return {
+    ok: false,
+    errore: nonAttivo
+      ? t("Il questionario da qui non è ancora attivo: riprova fra qualche giorno.", "The questionnaire isn’t available from here yet: try again in a few days.")
+      : (dati.errore ??
+        t("Non siamo riusciti a salvare le risposte adesso. Riprova fra qualche minuto.", "We couldn’t save the answers right now. Try again in a few minutes.")),
+  };
+}
+
 // ---------------------------------------------------------------------------
 // I corsi di una persona (22/10/2026): a cosa e' iscritta, le lezioni che ha in programma, disdette e recuperi, e per il Baby
 // Nuoto cosa si puo' comprare. Dalla funzione `portale-lab-junior`, azione `corsi` (`public.junior_corsi_di`, APP-ATHLON).
@@ -152,6 +195,21 @@ export type ContrattoJunior = {
   rinnovo_automatico: boolean | null;
   /** Il giorno in cui e' stata data la disdetta, se c'e'. */
   disdetta: string | null;
+  /**
+   * Stagionale (09/11/2026): la stagione intera e' gia' pagata in anticipo; il canone e' 0, non si rinnova e non si disdice. Il canone
+   * di un mensile e' la cifra che la famiglia paga ogni mese, anche scontata (non il listino); 0 se non c'e' nessuna quota.
+   */
+  stagionale?: boolean;
+  /** Si puo' disdire dall'app: solo i mensili. Assente (funzione di prima) vale come si'. */
+  disdicibile?: boolean;
+  /** Solo per lo stagionale: l'importo della stagione e quanto ne e' gia' stato pagato (09/11/2026). */
+  importo_stagione?: number | null;
+  pagato_stagione?: number | null;
+  /**
+   * La disdetta chiesta dall'app (09/11/2026): dal 09/11 e' una richiesta che la segreteria registra su PerfectGym. C'e' finche' la
+   * richiesta e' aperta o fatta (e il mirror non ha ancora la fine nuova): l'app la mostra al posto del comando.
+   */
+  disdetta_richiesta?: { fine: string; il: string; stato: "in_attesa" | "fatta" } | null;
 };
 
 export type LezioneIscritto = {
@@ -488,11 +546,15 @@ export async function chiediCambioOrario(d: {
   return { ok: true, giaChiesto: dati.gia_chiesto === true };
 }
 
-export type EsitoDisdetta = { ok: true; fine: string } | { ok: false; errore: string; giaDisdetto?: boolean };
+export type EsitoDisdetta =
+  | { ok: true; fine: string; richiesta: boolean; giaChiesta: boolean; stato: "in_attesa" | "fatta" | null }
+  | { ok: false; errore: string; giaDisdetto?: boolean };
 
 /**
- * Disdice l'abbonamento mensile di un gruppo (22/10/2026): la fine la decide la regola dei 10 giorni (entro il 21 di un mese da 31
- * giorni finisce a fine mese, dopo a fine del mese dopo). Scrive su PerfectGym (`Contracts/Cancel`), poi rilegge.
+ * Chiede la disdetta dell'abbonamento mensile di un gruppo (22/10/2026; dal 09/11/2026 una richiesta alla segreteria, perche' PerfectGym
+ * non accetta la disdetta dall'app): la fine la decide la regola dei 10 giorni al giorno della richiesta (entro il 21 di un mese da 31
+ * giorni finisce a fine mese, dopo a fine del mese dopo). La segreteria la registra e la famiglia riceve la conferma per email.
+ * Con la funzione di prima (che scriveva su PerfectGym) la risposta non ha `richiesta`: vale come disdetta fatta.
  */
 export async function disdiciCorso(d: { memberId: number; contractId: number }): Promise<EsitoDisdetta> {
   const { ok, stato, dati } = await funzione("portale-lab-junior", {
@@ -500,14 +562,22 @@ export async function disdiciCorso(d: { memberId: number; contractId: number }):
     member_id: d.memberId,
     contract_id: d.contractId,
   });
-  if (ok && typeof dati.fine === "string") return { ok: true, fine: dati.fine };
+  if (ok && typeof dati.fine === "string") {
+    return {
+      ok: true,
+      fine: dati.fine,
+      richiesta: dati.richiesta === true,
+      giaChiesta: dati.gia_chiesta === true,
+      stato: dati.stato === "in_attesa" || dati.stato === "fatta" ? dati.stato : null,
+    };
+  }
   return {
     ok: false,
     giaDisdetto: dati.gia_disdetto === true,
     errore:
       stato === 400 && dati.errore === "Azione sconosciuta."
         ? t("La disdetta dall’app non è ancora attiva: scrivi al team dall’assistente virtuale.", "Cancelling from the app isn’t active yet: write to the team from the virtual assistant.")
-        : (dati.errore ?? t("Non riusciamo a disdire adesso. Riprova fra qualche minuto.", "We can’t cancel right now. Try again in a few minutes.")),
+        : (dati.errore ?? t("Non riusciamo a inviare la richiesta adesso. Riprova fra qualche minuto.", "We can’t send the request right now. Try again in a few minutes.")),
   };
 }
 

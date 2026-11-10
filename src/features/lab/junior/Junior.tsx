@@ -6,6 +6,7 @@ import {
   gruppiJunior,
   type EsitoGruppi,
   type GruppoJunior,
+  type LivelloAcquaDichiarato,
   type NucleoJunior,
   type PersonaJunior,
 } from "@/api/junior";
@@ -29,13 +30,15 @@ import { concludiInCorso, iscrizioniInCorso, type InCorso } from "./inCorso";
 import { DirettoreTecnico } from "./DirettoreTecnico";
 import { Gare } from "./Gare";
 import { InvitoAbbonamentoAdulti } from "./InvitoAbbonamentoAdulti";
+import { LivelloDaCompilare } from "./LivelloDaCompilare";
+import { livelloMancante } from "./livelloAcqua";
 import { MenuIscritto, type VoceJunior } from "./MenuIscritto";
 import { TestataJunior } from "./Presentazione";
 import { SceltaFiglio } from "./SceltaFiglio";
 import { SchedaAttivita } from "./SchedaAttivita";
 import { chiudiCoda, codaIscrizioni, iniziaCoda, type VoceCoda } from "./codaIscrizioni";
 import { CodaIscrizioniCarta, InvitoAltroFiglio, mostraInvitoAltroFiglio } from "./PiuFigli";
-import { mostraTurniVicini, TurniVicini } from "./TurniVicini";
+import { figliPerTurniVicini, inScuolaNuoto, mostraTurniVicini, TurniVicini } from "./TurniVicini";
 
 // La sezione Junior (21/10/2026, richiesta di Maurizio): i corsi per bambini e ragazzi (Scuola Nuoto mono e bisettimanale, Nuoto
 // Agonistico e Propaganda, Pallanuoto, Baby Nuoto) con i posti che restano.
@@ -48,6 +51,11 @@ import { mostraTurniVicini, TurniVicini } from "./TurniVicini";
 //     orario, Direttore Tecnico, da sapere): sotto si vede una voce alla volta, e la pagina non scorre all'infinito.
 // Il nucleo non e' piu' un elenco con una riga di testo per persona: e' una fila di tessere (`SceltaFiglio`) con «Aggiungi» in fondo
 // (`famiglia/AggiungiComponente`, lo stesso della Home: un figlio con tutti i dati oppure un altro adulto con la delega sui figli).
+//
+// **Il questionario di livello prima dei turni** (10/11/2026, richiesta di Maurizio): un bambino gia' registrato che non l'ha mai compilato (il
+// nucleo dice `livello_acqua: null`, vedi `livelloMancante`) non vede i turni da scegliere: al posto delle attivita' c'e' `LivelloDaCompilare`, che
+// apre le tre domande. Salvate, i turni compaiono. Vale dove si sceglie un turno nuovo: la pagina di un bambino non iscritto e la tessera «Tutti i
+// tuoi figli» (che si ferma finche' manca uno dei figli da iscrivere). Un bambino gia' iscritto ha il suo menu e non e' fermato.
 //
 // Ai gruppi da qui ci si iscrive toccando un turno con posti (`/iscrizione`). I numeri sono quelli del mirror di PerfectGym (si aggiornano ogni
 // pochi minuti), e l'ultima parola sui posti e' della segreteria al momento dell'iscrizione. Il bambino iscritto non si iscrive ad altri
@@ -157,6 +165,10 @@ export function Junior() {
   // **Senza un figlio registrato non si mostra nessun turno** (02/11/2026): resta solo «Aggiungi».
   const senzaFigli = !persona && !tutti;
   const personaIscritta = !!persona && (persona.gruppi.length > 0);
+  // Il questionario di livello (10/11/2026): chi non l'ha compilato non vede i turni. Nella vista «Tutti i tuoi figli» si ferma finche' manca anche uno
+  // solo dei figli da iscrivere (quelli gia' nella Scuola Nuoto hanno il loro turno fermo e non servono).
+  const livelloDaFare = !!persona && !personaIscritta && livelloMancante(persona);
+  const senzaLivelloTutti = tutti ? figliPerTurniVicini(persone).filter((x) => !inScuolaNuoto(x) && livelloMancante(x)) : [];
 
   // Il corso del bambino scelto, per il benvenuto della chat (04/11/2026): aprendo l'assistente da qui, o dal link del sito, la chat comincia
   // da quel corso (`assistente/BenvenutoJunior.tsx`) e non dai suggerimenti generici. Uscendo dalla sezione si toglie.
@@ -178,6 +190,24 @@ export function Junior() {
     scorda("area");
     if (esito?.ok && n) {
       const nuovoEsito: EsitoGruppi = { ...esito, nucleo: n };
+      ricorda(CHIAVE_GRUPPI_JUNIOR, nuovoEsito);
+      setEsito(nuovoEsito);
+    } else carica();
+  }
+
+  /** Le risposte sono salvate: si mettono sul bambino (nel nucleo ricordato, come `dopoAggiunta`) e i suoi turni si aprono. */
+  function dopoLivello(memberId: number, livello: LivelloAcquaDichiarato) {
+    const chi = esito?.ok ? esito.nucleo?.persone.find((x) => x.member_id === memberId) : undefined;
+    const nome = chi?.nome?.trim();
+    setAggiunto(
+      t(`Grazie, abbiamo salvato le risposte${nome ? ` per ${nome}` : ""}.`, `Thanks, we’ve saved the answers${nome ? ` for ${nome}` : ""}.`),
+    );
+    if (esito?.ok && esito.nucleo) {
+      const nucleoNuovo: NucleoJunior = {
+        ...esito.nucleo,
+        persone: esito.nucleo.persone.map((x) => (x.member_id === memberId ? { ...x, livello_acqua: livello } : x)),
+      };
+      const nuovoEsito: EsitoGruppi = { ...esito, nucleo: nucleoNuovo };
       ricorda(CHIAVE_GRUPPI_JUNIOR, nuovoEsito);
       setEsito(nuovoEsito);
     } else carica();
@@ -297,7 +327,11 @@ export function Junior() {
       ) : null}
 
       {tutti ? (
-        <TurniVicini persone={persone} vista={vista} onIscrivi={avviaCoda} />
+        senzaLivelloTutti.length ? (
+          <LivelloDaCompilare key={`livello-${senzaLivelloTutti.map((x) => x.member_id).join("-")}`} persone={senzaLivelloTutti} vista={vista} onFatto={dopoLivello} />
+        ) : (
+          <TurniVicini persone={persone} vista={vista} onIscrivi={avviaCoda} />
+        )
       ) : senzaFigli ? (
         <Messaggio titolo={t("Aggiungi un figlio per vedere le attività", "Add a child to see the activities")}>
           {t(
@@ -329,7 +363,10 @@ export function Junior() {
             />
           ) : (
             <>
-              {persona.idoneo ? (
+              {persona.idoneo && livelloDaFare ? (
+                // Prima dei turni il questionario di livello (10/11/2026): al posto delle attivita' da scegliere.
+                <LivelloDaCompilare key={`livello-${persona.member_id}`} persone={[persona]} vista={vista} onFatto={dopoLivello} />
+              ) : persona.idoneo ? (
                 <AttivitaDaScegliere
                   // Chiavi diverse per i due blocchi fratelli (attività e brevetti chiusi): con la stessa chiave, cambiando bambino, React sul
                   // web lasciava in pagina le copie vecchie, una in più a ogni cambio, e quelle copie non si aprivano al tocco (04/11/2026).
