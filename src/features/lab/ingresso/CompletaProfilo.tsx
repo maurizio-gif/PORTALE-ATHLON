@@ -29,8 +29,10 @@ import { colpetto, Tocco } from '../ui/Tocco'
 // **I dati che il club ha gia' per questa email** (05/11/2026: il pannello del sito davanti al listino, un modulo) arrivano gia' scritti: la persona li
 // conferma, e scrive solo la data di nascita. Restano modificabili.
 //
-// **Gia' dei nostri con un altro indirizzo** (`somiglianza`): la funzione non crea un doppione e la segreteria collega questo indirizzo alla scheda vera.
-// Il messaggio e' quello della funzione; il pulsante porta a entrare con l'altro indirizzo, per chi lo usa ancora.
+// **Gia' dei nostri con un altro indirizzo** (`somiglianza`): la funzione non crea un doppione.
+// **Di regola e' un indirizzo sbagliato** (10/11/2026, Maurizio): la funzione manda gli indirizzi che ci risultano **in parte nascosti** (`emailNote`), la schermata
+// dice «ci risulta gia' un account a tuo nome con questa email» e il pulsante porta a entrare con quello. La segreteria non e' coinvolta. Solo «Non lo riconosco o non
+// lo uso piu'» rimanda i dati con `segnala`: allora vale la strada di prima, il messaggio della funzione («colleghiamo noi») e, se la funzione lo offre, il codice via SMS.
 // **Con il codice via SMS** (05/11/2026, `portale-registrazione` azioni `sms_invia` e `sms_verifica`, quando la funzione lo offre con `sms.finale`):
 // la persona chiede un codice al cellulare della scheda trovata (vede solo le ultime due cifre), lo scrive, e il suo indirizzo e' collegato alla scheda:
 // e' dentro, senza aspettare la segreteria. «Il numero non è più mio» torna al messaggio di sempre.
@@ -60,13 +62,15 @@ export function CompletaProfilo({
   const [giaNostro, setGiaNostro] = useState<string | null>(null)
   /** Le ultime due cifre del cellulare della scheda, se la funzione offre il codice via SMS. */
   const [smsFinale, setSmsFinale] = useState<string | null>(null)
+  /** Gli indirizzi che ci risultano per questa persona, in parte nascosti. */
+  const [emailNote, setEmailNote] = useState<string[] | null>(null)
 
   const oggi = new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Rome' })
   const resto = campi.filter((c) => c !== 'nascita')
   const serveConsenso = campi.includes('nome')
   const cambia = (k: keyof typeof d) => (v: string) => setD((x) => ({ ...x, [k]: v }))
 
-  async function invia() {
+  async function invia(segnala = false) {
     setErrore(null)
     if (campi.includes('nome') && !d.nome.trim()) return setErrore(t('Scrivi il nome.', 'Enter your first name.'))
     if (campi.includes('cognome') && !d.cognome.trim()) return setErrore(t('Scrivi il cognome.', 'Enter your last name.'))
@@ -76,6 +80,7 @@ export function CompletaProfilo({
     // Solo i dati chiesti: gli altri non servono e non si mandano.
     const dati: Parameters<typeof completaProfilo>[0] = { privacy }
     for (const k of campi) dati[k] = k === 'nome' || k === 'cognome' ? d[k].trim() : d[k]
+    if (segnala) dati.segnala = true
     const r = await completaProfilo(dati)
     setAttesa(false)
     if (r.ok) {
@@ -85,6 +90,7 @@ export function CompletaProfilo({
     colpetto('errore')
     if (r.minorenne) return setMinorenne(true)
     if (r.somiglianza) {
+      setEmailNote(segnala ? null : (r.emailNote ?? null))
       setSmsFinale(r.sms?.finale ?? null)
       return setGiaNostro(r.errore)
     }
@@ -108,9 +114,24 @@ export function CompletaProfilo({
 
   if (giaNostro) {
     return (
-      <Schermata titolo={t('Profilo', 'Profile')} nascondiTitolo barra={false} sopra={<Testata fase="profilo" titolo={t('Sei già\ndei nostri', 'You’re already\none of us')} sotto={t('Colleghiamo noi questo indirizzo al tuo profilo.', 'We’ll link this address to your profile.')} />}>
+      <Schermata titolo={t('Profilo', 'Profile')} nascondiTitolo barra={false} sopra={<Testata fase="profilo" titolo={t('Sei già\ndei nostri', 'You’re already\none of us')} sotto={emailNote ? t('Hai già un account con un altro indirizzo.', 'You already have an account under another address.') : t('Colleghiamo noi questo indirizzo al tuo profilo.', 'We’ll link this address to your profile.')} />}>
         <Carta style={stili.modulo}>
-          {smsFinale ? (
+          {emailNote ? (
+            <View style={{ gap: spazio.tre }}>
+              <Messaggio tono="ok" titolo={emailNote.length === 1 ? t('Ci risulta già un account a tuo nome', 'We already have an account in your name') : t('Ci risultano già degli account a tuo nome', 'We already have accounts in your name')}>
+                <Text style={[stili.testoSms, { color: p.testoSecondario }]}>{emailNote.length === 1 ? t('Con questa email:', 'With this email:') : t('Con queste email:', 'With these emails:')}</Text>
+                {emailNote.map((m) => (
+                  <Text key={m} selectable style={[stili.emailNota, { color: p.testo }]}>{m}</Text>
+                ))}
+                <Text style={[stili.testoSms, { color: p.testoSecondario }]}>
+                  {t('Se è la tua, entra con quell’indirizzo: ritrovi tutto quello che hai già con il club.', 'If that’s yours, sign in with that address: you’ll find everything you already have with the club.')}
+                </Text>
+              </Messaggio>
+              {errore ? <Messaggio>{errore}</Messaggio> : null}
+              <Pulsante testo={t('Entra con quell’indirizzo', 'Sign in with that address')} onPress={esci} />
+              <Pulsante testo={t('Non lo riconosco o non lo uso più', 'I don’t recognise it or no longer use it')} variante="fantasma" inCorso={attesa} onPress={() => invia(true)} />
+            </View>
+          ) : smsFinale ? (
             <CollegaConSms finale={smsFinale} onFatto={onFatto} onNonMio={() => setSmsFinale(null)} />
           ) : (
             <>
@@ -185,7 +206,7 @@ export function CompletaProfilo({
                 </Casella>
               ) : null}
               {errore ? <Messaggio>{errore}</Messaggio> : null}
-              <Pulsante testo={t('Entra', 'Continue')} icona="avanti" onPress={invia} inCorso={attesa} />
+              <Pulsante testo={t('Entra', 'Continue')} icona="avanti" onPress={() => invia()} inCorso={attesa} />
             </>
           )}
         </Animated.View>
@@ -282,6 +303,7 @@ function CollegaConSms({ finale, onFatto, onNonMio }: { finale: string; onFatto:
 
 const stili = StyleSheet.create({
   testoSms: { fontFamily: F.normale, fontSize: 15, lineHeight: 22 },
+  emailNota: { fontFamily: F.bold, fontSize: 17, lineHeight: 26 },
   modulo: { marginTop: -64, padding: spazio.quattro - 2, gap: spazio.tre + 4 },
   nota: { fontSize: 14.5, lineHeight: 21, fontFamily: F.medio },
 })

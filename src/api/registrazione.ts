@@ -62,7 +62,11 @@ function precompilaDa(v: unknown): StatoIngresso['precompila'] {
   return Object.keys(out).length ? out : undefined
 }
 
-export type DatiProfilo = Partial<Record<CampoIngresso, string>> & { privacy?: boolean }
+export type DatiProfilo = Partial<Record<CampoIngresso, string>> & {
+  privacy?: boolean
+  /** La persona dice di non riconoscere l'indirizzo che le abbiamo mostrato (o di non usarlo piu'): solo allora la richiesta arriva alla segreteria (10/11/2026). */
+  segnala?: boolean
+}
 
 export type EsitoProfilo =
   | { ok: true }
@@ -75,6 +79,8 @@ export type EsitoProfilo =
       serve?: CampoIngresso[]
       /** Gia' del club con un altro indirizzo: si puo' collegare con un codice via SMS al cellulare della scheda, che finisce con queste due cifre (05/11/2026). */
       sms?: { finale: string }
+      /** Gia' del club con un altro indirizzo: gli indirizzi che ci risultano, **in parte nascosti** (`si***i@icloud.com`). La persona entra con quello e la segreteria non e' coinvolta (10/11/2026). */
+      emailNote?: string[]
     }
 
 export async function completaProfilo(d: DatiProfilo): Promise<EsitoProfilo> {
@@ -88,7 +94,15 @@ export async function completaProfilo(d: DatiProfilo): Promise<EsitoProfilo> {
     somiglianza: dati.somiglianza === true,
     serve: Array.isArray(dati.serve) ? (dati.serve as CampoIngresso[]) : undefined,
     sms: smsDa(dati.sms),
+    emailNote: emailNoteDa(dati.emailNote),
   }
+}
+
+/** Al massimo tre indirizzi, e solo testo corto: lo scrive il server, ma e' quello che la persona legge. */
+function emailNoteDa(v: unknown): string[] | undefined {
+  if (!Array.isArray(v)) return undefined
+  const out = v.filter((x): x is string => typeof x === 'string' && x.includes('@')).map((x) => x.trim().slice(0, 80)).slice(0, 3)
+  return out.length ? out : undefined
 }
 
 function smsDa(v: unknown): { finale: string } | undefined {
