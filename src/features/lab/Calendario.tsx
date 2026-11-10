@@ -25,6 +25,7 @@ import { locale, t, tv } from '@/lib/lingua'
 import { spazio } from '@/theme'
 
 import { inMemoria, prendi, ricorda } from './memoria'
+import { InvitoPushAttesa } from './notifiche/InvitoPushAttesa'
 import { CalorieLezione, CorpoPerLezioni } from './schede/CalorieLezione'
 import { posizione } from './SchedaLezione'
 import { testoPosizione } from './posizioneAttesa'
@@ -297,6 +298,8 @@ export function AzioniLezione({
           />
         </View>
       )}
+      {/* In lista d'attesa (10/11/2026): senza l'SMS del subentro, chi aspetta un posto lo sa con la notifica. Se non le ha attive, l'invito con il pulsante. */}
+      {!l.iniziata && b?.attesa && !conferma ? <InvitoPushAttesa /> : null}
     </>
   )
 }
@@ -953,6 +956,8 @@ function CalendarioGiorno() {
           <Messaggio>{('errore' in ritorno && ritorno.errore) || t('Non vediamo ancora il pagamento. Se l’hai completato, ricarica la pagina fra qualche minuto.', 'We do not see the payment yet. If you completed it, reload the page in a few minutes.')}</Messaggio>
         )
       ) : null}
+      {/* Pagato e finito in lista d'attesa: l'invito ad attivare le notifiche, per essere avvisato se si libera un posto. */}
+      {ritorno?.stato === 'attesa' ? <InvitoPushAttesa /> : null}
 
       <View style={{ gap: spazio.tre }}>
         {giorno.persone.length > 1 ? (
