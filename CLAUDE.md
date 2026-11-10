@@ -222,7 +222,7 @@ chiamata diretta al gestionale. Esempio: la sezione Prodotti usa l'azione `prodo
 - [«Sei già dei nostri»: l'indirizzo che ci risulta, in parte nascosto, e «Non lo riconosco» per chi ha davvero cambiato email (10/11/2026)](docs/claude/184-sei-gia-dei-nostri-indirizzo-che-ci-risulta-10-11-2026.md) · 2 KB
 - [Il questionario di livello prima dei turni, anche per chi è già registrato: al posto dei turni compare «Compila il questionario» (10/11/2026)](docs/claude/185-questionario-di-livello-prima-dei-turni-10-11-2026.md) · 4 KB
 - [Il questionario di livello è a cascata: «no» a una domanda è «no» anche alle successive, e il livello provvisorio non si vede mai nell'app (10/11/2026)](docs/claude/186-questionario-di-livello-risposte-a-cascata-10-11-2026.md) · 3 KB
-- [«Prenotazioni» nella Home: lo storico degli ultimi 30 giorni, con il flag se c'eri (09/11/2026)](docs/claude/187-le-mie-prenotazioni-storico-con-presenza-09-11-2026.md) · 10 KB
+- [«Prenotazioni» nella Home: lo storico degli ultimi 30 giorni, con il flag se c'eri (09/11/2026)](docs/claude/187-le-mie-prenotazioni-storico-con-presenza-09-11-2026.md) · 12 KB
 - [Il questionario di livello si propone solo a chi non ha un livello reale, e si rifà dopo sei mesi (10/11/2026)](docs/claude/188-questionario-di-livello-quando-si-propone-10-11-2026.md) · 4 KB
 - [La carta si paga dentro l'app: il Drop-in nativo di Adyen, senza il link nel browser (10/11/2026)](docs/claude/189-pagamento-nativo-adyen-10-11-2026.md) · 8 KB
 - [«Scrivi al team»: la risposta arriva sempre nell'app, la carta non chiede più dove, e senza push compare l'invito ad attivarle (10/11/2026)](docs/claude/190-richieste-al-team-risposta-sempre-in-app-e-invito-alle-push-10-11-2026.md) · 5 KB

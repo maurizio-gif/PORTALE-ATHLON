@@ -304,9 +304,9 @@ export async function presenzeLezioni(): Promise<Esito<{ presenze: PresenzaLezio
 /**
  * Una prenotazione passata del titolare (09/11/2026, il riquadro «Prenotazioni» della Home). Dal 10/11/2026 (richiesta di Maurizio) lo
  * storico e' degli ultimi 30 giorni e si divide in due elenchi, entrambi decisi dalla funzione:
- *   `voci`      le lezioni con la presenza o l'assenza, solo di cinque categorie (Corsi Fitness, Group Reformer, Aqua Fitness, Scuola Nuoto
- *               Adulti, Nuoto Libero), e gli eventi (Eventi Gratuiti, Master Class). Per una lezione `esito` e' `presente` o `assente`; per un
- *               evento `presente` solo se la presenza e' segnata, altrimenti `null` (mai `assente`: lì la presenza non sempre si segna). Non ci
+ *   `voci`      le lezioni con la presenza o l'assenza, solo di sei categorie (Corsi Fitness, Group Reformer, Aqua Fitness, Scuola Nuoto
+ *               Adulti, Nuoto Libero, Master Class), e gli Eventi Gratuiti. Per una lezione `esito` e' `presente` o `assente`; per un
+ *               evento gratuito `presente` solo se la presenza e' segnata, altrimenti `null` (mai `assente`: lì la presenza non si segna). Non ci
  *               sono le disdette, le lezioni ancora «da confermare» (l'istruttore ha tre ore dall'inizio per segnarle), la Gym Floor e i corsi junior.
  *   `personal`  le sedute di personal training non annullate, a parte, con `esito: null`: il segno non c'e'.
  */

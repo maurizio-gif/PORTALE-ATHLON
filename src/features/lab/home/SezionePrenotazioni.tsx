@@ -18,13 +18,13 @@ import { F, usePalette, velo, coloreTono, type ToniTutti } from '../ui/tema'
 // segno. La regola e' della funzione (`_shared/storico/prenotazioni.ts` di APP-ATHLON): qui si disegnano i due elenchi che arrivano, `voci`
 // e `personal`, senza filtrarli un'altra volta (due posti che dicono la stessa cosa divergono).
 //
-// **Il segno presente/assente c'e' solo per cinque categorie**: Corsi Fitness, Group Reformer, Aqua Fitness, Scuola Nuoto Adulti e Nuoto
-// Libero. Sono quelle in cui la presenza si segna davvero, e un'assenza dichiarata dove nessuno la segna e' un'informazione sbagliata.
+// **Il segno presente/assente c'e' solo per sei categorie**: Corsi Fitness, Group Reformer, Aqua Fitness, Scuola Nuoto Adulti, Nuoto
+// Libero e Master Class. Sono quelle in cui la presenza si segna davvero, e un'assenza dichiarata dove nessuno la segna e' un'informazione sbagliata.
 //
-// **Dalla sera del 10/11/2026 si vedono anche gli eventi** (Eventi Gratuiti e Master Class, richiesta di Maurizio), nello stesso elenco delle lezioni
-// (`voci`, che la funzione decide). **Il segno degli eventi e' certo o non c'e'**: «Presente» solo se la presenza e' segnata (la riga ha la pillola),
-// altrimenti la riga non ha pillola e mai «Assente». Misurato il 10/11/2026: negli ultimi 30 giorni gli Eventi Gratuiti hanno 0 presenze segnate su 87,
-// le Master Class 19 su 19. Il riepilogo conta le pillole che si vedono.
+// **Dalla sera del 10/11/2026 si vedono anche gli eventi** (richiesta di Maurizio), nello stesso elenco delle lezioni (`voci`, che la funzione
+// decide). **Per gli Eventi Gratuiti il segno e' certo o non c'e'**: «Presente» solo se la presenza e' segnata (la riga ha la pillola), altrimenti la
+// riga non ha pillola e mai «Assente». Misurato il 10/11/2026: negli ultimi 30 giorni 0 presenze segnate su 87. **Le Master Class hanno il segno
+// completo** come le lezioni (scelta di Maurizio: 19 presenze segnate su 19 negli ultimi 30 giorni). Il riepilogo conta le pillole che si vedono.
 //
 // **La presenza e' quella del club**, la stessa della scheda del CRM: la segna la reception o il trainer, non la persona. Una lezione
 // appena finita non compare finche' l'istruttore puo' ancora segnarla (tre ore dall'inizio): dire «Assente» a chi c'era e' un'informazione
@@ -166,12 +166,12 @@ export function SezionePrenotazioni() {
 
   const legenda = [
     t(
-      'La presenza la segna il club e si mostra per Corsi Fitness, Group Reformer, Aqua Fitness, Scuola Nuoto Adulti e Nuoto Libero. Una lezione compare quando la presenza è segnata o è passato il tempo per segnarla (tre ore dall’inizio). Le lezioni disdette non compaiono.',
-      'Attendance is recorded by the club and shown for Corsi Fitness, Group Reformer, Aqua Fitness, Scuola Nuoto Adulti and Nuoto Libero. A class appears once its attendance is recorded or the time to record it has passed (three hours after the start). Cancelled classes are not shown.',
+      'La presenza la segna il club e si mostra per Corsi Fitness, Group Reformer, Aqua Fitness, Scuola Nuoto Adulti, Nuoto Libero e Master Class. Una lezione compare quando la presenza è segnata o è passato il tempo per segnarla (tre ore dall’inizio). Le lezioni disdette non compaiono.',
+      'Attendance is recorded by the club and shown for Corsi Fitness, Group Reformer, Aqua Fitness, Scuola Nuoto Adulti, Nuoto Libero and Master Class. A class appears once its attendance is recorded or the time to record it has passed (three hours after the start). Cancelled classes are not shown.',
     ),
     // Gli eventi (e solo loro) arrivano senza il segno quando la presenza non è registrata.
     dati.voci.some((v) => v.esito === null)
-      ? t('Gli eventi si vedono anche senza il segno: lì la presenza non sempre viene registrata, e quando manca non diciamo «Assente».', 'Events are listed even without a mark: attendance isn’t always recorded there, and when it’s missing we don’t say “Missed”.')
+      ? t('Gli eventi gratuiti si vedono anche senza il segno: lì la presenza non sempre viene registrata, e quando manca non diciamo «Assente».', 'Free events are listed even without a mark: attendance isn’t always recorded there, and when it’s missing we don’t say “Missed”.')
       : null,
     dati.personal.length ? t('Il personal training è in un elenco a parte, senza il segno.', 'Personal training is in a separate list, without attendance.') : null,
   ]
