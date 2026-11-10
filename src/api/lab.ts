@@ -306,6 +306,8 @@ export async function presenzeLezioni(): Promise<Esito<{ presenze: PresenzaLezio
  *   assente        passato il tempo per segnarla (3 ore dall'inizio per una lezione), non c'e'
  *   da_confermare  ancora in tempo per segnarla: non e' un'assenza
  *   annullata      disdetta: non conta fra le assenze
+ *   null           nessun segno: la presenza si mostra solo per cinque categorie (Corsi Fitness, Group Reformer, Aqua Fitness, Scuola Nuoto
+ *                  Adulti, Nuoto Libero, 10/11/2026). La prenotazione si vede lo stesso; il personal training non ha il segno.
  */
 export type EsitoPrenotazione = 'presente' | 'assente' | 'da_confermare' | 'annullata'
 export type PrenotazionePassata = {
@@ -317,13 +319,14 @@ export type PrenotazionePassata = {
   /** La zona su PerfectGym («Sala A», «Piscina Grande»); null se manca e per i PT. */
   sala: string | null
   istruttore: string | null
-  esito: EsitoPrenotazione
+  esito: EsitoPrenotazione | null
 }
 export type StoricoPrenotazioni = {
   /** Quanti giorni indietro arriva l'elenco: i conteggi sono su questi. */
   giorni: number
   /** Dalla piu' recente. */
   voci: PrenotazionePassata[]
+  /** Presenze, assenze e da confermare contano solo le cinque categorie con il segno; le annullate tutte. */
   presenze: number
   assenze: number
   da_confermare: number

@@ -14,6 +14,11 @@ import { F, usePalette, velo, coloreTono, type ToniTutti } from '../ui/tema'
 // La sezione «Le mie prenotazioni» della Home (09/11/2026, richiesta di Maurizio): lo storico delle prenotazioni degli ultimi 90 giorni
 // con il flag se la persona era presente. Lezioni e sedute di personal training, dalla piu' recente.
 //
+// **Il segno presente/assente c'e' solo per cinque categorie** (10/11/2026, richiesta di Maurizio): Corsi Fitness, Group Reformer, Aqua
+// Fitness, Scuola Nuoto Adulti e Nuoto Libero. Lo decide la funzione (`esito: null` per le altre): sono le categorie in cui la presenza
+// si segna davvero, e un'assenza dichiarata dove nessuno la segna e' un'informazione sbagliata. Le altre prenotazioni restano in elenco,
+// con un'icona neutra e senza pillola; una disdetta si dice per tutte.
+//
 // **La presenza e' quella del club**, la stessa della scheda del CRM: la segna la reception o il trainer, non la persona. Per questo
 // una lezione appena finita non dice «Assente» ma «Da confermare»: l'istruttore ha tre ore dall'inizio per segnarla, e dire a chi
 // c'era che non c'era e' un'informazione sbagliata (lo decide la funzione, `_shared/storico/prenotazioni.ts` di APP-ATHLON). Una
@@ -80,9 +85,10 @@ function Pillola({ esito }: { esito: EsitoPrenotazione }) {
 }
 
 function RigaPrenotazione({ x, prima }: { x: PrenotazionePassata; prima: boolean }) {
-  const e = ESITI[x.esito]
+  // Senza esito: la prenotazione si vede, senza il segno (icona neutra e nessuna pillola).
+  const e = x.esito ? ESITI[x.esito] : null
   const sotto = [`${giornoBreve(x.inizio)} · ${ora(x.inizio)}`, salaDi(x), x.istruttore ? t(`con ${x.istruttore}`, `with ${x.istruttore}`) : null].filter((v): v is string => !!v).join(' · ')
-  return <Riga prima={prima} icona={e.icona} tono={e.tono} titolo={x.nome} sotto={sotto} coda={<Pillola esito={x.esito} />} />
+  return <Riga prima={prima} icona={e?.icona ?? 'calendario'} tono={e?.tono ?? 'neutro'} titolo={x.nome} sotto={sotto} coda={x.esito ? <Pillola esito={x.esito} /> : undefined} />
 }
 
 /** Una cifra col suo nome, con il segno dell'esito: la colonna di un riepilogo. */
@@ -157,8 +163,8 @@ export function SezionePrenotazioni() {
         <Icona nome="info" size={14} colore={pal.testoTerzo} />
         <Text style={{ flex: 1, color: pal.testoTerzo, fontFamily: F.medio, fontSize: 13, lineHeight: 19 }}>
           {t(
-            'La presenza la segna il club alla lezione. «Da confermare» vuol dire che c’è ancora tempo per segnarla: passato quel tempo diventa «Presente» o «Assente». Una prenotazione disdetta non conta fra le assenze.',
-            'Attendance is recorded by the club at the class. “To be confirmed” means there is still time to record it: once that time has passed it becomes “Attended” or “Missed”. A cancelled booking doesn’t count as missed.',
+            'La presenza la segna il club e si mostra per Corsi Fitness, Group Reformer, Aqua Fitness, Scuola Nuoto Adulti e Nuoto Libero. «Da confermare» vuol dire che c’è ancora tempo per segnarla: passato quel tempo diventa «Presente» o «Assente». Una prenotazione disdetta non conta fra le assenze.',
+            'Attendance is recorded by the club and shown for Corsi Fitness, Group Reformer, Aqua Fitness, Scuola Nuoto Adulti and Nuoto Libero. “To be confirmed” means there is still time to record it: once that time has passed it becomes “Attended” or “Missed”. A cancelled booking doesn’t count as missed.',
           )}
         </Text>
       </View>
