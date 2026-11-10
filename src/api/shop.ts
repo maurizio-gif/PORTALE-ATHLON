@@ -27,6 +27,13 @@ export type Opzione = {
   aiuto?: string | null
   valori?: ValoreOpzione[]
   tabella?: TabellaOpzione | null
+  /**
+   * Solo per una `persona` con un limite di eta' (il Kit Agonismo: da 7 a 18 anni, anni compiuti il giorno dell'acquisto). `ammessi` sono i `member_id` del nucleo che si possono scegliere,
+   * **calcolati dal server** (che ha la data di nascita intera): l'app mostra solo loro e non conta mai gli anni. `null` o assente = nessun limite, si mostrano tutti.
+   */
+  eta_min?: number | null
+  eta_max?: number | null
+  ammessi?: number[] | null
 }
 
 /** Chi del nucleo puo' essere l'«atleta»: il titolare e i figli. */
@@ -127,7 +134,10 @@ function opzioneDa(grezza: unknown): Opzione | null {
     tab && Array.isArray(tab.colonne) && Array.isArray(tab.righe)
       ? { titolo: testoOVuoto(tab.titolo) ?? '', nota: testoOVuoto(tab.nota), colonne: tab.colonne.map(String), righe: tab.righe.filter(Array.isArray).map((r) => r.map(String)) }
       : null
-  return { id: o.id, tipo: o.tipo, etichetta: o.etichetta, aiuto: testoOVuoto(o.aiuto), valori, tabella }
+  // Un campo che non e' un intero si scarta: un `ammessi` mezzo rotto non deve nascondere chi si puo' scegliere (il server rifiuta comunque chi non va bene).
+  const eta = (x: unknown): number | null => (typeof x === 'number' && Number.isInteger(x) ? x : null)
+  const ammessi = o.tipo === 'persona' && Array.isArray(o.ammessi) ? o.ammessi.filter((x): x is number => Number.isInteger(x)) : null
+  return { id: o.id, tipo: o.tipo, etichetta: o.etichetta, aiuto: testoOVuoto(o.aiuto), valori, tabella, eta_min: eta(o.eta_min), eta_max: eta(o.eta_max), ammessi }
 }
 
 function articoloDa(g: Partial<ArticoloShop>): ArticoloShop {

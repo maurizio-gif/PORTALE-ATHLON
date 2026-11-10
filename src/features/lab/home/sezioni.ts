@@ -6,7 +6,8 @@ import type { Href } from 'expo-router'
 // dal parametro dell'indirizzo, `/?sezione=pagamenti`, cosi' un link o un
 // ricaricamento riportano alla stessa sezione.
 
-export const SEZIONI = ['abbonamenti', 'pagamenti', 'prodotti', 'documenti', 'certificato', 'famiglia', 'profilo', 'tesseramento'] as const
+// Le Prenotazioni (09/11/2026, richiesta di Maurizio): lo storico con il flag della presenza, dopo i Prodotti con cui si prenota.
+export const SEZIONI = ['abbonamenti', 'pagamenti', 'prodotti', 'prenotazioni', 'documenti', 'certificato', 'famiglia', 'profilo', 'tesseramento'] as const
 export type SezioneHome = (typeof SEZIONI)[number]
 
 /** Da dove si parte quando il parametro manca o non e' una sezione. */
