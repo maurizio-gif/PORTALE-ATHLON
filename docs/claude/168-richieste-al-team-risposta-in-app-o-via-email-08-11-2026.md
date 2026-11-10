@@ -1,5 +1,7 @@
 ## Le richieste al team nell'app: si sceglie dove vuoi la risposta, e si legge (e si riscrive) in «Le tue richieste» (08/11/2026)
 
+> **Superata in parte il 10/11/2026 (sezione 190):** la carta non chiede più «Dove vuoi la risposta?», la risposta arriva sempre nell'app e senza push compare l'invito ad attivarle. L'elenco «Le tue richieste», il filo e il resto restano validi; le richieste già aperte via email restano leggibili.
+
 Richiesta di Maurizio: le richieste di assistenza che arrivano dall'app generano un ticket e il team vuole rispondere sempre in app; chi scrive sceglie se la risposta arriva nell'app o via email, e l'operatore risponde dal CRM sul canale scelto. Server, CRM, notifica e decisioni: `CLAUDE.md` di APP-ATHLON, «Scrivi al team: chi apre il ticket sceglie…». Estende la sezione 62 (la carta «Scrivi al team»).
 
 - **La carta «Scrivi al team» chiede «Dove vuoi la risposta?»** (`assistente/ScriviAlTeam.tsx`): due scelte, **«Nell'app»** (preselezionata, `CANALE_PREDEFINITO`: «Ti avvisiamo con una notifica e la leggi qui, nella tua richiesta. Puoi anche rispondere») e **«Via email»** (con l'indirizzo con cui si entra). Sono due righe da toccare con il cerchio pieno su quella scelta, `checked` per lo screen reader. Il testo della carta non dice più «il team ti risponde via email»: dipende dalla scelta.

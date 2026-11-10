@@ -12,11 +12,13 @@ import { Carta, Etichetta, Messaggio, Pulsante, SchedeInArrivo } from '../ui/kit
 import { Schermata } from '../ui/Schermata'
 import { F, usePalette, velo } from '../ui/tema'
 import { vistaCorrente } from '../vista'
+import { InvitoPushRichiesta } from './InvitoPush'
 import { quando } from './quando'
 import { MESSAGGIO_RICHIESTA_MAX, controllaMessaggio } from './richieste'
 
 // Una richiesta al team (08/11/2026): quello che la persona aveva scritto e, sotto, il filo con le risposte del team e i suoi messaggi. Con la risposta in app si puo' riscrivere (il
 // ticket torna al desk); con la risposta via email il filo e' solo da leggere; una richiesta chiusa non si riapre da qui (se serve ancora aiuto, si riscrive dall'assistente).
+// **Finche' il team non ha risposto, senza push attive, in cima compare l'invito ad attivarle** (10/11/2026: la risposta e' nell'app e la persona deve sapere quando arriva).
 // **Aprirla segna lette le risposte** (lo fa la funzione) e spegne il pallino del campanello. Mentre e' aperta si rilegge ogni 30 secondi: se il team risponde in quel momento
 // compare da sola. Le risposte arrivate dopo l'ultima apertura portano «Nuova» finche' la schermata resta aperta, anche dopo che la funzione le ha segnate lette.
 
@@ -145,6 +147,8 @@ export function FiloRichiesta({ id }: { id: string }) {
                   nota={m.autore === 'team' && m.canale === 'email' ? t('Inviata per email', 'Sent by email') : undefined}
                 />
               ))}
+
+              {r.canale === 'app' && r.stato === 'nuovo' && stato.messaggi.length === 0 ? <InvitoPushRichiesta /> : null}
 
               {stato.messaggi.length === 0 && r.stato !== 'chiuso' ? (
                 <Text style={[stili.attesa, { color: p.testoSecondario }]}>

@@ -225,3 +225,4 @@ chiamata diretta al gestionale. Esempio: la sezione Prodotti usa l'azione `prodo
 - [«Prenotazioni» nella Home: lo storico degli ultimi 30 giorni, con il flag se c'eri (09/11/2026)](docs/claude/187-le-mie-prenotazioni-storico-con-presenza-09-11-2026.md) · 10 KB
 - [Il questionario di livello si propone solo a chi non ha un livello reale, e si rifà dopo sei mesi (10/11/2026)](docs/claude/188-questionario-di-livello-quando-si-propone-10-11-2026.md) · 4 KB
 - [La carta si paga dentro l'app: il Drop-in nativo di Adyen, senza il link nel browser (10/11/2026)](docs/claude/189-pagamento-nativo-adyen-10-11-2026.md) · 8 KB
+- [«Scrivi al team»: la risposta arriva sempre nell'app, la carta non chiede più dove, e senza push compare l'invito ad attivarle (10/11/2026)](docs/claude/190-richieste-al-team-risposta-sempre-in-app-e-invito-alle-push-10-11-2026.md) · 5 KB

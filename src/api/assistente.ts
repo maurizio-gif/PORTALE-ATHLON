@@ -123,27 +123,28 @@ export function pulsanteToccato(messaggioId: string, destinazione: string): void
   funzione('portale-lab-assistente', { azione: 'toccato', messaggio_id: messaggioId, destinazione }).catch(() => undefined)
 }
 
-/** Dove il team risponde (08/11/2026): lo sceglie la persona quando invia, e non cambia. */
+/** Dove il team risponde (08/11/2026): dal 10/11/2026 l'app chiede sempre `app` (non si sceglie piu'); `email` resta per le richieste gia' aperte e per una funzione di prima che ignora la richiesta. */
 export type CanaleTicket = 'app' | 'email'
 
 /**
  * «Scrivi al team» (31/10/2026): la persona ha toccato Invia sulla carta che l'assistente le ha proposto. La funzione manda al desk la conversazione (le ultime battute, lette dal
- * registro del server) e quello che la persona ha aggiunto: email a desk@, compito in Agenda sulla sua scheda. Non solleva mai.
+ * registro del server) e quello che la persona ha aggiunto: la richiesta compare nel CRM (avviso in Dashboard e compito in Agenda sulla sua scheda), **non** per email a desk@ (tolta il 10/11/2026). Non solleva mai.
  *
- * **Il canale lo decide il server** (08/11/2026): l'app dice dove la persona vuole la risposta, la funzione risponde con quello che ha registrato. Una funzione di prima ignora `canale`
- * e non lo restituisce: allora il ticket e' per email, e chi chiama lo deve dire alla persona (`canale` della risposta, mai quello chiesto).
+ * **La risposta arriva sempre nell'app** (10/11/2026, richiesta di Maurizio): non c'e' piu' la scelta, e al desk non parte piu' nessuna email con il messaggio (resta l'avviso nel CRM). La
+ * funzione risponde comunque con il canale che ha registrato, e chi chiama dice alla persona quello (`canale` della risposta): una funzione di prima ignora `canale`, non lo restituisce, e
+ * fa un ticket per email.
  */
 export async function scriviAlTeam(
   conversazioneId: string,
   messaggio: string,
   allegato: { nome: string; base64: string } | null | undefined,
-  canale: CanaleTicket,
 ): Promise<{ ok: true; ticketId: string | null; canale: CanaleTicket } | { ok: false; errore: string }> {
   const { ok, stato, dati } = await funzione('portale-lab-assistente', {
     azione: 'ticket',
     conversazione_id: conversazioneId,
     messaggio,
-    canale,
+    // Una funzione di prima vuole il canale e rifiuta la richiesta senza: la risposta e' sempre nell'app.
+    canale: 'app' satisfies CanaleTicket,
     ...(allegato ? { allegato: { nome: allegato.nome, base64: allegato.base64 } } : {}),
   })
   if (ok) return { ok: true, ticketId: typeof dati.ticket_id === 'string' ? dati.ticket_id : null, canale: dati.canale === 'app' ? 'app' : 'email' }

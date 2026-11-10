@@ -206,9 +206,9 @@ function rottaEsiste(pathname: string): boolean {
 // ---------------------------------------------------------------------------
 // Le richieste al team nell'app (08/11/2026): dove risponde il team lo sceglie la persona, e la risposta si legge qui.
 {
-  assert.equal(R.CANALE_PREDEFINITO, 'app', 'la risposta in app e preselezionata: e il motivo per cui la funzione esiste')
+  assert.equal(R.CANALE_PREDEFINITO, 'app', 'la risposta e nell app: e il motivo per cui la funzione esiste (dal 10/11/2026 non si sceglie piu)')
   assert.equal(R.MESSAGGIO_RICHIESTA_MAX, MESSAGGIO_TEAM_MAX, 'lo stesso tetto della carta «Scrivi al team» e della funzione')
-  ok('canale predefinito: nell app; stesso tetto della funzione')
+  ok('canale: nell app; stesso tetto della funzione')
 
   // Lo stato in una parola: una risposta da leggere vince su tutto.
   const r = (stato: 'nuovo' | 'risposto' | 'chiuso', non_lette = 0) => ({ stato, non_lette })
@@ -250,6 +250,31 @@ function rottaEsiste(pathname: string): boolean {
   assert.deepEqual(R.canaleRegistrato('email', 'email'), { canale: 'email', scelta_ignorata: false })
   assert.deepEqual(R.canaleRegistrato('app', 'email'), { canale: 'email', scelta_ignorata: true }, 'una funzione di prima ignora la scelta: si dice email')
   ok('canaleRegistrato: vale quello del server')
+
+  // L'invito ad attivare le push (10/11/2026): dove la risposta e' nell'app e senza notifica la persona la vede solo riaprendola.
+  assert.equal(R.invitoPushRichiesta('spento', 0), 'attiva', 'push spenta e nessun dispositivo: un tocco')
+  assert.equal(R.invitoPushRichiesta('bloccato', 0), 'sbloccare', 'bloccata dal browser: si sblocca dalle impostazioni')
+  assert.equal(R.invitoPushRichiesta('serve_app_installata', 0), 'installare', 'iPhone senza app installata: si dice come')
+  assert.equal(R.invitoPushRichiesta('attivo', 1), null, 'gia attive: niente')
+  assert.equal(R.invitoPushRichiesta('attivo', 0), null, 'attive su questo dispositivo: niente, anche se il conteggio non e ancora arrivato')
+  assert.equal(R.invitoPushRichiesta('spento', 1), null, 'un altro dispositivo della persona le ha attive: l avviso arriva li')
+  assert.equal(R.invitoPushRichiesta('bloccato', 2), null)
+  assert.equal(R.invitoPushRichiesta('verifica', 0), null, 'non si sa ancora: non si invita')
+  assert.equal(R.invitoPushRichiesta('non_supportato', 0), null, 'browser senza push o totem: niente da offrire')
+  assert.equal(R.invitoPushRichiesta('non_disponibile', 0), null, 'club senza push sul server: niente da offrire')
+  ok('invitoPushRichiesta: attiva, sbloccare, installare; niente dove ce gia un dispositivo o la push non c e')
+
+  // La carta e la chiamata (10/11/2026): niente scelta fra app ed email, la richiesta chiede sempre `app`, la carta dice dove arriva la risposta e dopo l'invio c'e' l'invito alle push.
+  const carta = readFileSync(join(RADICE, 'src/features/lab/assistente/ScriviAlTeam.tsx'), 'utf8')
+  assert.ok(!/Dove vuoi la risposta|Via email|By email|radiogroup/.test(carta), 'la carta non chiede piu dove vuoi la risposta')
+  assert.ok(/Il team ti risponde qui, nell’app/.test(carta) && /The team replies here, in the app/.test(carta), 'la carta dice che la risposta arriva nell app, nelle due lingue')
+  assert.ok(/<InvitoPushRichiesta \/>/.test(carta), 'dopo l invio compare l invito ad attivare le notifiche')
+  assert.ok(/scriviAlTeam\(conversazioneId, testo\.trim\(\), allegato\)/.test(carta), 'la carta non passa nessun canale')
+  const api = readFileSync(join(RADICE, 'src/api/assistente.ts'), 'utf8')
+  assert.ok(/canale: 'app' satisfies CanaleTicket/.test(api), 'la richiesta al server chiede sempre la risposta in app')
+  const filo = readFileSync(join(RADICE, 'src/features/lab/assistenza/Filo.tsx'), 'utf8')
+  assert.ok(/<InvitoPushRichiesta \/>/.test(filo) && /r\.stato === 'nuovo'/.test(filo), 'anche nel filo, finche il team non ha risposto')
+  ok('carta «Scrivi al team»: niente scelta del canale, dice dove arriva la risposta, invito alle push dopo l invio e nel filo')
 
   // La notifica «il team ti ha risposto» porta all'elenco: la destinazione e nei tre elenchi (app, funzione, CRM) e l'app la sa tradurre in un indirizzo.
   const notifiche = readFileSync(join(RADICE, 'src/api/notifiche.ts'), 'utf8')
