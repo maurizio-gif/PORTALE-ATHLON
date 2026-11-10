@@ -16,3 +16,4 @@ nostro motore. Lato server: `CLAUDE.md` di APP-ATHLON, sezione 192.
   **`disdiciCorso`** (`src/api/junior.ts`) restituisce `richiesta`, `giaChiesta` e `stato`. Con la funzione di prima, che scriveva su
   PerfectGym, la risposta non ha `richiesta` e vale come disdetta fatta.
 - **Provato**: `tsc --noEmit`, nessun errore in `src/`. **Non provato** su un telefono.
+- **Pubblicata il 10/11/2026**, dopo le migrazioni e `portale-lab-junior` v41 (APP-ATHLON, sezione 192). Il web esce con la fusione. L'app nativa le riceve con l'aggiornamento via aria (`eas update`, canale `production`).
