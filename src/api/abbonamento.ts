@@ -89,11 +89,15 @@ export type ConsensoContratto = { chiave: string; perfectgym_id: number; obbliga
 
 /** Quello che si paga e quando: oggi alla firma, poi ogni quota con la sua data. */
 export type CalendarioPagamenti = {
-  oggi: { label: string; importo: number; nota?: string }[]
+  /** Con un credito sul conto c'e' una voce **negativa** con `credito: true`: e' quello che si scala (10/11/2026). `totale_oggi` e' gia' al netto. */
+  oggi: { label: string; importo: number; nota?: string; credito?: true }[]
   totale_oggi: number
   prossimi: { data: string; label: string; importo: number }[]
   ricorrenza: { dal: string; importo: number; ogni: 'mese' | 'anno'; nota: string } | null
+  /** Le quote di `prossimi` sono di listino: il credito che avanza le scala in ordine. Il totale dell'impegno e' al netto. */
   totale_impegno: number
+  /** Il credito che la persona ha sul conto (saldo positivo di PerfectGym) e come si usa. Assente se non ce n'e'. */
+  credito?: { disponibile: number; oggi: number; sulle_quote: number; resto: number }
 }
 
 export type ImportiContratto = {
@@ -220,7 +224,8 @@ export async function salvaDatiAbbonamento(memberId: number, cambi: CambiDati): 
 }
 
 export type StatoContratto = 'firmato' | 'contratto_creato' | 'completato' | 'errore'
-export type EsitoFirma = { numero: string; stato: StatoContratto; totale_oggi: number; cambio: { fine_vecchio: string; inizio_nuovo: string } | null }
+/** `cambio.da_pagare`: c'e' una quota gia' dovuta da pagare subito (PerfectGym mette a debito il contratto appena creato). Un server vecchio non lo manda. */
+export type EsitoFirma = { numero: string; stato: StatoContratto; totale_oggi: number; cambio: { fine_vecchio: string; inizio_nuovo: string; da_pagare?: boolean } | null }
 
 export async function firmaAbbonamento(
   s: SceltaAbbonamento,
@@ -232,14 +237,31 @@ export async function firmaAbbonamento(
 ): Promise<{ ok: true; esito: EsitoFirma } | { ok: false; errore: string; serveMetodo?: boolean }> {
   const { ok, dati } = await abbonamento({ azione: 'firma', ...s, dati_confermati: true, impronta, consensi, firma_png: firmaPng, ...(metodoCambio ? { metodo: metodoCambio } : {}) })
   if (ok && dati.numero) {
-    const c = dati.cambio && typeof dati.cambio === 'object' ? (dati.cambio as { fine_vecchio?: string; inizio_nuovo?: string }) : null
-    return { ok: true, esito: { numero: String(dati.numero), stato: dati.stato as StatoContratto, totale_oggi: Number(dati.totale_oggi ?? 0), cambio: c?.fine_vecchio && c.inizio_nuovo ? { fine_vecchio: c.fine_vecchio, inizio_nuovo: c.inizio_nuovo } : null } }
+    const c = dati.cambio && typeof dati.cambio === 'object' ? (dati.cambio as { fine_vecchio?: string; inizio_nuovo?: string; da_pagare?: boolean }) : null
+    return {
+      ok: true,
+      esito: {
+        numero: String(dati.numero),
+        stato: dati.stato as StatoContratto,
+        totale_oggi: Number(dati.totale_oggi ?? 0),
+        cambio: c?.fine_vecchio && c.inizio_nuovo ? { fine_vecchio: c.fine_vecchio, inizio_nuovo: c.inizio_nuovo, da_pagare: c.da_pagare === true } : null,
+      },
+    }
   }
   if (dati.serve_metodo) return { ok: false, serveMetodo: true, errore: dati.errore ?? t('Prima aggiungi o scegli il metodo di pagamento.', 'First add or choose a payment method.') }
   return { ok: false, errore: dati.errore ?? t('Non siamo riusciti a registrare il contratto adesso.', 'We couldn’t register the contract right now.') }
 }
 
 export type EsitoPagamento = { numero: string; stato: StatoContratto; url: string | null }
+
+/**
+ * Gli importi del contratto firmato con quello che si paga **adesso** (10/11/2026): il credito sul conto puo' arrivare dopo la firma (il desk lo registra a
+ * contratto creato), e il server dice quello che PerfectGym incassera' davvero, con la riga del credito. `null` se non risponde: restano quelli della firma.
+ */
+export async function importiAdesso(numero: string): Promise<ImportiContratto | null> {
+  const { ok, dati } = await abbonamento({ azione: 'dovuto', numero })
+  return ok && dati.importi && typeof dati.importi === 'object' ? (dati.importi as ImportiContratto) : null
+}
 
 /** Dopo la firma: sceglie il metodo e incassa la prima quota. Si ripete finche' non va a buon fine. */
 export async function pagaAbbonamento(numero: string, m: MetodoAbbonamento, ritornoUrl?: string): Promise<{ ok: true; esito: EsitoPagamento } | { ok: false; errore: string }> {

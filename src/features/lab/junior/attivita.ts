@@ -42,8 +42,8 @@ const MENSILE = () => [
   {
     titolo: t("Rinnovo e disdetta", "Renewal and cancellation"),
     testo: t(
-      "L’abbonamento è mensile e si rinnova il 1° di ogni mese. Per disdire segui la procedura qui in app (trovi il pulsante «Disdici l’abbonamento» nella scheda del corso), almeno 10 giorni prima del rinnovo (entro la mezzanotte del 21 per un mese da 31 giorni, del 20 per uno da 30, del 18 per febbraio). Una disdetta in ritardo vale dal mese dopo, e il primo addebito parte comunque.",
-      "The membership is monthly and renews on the 1st of each month. To cancel, follow the procedure here in the app (you’ll find the “Cancel membership” button on the course card) at least 10 days before renewal (by midnight on the 21st for a 31-day month, the 20th for a 30-day month, the 18th for February). A late cancellation takes effect the following month, and the first charge still goes through.",
+      "L’abbonamento mensile si rinnova il 1° di ogni mese. Per disdire segui la procedura qui in app (trovi il pulsante «Disdici l’abbonamento» nella scheda del corso), almeno 10 giorni prima del rinnovo (entro la mezzanotte del 21 per un mese da 31 giorni, del 20 per uno da 30, del 18 per febbraio). Una disdetta in ritardo vale dal mese dopo, e il primo addebito parte comunque. L’abbonamento stagionale è pagato in anticipo per tutta la stagione: non si rinnova e non si disdice.",
+      "The monthly membership renews on the 1st of each month. To cancel, follow the procedure here in the app (you’ll find the “Cancel membership” button on the course card) at least 10 days before renewal (by midnight on the 21st for a 31-day month, the 20th for a 30-day month, the 18th for February). A late cancellation takes effect the following month, and the first charge still goes through. The season membership is paid in advance for the whole season: it doesn’t renew and can’t be cancelled.",
     ),
   },
 ];

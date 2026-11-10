@@ -2,11 +2,12 @@ import { useEffect, useRef, useState } from 'react'
 import { Linking, StyleSheet, Text, View } from 'react-native'
 
 import type { ImportiContratto } from '@/api/abbonamento'
-import { esitoProposta, pagaProposta, type ErroreProposta } from '@/api/proposta'
+import { esitoProposta, importiAdessoProposta, pagaProposta, type ErroreProposta } from '@/api/proposta'
 import { Avviso } from '@/components/Avviso'
 import { Bottone } from '@/components/Bottone'
 import { Testo } from '@/components/Testo'
 import { SchedaScelta } from '@/features/lab/abbonamento/Passi'
+import { useImportiAdesso } from '@/features/lab/useImportiAdesso'
 import { RiepilogoCosti } from '@/features/lab/RiepilogoCosti'
 import { ModuloIban } from '@/features/metodo-pagamento/ModuloIban'
 import { euro } from '@/lib/eventi'
@@ -42,6 +43,9 @@ export function FasePagamento({
   const [metodo, setMetodo] = useState<'carta' | 'conto'>('carta')
   const [pagando, setPagando] = useState(false)
   const [erroreLocale, setErroreLocale] = useState<string | null>(errore)
+  // Quello che si paga adesso (10/11/2026, Giorgia Levi Minzi): il credito sul conto puo' arrivare dopo la firma (il desk lo registra a contratto creato).
+  // Si legge dal server anche se la pagina e' stata riaperta dopo la firma (`firmato` nullo), e si riallinea mentre si e' qui.
+  const importi = useImportiAdesso(token, firmato?.importi ?? null, () => importiAdessoProposta(token))
 
   async function pagaConCarta() {
     setErroreLocale(null)
@@ -97,7 +101,7 @@ export function FasePagamento({
         />
       </View>
 
-      {firmato ? <RiepilogoCosti importi={firmato.importi} metodo={metodo} senzaTotale={firmato.importi.formula === 'flex'} /> : null}
+      {importi ? <RiepilogoCosti importi={importi} metodo={metodo} senzaTotale={importi.formula === 'flex'} /> : null}
 
       {metodo === 'conto' ? (
         <ModuloIban
@@ -114,7 +118,7 @@ export function FasePagamento({
         />
       ) : (
         <Bottone
-          testo={firmato ? t(`Paga ${euro(firmato.importi.calendario.totale_oggi)}`, `Pay ${euro(firmato.importi.calendario.totale_oggi)}`) : t('Vai al pagamento sicuro', 'Go to secure payment')}
+          testo={importi ? (importi.calendario.totale_oggi === 0 ? t('Conferma e attiva', 'Confirm and activate') : t(`Paga ${euro(importi.calendario.totale_oggi)}`, `Pay ${euro(importi.calendario.totale_oggi)}`)) : t('Vai al pagamento sicuro', 'Go to secure payment')}
           onPress={pagaConCarta}
           inCorso={pagando}
         />

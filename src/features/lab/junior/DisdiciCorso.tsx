@@ -18,7 +18,10 @@ import { Consenso } from "./Consenso";
 //      restano dovute** (sono abbonamenti mensili); la regola dei 10 giorni (Termini 7.10, `fineDisdettaMensile`).
 //   2. **Recuperi e nuova iscrizione**: con la disdetta i recuperi non usati si perdono, ma **si possono usare fino alla data di fine**; una nuova iscrizione vuole **una nuova
 //      quota di attivazione** ed e' **soggetta alla disponibilita' residua dei corsi**; il posto nel turno si libera.
-//   3. **Conferma**: il riepilogo (abbonamento, finisce il, rinnovo automatico disattivato), le due spunte e il pulsante rosso. Solo qui parte la scrittura su PerfectGym (`disdici_corso`).
+//   3. **Conferma**: il riepilogo (abbonamento, finisce il, rinnovo automatico disattivato), le due spunte e il pulsante rosso. Solo qui parte la richiesta (`disdici_corso`).
+// **Dal 09/11/2026 la disdetta e' una richiesta alla segreteria** (scelta di Maurizio): PerfectGym non accetta la disdetta dall'app, quindi la funzione scrive la
+// richiesta con la fine del giorno in cui si chiede, e la segreteria la registra; la famiglia riceve la ricevuta subito e la conferma quando e' fatta. Finche'
+// la richiesta e' aperta (o fatta ma non ancora nel mirror) i corsi portano `disdetta_richiesta` e qui si mostra quella, non il comando.
 // Non c'e' il passo del «perche'» degli adulti: la funzione dei bambini non lo registra.
 
 function Passo({ n, di }: { n: number; di: number }) {
@@ -48,6 +51,7 @@ function Riga({ nome, valore }: { nome: string; valore: string }) {
 
 export function DisdiciAbbonamento({
   disdetto,
+  richiesta,
   nome,
   memberId,
   contractId,
@@ -56,6 +60,8 @@ export function DisdiciAbbonamento({
 }: {
   /** Gia' disdetto: il comando non c'e', resta solo la conferma appena data. */
   disdetto: boolean;
+  /** La richiesta di disdetta gia' fatta (dai corsi): al posto del comando si dice che c'e'. */
+  richiesta?: { fine: string; stato: "in_attesa" | "fatta" } | null;
   nome: string;
   memberId: number;
   contractId: number;
@@ -67,12 +73,14 @@ export function DisdiciAbbonamento({
   const [passo, setPasso] = useState<1 | 2 | 3>(1);
   const [invio, setInvio] = useState(false);
   const [errore, setErrore] = useState<string | null>(null);
-  const [fatta, setFatta] = useState<string | null>(null);
+  const [inviata, setInviata] = useState<{ fine: string; inAttesa: boolean } | null>(null);
   const [capitoQuote, setCapitoQuote] = useState(false);
   const [capitoRecuperi, setCapitoRecuperi] = useState(false);
   const fine = fineDisdettaMensile(oggiRoma());
   const chi = nome || t("tuo figlio", "your child");
-  if (disdetto && !fatta) return null;
+  if (disdetto && !inviata) return null;
+  // La richiesta appena inviata da qui vince su quella letta coi corsi (che arriva al giro dopo).
+  const esito = inviata ?? (richiesta ? { fine: richiesta.fine, inAttesa: richiesta.stato === "in_attesa" } : null);
 
   function apri() {
     setErrore(null);
@@ -95,7 +103,8 @@ export function DisdiciAbbonamento({
       }
       return;
     }
-    setFatta(r.fine);
+    // Con la funzione di prima la disdetta era scritta subito su PerfectGym: niente richiesta, ed e' gia' fatta.
+    setInviata({ fine: r.fine, inAttesa: r.richiesta && r.stato !== "fatta" });
     setAperto(false);
     scorda("abbonamenti:contratti");
     await onCambiato();
@@ -103,13 +112,22 @@ export function DisdiciAbbonamento({
 
   return (
     <>
-      {fatta ? (
-        <Messaggio tono="ok" titolo={t("Disdetta registrata", "Cancellation recorded")}>
-          {t(
-            `L’abbonamento di ${chi} finisce il ${dataIt(fatta)} e non si rinnova. I recuperi si possono usare fino a quel giorno.`,
-            `${chi}’s membership ends on ${dataIt(fatta)} and won’t renew. Make-ups can be used until that day.`,
-          )}
-        </Messaggio>
+      {esito ? (
+        esito.inAttesa ? (
+          <Messaggio tono="ok" titolo={t("Richiesta di disdetta inviata", "Cancellation request sent")}>
+            {t(
+              `La segreteria registra la disdetta e ti conferma per email. L’abbonamento di ${chi} finisce il ${dataIt(esito.fine)} e non si rinnova: fino ad allora le lezioni continuano e i recuperi si possono usare.`,
+              `The front desk records the cancellation and confirms it by email. ${chi}’s membership ends on ${dataIt(esito.fine)} and won’t renew: until then classes continue and make-ups can be used.`,
+            )}
+          </Messaggio>
+        ) : (
+          <Messaggio tono="ok" titolo={t("Disdetta registrata", "Cancellation recorded")}>
+            {t(
+              `L’abbonamento di ${chi} finisce il ${dataIt(esito.fine)} e non si rinnova. I recuperi si possono usare fino a quel giorno.`,
+              `${chi}’s membership ends on ${dataIt(esito.fine)} and won’t renew. Make-ups can be used until that day.`,
+            )}
+          </Messaggio>
+        )
       ) : (
         <Pulsante testo={t("Disdici l’abbonamento", "Cancel the membership")} icona="chiudi" variante="fantasma" piccolo onPress={apri} />
       )}
@@ -122,7 +140,7 @@ export function DisdiciAbbonamento({
               <View style={{ gap: spazio.tre }}>
                 <View style={stili.tappa}>
                   <Text style={[stili.tappaQuando, { color: p.accento }]}>{t("Oggi", "Today")}</Text>
-                  <Text style={[stili.tappaTesto, { color: p.testo }]}>{t("Chiedi la disdetta: il rinnovo automatico si spegne", "You request the cancellation: automatic renewal is switched off")}</Text>
+                  <Text style={[stili.tappaTesto, { color: p.testo }]}>{t("Chiedi la disdetta: la segreteria la registra e ti conferma per email", "You request the cancellation: the front desk records it and confirms by email")}</Text>
                 </View>
                 <View style={stili.tappa}>
                   <Text style={[stili.tappaQuando, { color: p.testoSecondario }]}>{t("Fino alla scadenza", "Until the end date")}</Text>
@@ -140,8 +158,8 @@ export function DisdiciAbbonamento({
               </View>
               <Nota>
                 {t(
-                  "La disdetta vale dalla fine del mese se arriva almeno 10 giorni prima del rinnovo del giorno 1, altrimenti dalla fine del mese dopo.",
-                  "A cancellation takes effect at the end of the month if it arrives at least 10 days before the renewal on the 1st, otherwise at the end of the following month.",
+                  "La disdetta vale dalla fine del mese se la chiedi almeno 10 giorni prima del rinnovo del giorno 1, altrimenti dalla fine del mese dopo. Conta il giorno in cui la chiedi, non quello in cui la segreteria la registra.",
+                  "A cancellation takes effect at the end of the month if you request it at least 10 days before the renewal on the 1st, otherwise at the end of the following month. What counts is the day you request it, not the day the front desk records it.",
                 )}
               </Nota>
               <Pulsante testo={t("Continua", "Continue")} icona="avanti" onPress={() => setPasso(2)} />
@@ -173,7 +191,7 @@ export function DisdiciAbbonamento({
           {passo === 3 ? (
             <>
               <Passo n={3} di={3} />
-              <Titolo>{t("Conferma la disdetta", "Confirm the cancellation")}</Titolo>
+              <Titolo>{t("Conferma la richiesta", "Confirm the request")}</Titolo>
               <Carta piatta>
                 <View style={{ gap: 8 }}>
                   <Riga nome={t("Abbonamento", "Membership")} valore={gruppo} />
@@ -198,7 +216,7 @@ export function DisdiciAbbonamento({
                 )}
               />
               {errore ? <Messaggio tono="errore">{errore}</Messaggio> : null}
-              <Pulsante testo={t("Conferma la disdetta", "Confirm the cancellation")} variante="pericolo" disabilitato={!capitoQuote || !capitoRecuperi} inCorso={invio} onPress={conferma} />
+              <Pulsante testo={t("Invia la richiesta di disdetta", "Send the cancellation request")} variante="pericolo" disabilitato={!capitoQuote || !capitoRecuperi} inCorso={invio} onPress={conferma} />
               <Pulsante testo={t("Indietro", "Back")} variante="fantasma" piccolo onPress={() => setPasso(2)} disabilitato={invio} />
             </>
           ) : null}

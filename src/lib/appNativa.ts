@@ -6,12 +6,14 @@ import { Platform } from 'react-native'
 //
 // **Il link dell'App Store e' scritto qui (08/11/2026)**: l'app 3.0.0 e' pubblicata e il rilascio e' aperto a tutti, quindi il link
 // non e' piu' un'incognita. `EXPO_PUBLIC_APP_STORE_URL` lo sostituisce, se un giorno serve un altro indirizzo (Vercel, ambiente del
-// web; vale solo se comincia per `https://`). **Quello di Google Play non c'e' ancora**: l'app Android e' in revisione, e un link
-// inventato porterebbe fuori strada. Si imposta all'approvazione con `EXPO_PUBLIC_PLAY_STORE_URL`; senza, la carta dice cosa fare ma
-// non mostra il pulsante «Scarica l'app».
+// web; vale solo se comincia per `https://`). **Anche quello di Google Play e' scritto qui (09/11/2026)**: la 3.0.0 e' pubblicata
+// su Google Play, e `EXPO_PUBLIC_PLAY_STORE_URL` lo sostituisce allo stesso modo.
 
 /** La pagina dell'app sull'App Store (it). L'ID e' quello di «Athlon Club», lo stesso del banner di Safari in `public/index.html`. */
 const APP_STORE_IOS = 'https://apps.apple.com/it/app/athlon-club/id1584157295'
+
+/** La pagina dell'app su Google Play: il pacchetto e' `it.athlonroma.app` (app.json). */
+const PLAY_STORE_ANDROID = 'https://play.google.com/store/apps/details?id=it.athlonroma.app'
 
 export type Telefono = 'ios' | 'android' | 'altro'
 
@@ -25,8 +27,8 @@ export function telefonoDelBrowser(): Telefono {
   return 'altro'
 }
 
-/** Il link dello store per quel telefono, o null se non c'e' (Android, finche' l'app non e' approvata). */
+/** Il link dello store per quel telefono, o null fuori da iPhone, iPad e Android. */
 export function linkAppNativa(telefono: Telefono): string | null {
-  const url = telefono === 'ios' ? process.env.EXPO_PUBLIC_APP_STORE_URL || APP_STORE_IOS : telefono === 'android' ? process.env.EXPO_PUBLIC_PLAY_STORE_URL : undefined
+  const url = telefono === 'ios' ? process.env.EXPO_PUBLIC_APP_STORE_URL || APP_STORE_IOS : telefono === 'android' ? process.env.EXPO_PUBLIC_PLAY_STORE_URL || PLAY_STORE_ANDROID : undefined
   return typeof url === 'string' && /^https:\/\//.test(url) ? url : null
 }

@@ -6,11 +6,13 @@ import { CampoData } from "@/components/CampoData";
 import { t } from "@/lib/lingua";
 import { spazio } from "@/theme";
 
-import { CampoTesto, Scelte } from "../ui/Campi";
+import { CampoTesto } from "../ui/Campi";
 import { Foglio } from "../ui/Foglio";
 import { Messaggio, Pulsante } from "../ui/kit";
 import { F, usePalette } from "../ui/tema";
 import { Tocco } from "../ui/Tocco";
+import { DomandeLivello } from "./DomandeLivello";
+import { chiedeLivello, livelloCompleto, LIVELLO_VUOTO, oggi } from "./livelloAcqua";
 
 // Aggiungere un componente al nucleo (21/10/2026, richiesta di Maurizio): un figlio, con nome, cognome e data di nascita,
 // tutti obbligatori, e la dichiarazione di esserne il genitore o il tutore. **Il codice fiscale non si chiede** (05/11/2026,
@@ -23,28 +25,8 @@ const VUOTO = { nome: "", cognome: "", nascita: "" };
 // Il livello in acqua (05/11/2026, richiesta di Maurizio): le tre domande del modulo del sito, tutte obbligatorie, perche' la
 // segreteria e il Direttore Tecnico sappiano da dove parte il bambino. Si chiedono da tre anni in su (nati prima dei tre anni di
 // calendario, cioe' fuori dalle annate del Baby Nuoto, dove si entra in acqua col genitore e le domande non hanno senso). Le
-// risposte le salva `portale-lab-junior` e il CRM le mostra nella scheda del bambino.
-type Risposta = "si" | "no" | null;
-const LIVELLO_VUOTO: { ha_frequentato: Risposta; sa_nuotare: Risposta; stile_libero: Risposta } = {
-  ha_frequentato: null,
-  sa_nuotare: null,
-  stile_libero: null,
-};
-const DOMANDE_LIVELLO = [
-  { id: "ha_frequentato", it: "Ha mai frequentato un corso di nuoto?", en: "Has your child ever taken a swimming course?" },
-  { id: "sa_nuotare", it: "Sa nuotare senza ausili (braccioli, ciambella)?", en: "Can your child swim without aids (armbands, rubber ring)?" },
-  { id: "stile_libero", it: "Sa eseguire correttamente lo stile libero completo?", en: "Can your child swim full front crawl correctly?" },
-] as const;
-
-/** Le domande sul nuoto si fanno da tre anni di calendario in su (fuori dalle annate del Baby Nuoto). */
-export function chiedeLivello(nascita: string): boolean {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(nascita)) return false;
-  return Number(nascita.slice(0, 4)) <= Number(oggi().slice(0, 4)) - 3;
-}
-
-function oggi(): string {
-  return new Date().toLocaleDateString("sv-SE", { timeZone: "Europe/Rome" });
-}
+// risposte le salva `portale-lab-junior` e il CRM le mostra nella scheda del bambino. Le domande, la regola dell'eta' e il blocco
+// per chi e' gia' registrato stanno in `livelloAcqua.ts` e `DomandeLivello.tsx` (10/11/2026).
 
 function anni(nascita: string): number {
   const [a, m, g] = nascita.split("-").map(Number);
@@ -73,9 +55,8 @@ export function FoglioComponente({
       ? t("Risulta maggiorenne: chi ha 18 anni entra nell’app con la sua email.", "This person is an adult: anyone 18 or over signs in to the app with their own email.")
       : null;
   const conLivello = chiedeLivello(d.nascita);
-  const livelloCompleto = Object.values(livello).every((v) => v !== null);
   const pronto =
-    (!conLivello || livelloCompleto) &&
+    (!conLivello || livelloCompleto(livello)) &&
     !!d.nome.trim() &&
     !!d.cognome.trim() &&
     !!d.nascita &&
@@ -152,24 +133,11 @@ export function FoglioComponente({
       {erroreEta ? <Messaggio tono="attenzione">{erroreEta}</Messaggio> : null}
 
       {conLivello ? (
-        <View style={stili.livello}>
-          <Text style={[stili.livelloTitolo, { color: p.testo }]}>
-            {t("Il suo livello in acqua", "Their level in the water")}
-          </Text>
-          {DOMANDE_LIVELLO.map((q) => (
-            <View key={q.id} style={stili.domanda}>
-              <Text style={[stili.domandaTesto, { color: p.testo }]}>{t(q.it, q.en)}</Text>
-              <Scelte
-                valori={[
-                  { valore: "si", testo: t("Sì", "Yes") },
-                  { valore: "no", testo: t("No", "No") },
-                ]}
-                scelto={livello[q.id]}
-                onScegli={(v) => setLivello((x) => ({ ...x, [q.id]: v }))}
-              />
-            </View>
-          ))}
-        </View>
+        <DomandeLivello
+          titolo={t("Il suo livello in acqua", "Their level in the water")}
+          risposte={livello}
+          onCambia={(id, v) => setLivello((x) => ({ ...x, [id]: v }))}
+        />
       ) : null}
 
       <Tocco
@@ -229,8 +197,4 @@ const stili = StyleSheet.create({
   spunta: { color: "#fff", fontSize: 14, fontFamily: F.extra, lineHeight: 16 },
   dichiarazione: { flex: 1, fontSize: 14, lineHeight: 20, fontFamily: F.semi },
   nota: { fontSize: 13, lineHeight: 19, fontFamily: F.medio },
-  livello: { gap: spazio.tre },
-  livelloTitolo: { fontSize: 15, lineHeight: 21, fontFamily: F.extra },
-  domanda: { gap: spazio.due },
-  domandaTesto: { fontSize: 14, lineHeight: 20, fontFamily: F.semi },
 });

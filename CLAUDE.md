@@ -209,3 +209,15 @@ chiamata diretta al gestionale. Esempio: la sezione Prodotti usa l'azione `prodo
 - [Il diplomino si genera anche dall'app nativa, e «Carica il certificato» apre il foglio senza scorrere (09/11/2026)](docs/claude/171-diploma-nativo-e-avviso-certificato-sull-app-09-11-2026.md) · 7 KB
 - [La storia di Instagram di un evento si genera anche dall'app nativa: la scena SVG è in comune con il diplomino (09/11/2026)](docs/claude/172-storia-instagram-di-un-evento-nativa-09-11-2026.md) · 4 KB
 - [Lo shop nativo nell'app: il questionario, il carrello a righe, la cassa come le gare, il preordine (06/11/2026)](docs/claude/173-shop-nativo-questionario-preordine-e-cassa-06-11-2026.md) · 11 KB
+- [I ragazzi da 13 a 17 anni entrano con il loro indirizzo: la sessione è limitata dal server, l'interfaccia non ancora (09/11/2026)](docs/claude/174-ragazzi-13-17-sessione-limitata-09-11-2026.md) · 3 KB
+- [Il testo di sistema molto grande: la coda di una riga scende sotto il titolo, e l'orario non si taglia (09/11/2026)](docs/claude/175-testo-di-sistema-grande-righe-e-orari-09-11-2026.md) · 3 KB
+- [Il Calendario dice in che sala si fa la lezione: Sala A, B, C, sia per prenotare sia sulla lezione prenotata (09/11/2026)](docs/claude/176-calendario-la-sala-della-lezione-09-11-2026.md) · 3 KB
+- [Il cambio abbonamento: dopo la firma si paga, niente più «se ne occupa la segreteria» (09/11/2026)](docs/claude/177-cambio-abbonamento-si-paga-dopo-la-firma-09-11-2026.md) · 1 KB
+- [I link delle email aprono l'app su Android: il file `assetlinks.json` (09/11/2026)](docs/claude/178-link-android-assetlinks-09-11-2026.md) · 2 KB
+- [Dal web: Google Play su Android, App Store su iPhone, e dal computer nessun invito (09/11/2026)](docs/claude/179-installa-google-play-su-android-e-niente-dal-computer-09-11-2026.md) · 2 KB
+- [Junior: lo stagionale non si disdice e non è «al mese» (09/11/2026)](docs/claude/180-junior-stagionale-non-si-disdice-09-11-2026.md) · 1 KB
+- [Junior: «Disdici l'abbonamento» invia una richiesta alla segreteria (09/11/2026)](docs/claude/181-junior-disdetta-richiesta-alla-segreteria-09-11-2026.md) · 2 KB
+- [La chat «Richiedi assistenza» sull'app Android nativa: la tastiera non copre più il campo (10/11/2026)](docs/claude/182-chat-assistenza-android-nativo-tastiera-10-11-2026.md) · 4 KB
+- [Il credito sul conto si scala dall'iscrizione, e la schermata del pagamento dice quello che si paga adesso (10/11/2026)](docs/claude/183-credito-sul-conto-all-iscrizione-10-11-2026.md) · 3 KB
+- [«Sei già dei nostri»: l'indirizzo che ci risulta, in parte nascosto, e «Non lo riconosco» per chi ha davvero cambiato email (10/11/2026)](docs/claude/184-sei-gia-dei-nostri-indirizzo-che-ci-risulta-10-11-2026.md) · 2 KB
+- [Il questionario di livello prima dei turni, anche per chi è già registrato: al posto dei turni compare «Compila il questionario» (10/11/2026)](docs/claude/185-questionario-di-livello-prima-dei-turni-10-11-2026.md) · 4 KB

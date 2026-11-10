@@ -1,0 +1,7 @@
+## Il cambio abbonamento: dopo la firma si paga, niente più «se ne occupa la segreteria» (09/11/2026)
+
+Segnalazione di Maurizio: Alessia Balla ha firmato un cambio (Premium Annuale a rate → Premium Annuale in unica soluzione, 950 €) e alla fine ha letto «della parte economica si occupa la segreteria». Il passo 2 e il contratto dicevano invece «Oggi paghi 950 €». PerfectGym mette il contratto a debito appena creato: il pagamento va fatto nel cambio. Lato server: `CLAUDE.md` di APP-ATHLON, stessa data.
+
+- **`Abbonamento.tsx`**: se la firma del cambio risponde `cambio.da_pagare`, si va al **passo 4**, quello del pagamento di un'iscrizione nuova. Il metodo scelto prima della firma è già proposto (carta salvata o conto salvato). Il messaggio in testa è «Cambio firmato: manca il pagamento», con le date del vecchio e del nuovo abbonamento (`dateCambio`). Senza quota da pagare resta la schermata «Cambio registrato», che ora dice «Oggi non c'è niente da pagare: le quote del nuovo abbonamento si addebitano sul metodo che hai scelto».
+- **I testi del passo 3** non nominano più la segreteria. Sotto il metodo: «Quello che è già dovuto lo paghi subito dopo la firma». Nel riquadro del contratto: «Subito dopo paghi la quota del nuovo abbonamento».
+- **Provato** in Chromium (390 px) sull'export web, con le risposte di `portale-abbonamento` simulate dai dati veri del cambio di Alessia: scelta, data, dati e metodo, firma, passo 4 con «Paga 950 €», esito. `tsc` senza errori nuovi in `src/`. **Non provato** con la funzione vera e su un telefono.

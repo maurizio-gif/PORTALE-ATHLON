@@ -336,10 +336,26 @@ export function disdettaVera(c: { disdetta: string | null; fine: string | null }
   return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 0)).getUTCDate() === d.getUTCDate();
 }
 
-/** Il rinnovo di un abbonamento junior, in una riga. */
-export function rinnovoJunior(c: { disdetta: string | null; fine: string | null }): string {
+/** La disdetta chiesta dall'app (09/11/2026): finche' la segreteria non la registra, o il mirror non ha la fine nuova, la dice lei. */
+type ConRichiesta = { disdetta_richiesta?: { fine: string; stato: "in_attesa" | "fatta" } | null };
+
+/** Il rinnovo di un abbonamento junior, in una riga. Lo stagionale e' pagato per tutta la stagione: non si rinnova e non si disdice. */
+export function rinnovoJunior(c: { disdetta: string | null; fine: string | null; stagionale?: boolean } & ConRichiesta): string {
+  if (c.stagionale)
+    return t(
+      `Abbonamento stagionale, già pagato per tutta la stagione: vale fino al ${dataIt(c.fine)}, non si rinnova e non si disdice`,
+      `Season membership, already paid for the whole season: valid until ${dataIt(c.fine)}, doesn’t renew and can’t be cancelled`,
+    );
   if (disdettaVera(c))
     return t(`Disdetto: finisce il ${dataIt(c.fine)} e non si rinnova`, `Cancelled: ends on ${dataIt(c.fine)} and won’t renew`);
+  const r = c.disdetta_richiesta;
+  if (r?.stato === "fatta")
+    return t(`Disdetto: finisce il ${dataIt(r.fine)} e non si rinnova`, `Cancelled: ends on ${dataIt(r.fine)} and won’t renew`);
+  if (r?.stato === "in_attesa")
+    return t(
+      `Disdetta richiesta: finisce il ${dataIt(r.fine)} e non si rinnova, appena la segreteria la registra`,
+      `Cancellation requested: ends on ${dataIt(r.fine)} and won’t renew, once the front desk records it`,
+    );
   return t(
     "Abbonamento mensile: si rinnova automaticamente ogni mese, salvo disdetta",
     "Monthly membership: renews automatically every month unless cancelled",
@@ -372,11 +388,22 @@ export function oggiRoma(): string {
 export function finestraLezioni(c: {
   fine: string | null;
   disdetta: string | null;
-}): string {
+  stagionale?: boolean;
+} & ConRichiesta): string {
+  if (c.stagionale)
+    return t(
+      `Qui vedi le lezioni di questo mese e del prossimo. Il tuo abbonamento stagionale è già pagato fino al ${dataIt(c.fine)}.`,
+      `Here you can see this month’s and next month’s classes. Your season membership is already paid until ${dataIt(c.fine)}.`,
+    );
   if (disdettaVera(c))
     return t(
       `Qui vedi le lezioni fino al ${dataIt(c.fine)}, quando finisce il tuo abbonamento.`,
       `Here you can see classes up to ${dataIt(c.fine)}, when your membership ends.`,
+    );
+  if (c.disdetta_richiesta)
+    return t(
+      `Qui vedi le lezioni dei mesi già pagati. Hai chiesto la disdetta: l’abbonamento finisce il ${dataIt(c.disdetta_richiesta.fine)}.`,
+      `Here you can see classes in the months already paid. You requested the cancellation: the membership ends on ${dataIt(c.disdetta_richiesta.fine)}.`,
     );
   return t(
     "Qui vedi le lezioni dei mesi già pagati. Quando l’abbonamento si rinnova (di solito fra il 20 e il 21) compaiono quelle del mese dopo.",
