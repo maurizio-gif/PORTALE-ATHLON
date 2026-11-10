@@ -207,7 +207,14 @@ export function AttivaGuestPass({ token, nome, iniziale }: { token: string; nome
           const r = await chiamaLink(token, 'ripaga')
           setOccupato(null)
           if (r.ok && typeof r.dati.url === 'string') return apri(r.dati.url)
-          setAvviso({ testo: t('Carta salvata. Ora puoi pagare il Guest Pass.', 'Card saved. You can now pay for the Guest Pass.'), tono: 'ok' })
+          // Il Guest Pass di un figlio (10/11/2026): la carta e' del genitore e, se l'addebito a nome del figlio non si puo' lanciare, lo fa PerfectGym.
+          if (r.ok && r.dati.pagamento === 'addebito') {
+            setAvviso({ testo: t('Carta salvata. Il Guest Pass è attivo e l’importo sarà addebitato sulla carta.', 'Card saved. The Guest Pass is active and the amount will be charged to your card.'), tono: 'ok' })
+          } else if (!r.ok) {
+            setAvviso({ testo: r.dati.errore ?? t('Carta salvata, ma non siamo riusciti a prendere il pagamento adesso. Riprova da qui.', 'Card saved, but we couldn’t take the payment right now. Try again from here.'), tono: 'errore' })
+          } else {
+            setAvviso({ testo: t('Carta salvata. Ora puoi pagare il Guest Pass.', 'Card saved. You can now pay for the Guest Pass.'), tono: 'ok' })
+          }
           return void (await ricarica())
         }
         setOccupato(null)
@@ -354,8 +361,8 @@ export function AttivaGuestPass({ token, nome, iniziale }: { token: string; nome
       testo:
         d.pagamento === 'addebito'
           ? t(
-              `Fatto: ${perFiglio ? `il Guest Pass di ${primoFiglio ?? 'tuo figlio'}` : 'il tuo Guest Pass'} è attivo. I ${p.prezzo} € saranno addebitati sul conto.`,
-              `Done: ${perFiglio ? `${primoFiglio ? `${primoFiglio}’s` : 'your child’s'} Guest Pass` : 'your Guest Pass'} is active. The ${p.prezzo} € will be charged to your bank account.`,
+              `Fatto: ${perFiglio ? `il Guest Pass di ${primoFiglio ?? 'tuo figlio'}` : 'il tuo Guest Pass'} è attivo. I ${p.prezzo} € saranno addebitati ${d.addebito_su === 'carta' ? 'sulla carta' : 'sul conto'}.`,
+              `Done: ${perFiglio ? `${primoFiglio ? `${primoFiglio}’s` : 'your child’s'} Guest Pass` : 'your Guest Pass'} is active. The ${p.prezzo} € will be charged to your ${d.addebito_su === 'carta' ? 'card' : 'bank account'}.`,
             )
           : t(
               `Fatto: ${perFiglio ? `il Guest Pass di ${primoFiglio ?? 'tuo figlio'}` : 'il tuo Guest Pass'} è attivo.`,
@@ -374,6 +381,10 @@ export function AttivaGuestPass({ token, nome, iniziale }: { token: string; nome
     if (ok && typeof d.url === 'string') return apri(d.url)
     if (ok && d.pagamento === 'pagato') {
       setAvviso({ testo: t('Pagamento ricevuto: il tuo Guest Pass è attivo.', 'Payment received: your Guest Pass is active.'), tono: 'ok' })
+      return void (await ricarica())
+    }
+    if (ok && d.pagamento === 'addebito') {
+      setAvviso({ testo: t('Il Guest Pass è attivo e l’importo sarà addebitato sulla carta.', 'The Guest Pass is active and the amount will be charged to your card.'), tono: 'ok' })
       return void (await ricarica())
     }
     setErrore(d.errore ?? t('Non riusciamo ad aprire il pagamento adesso. Riprova fra qualche minuto.', 'We can’t open the payment right now. Try again in a few minutes.'))
@@ -419,6 +430,7 @@ export function AttivaGuestPass({ token, nome, iniziale }: { token: string; nome
           prezzo={p.prezzo}
           // L'avviso appena confermato dice gia' dell'addebito: non due volte.
           addebito={p.pagamento_stato === 'addebito' && !avviso}
+          addebitoSu={p.addebito_su ?? null}
           avviso={avviso}
           figlio={perFiglio ? { nome: nomeFiglio || null, primo: primoFiglio } : null}
           dopo={unAltroGuestPass}
