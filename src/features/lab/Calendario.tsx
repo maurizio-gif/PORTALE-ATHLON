@@ -694,13 +694,8 @@ function LezioniPrenotate({ lezioni, occupato, onAnnulla }: { lezioni: Prenotata
                       <Etichetta testo={attesa ? t('In lista d’attesa', 'On the waiting list') : t('Prenotata', 'Booked')} tono={attesa ? 'attenzione' : 'ok'} />
                       {attesa ? <InfoAttesa /> : null}
                     </View>
-                    {/* Il posto in coda sta sotto la pillola, in due righe, e non dentro: sul telefono la colonna e' stretta, e la pillola uscirebbe. */}
-                    {posto ? (
-                      <View style={{ gap: 1 }}>
-                        <Text style={{ color: p.testo, fontFamily: F.bold, fontSize: 13, lineHeight: 18 }}>{posto.posizione}</Text>
-                        <Text style={{ color: p.testoSecondario, fontFamily: F.semi, fontSize: 13, lineHeight: 18 }}>{posto.davanti}</Text>
-                      </View>
-                    ) : null}
+                    {/* Il posto in coda sta sotto la pillola e non dentro: sul telefono la colonna e' stretta, e la pillola uscirebbe. */}
+                    {posto ? <Text style={{ color: p.testo, fontFamily: F.bold, fontSize: 13, lineHeight: 18 }}>{posto}</Text> : null}
                   </>
                 }
                 coda={
