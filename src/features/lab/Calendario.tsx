@@ -230,7 +230,7 @@ export function AzioniLezione({
   return (
     <>
       {errore ? <Messaggio>{errore}</Messaggio> : null}
-      {l.iniziata ? null : b && fuoriTempoDisdetta(l.inizio, b.attesa) ? (
+      {l.iniziata ? null : b && fuoriTempoDisdetta(l, b.attesa) ? (
         <Messaggio tono="attenzione">{TESTO_FUORI_TEMPO()}</Messaggio>
       ) : b ? (
         conferma ? (
@@ -667,11 +667,19 @@ function giornoBreve(iso: string): string {
 
 /**
  * Si disdice fino a un'ora prima dell'inizio (11/11/2026, richiesta di Maurizio). La regola la applica `portale-lab-calendario`
- * (`DISDETTA_MINUTI`, stesso numero): qui serve a non offrire un pulsante che verrebbe rifiutato. Dalla lista d'attesa si esce fino all'inizio.
+ * (`DISDETTA_MINUTI`, stesso numero), solo per adulti e Baby Nuoto: qui serve a non offrire un pulsante che verrebbe rifiutato. Dalla lista d'attesa si esce fino all'inizio.
  */
 const DISDETTA_MINUTI = 60
-function fuoriTempoDisdetta(inizio: string, attesa: boolean): boolean {
-  return !attesa && new Date(inizio).getTime() - DISDETTA_MINUTI * 60_000 < Date.now()
+function fuoriTempoDisdetta(l: { inizio: string; categoria: string }, attesa: boolean): boolean {
+  return !attesa && conLimiteDisdetta(l.categoria) && new Date(l.inizio).getTime() - DISDETTA_MINUTI * 60_000 < Date.now()
+}
+/**
+ * Solo attivita' adulti e Baby Nuoto (11/11/2026, richiesta di Maurizio): Scuola Nuoto Bambini, recuperi e le altre attivita' junior non hanno
+ * il limite. Lo stesso confine di `eJunior` in `portale-lab-calendario`.
+ */
+function conLimiteDisdetta(categoria: string | null | undefined): boolean {
+  const c = categoria ?? ''
+  return !/bambini|baby|agonistic|pallanuoto|propaganda/i.test(c) || /baby/i.test(c)
 }
 const TESTO_FUORI_TEMPO = () =>
   t(
@@ -728,7 +736,7 @@ function LezioniPrenotate({ lezioni, occupato, onAnnulla }: { lezioni: Prenotata
                   </>
                 }
                 coda={
-                  fuoriTempoDisdetta(l.inizio, attesa) ? (
+                  fuoriTempoDisdetta(l, attesa) ? (
                     <Text style={{ color: p.testoSecondario, fontFamily: F.semi, fontSize: 12, maxWidth: 110, textAlign: 'right' }}>{t('Non più disdicibile', 'Can’t cancel now')}</Text>
                   ) : conferma === l.class_id ? (
                     <View style={{ flexDirection: 'row', gap: 6 }}>
