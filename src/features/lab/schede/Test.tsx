@@ -8,12 +8,13 @@ import { spazio } from '@/theme'
 import { dimentica } from '../memoria'
 import { Foglio } from '../ui/Foglio'
 import { Icona } from '../ui/Icona'
-import { Carta, Entra, Messaggio, Numero, Pulsante, SchedeInArrivo } from '../ui/kit'
+import { Carta, Entra, Etichetta, Messaggio, Numero, Pulsante, SchedeInArrivo } from '../ui/kit'
 import { Schermata } from '../ui/Schermata'
-import { F, usePalette } from '../ui/tema'
+import { F, usePalette, velo } from '../ui/tema'
 import { colpetto, Tocco } from '../ui/Tocco'
 import { kg as formatoKg, giornoTest, stimaMassimale } from './comune'
 import { MediaEsercizio } from './MediaEsercizio'
+import { daCopertura, statoMinimo, type GruppoTest, type StatoMinimo } from './minimoTest'
 
 // Il test dei massimali (16/10/2026): pochi esercizi per la parte superiore,
 // il core e la parte inferiore. A carico si scrive il peso e quante
@@ -22,6 +23,11 @@ import { MediaEsercizio } from './MediaEsercizio'
 // massime; a tempo (il plank, 04/11/2026) i secondi di tenuta. Da quel momento, nelle schede, le percentuali diventano chili.
 // **Quanti ne servono** (04/11/2026): per i chili basta un esercizio per gruppo (3); per controllare che i conti tornino, due per la parte superiore e
 // due per l'inferiore, piu' il plank (5). Il server dice a che punto si e' (`copertura`) e quando due test non tornano fra loro.
+// **Il minimo si vede** (11/11/2026, richiesta di Maurizio: «spiegare in maniera molto piu' chiara il numero minimo», e «tutti e tre fatti» quando
+// c'e'): in cima un riquadro con i tre gruppi, ognuno con il suo cerchio che diventa una spunta verde, e «2 di 3». Raggiunto il minimo il riquadro
+// dice «Tutti e tre fatti» e che gli altri esercizi sono facoltativi (rendono i chili piu' precisi). Sotto ogni gruppo una pillola: «Da fare:
+// scegline uno» o «Minimo fatto»; gli esercizi in piu' di un gruppo gia' fatto sono «Facoltativo», non piu' «Consigliato» (che su tutti e sette
+// faceva sembrare obbligatori tutti e sette). Lo stato viene da `minimoTest.ts` (puro, `scripts/prova-minimo-test.ts`).
 
 const GRUPPI: { chiave: EsercizioTest['test_gruppo']; titolo: string }[] = [
   { chiave: 'superiore', titolo: t('Parte superiore del corpo', 'Upper body') },
@@ -38,26 +44,129 @@ function risultato(e: EsercizioTest): string | null {
       : t(`${e.ultimo.ripetizioni} ripetizioni`, `${e.ultimo.ripetizioni} reps`)
 }
 
-/** Cosa dire sotto un gruppo del test, secondo quanto ne ha fatto la persona e se i test tornano fra loro (04/11/2026). */
-function notaGruppo(chiave: EsercizioTest['test_gruppo'], c: CoperturaTest | null): { testo: string; tono: 'ok' | 'attenzione' | 'neutro' } | null {
-  const g = c?.gruppi[chiave]
-  if (!g) return null
-  if (chiave === 'core') {
-    return g.stato === 'assente' ? { testo: t('Ne basta uno', 'One is enough'), tono: 'neutro' } : { testo: t('✓ Fatto', '✓ Done'), tono: 'ok' }
+/** I nomi dei gruppi nel riquadro del minimo (corti: stanno in tre colonne), e come si dicono in «ti manca…». */
+const NOME_BREVE: Record<GruppoTest, string> = {
+  superiore: t('Parte superiore', 'Upper body'),
+  core: 'Core',
+  inferiore: t('Parte inferiore', 'Lower body'),
+}
+const NOME_IN_FRASE: Record<GruppoTest, string> = {
+  superiore: t('la parte superiore', 'the upper body'),
+  core: t('il core', 'the core'),
+  inferiore: t('la parte inferiore', 'the lower body'),
+}
+
+/** «a», «a e b», «a, b e c». */
+function inFila(voci: string[]): string {
+  if (voci.length <= 1) return voci[0] ?? ''
+  return `${voci.slice(0, -1).join(', ')} ${t('e', 'and')} ${voci[voci.length - 1]}`
+}
+
+/** «Tutti e tre fatti» coi tre gruppi di oggi; se un giorno i gruppi cambiano, una frase che non dice un numero sbagliato. */
+function titoloRaggiunto(totale: number): string {
+  return totale === 3 ? t('Tutti e tre fatti', 'All three done') : t('Minimo fatto', 'Minimum done')
+}
+
+type NotaGruppo = { pillola: string; tono: 'ok' | 'attenzione'; testo: string | null }
+
+/**
+ * Cosa dire sotto un gruppo del test (04/11/2026, riscritto l'11/11/2026): prima se il minimo del gruppo c'e' (un esercizio), poi, per chi ne fa
+ * di piu', se i test tornano fra loro. `fatto` viene dall'elenco degli esercizi, `c` dal server (puo' mancare).
+ */
+function notaGruppo(chiave: GruppoTest, c: CoperturaTest | null, fatto: boolean, quanti: number): NotaGruppo {
+  if (!fatto) {
+    return quanti > 1
+      ? { pillola: t('Da fare: scegline uno', 'To do: pick one'), tono: 'attenzione', testo: t('Per il minimo ne basta uno, quello che preferisci. Gli altri sono facoltativi.', 'One is enough for the minimum, whichever you prefer. The others are optional.') }
+      : { pillola: t('Da fare', 'To do'), tono: 'attenzione', testo: null }
   }
-  switch (g.stato) {
-    case 'assente':
-      return { testo: t('Uno basta per calcolare i chili, due per controllarli', 'One is enough to work out your weights, two to check them'), tono: 'neutro' }
-    case 'singola':
-      return { testo: t('Bastano per i chili: fanne un altro per controllare', 'Enough for your weights: do another to check'), tono: 'neutro' }
+  if (quanti <= 1 || chiave === 'core') return { pillola: t('Fatto', 'Done'), tono: 'ok', testo: null }
+  switch (c?.gruppi[chiave]?.stato) {
     case 'verificata':
-      return { testo: t('✓ Controllato: i test tornano fra loro', '✓ Checked: your tests match'), tono: 'ok' }
+      return { pillola: t('Minimo fatto e controllato', 'Minimum done and checked'), tono: 'ok', testo: t('I tuoi test di questo gruppo tornano fra loro.', 'Your tests in this group match each other.') }
     case 'discordante':
-      return { testo: t('I test non tornano fra loro: per i chili usiamo il più prudente. Rifanne uno', 'Your tests don’t match: we use the more cautious one for your weights. Retake one'), tono: 'attenzione' }
+      return {
+        pillola: t('Da ricontrollare', 'Needs a recheck'),
+        tono: 'attenzione',
+        testo: t('I test non tornano fra loro: per i chili usiamo il più prudente. Rifanne uno', 'Your tests don’t match: we use the more cautious one for your weights. Retake one'),
+      }
+    default:
+      return { pillola: t('Minimo fatto', 'Minimum done'), tono: 'ok', testo: t('Facoltativo: con un altro esercizio di questo gruppo controlliamo che i chili tornino.', 'Optional: with another exercise from this group we can check your weights add up.') }
   }
 }
 
-function FoglioTest({ e, onChiudi, onSalvato }: { e: EsercizioTest | null; onChiudi: () => void; onSalvato: () => void }) {
+/**
+ * Il minimo del test, in vista (11/11/2026): tre cerchi, uno per gruppo, che diventano spunte verdi. Finche' non e' raggiunto dice quanti ne
+ * mancano e quali; raggiunto, dice «Tutti e tre fatti» e che gli altri esercizi sono facoltativi.
+ */
+function RiquadroMinimo({ stato, esercizi }: { stato: StatoMinimo; esercizi: number }) {
+  const p = usePalette()
+  if (!stato.totale) return null
+  const titolo = stato.raggiunto ? titoloRaggiunto(stato.totale) : t(`Il minimo: ${stato.totale} esercizi`, `The minimum: ${stato.totale} exercises`)
+  const conteggio = t(`${stato.fatti} di ${stato.totale}`, `${stato.fatti} of ${stato.totale}`)
+  return (
+    <Carta style={[{ gap: spazio.tre }, stato.raggiunto && { borderColor: velo(p, 'ok', 0.55) }]}>
+      <View style={{ gap: 4 }}>
+        <View style={stili.minimoTesta}>
+          {stato.raggiunto ? <Icona nome="ok" size={24} colore={p.ok} /> : null}
+          <Text style={[stili.minimoTitolo, { color: p.testo }]} accessibilityRole="header">
+            {titolo}
+          </Text>
+          <Etichetta testo={conteggio} tono={stato.raggiunto ? 'ok' : 'neutro'} icona={stato.raggiunto ? 'spunta' : undefined} grande />
+        </View>
+        {stato.raggiunto ? null : (
+          <Text style={[stili.nota, { color: p.testoSecondario }]}>
+            {t(
+              `Uno per gruppo, quello che preferisci: su ${esercizi} esercizi ne bastano ${stato.totale} per avere i tuoi chili nei piani.`,
+              `One per group, whichever you prefer: out of ${esercizi} exercises, ${stato.totale} are enough to get your own weights in your plans.`,
+            )}
+          </Text>
+        )}
+      </View>
+
+      <View style={stili.minimoPassi}>
+        {stato.passi.map((passo, i) => (
+          <View
+            key={passo.gruppo}
+            accessible
+            accessibilityLabel={`${NOME_BREVE[passo.gruppo]}: ${passo.fatto ? t('fatto', 'done') : t('da fare', 'to do')}`}
+            style={[stili.minimoPasso, { backgroundColor: passo.fatto ? velo(p, 'ok') : p.incavo }]}
+          >
+            <View style={[stili.minimoCerchio, passo.fatto ? { backgroundColor: p.ok, borderColor: p.ok } : { borderColor: p.testoTerzo }]}>
+              {passo.fatto ? <Icona nome="spunta" size={20} colore="#fff" /> : <Text style={[stili.minimoNumero, { color: p.testoSecondario }]}>{i + 1}</Text>}
+            </View>
+            {/* Due righe riservate al nome: «Parte superiore» va a capo, «Core» no, e «Fatto» deve stare alla stessa altezza nei tre. */}
+            <View style={stili.minimoNomeRiga}>
+              <Text style={[stili.minimoNome, { color: p.testo }]}>{NOME_BREVE[passo.gruppo]}</Text>
+            </View>
+            <Text style={[stili.minimoStato, { color: passo.fatto ? p.ok : p.testoSecondario }]}>{passo.fatto ? t('Fatto', 'Done') : t('Da fare', 'To do')}</Text>
+          </View>
+        ))}
+      </View>
+
+      {stato.raggiunto ? (
+        <View style={{ gap: spazio.due }}>
+          <Text style={[stili.nota, { color: p.testo }]}>
+            {t('Hai fatto il minimo: nei tuoi piani le percentuali sono diventate i tuoi chili.', 'You’ve done the minimum: the percentages in your plans have become your own weights.')}
+          </Text>
+          <Text style={[stili.nota, { color: p.testoSecondario }]}>
+            {stato.altri > 0
+              ? t(
+                  `Vuoi chili più precisi? Fai anche ${stato.altri === 1 ? 'l’altro esercizio' : `gli altri ${stato.altri}`}: non è obbligatorio, ma con più test i calcoli sono più accurati.`,
+                  `Want more precise weights? Do the other ${stato.altri === 1 ? 'exercise' : `${stato.altri}`} too: it isn’t required, but more tests make the numbers more accurate.`,
+                )
+              : t('Hai fatto anche tutti gli altri: i tuoi chili sono i più precisi che possiamo calcolare.', 'You’ve done all the others too: your weights are as precise as we can make them.')}
+          </Text>
+        </View>
+      ) : stato.fatti > 0 ? (
+        <Text style={[stili.nota, { color: p.testo }]}>
+          {t(`Ti manca: ${inFila(stato.mancano.map((g) => NOME_IN_FRASE[g]))}.`, `Still to do: ${inFila(stato.mancano.map((g) => NOME_IN_FRASE[g]))}.`)}
+        </Text>
+      ) : null}
+    </Carta>
+  )
+}
+
+function FoglioTest({ e, minimoGiaFatto, onChiudi, onSalvato }: { e: EsercizioTest | null; /** Il minimo c'era gia' prima di questo test. */ minimoGiaFatto: boolean; onChiudi: () => void; onSalvato: () => void }) {
   const p = usePalette()
   const [peso, setPeso] = useState('')
   const [rip, setRip] = useState('')
@@ -66,6 +175,8 @@ function FoglioTest({ e, onChiudi, onSalvato }: { e: EsercizioTest | null; onChi
   const [fatto, setFatto] = useState<number | null>(null)
   // Dopo il salvataggio: i test di questo distretto non tornano fra loro (04/11/2026).
   const [discordante, setDiscordante] = useState(false)
+  // Dopo il salvataggio: a che punto e' il minimo (11/11/2026). `appena`: l'ha raggiunto con questo test.
+  const [minimo, setMinimo] = useState<{ fatti: number; totale: number; raggiunto: boolean; mancano: GruppoTest[]; appena: boolean } | null>(null)
 
   useEffect(() => {
     setPeso(e?.ultimo?.kg ? String(e.ultimo.kg).replace('.', t(',', '.')) : '')
@@ -73,6 +184,7 @@ function FoglioTest({ e, onChiudi, onSalvato }: { e: EsercizioTest | null; onChi
     setErrore(null)
     setFatto(null)
     setDiscordante(false)
+    setMinimo(null)
   }, [e])
 
   if (!e) return <Foglio aperto={false} titolo="" onChiudi={onChiudi}>{null}</Foglio>
@@ -96,6 +208,8 @@ function FoglioTest({ e, onChiudi, onSalvato }: { e: EsercizioTest | null; onChi
     colpetto('ok')
     setFatto(esito.massimale)
     setDiscordante(!!esito.copertura?.discordanti.some((d) => d === e.test_gruppo))
+    const m = daCopertura(esito.copertura)
+    setMinimo(m ? { ...m, appena: m.raggiunto && !minimoGiaFatto } : null)
     onSalvato()
   }
 
@@ -143,6 +257,21 @@ function FoglioTest({ e, onChiudi, onSalvato }: { e: EsercizioTest | null; onChi
                   'Your tests in this group don’t match each other: we use the more cautious one for your weights. Retake the one that seems off.',
                 )}
               </Messaggio>
+            ) : null}
+            {minimo?.appena ? (
+              <Messaggio tono="ok" titolo={titoloRaggiunto(minimo.totale)}>
+                {t(
+                  'Hai fatto il minimo: nei tuoi piani le percentuali diventano i tuoi chili. Gli altri esercizi sono facoltativi: con più test i calcoli sono più accurati.',
+                  'You’ve done the minimum: the percentages in your plans become your own weights. The other exercises are optional: more tests make the numbers more accurate.',
+                )}
+              </Messaggio>
+            ) : minimo && !minimo.raggiunto ? (
+              <Text style={[stili.nota, { color: p.testoSecondario, textAlign: 'center' }]}>
+                {t(
+                  `Minimo: ${minimo.fatti} di ${minimo.totale}. Ti manca: ${inFila(minimo.mancano.map((g) => NOME_IN_FRASE[g]))}.`,
+                  `Minimum: ${minimo.fatti} of ${minimo.totale}. Still to do: ${inFila(minimo.mancano.map((g) => NOME_IN_FRASE[g]))}.`,
+                )}
+              </Text>
             ) : null}
             <Pulsante testo={t('Fatto', 'Done')} variante="secondario" onPress={onChiudi} />
           </Carta>
@@ -228,16 +357,13 @@ export function Test() {
   }
 
   const fatti = dati.esercizi.filter((e) => e.ultimo).length
-  const minimo = dati.copertura?.minimo ?? 3
-  const perVerifica = dati.copertura?.per_verifica ?? 5
+  const minimo = statoMinimo(dati.esercizi)
   return (
     <Schermata sopratitolo="Train" titolo={t('Test dei massimali', '1RM test')} indietro="/allenamento" barra={false}>
+      <RiquadroMinimo stato={minimo} esercizi={dati.esercizi.length} />
+
       <View style={{ gap: spazio.tre }}>
         {[
-          t(
-            `Per calcolare i tuoi chili bastano ${minimo} esercizi: uno per la parte superiore, uno per il core e uno per la parte inferiore. Per controllare che i conti tornino fanne ${perVerifica}: due per la parte superiore, due per la parte inferiore e il core.`,
-            `To work out your weights, ${minimo} exercises are enough: one for the upper body, one for the core and one for the lower body. To check the numbers add up, do ${perVerifica}: two for the upper body, two for the lower body and the core.`,
-          ),
           t(
             'Sugli esercizi a carico usa un peso con cui fai fra 4 e 10 ripetizioni pulite: da peso e ripetizioni calcoliamo il tuo massimale.',
             'For weighted exercises use a weight you can lift for 4 to 10 clean reps: from weight and reps we work out your 1RM.',
@@ -255,7 +381,7 @@ export function Test() {
         <Text style={[stili.piccola, { color: p.testoSecondario }]}>
           {dati.ultimo
             ? t(`${fatti} di ${dati.esercizi.length} esercizi fatti · ultimo test ${giornoTest(dati.ultimo)}`, `${fatti} of ${dati.esercizi.length} exercises done · last test ${giornoTest(dati.ultimo)}`)
-            : t(`${dati.esercizi.length} esercizi, una quindicina di minuti`, `${dati.esercizi.length} exercises, about fifteen minutes`)}
+            : t(`${dati.esercizi.length} esercizi in tutto: a farli tutti serve una quindicina di minuti`, `${dati.esercizi.length} exercises in all: doing them all takes about fifteen minutes`)}
         </Text>
       </View>
 
@@ -263,7 +389,8 @@ export function Test() {
         const qui = dati.esercizi.filter((e) => e.test_gruppo === g.chiave)
         if (!qui.length) return null
         const aperto = aperti[g.chiave]
-        const nota = notaGruppo(g.chiave, dati.copertura)
+        const fattoQui = qui.some((e) => e.ultimo)
+        const nota = notaGruppo(g.chiave, dati.copertura, fattoQui, qui.length)
         return (
           <View key={g.chiave} style={{ gap: spazio.due }}>
             <Tocco onPress={() => setAperti((a) => ({ ...a, [g.chiave]: !aperto }))} etichetta={g.titolo} stato={{ selected: aperto }} style={stili.gruppo}>
@@ -271,7 +398,10 @@ export function Test() {
               <Text style={[stili.piccola, { color: p.testoTerzo }]}>{`${qui.filter((e) => e.ultimo).length}/${qui.length}`}</Text>
               <Icona nome={aperto ? 'meno' : 'piu'} size={18} colore={p.testoSecondario} />
             </Tocco>
-            {nota ? <Text style={[stili.piccola, { color: nota.tono === 'ok' ? p.ok : nota.tono === 'attenzione' ? p.attenzione : p.testoSecondario, paddingHorizontal: spazio.uno }]}>{nota.testo}</Text> : null}
+            <View style={stili.notaGruppo}>
+              <Etichetta testo={nota.pillola} tono={nota.tono} icona={nota.tono === 'ok' ? 'spunta' : undefined} />
+              {nota.testo ? <Text style={[stili.piccola, { color: nota.tono === 'attenzione' && fattoQui ? p.attenzione : p.testoSecondario, flexShrink: 1 }]}>{nota.testo}</Text> : null}
+            </View>
             {aperto ? (
               <Carta style={{ paddingVertical: spazio.uno, paddingHorizontal: spazio.tre }}>
                 {qui.map((e, i) => (
@@ -280,7 +410,12 @@ export function Test() {
                       <MediaEsercizio immagini={e.immagini} video={e.video} style={stili.miniatura} ferma />
                       <View style={{ flex: 1, gap: 3 }}>
                         <Text style={[stili.nome, { color: p.testo }]}>{e.nome}</Text>
-                        <Text style={[stili.etichettaTest, { color: e.ultimo ? p.ok : p.attenzione }]}>{e.ultimo ? t('✓ Fatto', '✓ Done') : t('Consigliato', 'Recommended')}</Text>
+                        {/* Finche' il gruppo non ha il suo esercizio la scelta e' libera (lo dice la pillola del gruppo); dopo, gli altri sono in piu'. */}
+                        {e.ultimo ? (
+                          <Text style={[stili.etichettaTest, { color: p.ok }]}>{t('✓ Fatto', '✓ Done')}</Text>
+                        ) : fattoQui ? (
+                          <Text style={[stili.etichettaTest, { color: p.testoSecondario }]}>{t('Facoltativo: chili più precisi', 'Optional: more precise weights')}</Text>
+                        ) : null}
                         {risultato(e) ? <Text style={[stili.piccola, { color: p.testoSecondario }]}>{t(`Risultato precedente: ${risultato(e)}`, `Previous result: ${risultato(e)}`)}</Text> : null}
                       </View>
                       <Icona nome="avanti" size={16} colore={p.testoTerzo} />
@@ -295,6 +430,7 @@ export function Test() {
 
       <FoglioTest
         e={scelto}
+        minimoGiaFatto={minimo.raggiunto}
         onChiudi={() => setScelto(null)}
         onSalvato={() => {
           // Le schede ricalcolano i chili col massimale nuovo.
@@ -309,6 +445,16 @@ export function Test() {
 const stili = StyleSheet.create({
   consiglio: { fontFamily: F.medio, fontSize: 15, lineHeight: 22 },
   piccola: { fontFamily: F.semi, fontSize: 12.5 },
+  minimoTesta: { flexDirection: 'row', alignItems: 'center', gap: spazio.due },
+  minimoTitolo: { flex: 1, fontFamily: F.extra, fontSize: 20, lineHeight: 25, letterSpacing: -0.4 },
+  minimoPassi: { flexDirection: 'row', gap: spazio.due },
+  minimoPasso: { flex: 1, alignItems: 'center', gap: 6, borderRadius: 18, paddingVertical: spazio.tre, paddingHorizontal: spazio.uno },
+  minimoCerchio: { width: 40, height: 40, borderRadius: 20, borderWidth: 2, alignItems: 'center', justifyContent: 'center' },
+  minimoNumero: { fontFamily: F.extra, fontSize: 16 },
+  minimoNomeRiga: { minHeight: 34, justifyContent: 'center' },
+  minimoNome: { fontFamily: F.bold, fontSize: 13, lineHeight: 17, textAlign: 'center' },
+  minimoStato: { fontFamily: F.semi, fontSize: 12, textAlign: 'center' },
+  notaGruppo: { gap: 6, alignItems: 'flex-start', paddingHorizontal: spazio.uno },
   gruppo: { flexDirection: 'row', alignItems: 'center', gap: spazio.due, paddingVertical: spazio.uno },
   gruppoTitolo: { flex: 1, fontFamily: F.extra, fontSize: 18, letterSpacing: -0.4 },
   riga: { flexDirection: 'row', alignItems: 'center', gap: spazio.tre, paddingVertical: spazio.tre },
