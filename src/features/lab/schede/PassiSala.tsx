@@ -437,8 +437,8 @@ export function PassiSala({ dove, onDove, saltaDove, onVasca }: { dove: 'sala' |
           {/* La postilla: che dietro ci sia un'intelligenza artificiale si dice qui, in piccolo, e di nuovo sul piano composto. */}
           <Text style={[stili.piccola, { color: p.testoTerzo, textAlign: 'center' }]}>
             {t(
-              'Il piano è preparato con il supporto di un’intelligenza artificiale e lo confermi tu: i trainer del club lo possono vedere dal pannello. Non sostituisce il parere di un medico: con dolori, infortuni o patologie parlane prima con un istruttore in sala.',
-              'The plan is prepared with the help of artificial intelligence and you confirm it: the club’s trainers can see it from their panel. It doesn’t replace a doctor’s advice: if you have pain, injuries or medical conditions, talk to an instructor on the gym floor first.',
+              'Il piano è preparato con il supporto di un’intelligenza artificiale e lo confermi tu: i trainer del club lo possono vedere dal pannello. Il club conserva le tue risposte, tranne quelle su limitazioni e fastidi, per capire come migliorare i piani. Non sostituisce il parere di un medico: con dolori, infortuni o patologie parlane prima con un istruttore in sala.',
+              'The plan is prepared with the help of artificial intelligence and you confirm it: the club’s trainers can see it from their panel. The club keeps your answers, except those about limitations and discomfort, to understand how to improve the plans. It doesn’t replace a doctor’s advice: if you have pain, injuries or medical conditions, talk to an instructor on the gym floor first.',
             )}
           </Text>
         </>

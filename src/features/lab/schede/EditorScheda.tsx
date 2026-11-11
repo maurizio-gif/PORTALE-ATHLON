@@ -369,6 +369,8 @@ export function EditorScheda() {
       obiettivo: form.obiettivo,
       livello: form.livello,
       origine: modo === 'modifica' ? undefined : modo === 'copia' ? origineCopia : modo === 'ai' ? 'ai' : modo === 'file' ? 'importata' : 'creata',
+      // Il piano dell'agente porta il numero della richiesta: le risposte non sanitarie passano al piano che si tiene (CRM, «Come sono fatte»).
+      ...(modo === 'ai' && bozza?.richiesta ? { richiesta: bozza.richiesta } : {}),
       giorni: form.giorni.map((g) => ({
         nome: g.nome.trim(),
         note: g.note.trim(),
