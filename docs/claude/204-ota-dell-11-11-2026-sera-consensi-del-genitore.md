@@ -1,6 +1,6 @@
 ## L'OTA dell'11/11/2026, sera: tre runtime (3.0.0, 3.1.0, 3.1.1), con «Serve il consenso di un genitore», «Chiedi a un genitore», i massimali e l'RPE (11/11/2026)
 
-Richiesta di Maurizio: «sì, fai anche l'OTA dell'app», dopo la pubblicazione delle funzioni dei consensi del genitore (sezione 203, e `CLAUDE.md` di APP-ATHLON, stessa data). **Pubblicata l'11/11/2026 fra le 17:41 e le 17:45 UTC circa** sul canale `production`, iOS e Android insieme, **un gruppo per runtime**. L'OTA di prima era quella della mattina (sezione 200).
+Richiesta di Maurizio: «sì, fai anche l'OTA dell'app», dopo la pubblicazione delle funzioni dei consensi del genitore (sezione 203, e `CLAUDE.md` di APP-ATHLON, stessa data). **Pubblicata l'11/11/2026 fra le 17:35 e le 17:41 UTC circa** sul canale `production`, iOS e Android insieme, **un gruppo per runtime**. L'OTA di prima era quella della mattina (sezione 200).
 
 - **Cosa porta, rispetto all'OTA della mattina**: le aree sulla salute per un ragazzo da 13 a 17 anni (`28b7a76`, `6850221`: «Serve il consenso di un genitore», il pulsante «Chiedi a un genitore», l'avviso che il genitore vede i dati, la destinazione `consensi` di `/entra`, la frase nuova delle informative di Food e dei dispositivi); il test dei massimali col minimo in vista (`ed8daeb`, sezione 201) e l'RPE nella seduta (`9d1221d`, sezione 202). **Maurizio sapeva che entravano anche questi due**, di un'altra sessione: glielo si è chiesto prima.
 - **Runtime 3.1.1**, gruppo `eea191ef-a05b-4a09-8093-e482902bb306`: `main` (`05ba0ed`) com'è.
