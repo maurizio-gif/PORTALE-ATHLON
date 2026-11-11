@@ -22,7 +22,7 @@ prova('la versione uguale o piu\' alta basta', () => {
   assert.equal(versioneAlmeno('4.0.0', '3.1.1'), true)
 })
 
-prova('una versione piu\' bassa non basta (3.1.0 oggi: Apple Pay spento)', () => {
+prova('una versione piu\' bassa non basta (la 3.1.0 degli store non ha il permesso: Apple Pay spento)', () => {
   assert.equal(versioneAlmeno('3.1.0', '3.1.1'), false)
   assert.equal(versioneAlmeno('3.0.9', '3.1.1'), false)
   assert.equal(versioneAlmeno('2.9.9', '3.1.1'), false)
@@ -51,6 +51,14 @@ prova('il Merchant ID e il nome', () => {
   assert.equal(MERCHANT_ID_APPLE_PAY, 'merchant.com.adyen.Point2000SrlSocSpoDilECOM')
   assert.equal(NOME_NEGOZIO_APPLE_PAY, 'Athlon Club')
 })
+
+// La versione di app.json accende Apple Pay: se qualcuno la riabbassa, o alza la soglia senza alzare la versione, la prima build con il permesso non lo chiederebbe mai.
+{
+  const app = JSON.parse(readFileSync(new URL('../app.json', import.meta.url), 'utf8'))
+  assert.equal(versioneAlmeno(app.expo.version, APPLE_PAY_DALLA_VERSIONE), true, `app.json ${app.expo.version} < soglia ${APPLE_PAY_DALLA_VERSIONE}`)
+  n++
+  console.log('ok  la versione di app.json accende Apple Pay')
+}
 
 // Il Merchant ID e' lo stesso di app.json (il plugin lo scrive nel permesso).
 {

@@ -12,10 +12,8 @@ export const NOME_NEGOZIO_APPLE_PAY = 'Athlon Club'
  * **L'interruttore.** Apple Pay si chiede solo dalle build che hanno il permesso, e il permesso sta nella parte nativa: un aggiornamento in volo non lo porta. La versione
  * dell'app e' l'unico segno che il codice puo' leggere (`runtimeVersion` = `version` di `app.json`, vedi `adyenNativo.ts`), quindi Apple Pay e' acceso **da questa versione in su**.
  *
- * Finche' `app.json` dice una versione piu' bassa, nessuna build lo chiede e il server non lo aggiunge: e' lo stato di oggi (3.1.0). Per accenderlo:
- *   - si alza `version` in `app.json` a questa e si fa la build iOS nuova (con il plugin di `app.json` che porta il permesso);
- *   - oppure, se la 3.1.0 non e' ancora uscita, si porta questa costante a `3.1.0` e si rifa' la build.
- * Alzare `version` separa gli aggiornamenti in volo: le build della versione di prima non ricevono piu' il codice nuovo.
+ * La 3.1.0 e' gia' sugli store e non ha il permesso: per lei Apple Pay resta spento, anche se riceve questo codice in volo. La prima build con il permesso e' la **3.1.1**
+ * (`version` di `app.json`, alzata insieme a questa costante). Alzare `version` separa gli aggiornamenti in volo (un gruppo per versione): vedi la sezione 198 di `docs/claude`.
  */
 export const APPLE_PAY_DALLA_VERSIONE = '3.1.1'
 
