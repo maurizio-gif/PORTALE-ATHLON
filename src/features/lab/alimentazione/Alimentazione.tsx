@@ -21,6 +21,7 @@ import { spazio } from '@/theme'
 // `t` qui sono i totali del giorno: la traduzione si chiama `tx`.
 import { locale, t as tx } from '@/lib/lingua'
 
+import { NotaGenitore, ServeIlGenitore } from '../consensiMinori/Genitore'
 import { inMemoria, prendi, ricorda } from '../memoria'
 import { useStatoCorpo } from '../schede/CalorieLezione'
 import { CHIAVE_PRESENZE, useProgresso, type Presenze } from '../schede/ContatoreCalorie'
@@ -485,6 +486,13 @@ export function Alimentazione() {
       </Schermata>
     )
   }
+  if (!stato.maggiorenne && stato.consenso_genitore === false) {
+    return (
+      <Schermata {...testata}>
+        <ServeIlGenitore area="Food" />
+      </Schermata>
+    )
+  }
   if (!stato.maggiorenne) {
     return (
       <Schermata {...testata}>
@@ -500,6 +508,7 @@ export function Alimentazione() {
   if (!stato.consenso) {
     return (
       <Schermata {...testata}>
+        {stato.consenso_genitore ? <NotaGenitore /> : null}
         <Vetrina
           onConsenso={() => {
             statoAlimentazione().then((r) => {

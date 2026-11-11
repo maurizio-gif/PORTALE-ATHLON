@@ -44,6 +44,6 @@ Guardato sul codice (`_shared/schede/massimali.ts`) e sul database vero, in sola
 - **Da sapere**: dopo sei settimane il test è «da rifare», ma gli esercizi tengono il loro ultimo risultato: il riquadro dice ancora «Tutti e tre fatti» mentre la carta in Train dice «È ora di rifare il test». Era già così con i «✓ Fatto» delle righe; non toccato.
 - **Per pubblicarlo** serve un aggiornamento dell'app (OTA sui runtime in uso) e il deploy del web: è solo JavaScript, nessun modulo nativo e nessuna funzione da ripubblicare.
 
-**Dallo stesso giorno il secondo esercizio delle gambe non è più «Facoltativo» ma «Consigliato»**: vedi `203-…`. Il minimo e il resto di questa nota non cambiano.
+**Dallo stesso giorno il secondo esercizio delle gambe non è più «Facoltativo» ma «Consigliato»**: vedi `205-…`. Il minimo e il resto di questa nota non cambiano.
 
 **La carta «Fai il test dei massimali» in cima a Train non c'è più** (stesso giorno): il test si propone a valle del questionario e come riga di stato, solo a chi ha un piano che lo usa. Vedi `204-…`. La schermata del test descritta qui non cambia.

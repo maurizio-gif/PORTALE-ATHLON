@@ -180,4 +180,12 @@ const ok = (n: string) => {
   ok('iscrizione: il turno o il Baby Nuoto per il bambino del link, solo cifre')
 }
 
+{
+  // I consensi del genitore (11/11/2026): l'email che parte quando il figlio tocca «Chiedi a un genitore» apre la pagina dei consensi.
+  const a = arrivoDa('consensi', 'Gym Floor', '2026-11-12', '2026-11-11', '263', '987654', '10867', '1')
+  assert.equal(a?.href, '/consensi-minori', 'consensi: la pagina dei consensi, ignora ogni altro parametro')
+  assert.ok(a && a.titolo && a.testo && a.bottone, 'titolo, testo e pulsante ci sono')
+  ok('consensi: la pagina «Consensi per i tuoi figli», senza parametri')
+}
+
 console.log(`\n${passi} prove passate`)

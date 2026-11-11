@@ -17,6 +17,10 @@
 // 2026-10-20: dice anche del sonno che si scrive a mano e dell'Athlon Health Score.
 import { t, tv } from '../../../lib/lingua'
 
+// **11/11/2026, senza cambiare versione** (decisione di Maurizio: «riservata a maggiorenni o minori con consenso del genitore»): in «Per chi non è»
+// la frase «La sezione è riservata ai maggiorenni» dice ora anche dei ragazzi da 13 a 17 anni col consenso di un genitore. La versione resta
+// quella: cambiarla chiuderebbe la sezione a ogni socio finche' non riaccetta, per una frase che agli adulti non toglie e non aggiunge niente.
+// Chi ha accettato prima dell'11/11 ha letto la frase vecchia.
 export const VERSIONE_INFORMATIVA = '2026-10-28'
 
 export const CONSENSO = t(
@@ -58,7 +62,7 @@ export const INFORMATIVA: { titolo: string; testo: string }[] = tv([
   {
     titolo: 'Per chi non è',
     testo:
-      'La sezione è riservata ai maggiorenni. Se un numero ti preoccupa o ti mette a disagio, non interpretarlo da solo: parlane con il tuo medico. L’app non dà consigli medici e non ti dice cosa fare in base ai tuoi valori.',
+      'La sezione è riservata ai maggiorenni, e ai ragazzi da 13 a 17 anni con il consenso di un genitore, che può vedere i loro dati. Se un numero ti preoccupa o ti mette a disagio, non interpretarlo da solo: parlane con il tuo medico. L’app non dà consigli medici e non ti dice cosa fare in base ai tuoi valori.',
   },
 ], [
   {
@@ -99,6 +103,6 @@ export const INFORMATIVA: { titolo: string; testo: string }[] = tv([
   {
     titolo: 'Who it isn’t for',
     testo:
-      'This section is for adults only. If a number worries you or makes you uncomfortable, don’t interpret it on your own: talk to your doctor. The app doesn’t give medical advice and doesn’t tell you what to do based on your values.',
+      'This section is for adults, and for 13 to 17 year olds with a parent’s consent; the parent can see their data. If a number worries you or makes you uncomfortable, don’t interpret it on your own: talk to your doctor. The app doesn’t give medical advice and doesn’t tell you what to do based on your values.',
   },
 ])
