@@ -96,7 +96,12 @@
         }
       ],
       "react-native-health-connect",
-      "@adyen/react-native",
+      [
+        "@adyen/react-native",
+        {
+          "merchantIdentifier": "merchant.com.adyen.Point2000SrlSocSpoDilECOM"
+        }
+      ],
       "./plugins/with-bouncycastle-allineato",
       [
         "expo-build-properties",

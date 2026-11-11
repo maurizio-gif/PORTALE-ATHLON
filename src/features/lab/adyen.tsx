@@ -4,7 +4,8 @@ import { ActivityIndicator, StyleSheet, Text, View } from 'react-native'
 
 import type { SessioneAdyen } from '@/api/lab'
 import { Avviso } from '@/components/Avviso'
-import { ambienteNativo, sdkAdyen, type SdkAdyen } from '@/lib/adyenNativo'
+import { ambienteNativo, applePayDisponibile, sdkAdyen, type SdkAdyen } from '@/lib/adyenNativo'
+import { MERCHANT_ID_APPLE_PAY, NOME_NEGOZIO_APPLE_PAY } from '@/lib/applePay'
 import { locale, t } from '@/lib/lingua'
 import { spazio } from '@/theme'
 
@@ -61,8 +62,11 @@ function DropInNativo({ sdk, sessione, onFine, onErrore }: Props & { sdk: SdkAdy
       returnUrl: sessione.ritornoNativo ?? 'athlon://',
       analytics: { enabled: false },
       ...(sessione.importoCent ? { amount: { currency: 'EUR', value: sessione.importoCent } } : {}),
-      // Un solo metodo (la carta, vedi `METODI_NATIVI` sul server): si apre direttamente il modulo della carta, senza una lista di un elemento.
+      // Con un solo metodo (la carta, vedi `METODI_NATIVI` sul server) si apre direttamente il modulo della carta, senza una lista di un elemento. Con Apple Pay (solo le build
+      // che lo chiedono, `applePayDisponibile`) i metodi sono due e la lista c'e': Apple Pay e la carta.
       dropin: { skipListWhenSinglePaymentMethod: true, showPreselectedStoredPaymentMethod: false },
+      // Il Merchant ID e il nome nel foglio di Apple Pay: solo se questa build lo chiede, cioe' ha il permesso (`lib/applePay.ts`). L'importo e' quello della sessione (`amount`).
+      ...(applePayDisponibile() ? { applepay: { merchantID: MERCHANT_ID_APPLE_PAY, merchantName: NOME_NEGOZIO_APPLE_PAY } } : {}),
       // La carta si salva sempre pagando, e la schermata lo dice prima: niente interruttore da spuntare (sul web e' lo stesso, la sessione lo impone).
       card: { showStorePaymentField: false },
     }),

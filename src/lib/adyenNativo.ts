@@ -1,6 +1,8 @@
 import * as Linking from 'expo-linking'
 import { NativeModules, Platform } from 'react-native'
 
+import { APPLE_PAY_DALLA_VERSIONE, versioneAlmeno } from './applePay'
+
 // L'SDK nativo di Adyen (`@adyen/react-native`, 10/11/2026), caricato solo se questa build lo contiene.
 //
 // **Perche' non un `import` normale.** L'SDK e' un modulo nativo: sta nella build dell'app, non nel codice JavaScript. Importare la libreria dove il modulo non c'e' la fa
@@ -31,7 +33,22 @@ export function sdkAdyen(): SdkAdyen | null {
 }
 
 /** I campi in piu' da mandare al server per avere una sessione per l'app (`_shared/adyen-canale.ts` di APP-ATHLON). Vuoti sul web e senza l'SDK: la sessione e' quella di sempre. */
-export type CanaleNativo = { piattaforma?: 'ios' | 'android'; ritorno_nativo?: string }
+export type CanaleNativo = { piattaforma?: 'ios' | 'android'; ritorno_nativo?: string; apple_pay?: boolean }
+
+/**
+ * Questa build sa pagare con Apple Pay? Solo su iPhone, con l'SDK dentro, e solo da `APPLE_PAY_DALLA_VERSIONE` in su (`lib/applePay.ts`): e' la versione della **build**
+ * (`Updates.runtimeVersion`), non quella dell'ultimo aggiornamento in volo, perche' il permesso sta nella parte nativa. Senza `expo-updates` (Expo Go, prove) o senza versione: no.
+ */
+export function applePayDisponibile(): boolean {
+  if (Platform.OS !== 'ios' || !sdkAdyen()) return false
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const Aggiornamenti = require('expo-updates') as { runtimeVersion?: string | null }
+    return versioneAlmeno(Aggiornamenti.runtimeVersion, APPLE_PAY_DALLA_VERSIONE)
+  } catch {
+    return false
+  }
+}
 
 /**
  * Il canale della sessione: `iOS` o `Android`, e l'indirizzo con cui Adyen riporta nell'app dopo un reindirizzamento (una 3D Secure che esce dall'SDK).
@@ -43,7 +60,14 @@ export async function canaleNativo(percorso: string, parametri?: Record<string, 
   const sdk = sdkAdyen()
   if (!sdk) return {}
   try {
-    if (Platform.OS === 'ios') return { piattaforma: 'ios', ritorno_nativo: Linking.createURL(percorso, parametri ? { queryParams: parametri } : undefined) }
+    // `apple_pay` lo chiede solo una build che ha il permesso: il server lo aggiunge ai metodi della sessione solo se c'e' (`_shared/adyen-canale.ts` di APP-ATHLON).
+    if (Platform.OS === 'ios') {
+      return {
+        piattaforma: 'ios',
+        ritorno_nativo: Linking.createURL(percorso, parametri ? { queryParams: parametri } : undefined),
+        ...(applePayDisponibile() ? { apple_pay: true } : {}),
+      }
+    }
     return { piattaforma: 'android', ritorno_nativo: await sdk.AdyenDropIn.getReturnURL() }
   } catch {
     return {}
