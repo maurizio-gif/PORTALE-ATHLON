@@ -17,8 +17,11 @@ ok('gli esercizi hanno id diversi e almeno un passaggio ciascuno', () => {
   assert.equal(new Set(ESERCIZI.map((e) => e.id)).size, ESERCIZI.length)
   for (const e of ESERCIZI) assert.ok(e.istruzioni.length >= 2, e.id)
 })
-ok('nessun video finche\' non ci sono (il segnaposto)', () => {
-  for (const e of ESERCIZI) assert.equal(e.video, null)
+ok('ogni esercizio ha il suo video e il suo poster nel bucket (dal 10/11/2026: `rilascio/<id>.mp4` e `.jpg`)', () => {
+  for (const e of ESERCIZI) {
+    assert.equal(e.video, `rilascio/${e.id}.mp4`, e.id)
+    assert.deepEqual(e.immagini, [`rilascio/${e.id}.jpg`], e.id)
+  }
 })
 ok('5 minuti, tutto il corpo: cinque esercizi da un minuto', () => {
   const s = componiSessione({ focus: 'tutto', minuti: 5 })
