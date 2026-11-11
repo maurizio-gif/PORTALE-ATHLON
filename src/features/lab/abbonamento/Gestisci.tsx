@@ -1,6 +1,6 @@
 import { router } from 'expo-router'
 import { useCallback, useEffect, useState } from 'react'
-import { StyleSheet, Text, View } from 'react-native'
+import { Platform, StyleSheet, Text, View } from 'react-native'
 import Animated, { Easing, useAnimatedStyle, useReducedMotion, useSharedValue, withRepeat, withSequence, withTiming } from 'react-native-reanimated'
 
 import {
@@ -16,6 +16,8 @@ import {
   type Formula,
   type MeseSospendibile,
   type MetodoPagamento,
+  type MotivoNonIncassato,
+  type PagamentoSospensione,
   pagaAnnuale,
   rangoAbbonamento,
   richiediUpgrade,
@@ -23,14 +25,17 @@ import {
   type OpzioneSospensione,
 } from '@/api/gestioneAbbonamento'
 import { statoAbbonamento, statoCambioAbbonamento, type PianoAbbonamento } from '@/api/abbonamento'
+import { esitoSaldo, saldaPagamenti } from '@/api/lab'
 import { CampoData } from '@/components/CampoData'
 import { euro } from '@/lib/eventi'
 import { locale, t } from '@/lib/lingua'
+import { apriPagamento } from '@/lib/pagamentoEsterno'
 import { spazio } from '@/theme'
 
 import { useSessione } from '../useSessione'
 import { vistaCorrente } from '../vista'
 import { Richiamo } from '../profilo/Richiamo'
+import { passaDalTotem } from '../totem/passaggio'
 import { CampoTesto, Scelte } from '../ui/Campi'
 import { SchedaScelta } from './Passi'
 import { Foglio } from '../ui/Foglio'
@@ -85,6 +90,24 @@ function metodoTesto(m: MetodoPagamento | null): string | null {
   if (m.tipo === 'conto') return m.finale ? t(`Conto •••• ${m.finale}`, `Account •••• ${m.finale}`) : t('Addebito su conto', 'Direct debit')
   return null
 }
+
+/** Perche' i 15 € non si sono potuti addebitare subito sulla carta del contratto (`pagamento.motivo` del server). */
+function motivoNonIncassato(motivo: MotivoNonIncassato | null, errore: string | null): string {
+  switch (motivo) {
+    case 'conto':
+      return t('Il contratto si paga con addebito su conto, che non si può addebitare subito.', 'This contract is paid by direct debit, which can’t be charged right away.')
+    case 'carta_scaduta':
+      return t('La carta del contratto è scaduta.', 'The contract’s card has expired.')
+    case 'rifiutata':
+      return errore ?? t('La carta non è stata addebitata.', 'The card wasn’t charged.')
+    case 'non_riconosciuta':
+      return t('Non siamo riusciti ad addebitarli sulla carta del contratto.', 'We couldn’t charge them to the contract’s card.')
+    default:
+      return t('Non c’è una carta del contratto su cui addebitarli subito.', 'There’s no card on the contract to charge right away.')
+  }
+}
+
+type FasePagamento = 'verifica' | 'pagato' | 'incerto' | 'da_pagare'
 
 function Riga({ nome, valore, forte = false }: { nome: string; valore: string; forte?: boolean }) {
   const p = usePalette()
@@ -148,7 +171,11 @@ export function FoglioGestisci({ contratto: c, aperto, onChiudi, onCambiato }: {
   const [opzione, setOpzione] = useState<number | null>(null)
   const [regole, setRegole] = useState(false)
   const [addebito, setAddebito] = useState(false)
-  const [fatta, setFatta] = useState<{ dal: string; al: string; costo: number; scadenza: string | null; scadenzaLetta: boolean; ultimoAnnullo: string } | null>(null)
+  const [fatta, setFatta] = useState<{ dal: string; al: string; costo: number; scadenza: string | null; scadenzaLetta: boolean; ultimoAnnullo: string; pagamento: PagamentoSospensione | null } | null>(null)
+  // L'incasso dei 15 € subito dopo la conferma (11/11/2026): `null` se non c'e' niente da incassare o il server non lo dice.
+  const [fasePag, setFasePag] = useState<FasePagamento | null>(null)
+  const [errorePag, setErrorePag] = useState<string | null>(null)
+  const [pagando, setPagando] = useState(false)
   const [annullata, setAnnullata] = useState<number | null | undefined>(undefined)
 
   // Disdetta
@@ -201,6 +228,9 @@ export function FoglioGestisci({ contratto: c, aperto, onChiudi, onCambiato }: {
     setRegole(false)
     setAddebito(false)
     setFatta(null)
+    setFasePag(null)
+    setErrorePag(null)
+    setPagando(false)
     setAnnullata(undefined)
     setMotivo(null)
     setCommento('')
@@ -222,6 +252,10 @@ export function FoglioGestisci({ contratto: c, aperto, onChiudi, onCambiato }: {
   const opzioneScelta: OpzioneSospensione | undefined = meseScelto?.opzioni.find((o) => o.freeze_type_id === opzione) ?? meseScelto?.opzioni[0]
   const costo = opzioneScelta?.costo ?? 0
   const metodo = metodoTesto(sosp?.metodo_pagamento ?? null)
+  // I 15 € si addebitano subito solo sulla carta del contratto, se e' valida (o se non sappiamo com'e': lo decide il server). Con un conto, una carta
+  // scaduta o nessun metodo si paga adesso con una carta, dopo la conferma.
+  const metodoSosp = sosp?.metodo_pagamento ?? null
+  const incassoSubito = !!opzioneScelta && !opzioneScelta.gratuita && (metodoSosp === null || (metodoSosp.tipo === 'carta' && !metodoSosp.scaduta))
   const disdetta0 = c.azioni?.disdici
   const finestra = c.azioni?.cambia.finestra
   const upgrade = c.azioni?.cambia.upgrade
@@ -237,6 +271,8 @@ export function FoglioGestisci({ contratto: c, aperto, onChiudi, onCambiato }: {
 
   async function confermaSospensione() {
     if (!meseScelto || !opzioneScelta) return
+    // Sul totem un addebito su una carta salvata passa dalle tre strade (QR, email, operatore): i 15 € partono con la conferma. Annullato, non si scrive niente.
+    if (incassoSubito && !(await passaDalTotem({ cosa: 'carta salvata', percorso: '/?sezione=abbonamenti' }))) return
     setInCorso(true)
     setErrore(null)
     const r = await sospendi(c.contract_id, meseScelto.primo, opzioneScelta.freeze_type_id, opzioneScelta.costo)
@@ -244,6 +280,9 @@ export function FoglioGestisci({ contratto: c, aperto, onChiudi, onCambiato }: {
     if (r.ok) {
       colpetto('ok')
       setFatta({ ...r.dati, ultimoAnnullo: meseScelto.ultimo_giorno_richiesta })
+      const pg = r.dati.pagamento
+      setFasePag(pg?.stato === 'in_corso' ? 'verifica' : pg?.stato === 'da_pagare' ? 'da_pagare' : null)
+      setErrorePag(pg?.stato === 'da_pagare' ? (pg.errore ?? null) : null)
       onCambiato()
       setPasso('sEsito')
       return
@@ -258,6 +297,66 @@ export function FoglioGestisci({ contratto: c, aperto, onChiudi, onCambiato }: {
       setMese(null)
       setPasso('s1')
     }
+  }
+
+  // Dopo l'addebito sulla carta del contratto si chiede com'e' andato, ogni 4 secondi per due minuti (lo stesso `saldo_esito` del saldo delle quote).
+  useEffect(() => {
+    if (passo !== 'sEsito' || fasePag !== 'verifica') return
+    let vivo = true
+    let giri = 0
+    let timer: ReturnType<typeof setTimeout>
+    const giro = async () => {
+      const r = await esitoSaldo()
+      if (!vivo) return
+      if (r.ok && r.stato === 'pagato') {
+        colpetto('ok')
+        setFasePag('pagato')
+        return
+      }
+      if (r.ok && r.stato === 'fallito') {
+        setErrorePag(r.motivo)
+        setFasePag('da_pagare')
+        return
+      }
+      giri += 1
+      if (giri >= 30) {
+        setFasePag('incerto')
+        return
+      }
+      timer = setTimeout(giro, 4000)
+    }
+    timer = setTimeout(giro, 3000)
+    return () => {
+      vivo = false
+      clearTimeout(timer)
+    }
+  }, [passo, fasePag])
+
+  // Quello che non si e' potuto addebitare sulla carta del contratto si paga adesso con una carta: la pagina di Adyen, solo per quell'addebito.
+  async function pagaOra() {
+    const pg = fatta?.pagamento
+    if (!pg || pg.stato === 'non_trovato') return
+    setPagando(true)
+    setErrore(null)
+    const r = await saldaPagamenti(pg.totale, false, { quote: [pg.quota], contratto: pg.contratto })
+    setPagando(false)
+    if (!r.ok) {
+      colpetto('errore')
+      setErrore(r.errore)
+      return
+    }
+    if (r.stato === 'pagato') {
+      colpetto('ok')
+      setFasePag('pagato')
+      return
+    }
+    if (r.stato === 'redirect') {
+      // Sul web si cambia pagina e si torna da Pagamenti (`?saldo=1`); nell'app il browser integrato si chiude e qui si verifica.
+      const aperta = await apriPagamento(r.url)
+      if (aperta && Platform.OS !== 'web') setFasePag('verifica')
+      return
+    }
+    setFasePag('verifica')
   }
 
   async function annulla(freezeId: number) {
@@ -461,6 +560,22 @@ export function FoglioGestisci({ contratto: c, aperto, onChiudi, onCambiato }: {
       </>
     ) : null
 
+  // Cosa succede ai 15 € dopo la conferma, detto prima: addebitati subito sulla carta del contratto, oppure da pagare adesso con una carta.
+  const notaAddebito =
+    metodoSosp === null || !metodo
+      ? t('Addebitati sul metodo di pagamento del contratto.', 'Charged to the contract’s payment method.')
+      : incassoSubito
+        ? t(`Li addebitiamo subito sul metodo di pagamento del contratto: ${metodo}.`, `We charge it right away to the contract’s payment method: ${metodo}.`)
+        : metodoSosp.tipo === 'carta'
+          ? t(`La carta del contratto (${metodo}) è scaduta: dopo la conferma potrai pagare ${euro(costo)} con un’altra carta.`, `The contract’s card (${metodo}) has expired: after you confirm you can pay ${euro(costo)} with another card.`)
+          : metodoSosp.tipo === 'conto'
+            ? t(`Il contratto si paga con addebito su conto (${metodo}), che non si può addebitare subito: dopo la conferma potrai pagare ${euro(costo)} con una carta.`, `This contract is paid by direct debit (${metodo}), which can’t be charged right away: after you confirm you can pay ${euro(costo)} by card.`)
+            : t(`Dopo la conferma potrai pagare ${euro(costo)} con una carta.`, `After you confirm you can pay ${euro(costo)} by card.`)
+  const testoConsensoAddebito =
+    incassoSubito && metodo
+      ? t(`Autorizzo l’addebito immediato di ${euro(costo)} (${metodo}).`, `I authorise the immediate charge of ${euro(costo)} (${metodo}).`)
+      : t(`Autorizzo l’addebito di ${euro(costo)}.`, `I authorise the charge of ${euro(costo)}.`)
+
   const passo3Sospensione =
     meseScelto && opzioneScelta ? (
       <>
@@ -470,16 +585,44 @@ export function FoglioGestisci({ contratto: c, aperto, onChiudi, onCambiato }: {
           <View style={{ gap: 4 }}>
             <Text style={{ color: p.testo, fontFamily: F.extra, fontSize: 20 }}>{meseAnno(meseScelto.primo)}</Text>
             <Text style={{ color: opzioneScelta.gratuita ? p.ok : p.accento, fontFamily: F.extra, fontSize: 26, letterSpacing: -0.6 }}>{opzioneScelta.gratuita ? t('Gratuita', 'Free') : euro(opzioneScelta.costo)}</Text>
-            {!opzioneScelta.gratuita ? (
-              <Text style={[stili.nota, { color: p.testoSecondario }]}>{metodo ? t(`Addebitati sul metodo di pagamento del contratto: ${metodo}`, `Charged to the contract’s payment method: ${metodo}`) : t('Addebitati sul metodo di pagamento del contratto.', 'Charged to the contract’s payment method.')}</Text>
-            ) : null}
+            {!opzioneScelta.gratuita ? <Text style={[stili.nota, { color: p.testoSecondario }]}>{notaAddebito}</Text> : null}
           </View>
         </Carta>
         <Consenso spuntato={regole} onCambia={() => setRegole((v) => !v)} testo={t('Ho letto le regole della sospensione e le accetto.', 'I’ve read the suspension rules and accept them.')} />
-        {!opzioneScelta.gratuita ? <Consenso spuntato={addebito} onCambia={() => setAddebito((v) => !v)} testo={t(`Autorizzo l’addebito di ${euro(costo)}.`, `I authorise the charge of ${euro(costo)}.`)} /> : null}
+        {!opzioneScelta.gratuita ? <Consenso spuntato={addebito} onCambia={() => setAddebito((v) => !v)} testo={testoConsensoAddebito} /> : null}
         {errore ? <Messaggio>{errore}</Messaggio> : null}
         <Pulsante testo={t('Conferma e sospendi', 'Confirm and suspend')} icona="spunta" disabilitato={!regole || (!opzioneScelta.gratuita && !addebito)} inCorso={inCorso} onPress={confermaSospensione} />
         <Pulsante testo={t('Indietro', 'Back')} variante="fantasma" piccolo onPress={() => vai('s2')} />
+      </>
+    ) : null
+
+  // L'esito dell'addebito dei 15 €, sotto la conferma della sospensione. La sospensione e' gia' registrata in ogni caso: qui si dice solo dei soldi.
+  const pg = fatta?.pagamento ?? null
+  const importoPg = pg && pg.stato !== 'non_trovato' ? euro(pg.totale) : ''
+  const cartaPg = pg && pg.stato === 'in_corso' && pg.carta ? t(`carta •••• ${pg.carta}`, `card •••• ${pg.carta}`) : null
+  const bloccoPagamento =
+    fasePag === 'verifica' ? (
+      <Messaggio tono="attenzione" icona="info" titolo={t(`Stiamo addebitando ${importoPg}`, `We’re charging ${importoPg}`)}>
+        {cartaPg ? t(`Sulla ${cartaPg}. Ci vuole qualche secondo.`, `To the ${cartaPg}. It takes a few seconds.`) : t('Sul metodo di pagamento del contratto. Ci vuole qualche secondo.', 'To the contract’s payment method. It takes a few seconds.')}
+      </Messaggio>
+    ) : fasePag === 'pagato' ? (
+      <Messaggio tono="ok" titolo={t('Pagamento ricevuto', 'Payment received')}>
+        {cartaPg ? t(`${importoPg} addebitati sulla ${cartaPg}.`, `${importoPg} charged to the ${cartaPg}.`) : t(`${importoPg} pagati.`, `${importoPg} paid.`)}
+      </Messaggio>
+    ) : fasePag === 'incerto' ? (
+      <>
+        <Messaggio tono="attenzione" icona="info" titolo={t('Il pagamento è in corso', 'The payment is in progress')}>
+          {t('Non abbiamo ancora la conferma. La vedi in Pagamenti appena arriva.', 'We don’t have the confirmation yet. You’ll see it under Payments as soon as it arrives.')}
+        </Messaggio>
+        <Pulsante testo={t('Vai ai pagamenti', 'Go to payments')} variante="secondario" onPress={vaiAiPagamenti} />
+      </>
+    ) : fasePag === 'da_pagare' && pg && pg.stato !== 'non_trovato' ? (
+      <>
+        <Messaggio tono="attenzione" titolo={t(`Restano da pagare ${importoPg}`, `${importoPg} still to pay`)}>
+          {`${motivoNonIncassato(pg.stato === 'da_pagare' ? pg.motivo : 'rifiutata', errorePag)} ${t('La sospensione è registrata: puoi pagare adesso con una carta, oppure lasciarli in Pagamenti, sotto «Da pagare».', 'The suspension is recorded: you can pay now by card, or leave it under Payments → “To pay”.')}`}
+        </Messaggio>
+        {errore ? <Messaggio>{errore}</Messaggio> : null}
+        <Pulsante testo={t(`Paga ${importoPg} con una carta`, `Pay ${importoPg} by card`)} icona="avanti" inCorso={pagando} onPress={pagaOra} />
       </>
     ) : null
 
@@ -494,12 +637,13 @@ export function FoglioGestisci({ contratto: c, aperto, onChiudi, onCambiato }: {
           <Riga nome={t('Puoi annullarla fino alle', 'You can cancel it until')} valore={t(`23:59 del ${dataLunga(fatta.ultimoAnnullo)}`, `11:59 pm on ${dataLunga(fatta.ultimoAnnullo)}`)} />
         </View>
       </Carta>
-      {fatta.costo > 0 ? (
+      {bloccoPagamento}
+      {fatta.costo > 0 && (fasePag === null || fasePag === 'pagato') ? (
         <Messaggio tono="attenzione" icona="info">
           {t(`Se la annulli, i ${euro(fatta.costo)} restano come credito sul tuo contratto: vengono applicati in automatico, non sono rimborsati.`, `If you cancel it, the ${euro(fatta.costo)} stays as credit on your contract: it’s applied automatically and isn’t refunded.`)}
         </Messaggio>
       ) : null}
-      <Pulsante testo={t('Torna agli abbonamenti', 'Back to memberships')} variante="secondario" onPress={onChiudi} />
+      <Pulsante testo={fasePag === 'da_pagare' ? t('Lo pago dopo', 'I’ll pay later') : t('Torna agli abbonamenti', 'Back to memberships')} variante="secondario" onPress={onChiudi} />
     </>
   ) : null
 

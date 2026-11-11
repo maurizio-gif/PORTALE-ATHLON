@@ -128,7 +128,21 @@ export type MeseSospendibile = {
   scadenza_stimata: string | null
 }
 
-export type MetodoPagamento = { tipo: 'carta' | 'conto' | 'altro'; finale: string | null; scade: string | null }
+/** `scaduta`: la carta del contratto non e' piu' valida (manca con la funzione di prima): i 15 € non si possono addebitare subito. */
+export type MetodoPagamento = { tipo: 'carta' | 'conto' | 'altro'; finale: string | null; scade: string | null; scaduta?: boolean }
+
+/**
+ * L'incasso dei 15 € subito dopo la sospensione (11/11/2026): lo fa il server sulla carta associata al contratto.
+ * - `in_corso`: l'addebito e' partito sulla carta (`carta` = ultime cifre); com'e' andato lo dice `esitoSaldo`;
+ * - `da_pagare`: non si e' potuto incassare (`motivo`): si propone di pagare adesso con una carta (`quota` e `contratto` servono a `saldaPagamenti`);
+ * - `non_trovato`: l'addebito non risulta ancora, se ne occupa PerfectGym come prima.
+ * Una sospensione gratuita, o una funzione di prima, non portano il campo.
+ */
+export type MotivoNonIncassato = 'conto' | 'carta_scaduta' | 'carta_altra_persona' | 'senza_metodo' | 'altro' | 'rifiutata' | 'non_riconosciuta'
+export type PagamentoSospensione =
+  | { stato: 'in_corso'; quota: number; totale: number; carta: string | null; contratto: number }
+  | { stato: 'da_pagare'; quota: number; totale: number; contratto: number; motivo: MotivoNonIncassato; errore?: string }
+  | { stato: 'non_trovato' }
 
 export type SospensioneProgrammata = { freeze_id: number; dal: string; al: string; annullabile: boolean; ultimo_giorno_annullo: string; credito: number | null }
 
@@ -148,9 +162,13 @@ export async function anteprimaSospensione(contractId: number): Promise<EsitoGes
   return errore(dati, t('Non riusciamo a leggere le sospensioni adesso.', 'We can’t load the suspension options right now.'))
 }
 
-export async function sospendi(contractId: number, primo: string, freezeTypeId: number, costo: number): Promise<EsitoGestione<{ dal: string; al: string; costo: number; scadenza: string | null; scadenzaLetta: boolean }>> {
+export async function sospendi(contractId: number, primo: string, freezeTypeId: number, costo: number): Promise<EsitoGestione<{ dal: string; al: string; costo: number; scadenza: string | null; scadenzaLetta: boolean; pagamento: PagamentoSospensione | null }>> {
   const { ok, dati } = await gestione({ azione: 'sospendi', contract_id: contractId, primo, freeze_type_id: freezeTypeId, costo })
-  if (ok) return { ok: true, dati: { dal: dati.dal, al: dati.al, costo: Number(dati.costo ?? 0), scadenza: dati.scadenza ?? null, scadenzaLetta: dati.scadenza_letta === true } }
+  if (ok) {
+    const stati = ['in_corso', 'da_pagare', 'non_trovato']
+    const pagamento = dati.pagamento && stati.includes(dati.pagamento.stato) ? (dati.pagamento as PagamentoSospensione) : null
+    return { ok: true, dati: { dal: dati.dal, al: dati.al, costo: Number(dati.costo ?? 0), scadenza: dati.scadenza ?? null, scadenzaLetta: dati.scadenza_letta === true, pagamento } }
+  }
   return errore(dati, t('Non siamo riusciti a sospendere adesso. Riprova fra qualche minuto.', 'We couldn’t suspend right now. Try again in a few minutes.'))
 }
 
