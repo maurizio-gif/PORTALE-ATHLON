@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react'
 
 import type { SessioneAdyen } from '@/api/lab'
+import { googlePayInProva } from '@/lib/googlePay'
 import { locale, t } from '@/lib/lingua'
 
 // Il modulo di pagamento di Adyen (Drop-in) sul web, dal CDN con controllo di
@@ -86,7 +87,9 @@ export function DropIn({
           },
         })
         if (!attivo) return
-        const d = new Dropin(checkout, { openFirstPaymentMethod: true, showStoredPaymentMethods: false })
+        // Sulle anteprime di Vercel Google Pay va in TEST, per le schermate che Google chiede per l'accesso alla produzione (`lib/googlePay.ts`). Altrove, cioe' in produzione, niente cambia.
+        const googlePayTest = googlePayInProva(window.location.hostname) ? { paymentMethodsConfiguration: { googlepay: { environment: 'test' } } } : {}
+        const d = new Dropin(checkout, { openFirstPaymentMethod: true, showStoredPaymentMethods: false, ...googlePayTest })
         d.mount(el)
         dropin = d
       } catch (e) {
