@@ -7,7 +7,7 @@ import { t } from '@/lib/lingua'
 import { spazio } from '@/theme'
 
 import { Icona } from '../ui/Icona'
-import { Pulsante } from '../ui/kit'
+import { Messaggio, Pulsante } from '../ui/kit'
 import { F, FUOCO, usePalette } from '../ui/tema'
 import { Tocco } from '../ui/Tocco'
 import { apriDestinazione } from './apri'
@@ -24,11 +24,22 @@ import { chiudiFinestra, finestraComparsa } from './store'
 // **Sotto, se la push e' spenta, una riga per attivarla** (25/10/2026, richiesta di Maurizio: «promuovi di piu l'attivazione delle
 // push»): e' il momento giusto, la persona ha appena visto una notifica del club arrivare. Vale lo stesso rimando di tre giorni
 // della carta in Home (`invitoPush`): chi ha detto «non ora» non se la ritrova qui.
+//
+// **Il pulsante «attiva le notifiche» dentro la notifica** (11/11/2026, richiesta di Maurizio: «il pulsante proprio nella notifica,
+// attiva push qui»): una notifica con destinazione `attiva-notifiche` ha come pulsante l'attivazione stessa. Con la push spenta il
+// tocco chiede il permesso e la attiva, e la finestra resta aperta a dire «Notifiche attivate» (poi «Ok, letto»); con la push gia'
+// attiva, o dove non si puo' (browser senza push, app senza la chiave del servizio) non c'e' pulsante e resta «Ok, letto»; bloccate
+// o iPhone dal web il tocco porta al centro notifiche, che spiega come sbloccarle. La riga «Vuoi riceverle…» non si ripete.
+
+const STATI_CON_INVITO = ['spento', 'bloccato', 'serve_app_installata'] as const
 
 export function FinestraNotifica({ notifica: n }: { notifica: NotificaApp }) {
   const p = usePalette()
   const ins = useSafeAreaInsets()
-  const pulsante = conPulsante(n)
+  const push = usePush()
+  const attivaQui = n.destinazione === 'attiva-notifiche'
+  const inVerifica = attivaQui && push.stato === 'verifica'
+  const pulsante = conPulsante(n) && (!attivaQui || inVerifica || STATI_CON_INVITO.some((s) => s === push.stato))
 
   // Comparsa: una volta sola per notifica, anche se il componente si rimonta.
   useEffect(() => {
@@ -41,6 +52,11 @@ export function FinestraNotifica({ notifica: n }: { notifica: NotificaApp }) {
 
   function premi() {
     segna(n.id, 'azione', 'finestra')
+    if (attivaQui && push.stato === 'spento') {
+      // Il permesso va chiesto dentro il tocco: `attiva` parte subito, prima di ogni attesa. La finestra resta aperta: dice «fatto».
+      void push.attiva()
+      return
+    }
     chiudiFinestra(n.id, true)
     apriDestinazione(n)
   }
@@ -72,11 +88,12 @@ export function FinestraNotifica({ notifica: n }: { notifica: NotificaApp }) {
           <Text style={[stili.testo, { color: p.testoSecondario }]} selectable>
             {n.testo}
           </Text>
-          <OffertaPush />
+          <OffertaPush senzaInvito={attivaQui} />
+          {attivaQui && push.errore ? <Messaggio tono="errore">{push.errore}</Messaggio> : null}
           <View style={{ gap: spazio.due, marginTop: spazio.due }}>
             {pulsante ? (
               <>
-                <Pulsante testo={n.etichetta ?? t('Apri', 'Open')} icona="avanti" onPress={premi} />
+                <Pulsante testo={n.etichetta ?? t('Apri', 'Open')} icona={attivaQui ? 'campanello' : 'avanti'} inCorso={attivaQui && (push.occupato || inVerifica)} onPress={premi} />
                 <Pulsante testo={t('Chiudi', 'Close')} variante="fantasma" onPress={chiudi} />
               </>
             ) : (
@@ -90,7 +107,7 @@ export function FinestraNotifica({ notifica: n }: { notifica: NotificaApp }) {
 }
 
 /** «Vuoi riceverle anche con l'app chiusa?»: solo con la push spenta e non rimandata; dopo il tocco dice «fatto» per qualche secondo. */
-function OffertaPush() {
+function OffertaPush({ senzaInvito = false }: { senzaInvito?: boolean }) {
   const p = usePalette()
   const { stato, occupato, attiva } = usePush()
   const fatta = useAppenaAttivate(stato)
@@ -102,7 +119,8 @@ function OffertaPush() {
       </View>
     )
   }
-  if (invitoPush(stato, leggiRimandoPush(), Date.now()) !== 'attiva') return null
+  // Una notifica che ha gia' il suo pulsante «attiva» non ripete l'invito qui sotto: resta solo il «fatto».
+  if (senzaInvito || invitoPush(stato, leggiRimandoPush(), Date.now()) !== 'attiva') return null
   return (
     <View style={[stili.offerta, { backgroundColor: p.incavo }]}>
       <Icona nome="campanello" size={18} colore={p.accento} />

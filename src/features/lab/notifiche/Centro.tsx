@@ -14,6 +14,7 @@ import { Tocco } from '../ui/Tocco'
 import { vistaCorrente } from '../vista'
 import { apriDestinazione } from './apri'
 import { AttivaPush } from './AttivaPush'
+import { usePush } from './push'
 import { rileggi, tutteLette, unaLetta } from './store'
 
 // Il centro notifiche (20/10/2026): tutto quello che il club ha scritto, dalla piu' recente, con un pallino sulle non lette.
@@ -43,6 +44,8 @@ export function CentroNotifiche() {
   const [stato, setStato] = useState<Stato>({ fase: 'carico' })
   const [aperta, setAperta] = useState<NotificaApp | null>(null)
   const inVista = vistaCorrente() !== null
+  // Per il pulsante «attiva le notifiche» di una notifica (destinazione `attiva-notifiche`): le altre istanze di `usePush` (la carta in cima) si allineano da sole.
+  const push = usePush()
 
   const carica = useCallback(async () => {
     if (inVista) return
@@ -88,6 +91,13 @@ export function CentroNotifiche() {
     segna(n.id, 'azione', 'centro')
     setAperta(null)
     apriDestinazione(n)
+  }
+
+  /** «Attiva le notifiche» dentro la notifica: il permesso si chiede dentro il tocco; a cose fatte il foglio si chiude e la carta in cima dice «attive». */
+  async function premiAttiva(n: NotificaApp) {
+    segna(n.id, 'azione', 'centro')
+    await push.attiva()
+    setAperta(null)
   }
 
   function nascondi(n: NotificaApp) {
@@ -162,7 +172,12 @@ export function CentroNotifiche() {
             <Text style={[stili.dettaglio, { color: p.testo }]} selectable>
               {aperta.testo}
             </Text>
-            {conPulsante(aperta) ? <Pulsante testo={aperta.etichetta ?? t('Apri', 'Open')} icona="avanti" onPress={() => premiPulsante(aperta)} /> : null}
+            {aperta.destinazione === 'attiva-notifiche' ? (
+              // Solo a push spenta: se e' gia' attiva non serve, se e' bloccata o non si puo' la carta in cima dice come fare (o tace).
+              push.stato === 'spento' ? <Pulsante testo={aperta.etichetta ?? t('Attiva le notifiche', 'Turn on notifications')} icona="campanello" inCorso={push.occupato} onPress={() => void premiAttiva(aperta)} /> : null
+            ) : conPulsante(aperta) ? (
+              <Pulsante testo={aperta.etichetta ?? t('Apri', 'Open')} icona="avanti" onPress={() => premiPulsante(aperta)} />
+            ) : null}
             <Pulsante testo={t('Togli dall’elenco', 'Remove from list')} variante="fantasma" piccolo onPress={() => nascondi(aperta)} />
           </View>
         ) : null}
