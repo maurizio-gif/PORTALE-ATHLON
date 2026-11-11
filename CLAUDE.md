@@ -229,3 +229,4 @@ chiamata diretta al gestionale. Esempio: la sezione Prodotti usa l'azione `prodo
 - [«Le tue prenotazioni»: a chi è in lista d'attesa si dice la posizione (10/11/2026)](docs/claude/191-posizione-in-lista-d-attesa-10-11-2026.md) · 7 KB
 - [In lista d'attesa senza le notifiche: l'invito ad attivarle, con il pulsante, sotto la lezione e dopo il pagamento (10/11/2026)](docs/claude/192-invito-push-in-lista-d-attesa-10-11-2026.md) · 5 KB
 - [La foto della Scuola Nuoto Adulti: nel Guest Pass e come copertina delle lezioni del Calendario (10/11/2026)](docs/claude/193-foto-scuola-nuoto-adulti-guest-pass-e-calendario-10-11-2026.md) · 4 KB
+- [«Aiutami a prenotare una lezione»: il suggerimento porta alla pagina Prenotazioni, e la riga sotto la carta lo dice (11/11/2026)](docs/claude/194-aiutami-a-prenotare-il-suggerimento-porta-a-prenotazioni-11-11-2026.md) · 3 KB
