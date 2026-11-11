@@ -4,6 +4,7 @@ import { StyleSheet, Text, TextInput, View } from 'react-native'
 
 import { chiudiSeduta, iniziaSeduta, leggiSchedaLab, segnaSerie, togliSerie, type EsercizioScheda, type GiornoSchedaLab, type Massimale, type Precedente, type SchedaLab } from '@/api/lab'
 import { locale, t } from '@/lib/lingua'
+import { useWindowDimensions } from '@/lib/finestra'
 import { spazio } from '@/theme'
 
 import { oggiRoma } from '../alimentazione/conti'
@@ -11,12 +12,13 @@ import { dimentica, inMemoria, prendi } from '../memoria'
 import { Icona } from '../ui/Icona'
 import { Barra, Carta, Messaggio, Numero, Pulsante, SchedeInArrivo } from '../ui/kit'
 import { Schermata } from '../ui/Schermata'
-import { F, FUOCO, usePalette } from '../ui/tema'
+import { F, FUOCO, usePalette, velo } from '../ui/tema'
 import { colpetto, Tocco } from '../ui/Tocco'
 import { aTempo, chiliProposti, descriviPasso, dettaglioCarico, dopo, gruppo, indicazione, pianoPiuLeggero, recupero, SPIEGA_PIANO_PIU_LEGGERO, SPIEGA_TARATURA, type Passo } from './comune'
 import { MediaEsercizio } from './MediaEsercizio'
 import { Nota, serieInRiga } from './Scheda'
 import { applicaProgressione } from './progressione'
+import { descriviRpe, etichettaRpe, RPE_VALORI } from './rpe'
 import { TimerRecupero } from './TimerRecupero'
 import { CHIAVE_SCHEDE } from './Schede'
 
@@ -27,8 +29,13 @@ import { CHIAVE_SCHEDE } from './Schede'
 // successivo: la serie dopo, o nella superserie l'esercizio dopo del giro.
 // Ogni serie si salva subito: chiudendo l'app a meta', la seduta si riprende.
 
-type Fatta = { ripetizioni: number | null; kg: number | null; secondi: number | null }
-type Bozza = { ripetizioni: string; kg: string }
+// **L'RPE** (11/11/2026, richiesta di Maurizio): accanto a ripetizioni e chili un pulsante «RPE» apre, sotto la riga, lo sforzo percepito da 0 a 10
+// con una legenda corta. E' **facoltativo** (pensato per chi si allena gia' da un po'): chi non lo tocca non vede niente di diverso. Si sceglie prima
+// di segnare la serie, o anche dopo, sulla serie gia' fatta (si risalva la stessa serie). Il pulsante c'e' solo se il server lo sa salvare
+// (`rpe: true` nella risposta di `inizia`): con una funzione di prima non compare, invece di far scegliere un numero che poi si perde.
+
+type Fatta = { ripetizioni: number | null; kg: number | null; secondi: number | null; rpe?: number | null }
+type Bozza = { ripetizioni: string; kg: string; rpe?: number | null }
 
 const chiaveSerie = (riga: string, n: number) => `${riga}:${n}`
 
@@ -59,6 +66,8 @@ function RigaSerie({
   onBozza,
   onSegna,
   onTogli,
+  conRpe,
+  onRpe,
 }: {
   e: EsercizioScheda
   n: number
@@ -69,11 +78,38 @@ function RigaSerie({
   onBozza: (b: Bozza) => void
   onSegna: () => void
   onTogli: () => void
+  /** Il server sa salvare l'RPE: senza, il pulsante non c'e'. */
+  conRpe: boolean
+  /** L'RPE scelto (o tolto, con null): sulla bozza, o sulla serie gia' fatta. */
+  onRpe: (rpe: number | null) => void
 }) {
   const p = usePalette()
   const tempo = aTempo(e.ripetizioni)
+  const [rpeAperto, setRpeAperto] = useState(false)
+  const rpe = (fatta ? fatta.rpe : bozza.rpe) ?? null
+  // Su un telefono, accanto a due campi il pulsante li schiaccerebbe («37,5» non ci starebbe piu'): sulla serie ancora da fare va su una riga sua,
+  // e solo su quella che si sta facendo adesso. Sulla serie fatta lo spazio c'e' sempre, e sta in riga. Da 480 px in su sta sempre in riga.
+  const stretto = useWindowDimensions().width < 480
+  const rpeInRiga = !!fatta || !stretto
+  const rpeSotto = conRpe && !fatta && stretto && (attiva || rpe != null || rpeAperto)
+  const pulsanteRpe = (
+    <Tocco
+      onPress={() => setRpeAperto((a) => !a)}
+      etichetta={
+        rpe != null
+          ? t(`Serie ${n}: sforzo ${etichettaRpe(rpe)}. Tocca per cambiarlo`, `Set ${n}: effort ${etichettaRpe(rpe)}. Tap to change it`)
+          : t(`Serie ${n}: indica lo sforzo (RPE), facoltativo`, `Set ${n}: rate the effort (RPE), optional`)
+      }
+      stato={{ expanded: rpeAperto }}
+      style={[stili.rpe, rpe != null ? { backgroundColor: velo(p, 'accento'), borderColor: p.accento } : { backgroundColor: 'transparent', borderColor: rpeAperto ? p.accento : p.linea }]}
+    >
+      <Text style={[stili.rpeSigla, { color: rpe != null ? p.accento : p.testoSecondario }]}>RPE</Text>
+      {rpe != null ? <Text style={[stili.rpeValore, { color: p.accento }]}>{String(rpe).replace('.', t(',', '.'))}</Text> : null}
+    </Tocco>
+  )
   return (
-    <View style={[stili.serie, { backgroundColor: fatta ? 'transparent' : attiva ? p.incavo : 'transparent', borderColor: attiva && !fatta ? p.accento : p.linea }]}>
+    <View style={[stili.serieRiquadro, { backgroundColor: fatta ? 'transparent' : attiva ? p.incavo : 'transparent', borderColor: attiva && !fatta ? p.accento : p.linea }]}>
+    <View style={stili.serie}>
       <Text style={[stili.serieNumero, { color: fatta ? p.ok : attiva ? p.accento : p.testoSecondario }]}>{n}</Text>
       {fatta ? (
         <Text style={[stili.serieFatta, { color: p.testo }]}>{serieInRiga([fatta])}</Text>
@@ -111,14 +147,58 @@ function RigaSerie({
           )}
         </>
       )}
+      {conRpe && rpeInRiga ? pulsanteRpe : null}
       <Tocco
-        onPress={fatta ? onTogli : onSegna}
+        onPress={() => {
+          setRpeAperto(false)
+          ;(fatta ? onTogli : onSegna)()
+        }}
         spento={occupata}
         etichetta={fatta ? t(`Togli la serie ${n}`, `Remove set ${n}`) : t(`Segna la serie ${n} fatta`, `Mark set ${n} as done`)}
         style={[stili.spunta, { backgroundColor: fatta ? p.ok : attiva ? p.accento : p.incavo }]}
       >
         <Icona nome={fatta ? 'spunta' : 'spunta'} size={20} colore={fatta || attiva ? '#fff' : p.testoTerzo} />
       </Tocco>
+    </View>
+    {rpeSotto ? (
+      <View style={stili.rpeSotto}>
+        {pulsanteRpe}
+        <Text style={[stili.rpeLegenda, { color: p.testoTerzo, flex: 1 }]}>{t('Sforzo percepito · facoltativo', 'Perceived effort · optional')}</Text>
+      </View>
+    ) : null}
+    {conRpe && rpeAperto ? (
+      <View style={[stili.rpePannello, { borderTopColor: p.linea }]}>
+        <Text style={[stili.rpeTitolo, { color: p.testo }]}>{t('RPE: quanto è stata dura questa serie?', 'RPE: how hard was this set?')}</Text>
+        <Text style={[stili.rpeLegenda, { color: p.testoSecondario }]}>
+          {t(
+            'Da 0 (nessuno sforzo) a 10 (il massimo). Pensa a quante ripetizioni avresti ancora fatto: 10 nessuna, 9 ancora una, 8 ancora due, 7 ancora tre.',
+            'From 0 (no effort) to 10 (maximum). Think of how many more reps you had left: 10 none, 9 one more, 8 two more, 7 three more.',
+          )}
+        </Text>
+        <View style={stili.rpeValori}>
+          {RPE_VALORI.map((v) => {
+            const scelto = rpe === v
+            return (
+              <Tocco
+                key={v}
+                onPress={() => onRpe(scelto ? null : v)}
+                spento={occupata}
+                etichetta={t(`RPE ${v}: ${descriviRpe(v)}`, `RPE ${v}: ${descriviRpe(v)}`)}
+                stato={{ selected: scelto }}
+                style={[stili.rpeNumero, { backgroundColor: scelto ? p.accento : p.carta, borderColor: scelto ? p.accento : p.linea }]}
+              >
+                <Text style={[stili.rpeNumeroTesto, { color: scelto ? '#fff' : p.testo }]}>{v}</Text>
+              </Tocco>
+            )
+          })}
+        </View>
+        <Text style={[stili.rpeLegenda, { color: rpe != null ? p.testo : p.testoTerzo }]}>
+          {rpe != null
+            ? `${etichettaRpe(rpe)} · ${descriviRpe(rpe)}. ${t('Tocca di nuovo il numero per toglierlo.', 'Tap the number again to remove it.')}`
+            : t('Facoltativo: se non lo indichi non cambia niente.', 'Optional: nothing changes if you skip it.')}
+        </Text>
+      </View>
+    ) : null}
     </View>
   )
 }
@@ -141,6 +221,8 @@ export function Seduta() {
   const [timer, setTimer] = useState<{ fine: number; totale: number; prossimo: string; dettaglio: string | null } | null>(null)
   const [ora, setOra] = useState(Date.now())
   const [finita, setFinita] = useState<{ serie: number; volume: number; durata: string } | null>(null)
+  // Il server sa salvare l'RPE di una serie (11/11/2026): lo dice quando apre la seduta.
+  const [conRpe, setConRpe] = useState(false)
 
   const giorno: GiornoSchedaLab | undefined = scheda?.giorni.find((g) => g.id === giornoId)
 
@@ -154,8 +236,9 @@ export function Seduta() {
     const r = await iniziaSeduta(String(schedaId), String(giornoId))
     if (!r.ok) return setErrore(r.errore)
     setSeduta(r.allenamento)
+    setConRpe(r.rpe)
     const m = new Map<string, Fatta>()
-    for (const x of r.serie) m.set(chiaveSerie(x.scheda_esercizio_id, x.numero), { ripetizioni: x.ripetizioni, kg: x.kg, secondi: x.secondi })
+    for (const x of r.serie) m.set(chiaveSerie(x.scheda_esercizio_id, x.numero), { ripetizioni: x.ripetizioni, kg: x.kg, secondi: x.secondi, rpe: x.rpe ?? null })
     setFatte(m)
     // Si riparte dal primo passo non fatto.
     const g = applicaProgressione(s.scheda, oggiRoma()).scheda.giorni.find((x) => x.id === giornoId)
@@ -204,9 +287,10 @@ export function Seduta() {
     const e = giorno.esercizi[i]
     const b = bozzaDi(e, n)
     const tempo = aTempo(e.ripetizioni)
+    const rpe = conRpe ? (b.rpe ?? null) : null
     const fatta: Fatta = tempo
-      ? { ripetizioni: null, kg: null, secondi: numero(b.ripetizioni) }
-      : { ripetizioni: numero(b.ripetizioni), kg: numero(b.kg), secondi: null }
+      ? { ripetizioni: null, kg: null, secondi: numero(b.ripetizioni), rpe }
+      : { ripetizioni: numero(b.ripetizioni), kg: numero(b.kg), secondi: null, rpe }
     const k = chiaveSerie(e.id, n)
     const fatteOra = new Map(fatte).set(k, fatta) // con la serie appena segnata: il timer dice i chili che si riempiranno nel campo
     setFatte((m) => new Map(m).set(k, fatta))
@@ -237,6 +321,28 @@ export function Seduta() {
         c.delete(k)
         return c
       })
+      setErrore(r.errore)
+      colpetto('errore')
+    }
+  }
+
+  /** L'RPE di una serie: sulla bozza se la serie e' ancora da segnare; su una serie gia' fatta si risalva la stessa serie col nuovo valore. */
+  async function scegliRpe(i: number, n: number, rpe: number | null) {
+    if (!giorno || !seduta) return
+    const e = giorno.esercizi[i]
+    const k = chiaveSerie(e.id, n)
+    const prima = fatte.get(k)
+    if (!prima) {
+      const b = bozzaDi(e, n)
+      setBozze((m) => new Map(m).set(k, { ...b, rpe }))
+      return
+    }
+    const dopoRpe: Fatta = { ...prima, rpe }
+    setFatte((m) => new Map(m).set(k, dopoRpe))
+    setErrore(null)
+    const r = await segnaSerie({ allenamento_id: seduta.id, scheda_esercizio_id: e.id, esercizio_id: e.esercizio_id, numero: n, ...dopoRpe })
+    if (!r.ok) {
+      setFatte((m) => (m.has(k) ? new Map(m).set(k, prima) : m))
       setErrore(r.errore)
       colpetto('errore')
     }
@@ -387,6 +493,8 @@ export function Seduta() {
                         onBozza={(b) => setBozze((m) => new Map(m).set(chiaveSerie(e.id, n), b))}
                         onSegna={() => segna(i, n)}
                         onTogli={() => togli(i, n)}
+                        conRpe={conRpe}
+                        onRpe={(v) => scegliRpe(i, n, v)}
                       />
                     ))}
                   </View>
@@ -424,7 +532,18 @@ const stili = StyleSheet.create({
   nomeGrande: { fontFamily: F.extra, fontSize: 21, lineHeight: 25, letterSpacing: -0.5 },
   superserie: { fontFamily: F.extra, fontSize: 10.5, letterSpacing: 0.8 },
   piccola: { fontFamily: F.semi, fontSize: 13 },
-  serie: { flexDirection: 'row', alignItems: 'center', gap: spazio.due, borderRadius: 16, borderWidth: 1, paddingVertical: 8, paddingHorizontal: 10 },
+  serieRiquadro: { borderRadius: 16, borderWidth: 1, paddingVertical: 8, paddingHorizontal: 10 },
+  serie: { flexDirection: 'row', alignItems: 'center', gap: spazio.due },
+  rpe: { height: 44, minWidth: 48, paddingHorizontal: 8, borderRadius: 12, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
+  rpeSigla: { fontFamily: F.extra, fontSize: 11, letterSpacing: 0.6 },
+  rpeValore: { fontFamily: F.extra, fontSize: 15, lineHeight: 17, fontVariant: ['tabular-nums'] },
+  rpeSotto: { flexDirection: 'row', alignItems: 'center', gap: spazio.due, marginTop: 8, paddingLeft: 22 + spazio.due },
+  rpePannello: { marginTop: 8, paddingTop: 10, borderTopWidth: StyleSheet.hairlineWidth, gap: 8 },
+  rpeTitolo: { fontFamily: F.extra, fontSize: 14.5 },
+  rpeLegenda: { fontFamily: F.medio, fontSize: 13, lineHeight: 18.5 },
+  rpeValori: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
+  rpeNumero: { width: 44, height: 44, borderRadius: 12, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
+  rpeNumeroTesto: { fontFamily: F.extra, fontSize: 16, fontVariant: ['tabular-nums'] },
   serieNumero: { width: 22, fontFamily: F.extra, fontSize: 17, textAlign: 'center' },
   serieFatta: { flex: 1, fontFamily: F.bold, fontSize: 15 },
   campo: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 4 },
