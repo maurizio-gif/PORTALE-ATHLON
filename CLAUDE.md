@@ -233,3 +233,4 @@ chiamata diretta al gestionale. Esempio: la sezione Prodotti usa l'azione `prodo
 - [«Aiutami a prenotare una lezione»: il suggerimento porta alla pagina Prenotazioni, e la riga sotto la carta lo dice (11/11/2026)](docs/claude/195-aiutami-a-prenotare-il-suggerimento-porta-a-prenotazioni-11-11-2026.md) · 3 KB
 - [Apple Pay sul web: il file di verifica del dominio `app.athlonroma.it`, che Adyen controlla prima di accettare la richiesta (11/11/2026)](docs/claude/196-apple-pay-file-di-verifica-del-dominio-11-11-2026.md) · 3 KB
 - [I piani dell'AI: le risposte non sanitarie del questionario si conservano, e il piano tenuto le porta con sé; la postilla lo dice (11/11/2026)](docs/claude/197-schede-ai-il-questionario-si-conserva-senza-la-salute-11-11-2026.md) · 3 KB
+- [Il ritiro in segreteria si fa col numero dell'ordine: il QR è tolto, perché il club non ha un lettore da banco (11/11/2026)](docs/claude/198-ritiro-con-il-numero-dell-ordine-senza-qr-11-11-2026.md) · 3 KB

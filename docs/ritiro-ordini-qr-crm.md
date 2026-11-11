@@ -1,5 +1,7 @@
 # Ritiro degli ordini dello shop con il QR: cosa serve nel CRM
 
+> **Superato l'11/11/2026.** Il QR è stato tolto dall'app (il club non ha un lettore da banco): ora l'ordine mostra il suo numero, e la segreteria lo trova nella scheda della persona («Da consegnare») o in Shop → «Cerca un ordine». Vedi `docs/claude/198-ritiro-con-il-numero-dell-ordine-senza-qr-11-11-2026.md`. Quello che segue è la richiesta originale.
+
 Lato app (PORTALE-ATHLON, 30/10/2026) è fatto: l'ordine **pagato e non ancora ritirato** mostra un QR e un codice breve, in `shop/CodiceRitiro.tsx` (esito del pagamento e «I miei ordini»).
 **Nel CRM (APP-ATHLON) non è stato toccato niente**: finché la segreteria non può cercare un ordine con questo codice, il QR è solo un modo di mostrare l'ordine.
 
