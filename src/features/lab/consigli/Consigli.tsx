@@ -505,8 +505,8 @@ function Risposta({
 
       <Text style={[stili.avvertenza, { color: p.testoTerzo }]}>
         {tr(
-          'I posti cambiano in fretta: l’ultima parola è del Calendario. Prima di una nuova lezione contano le regole di sempre, per esempio quante prenotazioni attive si possono avere per categoria.',
-          'Spots change quickly: the Calendar has the final say. The usual rules apply before a new class, for example how many active bookings you can have per category.',
+          'I posti cambiano in fretta: l’ultima parola è del Calendario. Prima di una nuova lezione contano le regole di sempre, per esempio quante prenotazioni attive si possono avere insieme.',
+          'Spots change quickly: the Calendar has the final say. The usual rules apply before a new class, for example how many active bookings you can have at once.',
         )}
       </Text>
 

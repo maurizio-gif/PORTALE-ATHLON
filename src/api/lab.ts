@@ -201,11 +201,12 @@ export type Lezione = {
   prenotabile_dal: string | null
   prenotazione: { booking_id: number; attesa: boolean; posizione?: number | null } | null
   /**
-   * Il limite delle prenotazioni attive della categoria, se e' gia' pieno (tre
-   * per Corsi Fitness, Aqua Fitness e Scuola Nuoto Adulti, una per Group
-   * Reformer): `messaggio` dice perche' non si prenota, con le lezioni che lo occupano.
+   * Il limite delle prenotazioni attive, se e' gia' pieno: **tre in tutto fra Corsi Fitness, Aqua Fitness e Scuola
+   * Nuoto Adulti** (dall'11/11/2026 le tre attivita' dividono lo stesso limite), piu' una di Group Reformer; la lista
+   * d'attesa conta. `messaggio` dice perche' non si prenota, con il nome delle lezioni che lo occupano (`prenotate`, di
+   * qualunque categoria del limite: `categorie`, che una funzione di prima non manda).
    */
-  limite?: { categoria: string; massimo: number; messaggio: string; prenotate: { class_id: number; nome: string; inizio: string; attesa: boolean }[] } | null
+  limite?: { categoria: string; categorie?: string[]; massimo: number; messaggio: string; prenotate: { class_id: number; nome: string; inizio: string; attesa: boolean }[] } | null
   /** La chiave della sua scheda in `Giorno.schede`, se il sito ne ha una. */
   scheda: string | null
 }
