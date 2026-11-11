@@ -14,7 +14,7 @@ import { F, usePalette, velo } from '../ui/tema'
 import { colpetto, Tocco } from '../ui/Tocco'
 import { kg as formatoKg, giornoTest, stimaMassimale } from './comune'
 import { MediaEsercizio } from './MediaEsercizio'
-import { daCopertura, statoMinimo, type GruppoTest, type StatoMinimo } from './minimoTest'
+import { daCopertura, GRUPPI_CON_SECONDO_CONSIGLIATO, secondoConsigliato, statoMinimo, type GruppoTest, type StatoMinimo } from './minimoTest'
 
 // Il test dei massimali (16/10/2026): pochi esercizi per la parte superiore,
 // il core e la parte inferiore. A carico si scrive il peso e quante
@@ -28,6 +28,9 @@ import { daCopertura, statoMinimo, type GruppoTest, type StatoMinimo } from './m
 // dice «Tutti e tre fatti» e che gli altri esercizi sono facoltativi (rendono i chili piu' precisi). Sotto ogni gruppo una pillola: «Da fare:
 // scegline uno» o «Minimo fatto»; gli esercizi in piu' di un gruppo gia' fatto sono «Facoltativo», non piu' «Consigliato» (che su tutti e sette
 // faceva sembrare obbligatori tutti e sette). Lo stato viene da `minimoTest.ts` (puro, `scripts/prova-minimo-test.ts`).
+// **Il secondo esercizio delle gambe e' «Consigliato»** (11/11/2026, deciso da Maurizio): fatto uno dei due della parte inferiore, l'altro non e'
+// «Facoltativo» ma «Consigliato», perche' i due test delle gambe sono quelli che piu' spesso non tornano fra loro (`secondoConsigliato`). Il
+// minimo resta tre, e «Tutti e tre fatti» non cambia: sotto, una riga invita a fare anche l'altro.
 
 const GRUPPI: { chiave: EsercizioTest['test_gruppo']; titolo: string }[] = [
   { chiave: 'superiore', titolo: t('Parte superiore del corpo', 'Upper body') },
@@ -73,8 +76,11 @@ type NotaGruppo = { pillola: string; tono: 'ok' | 'attenzione'; testo: string | 
  * Cosa dire sotto un gruppo del test (04/11/2026, riscritto l'11/11/2026): prima se il minimo del gruppo c'e' (un esercizio), poi, per chi ne fa
  * di piu', se i test tornano fra loro. `fatto` viene dall'elenco degli esercizi, `c` dal server (puo' mancare).
  */
-function notaGruppo(chiave: GruppoTest, c: CoperturaTest | null, fatto: boolean, quanti: number): NotaGruppo {
+function notaGruppo(chiave: GruppoTest, c: CoperturaTest | null, fatto: boolean, quanti: number, fatti: number): NotaGruppo {
   if (!fatto) {
+    if (quanti > 1 && GRUPPI_CON_SECONDO_CONSIGLIATO.includes(chiave)) {
+      return { pillola: t('Da fare: scegline uno', 'To do: pick one'), tono: 'attenzione', testo: t('Per il minimo ne basta uno, quello che preferisci. Ti consigliamo di fare poi anche l’altro.', 'One is enough for the minimum, whichever you prefer. We recommend doing the other one too afterwards.') }
+    }
     return quanti > 1
       ? { pillola: t('Da fare: scegline uno', 'To do: pick one'), tono: 'attenzione', testo: t('Per il minimo ne basta uno, quello che preferisci. Gli altri sono facoltativi.', 'One is enough for the minimum, whichever you prefer. The others are optional.') }
       : { pillola: t('Da fare', 'To do'), tono: 'attenzione', testo: null }
@@ -90,6 +96,9 @@ function notaGruppo(chiave: GruppoTest, c: CoperturaTest | null, fatto: boolean,
         testo: t('I test non tornano fra loro: per i chili usiamo il più prudente. Rifanne uno', 'Your tests don’t match: we use the more cautious one for your weights. Retake one'),
       }
     default:
+      if (secondoConsigliato(chiave, fatti, quanti)) {
+        return { pillola: t('Minimo fatto', 'Minimum done'), tono: 'ok', testo: t('Consigliato: fai anche l’altro esercizio. Con uno solo i chili delle gambe sono i meno sicuri, con due li controlliamo.', 'Recommended: do the other exercise too. With just one, your leg weights are the least certain; with two we can check them.') }
+      }
       return { pillola: t('Minimo fatto', 'Minimum done'), tono: 'ok', testo: t('Facoltativo: con un altro esercizio di questo gruppo controlliamo che i chili tornino.', 'Optional: with another exercise from this group we can check your weights add up.') }
   }
 }
@@ -103,6 +112,22 @@ function RiquadroMinimo({ stato, esercizi }: { stato: StatoMinimo; esercizi: num
   if (!stato.totale) return null
   const titolo = stato.raggiunto ? titoloRaggiunto(stato.totale) : t(`Il minimo: ${stato.totale} esercizi`, `The minimum: ${stato.totale} exercises`)
   const conteggio = t(`${stato.fatti} di ${stato.totale}`, `${stato.fatti} of ${stato.totale}`)
+  // Gli esercizi non fatti si dividono in consigliati (il secondo delle gambe) e facoltativi: i primi hanno la loro riga, qui si dicono i secondi.
+  const facoltativi = stato.altri - stato.consigliati
+  const altriDetti =
+    facoltativi > 0
+      ? stato.consigliati > 0
+        ? t(
+            `${facoltativi === 1 ? 'L’altro esercizio è facoltativo' : `Gli altri ${facoltativi} sono facoltativi`}: con più test i calcoli sono più accurati.`,
+            `The other ${facoltativi === 1 ? 'exercise is' : `${facoltativi} are`} optional: more tests make the numbers more accurate.`,
+          )
+        : t(
+            `Vuoi chili più precisi? Fai anche ${facoltativi === 1 ? 'l’altro esercizio' : `gli altri ${facoltativi}`}: non è obbligatorio, ma con più test i calcoli sono più accurati.`,
+            `Want more precise weights? Do the other ${facoltativi === 1 ? 'exercise' : `${facoltativi}`} too: it isn’t required, but more tests make the numbers more accurate.`,
+          )
+      : stato.consigliati > 0
+        ? null
+        : t('Hai fatto anche tutti gli altri: i tuoi chili sono i più precisi che possiamo calcolare.', 'You’ve done all the others too: your weights are as precise as we can make them.')
   return (
     <Carta style={[{ gap: spazio.tre }, stato.raggiunto && { borderColor: velo(p, 'ok', 0.55) }]}>
       <View style={{ gap: 4 }}>
@@ -148,14 +173,16 @@ function RiquadroMinimo({ stato, esercizi }: { stato: StatoMinimo; esercizi: num
           <Text style={[stili.nota, { color: p.testo }]}>
             {t('Hai fatto il minimo: nei tuoi piani le percentuali sono diventate i tuoi chili.', 'You’ve done the minimum: the percentages in your plans have become your own weights.')}
           </Text>
-          <Text style={[stili.nota, { color: p.testoSecondario }]}>
-            {stato.altri > 0
-              ? t(
-                  `Vuoi chili più precisi? Fai anche ${stato.altri === 1 ? 'l’altro esercizio' : `gli altri ${stato.altri}`}: non è obbligatorio, ma con più test i calcoli sono più accurati.`,
-                  `Want more precise weights? Do the other ${stato.altri === 1 ? 'exercise' : `${stato.altri}`} too: it isn’t required, but more tests make the numbers more accurate.`,
-                )
-              : t('Hai fatto anche tutti gli altri: i tuoi chili sono i più precisi che possiamo calcolare.', 'You’ve done all the others too: your weights are as precise as we can make them.')}
-          </Text>
+          {stato.consigliati > 0 ? (
+            <Text style={[stili.nota, { color: p.testo }]}>
+              <Text style={{ fontFamily: F.bold, color: p.accento }}>{t('Consigliato: ', 'Recommended: ')}</Text>
+              {t(
+                'fai anche l’altro esercizio delle gambe. Con uno solo i chili delle gambe sono i meno sicuri, con due li controlliamo.',
+                'do the other leg exercise too. With just one, your leg weights are the least certain; with two we can check them.',
+              )}
+            </Text>
+          ) : null}
+          {altriDetti ? <Text style={[stili.nota, { color: p.testoSecondario }]}>{altriDetti}</Text> : null}
         </View>
       ) : stato.fatti > 0 ? (
         <Text style={[stili.nota, { color: p.testo }]}>
@@ -166,7 +193,7 @@ function RiquadroMinimo({ stato, esercizi }: { stato: StatoMinimo; esercizi: num
   )
 }
 
-function FoglioTest({ e, minimoGiaFatto, onChiudi, onSalvato }: { e: EsercizioTest | null; /** Il minimo c'era gia' prima di questo test. */ minimoGiaFatto: boolean; onChiudi: () => void; onSalvato: () => void }) {
+function FoglioTest({ e, minimoGiaFatto, gambe, onChiudi, onSalvato }: { e: EsercizioTest | null; /** Il minimo c'era gia' prima di questo test. */ minimoGiaFatto: boolean; /** Quanti esercizi della parte inferiore ci sono nel test. */ gambe: number; onChiudi: () => void; onSalvato: () => void }) {
   const p = usePalette()
   const [peso, setPeso] = useState('')
   const [rip, setRip] = useState('')
@@ -176,7 +203,7 @@ function FoglioTest({ e, minimoGiaFatto, onChiudi, onSalvato }: { e: EsercizioTe
   // Dopo il salvataggio: i test di questo distretto non tornano fra loro (04/11/2026).
   const [discordante, setDiscordante] = useState(false)
   // Dopo il salvataggio: a che punto e' il minimo (11/11/2026). `appena`: l'ha raggiunto con questo test.
-  const [minimo, setMinimo] = useState<{ fatti: number; totale: number; raggiunto: boolean; mancano: GruppoTest[]; appena: boolean } | null>(null)
+  const [minimo, setMinimo] = useState<{ fatti: number; totale: number; raggiunto: boolean; mancano: GruppoTest[]; appena: boolean; consigliaGambe: boolean } | null>(null)
 
   useEffect(() => {
     setPeso(e?.ultimo?.kg ? String(e.ultimo.kg).replace('.', t(',', '.')) : '')
@@ -209,7 +236,7 @@ function FoglioTest({ e, minimoGiaFatto, onChiudi, onSalvato }: { e: EsercizioTe
     setFatto(esito.massimale)
     setDiscordante(!!esito.copertura?.discordanti.some((d) => d === e.test_gruppo))
     const m = daCopertura(esito.copertura)
-    setMinimo(m ? { ...m, appena: m.raggiunto && !minimoGiaFatto } : null)
+    setMinimo(m ? { ...m, appena: m.raggiunto && !minimoGiaFatto, consigliaGambe: secondoConsigliato('inferiore', esito.copertura?.gruppi.inferiore?.fatti ?? 0, gambe) } : null)
     onSalvato()
   }
 
@@ -260,10 +287,15 @@ function FoglioTest({ e, minimoGiaFatto, onChiudi, onSalvato }: { e: EsercizioTe
             ) : null}
             {minimo?.appena ? (
               <Messaggio tono="ok" titolo={titoloRaggiunto(minimo.totale)}>
-                {t(
-                  'Hai fatto il minimo: nei tuoi piani le percentuali diventano i tuoi chili. Gli altri esercizi sono facoltativi: con più test i calcoli sono più accurati.',
-                  'You’ve done the minimum: the percentages in your plans become your own weights. The other exercises are optional: more tests make the numbers more accurate.',
-                )}
+                {minimo.consigliaGambe
+                  ? t(
+                      'Hai fatto il minimo: nei tuoi piani le percentuali diventano i tuoi chili. Ti consigliamo di fare anche l’altro esercizio delle gambe: con due controlliamo che i chili tornino. Gli altri sono facoltativi.',
+                      'You’ve done the minimum: the percentages in your plans become your own weights. We recommend doing the other leg exercise too: with two we can check your weights add up. The others are optional.',
+                    )
+                  : t(
+                      'Hai fatto il minimo: nei tuoi piani le percentuali diventano i tuoi chili. Gli altri esercizi sono facoltativi: con più test i calcoli sono più accurati.',
+                      'You’ve done the minimum: the percentages in your plans become your own weights. The other exercises are optional: more tests make the numbers more accurate.',
+                    )}
               </Messaggio>
             ) : minimo && !minimo.raggiunto ? (
               <Text style={[stili.nota, { color: p.testoSecondario, textAlign: 'center' }]}>
@@ -390,7 +422,9 @@ export function Test() {
         if (!qui.length) return null
         const aperto = aperti[g.chiave]
         const fattoQui = qui.some((e) => e.ultimo)
-        const nota = notaGruppo(g.chiave, dati.copertura, fattoQui, qui.length)
+        const fattiQui = qui.filter((e) => e.ultimo).length
+        const nota = notaGruppo(g.chiave, dati.copertura, fattoQui, qui.length, fattiQui)
+        const consigliato = secondoConsigliato(g.chiave, fattiQui, qui.length)
         return (
           <View key={g.chiave} style={{ gap: spazio.due }}>
             <Tocco onPress={() => setAperti((a) => ({ ...a, [g.chiave]: !aperto }))} etichetta={g.titolo} stato={{ selected: aperto }} style={stili.gruppo}>
@@ -413,6 +447,8 @@ export function Test() {
                         {/* Finche' il gruppo non ha il suo esercizio la scelta e' libera (lo dice la pillola del gruppo); dopo, gli altri sono in piu'. */}
                         {e.ultimo ? (
                           <Text style={[stili.etichettaTest, { color: p.ok }]}>{t('✓ Fatto', '✓ Done')}</Text>
+                        ) : consigliato ? (
+                          <Text style={[stili.etichettaTest, { color: p.accento }]}>{t('Consigliato: controlla i chili delle gambe', 'Recommended: checks your leg weights')}</Text>
                         ) : fattoQui ? (
                           <Text style={[stili.etichettaTest, { color: p.testoSecondario }]}>{t('Facoltativo: chili più precisi', 'Optional: more precise weights')}</Text>
                         ) : null}
@@ -431,6 +467,7 @@ export function Test() {
       <FoglioTest
         e={scelto}
         minimoGiaFatto={minimo.raggiunto}
+        gambe={dati.esercizi.filter((x) => x.test_gruppo === 'inferiore').length}
         onChiudi={() => setScelto(null)}
         onSalvato={() => {
           // Le schede ricalcolano i chili col massimale nuovo.

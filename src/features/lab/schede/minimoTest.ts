@@ -33,6 +33,26 @@ export type StatoMinimo = {
   mancano: GruppoTest[]
   /** Gli esercizi del test non ancora fatti: quelli in piu', che rendono i chili piu' precisi. */
   altri: number
+  /** Fra gli `altri`, quelli consigliati (`secondoConsigliato`): oggi il secondo esercizio delle gambe, quando ne e' stato fatto uno solo. */
+  consigliati: number
+  /** I gruppi a cui appartengono i `consigliati`. */
+  gruppiConsigliati: GruppoTest[]
+}
+
+/**
+ * I gruppi in cui il secondo esercizio non e' un di piu' ma un consiglio (11/11/2026, deciso da Maurizio): la parte inferiore. I due test
+ * delle gambe (leg extension e leg curl) danno spesso stime che non tornano fra loro (in tre soci su quattro di quelli che li avevano fatti
+ * tutti e due), e con un test solo non c'e' modo di accorgersene; i test della parte superiore invece tornano fra loro, e li' il secondo
+ * resta facoltativo. Il minimo non cambia: resta un esercizio per gruppo. La stessa regola sta nel CRM (`lib/massimaliTest.ts` di APP-ATHLON).
+ */
+export const GRUPPI_CON_SECONDO_CONSIGLIATO: GruppoTest[] = ['inferiore']
+
+/**
+ * Gli esercizi non ancora fatti di questo gruppo sono «consigliati»? Si' se il gruppo e' fra quelli sopra, ne ha piu' di uno, e ne e' stato
+ * fatto **uno solo**: con zero la scelta e' ancora libera (basta il minimo), con due il controllo c'e' gia'.
+ */
+export function secondoConsigliato(gruppo: GruppoTest, fatti: number, totale: number): boolean {
+  return GRUPPI_CON_SECONDO_CONSIGLIATO.includes(gruppo) && totale > 1 && fatti === 1
 }
 
 /** Lo stato del minimo, dall'elenco degli esercizi del test (`ultimo` non nullo = fatto). */
@@ -45,6 +65,7 @@ export function statoMinimo(esercizi: { test_gruppo: GruppoTest; ultimo: unknown
     passi.push({ gruppo, fatto: fatti >= 1, fatti, totale: qui.length })
   }
   const fatti = passi.filter((p) => p.fatto).length
+  const daConsigliare = passi.filter((p) => secondoConsigliato(p.gruppo, p.fatti, p.totale))
   return {
     passi,
     fatti,
@@ -52,6 +73,8 @@ export function statoMinimo(esercizi: { test_gruppo: GruppoTest; ultimo: unknown
     raggiunto: passi.length > 0 && fatti === passi.length,
     mancano: passi.filter((p) => !p.fatto).map((p) => p.gruppo),
     altri: esercizi.filter((e) => e.ultimo == null).length,
+    consigliati: daConsigliare.reduce((n, p) => n + (p.totale - p.fatti), 0),
+    gruppiConsigliati: daConsigliare.map((p) => p.gruppo),
   }
 }
 

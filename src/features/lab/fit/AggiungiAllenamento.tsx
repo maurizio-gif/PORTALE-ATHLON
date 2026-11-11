@@ -149,7 +149,7 @@ export function AggiungiAllenamento({ disp, compatto = false }: { disp: Disposit
         <View style={stili.testa}>
           <Bollino icona="aggiungi" tono="accento" size={compatto ? 36 : 46} />
           <View style={{ flex: 1, gap: 2 }}>
-            <Text style={[stili.titolo, { color: p.testo }, compatto && { fontSize: 16 }]}>{compatto ? t('Aggiungi un allenamento esterno', 'Add an outside workout') : t('Aggiungi un allenamento', 'Add a workout')}</Text>
+            <Text style={[stili.titolo, { color: p.testo }, compatto && { fontSize: 16 }]}>{compatto ? t('Aggiungi i tuoi allenamenti all’esterno', 'Add your outside workouts') : t('Aggiungi un allenamento', 'Add a workout')}</Text>
             <Text style={[stili.nota, { color: p.testoSecondario }, compatto && { fontSize: 13, lineHeight: 18 }]}>{compatto ? t('Se pratichi altri sport aggiungi qui manualmente il tuo allenamento.', 'If you play other sports, add your workout here by hand.') : t('Una pedalata, una corsa, una camminata… anche senza orologio: conta nel tuo punteggio e nelle calorie.', 'A ride, a run, a walk… even without a watch: it counts toward your score and calories.')}</Text>
           </View>
         </View>

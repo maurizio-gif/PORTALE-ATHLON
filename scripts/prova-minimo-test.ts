@@ -2,7 +2,7 @@
 // Prova del minimo del test dei massimali (11/11/2026, `schede/minimoTest.ts`, puro): `npx tsx scripts/prova-minimo-test.ts`
 import assert from 'node:assert/strict'
 
-import { daCopertura, statoMinimo } from '../src/features/lab/schede/minimoTest'
+import { daCopertura, secondoConsigliato, statoMinimo } from '../src/features/lab/schede/minimoTest'
 
 let n = 0
 const ok = (nome: string, f: () => void) => {
@@ -98,6 +98,43 @@ ok('statoMinimo e daCopertura dicono la stessa cosa sugli stessi test', () => {
     const c = daCopertura({ gruppi: Object.fromEntries(s.passi.map((p) => [p.gruppo, gruppo(p.fatti)])) })
     assert.deepEqual(c, { fatti: s.fatti, totale: s.totale, raggiunto: s.raggiunto, mancano: s.mancano })
   }
+})
+
+// Il secondo esercizio delle gambe (11/11/2026): consigliato quando ne e' stato fatto uno solo; gli altri gruppi restano facoltativi.
+ok('gambe: con uno fatto l\'altro e\' consigliato; con zero e con due no', () => {
+  assert.equal(secondoConsigliato('inferiore', 1, 2), true)
+  assert.equal(secondoConsigliato('inferiore', 0, 2), false)
+  assert.equal(secondoConsigliato('inferiore', 2, 2), false)
+})
+
+ok('gambe: se nel test c\'e\' un solo esercizio, non c\'e\' un secondo da consigliare', () => {
+  assert.equal(secondoConsigliato('inferiore', 1, 1), false)
+})
+
+ok('parte superiore e core: il secondo resta facoltativo', () => {
+  assert.equal(secondoConsigliato('superiore', 1, 4), false)
+  assert.equal(secondoConsigliato('core', 1, 1), false)
+})
+
+ok('minimo fatto con un esercizio per gruppo: dei 4 che restano, 1 e\' consigliato (gambe) e 3 facoltativi', () => {
+  const s = statoMinimo(con('chest', 'plank', 'leg-ext'))
+  assert.deepEqual([s.raggiunto, s.altri, s.consigliati], [true, 4, 1])
+  assert.deepEqual(s.gruppiConsigliati, ['inferiore'])
+})
+
+ok('fatte tutte e due le gambe: nessun consigliato', () => {
+  const s = statoMinimo(con('chest', 'plank', 'leg-ext', 'leg-curl'))
+  assert.deepEqual([s.altri, s.consigliati, s.gruppiConsigliati.length], [3, 0, 0])
+})
+
+ok('il consiglio vale anche prima del minimo: una gamba fatta, il resto no', () => {
+  const s = statoMinimo(con('leg-curl'))
+  assert.deepEqual([s.raggiunto, s.consigliati], [false, 1])
+})
+
+ok('nessuna gamba fatta: niente consigliato, la scelta e\' libera', () => {
+  const s = statoMinimo(con('chest', 'plank'))
+  assert.deepEqual([s.consigliati, s.gruppiConsigliati.length], [0, 0])
 })
 
 console.log(`\n${n} prove passate`)
