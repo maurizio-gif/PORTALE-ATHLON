@@ -52,3 +52,7 @@ example
 # disco di chi l'ha comprata. `public/` finisce nel build web e nel deploy, e la licenza (§3) non permette
 # di esporre i file; nell'app arrivano ricompressi da un bucket privato (vedi docs/piano-schede.md).
 /public/esercizi-new/
+
+# oh-my-claudecode: stato runtime (sessioni, piani, log). Solo .omc/skills/ si versiona.
+.omc/*
+!.omc/skills/
