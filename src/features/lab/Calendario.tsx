@@ -230,7 +230,9 @@ export function AzioniLezione({
   return (
     <>
       {errore ? <Messaggio>{errore}</Messaggio> : null}
-      {l.iniziata ? null : b ? (
+      {l.iniziata ? null : b && fuoriTempoDisdetta(l, b.attesa) ? (
+        <Messaggio tono="attenzione">{TESTO_FUORI_TEMPO()}</Messaggio>
+      ) : b ? (
         conferma ? (
           <View style={stili.azioni}>
             <Pulsante testo={t('Sì, disdici', 'Yes, cancel')} variante="pericolo" onPress={() => esegui(onDisdici)} inCorso={attesa} />
@@ -664,6 +666,28 @@ function giornoBreve(iso: string): string {
 }
 
 /**
+ * Si disdice fino a un'ora prima dell'inizio (11/11/2026, richiesta di Maurizio). La regola la applica `portale-lab-calendario`
+ * (`DISDETTA_MINUTI`, stesso numero), solo per adulti e Baby Nuoto: qui serve a non offrire un pulsante che verrebbe rifiutato. Dalla lista d'attesa si esce fino all'inizio.
+ */
+const DISDETTA_MINUTI = 60
+function fuoriTempoDisdetta(l: { inizio: string; categoria: string }, attesa: boolean): boolean {
+  return !attesa && conLimiteDisdetta(l.categoria) && new Date(l.inizio).getTime() - DISDETTA_MINUTI * 60_000 < Date.now()
+}
+/**
+ * Solo attivita' adulti e Baby Nuoto (11/11/2026, richiesta di Maurizio): Scuola Nuoto Bambini, recuperi e le altre attivita' junior non hanno
+ * il limite. Lo stesso confine di `eJunior` in `portale-lab-calendario`.
+ */
+function conLimiteDisdetta(categoria: string | null | undefined): boolean {
+  const c = categoria ?? ''
+  return !/bambini|baby|agonistic|pallanuoto|propaganda/i.test(c) || /baby/i.test(c)
+}
+const TESTO_FUORI_TEMPO = () =>
+  t(
+    `Si può disdire fino a ${DISDETTA_MINUTI} minuti prima dell’inizio: questa lezione non si può più disdire.`,
+    `You can cancel up to ${DISDETTA_MINUTI} minutes before the start: this class can no longer be cancelled.`,
+  )
+
+/**
  * Le prenotazioni in programma della persona scelta, di qualunque giorno (25/10/2026, richiesta di Maurizio): stanno sopra i
  * giorni e non dentro quello scelto. Prenotata o in lista d'attesa, e Annulla.
  */
@@ -712,7 +736,9 @@ function LezioniPrenotate({ lezioni, occupato, onAnnulla }: { lezioni: Prenotata
                   </>
                 }
                 coda={
-                  conferma === l.class_id ? (
+                  fuoriTempoDisdetta(l, attesa) ? (
+                    <Text style={{ color: p.testoSecondario, fontFamily: F.semi, fontSize: 12, maxWidth: 110, textAlign: 'right' }}>{t('Non più disdicibile', 'Can’t cancel now')}</Text>
+                  ) : conferma === l.class_id ? (
                     <View style={{ flexDirection: 'row', gap: 6 }}>
                       <Pulsante testo={t('Sì, annulla', 'Yes, cancel')} variante="pericolo" piccolo pieno={false} onPress={() => annulla(l)} inCorso={inCorso === l.class_id} />
                       <Pulsante testo={t('No', 'No')} variante="secondario" piccolo pieno={false} onPress={() => setConferma(null)} disabilitato={inCorso !== null} />
