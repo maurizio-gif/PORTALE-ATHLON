@@ -130,9 +130,10 @@ function CartaTest({ test, riempi = false }: { test: StatoTest; riempi?: boolean
           `Fatto il ${giornoTest(test.ultimo!)}: ${test.fatti} di ${test.totale} esercizi. Il prossimo fra ${prossimo} ${prossimo === 1 ? 'giorno' : 'giorni'}.`,
           `Done on ${giornoTest(test.ultimo!)}: ${test.fatti} of ${test.totale} exercises. The next one is in ${prossimo} ${prossimo === 1 ? 'day' : 'days'}.`,
         )
-      : t(
-          `${test.totale || 7} esercizi, una quindicina di minuti. Dopo, nei tuoi piani le percentuali diventano i tuoi chili.`,
-          `${test.totale || 7} exercises, about fifteen minutes. Afterwards, the percentages in your plans become your own weights.`,
+      : // Il minimo, detto subito (11/11/2026): scrivere solo il totale faceva sembrare obbligatori tutti gli esercizi.
+        t(
+          `Bastano ${test.minimo ?? 3} esercizi su ${test.totale || 7}: uno per la parte superiore, uno per il core, uno per la parte inferiore. Dopo, nei piani le percentuali diventano i tuoi chili.`,
+          `${test.minimo ?? 3} exercises out of ${test.totale || 7} are enough: one for the upper body, one for the core, one for the lower body. Afterwards, the percentages in your plans become your own weights.`,
         )
   return (
     <Tocco onPress={() => router.push('/allenamento/test')} etichetta={titolo} scala={0.985} style={riempi ? { flex: 1 } : undefined}>
