@@ -43,3 +43,5 @@ Guardato sul codice (`_shared/schede/massimali.ts`) e sul database vero, in sola
 - **Non provato**: su un telefono vero e nell'app nativa (iOS, Android); con il testo di sistema molto grande; con la funzione vera (le risposte erano simulate, nella forma di `portale-lab-schede`); la carta in Train, cambiata nel testo e non guardata.
 - **Da sapere**: dopo sei settimane il test è «da rifare», ma gli esercizi tengono il loro ultimo risultato: il riquadro dice ancora «Tutti e tre fatti» mentre la carta in Train dice «È ora di rifare il test». Era già così con i «✓ Fatto» delle righe; non toccato.
 - **Per pubblicarlo** serve un aggiornamento dell'app (OTA sui runtime in uso) e il deploy del web: è solo JavaScript, nessun modulo nativo e nessuna funzione da ripubblicare.
+
+**Dallo stesso giorno il secondo esercizio delle gambe non è più «Facoltativo» ma «Consigliato»**: vedi `203-…`. Il minimo e il resto di questa nota non cambiano.
