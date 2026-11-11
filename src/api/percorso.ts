@@ -188,7 +188,7 @@ export async function leggiPercorso(): Promise<Esito<{ percorso: PercorsoSalvato
 // ---------------------------------------------------------------------------
 // La settimana vera
 
-export type Limite = { categoria: string; massimo: number; messaggio: string; prenotate: { class_id: number; nome: string; inizio: string; attesa: boolean }[] }
+export type Limite = { categoria: string; categorie?: string[]; massimo: number; messaggio: string; prenotate: { class_id: number; nome: string; inizio: string; attesa: boolean }[] }
 
 export type DatiLezione = {
   class_id: number

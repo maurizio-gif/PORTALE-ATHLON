@@ -1,0 +1,8 @@
+## Il limite delle prenotazioni attive è 3 in tutto fra Corsi Fitness, Aqua Fitness e Scuola Nuoto Adulti, più 1 di Group Reformer: lo decide il server, l'app mostra il messaggio (11/11/2026)
+
+Richiesta di Maurizio: tenere il limite di prima. **Le tre attività dividono lo stesso limite** (3 prenotazioni attive in tutto, lista d'attesa compresa), e il Group Reformer ne ha una a parte. Fino all'11/11 il server ne contava 3 per ciascuna attività. La regola, i dati e le prove stanno in APP-ATHLON, `docs/claude/222-…`.
+
+- **Nell'app non cambia nessuna schermata.** Il Calendario mostra già `l.limite.messaggio` al posto di «Prenota» (`AzioniLezione` in `Calendario.tsx`), e l'errore di `prenota` se si prova lo stesso; lo fanno anche il Percorso, la carta dell'assistente e Junior. Il testo lo scrive il server: «Limite raggiunto: 3 prenotazioni attive fra Corsi Fitness, Aqua Fitness e Scuola Nuoto Adulti. Lezioni già in programma: …», con nome, giorno e ora di ogni lezione e se è prenotata o in lista d'attesa. **Vale anche per le app già installate**, senza OTA.
+- **`limite.prenotate` può avere lezioni di un'altra categoria** rispetto a quella della lezione, e `limite.categorie` (nuovo, facoltativo: una funzione di prima non lo manda) dice quali categorie dividono il limite. Chi un giorno disegna il limite invece di mostrarne il messaggio non filtri `prenotate` per `categoria`.
+- **Una frase dei Consigli**: «quante prenotazioni attive si possono avere per categoria» è diventata «…insieme» (it e en). Arriva con il prossimo OTA.
+- **Provato**: niente nell'app (in questo ambiente non ci sono le dipendenze: `tsc` non eseguito). I due tipi (`src/api/lab.ts`, `src/api/percorso.ts`) hanno solo un campo facoltativo in più.
