@@ -1552,8 +1552,13 @@ export type EsitoSaldo =
   | { ok: true; stato: 'redirect'; url: string }
   | { ok: false; errore: string; importoCambiato?: number; nonAttivo?: boolean; /** C'e' gia' un pagamento in corso: il server non ha addebitato niente. */ inCorso?: boolean }
 
-export async function saldaPagamenti(totale: number, conCarta: boolean): Promise<EsitoSaldo> {
-  const { ok, dati } = await pagamenti({ azione: 'salda', totale, con_carta: conCarta })
+/**
+ * `solo`: si salda **un addebito preciso** e non tutte le quote scadute (11/11/2026: i 15 € di una sospensione che non si sono potuti incassare sulla
+ * carta del contratto). `totale` e' quello di quell'addebito. Una funzione di prima ignora `solo` e saldarebbe tutto: per questo il server rifiuta
+ * con 409 `importo_cambiato` se il totale delle quote scadute non e' quello mostrato, e niente parte.
+ */
+export async function saldaPagamenti(totale: number, conCarta: boolean, solo?: { quote: number[]; contratto: number }): Promise<EsitoSaldo> {
+  const { ok, dati } = await pagamenti({ azione: 'salda', totale, con_carta: conCarta, ...(solo ? { quote: solo.quote, contratto: solo.contratto } : {}) })
   if (ok && dati.stato === 'redirect' && typeof dati.url === 'string') return { ok: true, stato: 'redirect', url: dati.url }
   if (ok && (dati.stato === 'in_corso' || dati.stato === 'pagato')) return { ok: true, stato: dati.stato }
   // Una funzione di prima non conosce l'azione: il pagamento da qui non c'e' ancora.
