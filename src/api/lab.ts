@@ -1,6 +1,7 @@
 import { SUPABASE_URL } from '@/config'
 import { segnaRifiuto } from '@/features/lab/riservate/store'
 import { vistaCorrente } from '@/features/lab/vista'
+import { rpeValido } from '@/features/lab/schede/rpe'
 import { supabase } from '@/lib/supabase'
 import { canaleNativo } from '@/lib/adyenNativo'
 import { intestazioneLingua, t } from '@/lib/lingua'
@@ -1000,7 +1001,8 @@ export type SchedaLab = {
 
 export type SerieFatta = { numero: number; ripetizioni: number | null; kg: number | null; secondi: number | null }
 export type Precedente = { esercizio_id: string; inizio: string; serie: SerieFatta[] }
-export type SerieSeduta = SerieFatta & { scheda_esercizio_id: string; esercizio_id: string }
+/** `rpe`: lo sforzo percepito della serie, da 0 a 10 (11/11/2026). Facoltativo: null se la persona non l'ha indicato, assente con una funzione di prima. */
+export type SerieSeduta = SerieFatta & { scheda_esercizio_id: string; esercizio_id: string; rpe?: number | null }
 
 export type Questionario = {
   /** «Salute» non e' un obiettivo dell'agente (20/10/2026): l'app porta al personal trainer e non manda la richiesta; la funzione la rifiuta. */
@@ -1113,13 +1115,20 @@ export async function impostaProgressione(id: string, settimane: number | null, 
   }
 }
 
-export async function iniziaSeduta(schedaId: string, giornoId: string): Promise<Esito<{ allenamento: { id: string; inizio: string }; serie: SerieSeduta[] }>> {
+/** `rpe`: la funzione sa salvare l'RPE di una serie (11/11/2026). Falso con una funzione di prima: la seduta non mostra il pulsante. */
+export async function iniziaSeduta(schedaId: string, giornoId: string): Promise<Esito<{ allenamento: { id: string; inizio: string }; serie: SerieSeduta[]; rpe: boolean }>> {
   const { ok, dati } = await schedeLab({ azione: 'inizia', scheda_id: schedaId, giorno_id: giornoId })
-  if (ok) return { ok: true, allenamento: dati.allenamento, serie: (dati.serie ?? []).map((s: any) => ({ ...s, kg: s.kg == null ? null : Number(s.kg) })) }
+  if (ok)
+    return {
+      ok: true,
+      allenamento: dati.allenamento,
+      serie: (dati.serie ?? []).map((s: any) => ({ ...s, kg: s.kg == null ? null : Number(s.kg), rpe: rpeValido(s.rpe) })),
+      rpe: dati.rpe === true,
+    }
   return { ok: false, errore: dati.errore ?? t('Non riusciamo a iniziare l’allenamento adesso.', 'We can’t start the workout right now.') }
 }
 
-export async function segnaSerie(s: { allenamento_id: string; scheda_esercizio_id: string; esercizio_id: string; numero: number; ripetizioni: number | null; kg: number | null; secondi?: number | null }): Promise<Esito<object>> {
+export async function segnaSerie(s: { allenamento_id: string; scheda_esercizio_id: string; esercizio_id: string; numero: number; ripetizioni: number | null; kg: number | null; secondi?: number | null; rpe?: number | null }): Promise<Esito<object>> {
   const { ok, dati } = await schedeLab({ azione: 'serie', ...s })
   if (ok) return { ok: true }
   return { ok: false, errore: dati.errore ?? t('La serie non è stata salvata.', 'The set wasn’t saved.') }
