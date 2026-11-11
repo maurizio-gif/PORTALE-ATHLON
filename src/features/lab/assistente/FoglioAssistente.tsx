@@ -62,7 +62,9 @@ function adattaAltezza(el: unknown) {
 // prima: sono quelli che l'assistente sa fare con un tocco. Toccarne uno manda quella frase come domanda.
 type Funzione = { icona: NomeIcona; testo: string; sotto: string }
 
-const PRENOTA = (): Funzione => ({ icona: 'calendario', testo: t('Aiutami a prenotare una lezione', 'Help me book a class'), sotto: t('Ti propongo una lezione e prenoti con un tocco', 'I’ll suggest one and you book with a tap') })
+// «Aiutami a prenotare una lezione» (11/11/2026, richiesta di Maurizio): a chi puo' prenotare l'assistente risponde col pulsante «Apri Prenotazioni», senza proporre una lezione scelta a caso
+// (`rimandoPrenotazioni`, `lezioni.ts` di APP-ATHLON). La riga sotto dice quello che succede davvero.
+const PRENOTA = (): Funzione => ({ icona: 'calendario', testo: t('Aiutami a prenotare una lezione', 'Help me book a class'), sotto: t('Ti porto subito alla pagina Prenotazioni', 'I’ll take you straight to the Bookings page') })
 const PAGA = (): Funzione => ({ icona: 'carta', testo: t('Voglio pagare una rata scaduta', 'I want to pay an overdue instalment'), sotto: t('Vedi le quote e paghi da qui', 'See what’s due and pay from here') })
 const METODO = (): Funzione => ({ icona: 'wallet', testo: t('Voglio aggiungere il metodo di pagamento', 'I want to add a payment method'), sotto: t('Ti porto subito alla pagina giusta', 'I’ll take you straight to the right page') })
 const ABBONAMENTO = (): Funzione => ({ icona: 'abbonamento', testo: t('Quale abbonamento fa per me?', 'Which membership is right for me?'), sotto: t('Ti dico cosa comprende ognuno, e lo attivi dall’app', 'I’ll tell you what each one includes, and you start it from the app') })
