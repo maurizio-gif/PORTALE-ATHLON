@@ -20,6 +20,10 @@
 
 import { tv } from '@/lib/lingua'
 
+// **11/11/2026, senza cambiare versione** (decisione di Maurizio: «riservata a maggiorenni o minori con consenso del genitore»): in «Per chi non è»
+// la frase «La sezione è riservata ai maggiorenni» dice ora anche dei ragazzi da 13 a 17 anni col consenso di un genitore. La versione resta
+// quella: cambiarla chiuderebbe la sezione a ogni socio finche' non riaccetta, per una frase che agli adulti non toglie e non aggiunge niente.
+// Chi ha accettato prima dell'11/11 ha letto la frase vecchia.
 export const VERSIONE_INFORMATIVA = '2026-10-20'
 
 export const CONSENSO = tv(
@@ -61,7 +65,7 @@ export const INFORMATIVA: { titolo: string; testo: string }[] = tv([
   {
     titolo: 'Per chi non è',
     testo:
-      'La sezione è riservata ai maggiorenni. In gravidanza o allattamento, con una condizione medica che riguarda l’alimentazione, o se contare il cibo ti mette a disagio, parlane prima con il tuo medico: il questionario te lo chiede, e in quei casi la sezione resta un semplice diario.',
+      'La sezione è riservata ai maggiorenni, e ai ragazzi da 13 a 17 anni con il consenso di un genitore, che può vedere i loro dati. In gravidanza o allattamento, con una condizione medica che riguarda l’alimentazione, o se contare il cibo ti mette a disagio, parlane prima con il tuo medico: il questionario te lo chiede, e in quei casi la sezione resta un semplice diario.',
   },
 ], [
   {
@@ -101,6 +105,6 @@ export const INFORMATIVA: { titolo: string; testo: string }[] = tv([
   {
     titolo: 'Who it isn’t for',
     testo:
-      'The section is for adults only. If you’re pregnant or breastfeeding, have a medical condition that affects your diet, or if counting food makes you uncomfortable, talk to your doctor first: the questionnaire asks you, and in those cases the section stays a simple diary.',
+      'The section is for adults, and for 13 to 17 year olds with a parent’s consent; the parent can see their data. If you’re pregnant or breastfeeding, have a medical condition that affects your diet, or if counting food makes you uncomfortable, talk to your doctor first: the questionnaire asks you, and in those cases the section stays a simple diary.',
   },
 ])
