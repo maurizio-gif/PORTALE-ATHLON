@@ -45,3 +45,5 @@ Guardato sul codice (`_shared/schede/massimali.ts`) e sul database vero, in sola
 - **Per pubblicarlo** serve un aggiornamento dell'app (OTA sui runtime in uso) e il deploy del web: è solo JavaScript, nessun modulo nativo e nessuna funzione da ripubblicare.
 
 **Dallo stesso giorno il secondo esercizio delle gambe non è più «Facoltativo» ma «Consigliato»**: vedi `203-…`. Il minimo e il resto di questa nota non cambiano.
+
+**La carta «Fai il test dei massimali» in cima a Train non c'è più** (stesso giorno): il test si propone a valle del questionario e come riga di stato, solo a chi ha un piano che lo usa. Vedi `204-…`. La schermata del test descritta qui non cambia.
