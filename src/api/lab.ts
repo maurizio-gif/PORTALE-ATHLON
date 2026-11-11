@@ -1158,9 +1158,13 @@ export async function progressiEsercizio(esercizioId: string): Promise<Esito<{ e
  * gratuiti, andava in timeout). **Non salva niente**: risponde con una bozza (19/10/2026) che il socio rivede, modifica e conferma;
  * solo allora e' un piano suo (`salvaSchedaMia`, origine «ai»). Nei testi per il socio non si nomina l'agente: «comporre».
  */
+/** Il numero della richiesta, se la funzione lo manda (una funzione di prima no): `{ richiesta }` da mettere nella bozza, o niente. */
+const richiestaDa = (dati: { richiesta?: unknown }): { richiesta?: string } =>
+  typeof dati.richiesta === 'string' || typeof dati.richiesta === 'number' ? { richiesta: String(dati.richiesta) } : {}
+
 export async function chiediSchedaAi(questionario: Questionario): Promise<Esito<{ bozza: BozzaScheda }>> {
   const { ok, dati } = await schedeLab({ azione: 'chiedi_ai', questionario })
-  if (ok) return { ok: true, bozza: { ...dati.bozza, origine: 'ai' } }
+  if (ok) return { ok: true, bozza: { ...dati.bozza, origine: 'ai', ...richiestaDa(dati) } }
   return { ok: false, errore: dati.errore ?? t('Non siamo riusciti a comporre il piano adesso. Riprova fra qualche minuto.', 'We couldn’t put together the plan right now. Try again in a few minutes.') }
 }
 
@@ -1199,7 +1203,7 @@ export const MESSAGGIO_SCUOLA_NUOTO =
  */
 export async function chiediPianoNuoto(questionario: QuestionarioNuoto): Promise<Esito<{ bozza: BozzaScheda }>> {
   const { ok, dati } = await schedeLab({ azione: 'chiedi_nuoto', questionario })
-  if (ok) return { ok: true, bozza: { ...dati.bozza, origine: 'ai' } }
+  if (ok) return { ok: true, bozza: { ...dati.bozza, origine: 'ai', ...richiestaDa(dati) } }
   // Le frasi della funzione sono scritte per il socio: il piano di nuoto non ancora attivo, la regola del Nuoto Libero, la quota.
   // Una funzione pubblicata prima del piano di nuoto non conosce l'azione: per il socio e' la stessa cosa del workflow spento.
   if (dati.errore === 'Azione sconosciuta.' || dati.errore === 'Unknown action.') return { ok: false, errore: t('Il piano di nuoto non è ancora attivo: puoi scriverlo tu.', 'The swim plan isn’t active yet: you can write it yourself.') }
@@ -1236,6 +1240,8 @@ export type SchedaDaSalvare = {
   obiettivo?: string
   livello?: string
   origine?: 'creata' | 'importata' | 'ai' | 'club'
+  /** Solo con origine «ai»: la richiesta all'agente da cui viene il piano (`BozzaScheda.richiesta`). */
+  richiesta?: string
   giorni: { nome: string; note: string; esercizi: EsercizioDaSalvare[] }[]
 }
 
@@ -1264,6 +1270,11 @@ export type BozzaScheda = {
   origine?: 'importata' | 'ai'
   /** `vasca` per un piano di nuoto scritto dall'agente (`chiediPianoNuoto`): le righe sono blocchi di vasca, «4 x 100 m». */
   ambiente?: 'vasca'
+  /**
+   * Il numero della richiesta all'agente (11/11/2026), che la funzione manda con la bozza e l'app rimanda con `salvaSchedaMia`: cosi' il piano che il socio
+   * tiene porta le risposte non sanitarie al questionario, per «Come sono fatte» nel CRM. Con una funzione di prima non c'e', e non cambia niente.
+   */
+  richiesta?: string
   giorni: { nome: string; note: string; esercizi: EsercizioBozza[] }[]
 }
 
