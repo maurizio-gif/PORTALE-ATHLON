@@ -7,6 +7,7 @@ import { scollegaSalute, revocaConsensoDispositivi } from '@/api/dispositivi'
 import { t } from '@/lib/lingua'
 import { spazio } from '@/theme'
 
+import { NotaGenitore, ServeIlGenitore } from '../consensiMinori/Genitore'
 import { Bollino, Carta, Etichetta, Messaggio, Pulsante, SchedeInArrivo, Sezione } from '../ui/kit'
 import { Schermata } from '../ui/Schermata'
 import { F, usePalette } from '../ui/tema'
@@ -62,6 +63,13 @@ export function Dispositivi() {
       </Schermata>
     )
   }
+  if (!stato.maggiorenne && stato.consenso_genitore === false) {
+    return (
+      <Schermata {...testata}>
+        <ServeIlGenitore area="Recover" />
+      </Schermata>
+    )
+  }
   if (!stato.maggiorenne) {
     return <Minorenni testata={testata} />
   }
@@ -77,6 +85,7 @@ export function Dispositivi() {
             )}
           </Messaggio>
         ) : null}
+        {stato.consenso_genitore ? <NotaGenitore /> : null}
         <Vetrina onConsenso={d.rileggi} />
       </Schermata>
     )

@@ -5,6 +5,7 @@ import { eliminaMisura, elencoMisure, salvaMisura, salvaSessoCalcolo, type Conse
 import { locale, t } from '@/lib/lingua'
 import { spazio } from '@/theme'
 
+import { NotaGenitore, ServeIlGenitore } from '../consensiMinori/Genitore'
 import { dimentica, inMemoria, prendi, ricorda } from '../memoria'
 import { Foglio } from '../ui/Foglio'
 import { Icona } from '../ui/Icona'
@@ -307,6 +308,8 @@ export function Misure() {
   const [erroreSesso, setErroreSesso] = useState<string | null>(null)
   // null: la funzione dice che manca il consenso; undefined: non si sa (o una funzione che non lo conosce).
   const [consenso, setConsenso] = useState<ConsensoCorpo | null | undefined>(() => inMemoria<{ consenso?: ConsensoCorpo | null }>(CHIAVE_MISURE)?.consenso)
+  // Solo per un ragazzo da 13 a 17 anni: false se manca il consenso del genitore, true se c'e'; null per un adulto.
+  const [genitore, setGenitore] = useState<boolean | null>(() => inMemoria<{ consensoGenitore?: boolean | null }>(CHIAVE_MISURE)?.consensoGenitore ?? null)
   const [errore, setErrore] = useState<string | null>(null)
   const [metrica, setMetrica] = useState<Metrica>('peso')
   const [bozza, setBozza] = useState<{ b: Bozza; esiste: boolean } | null>(null)
@@ -318,6 +321,7 @@ export function Misure() {
       setMisure(r.misure)
       setSesso(r.sesso)
       setConsenso(r.consenso)
+      setGenitore(r.consensoGenitore ?? null)
     } else setErrore(r.errore)
   }, [])
 
@@ -370,7 +374,14 @@ export function Misure() {
   if (consenso === null) {
     return (
       <Schermata sopratitolo="Athlon Health System" titolo={t('Il tuo corpo', 'Your body')} indietro="/allenamento" barra={false}>
-        <PaginaConsenso onConsenso={rileggi} />
+        {genitore === false ? (
+          <ServeIlGenitore area={t('«Il tuo corpo»', '“Your body”')} />
+        ) : (
+          <>
+            {genitore ? <NotaGenitore /> : null}
+            <PaginaConsenso onConsenso={rileggi} />
+          </>
+        )}
       </Schermata>
     )
   }

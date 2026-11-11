@@ -7,6 +7,7 @@ import { locale, t } from '@/lib/lingua'
 import { spazio } from '@/theme'
 
 import { oggiRoma, somma } from '../alimentazione/conti'
+import { ServeIlGenitore } from '../consensiMinori/Genitore'
 import { CulturaCibo } from '../cultura/CulturaCibo'
 import { CartaBalance } from './Balance'
 import { Icona, type NomeIcona } from '../ui/Icona'
@@ -60,6 +61,14 @@ export function AreaFood({ dati }: { dati: DatiFit }) {
       </View>
     )
   }
+  if (!f.maggiorenne && f.consenso_genitore === false) {
+    return (
+      <View style={{ gap: spazio.quattro }}>
+        <ServeIlGenitore area="Food" />
+        {balance}
+      </View>
+    )
+  }
   if (!f.maggiorenne) {
     return (
       <View style={{ gap: spazio.quattro }}>
@@ -89,7 +98,11 @@ export function AreaFood({ dati }: { dati: DatiFit }) {
                   </View>
                 ))}
               </View>
-              <Text style={stili.vetrinaPiccola}>{t('Prima di cominciare si legge e si accetta l’informativa: quello che scrivi lo vedi solo tu.', 'Before you start, you read and accept the privacy notice: only you see what you write.')}</Text>
+              <Text style={stili.vetrinaPiccola}>
+                {f.consenso_genitore
+                  ? t('Prima di cominciare si legge e si accetta l’informativa: quello che scrivi lo vedete tu e il genitore che ti ha aperto Food.', 'Before you start, you read and accept the privacy notice: what you write is seen by you and the parent who opened Food for you.')
+                  : t('Prima di cominciare si legge e si accetta l’informativa: quello che scrivi lo vedi solo tu.', 'Before you start, you read and accept the privacy notice: only you see what you write.')}
+              </Text>
               <View style={stili.vetrinaPulsante}>
                 <Text style={stili.vetrinaPulsanteTesto}>{t('Scopri Food', 'Discover Food')}</Text>
                 <Icona nome="avanti" size={16} colore={ORTO[2]} />

@@ -85,7 +85,10 @@ export type DatiDispositivi = { collegamenti: Collegamento[]; giorni: GiornoDisp
 export type StatoDispositivi = {
   versione: string
   consenso: { versione: string; accettato_il: string } | null
+  /** Puo' usare la sezione: un maggiorenne, o un ragazzo da 13 a 17 anni col consenso del genitore (11/11/2026). Il nome e' rimasto. */
   maggiorenne: boolean
+  /** Solo per un ragazzo da 13 a 17 anni: il genitore ha dato il consenso per Recover. `null` per un adulto. */
+  consenso_genitore: boolean | null
   fornitori: Fornitore[]
   collegamenti: Collegamento[]
 }
@@ -100,7 +103,7 @@ const dei = (dati: Record<string, any>): DatiDispositivi => ({ collegamenti: dat
 
 export async function statoDispositivi(): Promise<Esito<StatoDispositivi>> {
   const { ok, dati } = await chiama({ azione: 'stato' })
-  if (ok) return { ok: true, versione: dati.versione, consenso: dati.consenso ?? null, maggiorenne: !!dati.maggiorenne, fornitori: dati.fornitori ?? [], collegamenti: dati.collegamenti ?? [] }
+  if (ok) return { ok: true, versione: dati.versione, consenso: dati.consenso ?? null, maggiorenne: !!dati.maggiorenne, consenso_genitore: dati.consenso_genitore === true ? true : dati.consenso_genitore === false ? false : null, fornitori: dati.fornitori ?? [], collegamenti: dati.collegamenti ?? [] }
   return errore(dati, t('Non riusciamo a leggere i tuoi dispositivi adesso.', 'We can’t load your devices right now.'))
 }
 

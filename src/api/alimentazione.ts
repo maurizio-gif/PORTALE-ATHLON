@@ -62,7 +62,10 @@ export type StatoAlimentazione = {
   versione: string
   consenso: { versione: string; accettato_il: string } | null
   profilo: Profilo | null
+  /** Puo' usare la sezione: un maggiorenne, o un ragazzo da 13 a 17 anni col consenso del genitore (11/11/2026). Il nome e' rimasto. */
   maggiorenne: boolean
+  /** Solo per un ragazzo da 13 a 17 anni: il genitore ha dato il consenso per Food. `null` per un adulto. */
+  consenso_genitore: boolean | null
 }
 
 /** Una proposta della foto del piatto: da confermare (e correggere) prima di finire nel diario. */
@@ -91,7 +94,7 @@ function errore(dati: Record<string, any>, ripiego: string) {
 
 export async function statoAlimentazione(): Promise<Esito<StatoAlimentazione>> {
   const { ok, dati } = await chiama({ azione: 'stato' })
-  if (ok) return { ok: true, versione: dati.versione, consenso: dati.consenso ?? null, profilo: dati.profilo ?? null, maggiorenne: !!dati.maggiorenne }
+  if (ok) return { ok: true, versione: dati.versione, consenso: dati.consenso ?? null, profilo: dati.profilo ?? null, maggiorenne: !!dati.maggiorenne, consenso_genitore: dati.consenso_genitore === true ? true : dati.consenso_genitore === false ? false : null }
   return errore(dati, t('Non riusciamo a leggere la sezione adesso.', 'We can’t load this section right now.'))
 }
 
