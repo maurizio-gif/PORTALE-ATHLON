@@ -22,6 +22,8 @@ scelgono fra questo mese e il mese scorso.
 
 ### Il QR per ritirare un ordine dello shop (`shop/CodiceRitiro.tsx`, `components/CodiceQr.tsx`, `lib/qr.ts`)
 
+**Aggiornamento dell'11/11/2026: il QR è stato tolto** (il club non ha un lettore da banco e la fotocamera del telefono non ne ricava niente). Ora l'ordine mostra il suo numero, grande; vedi la sezione «Il ritiro in segreteria si fa col numero dell'ordine» (`docs/claude/198-…`). Il resto di questo paragrafo descrive com'era.
+
 L'ordine **pagato e non ancora ritirato** mostra un QR e, sotto, un codice breve da dettare («Codice ordine 3F2A8C1E»): nella pagina dell'esito del pagamento e in «I miei ordini». Sparisce da solo quando la segreteria segna l'ordine consegnato (`consegnato_il`) e non compare per un ordine
 non pagato o in errore (`daRitirare`, in `shop/ritiro.ts`, puro: `npx tsx scripts/prova-ritiro.ts`).
 

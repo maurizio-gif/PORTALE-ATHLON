@@ -1,37 +1,40 @@
 import { StyleSheet, Text, View } from 'react-native'
 
 import type { Ordine } from '@/api/shop'
-import { CodiceQr } from '@/components/CodiceQr'
 import { t } from '@/lib/lingua'
 import { spazio } from '@/theme'
 
 import { F, usePalette } from '../ui/tema'
-import { codiceBreve, daRitirare, testoRitiro } from './ritiro'
+import { codiceRitiro, daRitirare } from './ritiro'
 
-// Il codice per il ritiro: un QR da mostrare in segreteria e, sotto, le otto lettere da dettare se il lettore non lo legge. Compare solo per un ordine
-// pagato e non ancora ritirato (`daRitirare`); a ritiro fatto sparisce da solo, perche' `consegnato_il` arriva dal CRM.
+// Il codice per il ritiro (11/11/2026): il **numero dell'ordine**, grande, da dire o da mostrare in segreteria. Prima c'era un QR (30/10/2026) pensato per un lettore da
+// banco che il club non ha, e inquadrato con il telefono non dava niente (il testo non e' un indirizzo). La segreteria trova l'ordine nella scheda della persona
+// («Da consegnare») o cercando il numero in Shop → «Cerca un ordine». Compare solo per un ordine pagato e con la merce pronta (`daRitirare`); a ritiro fatto sparisce da
+// solo, perche' `consegnato_il` arriva dal CRM.
 
-export function CodiceRitiro({ ordine, size = 168 }: { ordine: Ordine; size?: number }) {
+export function CodiceRitiro({ ordine }: { ordine: Ordine }) {
   const p = usePalette()
   if (!daRitirare(ordine)) return null
-  const breve = codiceBreve(ordine.ordine_id)
+  const codice = codiceRitiro(ordine)
+  if (!codice) return null
   return (
     <View style={[stili.scatola, { backgroundColor: p.incavo }]}>
-      <CodiceQr testo={testoRitiro(ordine.ordine_id)} size={size} etichetta={t('Codice QR per il ritiro in segreteria', 'QR code for pick-up at reception')} />
-      <View style={{ alignItems: 'center', gap: 2 }}>
-        <Text style={[stili.titolo, { color: p.testo }]}>{t('Mostralo in segreteria', 'Show it at reception')}</Text>
-        {breve ? (
-          <Text style={[stili.breve, { color: p.testoSecondario }]} selectable accessibilityLabel={`${t('Codice ordine', 'Order code')} ${breve.split('').join(' ')}`}>
-            {t('Codice ordine', 'Order code')} <Text style={{ color: p.testo, fontFamily: F.extra, letterSpacing: 1.5 }}>{breve}</Text>
-          </Text>
-        ) : null}
-      </View>
+      <Text style={[stili.etichetta, { color: p.testoSecondario }]}>{t('Codice ordine', 'Order code')}</Text>
+      <Text
+        style={[stili.codice, { color: p.testo }]}
+        selectable
+        accessibilityLabel={`${t('Codice ordine', 'Order code')} ${codice.split('').join(' ')}`}
+      >
+        {codice}
+      </Text>
+      <Text style={[stili.titolo, { color: p.testo }]}>{t('Dillo o mostralo in segreteria', 'Say it or show it at reception')}</Text>
     </View>
   )
 }
 
 const stili = StyleSheet.create({
-  scatola: { alignItems: 'center', gap: spazio.tre, paddingVertical: spazio.quattro, borderRadius: 20 },
-  titolo: { fontFamily: F.bold, fontSize: 15 },
-  breve: { fontFamily: F.semi, fontSize: 13.5 },
+  scatola: { alignItems: 'center', gap: spazio.uno, paddingVertical: spazio.quattro, paddingHorizontal: spazio.tre, borderRadius: 20 },
+  etichetta: { fontFamily: F.semi, fontSize: 13.5 },
+  codice: { fontFamily: F.extra, fontSize: 48, lineHeight: 56, letterSpacing: 1.5 },
+  titolo: { fontFamily: F.bold, fontSize: 15, textAlign: 'center' },
 })

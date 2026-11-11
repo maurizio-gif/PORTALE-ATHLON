@@ -89,7 +89,7 @@ export function Ordini() {
                 </Text>
               ) : null}
               {o.stato === 'errore' && o.errore ? <Messaggio>{o.errore}</Messaggio> : null}
-              {!ko ? <CodiceRitiro ordine={o} size={148} /> : null}
+              {!ko ? <CodiceRitiro ordine={o} /> : null}
               {ko ? (
                 cassa === o.ordine_id ? (
                   <CassaShop ordineId={o.ordine_id} totale={o.totale} soloCarta chiudi={t('Non adesso', 'Not now')} onChiudi={() => setCassa(null)} />
