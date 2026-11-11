@@ -9,6 +9,7 @@ import { t } from '@/lib/lingua'
 import { spazio } from '@/theme'
 
 import { oggiRoma } from '../alimentazione/conti'
+import { ServeIlGenitore } from '../consensiMinori/Genitore'
 import { appleSaluteAttivo, appSaluteDelTelefono, sincronizzaSalute } from '../dispositivi/appleSalute'
 import { datiAppleSalute, durata, giornoBreve, giorniUnici, inizialeGiorno } from '../dispositivi/comune'
 import type { Dispositivi } from '../dispositivi/useDispositivi'
@@ -54,6 +55,7 @@ export function AreaRelax({ disp }: { disp: Dispositivi }) {
   }
   if (!stato) return <SchedeInArrivo quante={1} />
   if (!stato.ok) return <Messaggio>{stato.errore}</Messaggio>
+  if (!stato.maggiorenne && stato.consenso_genitore === false) return <ServeIlGenitore area="Recover" />
   if (!stato.maggiorenne) {
     return (
       <Carta style={{ gap: spazio.due }}>
@@ -80,7 +82,11 @@ export function AreaRelax({ disp }: { disp: Dispositivi }) {
                 </View>
               ))}
             </View>
-            <Text style={stili.vetrinaPiccola}>{t('Prima di cominciare si legge e si accetta l’informativa: i dati sono tuoi, e li vedi solo tu.', 'Before you start, you read and accept the privacy notice: the data is yours, and only you see it.')}</Text>
+            <Text style={stili.vetrinaPiccola}>
+              {stato.consenso_genitore
+                ? t('Prima di cominciare si legge e si accetta l’informativa: i dati sono tuoi, e li vedete tu e il genitore che ti ha aperto Recover.', 'Before you start, you read and accept the privacy notice: the data is yours, seen by you and the parent who opened Recover for you.')
+                : t('Prima di cominciare si legge e si accetta l’informativa: i dati sono tuoi, e li vedi solo tu.', 'Before you start, you read and accept the privacy notice: the data is yours, and only you see it.')}
+            </Text>
             <View style={stili.vetrinaPulsante}>
               <Text style={stili.vetrinaPulsanteTesto}>{t('Attiva Recover', 'Turn on Recover')}</Text>
               <Icona nome="avanti" size={16} colore={RELAX[2]} />

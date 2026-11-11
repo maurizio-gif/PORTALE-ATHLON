@@ -147,6 +147,19 @@ export function arrivoDa(
         ),
         bottone: t('Entra e scrivimi', 'Sign in and chat'),
       }
+    case 'consensi':
+      // Il genitore a cui il figlio da 13 a 17 anni ha chiesto di aprire un'area sulla salute (11/11/2026): l'email di
+      // `portale-lab-consensi-minori` (azione `chiedi`) porta qui, sulla pagina «Consensi per i tuoi figli». Nessun parametro: chi sono i
+      // figli lo dice la sessione di chi entra.
+      return {
+        href: '/consensi-minori',
+        titolo: t('I consensi per i tuoi figli', 'Consents for your children'),
+        testo: t(
+          'Ti apriamo direttamente la pagina dei consensi, senza password: leggi l’informativa e scegli per quali aree dare il consenso.',
+          'We’ll open the consents page for you directly, no password needed: read the notice and choose which areas to consent to.',
+        ),
+        bottone: t('Apri i consensi', 'Open the consents'),
+      }
     case 'certificato':
       // La scheda «Certificato Medico» dell'Help Desk del sito (07/11/2026): chiede l'email e manda questo link. La Home sulla sezione
       // Certificato (`/?sezione=certificato`, letta da `AreaRiservata.tsx`, sempre visibile), dove si sceglie per chi e si invia la foto o il PDF.

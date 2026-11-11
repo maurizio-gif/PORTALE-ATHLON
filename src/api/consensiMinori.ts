@@ -47,6 +47,18 @@ export async function statoConsensiMinori(): Promise<StatoConsensiMinori> {
   }
 }
 
+/**
+ * Il ragazzo da 13 a 17 anni chiede a un genitore di aprirgli le aree sulla salute (11/11/2026): la funzione manda al genitore un'email col
+ * link che apre l'app sulla pagina dei consensi. Non concede niente; una richiesta ogni 24 ore. `messaggio` e' scritto dalla funzione.
+ */
+export async function chiediConsensoAlGenitore(): Promise<{ ok: true; messaggio: string } | { ok: false; errore: string }> {
+  const { ok, stato, dati } = await funzione('portale-lab-consensi-minori', { azione: 'chiedi' })
+  if (ok) return { ok: true, messaggio: typeof dati.messaggio === 'string' ? dati.messaggio : t('Abbiamo mandato un’email a un tuo genitore.', 'We’ve emailed your parent.') }
+  // Una funzione pubblicata prima di questa azione non la conosce: si dice la strada a mano.
+  const vecchia = stato === 404 || dati.errore === 'Azione sconosciuta.'
+  return { ok: false, errore: vecchia || !dati.errore ? t('Non riusciamo a mandare la richiesta adesso: chiedi a un genitore di aprire «Consensi per i tuoi figli» dalla sua app.', 'We can’t send the request right now: ask a parent to open “Consents for your children” in their app.') : dati.errore }
+}
+
 export type EsitoConsenso = { ok: true; consensi: Record<AmbitoMinore, StatoAmbito> } | { ok: false; errore: string }
 
 const NON_SALVATO = () => t('Non siamo riusciti a salvare adesso. Riprova fra qualche minuto.', 'We couldn’t save right now. Try again in a few minutes.')

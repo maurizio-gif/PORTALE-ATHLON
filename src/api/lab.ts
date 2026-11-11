@@ -1448,12 +1448,13 @@ export type ConsensoCorpo = { versione: string; accettato_il: string }
  * Le misurazioni del socio, dalla piu' vecchia, e il sesso scelto per le calorie.
  * **Senza consenso la funzione risponde vuoto e `consenso: null`** (misure e sesso non escono). `consenso` assente
  * (`undefined`) vuol dire una funzione che non conosce ancora il consenso: niente blocco e niente comando di revoca.
+ * **`consensoGenitore`** (11/11/2026): solo per un ragazzo da 13 a 17 anni, se il genitore ha dato il consenso per le misure; `null` per un adulto.
  */
-export async function elencoMisure(): Promise<Esito<{ misure: Misura[]; sesso: SessoCalcolo; consenso?: ConsensoCorpo | null }>> {
+export async function elencoMisure(): Promise<Esito<{ misure: Misura[]; sesso: SessoCalcolo; consenso?: ConsensoCorpo | null; consensoGenitore?: boolean | null }>> {
   const { ok, dati } = await misureLab({ azione: 'elenco' })
   if (ok) {
     const consenso: ConsensoCorpo | null | undefined = dati.consenso === undefined ? undefined : dati.consenso && typeof dati.consenso.versione === 'string' ? dati.consenso : null
-    return { ok: true, misure: dati.misure ?? [], sesso: dati.sesso === 'm' || dati.sesso === 'f' ? dati.sesso : null, consenso }
+    return { ok: true, misure: dati.misure ?? [], sesso: dati.sesso === 'm' || dati.sesso === 'f' ? dati.sesso : null, consenso, consensoGenitore: dati.consenso_genitore === true ? true : dati.consenso_genitore === false ? false : null }
   }
   return { ok: false, errore: dati.errore ?? t('Non riusciamo a leggere i tuoi dati adesso.', 'We can’t load your details right now.') }
 }
