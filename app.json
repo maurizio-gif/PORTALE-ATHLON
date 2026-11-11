@@ -2,7 +2,7 @@
   "expo": {
     "name": "Athlon Club",
     "slug": "portale-athlon-club",
-    "version": "3.1.0",
+    "version": "3.1.1",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "athlon",
@@ -96,7 +96,12 @@
         }
       ],
       "react-native-health-connect",
-      "@adyen/react-native",
+      [
+        "@adyen/react-native",
+        {
+          "merchantIdentifier": "merchant.com.adyen.Point2000SrlSocSpoDilECOM"
+        }
+      ],
       "./plugins/with-bouncycastle-allineato",
       [
         "expo-build-properties",
