@@ -50,7 +50,19 @@ export type PersonaAbbonamento = {
 }
 
 /** Un contratto firmato e non ancora pagato: si riprende da qui, senza rifirmare. */
-export type DaPagare = { numero: string; member_id: number; nome: string | null; piano: string; importi: ImportiContratto; errore: string | null }
+export type DaPagare = {
+  numero: string
+  member_id: number
+  nome: string | null
+  piano: string
+  importi: ImportiContratto
+  errore: string | null
+  /**
+   * Il contratto e' del nostro sistema (12/11/2026, i corsi bambini; poi gli adulti): un conto nuovo non si scrive qui, si autorizza sulla pagina di
+   * GoCardless (Drop-in sul web, browser integrato nell'app installata). Un server vecchio non lo manda: il modulo IBAN di prima.
+   */
+  conto_su_gocardless?: boolean
+}
 
 export type StatoAbbonamento = {
   da_pagare: DaPagare | null
@@ -162,6 +174,8 @@ export type MetodoAbbonamento =
   | { metodo: 'carta'; con_carta: boolean }
   | { metodo: 'conto'; conto_salvato: true }
   | { metodo: 'conto'; iban: string; intestatario: string; via: string; cap: string; citta: string }
+  /** Un conto nuovo per un contratto del nostro sistema: l'IBAN si scrive sulla pagina di GoCardless, qui niente. */
+  | { metodo: 'conto'; su_gocardless: true }
 
 export type SceltaAbbonamento = {
   member_id: number
@@ -252,7 +266,8 @@ export async function firmaAbbonamento(
   return { ok: false, errore: dati.errore ?? t('Non siamo riusciti a registrare il contratto adesso.', 'We couldn’t register the contract right now.') }
 }
 
-export type EsitoPagamento = { numero: string; stato: StatoContratto; url: string | null }
+/** `flusso`: con il conto e un contratto del nostro sistema, l'id della pagina di GoCardless (BRF…) per aprirla nel Drop-in sul web. */
+export type EsitoPagamento = { numero: string; stato: StatoContratto; url: string | null; flusso?: string | null }
 
 /**
  * Gli importi del contratto firmato con quello che si paga **adesso** (10/11/2026): il credito sul conto puo' arrivare dopo la firma (il desk lo registra a
@@ -265,8 +280,13 @@ export async function importiAdesso(numero: string): Promise<ImportiContratto | 
 
 /** Dopo la firma: sceglie il metodo e incassa la prima quota. Si ripete finche' non va a buon fine. */
 export async function pagaAbbonamento(numero: string, m: MetodoAbbonamento, ritornoUrl?: string): Promise<{ ok: true; esito: EsitoPagamento } | { ok: false; errore: string }> {
-  const { ok, dati } = await abbonamento({ azione: 'paga', numero, ...m, ...(ritornoUrl ? { ritorno_url: ritornoUrl } : {}) })
-  if (ok && dati.numero) return { ok: true, esito: { numero: String(dati.numero), stato: dati.stato as StatoContratto, url: typeof dati.url === 'string' ? dati.url : null } }
+  // `su_gocardless` non va al server: per lui e' un conto senza IBAN e senza `conto_salvato`, cioe' la pagina di GoCardless.
+  const corpo = 'su_gocardless' in m ? { metodo: 'conto' as const } : m
+  const { ok, dati } = await abbonamento({ azione: 'paga', numero, ...corpo, ...(ritornoUrl ? { ritorno_url: ritornoUrl } : {}) })
+  if (ok && dati.numero) {
+    const flusso = typeof dati.flusso === 'string' && /^BRF[0-9A-Z]+$/.test(dati.flusso) ? dati.flusso : null
+    return { ok: true, esito: { numero: String(dati.numero), stato: dati.stato as StatoContratto, url: typeof dati.url === 'string' ? dati.url : null, flusso } }
+  }
   return { ok: false, errore: dati.errore ?? t('Non siamo riusciti a completare il pagamento adesso.', 'We couldn’t complete the payment right now.') }
 }
 
@@ -274,8 +294,8 @@ export type EsitoContratto = {
   stato: StatoContratto
   pagamento: { ok: boolean; come?: string; in_corso?: boolean; errore?: string } | null
   errore: string | null
-  /** Di chi e' e quanto si paga oggi (un server vecchio non lo manda). */
-  contratto?: { nome: string | null; titolo: string | null; totale_oggi: number }
+  /** Di chi e' e quanto si paga oggi (un server vecchio non lo manda). `conto_su_gocardless`: vedi `DaPagare`. */
+  contratto?: { nome: string | null; titolo: string | null; totale_oggi: number; conto_su_gocardless?: boolean }
 }
 
 export type EsitoPagaGruppo = { numero: string; ok: boolean; stato?: StatoContratto; errore?: string }
@@ -286,7 +306,8 @@ export type EsitoPagaGruppo = { numero: string; ok: boolean; stato?: StatoContra
  */
 export async function pagaGruppo(
   numeri: string[],
-  conto: { iban: string; intestatario: string; via: string; cap: string; citta: string },
+  // `conto_salvato`: il conto gia' salvato (per i contratti del nostro sistema, il mandato GoCardless appena firmato per il primo figlio).
+  conto: { iban: string; intestatario: string; via: string; cap: string; citta: string } | { conto_salvato: true },
 ): Promise<{ ok: true; esiti: EsitoPagaGruppo[] } | { ok: false; errore: string }> {
   const { ok, dati } = await abbonamento({ azione: 'paga_gruppo', numeri, metodo: 'conto', ...conto })
   if (ok && Array.isArray(dati.esiti)) return { ok: true, esiti: dati.esiti as EsitoPagaGruppo[] }

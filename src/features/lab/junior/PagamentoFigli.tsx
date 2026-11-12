@@ -2,11 +2,11 @@ import { router, useLocalSearchParams } from "expo-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Platform, StyleSheet, Text, View } from "react-native";
 
-import { esitoAbbonamento, pagaAbbonamento, pagaGruppo, type EsitoContratto, type EsitoPagaGruppo } from "@/api/abbonamento";
+import { esitoAbbonamento, pagaAbbonamento, pagaGruppo, statoAbbonamento, type EsitoContratto, type EsitoPagaGruppo } from "@/api/abbonamento";
 import { ModuloIban, type DatiConto } from "@/features/metodo-pagamento/ModuloIban";
 import { euro } from "@/lib/eventi";
 import { t } from "@/lib/lingua";
-import { apriPagamento } from "@/lib/pagamentoEsterno";
+import { apriPagamento, apriPaginaMandato } from "@/lib/pagamentoEsterno";
 import { spazio } from "@/theme";
 
 import { SchedaScelta } from "../abbonamento/Passi";
@@ -28,6 +28,11 @@ import { CHIAVE_GRUPPI_JUNIOR } from "./Junior";
 //   - **carta**: un «Paga» solo; si apre la pagina della banca per il primo figlio e, tornati qui, quella del secondo («Pagamento 2 di 2»).
 //     Ogni pagina salva la carta sul suo bambino, per le quote dopo. Sul web la pagina si ricarica: lo stato si rilegge da `esito`.
 // Un contratto pagato non si ripaga: si va avanti con quelli che mancano.
+//
+// **Contratti del nostro sistema** (12/11/2026, `conto_su_gocardless`): il conto non si scrive qui. Con un mandato gia' salvato si usa quello per
+// tutti; senza, si autorizza il conto sulla pagina di GoCardless per il primo figlio (Drop-in sul web, browser integrato nell'app installata), e
+// appena il mandato c'e' gli altri figli si attivano da soli sullo stesso conto. Ogni addebito parte subito e resta «in corso» finche' la banca
+// lo conferma: lo si vede in Pagamenti, e nel CRM.
 
 type Riga = { numero: string; esito: EsitoContratto | null };
 
@@ -57,6 +62,13 @@ export function PagamentoFigli() {
   const [pagando, setPagando] = useState(false);
   const [errore, setErrore] = useState<string | null>(null);
   const giri = useRef(0);
+  // Il conto gia' salvato (il mandato GoCardless del genitore) per i contratti del nostro sistema: `undefined` finche' non si sa.
+  const [contoSalvato, setContoSalvato] = useState<{ finale: string | null } | null | undefined>(undefined);
+  const leggiContoSalvato = useCallback(async () => {
+    const r = await statoAbbonamento();
+    setContoSalvato(r.ok ? r.stato.metodi.conto : null);
+    return r.ok ? r.stato.metodi.conto : null;
+  }, []);
 
   const carica = useCallback(async () => {
     const r = await Promise.all(numeri.map((n) => esitoAbbonamento(n)));
@@ -81,6 +93,10 @@ export function PagamentoFigli() {
   const nome = (x: Riga) => x.esito?.contratto?.nome ?? t("tuo figlio", "your child");
   const totale = daPagare.reduce((s, x) => s + Number(x.esito?.contratto?.totale_oggi ?? 0), 0);
   const prossimo = daPagare.find((x) => !inCorso(x.esito)) ?? null;
+  const suGc = (righe ?? []).some((x) => x.esito?.contratto?.conto_su_gocardless === true);
+  useEffect(() => {
+    if (suGc && contoSalvato === undefined) leggiContoSalvato();
+  }, [suGc, contoSalvato, leggiContoSalvato]);
   const indice = prossimo ? (righe ?? []).findIndex((x) => x.numero === prossimo.numero) + 1 : 0;
 
   useEffect(() => {
@@ -92,7 +108,77 @@ export function PagamentoFigli() {
     scorda("area");
   }, [tutti]);
 
+  /** Gli altri figli sullo stesso conto gia' salvato (il mandato GoCardless): nessun IBAN, l'addebito parte per ognuno. */
+  async function pagaContoSalvato(numeriDaPagare: string[]) {
+    if (!numeriDaPagare.length) return { ok: true as const, esiti: [] as EsitoPagaGruppo[] };
+    return numeriDaPagare.length >= 2
+      ? await pagaGruppo(numeriDaPagare, { conto_salvato: true })
+      : await pagaAbbonamento(numeriDaPagare[0], { metodo: "conto", conto_salvato: true }).then((x) =>
+          x.ok ? { ok: true as const, esiti: [{ numero: numeriDaPagare[0], ok: true }] as EsitoPagaGruppo[] } : x,
+        );
+  }
+
+  /** Contratti del nostro sistema, conto: con il conto salvato si attivano tutti; senza, la pagina di GoCardless per il primo, poi gli altri da soli. */
+  async function pagaContoGc() {
+    if (!daPagare.length) return;
+    if (!(await passaDalTotem({ cosa: "abbonamento", percorso: "/junior" }))) return;
+    setErrore(null);
+    setPagando(true);
+    let numeriDaPagare = daPagare.map((x) => x.numero);
+    if (!contoSalvato) {
+      const primo = numeriDaPagare[0];
+      const r = await pagaAbbonamento(primo, { metodo: "conto", su_gocardless: true }, ritorno(numeri));
+      if (!r.ok) {
+        setPagando(false);
+        colpetto("errore");
+        return setErrore(r.errore);
+      }
+      if (r.esito.url) {
+        const e = await apriPaginaMandato(r.esito.url, r.esito.flusso, { giaAssistito: true });
+        if (e === "lasciata" || e === "annullato") return setPagando(false);
+        if (e === "uscito") {
+          setPagando(false);
+          colpetto("errore");
+          await carica();
+          return setErrore(
+            t(
+              "Non hai completato l’autorizzazione del conto su GoCardless: niente è stato addebitato. Riprova quando vuoi, o paga con la carta.",
+              "You didn’t complete the bank account authorisation on GoCardless: nothing has been charged. Try again whenever you like, or pay by card.",
+            ),
+          );
+        }
+      }
+      // Il primo figlio: il server crea l'addebito sul mandato appena firmato quando si rilegge l'esito.
+      await carica();
+      const salvato = await leggiContoSalvato();
+      if (!salvato) {
+        setPagando(false);
+        return setErrore(
+          t(
+            "Non vediamo ancora il conto autorizzato: se hai completato la pagina di GoCardless aspetta qualche secondo e riprova; altrimenti riprova da capo.",
+            "We can’t see the authorised account yet: if you completed the GoCardless page wait a few seconds and try again; otherwise start again.",
+          ),
+        );
+      }
+      numeriDaPagare = numeriDaPagare.filter((x) => x !== primo);
+    }
+    const r = await pagaContoSalvato(numeriDaPagare);
+    setPagando(false);
+    if (!r.ok) {
+      colpetto("errore");
+      return setErrore(r.errore);
+    }
+    const falliti = r.esiti.filter((x) => !x.ok);
+    if (falliti.length) {
+      colpetto("errore");
+      setErrore(falliti.map((x) => x.errore).filter(Boolean).join(" "));
+    } else colpetto("ok");
+    giri.current = 0;
+    carica();
+  }
+
   async function pagaConto() {
+    if (suGc) return pagaContoGc();
     if (!conto || !daPagare.length) return;
     if (!(await passaDalTotem({ cosa: "abbonamento", percorso: "/junior" }))) return;
     setErrore(null);
@@ -234,17 +320,36 @@ export function PagamentoFigli() {
                   etichetta={t("Paga con conto corrente", "Pay by bank account")}
                   icona="banca"
                   titolo={t("Conto corrente (addebito SEPA)", "Bank account (SEPA direct debit)")}
-                  sotto={t(
-                    "Scrivi l’IBAN una volta: vale per tutti i figli. Le quote, la prima compresa, si addebitano sul conto. Niente da pagare adesso.",
-                    "Enter the IBAN once: it applies to all your children. All installments, the first included, are charged to the account. Nothing to pay now.",
-                  )}
+                  sotto={
+                    suGc
+                      ? t(
+                          "Un conto per tutti i figli: lo autorizzi una volta su GoCardless, senza uscire dall’app. Le quote, la prima compresa, si addebitano sul conto.",
+                          "One account for all your children: you authorise it once on GoCardless, without leaving the app. All installments, the first included, are charged to the account.",
+                        )
+                      : t(
+                          "Scrivi l’IBAN una volta: vale per tutti i figli. Le quote, la prima compresa, si addebitano sul conto. Niente da pagare adesso.",
+                          "Enter the IBAN once: it applies to all your children. All installments, the first included, are charged to the account. Nothing to pay now.",
+                        )
+                  }
                   onPress={() => {
                     setMetodo("conto");
                     setErrore(null);
                   }}
                 />
               </View>
-              {metodo === "conto" ? (
+              {metodo === "conto" && suGc ? (
+                <Text style={[stili.nota, { color: p.testoSecondario }]}>
+                  {contoSalvato
+                    ? t(
+                        `Usiamo il conto salvato${contoSalvato.finale ? ` •••• ${contoSalvato.finale}` : ""}, con il mandato SEPA già firmato: vale per tutti i figli. Le richieste di addebito partono subito e le vedi in Pagamenti come «in corso», finché la banca non le conferma.`,
+                        `We’ll use your saved account${contoSalvato.finale ? ` •••• ${contoSalvato.finale}` : ""}, with the SEPA mandate already signed: it applies to all your children. The direct debits are requested right away and you’ll see them in Payments as “in progress” until the bank confirms them.`,
+                      )
+                    : t(
+                        `Tocca «Continua su GoCardless»: si apre la pagina sicura di GoCardless, il servizio che gestisce i nostri addebiti SEPA. Scrivi l’IBAN una volta sola e autorizza il mandato; poi attiviamo da soli ${nomi(daPagare)} sullo stesso conto. Gli addebiti partono subito e li vedi in Pagamenti come «in corso».`,
+                        `Tap “Continue on GoCardless”: GoCardless’s secure page opens, the service that handles our SEPA direct debits. Enter your IBAN once and authorise the mandate; then we activate ${nomi(daPagare)} on the same account. The direct debits are requested right away and you’ll see them in Payments as “in progress”.`,
+                      )}
+                </Text>
+              ) : metodo === "conto" ? (
                 conto ? (
                   <View style={{ gap: spazio.due }}>
                     <Text style={[stili.nota, { color: p.testoSecondario }]}>
@@ -270,11 +375,11 @@ export function PagamentoFigli() {
             {errore ? <Messaggio>{errore}</Messaggio> : null}
             {metodo === "conto" ? (
               <Pulsante
-                testo={t(`Conferma e attiva per ${nomi(daPagare)}`, `Confirm and activate for ${nomi(daPagare)}`)}
+                testo={suGc && !contoSalvato ? t("Continua su GoCardless", "Continue on GoCardless") : t(`Conferma e attiva per ${nomi(daPagare)}`, `Confirm and activate for ${nomi(daPagare)}`)}
                 icona="banca"
                 onPress={pagaConto}
                 inCorso={pagando}
-                disabilitato={!conto}
+                disabilitato={suGc ? contoSalvato === undefined : !conto}
               />
             ) : prossimo ? (
               <Pulsante
