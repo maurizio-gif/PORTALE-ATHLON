@@ -400,6 +400,8 @@ export type DaPagare = {
   carta?: CartaSalvata | null
   /** Il server sa aprire il pagamento col Drop-in di Adyen (`sessione_acquisto`): oggi la lezione singola del Baby Nuoto. Senza, o senza l'SDK nella build, resta il link. */
   drop_in?: boolean
+  /** Euro del credito gia' scalati dal prezzo (12/11/2026): `prodotto.prezzo` e' la differenza da pagare. Oggi solo la lezione singola del Baby Nuoto. */
+  credito?: number
 }
 
 export async function prenotaLezione(
@@ -421,6 +423,7 @@ export async function prenotaLezione(
       acquisto_id: typeof dati.acquisto_id === 'string' ? dati.acquisto_id : undefined,
       carta: dati.carta ?? null,
       drop_in: dati.drop_in === true,
+      credito: typeof dati.credito === 'number' && dati.credito > 0 ? dati.credito : undefined,
     }
   }
   return { ok: false, errore: dati.errore ?? t('Non siamo riusciti a prenotare adesso.', 'We couldn’t book right now.') }

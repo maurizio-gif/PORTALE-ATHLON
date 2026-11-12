@@ -256,3 +256,4 @@ chiamata diretta al gestionale. Esempio: la sezione Prodotti usa l'azione `prodo
 - [Il certificato: la conferma della persona prima di inviarlo, e «Vedi e scarica» quello approvato (12/11/2026)](docs/claude/218-certificato-conferma-della-persona-e-vedi-e-scarica-12-11-2026.md) · 3 KB
 - [«Scegli l'abbonamento» all'iscrizione a un gruppo Junior, quando il gruppo si vende con più di uno (12/11/2026)](docs/claude/219-scegli-l-abbonamento-all-iscrizione-a-un-gruppo-12-11-2026.md) · 2 KB
 - [«Credito disponibile da scalare» nella sezione Pagamenti, solo se c'è (12/11/2026)](docs/claude/220-credito-disponibile-nella-sezione-pagamenti-12-11-2026.md) · 2 KB
+- [Il credito in euro nelle gare, nella lezione Baby e nello shop: l'app dice quanto si paga davvero (12/11/2026)](docs/claude/221-credito-nelle-gare-nel-baby-e-nello-shop-12-11-2026.md) · 2 KB

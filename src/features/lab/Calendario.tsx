@@ -269,6 +269,12 @@ export function AzioniLezione({
           <CassaLezione acquistoId={daPagare.acquisto_id!} onChiudi={() => setCassa(false)} />
         ) : (
         <View style={{ gap: spazio.due }}>
+          {/* Il credito in euro che copre una parte della lezione (12/11/2026): e' gia' scalato, il prezzo qui sotto e' la differenza. */}
+          {daPagare.credito ? (
+            <Messaggio tono="ok" icona="regalo">
+              {t(`Abbiamo scalato ${euro(daPagare.credito)} dal tuo credito: paghi solo la differenza.`, `We’ve used ${euro(daPagare.credito)} of your credit: you only pay the difference.`)}
+            </Messaggio>
+          ) : null}
           {daPagare.carta && daPagare.acquisto_id && daPagare.prodotto.prezzo != null ? (
             <>
               <Pulsante
