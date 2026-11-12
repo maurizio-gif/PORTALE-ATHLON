@@ -395,7 +395,12 @@ export type SceltaIscrizione = {
   group_id?: string | number
   baby?: boolean
   data_inizio?: string
+  /** L'abbonamento scelto, quando il gruppo si vende con piu' di uno (`piani_disponibili`, 12/11/2026). Senza: il primo. */
+  piano_id?: number
 }
+
+/** Un abbonamento fra cui scegliere all'iscrizione a un gruppo: quota al mese, attivazione e quanto si paga oggi. */
+export type PianoDisponibile = { piano_id: number; nome: string; mensile: number; attivazione: number; oggi: number }
 
 export type AnteprimaIscrizione = AnteprimaContratto & {
   /** Le date in cui si puo' cominciare (le lezioni del gruppo da oggi); `data_inizio` e' quella dell'anteprima. */
@@ -403,6 +408,8 @@ export type AnteprimaIscrizione = AnteprimaContratto & {
   data_inizio: string
   gruppo: { group_id: number; nome: string; giorni: string | null; orario: string | null }
   piano: { piano_id: number; nome: string; mensile: number; attivazione: number }
+  /** Gli abbonamenti fra cui scegliere: vuoto (o assente, con la funzione di prima) se il gruppo si vende con uno solo. */
+  piani_disponibili?: PianoDisponibile[]
 }
 
 export type RispostaIscrizione =
