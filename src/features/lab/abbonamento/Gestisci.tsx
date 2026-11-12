@@ -21,6 +21,7 @@ import {
   richiediUpgrade,
   type MotivoDisdetta,
   type OpzioneSospensione,
+  type PagamentoSospensione,
 } from '@/api/gestioneAbbonamento'
 import { statoAbbonamento, statoCambioAbbonamento, type PianoAbbonamento } from '@/api/abbonamento'
 import { CampoData } from '@/components/CampoData'
@@ -132,8 +133,19 @@ type PassoFoglio = 'menu' | 's1' | 's2' | 's3' | 'sEsito' | 'd1' | 'd2' | 'd3' |
  * Il foglio di un abbonamento: il riepilogo con le azioni, e i due percorsi (sospendere, disdire) a passi.
  * `onCambiato` si chiama dopo una scrittura riuscita: chi lo usa rilegge l'elenco.
  */
-export function FoglioGestisci({ contratto: c, aperto, onChiudi, onCambiato }: { contratto: ContrattoGestione; aperto: boolean; onChiudi: () => void; onCambiato: () => void }) {
+export function FoglioGestisci({ contratto: c, aperto, onChiudi, onCambiato, senzaCambio = false }: {
+  contratto: ContrattoGestione
+  aperto: boolean
+  onChiudi: () => void
+  onCambiato: () => void
+  /** Solo «Sospendi» e, piccolo, «Disdici» (12/11/2026): il mensile del Baby Nuoto aperto da Junior non ha un cambio ne' un upgrade. */
+  senzaCambio?: boolean
+}) {
   const p = usePalette()
+  // Il mensile del Baby Nuoto (12/11/2026, Maurizio), da dovunque lo si apra: niente cambio abbonamento ne' upgrade (nel riepilogo e
+  // dentro la disdetta), e la sospensione e' solo quella a pagamento. Lo dice il server (`motivo: 'non_previsto'`) o il nome del piano.
+  const baby = c.azioni?.cambia.motivo === 'non_previsto' || /baby\s*nuoto/i.test(c.piano)
+  const niente = senzaCambio || baby
   const [passo, setPasso] = useState<PassoFoglio>('menu')
   const sessione = useSessione()
   const [sosp, setSosp] = useState<AnteprimaSospensione | null>(null)
@@ -148,7 +160,7 @@ export function FoglioGestisci({ contratto: c, aperto, onChiudi, onCambiato }: {
   const [opzione, setOpzione] = useState<number | null>(null)
   const [regole, setRegole] = useState(false)
   const [addebito, setAddebito] = useState(false)
-  const [fatta, setFatta] = useState<{ dal: string; al: string; costo: number; scadenza: string | null; scadenzaLetta: boolean; ultimoAnnullo: string } | null>(null)
+  const [fatta, setFatta] = useState<{ dal: string; al: string; costo: number; scadenza: string | null; scadenzaLetta: boolean; pagamento: PagamentoSospensione | null; ultimoAnnullo: string } | null>(null)
   const [annullata, setAnnullata] = useState<number | null | undefined>(undefined)
 
   // Disdetta
@@ -176,10 +188,18 @@ export function FoglioGestisci({ contratto: c, aperto, onChiudi, onCambiato }: {
   const caricaSospensioni = useCallback(async () => {
     setErroreSosp(null)
     const r = await anteprimaSospensione(c.contract_id)
-    if (r.ok) setSosp(r.dati)
-    else setErroreSosp(r.errore)
+    if (r.ok) {
+      // Baby Nuoto: solo la sospensione a pagamento. Un mese che aveva solo la gratuita resta spento.
+      const mesi = baby
+        ? r.dati.mesi.map((m) => {
+            const opzioni = m.opzioni.filter((o) => !o.gratuita)
+            return { ...m, opzioni, richiedibile: m.richiedibile && opzioni.length > 0, motivo_no: m.richiedibile && !opzioni.length ? 'nessuna_opzione' : m.motivo_no }
+          })
+        : r.dati.mesi
+      setSosp({ ...r.dati, mesi })
+    } else setErroreSosp(r.errore)
     return r.ok
-  }, [c.contract_id])
+  }, [c.contract_id, baby])
 
   const caricaDisdetta = useCallback(async () => {
     setErroreDis(null)
@@ -223,8 +243,8 @@ export function FoglioGestisci({ contratto: c, aperto, onChiudi, onCambiato }: {
   const costo = opzioneScelta?.costo ?? 0
   const metodo = metodoTesto(sosp?.metodo_pagamento ?? null)
   const disdetta0 = c.azioni?.disdici
-  const finestra = c.azioni?.cambia.finestra
-  const upgrade = c.azioni?.cambia.upgrade
+  const finestra = niente ? undefined : c.azioni?.cambia.finestra
+  const upgrade = niente ? undefined : c.azioni?.cambia.upgrade
   // Dentro la finestra il cambio avviene senza disdire; fuori c'e' solo l'upgrade.
   const inFinestra = finestra?.stato === 'aperta'
 
@@ -349,13 +369,13 @@ export function FoglioGestisci({ contratto: c, aperto, onChiudi, onCambiato }: {
 
       <View style={{ flexDirection: 'row', gap: spazio.due }}>
         <Pulsante testo={t('Sospendi', 'Suspend')} icona="orologio" variante="secondario" disabilitato={!c.azioni?.sospendi.disponibile || (!sosp && !erroreSosp)} onPress={() => vai('s1')} />
-        {inFinestra ? (
+        {niente ? null : inFinestra ? (
           <Pulsante testo={t('Cambia abbonamento', 'Change membership')} icona="rinnovo" onPress={apriCambio} inCorso={inCorso} />
         ) : (
           <Pulsante testo={t('Upgrade', 'Upgrade')} icona="rinnovo" disabilitato={!upgrade?.possibile} onPress={() => { caricaPiani(); vai('u1') }} />
         )}
       </View>
-      {inFinestra && finestra?.stato === 'aperta' ? (
+      {niente ? null : inFinestra && finestra?.stato === 'aperta' ? (
         <Nota>{t(`Puoi cambiare abbonamento senza disdire fino alle 23:59 del ${dataLunga(finestra.ultimo_giorno)}: scegli tu quando parte il nuovo, nei prossimi 30 giorni.`, `You can change membership without cancelling until 11:59 pm on ${dataLunga(finestra.ultimo_giorno)}: you choose when the new one starts, within the next 30 days.`)}</Nota>
       ) : !inFinestra && upgrade && !upgrade.possibile ? (
         <Nota>{t('Hai già l’abbonamento di valore più alto: non c’è un upgrade possibile.', 'You already have the highest-value membership: there’s no upgrade available.')}</Nota>
@@ -494,12 +514,35 @@ export function FoglioGestisci({ contratto: c, aperto, onChiudi, onCambiato }: {
           <Riga nome={t('Puoi annullarla fino alle', 'You can cancel it until')} valore={t(`23:59 del ${dataLunga(fatta.ultimoAnnullo)}`, `11:59 pm on ${dataLunga(fatta.ultimoAnnullo)}`)} />
         </View>
       </Carta>
+      {/* Com'e' andato l'addebito, quando il server lo dice (12/11/2026). */}
+      {fatta.costo > 0 && fatta.pagamento === 'pagato' ? (
+        <Messaggio tono="ok" icona="ok">
+          {metodo
+            ? t(`${euro(fatta.costo)} addebitati su ${metodo}.`, `${euro(fatta.costo)} charged to ${metodo}.`)
+            : t(`${euro(fatta.costo)} addebitati sul metodo di pagamento del contratto.`, `${euro(fatta.costo)} charged to the contract’s payment method.`)}
+        </Messaggio>
+      ) : null}
+      {fatta.costo > 0 && fatta.pagamento === 'in_corso' ? (
+        <Messaggio tono="attenzione" icona="orologio">
+          {metodo
+            ? t(`L’addebito di ${euro(fatta.costo)} su ${metodo} è partito: lo trovi in Pagamenti appena è confermato.`, `The ${euro(fatta.costo)} charge to ${metodo} has started: you’ll find it under Payments once it’s confirmed.`)
+            : t(`L’addebito di ${euro(fatta.costo)} è partito: lo trovi in Pagamenti appena è confermato.`, `The ${euro(fatta.costo)} charge has started: you’ll find it under Payments once it’s confirmed.`)}
+        </Messaggio>
+      ) : null}
+      {fatta.costo > 0 && fatta.pagamento === 'da_pagare' ? (
+        <>
+          <Messaggio tono="attenzione" titolo={t(`${euro(fatta.costo)} ancora da pagare`, `${euro(fatta.costo)} still to pay`)}>
+            {t('La sospensione è registrata, ma non siamo riusciti ad addebitare l’importo sul metodo di pagamento. Lo trovi in Pagamenti, sotto «Da pagare».', 'The suspension is recorded, but we couldn’t charge the amount to your payment method. You’ll find it under Payments → “To pay”.')}
+          </Messaggio>
+          <Pulsante testo={t('Vai ai pagamenti', 'Go to payments')} icona="avanti" onPress={vaiAiPagamenti} />
+        </>
+      ) : null}
       {fatta.costo > 0 ? (
         <Messaggio tono="attenzione" icona="info">
           {t(`Se la annulli, i ${euro(fatta.costo)} restano come credito sul tuo contratto: vengono applicati in automatico, non sono rimborsati.`, `If you cancel it, the ${euro(fatta.costo)} stays as credit on your contract: it’s applied automatically and isn’t refunded.`)}
         </Messaggio>
       ) : null}
-      <Pulsante testo={t('Torna agli abbonamenti', 'Back to memberships')} variante="secondario" onPress={onChiudi} />
+      <Pulsante testo={senzaCambio ? t('Chiudi', 'Close') : t('Torna agli abbonamenti', 'Back to memberships')} variante="secondario" onPress={onChiudi} />
     </>
   ) : null
 
