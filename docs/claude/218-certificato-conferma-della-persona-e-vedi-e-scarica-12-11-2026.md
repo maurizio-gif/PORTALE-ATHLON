@@ -9,7 +9,7 @@ Due richieste di Maurizio. **Prima**: «succede spesso che il genitore carichi i
 - Il nucleo arriva al foglio con la prop `nucleo` (`area.persone`) dalla sezione Certificato e dall'avviso in cima alla Home. Il sottotitolo del foglio dice sempre il nome («Per te, Mario Rossi» / «Per Luca Rossi»). Alla chiusura il foglio torna al primo passo e alla persona da cui si era aperto.
 - **La pagina del link dell'email (`/r/<token>`) non cambia**: il link vale per una persona sola, già scritta in testa («Per …»), e non c'è una scelta da sbagliare.
 
-### «Vedi e scarica» il certificato approvato (app pronta, server da fare)
+### «Vedi e scarica» il certificato approvato
 
 - Sulla riga della sezione Certificato (`RigaCertificato`), **se il server dice che c'è il file** (`certificati[].file` di `portale_area_per_email`) **e c'è la scadenza**, compare «Vedi e scarica». Al tocco chiede il link a `portale-lab-certificati`, azione `apri` (`apriCertificato` in `src/api/certificati.ts`) e apre lo stesso foglio dei documenti (`useApriPdf`): Invia, Apri, Salva sul dispositivo (sul web). Il file si chiama «Certificato medico <nome>.<ext>».
 - **`useApriPdf` accetta anche le foto**: `tipo` (senza, è un PDF come prima) cambia le parole («Apri il file») e il tipo dato al sistema; `urlScarica` è l'indirizzo con `download=` che fa scaricare il file a Storage (l'attributo `download` di un link non vale fra domini). Per i documenti di prima non cambia niente.
