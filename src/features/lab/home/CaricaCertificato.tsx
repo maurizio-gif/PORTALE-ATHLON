@@ -1,4 +1,4 @@
-import { useCallback } from 'react'
+import { useCallback, useState } from 'react'
 import { StyleSheet, Text, View } from 'react-native'
 
 import { caricaCertificato } from '@/api/certificati'
@@ -6,6 +6,7 @@ import type { PersonaArea } from '@/api/lab'
 import { useCarica } from '@/features/certificato/useCarica'
 import { CERTIFICATO_ISTRUZIONI, FORMATI_CERTIFICATO } from '@/lib/certificatoIstruzioni'
 import { MAX_BYTE, pesoLeggibile, type FileScelto } from '@/lib/fileCertificato'
+import { dataBreve } from '@/lib/metodoPagamento'
 import { spazio } from '@/theme'
 import { t } from '@/lib/lingua'
 
@@ -21,6 +22,11 @@ import { nome } from './certificato'
 // Il file va nel bucket privato, il desk riceve un'email col file e per la persona il
 // certificato resta «in verifica» finche' la segreteria non lo approva (con le date) o lo
 // rifiuta (col motivo, per email). Qui non si scrive niente su PerfectGym.
+//
+// **La conferma della persona** (12/11/2026, richiesta del club: «succede spesso che il genitore carichi il
+// certificato sulla propria anagrafica invece che su quella del figlio»): «Invia il certificato» non invia,
+// apre un passo che dice per chi si sta caricando, con nome, cognome e data di nascita, e chiede di
+// confermarlo. Da li' si puo' passare a un'altra persona del nucleo senza scegliere di nuovo il file.
 
 /** Quale certificato serve: le stesse parole del fumetto «i» e delle email del club. */
 export function IstruzioniCertificato() {
@@ -68,20 +74,102 @@ function FileInviato({ file, onCambia }: { file: FileScelto; onCambia: () => voi
   )
 }
 
+/** «nato/a il 12/03/2015», come nella sezione Famiglia (PerfectGym non ci dice il sesso in modo affidabile). */
+function nascita(x: PersonaArea): string | null {
+  const d = dataBreve(x.data_nascita)
+  return d ? t(`nato/a il ${d}`, `born ${d}`) : null
+}
+
+/** Il passo di conferma: per chi si carica, e le altre persone del nucleo se e' per qualcun altro. */
+function ConfermaPersona({
+  chi,
+  altre,
+  inCorso,
+  errore,
+  onConferma,
+  onAltra,
+  onIndietro,
+}: {
+  chi: PersonaArea
+  altre: PersonaArea[]
+  inCorso: boolean
+  errore: string | null
+  onConferma: () => void
+  onAltra: (x: PersonaArea) => void
+  onIndietro: () => void
+}) {
+  const p = usePalette()
+  const n = nome(chi)
+  const nata = nascita(chi)
+  return (
+    <>
+      <Text style={[stili.testo, { color: p.testoSecondario }]}>
+        {t('Stai caricando il certificato medico per:', 'You’re uploading the medical certificate for:')}
+      </Text>
+      <View style={[stili.persona, { backgroundColor: p.incavo, borderColor: p.accento }]}>
+        <Icona nome="certificato" size={22} colore={p.accento} />
+        <View style={{ flex: 1, gap: 2 }}>
+          <Text style={[stili.nomePersona, { color: p.testo }]}>{n}</Text>
+          {nata ? <Text style={[stili.forte, { color: p.testo }]}>{nata}</Text> : null}
+          {chi.titolare ? <Text style={[stili.nota, { color: p.testoSecondario }]}>{t('Sei tu, il titolare dell’account', 'That’s you, the account holder')}</Text> : null}
+        </View>
+      </View>
+      <Text style={[stili.testo, { color: p.testoSecondario }]}>
+        {t(
+          'Il certificato viene registrato sulla scheda di questa persona. Controlla che nome e data di nascita siano quelli scritti sul certificato.',
+          'The certificate is filed on this person’s record. Check that the name and date of birth match the ones on the certificate.',
+        )}
+      </Text>
+
+      {errore ? <Messaggio tono="errore">{errore}</Messaggio> : null}
+
+      <Pulsante testo={t(`Sì, carica per ${n}`, `Yes, upload for ${n}`)} icona="invia" inCorso={inCorso} onPress={onConferma} />
+
+      {altre.length ? (
+        <View style={{ gap: spazio.due }}>
+          <Text style={[stili.forte, { color: p.testo }]}>
+            {chi.titolare
+              ? t('È il certificato di un familiare? Sceglilo qui:', 'Is it a family member’s certificate? Choose them here:')
+              : t('È per un’altra persona? Sceglila qui:', 'Is it for someone else? Choose them here:')}
+          </Text>
+          {altre.map((x) => (
+            <Pulsante
+              key={x.member_id}
+              testo={[x.titolare ? t(`${nome(x)} (tu)`, `${nome(x)} (you)`) : nome(x), nascita(x)].filter(Boolean).join(' · ')}
+              variante="contorno"
+              disabilitato={inCorso}
+              onPress={() => onAltra(x)}
+            />
+          ))}
+        </View>
+      ) : null}
+
+      <Pulsante testo={t('Indietro', 'Back')} variante="fantasma" disabilitato={inCorso} onPress={onIndietro} />
+    </>
+  )
+}
+
 export function FoglioCertificato({
   aperto,
   persona,
+  nucleo = [],
   onChiudi,
   onCaricato,
 }: {
   aperto: boolean
   persona: PersonaArea | null
+  /** Le persone del nucleo: nel passo di conferma si puo' passare a un'altra senza ricominciare. */
+  nucleo?: PersonaArea[]
   onChiudi: () => void
   /** Il certificato e' arrivato: la Home si rilegge e mostra «in verifica». */
   onCaricato: () => void
 }) {
   const p = usePalette()
-  const memberId = persona?.member_id ?? null
+  // La persona cambiata nel passo di conferma; finche' non si cambia vale quella con cui il foglio si e' aperto.
+  const [scelta, setScelta] = useState<PersonaArea | null>(null)
+  const [conferma, setConferma] = useState(false)
+  const chi = scelta ?? persona
+  const memberId = chi?.member_id ?? null
   const invia = useCallback(
     async (f: FileScelto) => {
       if (memberId == null) return { ok: false as const, errore: t('Non troviamo la persona a cui carichi il certificato.', 'We can’t find the person you’re uploading the certificate for.') }
@@ -99,14 +187,19 @@ export function FoglioCertificato({
   const chiudi = () => {
     onChiudi()
     // Alla chiusura il foglio torna com'era: la prossima persona non trova il file di quella prima.
-    setTimeout(c.ricomincia, 250)
+    setTimeout(() => {
+      c.ricomincia()
+      setScelta(null)
+      setConferma(false)
+    }, 250)
   }
+  const altre = chi ? nucleo.filter((x) => x.member_id !== chi.member_id) : []
 
   return (
     <Foglio
       aperto={aperto}
-      titolo={c.fatto ? t('Certificato ricevuto', 'Certificate received') : t('Carica il certificato', 'Upload certificate')}
-      sottotitolo={persona ? (persona.titolare ? t('Per te', 'For you') : t(`Per ${nome(persona)}`, `For ${nome(persona)}`)) : undefined}
+      titolo={c.fatto ? t('Certificato ricevuto', 'Certificate received') : conferma ? t('Per chi è il certificato?', 'Who is the certificate for?') : t('Carica il certificato', 'Upload certificate')}
+      sottotitolo={chi ? (chi.titolare ? t(`Per te, ${nome(chi)}`, `For you, ${nome(chi)}`) : t(`Per ${nome(chi)}`, `For ${nome(chi)}`)) : undefined}
       onChiudi={chiudi}
     >
       {c.fatto ? (
@@ -116,6 +209,8 @@ export function FoglioCertificato({
           </Messaggio>
           <Pulsante testo={t('Chiudi', 'Close')} onPress={chiudi} />
         </>
+      ) : conferma && chi && c.file ? (
+        <ConfermaPersona chi={chi} altre={altre} inCorso={c.inCorso} errore={c.errore} onConferma={c.spedisci} onAltra={setScelta} onIndietro={() => setConferma(false)} />
       ) : (
         <>
           <IstruzioniCertificato />
@@ -140,7 +235,8 @@ export function FoglioCertificato({
 
           {c.errore ? <Messaggio tono="errore">{c.errore}</Messaggio> : null}
 
-          <Pulsante testo={t('Invia il certificato', 'Send the certificate')} icona="invia" inCorso={c.inCorso} disabilitato={!c.file || c.inLettura} onPress={c.spedisci} />
+          {/* Non invia ancora: prima si conferma per chi (il genitore che lo carica su di se' invece che sul figlio). */}
+          <Pulsante testo={t('Continua', 'Continue')} icona="avanti" disabilitato={!c.file || c.inLettura || !chi} onPress={() => setConferma(true)} />
         </>
       )}
     </Foglio>
@@ -156,4 +252,6 @@ const stili = StyleSheet.create({
   voce: { flexDirection: 'row', gap: 8, paddingLeft: 4 },
   punto: { width: 5, height: 5, borderRadius: 3, marginTop: 8 },
   file: { flexDirection: 'row', alignItems: 'center', gap: spazio.tre, borderRadius: 16, padding: spazio.tre },
+  persona: { flexDirection: 'row', alignItems: 'center', gap: spazio.tre, borderRadius: 18, borderWidth: 1.5, padding: spazio.tre },
+  nomePersona: { fontFamily: F.extra, fontSize: 19, lineHeight: 24, letterSpacing: -0.3 },
 })

@@ -131,6 +131,12 @@ export type CertificatoArea = {
   caricamento?: CaricamentoArea | null
   /** La proroga temporanea concessa dalla segreteria (il «temporaneo» del CRM), se e' ancora in corso. Manca finche' la funzione del database non e' aggiornata. */
   proroga?: { inizio: string | null; fine: string } | null
+  /**
+   * Il file del certificato in vigore, se e' uno caricato dal cliente e approvato dalla segreteria (12/11/2026): l'app mostra
+   * «Vedi e scarica» e chiede il link con `portale-lab-certificati`, azione `apri`. Manca (e il comando non c'e') per un
+   * certificato consegnato su carta (`certificato_file_in_vigore`, migrazione 20261112j di APP-ATHLON).
+   */
+  file?: { tipo: string | null; verificato_il: string | null } | null
 }
 
 export type Area =
@@ -394,6 +400,8 @@ export type DaPagare = {
   carta?: CartaSalvata | null
   /** Il server sa aprire il pagamento col Drop-in di Adyen (`sessione_acquisto`): oggi la lezione singola del Baby Nuoto. Senza, o senza l'SDK nella build, resta il link. */
   drop_in?: boolean
+  /** Euro del credito gia' scalati dal prezzo (12/11/2026): `prodotto.prezzo` e' la differenza da pagare. Oggi solo la lezione singola del Baby Nuoto. */
+  credito?: number
 }
 
 export async function prenotaLezione(
@@ -415,6 +423,7 @@ export async function prenotaLezione(
       acquisto_id: typeof dati.acquisto_id === 'string' ? dati.acquisto_id : undefined,
       carta: dati.carta ?? null,
       drop_in: dati.drop_in === true,
+      credito: typeof dati.credito === 'number' && dati.credito > 0 ? dati.credito : undefined,
     }
   }
   return { ok: false, errore: dati.errore ?? t('Non siamo riusciti a prenotare adesso.', 'We couldn’t book right now.') }

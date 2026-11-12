@@ -4,6 +4,8 @@ import { Platform } from 'react-native'
 
 import { passaDalTotem } from '@/features/lab/totem/passaggio'
 
+import { apriDropin } from './gocardlessDropin'
+
 // La pagina della carta (PerfectGym/Adyen) si apre dentro l'app e non in Safari: nel browser integrato (visto in
 // TestFlight il 27/10/2026) chi paga resta nell'app, e tornare e' un tocco su «Fine». Prima `Linking.openURL` mandava
 // fuori dall'app e la promessa finiva subito: la schermata partiva con «Verifichiamo il pagamento…» mentre la persona
@@ -27,4 +29,25 @@ export async function apriPagamento(url: string, opzioni?: { giaAssistito?: bool
     await Linking.openURL(url)
   }
   return true
+}
+
+/**
+ * La pagina del mandato SEPA di GoCardless per un contratto del nostro sistema (12/11/2026), senza uscire dall'app quando si puo':
+ * - sul web, con l'id del flusso, nel Drop-in di GoCardless sopra la pagina: `firmato` o `uscito`;
+ * - nell'app installata nel browser integrato, con «Fine»: `chiuso` (com'e' andata la dice il server, `esito`);
+ * - sul web senza Drop-in (script non caricato, id mancante) la pagina cambia come prima e GoCardless riporta all'indirizzo di ritorno: `lasciata`.
+ * `annullato`: sul totem si e' scelto QR o email, o si e' annullato (`apriPagamento`).
+ */
+export async function apriPaginaMandato(
+  url: string,
+  flusso: string | null | undefined,
+  opzioni?: { giaAssistito?: boolean },
+): Promise<'firmato' | 'uscito' | 'chiuso' | 'lasciata' | 'annullato'> {
+  if (Platform.OS === 'web' && flusso) {
+    const e = await apriDropin(flusso)
+    if (e === 'firmato' || e === 'uscito') return e
+  }
+  const aperto = await apriPagamento(url, opzioni)
+  if (!aperto) return 'annullato'
+  return Platform.OS === 'web' ? 'lasciata' : 'chiuso'
 }

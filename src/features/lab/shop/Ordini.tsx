@@ -3,7 +3,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { Text, View } from 'react-native'
 
 import { miOrdini, type Ordine } from '@/api/shop'
-import { t } from '@/lib/lingua'
+import { locale, t } from '@/lib/lingua'
 import { spazio } from '@/theme'
 
 import { Carta, Etichetta, Messaggio, Pulsante, SchedeInArrivo } from '../ui/kit'
@@ -88,6 +88,14 @@ export function Ordini() {
                   {t('Addebito sul conto in corso: la ricevuta ti arriva per email quando la banca lo conferma.', 'Direct debit in progress: the receipt arrives by email once your bank confirms it.')}
                 </Text>
               ) : null}
+              {/* Il credito in euro (12/11/2026): tutto o una parte dell'ordine. */}
+              {o.stato === 'pagato' && o.credito ? (
+                <Text style={{ color: p.testoSecondario, fontFamily: F.medio, fontSize: 13.5, lineHeight: 19 }}>
+                  {o.pagamento === 'credito'
+                    ? t(`Pagato con il tuo credito (${euroOrdine(o.credito)}).`, `Paid with your credit (${euroOrdine(o.credito)}).`)
+                    : t(`${euroOrdine(o.credito)} pagati con il tuo credito, il resto con ${o.pagamento === 'sepa' ? 'il conto' : 'la carta'}.`, `${euroOrdine(o.credito)} paid with your credit, the rest by ${o.pagamento === 'sepa' ? 'direct debit' : 'card'}.`)}
+                </Text>
+              ) : null}
               {o.stato === 'errore' && o.errore ? <Messaggio>{o.errore}</Messaggio> : null}
               {!ko ? <CodiceRitiro ordine={o} size={148} /> : null}
               {ko ? (
@@ -112,3 +120,5 @@ export function Ordini() {
     </Schermata>
   )
 }
+
+const euroOrdine = (n: number) => n.toLocaleString(locale(), { style: 'currency', currency: 'EUR' })

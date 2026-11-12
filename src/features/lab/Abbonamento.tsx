@@ -55,7 +55,7 @@ import { SchermataInArrivo } from './ui/Attesa'
 import { Schermata } from './ui/Schermata'
 import { F, usePalette } from './ui/tema'
 import { colpetto, Tocco } from './ui/Tocco'
-import { apriPagamento } from '@/lib/pagamentoEsterno'
+import { apriPagamento, apriPaginaMandato } from '@/lib/pagamentoEsterno'
 import { passaDalTotem } from '@/features/lab/totem/passaggio'
 import { inModalitaTotem } from '@/lib/totem'
 import { ContinuaSulTelefono } from '@/features/proposta/ContinuaSulTelefono'
@@ -209,7 +209,11 @@ export function residenzaConPaese(c: DatiContraente): string | null {
 }
 
 /** Un contratto firmato e creato, in attesa del pagamento. */
-type Firmato = { numero: string; importi: ImportiContratto; piano: string; nome: string | null; errore: string | null }
+/**
+ * `contoSuGocardless` (12/11/2026): il contratto e' del nostro sistema e un conto nuovo si autorizza sulla pagina di GoCardless (Drop-in sul web,
+ * browser integrato nell'app installata), senza il modulo IBAN. Il conto gia' salvato si sceglie come sempre.
+ */
+type Firmato = { numero: string; importi: ImportiContratto; piano: string; nome: string | null; errore: string | null; contoSuGocardless?: boolean }
 
 export function Abbonamento() {
   const p = usePalette()
@@ -295,7 +299,7 @@ export function Abbonamento() {
     // Firmato e non pagato: si riprende dal pagamento, senza rifirmare.
     const d = cambioId ? null : r.stato.da_pagare
     if (d) {
-      setFirmato({ numero: d.numero, importi: d.importi, piano: d.piano, nome: d.nome, errore: d.errore })
+      setFirmato({ numero: d.numero, importi: d.importi, piano: d.piano, nome: d.nome, errore: d.errore, contoSuGocardless: d.conto_su_gocardless === true })
       setPasso(4)
     }
   }, [cambioId, membroIndicato])
@@ -462,6 +466,8 @@ export function Abbonamento() {
 
   function metodoScelto(): MetodoAbbonamento | null {
     if (metodo === 'carta') return { metodo: 'carta', con_carta: !!stato?.metodi.carta }
+    // Contratto del nostro sistema: il conto salvato se c'e' ed e' scelto, altrimenti la pagina di GoCardless (nessun IBAN qui).
+    if (firmato?.contoSuGocardless) return stato?.metodi.conto && usaContoSalvato ? { metodo: 'conto', conto_salvato: true } : { metodo: 'conto', su_gocardless: true }
     if (contoNuovo) return { metodo: 'conto', iban: contoNuovo.iban, intestatario: contoNuovo.intestatario, via: contoNuovo.via, cap: contoNuovo.cap, citta: contoNuovo.citta }
     if (stato?.metodi.conto && usaContoSalvato) return { metodo: 'conto', conto_salvato: true }
     return null
@@ -481,6 +487,24 @@ export function Abbonamento() {
       return setErrorePagamento(r.errore)
     }
     colpetto('ok')
+    // Il conto nuovo di un contratto del nostro sistema (12/11/2026): la pagina di GoCardless senza lasciare l'app (Drop-in sul web, browser
+    // integrato nell'app installata). Poi la schermata dell'esito, che chiede al server com'e' andata: il mandato firmato fa partire da solo il
+    // primo addebito, e lo dice; senza mandato dice «non hai completato» e si riprova. Sul totem le tre strade le ha gia' fatte `passaDalTotem` qui sopra.
+    if (r.esito.url && 'su_gocardless' in m) {
+      const e = await apriPaginaMandato(r.esito.url, r.esito.flusso, { giaAssistito: true })
+      setPagando(false)
+      if (e === 'uscito') {
+        colpetto('errore')
+        return setErrorePagamento(
+          t(
+            'Non hai completato l’autorizzazione del conto su GoCardless: il contratto è firmato e niente è stato addebitato. Riprova quando vuoi, o paga con la carta.',
+            'You didn’t complete the bank account authorisation on GoCardless: the contract is signed and nothing has been charged. Try again whenever you like, or pay by card.',
+          ),
+        )
+      }
+      if (e === 'firmato' || e === 'chiuso') setNumero(r.esito.numero)
+      return
+    }
     if (r.esito.url) {
       await apriPagamento(r.esito.url)
       setPagando(false)
@@ -795,7 +819,14 @@ export function Abbonamento() {
                   etichetta={t('Paga con conto corrente', 'Pay by bank account')}
                   icona="banca"
                   titolo={t('Conto corrente (addebito SEPA)', 'Bank account (SEPA direct debit)')}
-                  sotto={t('Le quote, la prima compresa, si addebitano sul tuo conto con il mandato SEPA. Non devi pagare altro adesso.', 'All payments, the first included, are charged to your account under the SEPA mandate. You don’t have to pay anything else now.')}
+                  sotto={
+                    firmato.contoSuGocardless
+                      ? t(
+                          'Le quote, la prima compresa, si addebitano sul tuo conto con il mandato SEPA. Il conto lo autorizzi una volta sola su GoCardless, senza uscire dall’app.',
+                          'All payments, the first included, are charged to your account under the SEPA mandate. You authorise the account once on GoCardless, without leaving the app.',
+                        )
+                      : t('Le quote, la prima compresa, si addebitano sul tuo conto con il mandato SEPA. Non devi pagare altro adesso.', 'All payments, the first included, are charged to your account under the SEPA mandate. You don’t have to pay anything else now.')
+                  }
                   onPress={() => {
                     setMetodo('conto')
                     setErrorePagamento(null)
@@ -809,6 +840,17 @@ export function Abbonamento() {
                       {t(`Usiamo il conto salvato${stato.metodi.conto.finale ? ` •••• ${stato.metodi.conto.finale}` : ''}, con il mandato SEPA già firmato.`, `We’ll use your saved account${stato.metodi.conto.finale ? ` •••• ${stato.metodi.conto.finale}` : ''}, with the SEPA mandate already signed.`)}
                     </Text>
                     <Pulsante testo={t('Usa un altro conto', 'Use another account')} variante="fantasma" piccolo pieno={false} onPress={() => setUsaContoSalvato(false)} />
+                  </View>
+                ) : firmato.contoSuGocardless ? (
+                  <View style={{ gap: spazio.due }}>
+                    <Text style={[stili.nota, { color: p.testo, fontFamily: F.bold }]}>{t('Il conto lo scrivi su GoCardless, una volta sola', 'You enter the account on GoCardless, just once')}</Text>
+                    <Text style={[stili.nota, { color: p.testoSecondario }]}>
+                      {t(
+                        'Tocca «Continua su GoCardless»: si apre la pagina sicura di GoCardless, il servizio che gestisce i nostri addebiti SEPA. Scrivi l’IBAN una volta sola e autorizza il mandato. Appena hai finito parte la richiesta di addebito della prima quota: la vedi subito in Pagamenti come «in corso», finché la banca non la conferma.',
+                        'Tap “Continue on GoCardless”: GoCardless’s secure page opens, the service that handles our SEPA direct debits. Enter your IBAN once and authorise the mandate. As soon as you’re done, the direct debit for the first payment is requested: you’ll see it right away in Payments as “in progress” until the bank confirms it.',
+                      )}
+                    </Text>
+                    {stato.metodi.conto ? <Pulsante testo={t('Usa il conto salvato', 'Use the saved account')} variante="fantasma" piccolo pieno={false} onPress={() => setUsaContoSalvato(true)} /> : null}
                   </View>
                 ) : contoNuovo ? (
                   <View style={{ gap: spazio.due }}>
@@ -836,7 +878,7 @@ export function Abbonamento() {
 
             {errorePagamento ? <Messaggio>{errorePagamento}</Messaggio> : null}
             <Pulsante
-              testo={metodo === 'conto' || (importiPagamento ?? firmato.importi).calendario.totale_oggi === 0 ? t('Conferma e attiva', 'Confirm and activate') : stato.metodi.carta ? t(`Paga ${euro((importiPagamento ?? firmato.importi).calendario.totale_oggi)}`, `Pay ${euro((importiPagamento ?? firmato.importi).calendario.totale_oggi)}`) : t('Vai al pagamento sicuro', 'Go to secure payment')}
+              testo={metodo === 'conto' && firmato.contoSuGocardless && !(stato.metodi.conto && usaContoSalvato) ? t('Continua su GoCardless', 'Continue on GoCardless') : metodo === 'conto' || (importiPagamento ?? firmato.importi).calendario.totale_oggi === 0 ? t('Conferma e attiva', 'Confirm and activate') : stato.metodi.carta ? t(`Paga ${euro((importiPagamento ?? firmato.importi).calendario.totale_oggi)}`, `Pay ${euro((importiPagamento ?? firmato.importi).calendario.totale_oggi)}`) : t('Vai al pagamento sicuro', 'Go to secure payment')}
               icona="carta"
               onPress={paga}
               inCorso={pagando}
@@ -913,6 +955,10 @@ function EsitoContrattoVista({ numero, onFine, onRiprova }: { numero: string; on
   const [esito, setEsito] = useState<EsitoContratto | null>(null)
   const [errore, setErrore] = useState<string | null>(null)
   const giri = useRef(0)
+  // Quante letture di fila dicono «mandato non ancora firmato» (12/11/2026): la prima puo' arrivare un attimo prima che GoCardless chiuda la
+  // richiesta; dalla seconda e' davvero non completato, e si dice invece di far girare la rotellina.
+  const senzaMandato = useRef(0)
+  const [mandatoMancante, setMandatoMancante] = useState(false)
 
   useEffect(() => {
     let vivo = true
@@ -924,7 +970,11 @@ function EsitoContrattoVista({ numero, onFine, onRiprova }: { numero: string; on
       else {
         setErrore(null)
         setEsito(r.esito)
-        const finito = r.esito.stato === 'completato' || r.esito.stato === 'errore' || !!r.esito.pagamento?.errore
+        const inAttesaDiMandato = r.esito.stato !== 'completato' && r.esito.pagamento?.come === 'mandato' && !r.esito.pagamento?.ok
+        senzaMandato.current = inAttesaDiMandato ? senzaMandato.current + 1 : 0
+        const manca = senzaMandato.current >= 2
+        setMandatoMancante(manca)
+        const finito = r.esito.stato === 'completato' || r.esito.stato === 'errore' || !!r.esito.pagamento?.errore || manca
         // La sezione Junior non aspetta il mirror: il pagamento a posto si dice subito, e le letture di prima si rifanno.
         if (r.esito.stato === 'completato') segnaPagataInCorso(numero)
         scorda('abbonamenti:contratti')
@@ -947,13 +997,27 @@ function EsitoContrattoVista({ numero, onFine, onRiprova }: { numero: string; on
 
   const fatto = esito?.stato === 'completato'
   const guasto = esito?.stato === 'errore' || !!esito?.pagamento?.errore
+  // Pagato con il conto: l'addebito SEPA e' partito ma la banca lo conferma in qualche giorno (`in_corso`).
+  const sepaInCorso = fatto && esito?.pagamento?.come === 'addebito'
   return (
-    <Schermata titolo={fatto ? t('Abbonamento attivo', 'Membership active') : t('Stiamo finendo', 'Almost there')} sopratitolo={t('Abbonamento', 'Membership')} barra>
+    <Schermata titolo={fatto ? t('Abbonamento attivo', 'Membership active') : mandatoMancante ? t('Manca l’autorizzazione', 'Authorisation missing') : t('Stiamo finendo', 'Almost there')} sopratitolo={t('Abbonamento', 'Membership')} barra>
       <View style={{ gap: spazio.tre }}>
         {errore ? <Messaggio>{errore}</Messaggio> : null}
         {fatto ? (
           <Messaggio tono="ok" titolo={t('Tutto a posto', 'All set')} icona="ok">
-            {t('Il contratto è firmato e l’abbonamento è attivo. Il documento firmato è nella tua area riservata sul club.', 'The contract is signed and your membership is active. The signed document is in your member area.')}
+            {sepaInCorso
+              ? t(
+                  'Il conto è autorizzato e la richiesta di addebito della prima quota è partita. La trovi in Pagamenti come «in corso»: la banca la conferma in qualche giorno lavorativo, e le quote successive si addebitano da sole sullo stesso conto. Il contratto firmato è nella tua area riservata.',
+                  'Your bank account is authorised and the direct debit for the first payment has been requested. You’ll find it in Payments as “in progress”: the bank confirms it within a few working days, and later payments are charged automatically to the same account. The signed contract is in your member area.',
+                )
+              : t('Il contratto è firmato e l’abbonamento è attivo. Il documento firmato è nella tua area riservata sul club.', 'The contract is signed and your membership is active. The signed document is in your member area.')}
+          </Messaggio>
+        ) : mandatoMancante ? (
+          <Messaggio tono="attenzione" titolo={t('Non hai completato l’autorizzazione del conto', 'You didn’t complete the bank account authorisation')}>
+            {t(
+              'Sulla pagina di GoCardless il mandato non risulta firmato, quindi non è partito nessun addebito. Il contratto è firmato e conservato: riprova, oppure scegli la carta.',
+              'On the GoCardless page the mandate isn’t signed, so no direct debit has been requested. The contract is signed and stored: try again, or choose a card.',
+            )}
           </Messaggio>
         ) : guasto ? (
           <Messaggio tono="errore" titolo={t('Serve un controllo', 'A check is needed')}>
@@ -965,8 +1029,9 @@ function EsitoContrattoVista({ numero, onFine, onRiprova }: { numero: string; on
           </Messaggio>
         )}
         <Text style={{ color: p.testoSecondario, fontFamily: F.medio, fontSize: 12 }}>{t(`Contratto n. ${numero}`, `Contract no. ${numero}`)}</Text>
-        {guasto ? <Pulsante testo={t('Riprova il pagamento', 'Try the payment again')} onPress={onRiprova} /> : null}
-        <Pulsante testo={t('Torna alla home', 'Back to home')} onPress={onFine} variante={fatto ? 'primario' : guasto ? 'fantasma' : 'secondario'} />
+        {mandatoMancante ? <Pulsante testo={t('Riprova o scegli un altro metodo', 'Try again or choose another method')} onPress={onRiprova} /> : null}
+        {guasto && !mandatoMancante ? <Pulsante testo={t('Riprova il pagamento', 'Try the payment again')} onPress={onRiprova} /> : null}
+        <Pulsante testo={t('Torna alla home', 'Back to home')} onPress={onFine} variante={fatto ? 'primario' : guasto || mandatoMancante ? 'fantasma' : 'secondario'} />
       </View>
     </Schermata>
   )

@@ -14,6 +14,7 @@ import {
   pagaConContoSalvato,
   pagaGara,
   sessioneGara,
+  type AnteprimaGara,
   type CartaSalvata,
   type ContoSalvato,
   type DatiGare,
@@ -31,6 +32,7 @@ import { DropIn, pagamentoDisponibile, riprendiDopoRedirect } from "../adyen";
 import { nomeCarta, primaVolta } from "../pagamento/comune";
 import { Indicatore, SchedaScelta } from "../abbonamento/Passi";
 import { Icona } from "../ui/Icona";
+import { colpetto } from "../ui/Tocco";
 import { Bollino, Carta, Etichetta, Messaggio, Numero, Pulsante, SchedeInArrivo, Sezione } from "../ui/kit";
 import { useRiduciMovimento } from "../ui/movimento";
 import { F, FUOCO, usePalette, velo } from "../ui/tema";
@@ -75,7 +77,7 @@ import { nomeCompleto } from "./comune";
 type Sesso = "Male" | "Female";
 
 /** Cosa serve per pagare una gara nella sua vista: la gara, il bambino, l'iscrizione e il turno (l'ora e la categoria) che la carta ha appena mostrato. */
-type DaPagare = { gara: GaraTrofeo; pg: PersonaGara; iscrizioneId: number; iso: string | null; sesso: Sesso | null };
+type DaPagare = { gara: GaraTrofeo; pg: PersonaGara; iscrizioneId: number; iso: string | null; sesso: Sesso | null; /** Quello che resta da pagare (dopo omaggio, sconto e credito); senza, la quota di listino. */ quotaCent?: number };
 
 export function Gare({ persona, vista }: { persona: PersonaJunior; vista: boolean }) {
   const [dati, setDati] = useState<(DatiGare & { ok: true }) | { ok: false; errore: string } | undefined>();
@@ -136,7 +138,7 @@ export function Gare({ persona, vista }: { persona: PersonaJunior; vista: boolea
   const mie = dati.mie.filter((x) => x.member_id === persona.member_id);
 
   if (paga) {
-    return <PagaGara da={paga} quotaCent={dati.quota_cent} onAttendo={setAttendo} onSepa={carica} onChiudi={() => setPaga(null)} />;
+    return <PagaGara da={paga} quotaCent={paga.quotaCent ?? dati.quota_cent} onAttendo={setAttendo} onSepa={carica} onChiudi={() => setPaga(null)} />;
   }
 
   return (
@@ -263,6 +265,10 @@ function CartaGara({
   const p = usePalette();
   const prova = pg.gruppo ? gara.prove[pg.gruppo]?.descrizione : undefined;
   const iscr = pg.iscrizioni.find((i) => i.gara_id === gara.id);
+  // Quanto si paga davvero (12/11/2026): un'iscrizione gia' fatta porta la sua quota (dopo omaggio, sconto e credito); per una nuova, l'anteprima del server, se c'e'.
+  const quotaIscr = iscr?.quota_cent ?? quotaCent;
+  const anteprima = pg.anteprime.find((a) => a.gara_id === gara.id);
+  const coperta = mia?.pagamento === "omaggio" || mia?.pagamento === "credito" || iscr?.pagamento === "omaggio" || iscr?.pagamento === "credito";
   const confermata = iscr?.stato === "confermata";
   const inAttesa = iscr?.stato === "in_attesa_pagamento";
   // Pagata sul conto: in corso finche' la banca non conferma; non riuscita, si ripaga con la carta (l'iscrizione resta).
@@ -282,7 +288,7 @@ function CartaGara({
   // Il riquadro c'e' se la gara ha i turni e la persona puo' gareggiare. Col sesso da scegliere compare solo a modulo aperto (con l'invito a scegliere).
   const mostraTurno = pg.ammesso && !gara.passata && gara.turni.length > 0 && (iscritto || sessoCf !== null || aperto);
   // Il pagamento si apre con quello che la carta sa adesso: la gara, il bambino, il turno e la categoria.
-  const apriCassa = (iscrizioneId: number) => onPaga({ gara, pg, iscrizioneId, iso: isoTurno, sesso: sessoUsato });
+  const apriCassa = (iscrizioneId: number, quota?: number) => onPaga({ gara, pg, iscrizioneId, iso: isoTurno, sesso: sessoUsato, quotaCent: quota ?? (iscr?.id === iscrizioneId ? iscr.quota_cent : undefined) });
 
   return (
     <Carta style={{ gap: spazio.tre }}>
@@ -327,7 +333,7 @@ function CartaGara({
             <Messaggio tono="attenzione" titolo={t("L’addebito sul conto non è riuscito", "The direct debit didn’t go through")}>
               {t("Il posto resta confermato. Paga la quota con la carta, qui sotto, oppure in segreteria.", "The place stays confirmed. Please pay the fee by card below, or at the front desk.")}
             </Messaggio>
-            {gara.aperta ? <Pulsante testo={t(`Paga ${euro(quotaCent)} con carta`, `Pay ${euro(quotaCent)} by card`)} icona="carta" onPress={() => apriCassa(iscr.id)} /> : null}
+            {gara.aperta ? <Pulsante testo={t(`Paga ${euro(quotaIscr)} con carta`, `Pay ${euro(quotaIscr)} by card`)} icona="carta" onPress={() => apriCassa(iscr.id)} /> : null}
           </View>
         )
       ) : confermata ? (
@@ -336,8 +342,12 @@ function CartaGara({
             {isoTurno
               ? t(`Ti aspettiamo ${giorno(gara.inizio)}: convocazione alle ${ora(convocazione(isoTurno))}. Ti scriviamo anche per email con tutte le informazioni.`, `See you on ${giorno(gara.inizio)}: call time ${ora(convocazione(isoTurno))}. We’ll also email you all the details.`)
               : t(`Ti aspettiamo ${giorno(gara.inizio)}. La convocazione è 30 minuti prima dell’inizio del turno. Ti scriviamo anche per email con tutte le informazioni.`, `See you on ${giorno(gara.inizio)}. Call time is 30 minutes before your heat starts. We’ll also email you all the details.`)}
-            {sepa === "in_corso"
-              ? t(` L’addebito di ${euro(quotaCent)} sul conto è in corso: la banca lo esegue in qualche giorno lavorativo, e la ricevuta arriva per email quando è confermato.`, ` The ${euro(quotaCent)} direct debit is in progress: your bank processes it within a few working days, and the receipt arrives by email once it’s confirmed.`)
+            {coperta
+              ? mia?.pagamento === "credito" || iscr?.pagamento === "credito"
+                ? t(" La quota è coperta dal tuo credito: non c’è niente da pagare.", " The fee is covered by your credit: there’s nothing to pay.")
+                : t(" La quota è in omaggio: non c’è niente da pagare.", " The fee is complimentary: there’s nothing to pay.")
+              : sepa === "in_corso"
+              ? t(` L’addebito di ${euro(quotaIscr)} sul conto è in corso: la banca lo esegue in qualche giorno lavorativo, e la ricevuta arriva per email quando è confermato.`, ` The ${euro(quotaIscr)} direct debit is in progress: your bank processes it within a few working days, and the receipt arrives by email once it’s confirmed.`)
               : ""}
           </Messaggio>
         )
@@ -350,12 +360,13 @@ function CartaGara({
       ) : vista ? (
         <Text style={[stili.corpo, { color: p.testoSecondario }]}>{t("Vista cliente: qui non si può iscrivere.", "Client view: you can’t register from here.")}</Text>
       ) : inAttesa && iscr ? (
-        <Pagamento iscrizioneId={iscr.id} quotaCent={quotaCent} onCassa={apriCassa} />
+        <Pagamento iscrizioneId={iscr.id} quotaCent={quotaIscr} creditoCent={iscr.credito_cent ?? 0} onCassa={apriCassa} />
       ) : (
         <FormIscrizione
           gara={gara}
           pg={pg}
-          quotaCent={quotaCent}
+          quotaCent={anteprima ? anteprima.da_pagare_cent : quotaCent}
+          anteprima={anteprima}
           aperto={aperto}
           onApri={() => setAperto(true)}
           sessoCf={sessoCf}
@@ -469,6 +480,7 @@ function FormIscrizione({
   gara,
   pg,
   quotaCent,
+  anteprima,
   aperto,
   onApri,
   sessoCf,
@@ -480,7 +492,9 @@ function FormIscrizione({
 }: {
   gara: GaraTrofeo;
   pg: PersonaGara;
+  /** Quello che si paga iscrivendosi: il listino, o l'anteprima del server con omaggio, sconto o credito. */
   quotaCent: number;
+  anteprima?: AnteprimaGara;
   aperto: boolean;
   onApri: () => void;
   sessoCf: Sesso | null;
@@ -488,7 +502,7 @@ function FormIscrizione({
   scelto: Sesso | null;
   onScelto: (s: Sesso) => void;
   onFatto: () => Promise<unknown>;
-  onCassa: (iscrizioneId: number) => void;
+  onCassa: (iscrizioneId: number, quota?: number) => void;
 }) {
   const p = usePalette();
   const [lavoro, setLavoro] = useState(false);
@@ -511,16 +525,44 @@ function FormIscrizione({
       await onFatto();
       return;
     }
-    // Si paga qui, nella carta: la carta salvata con un tocco, o il modulo (sul web) / il link (nell'app nativa).
-    onCassa(r.iscrizione_id);
+    // Omaggio o credito che copre tutto: l'iscrizione nasce gia' confermata e non c'e' niente da pagare.
+    if (r.stato === "confermata") {
+      colpetto("ok");
+      setLavoro(false);
+      await onFatto();
+      return;
+    }
+    // Si paga qui, nella carta: la carta salvata con un tocco, o il modulo (sul web) / il link (nell'app nativa). La quota e' quella dopo sconto e credito.
+    onCassa(r.iscrizione_id, r.quota_cent);
     setLavoro(false);
     await onFatto();
   }
 
+  // Omaggio, sconto o credito (12/11/2026): il pulsante dice quello che si paga davvero, e una riga dice perche'.
+  const gratis = !!anteprima && quotaCent <= 0;
+  const perche = !anteprima
+    ? null
+    : gratis
+      ? anteprima.credito_cent > 0 && anteprima.agevolazione !== "omaggio"
+        ? t("La quota è coperta dal tuo credito: non c’è niente da pagare.", "The fee is covered by your credit: there’s nothing to pay.")
+        : t("La quota è in omaggio: non c’è niente da pagare.", "The fee is complimentary: there’s nothing to pay.")
+      : [
+          anteprima.agevolazione === "percentuale" || anteprima.agevolazione === "euro" ? t(`Con lo sconto la quota è di ${euro(anteprima.quota_cent)}.`, `With your discount the fee is ${euro(anteprima.quota_cent)}.`) : null,
+          anteprima.credito_cent > 0 ? t(`Scaliamo ${euro(anteprima.credito_cent)} dal tuo credito.`, `We’ll use ${euro(anteprima.credito_cent)} of your credit.`) : null,
+        ]
+          .filter(Boolean)
+          .join(" ") || null;
+  const testoIscrivi = (chi: string) =>
+    gratis ? t(`Iscrivi ${chi}`.replace("  ", " ").trim(), `Register ${chi}`.replace("  ", " ").trim()) : t(`Iscrivi ${chi} e paga ${euro(quotaCent)}`.replace("  ", " "), `Register ${chi} and pay ${euro(quotaCent)}`.replace("  ", " "));
   const note = (
-    <Text style={[stili.nota, { color: p.testoSecondario }]}>
-      {t("Si paga ora con carta, sulla pagina sicura di Adyen. La quota non è rimborsabile.", "You pay now by card on Adyen’s secure page. The fee is non-refundable.")}
-    </Text>
+    <>
+      {perche ? <Messaggio tono="ok" icona="regalo">{perche}</Messaggio> : null}
+      {gratis ? null : (
+        <Text style={[stili.nota, { color: p.testoSecondario }]}>
+          {t("Si paga ora con carta, sulla pagina sicura di Adyen. La quota non è rimborsabile.", "You pay now by card on Adyen’s secure page. The fee is non-refundable.")}
+        </Text>
+      )}
+    </>
   );
 
   // Il sesso lo dice il codice fiscale: un tocco solo.
@@ -530,8 +572,8 @@ function FormIscrizione({
       <View style={{ gap: spazio.tre }}>
         {errore ? <Messaggio>{errore}</Messaggio> : null}
         <Pulsante
-          testo={t(`Iscrivi ${pg.nome ?? ""} e paga ${euro(quotaCent)}`.replace("  ", " "), `Register ${pg.nome ?? ""} and pay ${euro(quotaCent)}`.replace("  ", " "))}
-          icona="carta"
+          testo={testoIscrivi(pg.nome ?? "")}
+          icona={gratis ? "trofeo" : "carta"}
           inCorso={lavoro}
           onPress={vai}
         />
@@ -586,8 +628,8 @@ function FormIscrizione({
       </View>
       {errore ? <Messaggio>{errore}</Messaggio> : null}
       <Pulsante
-        testo={t(`Iscrivi e paga ${euro(quotaCent)}`, `Register and pay ${euro(quotaCent)}`)}
-        icona="carta"
+        testo={testoIscrivi("")}
+        icona={gratis ? "trofeo" : "carta"}
         inCorso={lavoro}
         disabilitato={!scelto}
         onPress={vai}
@@ -598,11 +640,12 @@ function FormIscrizione({
 }
 
 /** Iscritto ma non ancora pagato: si riprende il pagamento. */
-function Pagamento({ iscrizioneId, quotaCent, onCassa }: { iscrizioneId: number; quotaCent: number; onCassa: (iscrizioneId: number) => void }) {
+function Pagamento({ iscrizioneId, quotaCent, creditoCent, onCassa }: { iscrizioneId: number; quotaCent: number; creditoCent: number; onCassa: (iscrizioneId: number) => void }) {
   return (
     <View style={{ gap: spazio.tre }}>
       <Messaggio tono="attenzione" titolo={t("Manca il pagamento", "Payment is missing")}>
         {t("L’iscrizione è confermata solo dopo il pagamento.", "Registration is confirmed only after payment.")}
+        {creditoCent > 0 ? t(` Abbiamo già scalato ${euro(creditoCent)} dal tuo credito: resta da pagare la differenza.`, ` We’ve already used ${euro(creditoCent)} of your credit: only the difference is left to pay.`) : ""}
       </Messaggio>
       <Pulsante testo={t(`Paga ${euro(quotaCent)}`, `Pay ${euro(quotaCent)}`)} icona="carta" onPress={() => onCassa(iscrizioneId)} />
     </View>

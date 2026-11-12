@@ -79,6 +79,12 @@ export function Carrello() {
       }
       return
     }
+    // Il credito in euro ha coperto tutto (12/11/2026): l'ordine e' gia' pagato, niente cassa. La pagina dell'ordine lo dice e svuota il carrello.
+    if (r.pagato) {
+      colpetto('ok')
+      router.replace({ pathname: '/shop/ordine/[id]', params: { id: r.ordine_id } })
+      return
+    }
     setDaPagare(r)
   }
 
@@ -178,6 +184,14 @@ export function Carrello() {
             <Text style={[stili.totaleEtichetta, { color: p.testoSecondario }]}>{t('Totale da pagare', 'Total to pay')}</Text>
             <Text style={[stili.totaleCifra, { color: p.testo }]}>{euro(daPagare.totale)}</Text>
           </View>
+          {daPagare.credito ? (
+            <Messaggio tono="ok" icona="regalo">
+              {t(
+                `Abbiamo scalato ${euro(daPagare.credito)} dal tuo credito${daPagare.totaleListino ? ` (il totale era ${euro(daPagare.totaleListino)})` : ''}: paghi solo la differenza.`,
+                `We’ve used ${euro(daPagare.credito)} of your credit${daPagare.totaleListino ? ` (the total was ${euro(daPagare.totaleListino)})` : ''}: you only pay the difference.`,
+              )}
+            </Messaggio>
+          ) : null}
           {daPagare.preordine ? <Text style={[stili.nota, { color: p.testoSecondario }]}>{t('È un preordine: paghi adesso e ti diciamo quando arriva.', 'This is a pre-order: you pay now and we’ll tell you when it arrives.')}</Text> : null}
           <CassaShop key={daPagare.ordine_id} ordineId={daPagare.ordine_id} totale={daPagare.totale} chiudi={t('Torna al carrello', 'Back to cart')} onChiudi={() => setDaPagare(null)} />
         </Carta>

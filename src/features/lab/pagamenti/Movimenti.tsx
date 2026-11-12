@@ -19,6 +19,7 @@ import { Tocco } from '../ui/Tocco'
 import { apriPagamento } from '@/lib/pagamentoEsterno'
 import { passaDalTotem } from '@/features/lab/totem/passaggio'
 
+import { CreditoDisponibile } from './Credito'
 import { giornoLungo, pagamentiInCorso, senzaInCorso, statoInCorso } from './inCorso'
 
 // I pagamenti veri del socio e della famiglia (15/10/2026), da PerfectGym:
@@ -431,6 +432,9 @@ export function RiepilogoPagamenti({ onPagato }: { onPagato?: () => void } = {})
       {dati.daSaldare.length ? (
         <DaPagare elenco={dati.daSaldare} carta={dati.cartaSaldo} inCorsoFrase={dati.inCorsoFrase} onApri={(m) => setScelto({ tipo: 'movimento', m })} onAggiorna={aggiorna} verificaSubito={ritorno} />
       ) : null}
+
+      {/* Il credito in euro caricato dal CRM: solo se c'e' (Credito.tsx). */}
+      <CreditoDisponibile />
 
       {inCorso.length ? (
         <Sezione titolo={t('Pagamenti in corso', 'Payments in progress')} conteggio={inCorso.length}>
