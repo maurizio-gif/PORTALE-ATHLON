@@ -15,8 +15,12 @@ import { t } from '@/lib/lingua'
 /**
  * Le schermate a cui il pulsante di una notifica porta: lo stesso elenco di `app_notifica_destinazioni()` nel database e di
  * `lib/notificheApp.ts` del CRM. Una chiave che l'app non conosce non e' un pulsante (la notifica si legge e basta).
+ *
+ * **`attiva-notifiche` non e' una schermata ma un'azione** (11/11/2026, richiesta di Maurizio: «il pulsante proprio nella
+ * notifica, attiva push qui»): il tocco attiva la push di questo dispositivo senza cambiare schermata (`FinestraNotifica`,
+ * `Centro`). Una versione dell'app che non la conosce la scarta come ogni chiave sconosciuta: resta «Ok, letto».
  */
-export const DESTINAZIONI = ['home', 'calendario', 'abbonamenti', 'pagamenti', 'certificato', 'profilo', 'allenamento', 'shop', 'club-life', 'personal', 'tv', 'assistenza'] as const
+export const DESTINAZIONI = ['home', 'calendario', 'abbonamenti', 'pagamenti', 'certificato', 'profilo', 'allenamento', 'shop', 'club-life', 'personal', 'tv', 'assistenza', 'attiva-notifiche'] as const
 export type DestinazioneNotifica = (typeof DESTINAZIONI)[number]
 
 function eDestinazione(v: unknown): v is DestinazioneNotifica {
@@ -49,6 +53,9 @@ export function hrefDestinazione(d: DestinazioneNotifica): Href {
     case 'assistenza':
       // Le richieste al team (08/11/2026): la notifica «il team ti ha risposto» porta all'elenco, dove la risposta nuova ha il suo pallino.
       return '/assistenza'
+    case 'attiva-notifiche':
+      // Dove si ripiega se attivarle con un tocco non si puo' (bloccate, iPhone dal web): il centro notifiche dice come fare.
+      return '/notifiche'
   }
 }
 
