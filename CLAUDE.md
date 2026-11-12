@@ -250,3 +250,4 @@ chiamata diretta al gestionale. Esempio: la sezione Prodotti usa l'azione `prodo
 - [I Consigli chiudevano l'app: un hook condizionale in `Schermata` (12/11/2026)](docs/claude/212-consigli-chiudevano-l-app-hook-condizionale-in-schermata-12-11-2026.md) · 2 KB
 - [L'OTA del 12/11/2026 con la correzione dei Consigli: tre runtime (3.0.0, 3.1.0, 3.1.1), il Baby Nuoto già in produzione resta nei 3.1.x, e l'ultimo gruppo di un runtime non è per forza quello dell'ultima nota (12/11/2026)](docs/claude/213-ota-dell-12-11-2026-correzione-dei-consigli.md) · 8 KB
 - [Le notifiche push si registrano da sole se il permesso del telefono c'è già; chi le ha spente dall'app resta spento (12/11/2026)](docs/claude/214-push-registrate-da-sole-se-il-permesso-c-e-gia-12-11-2026.md) · 2 KB
+- [Un esercizio aggiunto nell'editor entra prima del defaticamento, non in fondo (12/11/2026)](docs/claude/215-esercizio-aggiunto-prima-del-defaticamento-12-11-2026.md) · 2 KB
