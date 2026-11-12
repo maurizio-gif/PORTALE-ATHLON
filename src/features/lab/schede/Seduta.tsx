@@ -15,6 +15,7 @@ import { Schermata } from '../ui/Schermata'
 import { F, FUOCO, usePalette, velo } from '../ui/tema'
 import { colpetto, Tocco } from '../ui/Tocco'
 import { aTempo, chiliProposti, descriviPasso, dettaglioCarico, dopo, gruppo, indicazione, pianoPiuLeggero, recupero, SPIEGA_PIANO_PIU_LEGGERO, SPIEGA_TARATURA, type Passo } from './comune'
+import { GuidaEsercizio } from './GuidaEsercizio'
 import { MediaEsercizio } from './MediaEsercizio'
 import { Nota, serieInRiga } from './Scheda'
 import { applicaProgressione } from './progressione'
@@ -480,6 +481,7 @@ export function Seduta() {
                     <Text style={[stili.piccola, { color: p.testoTerzo }]}>{t(`L’ultima volta: ${serieInRiga(precedente(e.esercizio_id)!.serie)}`, `Last time: ${serieInRiga(precedente(e.esercizio_id)!.serie)}`)}</Text>
                   ) : null}
                   {pianoPiuLeggero(indicazione(e, massimali).kg, precedente(e.esercizio_id)?.serie) ? <Nota testo={SPIEGA_PIANO_PIU_LEGGERO} /> : null}
+                  <GuidaEsercizio e={e} />
                   <View style={{ gap: spazio.due, marginTop: spazio.uno }}>
                     {Array.from({ length: e.serie }, (_, k) => k + 1).map((n) => (
                       <RigaSerie

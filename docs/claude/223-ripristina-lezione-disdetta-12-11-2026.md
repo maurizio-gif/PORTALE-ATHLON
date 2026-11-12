@@ -1,0 +1,3 @@
+## «Lezioni che hai disdetto»: ripristinare una lezione fino all'inizio (12/11/2026)
+
+Richiesta di Maurizio. Nella voce «Recuperi» della Scuola Nuoto Bambini, sotto le prossime lezioni, il riquadro `LezioniDisdette` elenca le lezioni disdette non ancora iniziate con il recupero da usare o prenotato, e «Ripristina lezione» (con foglio di conferma). Se il recupero era già prenotato, la conferma dice che anche quella prenotazione si annulla. Dopo l'inizio, o con il recupero già usato, il comando non c'è: lo fa la segreteria dal CRM. Server: azioni `disdette` e `ripristina` di `portale-lab-calendario` (`CLAUDE.md` di APP-ATHLON, sezione 254). **Non pubblicato**; `tsc` pulito, non guardato su un telefono.

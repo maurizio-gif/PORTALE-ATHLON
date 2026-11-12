@@ -33,7 +33,7 @@ type Stato =
   | { fase: 'errore'; errore: string }
   | { fase: 'pronto'; token: string; nome: string | null; nomeTitolare: string; contratti: ContrattoNucleo[] }
 
-export function MetodoPagamento() {
+export function MetodoPagamento({ ritornoConto = false }: { /** Si torna dalla pagina di GoCardless (`?conto=1`). */ ritornoConto?: boolean } = {}) {
   const [stato, setStato] = useState<Stato>({ fase: 'carica' })
   // Le quote scadute del nucleo: se ce ne sono, qui si propone di pagarle, prima di parlare di cambiare metodo.
   const { dati: pagamenti, rileggi } = useMovimenti()
@@ -63,6 +63,7 @@ export function MetodoPagamento() {
         nomeTitolare={stato.nomeTitolare}
         iniziali={stato.contratti}
         pagatore={pagatore}
+        ritornoConto={ritornoConto}
         sopra={daSaldare.length ? <DaPagare elenco={daSaldare} carta={pagamenti?.cartaSaldo ?? null} inCorsoFrase={pagamenti?.inCorsoFrase ?? null} onAggiorna={rileggi} verificaSubito={false} /> : null}
       />
     )
