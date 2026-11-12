@@ -31,7 +31,15 @@ export type IscrizioneBreve = {
   gruppo: string;
   link_pagamento: string | null;
   link_scade: string | null;
+  /** Quello che resta da pagare, dopo omaggio, sconto e credito (12/11/2026). Assente con una funzione di prima: vale la quota di listino. */
+  quota_cent?: number;
+  /** Quanto della quota ha coperto il credito in euro. */
+  credito_cent?: number;
+  pagamento?: "carta" | "sepa" | "omaggio" | "credito" | null;
 };
+
+/** Cosa pagherebbe un bambino iscrivendosi adesso a una gara, se ha un omaggio, uno sconto o un credito: lo calcola il server, senza consumare niente. */
+export type AnteprimaGara = { gara_id: number; quota_cent: number; credito_cent: number; da_pagare_cent: number; agevolazione: "omaggio" | "percentuale" | "euro" | null };
 
 export type PersonaGara = {
   member_id: number;
@@ -50,6 +58,8 @@ export type PersonaGara = {
   /** Perche' non e' ammesso: `data_nascita`, `fuori_fascia` o `livello`. */
   motivo: "data_nascita" | "fuori_fascia" | "livello" | null;
   iscrizioni: IscrizioneBreve[];
+  /** Solo per chi ha un'agevolazione o un credito; senza, si paga la quota di listino. */
+  anteprime: AnteprimaGara[];
 };
 
 export type IscrizioneMia = {
@@ -74,8 +84,10 @@ export type IscrizioneMia = {
   tempo_cent: number | null;
   posizione: number | null;
   punti: number;
-  /** Come si e' pagato: `carta` o `sepa` (il conto gia' salvato su PerfectGym); `null` per le iscrizioni pagate prima del SEPA, con la carta. */
-  pagamento?: "carta" | "sepa" | null;
+  /** Come si e' pagato: `carta` o `sepa` (il conto gia' salvato su PerfectGym), `omaggio` o `credito` (niente incasso); `null` per le iscrizioni pagate prima del SEPA, con la carta. */
+  pagamento?: "carta" | "sepa" | "omaggio" | "credito" | null;
+  quota_cent?: number;
+  credito_cent?: number;
   /** L'addebito SEPA: in corso (l'iscrizione e' gia' confermata), incassato, fallito o contestato (la quota si paga con la carta). */
   sepa_stato?: "in_corso" | "incassato" | "fallito" | "contestato" | null;
 };
@@ -107,12 +119,18 @@ export async function leggiGare(): Promise<EsitoGare> {
     edizione: dati.edizione ?? null,
     quota_cent: Number(dati.quota_cent ?? 800),
     gare: Array.isArray(dati.gare) ? (dati.gare as GaraTrofeo[]).map((g) => ({ ...g, turni: Array.isArray(g.turni) ? g.turni : [] })) : [],
-    persone: Array.isArray(dati.persone) ? (dati.persone as PersonaGara[]) : [],
+    persone: Array.isArray(dati.persone)
+      ? (dati.persone as PersonaGara[]).map((x) => ({
+          ...x,
+          iscrizioni: Array.isArray(x.iscrizioni) ? x.iscrizioni : [],
+          anteprime: Array.isArray(dati.anteprime) ? (dati.anteprime as (AnteprimaGara & { member_id: number })[]).filter((a) => Number(a.member_id) === x.member_id) : [],
+        }))
+      : [],
     mie: Array.isArray(dati.mie) ? (dati.mie as IscrizioneMia[]) : [],
   };
 }
 
-export type EsitoIscrizione = { ok: true; iscrizione_id: number; stato: string; sesso_aggiornato: boolean } | { ok: false; errore: string; gia_iscritto?: boolean };
+export type EsitoIscrizione = { ok: true; iscrizione_id: number; stato: string; sesso_aggiornato: boolean; quota_cent?: number; credito_cent?: number } | { ok: false; errore: string; gia_iscritto?: boolean };
 
 /**
  * Iscrive un bambino a una gara. Il sesso lo dice il codice fiscale (`PersonaGara.sesso_cf`): `sesso` si manda solo quando il codice non lo dice, ed e' quello scelto
@@ -127,7 +145,14 @@ export async function iscriviAGara(garaId: number, memberId: number, sesso: "Mal
       errore: dati.errore ?? t("Non siamo riusciti a iscriverlo adesso. Riprova fra qualche minuto.", "We couldn’t register right now. Try again in a few minutes."),
     };
   }
-  return { ok: true, iscrizione_id: Number(dati.iscrizione_id), stato: String(dati.stato ?? ""), sesso_aggiornato: dati.sesso_aggiornato !== false };
+  return {
+    ok: true,
+    iscrizione_id: Number(dati.iscrizione_id),
+    stato: String(dati.stato ?? ""),
+    sesso_aggiornato: dati.sesso_aggiornato !== false,
+    quota_cent: typeof dati.quota_cent === "number" ? dati.quota_cent : undefined,
+    credito_cent: typeof dati.credito_cent === "number" ? dati.credito_cent : undefined,
+  };
 }
 
 export type EsitoPagamentoGara = { ok: true; url: string } | { ok: true; giaPagata: true; url?: undefined } | { ok: false; errore: string };
