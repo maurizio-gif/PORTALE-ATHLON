@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Platform } from 'react-native'
 
-import { iscriviPush, rimuoviPush, statoPushServer } from '@/api/notifiche'
+import { iscriviPush, iscriviPushNativo, rimuoviPush, statoPushServer } from '@/api/notifiche'
 import { t } from '@/lib/lingua'
 import { inModalitaTotem } from '@/lib/totem'
 
@@ -12,8 +12,9 @@ import { attivaNativo, eNativo, gettone, permessoNativo, spegniNativo } from './
 // Sul telefono nativo non ci sono (servirebbe `expo-notifications` e una build nuova): il centro notifiche e la finestra
 // funzionano uguale, e questo file dice «non supportato» e basta.
 //
-// **Si attivano solo con un tocco della persona** (il browser chiede il permesso solo cosi', e su iPhone solo con l'app
-// installata sulla schermata Home). Il permesso e' del dispositivo: lo da' la persona a questo browser. Quello che il
+// **Il permesso si chiede solo con un tocco della persona** (il browser chiede il permesso solo cosi', e su iPhone solo con l'app
+// installata sulla schermata Home). Se il permesso c'e' gia', dal 12/11/2026 il dispositivo si iscrive da solo dopo l'accesso
+// (`registraSePermessoGiaConcesso`, qui sotto). Il permesso e' del dispositivo: lo da' la persona a questo browser. Quello che il
 // server sa e' l'indirizzo del servizio push di questo dispositivo, associato al nucleo che l'ha attivato.
 //
 // **Chi esce dall'app toglie il suo dispositivo** (`scollegaDispositivo`, chiamata da `esciDalLaboratorio`): su un
@@ -103,6 +104,76 @@ function avvisaLeAltre(mia: () => Promise<void>) {
   })
 }
 
+// ---------------------------------------------------------------------------
+// La registrazione automatica quando il permesso c'e' gia' (12/11/2026, richiesta di Maurizio).
+//
+// Il permesso del sistema (iPhone, Android, browser) non si puo' dare al posto della persona. Ma molti telefoni l'hanno **gia'**: Android fino
+// alla 12 lo concede all'installazione, e chi l'aveva dato e poi e' uscito dall'app (che toglie il dispositivo, `scollegaDispositivo`) rientra con
+// il permesso ancora acceso. A loro l'app diceva «Attiva» e aspettava un tocco, e il club li contava senza push. Ora, dopo l'accesso, se il
+// permesso e' gia' concesso e il server non conosce questo dispositivo, lo si iscrive senza chiedere niente: nessuna finestra del sistema.
+//
+// **Chi le ha spente dall'app resta spento**: «Spegni» lascia un segno sul dispositivo (`SPENTE_A_MANO`) e qui non si riaccende; «Attiva» lo
+// toglie. Uscire dall'app non lascia il segno (non e' una scelta sulle notifiche). Sul totem e in vista cliente non si fa niente (`supportato`,
+// `vistaCorrente`). Sul web, su iPhone, solo nell'app installata, come sempre. Non solleva mai e gira una volta per apertura.
+
+const SPENTE_A_MANO = 'athlon.push.spente_a_mano'
+
+function segnaSpenteAMano(spente: boolean) {
+  try {
+    if (spente) globalThis.localStorage?.setItem(SPENTE_A_MANO, '1')
+    else globalThis.localStorage?.removeItem(SPENTE_A_MANO)
+  } catch {
+    // Senza memoria si resta al comportamento di prima: nessun danno.
+  }
+}
+
+function spenteAMano(): boolean {
+  try {
+    return globalThis.localStorage?.getItem(SPENTE_A_MANO) === '1'
+  } catch {
+    return true
+  }
+}
+
+let registrazioneProvata = false
+
+/** Iscrive questo dispositivo se il permesso delle notifiche c'e' gia' e il server non lo conosce. Restituisce true se l'ha iscritto. */
+export async function registraSePermessoGiaConcesso(): Promise<boolean> {
+  if (registrazioneProvata) return false
+  registrazioneProvata = true
+  if (!supportato() || vistaCorrente() || spenteAMano()) return false
+  try {
+    if (eNativo) {
+      if ((await permessoNativo()) !== 'concesso') return false
+      const g = await gettone()
+      if (!g) return false
+      const server = await statoPushServer(undefined, g)
+      if (!server.ok || !server.nativo || server.questo) return false
+      const r = await iscriviPushNativo(g, Platform.OS)
+      if (r.ok) istanze.forEach((rileggi) => void rileggi())
+      return r.ok
+    }
+    // Il browser: solo se il permesso e' gia' «granted» (senza un tocco non si chiede), e su iPhone solo l'app installata.
+    if (Notification.permission !== 'granted' || (eIos() && !installata())) return false
+    const reg = await navigator.serviceWorker.getRegistration()
+    let sub = (await reg?.pushManager.getSubscription()) ?? null
+    const server = await statoPushServer(sub?.endpoint)
+    if (!server.ok || !server.disponibile || !server.chiave) return false
+    if (sub && server.questo) return false
+    const r0 = reg ?? (await registrazione())
+    if (!r0) return false
+    await navigator.serviceWorker.ready
+    if (!sub) sub = await r0.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: chiaveInByte(server.chiave) as BufferSource })
+    const j = sub.toJSON()
+    if (!j.endpoint || !j.keys?.p256dh || !j.keys?.auth) return false
+    const r = await iscriviPush({ endpoint: j.endpoint, p256dh: j.keys.p256dh, auth: j.keys.auth })
+    if (r.ok) istanze.forEach((rileggi) => void rileggi())
+    return r.ok
+  } catch {
+    return false
+  }
+}
+
 /** Lo stato delle push di questo dispositivo e i comandi per attivarle e spegnerle. */
 export function usePush() {
   const [stato, setStato] = useState<StatoPush>('verifica')
@@ -151,6 +222,7 @@ export function usePush() {
   }, [leggi])
 
   const attiva = useCallback(async () => {
+    segnaSpenteAMano(false)
     setErrore(null)
     setOccupato(true)
     if (eNativo) {
@@ -205,6 +277,8 @@ export function usePush() {
   }, [leggi])
 
   const spegni = useCallback(async () => {
+    // Una scelta della persona: la registrazione automatica non le riaccende (`registraSePermessoGiaConcesso`).
+    segnaSpenteAMano(true)
     setErrore(null)
     setOccupato(true)
     try {
