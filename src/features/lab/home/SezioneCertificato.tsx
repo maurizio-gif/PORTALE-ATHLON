@@ -1,14 +1,16 @@
 import { useState } from 'react'
 import { Text, View } from 'react-native'
 
+import { apriCertificato } from '@/api/certificati'
 import type { Area, PersonaArea } from '@/api/lab'
 import { spazio } from '@/theme'
 import { t } from '@/lib/lingua'
 
+import { useApriPdf } from '../apriPdf'
 import { Carta } from '../ui/kit'
 import { F, usePalette } from '../ui/tema'
 import { FoglioCertificato } from './CaricaCertificato'
-import { RigaCertificato, urgenzaCertificato, statoCertificato } from './certificato'
+import { nome, RigaCertificato, urgenzaCertificato, statoCertificato } from './certificato'
 
 // La sezione Certificato della Home: una riga per ogni persona del nucleo, con
 // lo stato e, dove manca o e' scaduto, la «i» di quale certificato serve e il comando per
@@ -21,6 +23,16 @@ export function SezioneCertificato({ area, onAggiorna }: { area: AreaTrovata; on
   // Per chi si sta caricando il certificato: il foglio e' uno solo, e si apre sulla persona scelta.
   const [per, setPer] = useState<PersonaArea | null>(null)
   const [aperto, setAperto] = useState(false)
+  // Il certificato approvato da vedere o scaricare (12/11/2026): lo stesso foglio dei documenti (apri, salva, invia).
+  const { apri: apriFile, avviso } = useApriPdf()
+  const [inApertura, setInApertura] = useState<number | null>(null)
+  async function apri(x: PersonaArea) {
+    setInApertura(x.member_id)
+    // Il nome del file dice di chi e': chi lo salva per due figli non trova due «certificato.pdf».
+    const chi = nome(x).replace(/[^\p{L}\p{N} _-]/gu, '').trim()
+    await apriFile(() => apriCertificato(x.member_id, (ext) => `${t('Certificato medico', 'Medical certificate')} ${chi}.${ext}`))
+    setInApertura(null)
+  }
   const righe = area.persone
     .map((persona) => {
       const ce = area.certificati.find((x) => x.member_id === persona.member_id)
@@ -41,13 +53,16 @@ export function SezioneCertificato({ area, onAggiorna }: { area: AreaTrovata; on
               setPer(r.persona)
               setAperto(true)
             }}
+            onApri={() => apri(r.persona)}
+            inApertura={inApertura === r.persona.member_id}
           />
         ))}
       </Carta>
       <Text style={{ color: p.testoTerzo, fontFamily: F.medio, fontSize: 13, lineHeight: 19, paddingHorizontal: 4 }}>
         {t('Il certificato si consegna in formato digitale: tocca «Carica il certificato» e scegli una foto o un PDF. Toccando la «i» vedi quale serve.', 'The certificate is handed in digitally: tap “Upload certificate” and choose a photo or a PDF. Tap the “i” to see which one you need.')}
       </Text>
-      <FoglioCertificato aperto={aperto} persona={per} onChiudi={() => setAperto(false)} onCaricato={onAggiorna} />
+      {avviso}
+      <FoglioCertificato aperto={aperto} persona={per} nucleo={area.persone} onChiudi={() => setAperto(false)} onCaricato={onAggiorna} />
     </View>
   )
 }

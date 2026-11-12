@@ -19,6 +19,22 @@ export async function caricaCertificato(memberId: number, f: FileScelto): Promis
   return ok ? { ok: true } : { ok: false, errore: dati.errore ?? GUASTO }
 }
 
+/**
+ * Il link per vedere il certificato approvato di una persona del nucleo (12/11/2026): firmato da Storage, dura pochi minuti
+ * e si chiede al tocco. Il server sceglie il file (l'ultimo caricamento approvato) e ricontrolla che la persona sia del nucleo.
+ */
+export async function apriCertificato(memberId: number, nomeFile?: (ext: string) => string): Promise<{ ok: true; url: string; nome: string; tipo: string; urlScarica: string } | { ok: false; errore: string }> {
+  const { ok, dati } = await funzione('portale-lab-certificati', { azione: 'apri', member_id: memberId })
+  if (!ok || typeof dati.url !== 'string') return { ok: false, errore: dati.errore ?? t('Non riusciamo ad aprire il certificato adesso.', 'We can’t open the certificate right now.') }
+  const tipo = typeof dati.tipo === 'string' ? dati.tipo : 'application/pdf'
+  const ext = tipo === 'image/png' ? 'png' : tipo === 'image/jpeg' ? 'jpg' : 'pdf'
+  // Il nome lo sceglie chi chiama (con il nome della persona); se no quello del server, se no uno generico.
+  const nome = nomeFile ? nomeFile(ext) : typeof dati.nome === 'string' && dati.nome ? dati.nome : t(`certificato-medico.${ext}`, `medical-certificate.${ext}`)
+  // `download=` chiede a Storage di mandare il file come allegato: e' quello che fa «Salva sul dispositivo».
+  const urlScarica = typeof dati.url_scarica === 'string' ? dati.url_scarica : `${dati.url}${dati.url.includes('?') ? '&' : '?'}download=${encodeURIComponent(nome)}`
+  return { ok: true, url: dati.url, nome, tipo, urlScarica }
+}
+
 /** Cosa mostra la pagina del link. */
 export type PaginaCertificato = {
   /** Nome e cognome di chi serve il certificato. */

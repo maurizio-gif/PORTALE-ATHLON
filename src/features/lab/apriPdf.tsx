@@ -26,9 +26,18 @@ import { F, usePalette } from './ui/tema'
 // ultimo si apre la posta. Nell'app nativa e' la condivisione del sistema, che oggi porta
 // l'indirizzo: con il file sul telefono (expo-sharing) portera' il PDF.
 
-export type EsitoPdf = { ok: true; url: string; nome?: string } | { ok: false; errore: string }
+// **Anche una foto** (12/11/2026, il certificato medico approvato, che puo' essere un JPG o un PNG): `tipo` dice
+// che file e', e cambia solo le parole («Apri il file») e il tipo dato al sistema; senza `tipo` e' un PDF, come sempre.
+// `urlScarica` e' l'indirizzo che chiede al server di scaricare il file invece di mostrarlo (un link firmato di
+// Storage con `download=`): l'attributo `download` del link non vale per un indirizzo di un altro dominio.
 
-type Pronto = { url: string; nome: string }
+export type EsitoPdf = { ok: true; url: string; nome?: string; tipo?: string; urlScarica?: string } | { ok: false; errore: string }
+
+type Pronto = { url: string; nome: string; tipo?: string; urlScarica?: string }
+
+const tipoDi = (p: Pronto) => p.tipo ?? 'application/pdf'
+const eUnPdf = (p: Pronto | null) => !p || tipoDi(p) === 'application/pdf'
+const utiDi = (p: Pronto) => (eUnPdf(p) ? 'com.adobe.pdf' : tipoDi(p) === 'image/png' ? 'public.png' : 'public.jpeg')
 
 /** Aperta dalla schermata Home (iPhone: `navigator.standalone`, il resto: display-mode). */
 function appInstallata(): boolean {
@@ -46,7 +55,7 @@ function useFileCondivisibile(pronto: Pronto | null): File | null {
     fetch(pronto.url)
       .then((r) => (r.ok ? r.blob() : null))
       .then((b) => {
-        if (vivo && b) setScaricato({ url: pronto.url, file: new File([b], pronto.nome, { type: 'application/pdf' }) })
+        if (vivo && b) setScaricato({ url: pronto.url, file: new File([b], pronto.nome, { type: tipoDi(pronto) }) })
       })
       .catch(() => undefined)
     return () => {
@@ -71,7 +80,7 @@ function PdfPronto({ pronto, onChiudi }: { pronto: Pronto | null; onChiudi: () =
     if (!pronto) return
     if (Platform.OS !== 'web') {
       // Un file nel telefono (la tessera) si apre dal foglio di condivisione; un link firmato si apre nel browser.
-      if (pronto.url.startsWith('file:')) Sharing.shareAsync(pronto.url, { mimeType: 'application/pdf', UTI: 'com.adobe.pdf', dialogTitle: pronto.nome }).catch(() => undefined)
+      if (pronto.url.startsWith('file:')) Sharing.shareAsync(pronto.url, { mimeType: tipoDi(pronto), UTI: utiDi(pronto), dialogTitle: pronto.nome }).catch(() => undefined)
       else Linking.openURL(pronto.url)
       return
     }
@@ -85,7 +94,7 @@ function PdfPronto({ pronto, onChiudi }: { pronto: Pronto | null; onChiudi: () =
   function salva() {
     if (!pronto || Platform.OS !== 'web') return
     const a = document.createElement('a')
-    a.href = pronto.url
+    a.href = pronto.urlScarica ?? pronto.url
     a.download = pronto.nome
     a.rel = 'noopener'
     document.body.appendChild(a)
@@ -98,7 +107,7 @@ function PdfPronto({ pronto, onChiudi }: { pronto: Pronto | null; onChiudi: () =
     setErrore(null)
     try {
       if (Platform.OS !== 'web') {
-        if (pronto.url.startsWith('file:')) await Sharing.shareAsync(pronto.url, { mimeType: 'application/pdf', UTI: 'com.adobe.pdf', dialogTitle: pronto.nome })
+        if (pronto.url.startsWith('file:')) await Sharing.shareAsync(pronto.url, { mimeType: tipoDi(pronto), UTI: utiDi(pronto), dialogTitle: pronto.nome })
         else await Share.share({ message: pronto.nome, url: pronto.url })
         return
       }
@@ -116,7 +125,11 @@ function PdfPronto({ pronto, onChiudi }: { pronto: Pronto | null; onChiudi: () =
         window.location.href = `mailto:?subject=${encodeURIComponent(pronto.nome)}&body=${encodeURIComponent(pronto.url)}`
         return
       }
-      setErrore(t('Da questo dispositivo non si può inviare direttamente: salva il PDF e invialo dalla posta o da un messaggio.', 'You can’t send it directly from this device: save the PDF and send it by email or in a message.'))
+      setErrore(
+        eUnPdf(pronto)
+          ? t('Da questo dispositivo non si può inviare direttamente: salva il PDF e invialo dalla posta o da un messaggio.', 'You can’t send it directly from this device: save the PDF and send it by email or in a message.')
+          : t('Da questo dispositivo non si può inviare direttamente: salva il file e invialo dalla posta o da un messaggio.', 'You can’t send it directly from this device: save the file and send it by email or in a message.'),
+      )
     } catch (e) {
       // Chi chiude il foglio di condivisione non ha sbagliato niente.
       if ((e as { name?: string })?.name !== 'AbortError') setErrore(t('Non siamo riusciti a inviare il PDF. Riprova, oppure salvalo e invialo da lì.', 'We couldn’t send the PDF. Try again, or save it and send it from there.'))
@@ -130,7 +143,7 @@ function PdfPronto({ pronto, onChiudi }: { pronto: Pronto | null; onChiudi: () =
       </Text>
       {errore ? <Messaggio>{errore}</Messaggio> : null}
       <Pulsante testo={t('Invia', 'Send')} icona="condividi" onPress={invia} />
-      <Pulsante testo={t('Apri il PDF', 'Open the PDF')} icona="apriFuori" variante="secondario" onPress={apri} />
+      <Pulsante testo={eUnPdf(pronto) ? t('Apri il PDF', 'Open the PDF') : t('Apri il file', 'Open the file')} icona="apriFuori" variante="secondario" onPress={apri} />
       {/* Sul totem (lib/totem.ts) non si salva niente sul dispositivo: il file di una persona resterebbe sul disco del pannello. */}
       {Platform.OS === 'web' && !inModalitaTotem() ? <Pulsante testo={t('Salva sul dispositivo', 'Save to device')} icona="scarica" variante="contorno" onPress={salva} /> : null}
     </Foglio>
@@ -162,7 +175,7 @@ export function useApriPdf(): { apri: (prendiUrl: () => Promise<EsitoPdf>) => Pr
       setErrore(r.errore)
       return
     }
-    setPronto({ url: r.url, nome: r.nome ?? t('documento.pdf', 'document.pdf') })
+    setPronto({ url: r.url, nome: r.nome ?? t('documento.pdf', 'document.pdf'), tipo: r.tipo, urlScarica: r.urlScarica })
   }, [])
 
   const avviso = (

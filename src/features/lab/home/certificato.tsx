@@ -244,16 +244,22 @@ export function RigaCertificato({
   ce,
   prima,
   onCarica,
+  onApri,
+  inApertura = false,
 }: {
   persona: PersonaArea | undefined
   ce: CertificatoArea | undefined
   prima: boolean
   onCarica?: () => void
+  /** «Vedi e scarica» il certificato approvato (12/11/2026): c'e' solo se il server dice che il file c'e' (`ce.file`) e ci sono le date. */
+  onApri?: () => void
+  inApertura?: boolean
 }) {
   const p = usePalette()
   const [aperta, setAperta] = useState(false)
   const s = statoCertificato(ce, persona?.data_nascita)
   const puoCaricare = Boolean(onCarica) && !vistaCorrente() && (s.daConsegnare || (s.tono === 'attenzione' && s.giorni !== null))
+  const puoAprire = Boolean(onApri) && Boolean(ce?.file) && Boolean(ce?.scadenza)
   return (
     // Col fumetto aperto la riga sta sopra le altre, che altrimenti lo coprirebbero.
     <View style={{ zIndex: aperta ? 10 : 0, elevation: aperta ? 10 : 0 }}>
@@ -277,6 +283,9 @@ export function RigaCertificato({
                 pieno={false}
                 onPress={onCarica!}
               />
+            ) : null}
+            {puoAprire ? (
+              <Pulsante testo={t('Vedi e scarica', 'View and download')} icona="scarica" variante="contorno" piccolo pieno={false} inCorso={inApertura} onPress={onApri!} />
             ) : null}
           </View>
         }
