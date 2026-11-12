@@ -94,8 +94,10 @@ export type Ordine = {
   totale: number
   creato_il: string
   pagato_il: string | null
-  /** Come si e' pagato: `carta` o `sepa` (il conto gia' salvato). */
-  pagamento: 'carta' | 'sepa' | null
+  /** Come si e' pagato: `carta` o `sepa` (il conto gia' salvato), o `credito` (il credito in euro ha coperto tutto). */
+  pagamento: 'carta' | 'sepa' | 'credito' | null
+  /** Euro del credito scalati dall'ordine (12/11/2026); `totale` e' quello pagato. Null se il credito non c'entra. */
+  credito: number | null
   /** L'addebito SEPA: in corso (l'ordine e' gia' pagato), incassato, fallito o contestato (la carta prende il suo posto). */
   sepa_stato: 'in_corso' | 'incassato' | 'fallito' | 'contestato' | null
   preordine: boolean
@@ -187,14 +189,32 @@ export type RifiutoOrdine = {
 }
 
 /** L'ordine aperto: **non c'e' nessun pagamento**, quello e' un passo dopo (`CassaShop`). `totale` e' quello della funzione. */
-export type OrdineAperto = { ok: true; ordine_id: string; numero: number | null; totale: number; preordine: boolean }
+export type OrdineAperto = {
+  ok: true
+  ordine_id: string
+  numero: number | null
+  /** Quello che resta da pagare, dopo il credito. */
+  totale: number
+  preordine: boolean
+  /** Il credito in euro scalato (12/11/2026) e il totale di prima; `pagato` se il credito ha coperto tutto e non c'e' niente da pagare. */
+  credito?: number
+  totaleListino?: number
+  pagato?: boolean
+}
 
 /** Apre l'ordine. **Non addebita niente e non porta a nessun pagamento**: dopo si sceglie come pagare. Alla funzione arrivano solo id, quantita' e risposte, mai un prezzo. */
 export async function ordina(righe: RigaCarrello[]): Promise<OrdineAperto | RifiutoOrdine> {
   const corpo = righe.map((r) => ({ product_id: r.product_id, quantita: r.quantita, ...(r.scelte ? { scelte: r.scelte } : {}) }))
   const { ok, dati } = await shop({ azione: 'ordina', righe: corpo })
   if (ok && typeof dati.ordine_id === 'string') {
-    return { ok: true, ordine_id: dati.ordine_id, numero: dati.numero != null && Number.isFinite(Number(dati.numero)) ? Number(dati.numero) : null, totale: Number(dati.totale), preordine: dati.preordine === true }
+    return {
+      ok: true,
+      ordine_id: dati.ordine_id,
+      numero: dati.numero != null && Number.isFinite(Number(dati.numero)) ? Number(dati.numero) : null,
+      totale: Number(dati.totale),
+      preordine: dati.preordine === true,
+      ...(Number(dati.credito) > 0 ? { credito: Number(dati.credito), totaleListino: Number(dati.totale_listino), pagato: dati.pagato === true } : {}),
+    }
   }
   return {
     ok: false,
@@ -221,7 +241,8 @@ function ordineDa(g: Record<string, any>): Ordine {
     totale: Number(g.totale),
     creato_il: String(g.creato_il ?? ''),
     pagato_il: typeof g.pagato_il === 'string' ? g.pagato_il : null,
-    pagamento: g.pagamento === 'carta' || g.pagamento === 'sepa' ? g.pagamento : null,
+    pagamento: g.pagamento === 'carta' || g.pagamento === 'sepa' || g.pagamento === 'credito' ? g.pagamento : null,
+    credito: Number(g.credito) > 0 ? Number(g.credito) : null,
     sepa_stato: g.sepa_stato === 'in_corso' || g.sepa_stato === 'incassato' || g.sepa_stato === 'fallito' || g.sepa_stato === 'contestato' ? g.sepa_stato : null,
     preordine,
     stato_ritiro,

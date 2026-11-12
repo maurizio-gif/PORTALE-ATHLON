@@ -16,10 +16,15 @@ import {
   type Lezione,
   type SchedaLezione,
 } from "@/api/lab";
+import {
+  statoGestione,
+  type ContrattoGestione,
+} from "@/api/gestioneAbbonamento";
 import type { LezioneConsiglio } from "@/api/percorso";
 import { t, tv } from "@/lib/lingua";
 import { spazio } from "@/theme";
 
+import { FoglioGestisci } from "../abbonamento/Gestisci";
 import { AzioniLezione } from "../Calendario";
 import { ConAltre, RigaLezione } from "../consigli/Lezioni";
 import { inMemoria, prendi, ricorda, scorda } from "../memoria";
@@ -38,6 +43,7 @@ import { Foglio } from "../ui/Foglio";
 import { FoglioLezione } from "../ui/FoglioLezione";
 import { Dettagli } from "./Dettagli";
 import { DisdiciAbbonamento } from "./DisdiciCorso";
+import { LezioniDisdette } from "./LezioniDisdette";
 import { PagamentiContratto } from "./PagamentiContratto";
 import { concludiInCorso, type InCorso } from "./inCorso";
 import { F, usePalette } from "../ui/tema";
@@ -426,6 +432,15 @@ function SezioneIscrizione({
       </Sezione>
       ) : null}
 
+      {/* Lezioni disdette che si possono ripristinare fino all'inizio (12/11/2026): sotto le prossime lezioni, sopra il saldo. */}
+      {i.recuperabile && !vista && !inDebito && mostra("recuperi") ? (
+        <LezioniDisdette
+          memberId={memberId}
+          versione={`${i.conteggi.disdette}-${i.conteggi.da_recuperare}-${i.prossime.length}`}
+          onCambiato={onCambiato}
+        />
+      ) : null}
+
       {i.recuperabile && mostra("recuperi") ? (
         <Sezione
           titolo={t(
@@ -512,6 +527,57 @@ function SezioneIscrizione({
 // ---------------------------------------------------------------------------
 // Il Baby Nuoto
 
+/**
+ * «Gestisci abbonamento» sotto l'abbonamento mensile del Baby Nuoto (12/11/2026, Maurizio: «un pulsante unico Gestisci e poi da lì si
+ * sceglie»): apre il foglio di «Gestisci abbonamento» sul riepilogo, con «Sospendi» e, piccolo, «Disdici» (niente cambio né upgrade).
+ * Compare solo se il server dice che questo contratto si gestisce (`statoGestione`): finche' non risponde, o se non lo trova, non c'e'.
+ */
+function GestisciBaby({
+  contrattoId,
+  onCambiato,
+}: {
+  contrattoId: number;
+  onCambiato: () => Promise<void>;
+}) {
+  const [contratto, setContratto] = useState<ContrattoGestione | null>(null);
+  const [aperto, setAperto] = useState(false);
+
+  const leggi = useCallback(async () => {
+    const r = await statoGestione();
+    if (!r.ok) return;
+    setContratto(
+      r.contratti.find((c) => c.contract_id === contrattoId && c.gestibile) ??
+        null,
+    );
+  }, [contrattoId]);
+  useEffect(() => {
+    leggi();
+  }, [leggi]);
+
+  if (!contratto?.azioni) return null;
+  return (
+    <View style={{ padding: spazio.quattro, paddingTop: spazio.due }}>
+      <Pulsante
+        testo={t("Gestisci abbonamento", "Manage membership")}
+        icona="avanti"
+        variante="secondario"
+        piccolo
+        onPress={() => setAperto(true)}
+      />
+      <FoglioGestisci
+        contratto={contratto}
+        aperto={aperto}
+        senzaCambio
+        onChiudi={() => setAperto(false)}
+        onCambiato={() => {
+          leggi();
+          onCambiato();
+        }}
+      />
+    </View>
+  );
+}
+
 function SezioneBaby({
   nome,
   memberId,
@@ -557,6 +623,7 @@ function SezioneBaby({
               etichetta={t("Rinnovo", "Renewal")}
               valore={rinnovoContratto(a)}
             />
+            <GestisciBaby contrattoId={a.id} onCambiato={onCambiato} />
           </Carta>
         ) : (
           <View style={{ gap: spazio.due }}>
@@ -853,12 +920,6 @@ function CalendarioLezioni({
           />
         ))}
       />
-      <Text style={[stili.nota, { color: p.testoTerzo }]}>
-        {t(
-          "I posti cambiano in fretta: l’ultima parola è del Calendario.",
-          "Spots go fast: the Calendar has the final say.",
-        )}
-      </Text>
       {aperta ? (
         <FoglioLezione
           scheda={aperta.scheda}

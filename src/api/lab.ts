@@ -400,6 +400,8 @@ export type DaPagare = {
   carta?: CartaSalvata | null
   /** Il server sa aprire il pagamento col Drop-in di Adyen (`sessione_acquisto`): oggi la lezione singola del Baby Nuoto. Senza, o senza l'SDK nella build, resta il link. */
   drop_in?: boolean
+  /** Euro del credito gia' scalati dal prezzo (12/11/2026): `prodotto.prezzo` e' la differenza da pagare. Oggi solo la lezione singola del Baby Nuoto. */
+  credito?: number
 }
 
 export async function prenotaLezione(
@@ -421,6 +423,7 @@ export async function prenotaLezione(
       acquisto_id: typeof dati.acquisto_id === 'string' ? dati.acquisto_id : undefined,
       carta: dati.carta ?? null,
       drop_in: dati.drop_in === true,
+      credito: typeof dati.credito === 'number' && dati.credito > 0 ? dati.credito : undefined,
     }
   }
   return { ok: false, errore: dati.errore ?? t('Non siamo riusciti a prenotare adesso.', 'We couldn’t book right now.') }
@@ -483,6 +486,33 @@ export async function esitoAcquistoLezione(acquistoId: string): Promise<{ ok: tr
   const { ok, dati } = await calendario({ azione: 'esito_acquisto', acquisto_id: acquistoId })
   if (ok) return { ok: true, esito: dati as unknown as EsitoAcquisto }
   return { ok: false, errore: dati.errore ?? t('Non riusciamo a verificare il pagamento adesso.', 'We can’t check the payment right now.') }
+}
+
+/** Una lezione dei corsi bambini disdetta e non ancora iniziata, che si puo' ripristinare (12/11/2026). */
+export type LezioneDisdetta = {
+  class_id: number
+  inizio: string
+  nome: string
+  recupero_stato: 'disponibile' | 'prenotato'
+  /** Se il recupero e' gia' prenotato: la lezione di recupero, che il ripristino annulla. */
+  prenotazione_inizio: string | null
+  prenotazione_nome: string | null
+}
+
+export async function leggiLezioniDisdette(memberId: number): Promise<{ ok: true; disdette: LezioneDisdetta[] } | { ok: false; errore: string }> {
+  const { ok, dati } = await calendario({ azione: 'disdette', member_id: memberId })
+  if (ok) return { ok: true, disdette: (dati.disdette ?? []) as LezioneDisdetta[] }
+  return { ok: false, errore: dati.errore ?? t('Non riusciamo a leggere le lezioni disdette adesso.', 'We can’t load the cancelled classes right now.') }
+}
+
+/** Ripristina una lezione disdetta, fino all'inizio: il recupero che aveva generato si annulla (anche la sua prenotazione). */
+export async function ripristinaLezione(
+  classId: number,
+  memberId: number,
+): Promise<{ ok: true; prenotazioneAnnullata: boolean } | { ok: false; errore: string }> {
+  const { ok, dati } = await calendario({ azione: 'ripristina', class_id: classId, member_id: memberId })
+  if (ok) return { ok: true, prenotazioneAnnullata: !!dati.prenotazione_annullata }
+  return { ok: false, errore: dati.errore ?? t('Non siamo riusciti a ripristinare la lezione adesso.', 'We couldn’t restore the class right now.') }
 }
 
 export async function disdiciLezione(classId: number, memberId: number): Promise<{ ok: true } | { ok: false; errore: string }> {
