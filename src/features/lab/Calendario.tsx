@@ -8,6 +8,7 @@ import type Animated from 'react-native-reanimated'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import {
+  configurazioneAdyen,
   esitoAcquistoLezione,
   leggiGiorno,
   senzaListaAttesa,
@@ -25,6 +26,8 @@ import { FOTO_SCUOLA_NUOTO_ADULTI } from '@/lib/fotoAttivita'
 import { locale, t, tv } from '@/lib/lingua'
 import { spazio } from '@/theme'
 
+import { pagamentoDisponibile, riprendiDopoRedirect } from './adyen'
+import { CassaLezione } from './CassaLezione'
 import { inMemoria, prendi, ricorda } from './memoria'
 import { InvitoPushAttesa } from './notifiche/InvitoPushAttesa'
 import { CalorieLezione, CorpoPerLezioni } from './schede/CalorieLezione'
@@ -213,6 +216,9 @@ export function AzioniLezione({
   const [daPagare, setDaPagare] = useState<DaPagare | null>(null)
   const [attesa, setAttesa] = useState(false)
   const [errore, setErrore] = useState<string | null>(null)
+  // Il modulo di Adyen aperto per la carta nuova (Baby Nuoto, 12/11/2026).
+  const [cassa, setCassa] = useState(false)
+  const conModulo = Boolean(daPagare?.drop_in && daPagare.acquisto_id && pagamentoDisponibile)
   const b = l.prenotazione
 
   async function esegui(azione: () => Promise<string | null>) {
@@ -256,6 +262,10 @@ export function AzioniLezione({
       ) : daPagare ? (
         // Salva e paga: con la carta gia' salvata si paga con quella (o con
         // un'altra); senza, sulla pagina di Adyen, e la carta resta salvata.
+        // Il Baby Nuoto (12/11/2026): la carta nuova non passa dal link ma dal modulo di Adyen, nella pagina sul web e nella finestra nativa nell'app. Senza l'SDK nella build resta il link.
+        cassa && conModulo ? (
+          <CassaLezione acquistoId={daPagare.acquisto_id!} onChiudi={() => setCassa(false)} />
+        ) : (
         <View style={{ gap: spazio.due }}>
           {daPagare.carta && daPagare.acquisto_id && daPagare.prodotto.prezzo != null ? (
             <>
@@ -266,13 +276,13 @@ export function AzioniLezione({
                 inCorso={attesa}
                 disabilitato={occupato}
               />
-              <Pulsante testo={t('Usa un’altra carta', 'Use another card')} variante="fantasma" piccolo onPress={() => esegui(() => onAcquista(daPagare.url))} />
+              <Pulsante testo={t('Usa un’altra carta', 'Use another card')} variante="fantasma" piccolo onPress={() => (conModulo ? setCassa(true) : esegui(() => onAcquista(daPagare.url)))} />
             </>
           ) : (
             <Pulsante
               testo={`${t('Acquista e prenota', 'Buy and book')}${daPagare.prodotto.prezzo != null ? ` · ${euro(daPagare.prodotto.prezzo)}` : ''}`}
               icona="carta"
-              onPress={() => esegui(() => onAcquista(daPagare.url))}
+              onPress={() => (conModulo ? setCassa(true) : esegui(() => onAcquista(daPagare.url)))}
               inCorso={attesa}
               disabilitato={occupato}
             />
@@ -285,6 +295,7 @@ export function AzioniLezione({
               : t(', in un passo solo: la carta resta salvata per i prossimi acquisti e il club non ne vede mai il numero completo.', ', in one step: your card is saved for future purchases and the club never sees the full number.')}
           </Text>
         </View>
+        )
       ) : (
         <View style={stili.azioni}>
           {scheda ? <Pulsante testo={t('Dettagli', 'Details')} variante="contorno" onPress={onScheda} /> : null}
@@ -810,7 +821,8 @@ function CalendarioGiorno() {
   // Il ritorno dal pagamento di PerfectGym (?acquisto=<id>): si chiede
   // com'e' andata finche' la prenotazione non c'e' (il pagamento arriva a
   // PerfectGym qualche secondo dopo), per due minuti; poi si rilegge il giorno.
-  const { acquisto } = useLocalSearchParams<{ acquisto?: string }>()
+  // Dal modulo di Adyen (Baby Nuoto, 12/11/2026) la 3D Secure riporta qui con `sessionId` e `redirectResult`: vanno consegnati ad Adyen, o il pagamento non si completa.
+  const { acquisto, sessionId, redirectResult } = useLocalSearchParams<{ acquisto?: string; sessionId?: string; redirectResult?: string }>()
   const [ritorno, setRitorno] = useState<EsitoAcquisto | { stato: 'avviato' } | null>(null)
   const avviato = useRef(false)
   useEffect(() => {
@@ -831,10 +843,22 @@ function CalendarioGiorno() {
       leggi(undefined, r.esito.member_id || undefined)
     }
     setRitorno({ stato: 'avviato' })
-    giro()
+    ;(async () => {
+      if (pagamentoDisponibile && sessionId && redirectResult) {
+        try {
+          const cfg = await configurazioneAdyen()
+          if (cfg.ok) await riprendiDopoRedirect({ clientKey: cfg.clientKey, environment: cfg.environment, sessionId, redirectResult })
+        } catch {
+          // la schermata segue comunque il webhook
+        }
+      }
+      if (!fermo) giro()
+    })()
     return () => {
       fermo = true
     }
+    // `sessionId` e `redirectResult` arrivano con `acquisto` e si leggono una volta sola (`avviato`): non sono dipendenze, o un cambio fermerebbe il giro.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [acquisto, leggi])
 
   // Dopo un clic si aggiorna la riga subito, con quello che dice PerfectGym,
