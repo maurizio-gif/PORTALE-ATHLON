@@ -259,3 +259,4 @@ chiamata diretta al gestionale. Esempio: la sezione Prodotti usa l'azione `prodo
 - [Il credito in euro nelle gare, nella lezione Baby e nello shop: l'app dice quanto si paga davvero (12/11/2026)](docs/claude/221-credito-nelle-gare-nel-baby-e-nello-shop-12-11-2026.md) · 2 KB
 - [Baby Nuoto: «Gestisci abbonamento» sotto l'abbonamento in Junior (sospendi e, piccolo, disdici), e il foglio dice com'è andato l'addebito dei 15 € (12/11/2026)](docs/claude/222-baby-nuoto-gestisci-sotto-l-abbonamento-e-esito-dell-addebito-12-11-2026.md) · 3 KB
 - [«Lezioni che hai disdetto»: ripristinare una lezione fino all'inizio, in Recuperi (12/11/2026)](docs/claude/223-ripristina-lezione-disdetta-12-11-2026.md) · 1 KB
+- [«Come si fa» e «Da evitare» anche durante l'allenamento: una riga chiusa sotto l'esercizio della seduta, e un componente solo con la scheda dell'esercizio (12/11/2026)](docs/claude/224-spiegazioni-dell-esercizio-in-seduta-12-11-2026.md) · 6 KB
