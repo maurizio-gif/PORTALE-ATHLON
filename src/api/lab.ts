@@ -387,7 +387,14 @@ export type ProdottoLezione = { product_id: number; nome: string; prezzo: number
 export type CartaSalvata = { id: number; finale: string | null; scadenza: string | null }
 
 /** Cosa serve per comprare l'ingresso: il prodotto, il link gia' aperto e, se c'e', la carta salvata. */
-export type DaPagare = { prodotto: ProdottoLezione; url?: string; acquisto_id?: string; carta?: CartaSalvata | null }
+export type DaPagare = {
+  prodotto: ProdottoLezione
+  url?: string
+  acquisto_id?: string
+  carta?: CartaSalvata | null
+  /** Il server sa aprire il pagamento col Drop-in di Adyen (`sessione_acquisto`): oggi la lezione singola del Baby Nuoto. Senza, o senza l'SDK nella build, resta il link. */
+  drop_in?: boolean
+}
 
 export async function prenotaLezione(
   classId: number,
@@ -407,15 +414,16 @@ export async function prenotaLezione(
       url: typeof dati.url === 'string' ? dati.url : undefined,
       acquisto_id: typeof dati.acquisto_id === 'string' ? dati.acquisto_id : undefined,
       carta: dati.carta ?? null,
+      drop_in: dati.drop_in === true,
     }
   }
   return { ok: false, errore: dati.errore ?? t('Non siamo riusciti a prenotare adesso.', 'We couldn’t book right now.') }
 }
 
 /** Il link di pagamento di PerfectGym per il prodotto della lezione; dopo il pagamento si torna al calendario con ?acquisto=<id>. */
-export async function acquistaLezione(classId: number, memberId: number): Promise<{ ok: true; url: string; acquisto_id: string } | { ok: false; errore: string }> {
+export async function acquistaLezione(classId: number, memberId: number): Promise<{ ok: true; url: string; acquisto_id: string; drop_in: boolean } | { ok: false; errore: string }> {
   const { ok, dati } = await calendario({ azione: 'acquista', class_id: classId, member_id: memberId })
-  if (ok && typeof dati.url === 'string') return { ok: true, url: dati.url, acquisto_id: String(dati.acquisto_id ?? '') }
+  if (ok && typeof dati.url === 'string') return { ok: true, url: dati.url, acquisto_id: String(dati.acquisto_id ?? ''), drop_in: dati.drop_in === true }
   return { ok: false, errore: dati.errore ?? t('Non riusciamo ad aprire il pagamento adesso.', 'We can’t open the payment right now.') }
 }
 
@@ -424,6 +432,33 @@ export async function pagaLezioneConCarta(acquistoId: string): Promise<{ ok: tru
   const { ok, dati } = await calendario({ azione: 'paga_con_carta', acquisto_id: acquistoId })
   if (ok) return { ok: true }
   return { ok: false, errore: dati.errore ?? t('La carta non è stata addebitata.', 'The card wasn’t charged.') }
+}
+
+/**
+ * La sessione Adyen per pagare la lezione **dentro l'app**, col Drop-in: il modulo nella pagina sul web, la finestra nativa dell'SDK su iPhone e Android (12/11/2026). Stesso
+ * riferimento `BABY-<n>` del link: la conferma resta del webhook. Oggi solo per la lezione singola del Baby Nuoto (`DaPagare.drop_in`).
+ */
+export async function sessioneAcquistoLezione(acquistoId: string): Promise<({ ok: true; salva: boolean } & SessioneAdyen) | { ok: true; giaPagata: true } | { ok: false; errore: string }> {
+  const canale = await canaleNativo('calendario', { acquisto: acquistoId })
+  const { ok, dati } = await calendario({ azione: 'sessione_acquisto', acquisto_id: acquistoId, ...canale })
+  if (!ok) return { ok: false, errore: dati.errore ?? t('Non riusciamo a preparare il pagamento adesso. Riprova fra qualche minuto.', 'We can’t set up the payment right now. Try again in a few minutes.') }
+  if (dati.gia_pagata) return { ok: true, giaPagata: true }
+  return {
+    ok: true,
+    salva: dati.salva === true,
+    riferimento: String(dati.riferimento),
+    clientKey: String(dati.clientKey),
+    environment: String(dati.environment),
+    sessione: dati.sessione,
+    ritornoNativo: canale.ritorno_nativo,
+    importoCent: typeof dati.importo_cent === 'number' ? dati.importo_cent : undefined,
+  }
+}
+
+/** Com'e' andata la sessione, chiesto ad Adyen dal server (`completed`, `refused`, `paymentPending`, `canceled`, `expired`). Non conferma niente: la conferma e' del webhook. */
+export async function esitoSessioneAcquisto(acquistoId: string, sessioneId: string, risultato: string): Promise<{ ok: true; adyen_status: string | null } | { ok: false }> {
+  const { ok, dati } = await calendario({ azione: 'esito_sessione', acquisto_id: acquistoId, sessione_id: sessioneId, risultato })
+  return ok && dati.ok !== false ? { ok: true, adyen_status: typeof dati.adyen_status === 'string' ? dati.adyen_status : null } : { ok: false }
 }
 
 export type EsitoAcquisto = {
