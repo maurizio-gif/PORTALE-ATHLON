@@ -9,6 +9,7 @@ import { InfoAdyen } from '@/components/InfoAdyen'
 import { Pagina } from '@/components/Pagina'
 import { Forte, Testo } from '@/components/Testo'
 import { vaiA } from '@/lib/esterno'
+import { apriPaginaMandato } from '@/lib/pagamentoEsterno'
 import type { PagatoreMetodo } from '@/features/lab/pagatore/PagatoreMetodo'
 import { passaDalTotem } from '@/features/lab/totem/passaggio'
 import { meseAnno, metodoDaSistemare, ultimeCifre, type ContrattoNucleo, type EsitoContratto } from '@/lib/metodoPagamento'
@@ -27,6 +28,15 @@ import { t, tv } from '@/lib/lingua'
 //   scaduta), perche' e' quasi sempre per quelli che si apre il link;
 // - se il link l'ha mandato il desk per un contratto, si parte da quello solo
 //   (`evidenziato`): l'email ha nominato quel contratto.
+//
+// **Gli abbonamenti del nostro sistema** (`nostro`, 12/11/2026: i corsi bambini e il Baby Nuoto, poi gli adulti): il conto nuovo non si
+// scrive qui. «Conto corrente» apre la pagina di GoCardless (`apriPaginaMandato`: il riquadro sul web, il browser integrato nell'app),
+// e al ritorno si chiede al server com'e' andata (`conto_conferma`): il mandato firmato diventa il metodo degli abbonamenti scelti,
+// senza nessun addebito. Un metodo gia' salvato e la carta passano dalle stesse azioni di sempre: decide il server.
+
+/** Quante volte si chiede al server se il mandato e' arrivato, e ogni quanto: GoCardless chiude la richiesta in pochi secondi. */
+const TENTATIVI_CONTO = 10
+const PAUSA_CONTO_MS = 2500
 
 type Schermata = 'elenco' | 'iban' | 'esito'
 
@@ -42,6 +52,7 @@ export function GestioneNucleo({
   Cornice = Pagina,
   sopra = null,
   pagatore,
+  ritornoConto = false,
 }: {
   Cornice?: Cornice
   token: string
@@ -53,6 +64,8 @@ export function GestioneNucleo({
   sopra?: ReactNode
   /** Nell'app: la casella del soggetto pagatore sulle ricevute dei figli, che si salva insieme al metodo (usePagatoreMetodo). Dal link dell'email non c'e': li' non c'e' una sessione. */
   pagatore?: PagatoreMetodo
+  /** Si torna dalla pagina di GoCardless (`?conto=1`, sul web senza il riquadro): si chiede subito com'e' andato il conto. */
+  ritornoConto?: boolean
 }) {
   const daSistemare = (lista: ContrattoNucleo[]) => {
     if (evidenziato != null && lista.some((c) => c.contract_id === evidenziato)) return new Set([evidenziato])
@@ -86,6 +99,81 @@ export function GestioneNucleo({
   }, [riepilogo, schermata, contratti.length, token])
 
   const selezionati = contratti.filter((c) => scelti.has(c.contract_id))
+  // Tutti del nostro sistema: il conto si autorizza su GoCardless. Con una scelta mista decide il server, e dice quali togliere.
+  const contoSuGoCardless = selezionati.length > 0 && selezionati.every((c) => c.nostro)
+
+  /** Chiede al server se il mandato firmato su GoCardless e' arrivato, per qualche secondo. */
+  async function confermaConto(silenzioso = false) {
+    setErrore('')
+    setAttesa(true)
+    for (let n = 0; n < TENTATIVI_CONTO; n++) {
+      const { dati } = await chiamaLink(token, 'conto_conferma')
+      if (dati.ok && Array.isArray(dati.risultati)) {
+        setRisultati(dati.risultati as EsitoContratto[])
+        setFinale(dati.finale ?? '')
+        setAttesa(false)
+        setSchermata('esito')
+        return
+      }
+      if (dati.nessuna) break
+      if (dati.fallita) {
+        setErrore(dati.motivo ?? t('Il conto non è stato autorizzato. Riprova, o scegli un altro metodo.', 'The account wasn’t authorised. Try again, or choose another method.'))
+        setAttesa(false)
+        return
+      }
+      if (!dati.inAttesa && dati.errore) {
+        setErrore(String(dati.errore))
+        setAttesa(false)
+        return
+      }
+      await new Promise((r) => setTimeout(r, PAUSA_CONTO_MS))
+    }
+    setAttesa(false)
+    if (!silenzioso) {
+      setErrore(
+        t(
+          'Non hai completato l’autorizzazione del conto su GoCardless: non è cambiato niente. Riprova quando vuoi.',
+          'You didn’t complete the bank account authorisation on GoCardless: nothing has changed. Try again whenever you like.',
+        ),
+      )
+    }
+  }
+
+  useEffect(() => {
+    if (ritornoConto) confermaConto(true)
+    // Una volta sola, all'arrivo dalla pagina di GoCardless.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  async function vaiAlConto() {
+    setErrore('')
+    setAttesa(true)
+    const prima = await pagatore?.prima(selezionati)
+    if (prima) {
+      setErrore(prima)
+      setAttesa(false)
+      return
+    }
+    const { ok, dati } = await chiamaLink(token, 'conto', { contratti: [...scelti] })
+    if (!ok || !dati.url) {
+      setErrore(dati.errore ?? t('Non riusciamo ad aprire la pagina per il conto adesso. Riprova fra qualche minuto.', 'We can’t open the bank account page right now. Try again in a few minutes.'))
+      setAttesa(false)
+      return
+    }
+    // Sul totem la pagina passa dalle tre strade (`apriPagamento` dentro `apriPaginaMandato`): scelto QR o email, o annullato, non si apre.
+    const e = await apriPaginaMandato(String(dati.url), dati.flusso ?? null)
+    if (e === 'firmato' || e === 'chiuso') return confermaConto()
+    setAttesa(false)
+    if (e === 'uscito') {
+      setErrore(
+        t(
+          'Non hai completato l’autorizzazione del conto su GoCardless: non è cambiato niente. Riprova quando vuoi.',
+          'You didn’t complete the bank account authorisation on GoCardless: nothing has changed. Try again whenever you like.',
+        ),
+      )
+    }
+    // `lasciata`: la pagina e' cambiata, e GoCardless riporta qui con `?conto=1`.
+  }
 
   function cambia(id: number) {
     setScelti((prima) => {
@@ -331,13 +419,22 @@ export function GestioneNucleo({
           ) : null}
 
           <Bottone
-            testo={t('Conto corrente (IBAN)', 'Bank account (IBAN)')}
+            testo={contoSuGoCardless ? t('Conto corrente (su GoCardless)', 'Bank account (on GoCardless)') : t('Conto corrente (IBAN)', 'Bank account (IBAN)')}
             disabilitato={attesa || selezionati.length === 0}
             onPress={() => {
+              if (contoSuGoCardless) return vaiAlConto()
               setErrore('')
               setSchermata('iban')
             }}
           />
+          {contoSuGoCardless ? (
+            <Testo variante="piccolo">
+              {t(
+                'Il conto lo scrivi sulla pagina sicura di GoCardless, il partner del club per gli addebiti sul conto: autorizzi l’addebito delle quote e torni qui. Adesso non viene addebitato niente.',
+                'You enter the account on the secure page of GoCardless, the club’s partner for direct debits: you authorise the fees to be debited and come back here. Nothing is charged now.',
+              )}
+            </Testo>
+          ) : null}
           <Bottone
             testo={attesa ? t('Apro la pagina di Adyen…', 'Opening the Adyen page…') : t('Carta di credito o di debito', 'Credit or debit card')}
             inCorso={attesa}
