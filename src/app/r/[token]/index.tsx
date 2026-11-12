@@ -40,7 +40,7 @@ type Stato =
   | { fase: 'appuntamento'; calendario: Calendario; appuntamento: Appuntamento; giorni: GiornoPrenotabile[] }
 
 export default function ArrivoDaLink() {
-  const { token: grezzo } = useLocalSearchParams<{ token: string }>()
+  const { token: grezzo, conto } = useLocalSearchParams<{ token: string; conto?: string }>()
   const token = String(grezzo ?? '')
   const [stato, setStato] = useState<Stato>({ fase: 'carica' })
 
@@ -101,7 +101,7 @@ export default function ArrivoDaLink() {
       return <Guasto titolo={t('Non riusciamo ad aprire la pagina adesso', 'We can’t open the page right now')} testo={t('Riprova fra qualche minuto. Se continua, scrivici a desk@athlonroma.it.', 'Try again in a few minutes. If it keeps happening, write to us at desk@athlonroma.it.')} onRiprova={apri} />
     case 'metodo_pagamento':
       return (
-        <GestioneNucleo token={token} nome={stato.nome} nomeTitolare={stato.nomeTitolare} iniziali={stato.contratti} evidenziato={stato.evidenziato} />
+        <GestioneNucleo token={token} nome={stato.nome} nomeTitolare={stato.nomeTitolare} iniziali={stato.contratti} evidenziato={stato.evidenziato} ritornoConto={conto === '1'} />
       )
     case 'evento':
       return <PrenotaEvento token={token} nome={stato.nome} iniziale={stato.pagina} />
