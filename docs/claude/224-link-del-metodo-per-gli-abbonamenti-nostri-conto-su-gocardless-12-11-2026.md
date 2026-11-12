@@ -20,3 +20,7 @@ Richiesta di Maurizio (12/11/2026): il link per salvare o cambiare il metodo di 
 - **Provato**: `npx tsc --noEmit`: nessun errore nei file toccati (restano quelli di `docs/`, `scripts/` e l'omonimia `ContatoreCalorie`/`contatoreCalorie` di questo disco, che c'erano già).
 - **Non provato**: la pagina in un browser o su un telefono, il riquadro di GoCardless con un flusso vero, un mandato firmato.
 - **Da pubblicare dopo le funzioni di APP-ATHLON** (`perfectgym-metodo-pagamento`, `portale-link`, `gocardless-webhook`) e la migrazione `20261112x`: sul web con l'unione su `main`, nell'app installata con un'OTA (solo JavaScript, nessun modulo nativo nuovo). Con le funzioni vecchie `nostro` non arriva e tutto resta com'è. Con le funzioni nuove e l'app vecchia, «Conto corrente» su un abbonamento nostro risponde «ricarica la pagina (o aggiorna l'app)».
+
+### Pubblicato sul web, non nell'app installata (12/11/2026, 18:35 UTC)
+
+Le funzioni di APP-ATHLON e la migrazione `20261112x` sono in produzione, e la pull request 381 è unita in `main` (portale web). **L'OTA dell'app installata non è fatta** (decisione di Maurizio: aspettare): da `main` porterebbe anche le pull request 372, 375, 376, 379, 380 e 382. Fino ad allora, nell'app installata «Conto corrente» su un abbonamento nostro risponde «ricarica la pagina (o aggiorna l'app)». Non provato con un mandato vero.
