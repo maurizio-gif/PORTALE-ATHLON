@@ -134,7 +134,7 @@ export type CertificatoArea = {
   /**
    * Il file del certificato in vigore, se e' uno caricato dal cliente e approvato dalla segreteria (12/11/2026): l'app mostra
    * «Vedi e scarica» e chiede il link con `portale-lab-certificati`, azione `apri`. Manca (e il comando non c'e') per un
-   * certificato consegnato su carta, e finche' `portale_area_per_email` non lo restituisce.
+   * certificato consegnato su carta (`certificato_file_in_vigore`, migrazione 20261112j di APP-ATHLON).
    */
   file?: { tipo: string | null; verificato_il: string | null } | null
 }

@@ -13,7 +13,7 @@ Due richieste di Maurizio. **Prima**: «succede spesso che il genitore carichi i
 
 - Sulla riga della sezione Certificato (`RigaCertificato`), **se il server dice che c'è il file** (`certificati[].file` di `portale_area_per_email`) **e c'è la scadenza**, compare «Vedi e scarica». Al tocco chiede il link a `portale-lab-certificati`, azione `apri` (`apriCertificato` in `src/api/certificati.ts`) e apre lo stesso foglio dei documenti (`useApriPdf`): Invia, Apri, Salva sul dispositivo (sul web). Il file si chiama «Certificato medico <nome>.<ext>».
 - **`useApriPdf` accetta anche le foto**: `tipo` (senza, è un PDF come prima) cambia le parole («Apri il file») e il tipo dato al sistema; `urlScarica` è l'indirizzo con `download=` che fa scaricare il file a Storage (l'attributo `download` di un link non vale fra domini). Per i documenti di prima non cambia niente.
-- **Il server non c'è ancora**: il campo `file`, l'azione `apri` (con `apri` fra le `LETTURE` della vista cliente) e lo «Scarica» del CRM sono in APP-ATHLON, a cui questa sessione non aveva accesso. Cosa fare, con il codice, è in `docs/certificato-vedi-e-scarica-server.md`. Finché il campo manca il pulsante non compare: niente di rotto.
+- **Il server è pubblicato** (12/11/2026, APP-ATHLON nota 246): migrazione `20261112j` applicata (`certificato_file_in_vigore` e `certificati[].file` in `portale_area_per_email`, il file dell'ultimo caricamento approvato con la scadenza in vigore) e `portale-lab-certificati` v26 con l'azione `apri` (link firmati di 5 minuti, `apri` fra le letture della vista cliente). Nel CRM, nel visore del certificato, c'è anche «Scarica». Un certificato consegnato su carta non ha file: niente pulsante.
 
 ### Provato e non provato
 
