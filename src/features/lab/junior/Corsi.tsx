@@ -43,6 +43,7 @@ import { Foglio } from "../ui/Foglio";
 import { FoglioLezione } from "../ui/FoglioLezione";
 import { Dettagli } from "./Dettagli";
 import { DisdiciAbbonamento } from "./DisdiciCorso";
+import { LezioniDisdette } from "./LezioniDisdette";
 import { PagamentiContratto } from "./PagamentiContratto";
 import { concludiInCorso, type InCorso } from "./inCorso";
 import { F, usePalette } from "../ui/tema";
@@ -429,6 +430,15 @@ function SezioneIscrizione({
           </Text>
         )}
       </Sezione>
+      ) : null}
+
+      {/* Lezioni disdette che si possono ripristinare fino all'inizio (12/11/2026): sotto le prossime lezioni, sopra il saldo. */}
+      {i.recuperabile && !vista && !inDebito && mostra("recuperi") ? (
+        <LezioniDisdette
+          memberId={memberId}
+          versione={`${i.conteggi.disdette}-${i.conteggi.da_recuperare}-${i.prossime.length}`}
+          onCambiato={onCambiato}
+        />
       ) : null}
 
       {i.recuperabile && mostra("recuperi") ? (
