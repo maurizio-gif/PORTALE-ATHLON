@@ -86,6 +86,10 @@ export function Iscrizione() {
   const [firmando, setFirmando] = useState(false);
   const [erroreFirma, setErroreFirma] = useState<string | null>(null);
   const giro = useRef(0);
+  // L'abbonamento scelto, quando il gruppo si vende con piu' di uno (12/11/2026): si manda all'anteprima e alla firma. Ref oltre allo
+  // stato, cosi' `carica` lo legge senza cambiare (e senza ricaricare da capo la pagina).
+  const [pianoScelto, setPianoScelto] = useState<number | null>(null);
+  const pianoRef = useRef<number | null>(null);
 
   /** Il contratto per questa data. Senza data, quella che propone il server (la prima lezione da oggi). */
   const carica = useCallback(
@@ -97,12 +101,17 @@ export function Iscrizione() {
         member_id: memberId,
         ...(baby ? { baby: true } : { group_id: String(group) }),
         data_inizio: data ?? undefined,
+        ...(pianoRef.current ? { piano_id: pianoRef.current } : {}),
       });
       if (mio !== giro.current) return;
       setLettura(false);
       if (r.ok) {
         const a = r.anteprima;
         setAnteprima(a);
+        if ((a.piani_disponibili?.length ?? 0) > 1) {
+          pianoRef.current = a.piano.piano_id;
+          setPianoScelto(a.piano.piano_id);
+        }
         setCosti(a.importi);
         setInizio(a.data_inizio);
         setNomeGruppo(a.gruppo.nome);
@@ -188,6 +197,7 @@ export function Iscrizione() {
         member_id: memberId,
         ...(baby ? { baby: true } : { group_id: String(group) }),
         data_inizio: inizio,
+        ...(pianoScelto ? { piano_id: pianoScelto } : {}),
       },
       anteprima.impronta,
       consensi,
@@ -329,6 +339,48 @@ export function Iscrizione() {
 
         {passo === 1 ? (
           <>
+            {(anteprima?.piani_disponibili?.length ?? 0) > 1 ? (
+              <Sezione titolo={t("Scegli l’abbonamento", "Choose the membership")}>
+                {anteprima!.piani_disponibili!.map((x) => {
+                  const scelto = x.piano_id === pianoScelto;
+                  return (
+                    <Tocco
+                      key={x.piano_id}
+                      spento={lettura || vista}
+                      ruolo="radio"
+                      stato={{ selected: scelto }}
+                      etichetta={x.nome}
+                      onPress={() => {
+                        if (scelto) return;
+                        colpetto("scelta");
+                        pianoRef.current = x.piano_id;
+                        setPianoScelto(x.piano_id);
+                        carica(inizio);
+                      }}
+                      style={{
+                        borderWidth: scelto ? 2 : 1,
+                        borderColor: scelto ? p.accento : p.linea,
+                        borderRadius: 14,
+                        padding: spazio.tre,
+                        marginBottom: spazio.due,
+                        gap: 2,
+                      }}
+                    >
+                      <Text style={{ color: p.testo, fontFamily: F.bold, fontSize: 15 }}>
+                        {x.nome}
+                      </Text>
+                      <Text style={{ color: p.testoSecondario, fontFamily: F.medio, fontSize: 13 }}>
+                        {t(`${euro(x.mensile)} al mese`, `${euro(x.mensile)} a month`)}
+                        {x.attivazione > 0
+                          ? t(` · attivazione ${euro(x.attivazione)}`, ` · activation ${euro(x.attivazione)}`)
+                          : ""}
+                        {t(` · oggi ${euro(x.oggi)}`, ` · today ${euro(x.oggi)}`)}
+                      </Text>
+                    </Tocco>
+                  );
+                })}
+              </Sezione>
+            ) : null}
             <Sezione
               titolo={t("Il tuo piano di pagamento", "Your payment plan")}
             >
