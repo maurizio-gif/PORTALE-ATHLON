@@ -127,8 +127,14 @@ function SchedaContratto({ c, conPersona, regolarita, onSezione, gestione, onCam
   const finestraFlex = gestione?.azioni?.cambia.finestra
   const limiteFlex = !c.data_fine && gestione && (gestione.ciclo_mesi ?? 1) <= 1 && finestraFlex && finestraFlex.stato !== 'non_calcolabile' ? finestraFlex.fine : null
   const tutteDaPagare = c.addebiti.filter((a) => a.stato === 'da_pagare')
-  const daPagare = limiteFlex ? tutteDaPagare.filter((a) => (a.scadenza ?? '') <= limiteFlex) : tutteDaPagare
-  const nascosto = limiteFlex ? tutteDaPagare.filter((a) => (a.scadenza ?? '') > limiteFlex).reduce((somma, a) => somma + a.da_pagare, 0) : 0
+  // Un mensile senza fine mostra sempre almeno la prossima rata (12/11/2026, Maurizio: «il prezzo della prossima rata, di dicembre in questo
+  // caso»): la finestra da sola si ferma alla fine del mese in corso, e a meta' mese la carta diceva «Nessuna rata in sospeso». Quindi: le
+  // quote fino alla finestra (se c'e'), e comunque fino alla prima che deve ancora scadere; mai il totale di tutte quelle gia' caricate.
+  const oggi = new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Rome' })
+  const primaFutura = tutteDaPagare.map((a) => a.scadenza ?? '').filter((s) => s > oggi).sort()[0] ?? ''
+  const limite = !c.data_fine && !annuale ? [limiteFlex || '', primaFutura, oggi].sort().pop()! : null
+  const daPagare = limite ? tutteDaPagare.filter((a) => (a.scadenza ?? '') <= limite) : tutteDaPagare
+  const nascosto = limite ? tutteDaPagare.filter((a) => (a.scadenza ?? '') > limite).reduce((somma, a) => somma + a.da_pagare, 0) : 0
   const totali = { addebitato: c.totali.addebitato - nascosto, pagato: c.totali.pagato, da_pagare: c.totali.da_pagare - nascosto }
 
   return (
@@ -160,7 +166,7 @@ function SchedaContratto({ c, conPersona, regolarita, onSezione, gestione, onCam
           {c.canone ? <Riga nome={t('Quota', 'Fee')} valore={annuale ? t(`${euro(c.canone)} all’anno`, `${euro(c.canone)} per year`) : euro(c.canone)} /> : null}
         </View>
 
-        {limiteFlex ? (
+        {limite ? (
           // Il Flex si rinnova ogni mese e si puo' disdire: non si mostra il piano di tutte le quote caricate dal gestionale (sembrerebbe un annuale),
           // solo la prossima rata fino alla fine del periodo (30/10/2026, Maurizio).
           <View style={[stili.box, { backgroundColor: p.incavo, borderColor: p.accento }]}>

@@ -148,9 +148,18 @@ export async function anteprimaSospensione(contractId: number): Promise<EsitoGes
   return errore(dati, t('Non riusciamo a leggere le sospensioni adesso.', 'We can’t load the suspension options right now.'))
 }
 
-export async function sospendi(contractId: number, primo: string, freezeTypeId: number, costo: number): Promise<EsitoGestione<{ dal: string; al: string; costo: number; scadenza: string | null; scadenzaLetta: boolean }>> {
+/**
+ * Com'e' andato l'addebito della sospensione (12/11/2026): lo dice il server per i contratti che gestisce lui (oggi il mensile del Baby
+ * Nuoto). `pagato`: addebitato adesso; `in_corso`: partito, l'esito arriva dopo (un addebito sul conto ci mette qualche giorno);
+ * `da_pagare`: non riuscito o nessun metodo salvato, la sospensione vale e l'importo resta da pagare. `null`: il server non lo dice
+ * (gli abbonamenti che addebita PerfectGym).
+ */
+export type PagamentoSospensione = 'pagato' | 'in_corso' | 'da_pagare'
+
+export async function sospendi(contractId: number, primo: string, freezeTypeId: number, costo: number): Promise<EsitoGestione<{ dal: string; al: string; costo: number; scadenza: string | null; scadenzaLetta: boolean; pagamento: PagamentoSospensione | null }>> {
   const { ok, dati } = await gestione({ azione: 'sospendi', contract_id: contractId, primo, freeze_type_id: freezeTypeId, costo })
-  if (ok) return { ok: true, dati: { dal: dati.dal, al: dati.al, costo: Number(dati.costo ?? 0), scadenza: dati.scadenza ?? null, scadenzaLetta: dati.scadenza_letta === true } }
+  const pagamento: PagamentoSospensione | null = dati.pagamento === 'pagato' || dati.pagamento === 'in_corso' || dati.pagamento === 'da_pagare' ? dati.pagamento : null
+  if (ok) return { ok: true, dati: { dal: dati.dal, al: dati.al, costo: Number(dati.costo ?? 0), scadenza: dati.scadenza ?? null, scadenzaLetta: dati.scadenza_letta === true, pagamento } }
   return errore(dati, t('Non siamo riusciti a sospendere adesso. Riprova fra qualche minuto.', 'We couldn’t suspend right now. Try again in a few minutes.'))
 }
 
