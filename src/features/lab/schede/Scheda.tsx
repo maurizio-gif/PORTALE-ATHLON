@@ -18,6 +18,7 @@ import { Tocco } from '../ui/Tocco'
 import { CalorieScheda } from './Calorie'
 import { comeDaSalvare } from './copia'
 import { etichettaPiano, giornoTest, gruppo, indicazione, LIVELLI, muscoli, recupero, SPIEGA_STIMA, SPIEGA_TARATURA, testDaRifare } from './comune'
+import { SezioniGuida } from './GuidaEsercizio'
 import { MediaEsercizio } from './MediaEsercizio'
 import { condividiPiano, stampaPiano, type EsitoEsporta } from './esportaVasca'
 import { CartaProgressione } from './ProgressioneCarta'
@@ -114,28 +115,7 @@ function FoglioEsercizio({ e, precedente, massimali, onChiudi, vasca = false }: 
               {serieInRiga(precedente.serie)}
             </Text>
           ) : null}
-          {e.istruzioni.filter(Boolean).length ? (
-            <View style={{ gap: spazio.due }}>
-              <Text style={[stili.titoletto, { color: p.testo }]}>{t('Come si fa', 'How to do it')}</Text>
-              {e.istruzioni.filter(Boolean).map((riga, i) => (
-                <View key={i} style={{ flexDirection: 'row', gap: spazio.due }}>
-                  <Text style={[stili.passo, { color: p.accento }]}>{i + 1}</Text>
-                  <Text style={[stili.nota, { color: p.testo, flex: 1 }]}>{riga}</Text>
-                </View>
-              ))}
-            </View>
-          ) : null}
-          {e.errori_comuni?.filter(Boolean).length ? (
-            <View style={{ gap: spazio.due }}>
-              <Text style={[stili.titoletto, { color: p.testo }]}>{t('Da evitare', 'What to avoid')}</Text>
-              {e.errori_comuni.filter(Boolean).map((riga, i) => (
-                <View key={i} style={{ flexDirection: 'row', gap: spazio.due }}>
-                  <Text style={[stili.passo, { color: p.testoSecondario }]}>×</Text>
-                  <Text style={[stili.nota, { color: p.testo, flex: 1 }]}>{riga}</Text>
-                </View>
-              ))}
-            </View>
-          ) : null}
+          <SezioniGuida e={e} />
         </View>
       ) : null}
     </Foglio>
@@ -516,7 +496,6 @@ const stili = StyleSheet.create({
   piccola: { fontFamily: F.semi, fontSize: 12.5 },
   nota: { fontFamily: F.medio, fontSize: 14.5, lineHeight: 21 },
   titoletto: { fontFamily: F.extra, fontSize: 16 },
-  passo: { fontFamily: F.extra, fontSize: 15, width: 18 },
   cifre: { flexDirection: 'row', borderRadius: 18, paddingVertical: spazio.tre },
   cifra: { flex: 1, alignItems: 'center', gap: 2, paddingHorizontal: 4 },
   cifraValore: { fontFamily: F.extra, fontSize: 16, letterSpacing: -0.3 },
