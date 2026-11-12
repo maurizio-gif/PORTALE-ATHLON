@@ -103,6 +103,11 @@ export type ContrattoNucleo = {
   data_fine: string | null
   titolare: boolean
   metodo: MetodoAttuale | null
+  /**
+   * Un abbonamento del nostro sistema (12/11/2026), non di PerfectGym: il conto nuovo si autorizza sulla pagina di GoCardless
+   * (azione `conto` di `portale-link`), senza scrivere l'IBAN qui. Lo dice il server; assente per quelli di PerfectGym.
+   */
+  nostro?: boolean
 }
 
 /** `invariato`: l'abbonamento aveva gia' questa carta, e non si e' scritto niente. */
