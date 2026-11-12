@@ -104,7 +104,10 @@ export function Schermata({
     : Math.max(0, (width - colonnaPillola) / 2) + spazio.tre + 2 + (occupato ? SPOSTA_SE_OCCUPATO : 0) + (occupato || width < LARGHEZZA_CON_SCRITTA ? LARGHEZZA_PILLOLA_COMPATTA : LARGHEZZA_PILLOLA) + spazio.due
   // La pillola delle schede compare solo sulle cinque schermate principali: sulle altre (l'abbonamento, un contratto) non c'e', e il
   // comando fermo sta vicino al bordo invece di restare alto sopra uno spazio vuoto.
-  const conBarra = barra && schedaAttiva(usePathname()) >= 0
+  // `usePathname` si chiama sempre, anche senza barra: un hook dentro `barra && …` cambia il numero di hook quando la stessa schermata passa
+  // da `barra={false}` a `barra` (i Consigli: lo scheletro senza barra, poi la risposta con la barra), e React chiude l'app (12/11/2026).
+  const percorso = usePathname()
+  const conBarra = barra && schedaAttiva(percorso) >= 0
   const [altezzaFlottante, setAltezzaFlottante] = useState(0)
   const bassoFlottante = conBarra ? ingombroBarra(ins.bottom) + spazio.due : Math.max(ins.bottom, spazio.tre) + spazio.due
   const paddingBasso = flottante ? bassoFlottante + altezzaFlottante + spazio.quattro : barra ? ingombroBarra(ins.bottom) + spazio.tre : spazio.cinque + ins.bottom
