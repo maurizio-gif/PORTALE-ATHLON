@@ -3,6 +3,7 @@ import { AppState, Platform } from 'react-native'
 
 import { FinestraNotifica } from './FinestraNotifica'
 import { ascoltaNotificheNative } from './pushNativo'
+import { registraSePermessoGiaConcesso } from './push'
 import { notificheSpente, rileggi, useNotifiche } from './store'
 
 // Il giro delle notifiche del club, montato una volta sola nel layout del portale (20/10/2026), solo per chi e' entrato e non in
@@ -39,6 +40,12 @@ export function Notifiche() {
 
   // Nell'app nativa: cosa fanno le push in primo piano e dove porta un tocco (build 5). Sul web non fa niente.
   useEffect(() => ascoltaNotificheNative(), [])
+
+  // Se il permesso delle notifiche c'e' gia' (Android fino alla 12, o chi l'aveva dato ed e' uscito e rientrato), il dispositivo si iscrive da
+  // solo, senza chiedere niente (12/11/2026). Una volta per apertura, dopo l'avvio animato; chi le ha spente dall'app resta spento.
+  useEffect(() => {
+    if (dopoAvvio) void registraSePermessoGiaConcesso()
+  }, [dopoAvvio])
 
   useEffect(() => {
     const giro = () => {
