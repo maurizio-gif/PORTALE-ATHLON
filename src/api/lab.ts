@@ -1,3 +1,4 @@
+import { chiediCodiceFiscale, richiestaDaRisposta } from '@/lib/richiestaCodiceFiscale'
 import { SUPABASE_URL } from '@/config'
 import { segnaRifiuto } from '@/features/lab/riservate/store'
 import { vistaCorrente } from '@/features/lab/vista'
@@ -412,6 +413,9 @@ export async function prenotaLezione(
 > {
   const { ok, dati } = await calendario({ azione: 'prenota', class_id: classId, member_id: memberId })
   if (ok) return { ok: true, esito: dati.esito, booking_id: dati.booking_id ?? null, posizione: typeof dati.posizione === 'number' ? dati.posizione : null }
+  // Manca il codice fiscale del bambino (13/11/2026): il foglio per scriverlo si apre da solo, e qui resta il testo del problema.
+  const senzaCf = richiestaDaRisposta(dati)
+  if (senzaCf) chiediCodiceFiscale(senzaCf)
   // Manca il prodotto (niente abbonamento che comprenda la lezione) e PerfectGym
   // lo vende: il link di pagamento e' gia' aperto.
   if (dati.da_pagare && dati.prodotto) {
@@ -433,6 +437,9 @@ export async function prenotaLezione(
 export async function acquistaLezione(classId: number, memberId: number): Promise<{ ok: true; url: string; acquisto_id: string; drop_in: boolean } | { ok: false; errore: string }> {
   const { ok, dati } = await calendario({ azione: 'acquista', class_id: classId, member_id: memberId })
   if (ok && typeof dati.url === 'string') return { ok: true, url: dati.url, acquisto_id: String(dati.acquisto_id ?? ''), drop_in: dati.drop_in === true }
+  // Manca il codice fiscale del bambino (13/11/2026): prima di far pagare una lezione che non si potrebbe prenotare.
+  const senzaCf = richiestaDaRisposta(dati)
+  if (senzaCf) chiediCodiceFiscale(senzaCf)
   return { ok: false, errore: dati.errore ?? t('Non riusciamo ad aprire il pagamento adesso.', 'We can’t open the payment right now.') }
 }
 
