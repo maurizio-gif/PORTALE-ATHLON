@@ -40,6 +40,12 @@ import { Tocco } from './Tocco'
 // di Maurizio, con la 3.0.0 pubblicata anche su Google Play): stessa carta, con
 // «Scarica da Google Play» e Health Connect al posto di Apple Salute. Sul computer
 // la carta non compare piu', nemmeno quando il browser saprebbe installare la PWA.
+//
+// **Dal computer la carta torna, con i due store** (13/11/2026, richiesta di Maurizio:
+// «nella versione web metti la CTA a scaricare l'app»): «Scarica l'app Athlon Club»
+// con «App Store» e «Google Play», che si aprono in una scheda nuova. Niente passi
+// della PWA e niente pulsante «Installa» del browser: dal computer si porta all'app
+// del telefono, non si installa la versione web.
 
 const CHIAVE = 'athlon:installa-dopo'
 const SETTIMANA = 7 * 86_400_000
@@ -218,7 +224,7 @@ function passi(c: Caso, dopoAccesso: boolean): { titolo: string; passi: Passo[] 
 
 /** Il riquadro «Installa l'app». `dopoAccesso`: nella pagina di accesso, prima di entrare. */
 export function Installa({ dopoAccesso = false }: { dopoAccesso?: boolean }) {
-  const [stato, setStato] = useState<{ caso: Caso; richiesta: boolean; store: string | null; android: boolean } | null>(null)
+  const [stato, setStato] = useState<{ caso: Caso; richiesta: boolean; store: string | null; android: boolean; computer?: { ios: string; android: string } } | null>(null)
   const [aperti, setAperti] = useState(false)
   const [copiato, setCopiato] = useState(false)
 
@@ -232,8 +238,14 @@ export function Installa({ dopoAccesso = false }: { dopoAccesso?: boolean }) {
       // Lo store del telefono, qualunque browser usi: App Store su iPhone e iPad, Google Play su Android.
       const telefono = telefonoDelBrowser()
       const store = telefono === 'altro' ? null : linkAppNativa(telefono)
-      // Dal computer nessun invito a scaricare o installare (09/11/2026).
-      setStato(c === 'computer' || (telefono === 'altro' && c !== 'in-app') ? null : { caso: c, richiesta, store, android: telefono === 'android' })
+      // Dal computer i due store, l'uno accanto all'altro (13/11/2026); senza i due link, niente carta.
+      if (c === 'computer' || (telefono === 'altro' && c !== 'in-app')) {
+        const ios = linkAppNativa('ios')
+        const android = linkAppNativa('android')
+        setStato(ios && android ? { caso: 'computer', richiesta: false, store: null, android: false, computer: { ios, android } } : null)
+        return
+      }
+      setStato({ caso: c, richiesta, store, android: telefono === 'android' })
     }
     aggiorna()
     window.addEventListener('athlon-installabile', aggiorna)
@@ -287,11 +299,16 @@ export function Installa({ dopoAccesso = false }: { dopoAccesso?: boolean }) {
         <Image source={{ uri: '/apple-touch-icon.png' }} style={stili.icona} accessibilityIgnoresInvertColors />
         <View style={{ flex: 1, gap: 3 }}>
           <Text style={stili.occhiello}>{dopoAccesso ? t('PRIMA DI ENTRARE', 'BEFORE YOU LOG IN') : t('CONSIGLIATO', 'RECOMMENDED')}</Text>
-          <Text style={stili.titolo}>{stato.store ? t('Scarica l’app Athlon Club', 'Get the Athlon Club app') : t('Installa l’app sul telefono', 'Install the app on your phone')}</Text>
+          <Text style={stili.titolo}>{stato.store || stato.computer ? t('Scarica l’app Athlon Club', 'Get the Athlon Club app') : t('Installa l’app sul telefono', 'Install the app on your phone')}</Text>
         </View>
       </View>
       <Text style={stili.testo}>
-        {stato.store && stato.android
+        {stato.computer
+          ? t(
+              'Athlon Club è sull’App Store e su Google Play: sul telefono si apre con un tocco, ti avvisa delle novità del club e, con Apple Salute o Health Connect, spunta da sola le tue abitudini. Cerca «Athlon Club» nello store del tuo telefono, o apri lo store da qui. Entri con la tua email e un codice, come qui.',
+              'Athlon Club is on the App Store and Google Play: on your phone it opens with one tap, tells you about club news and, with Apple Health or Health Connect, ticks off your habits by itself. Search for “Athlon Club” in your phone’s store, or open the store from here. You log in with your email and a code, just like here.',
+            )
+          : stato.store && stato.android
           ? t(
               'L’app Athlon Club è su Google Play: si apre con un tocco, ti avvisa delle novità del club e, con Health Connect, spunta da sola le tue abitudini. Entri con la tua email e un codice, come qui.',
               'The Athlon Club app is on Google Play: it opens with one tap, tells you about club news and, with Health Connect, ticks off your habits by itself. You log in with your email and a code, just like here.',
@@ -311,7 +328,22 @@ export function Installa({ dopoAccesso = false }: { dopoAccesso?: boolean }) {
           : null}
       </Text>
 
-      {stato.store ? (
+      {stato.computer ? (
+        // Dal computer lo store si apre in una scheda nuova: la pagina del portale resta aperta.
+        <View style={stili.dueStore}>
+          {[
+            { url: stato.computer.ios, testo: t('App Store', 'App Store'), etichetta: t('Scarica dall’App Store', 'Download from the App Store') },
+            { url: stato.computer.android, testo: t('Google Play', 'Google Play'), etichetta: t('Scarica da Google Play', 'Get it on Google Play') },
+          ].map((x) => (
+            <Tocco key={x.url} onPress={() => window.open(x.url, '_blank', 'noopener')} etichetta={x.etichetta} style={[stili.pulsante, { flexGrow: 1, flexBasis: 140 }]}>
+              <LinearGradient colors={FUOCO} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={stili.pulsanteFondo}>
+                <Icona nome="scarica" size={18} colore="#fff" />
+                <Text style={stili.pulsanteTesto}>{x.testo}</Text>
+              </LinearGradient>
+            </Tocco>
+          ))}
+        </View>
+      ) : stato.store ? (
         // Nella stessa scheda: lo store consegna l'app e la pagina resta dov'e' (se il browser non passa la mano, si vede la pagina dello store).
         <Tocco
           onPress={() => window.location.assign(stato.store as string)}
@@ -332,7 +364,7 @@ export function Installa({ dopoAccesso = false }: { dopoAccesso?: boolean }) {
         </Tocco>
       ) : null}
 
-      {mostraPassi ? (
+      {stato.computer ? null : mostraPassi ? (
         <View style={stili.passi}>
           <Text style={stili.guida}>{guida.titolo.toUpperCase()}</Text>
           {guida.passi.map((x, i) => (
@@ -380,6 +412,7 @@ const stili = StyleSheet.create({
   titolo: { color: '#fff', fontFamily: F.extra, fontSize: 19, letterSpacing: -0.4 },
   testo: { color: BIANCO_70, fontFamily: F.medio, fontSize: 14, lineHeight: 20 },
   pulsante: { borderRadius: 999, overflow: 'hidden' },
+  dueStore: { flexDirection: 'row', flexWrap: 'wrap', gap: spazio.due },
   pulsanteFondo: { flexDirection: 'row', gap: 8, alignItems: 'center', justifyContent: 'center', minHeight: 50, borderRadius: 999 },
   pulsanteTesto: { color: '#fff', fontFamily: F.extra, fontSize: 16 },
   passi: { gap: spazio.due + 2, backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 20, padding: spazio.tre, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)' },
