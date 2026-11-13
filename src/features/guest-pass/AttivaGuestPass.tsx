@@ -780,6 +780,7 @@ export function AttivaGuestPass({ token, nome, iniziale }: { token: string; nome
                 onPress={() => scegliMetodo('carta')}
                 spenta={!!occupato}
               />
+              {p.solo_carta ? null : (
               <SchedaScelta
                 attiva={sceltaMetodo === 'iban'}
                 etichetta={salvati.some((m) => m.tipo === 'iban') ? t('Usa un altro conto', 'Use another account') : t('Addebito su conto', 'Direct debit')}
@@ -789,6 +790,7 @@ export function AttivaGuestPass({ token, nome, iniziale }: { token: string; nome
                 onPress={() => scegliMetodo('iban')}
                 spenta={!!occupato}
               />
+              )}
             </View>
             {salvatoScelto?.tipo === 'carta' ? (
               <>
