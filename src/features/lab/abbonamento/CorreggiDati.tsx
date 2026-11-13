@@ -28,6 +28,7 @@ export function CorreggiDati({
   apertoDa = false,
   mancanti,
   senzaRecapiti = false,
+  scopo = 'contratto',
   onSalvato,
 }: {
   persona: PersonaDati
@@ -37,6 +38,8 @@ export function CorreggiDati({
   mancanti?: string[]
   /** Indirizzo e cellulare non si chiedono: sono di un'altra persona (il genitore, per un minorenne). */
   senzaRecapiti?: boolean
+  /** Per cosa servono i dati: il messaggio dei dati mancanti lo dice («Per il contratto serve…», «Per prenotare serve…»). */
+  scopo?: 'contratto' | 'prenotazione'
   onSalvato: () => void
 }) {
   const p = usePalette()
@@ -129,7 +132,13 @@ export function CorreggiDati({
     <Carta piatta>
       <View style={{ gap: spazio.tre }}>
         <Text style={{ color: p.testo, fontFamily: F.extra, fontSize: 16 }}>{titolo}</Text>
-        {mancanti?.length ? <Messaggio tono="attenzione">{t(`Per il contratto serve: ${mancanti.join(', ')}.`, `The contract needs: ${mancanti.join(', ')}.`)}</Messaggio> : null}
+        {mancanti?.length ? (
+          <Messaggio tono="attenzione">
+            {scopo === 'prenotazione'
+              ? t(`Per prenotare serve: ${mancanti.join(', ')}.`, `To book we need: ${mancanti.join(', ')}.`)
+              : t(`Per il contratto serve: ${mancanti.join(', ')}.`, `The contract needs: ${mancanti.join(', ')}.`)}
+          </Messaggio>
+        ) : null}
         <Text style={{ color: p.testoSecondario, fontFamily: F.medio, fontSize: 13, lineHeight: 19 }}>
           {`${persona.nome} ${persona.cognome}${persona.data_nascita ? t(`, nato/a il ${persona.data_nascita.split('-').reverse().join('/')}`, `, born ${persona.data_nascita.split('-').reverse().join('/')}`) : ''}. ${t('Nome e data di nascita si cambiano dal club.', 'Name and date of birth can only be changed by the club.')}`}
         </Text>

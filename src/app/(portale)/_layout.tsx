@@ -18,6 +18,7 @@ import { Notifiche } from '@/features/lab/notifiche/Notifiche'
 import { EsciTotem } from '@/features/lab/totem/EsciTotem'
 import { PagamentoTotem } from '@/features/lab/totem/PagamentoTotem'
 import { Cancello, ModalRiservata, sezioneDiRotta } from '@/features/lab/riservate/Riservate'
+import { FoglioCodiceFiscale } from '@/features/lab/abbonamento/FoglioCodiceFiscale'
 import { BannerVista } from '@/features/lab/ui/BannerVista'
 import { BarraSchede } from '@/features/lab/ui/BarraSchede'
 import { SchermataInArrivo } from '@/features/lab/ui/Attesa'
@@ -72,6 +73,8 @@ export default function LayoutLaboratorio() {
       {/* In vista cliente (vista.ts) la striscia con di chi e'; sulla stessa
           app, solo per chi e' entrato: senza accesso non c'e' niente da guardare. */}
       {sessione && !gate ? <BannerVista /> : null}
+      {/* Il codice fiscale del figlio, chiesto da chi prenota nella sezione Junior: si apre da solo (lib/richiestaCodiceFiscale). */}
+      {sessione && !gate ? <FoglioCodiceFiscale /> : null}
       <Stack
         screenLayout={({ children, route }) => {
           if (contenutoGate) return contenutoGate
