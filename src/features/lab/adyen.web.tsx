@@ -20,6 +20,9 @@ type AdyenWeb = {
 
 export const pagamentoDisponibile = true
 
+/** I metodi che il modulo non mostra: Apple Pay e Google Pay (i due nomi che Adyen usa per Google Pay). */
+const METODI_TOLTI = ['applepay', 'googlepay', 'paywithgoogle']
+
 function caricaSdk(): Promise<AdyenWeb> {
   const w = window as unknown as { AdyenWeb?: AdyenWeb }
   if (w.AdyenWeb) return Promise.resolve(w.AdyenWeb)
@@ -79,6 +82,9 @@ export function DropIn({
           locale: locale(),
           session: { id: sessione.sessione.id, sessionData: sessione.sessione.sessionData },
           analytics: { enabled: false },
+          // Solo la carta (13/11/2026, Maurizio: «Apple Pay e Google Pay non funzionano, vanno rimossi»). Il server lo dice gia' alla sessione
+          // (`allowedPaymentMethods`), questo copre le sessioni preparate da una funzione non ancora ripubblicata.
+          removePaymentMethods: METODI_TOLTI,
           onPaymentCompleted: fine,
           onPaymentFailed: fine,
           onError: (e: { message?: string }) => {
