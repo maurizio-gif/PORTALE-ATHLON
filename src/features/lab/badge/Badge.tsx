@@ -5,6 +5,7 @@ import { laMiaArea, type EsitoArea, type PersonaArea } from '@/api/lab'
 import { t } from '@/lib/lingua'
 import { spazio } from '@/theme'
 
+import { SchedaNonTrovata } from '../ingresso/SchedaNonTrovata'
 import { inMemoria, prendi } from '../memoria'
 import { Carta, Entra, Etichetta, Messaggio, Pulsante, SchedeInArrivo, Sezione } from '../ui/kit'
 import { Schermata } from '../ui/Schermata'
@@ -212,9 +213,8 @@ export function Badge() {
   if (!esito.area.trovato) {
     return (
       <Schermata {...intestazione}>
-        <Messaggio tono="attenzione" titolo={t('Non troviamo la tua scheda', 'We can’t find your profile')}>
-          {t('Il badge è per chi ha una scheda al club. Se pensi sia un errore, scrivi al club.', 'The badge is for people with a profile at the club. If you think this is a mistake, write to the club.')}
-        </Messaggio>
+        {/* Il badge e' per chi ha una scheda al club: senza, la stessa schermata della Home, con l'altro indirizzo e il desk (13/11/2026). */}
+        <SchedaNonTrovata email={esito.area.email} />
       </Schermata>
     )
   }

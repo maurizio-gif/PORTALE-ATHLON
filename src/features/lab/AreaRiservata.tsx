@@ -32,6 +32,7 @@ import { MessaggioBenvenuto } from './home/MessaggioBenvenuto'
 import { Campanello } from './notifiche/Campanello'
 import { SelettoreBandiere } from './ui/SelettoreBandiere'
 import { Riquadri, type VoceRiquadro } from './home/Riquadri'
+import { SchedaNonTrovata } from './ingresso/SchedaNonTrovata'
 import { SezioneCertificato } from './home/SezioneCertificato'
 import { SezioneFamiglia } from './home/SezioneFamiglia'
 import { SezioneDocumenti, useDocumenti, CHIAVE_DOCUMENTI } from './home/SezioneDocumenti'
@@ -422,10 +423,8 @@ export function AreaRiservata({ email }: { email: string }) {
   if (!area.trovato) {
     return (
       <Schermata titolo={t('La mia area', 'My area')}>
-        <Messaggio tono="attenzione" titolo={t('Non troviamo la tua scheda', 'We can’t find your profile')}>
-          {t(`Non c’è una scheda del club con l’indirizzo ${email}. Entra con l’email con cui sei iscritto.`, `There’s no club profile with the address ${email}. Sign in with the email you registered with.`)}
-        </Messaggio>
-        {uscita}
+        {/* Chi e' dentro senza una scheda viva a questo indirizzo e' quasi sempre gia' del club con un altro: l'indirizzo, in parte nascosto, e il desk (13/11/2026). */}
+        <SchedaNonTrovata email={email} />
       </Schermata>
     )
   }

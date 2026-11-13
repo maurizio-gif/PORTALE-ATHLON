@@ -105,6 +105,21 @@ function emailNoteDa(v: unknown): string[] | undefined {
   return out.length ? out : undefined
 }
 
+/**
+ * Per chi e' **gia' dentro** ma con un indirizzo che non ha nessuna scheda viva (13/11/2026: `AreaRiservata` dice «Non troviamo la tua scheda»): gli indirizzi delle schede
+ * che gli somigliano, **in parte nascosti** (`gi***i@icloud.com`), cercate dal server con quello che il club ha gia' scritto per questo indirizzo (la richiesta non porta
+ * dati). **Non solleva**: se la funzione non risponde, o e' una piu' vecchia che non conosce l'azione, il risultato e' vuoto e la schermata dice il messaggio generico
+ * con l'indirizzo del desk.
+ */
+export async function altroIndirizzo(): Promise<string[]> {
+  try {
+    const { ok, dati } = await funzione('portale-registrazione', { azione: 'altro_indirizzo' })
+    return ok ? (emailNoteDa(dati.emailNote) ?? []) : []
+  } catch {
+    return []
+  }
+}
+
 function smsDa(v: unknown): { finale: string } | undefined {
   const f = v && typeof v === 'object' ? String((v as Record<string, unknown>).finale ?? '') : ''
   return /^\d{2}$/.test(f) ? { finale: f } : undefined
