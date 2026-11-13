@@ -1,4 +1,7 @@
-import { funzione } from '@/api/lab'
+import { Platform } from 'react-native'
+
+import { funzione, type SessioneAdyen } from '@/api/lab'
+import { canaleNativo, sdkAdyen } from '@/lib/adyenNativo'
 import { t } from '@/lib/lingua'
 import { ordinaPiani } from '@/lib/ordinePiani'
 
@@ -266,8 +269,12 @@ export async function firmaAbbonamento(
   return { ok: false, errore: dati.errore ?? t('Non siamo riusciti a registrare il contratto adesso.', 'We couldn’t register the contract right now.') }
 }
 
-/** `flusso`: con il conto e un contratto del nostro sistema, l'id della pagina di GoCardless (BRF…) per aprirla nel Drop-in sul web. */
-export type EsitoPagamento = { numero: string; stato: StatoContratto; url: string | null; flusso?: string | null }
+/**
+ * `flusso`: con il conto e un contratto del nostro sistema, l'id della pagina di GoCardless (BRF…) per aprirla nel Drop-in sul web.
+ * `dropIn`: con la carta nuova e un contratto del nostro sistema (13/11/2026), la sessione di Adyen per il modulo dentro l'app (sul web nella
+ * pagina, nell'app la finestra nativa), al posto della pagina di Adyen (`url`). Un server di prima non la manda: resta `url`.
+ */
+export type EsitoPagamento = { numero: string; stato: StatoContratto; url: string | null; flusso?: string | null; dropIn?: (SessioneAdyen & { salva: boolean }) | null }
 
 /**
  * Gli importi del contratto firmato con quello che si paga **adesso** (10/11/2026): il credito sul conto puo' arrivare dopo la firma (il desk lo registra a
@@ -282,10 +289,27 @@ export async function importiAdesso(numero: string): Promise<ImportiContratto | 
 export async function pagaAbbonamento(numero: string, m: MetodoAbbonamento, ritornoUrl?: string): Promise<{ ok: true; esito: EsitoPagamento } | { ok: false; errore: string }> {
   // `su_gocardless` non va al server: per lui e' un conto senza IBAN e senza `conto_salvato`, cioe' la pagina di GoCardless.
   const corpo = 'su_gocardless' in m ? { metodo: 'conto' as const } : m
-  const { ok, dati } = await abbonamento({ azione: 'paga', numero, ...corpo, ...(ritornoUrl ? { ritorno_url: ritornoUrl } : {}) })
+  // La carta nuova col modulo di Adyen dentro l'app (13/11/2026), dove c'e' (sul web sempre; nell'app le build con l'SDK): `drop_in` e il canale.
+  // Lo stesso test di `pagamentoDisponibile` (`features/lab/adyen`): sul web il modulo c'e' sempre, nell'app solo con l'SDK nella build.
+  const conModulo = m.metodo === 'carta' && !m.con_carta && (Platform.OS === 'web' || sdkAdyen() !== null)
+  const canale = conModulo ? await canaleNativo('abbonamento', { contratto: numero }) : {}
+  const { ok, dati } = await abbonamento({ azione: 'paga', numero, ...corpo, ...(ritornoUrl ? { ritorno_url: ritornoUrl } : {}), ...(conModulo ? { drop_in: true, ...canale } : {}) })
   if (ok && dati.numero) {
     const flusso = typeof dati.flusso === 'string' && /^BRF[0-9A-Z]+$/.test(dati.flusso) ? dati.flusso : null
-    return { ok: true, esito: { numero: String(dati.numero), stato: dati.stato as StatoContratto, url: typeof dati.url === 'string' ? dati.url : null, flusso } }
+    const d = dati.drop_in && typeof dati.drop_in === 'object' ? (dati.drop_in as Record<string, any>) : null
+    const dropIn =
+      d && typeof d.clientKey === 'string' && typeof d.sessione?.id === 'string' && typeof d.sessione?.sessionData === 'string'
+        ? {
+            riferimento: String(d.riferimento ?? ''),
+            clientKey: d.clientKey,
+            environment: String(d.environment ?? 'live'),
+            sessione: { id: d.sessione.id, sessionData: d.sessione.sessionData },
+            ritornoNativo: canale.ritorno_nativo,
+            importoCent: typeof d.importo_cent === 'number' ? d.importo_cent : undefined,
+            salva: d.salva === true,
+          }
+        : null
+    return { ok: true, esito: { numero: String(dati.numero), stato: dati.stato as StatoContratto, url: typeof dati.url === 'string' ? dati.url : null, flusso, dropIn } }
   }
   return { ok: false, errore: dati.errore ?? t('Non siamo riusciti a completare il pagamento adesso.', 'We couldn’t complete the payment right now.') }
 }
