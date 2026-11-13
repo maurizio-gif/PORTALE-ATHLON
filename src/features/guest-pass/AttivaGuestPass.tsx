@@ -227,6 +227,12 @@ export function AttivaGuestPass({ token, nome, iniziale }: { token: string; nome
             setAvviso({ testo: t('Pagamento ricevuto: il tuo Guest Pass è attivo.', 'Payment received: your Guest Pass is active.'), tono: 'ok' })
             return ricarica()
           }
+          // Il conto autorizzato su GoCardless: l'addebito SEPA e' partito, la banca lo conferma nei prossimi giorni.
+          if (ok && d.addebito) {
+            setOccupato(null)
+            setAvviso({ testo: t(`Conto autorizzato: i ${p.prezzo} € saranno addebitati sul tuo conto. Il tuo Guest Pass è attivo.`, `Bank account authorised: the ${p.prezzo} € will be charged to your account. Your Guest Pass is active.`), tono: 'ok' })
+            return ricarica()
+          }
           if (ok && d.fallito) {
             setOccupato(null)
             setAvviso({ testo: t(`Il pagamento non è andato a buon fine. ${d.motivo ?? ''}`, `The payment didn’t go through. ${d.motivo ?? ''}`).trim(), tono: 'errore' })
@@ -366,9 +372,9 @@ export function AttivaGuestPass({ token, nome, iniziale }: { token: string; nome
     await ricarica()
   }
 
-  async function ripaga(come: { nuova?: boolean; usa_salvato?: number } = {}) {
+  async function ripaga(come: { nuova?: boolean; usa_salvato?: number; conto?: boolean } = {}) {
     setErrore(null)
-    setOccupato(come.nuova ? 'nuova' : 'ripaga')
+    setOccupato(come.nuova ? 'nuova' : come.conto ? 'conto' : 'ripaga')
     const { ok, dati: d } = await chiamaLink(token, 'ripaga', come)
     setOccupato(null)
     if (ok && typeof d.url === 'string') return apri(d.url)
@@ -463,6 +469,20 @@ export function AttivaGuestPass({ token, nome, iniziale }: { token: string; nome
           </View>
           <ChiGestisceCarta salvaPagando={!cartaSalvata} />
         </Sezione>
+        {p.conto_gocardless ? (
+          <Sezione titolo={t('Oppure: addebito su conto', 'Or: direct debit')}>
+            <Pulsante
+              testo={t(`Paga ${p.resta ?? p.prezzo} € con il conto corrente`, `Pay ${p.resta ?? p.prezzo} € from your bank account`)}
+              icona="banca"
+              variante="contorno"
+              onPress={() => ripaga({ conto: true })}
+              inCorso={occupato === 'conto'}
+              disabilitato={!!occupato}
+            />
+            <Nota>{t('Si apre la pagina protetta di GoCardless: scrivi l’IBAN e autorizzi l’addebito. Poi torni qui.', 'GoCardless’s secure page opens: enter your IBAN and authorise the debit. Then you come back here.')}</Nota>
+            <ChiGestisceConto />
+          </Sezione>
+        ) : (
         <Sezione titolo={t('Oppure: addebito su conto', 'Or: direct debit')}>
           <Carta piatta>
             <View style={{ gap: spazio.tre }}>
@@ -483,6 +503,7 @@ export function AttivaGuestPass({ token, nome, iniziale }: { token: string; nome
             </View>
           </Carta>
         </Sezione>
+        )}
         {errore ? <Messaggio>{errore}</Messaggio> : null}
       </Pagina>
     )
@@ -780,7 +801,6 @@ export function AttivaGuestPass({ token, nome, iniziale }: { token: string; nome
                 onPress={() => scegliMetodo('carta')}
                 spenta={!!occupato}
               />
-              {p.solo_carta ? null : (
               <SchedaScelta
                 attiva={sceltaMetodo === 'iban'}
                 etichetta={salvati.some((m) => m.tipo === 'iban') ? t('Usa un altro conto', 'Use another account') : t('Addebito su conto', 'Direct debit')}
@@ -790,7 +810,6 @@ export function AttivaGuestPass({ token, nome, iniziale }: { token: string; nome
                 onPress={() => scegliMetodo('iban')}
                 spenta={!!occupato}
               />
-              )}
             </View>
             {salvatoScelto?.tipo === 'carta' ? (
               <>
@@ -812,7 +831,14 @@ export function AttivaGuestPass({ token, nome, iniziale }: { token: string; nome
                 <ChiGestisceCarta salvaPagando />
               </>
             ) : null}
-            {sceltaMetodo === 'iban' ? (
+            {sceltaMetodo === 'iban' && p.conto_gocardless ? (
+              <>
+                <Nota>
+                  {t(`Alla conferma si apre la pagina protetta di GoCardless: scrivi l’IBAN e autorizzi l’addebito dei ${p.prezzo} € sul tuo conto. Poi torni qui.`, `On confirmation, GoCardless’s secure page opens: enter your IBAN and authorise the ${p.prezzo} € debit from your account. Then you come back here.`)}
+                </Nota>
+                <ChiGestisceConto />
+              </>
+            ) : sceltaMetodo === 'iban' ? (
               p.scelte.metodo === 'iban' && p.scelte.metodo_pronto ? (
                 <>
                   <Messaggio tono="ok">{t(`Conto salvato: i ${p.prezzo} € saranno addebitati sul conto.`, `Bank account saved: the ${p.prezzo} € will be charged to your account.`)}</Messaggio>
