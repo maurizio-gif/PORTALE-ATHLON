@@ -18,7 +18,18 @@ import { colpetto } from './Tocco'
  * Il logout: il pulsante e, prima di uscire, la conferma in un foglio. Dopo si
  * torna all'ingresso del laboratorio (/lab), da qualunque schermata.
  */
-export function PulsanteEsci({ email, testo = t('Esci', 'Log out'), conferma = true }: { email?: string | null; testo?: string; conferma?: boolean }) {
+export function PulsanteEsci({
+  email,
+  testo = t('Esci', 'Log out'),
+  conferma = true,
+  variante = 'pericolo',
+}: {
+  email?: string | null
+  testo?: string
+  conferma?: boolean
+  /** Di partenza rosso, come ogni «Esci»; `primario` quando uscire e' la cosa da fare («Entra con quell'indirizzo», 13/11/2026). */
+  variante?: 'pericolo' | 'primario' | 'secondario'
+}) {
   const p = usePalette()
   const [aperto, setAperto] = useState(false)
   const [inCorso, setInCorso] = useState(false)
@@ -45,7 +56,7 @@ export function PulsanteEsci({ email, testo = t('Esci', 'Log out'), conferma = t
 
   return (
     <>
-      <Pulsante testo={inVista ? t('Esci dalla vista cliente', 'Leave client view') : testo} icona="esci" variante="pericolo" onPress={conferma && !inVista ? () => setAperto(true) : esci} inCorso={!conferma && inCorso} />
+      <Pulsante testo={inVista ? t('Esci dalla vista cliente', 'Leave client view') : testo} icona="esci" variante={variante} onPress={conferma && !inVista ? () => setAperto(true) : esci} inCorso={!conferma && inCorso} />
       <Foglio aperto={aperto} titolo={t('Vuoi uscire?', 'Log out?')} onChiudi={() => setAperto(false)}>
         <Text style={{ color: p.testoSecondario, fontFamily: F.medio, fontSize: 15, lineHeight: 22 }}>
           {email ? (

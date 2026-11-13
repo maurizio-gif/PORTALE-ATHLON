@@ -10,6 +10,7 @@ import {
   firmaAbbonamento,
   importiAdesso,
   pagaAbbonamento,
+  type EsitoPagamento,
   riepilogoAbbonamento,
   statoAbbonamento,
   statoCambioAbbonamento,
@@ -56,6 +57,8 @@ import { Schermata } from './ui/Schermata'
 import { F, usePalette } from './ui/tema'
 import { colpetto, Tocco } from './ui/Tocco'
 import { apriPagamento, apriPaginaMandato } from '@/lib/pagamentoEsterno'
+import { configurazioneAdyen } from '@/api/lab'
+import { DropIn, riprendiDopoRedirect } from './adyen'
 import { passaDalTotem } from '@/features/lab/totem/passaggio'
 import { inModalitaTotem } from '@/lib/totem'
 import { ContinuaSulTelefono } from '@/features/proposta/ContinuaSulTelefono'
@@ -224,7 +227,9 @@ export function Abbonamento() {
     cambio,
     membro: membroIndicato,
     piano: pianoIndicato,
-  } = useLocalSearchParams<{ contratto?: string; cambio?: string; membro?: string; piano?: string }>()
+    sessionId,
+    redirectResult,
+  } = useLocalSearchParams<{ contratto?: string; cambio?: string; membro?: string; piano?: string; sessionId?: string; redirectResult?: string }>()
   // L'ordine, scelto dal club: abbonamento, data, dati e firma, e solo poi il
   // pagamento. Il contratto non dice con cosa si paga: il metodo si sceglie dopo.
   const [passo, setPasso] = useState<1 | 2 | 3 | 4>(1)
@@ -257,6 +262,23 @@ export function Abbonamento() {
   const [usaContoSalvato, setUsaContoSalvato] = useState(true)
   const [pagando, setPagando] = useState(false)
   const [errorePagamento, setErrorePagamento] = useState<string | null>(null)
+  /** La sessione del modulo di Adyen per la carta nuova (13/11/2026): il modulo sta nella pagina (web) o si apre come finestra (app), niente pagina di Adyen. */
+  const [sessioneCarta, setSessioneCarta] = useState<EsitoPagamento['dropIn']>(null)
+  // Il ritorno dalla 3D Secure del modulo sul web: Adyen riporta qui con `sessionId` e `redirectResult`, che vanno consegnati ad Adyen o il pagamento
+  // non si completa. La schermata dell'esito (`?contratto=`) intanto chiede al server com'e' andata: la conferma e' del webhook.
+  const ripreso = useRef(false)
+  useEffect(() => {
+    if (Platform.OS !== 'web' || ripreso.current || typeof sessionId !== 'string' || typeof redirectResult !== 'string') return
+    ripreso.current = true
+    ;(async () => {
+      try {
+        const cfg = await configurazioneAdyen()
+        if (cfg.ok) await riprendiDopoRedirect({ clientKey: cfg.clientKey, environment: cfg.environment, sessionId, redirectResult })
+      } catch {
+        // la schermata dell'esito segue comunque il webhook
+      }
+    })()
+  }, [sessionId, redirectResult])
   const [numero, setNumero] = useState<string | null>(typeof contratto === 'string' ? contratto : null)
   const [costi, setCosti] = useState<ImportiContratto | null>(null)
   const [costiInCorso, setCostiInCorso] = useState(false)
@@ -505,6 +527,12 @@ export function Abbonamento() {
       if (e === 'firmato' || e === 'chiuso') setNumero(r.esito.numero)
       return
     }
+    // La carta nuova col modulo di Adyen dentro l'app (13/11/2026): niente pagina di Adyen. Finito il pagamento, qualunque esito, la schermata dell'esito.
+    if (r.esito.dropIn) {
+      setPagando(false)
+      setSessioneCarta(r.esito.dropIn)
+      return
+    }
     if (r.esito.url) {
       await apriPagamento(r.esito.url)
       setPagando(false)
@@ -512,6 +540,12 @@ export function Abbonamento() {
     }
     setPagando(false)
     setNumero(r.esito.numero)
+  }
+
+  function fineModuloCarta() {
+    if (!firmato) return
+    setSessioneCarta(null)
+    setNumero(firmato.numero)
   }
 
   if (cambioFatto) {
@@ -807,7 +841,7 @@ export function Abbonamento() {
                   sotto={
                     stato.metodi.carta
                       ? t(`Usiamo la carta salvata${stato.metodi.carta.finale ? ` •••• ${stato.metodi.carta.finale}` : ''}: la prima quota subito, le altre quando scadono, sulla stessa carta.`, `We’ll use your saved card${stato.metodi.carta.finale ? ` •••• ${stato.metodi.carta.finale}` : ''}: the first payment now, the others when they’re due, on the same card.`)
-                      : t('La prima quota la paghi sulla pagina sicura della banca, che salva la carta: le quote dopo si addebitano da sole.', 'You pay the first installment on the bank’s secure page, which saves your card: later payments are charged automatically.')
+                      : t('La prima quota la paghi qui, nel modulo sicuro, che salva la carta: le quote dopo si addebitano da sole.', 'You pay the first installment here, in the secure form, which saves your card: later payments are charged automatically.')
                   }
                   onPress={() => {
                     setMetodo('carta')
@@ -830,6 +864,7 @@ export function Abbonamento() {
                   onPress={() => {
                     setMetodo('conto')
                     setErrorePagamento(null)
+                    setSessioneCarta(null)
                   }}
                 />
               </View>
@@ -877,13 +912,24 @@ export function Abbonamento() {
             </Sezione>
 
             {errorePagamento ? <Messaggio>{errorePagamento}</Messaggio> : null}
-            <Pulsante
-              testo={metodo === 'conto' && firmato.contoSuGocardless && !(stato.metodi.conto && usaContoSalvato) ? t('Continua su GoCardless', 'Continue on GoCardless') : metodo === 'conto' || (importiPagamento ?? firmato.importi).calendario.totale_oggi === 0 ? t('Conferma e attiva', 'Confirm and activate') : stato.metodi.carta ? t(`Paga ${euro((importiPagamento ?? firmato.importi).calendario.totale_oggi)}`, `Pay ${euro((importiPagamento ?? firmato.importi).calendario.totale_oggi)}`) : t('Vai al pagamento sicuro', 'Go to secure payment')}
+            {sessioneCarta && metodo === 'carta' ? (
+              <View style={{ gap: spazio.due }}>
+                <DropIn sessione={sessioneCarta} onFine={fineModuloCarta} onErrore={setErrorePagamento} />
+                {sessioneCarta.salva ? (
+                  <Text style={[stili.nota, { color: p.testoSecondario }]}>
+                    {t('Pagando, la carta viene salvata in modo sicuro su Adyen: le quote successive si addebitano su questa carta.', 'When you pay, the card is saved securely with Adyen: the following payments are charged to this card.')}
+                  </Text>
+                ) : null}
+                <Pulsante testo={t('Indietro', 'Back')} variante="fantasma" piccolo pieno={false} onPress={() => setSessioneCarta(null)} />
+              </View>
+            ) : null}
+            {sessioneCarta && metodo === 'carta' ? null : <Pulsante
+              testo={metodo === 'conto' && firmato.contoSuGocardless && !(stato.metodi.conto && usaContoSalvato) ? t('Continua su GoCardless', 'Continue on GoCardless') : metodo === 'conto' || (importiPagamento ?? firmato.importi).calendario.totale_oggi === 0 ? t('Conferma e attiva', 'Confirm and activate') : stato.metodi.carta ? t(`Paga ${euro((importiPagamento ?? firmato.importi).calendario.totale_oggi)}`, `Pay ${euro((importiPagamento ?? firmato.importi).calendario.totale_oggi)}`) : t(`Paga ${euro((importiPagamento ?? firmato.importi).calendario.totale_oggi)} con la carta`, `Pay ${euro((importiPagamento ?? firmato.importi).calendario.totale_oggi)} by card`)}
               icona="carta"
               onPress={paga}
               inCorso={pagando}
               disabilitato={!metodoScelto()}
-            />
+            />}
             <Text style={[stili.nota, { color: p.testoSecondario }]}>{t(`Contratto n. ${firmato.numero}. Se non completi ora, torna qui: il contratto resta firmato e riprendi dal pagamento.`, `Contract no. ${firmato.numero}. If you don’t finish now, come back here: the contract stays signed and you pick up from the payment.`)}</Text>
           </>
         ) : null}
