@@ -83,6 +83,8 @@ export type PaginaGuestPass = {
   password?: { obbligatoria: boolean }
   /** La carta e il conto gia' salvati su PerfectGym: si mostrano, e si possono usare. */
   salvati?: MetodoSalvato[]
+  /** Il Guest Pass nasce sul nostro motore (13/11/2026): si paga solo con la carta, e il conto corrente non si propone. */
+  solo_carta?: boolean
   scelte: { consensi: number[]; metodo: 'carta' | 'iban' | null; metodo_pronto: boolean; payment_source_id?: number | null; dati_confermati?: boolean; firmato?: boolean }
   contratto: number | null
   pagamento: string | null
