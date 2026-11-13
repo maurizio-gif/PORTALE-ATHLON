@@ -399,9 +399,9 @@ export type DaPagare = {
   url?: string
   acquisto_id?: string
   carta?: CartaSalvata | null
-  /** Il server sa aprire il pagamento col Drop-in di Adyen (`sessione_acquisto`): oggi la lezione singola del Baby Nuoto. Senza, o senza l'SDK nella build, resta il link. */
+  /** Il server sa aprire il pagamento col Drop-in di Adyen (`sessione_acquisto`): la lezione singola del Baby Nuoto e, dal 13/11/2026, l'ingresso degli adulti venduto da noi. Senza, o senza l'SDK nella build, resta il link. */
   drop_in?: boolean
-  /** Euro del credito gia' scalati dal prezzo (12/11/2026): `prodotto.prezzo` e' la differenza da pagare. Oggi solo la lezione singola del Baby Nuoto. */
+  /** Euro del credito gia' scalati dal prezzo (12/11/2026): `prodotto.prezzo` e' la differenza da pagare. La lezione singola del Baby Nuoto e l'ingresso degli adulti venduto da noi. */
   credito?: number
 }
 
