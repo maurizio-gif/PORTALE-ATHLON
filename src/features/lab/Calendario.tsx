@@ -320,7 +320,9 @@ export function AzioniLezione({
                 colpetto('errore')
                 setErrore(r.errore)
               } else colpetto('ok')
-              if (r?.prodotto) setDaPagare({ prodotto: r.prodotto, url: r.url, acquisto_id: r.acquisto_id, carta: r.carta ?? null })
+              // Anche `drop_in` e `credito` (13/11/2026): senza, il Drop-in di Adyen e la riga del credito scalato non comparivano mai dopo «Prenota»
+              // (ne' per il Baby Nuoto ne' per l'ingresso degli adulti venduto da noi), e si pagava sempre col link.
+              if (r?.prodotto) setDaPagare({ prodotto: r.prodotto, url: r.url, acquisto_id: r.acquisto_id, carta: r.carta ?? null, drop_in: r.drop_in, credito: r.credito })
             }}
             inCorso={attesa}
             disabilitato={occupato}
