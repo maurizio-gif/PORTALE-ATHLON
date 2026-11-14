@@ -8,6 +8,7 @@ import { locale, t } from '@/lib/lingua'
 
 import { Icona, type NomeIcona } from '../ui/Icona'
 import { inMemoria, prendi } from '../memoria'
+import { AvvisoPenalita } from '../ui/AvvisoPenalita'
 import { Bollino, Carta, LinkSezione, Messaggio, Pulsante, Riga, SchedeInArrivo, Sezione } from '../ui/kit'
 import { F, usePalette, velo, coloreTono, type ToniTutti } from '../ui/tema'
 
@@ -32,6 +33,11 @@ import { F, usePalette, velo, coloreTono, type ToniTutti } from '../ui/tema'
 //
 // Solo il titolare: le prenotazioni dei figli stanno nella sezione Junior. Le prenotazioni in programma, con «Annulla», restano
 // nel Calendario («Le tue prenotazioni»).
+//
+// **In cima alla sezione, se c'e', l'avviso della penalita' per le mancate disdette** (14/11/2026): `penalita` arriva con la stessa risposta dello
+// storico (azione `storico`) ed e' lo stesso componente del Calendario (`ui/AvvisoPenalita`). Sta anche sopra lo stato vuoto, perche' l'avviso
+// non dipende dalle righe dell'elenco. Segue la risposta (`setDati` sostituisce tutto,
+// quindi una lettura senza `penalita` la toglie) e il componente non lo mostra se `fino_a` e' passato, anche con lo storico in memoria.
 
 export const CHIAVE_STORICO_PRENOTAZIONI = 'prenotazioni:storico'
 
@@ -153,6 +159,7 @@ export function SezionePrenotazioni() {
   if (!dati.voci.length && !dati.personal.length) {
     return (
       <View style={{ gap: spazio.tre }}>
+        <AvvisoPenalita penalita={dati.penalita} />
         <Carta piatta>
           <Text style={{ color: pal.testo, fontFamily: F.semi, fontSize: 15, lineHeight: 22 }}>{t(`Nessuna lezione o evento negli ultimi ${dati.giorni} giorni.`, `No classes or events in the last ${dati.giorni} days.`)}</Text>
           <Text style={{ color: pal.testoSecondario, fontFamily: F.medio, fontSize: 13.5, lineHeight: 20, marginTop: 4 }}>
@@ -180,6 +187,8 @@ export function SezionePrenotazioni() {
 
   return (
     <View style={{ gap: spazio.quattro }}>
+      <AvvisoPenalita penalita={dati.penalita} />
+
       {dati.presenze + dati.assenze > 0 ? (
         <Carta>
           <Text style={[stili.riepilogoTitolo, { color: pal.testoSecondario }]}>{t(`Ultimi ${dati.giorni} giorni`, `Last ${dati.giorni} days`)}</Text>

@@ -33,6 +33,7 @@ import { InvitoPushAttesa } from './notifiche/InvitoPushAttesa'
 import { CalorieLezione, CorpoPerLezioni } from './schede/CalorieLezione'
 import { posizione } from './SchedaLezione'
 import { testoPosizione } from './posizioneAttesa'
+import { AvvisoPenalita } from './ui/AvvisoPenalita'
 import { ingombroBarra } from './ui/BarraSchede'
 import { FoglioLezione } from './ui/FoglioLezione'
 import { Icona, type NomeIcona } from './ui/Icona'
@@ -1068,6 +1069,8 @@ function CalendarioGiorno() {
         ) : null}
         {!giorno.prenotazioni_lette ? <Messaggio tono="attenzione">{t('PerfectGym non risponde: le tue prenotazioni potrebbero non comparire.', 'PerfectGym is not responding: your bookings may not show up.')}</Messaggio> : null}
         {mie.length ? <LezioniPrenotate lezioni={mie} occupato={occupato} onAnnulla={disdiciPrenotata} /> : null}
+        {/* La penalita' per le mancate disdette (14/11/2026): subito sopra i giorni, visibile mentre se ne sceglie uno. Segue il giorno letto: una lettura senza `penalita` la toglie. */}
+        <AvvisoPenalita penalita={giorno.penalita} />
 
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={stili.fila} style={stili.fuori}>
           {giorno.giorni.map((d) => {

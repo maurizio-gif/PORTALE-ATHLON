@@ -21,6 +21,14 @@ import { chiudiFinestra, finestraComparsa } from './store'
 // `azione` e `aperta`; «Ok, letto» su una notifica senza pulsante e' `aperta`; chiudere con la X la lascia solo `vista`:
 // resta fra le non lette del centro notifiche, perche' chi chiude non ha letto per forza. Il testo non e' mai tagliato.
 //
+// **La conferma di lettura, blanda** (14/11/2026, richiesta di Maurizio: «le push ancora danno problemi: una finestra che compare quando apri, e la
+// persona dice "ok, ho letto"»; resa blanda lo stesso giorno: «falla blanda per il cliente. Non deve essere troppo…»). Una notifica che
+// `richiedeConferma` (gli avvisi delle mancate disdette) ha come primo pulsante «Ok, ho letto» (`aperta`, e il club sa che e' arrivata) e sotto
+// quello della sua destinazione (`azione`, che e' anche `aperta`); **si chiude come ogni altra finestra** (X, un tocco fuori, il tasto indietro), e
+// chiuderla la lascia solo `vista`, che al club basta per sapere che e' arrivata. Non si impone: se la persona l'ha vista e non ha confermato, il
+// server la ripropone **una volta sola**, il giorno dopo (entro 72 ore dall'avviso), e poi non torna piu'. Il tocco su «Ok, ho letto» non apre
+// nessuna schermata.
+//
 // **Sotto, se la push e' spenta, una riga per attivarla** (25/10/2026, richiesta di Maurizio: «promuovi di piu l'attivazione delle
 // push»): e' il momento giusto, la persona ha appena visto una notifica del club arrivare. Vale lo stesso rimando di tre giorni
 // della carta in Home (`invitoPush`): chi ha detto «non ora» non se la ritrova qui.
@@ -45,6 +53,8 @@ export function FinestraNotifica({ notifica: n }: { notifica: NotificaApp }) {
   useEffect(() => {
     finestraComparsa(n)
   }, [n])
+
+  const conferma = n.richiedeConferma
 
   function chiudi() {
     chiudiFinestra(n.id)
@@ -91,7 +101,12 @@ export function FinestraNotifica({ notifica: n }: { notifica: NotificaApp }) {
           <OffertaPush senzaInvito={attivaQui} />
           {attivaQui && push.errore ? <Messaggio tono="errore">{push.errore}</Messaggio> : null}
           <View style={{ gap: spazio.due, marginTop: spazio.due }}>
-            {pulsante ? (
+            {conferma ? (
+              <>
+                <Pulsante testo={t('Ok, ho letto', 'OK, I’ve read it')} icona="spunta" onPress={letto} />
+                {pulsante ? <Pulsante testo={n.etichetta ?? t('Apri', 'Open')} variante="secondario" icona="avanti" onPress={premi} /> : null}
+              </>
+            ) : pulsante ? (
               <>
                 <Pulsante testo={n.etichetta ?? t('Apri', 'Open')} icona={attivaQui ? 'campanello' : 'avanti'} inCorso={attivaQui && (push.occupato || inVerifica)} onPress={premi} />
                 <Pulsante testo={t('Chiudi', 'Close')} variante="fantasma" onPress={chiudi} />

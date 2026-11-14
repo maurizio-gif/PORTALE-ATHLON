@@ -19,8 +19,12 @@ import { t } from '@/lib/lingua'
  * **`attiva-notifiche` non e' una schermata ma un'azione** (11/11/2026, richiesta di Maurizio: «il pulsante proprio nella
  * notifica, attiva push qui»): il tocco attiva la push di questo dispositivo senza cambiare schermata (`FinestraNotifica`,
  * `Centro`). Una versione dell'app che non la conosce la scarta come ogni chiave sconosciuta: resta «Ok, letto».
+ *
+ * **`prenotazioni`** (14/11/2026, richiesta di Maurizio) apre la sezione «Prenotazioni» della Home (`/?sezione=prenotazioni`): le lezioni degli
+ * ultimi 30 giorni con la presenza. La usa la notifica di una mancata disdetta. Una versione dell'app che non la conosce la scarta, e la
+ * notifica resta senza pulsante («Ok, letto»).
  */
-export const DESTINAZIONI = ['home', 'calendario', 'abbonamenti', 'pagamenti', 'certificato', 'profilo', 'allenamento', 'shop', 'club-life', 'personal', 'tv', 'assistenza', 'attiva-notifiche'] as const
+export const DESTINAZIONI = ['home', 'calendario', 'abbonamenti', 'pagamenti', 'certificato', 'profilo', 'allenamento', 'shop', 'club-life', 'personal', 'tv', 'assistenza', 'attiva-notifiche', 'prenotazioni'] as const
 export type DestinazioneNotifica = (typeof DESTINAZIONI)[number]
 
 function eDestinazione(v: unknown): v is DestinazioneNotifica {
@@ -36,6 +40,7 @@ export function hrefDestinazione(d: DestinazioneNotifica): Href {
       return '/calendario'
     case 'abbonamenti':
     case 'pagamenti':
+    case 'prenotazioni':
     case 'certificato':
     case 'profilo':
       // Le sezioni stanno nella Home (`/?sezione=…`).
@@ -74,6 +79,11 @@ export type NotificaApp = {
   creata_il: string
   /** Il club vuole che compaia come finestra, appena arriva. */
   finestra: boolean
+  /**
+   * La finestra non si puo' chiudere senza premere «Ok, ho letto» (o il pulsante), e torna a ogni apertura dell'app finche' non lo si fa
+   * (14/11/2026, richiesta di Maurizio: la push non basta a sapere che un avviso e' arrivato). La usano gli avvisi delle mancate disdette.
+   */
+  richiedeConferma: boolean
   letta: boolean
   aperta: boolean
   /** Se e' rivolta a un'altra persona del nucleo (un figlio): per chi. */
@@ -105,6 +115,7 @@ function leggi(x: unknown): NotificaApp | null {
     etichetta: typeof n.etichetta === 'string' && n.etichetta.trim() ? n.etichetta.trim() : null,
     creata_il: typeof n.creata_il === 'string' ? n.creata_il : new Date().toISOString(),
     finestra: n.finestra === true,
+    richiedeConferma: n.richiede_conferma === true,
     letta: n.letta === true,
     aperta: n.aperta === true,
     per: per && typeof per.member_id === 'number' ? { member_id: per.member_id, nome: typeof per.nome === 'string' ? per.nome : null } : null,
