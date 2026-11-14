@@ -26,6 +26,7 @@ Dal 13/11 alle 12:00 UTC (primo blocco) alle 11:25 UTC di oggi: **40 blocchi `pr
 
 ### Da sapere
 
+- **Aggiornamento (sezione 237)**: gli altri fogli con un campo di testo e `Schermata` sono stati curati lo stesso giorno, con `FoglioHost` e la prop `tastiera`; quello che segue è com'era scritto prima, e vale ancora per i fogli e i selettori che la 237 elenca come non toccati.
 - **Gli altri `Foglio` con campi di testo hanno ancora il rischio della tastiera su Android 16** (`Misure`, `AggiungiAllenamento`, `FoglioProfilo`, `FoglioFeedback`, `Gestisci`, `schede/Test`, `SceltaEsercizio`, `Profilo`, `alimentazione/Aggiungi`, `FoglioPagatore`), come `CampoTelefono` e `CampoPaese`. Non toccati: la cura è `livello`, ma ogni foglio che si apre sopra un altro `Modal` va guardato prima. **Un foglio che si apre da dentro un `Modal` (`FoglioLezione`, la chat) ha lo stesso problema di iOS.**
 - **Un'altra richiesta di codice fiscale da un `Modal` nuovo** deve montare un suo `<FoglioCodiceFiscale dentro />` dentro quella finestra, come fa `FoglioAssistente`.
 - **Da pubblicare**: solo JavaScript (nessun modulo nativo nuovo: `react-native-reanimated` e `FadeIn` c'erano già), quindi OTA su **tre runtime** (3.0.0, 3.1.0, 3.1.1) con la procedura della 227 e della 234. Da fare solo con il via di Maurizio. Dopo, guardare in `audit_log` se i `prenotazione_rifiutata` con `codice_fiscale` ripetuti sulla stessa lezione calano, e far provare un iPhone dalla chat con un bambino senza codice.

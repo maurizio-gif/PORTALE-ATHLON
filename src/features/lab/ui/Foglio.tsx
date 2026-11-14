@@ -1,28 +1,64 @@
-import { useEffect, type ReactNode, type Ref } from 'react'
+import { useEffect, useId, type ReactNode, type Ref } from 'react'
 import { BackHandler, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, View, type NativeScrollEvent, type NativeSyntheticEvent } from 'react-native'
 import Animated, { FadeIn } from 'react-native-reanimated'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { spazio } from '@/theme'
 import { t } from '@/lib/lingua'
+import { mettiInHost, togliDalHost } from '@/lib/portaleFogli'
 import { useSollevamentoTastiera } from '@/lib/tastiera'
 
+import { useHostFogliMontato } from './FoglioHost'
 import { Icona } from './Icona'
 import { F, usePalette } from './tema'
 import { Tocco } from './Tocco'
+
+type PropsFoglio = {
+  aperto: boolean
+  titolo: string
+  sottotitolo?: string
+  onChiudi: () => void
+  scorrimento?: Ref<ScrollView>
+  onScorri?: (e: NativeSyntheticEvent<NativeScrollEvent>) => void
+  flottante?: ReactNode
+  /** Un livello a tutto schermo nella finestra dove e' montato, non un `Modal`. Vedi sopra. */
+  livello?: boolean
+  /** Il foglio ha un campo di testo: su Android lo disegna `FoglioHost`, alla radice, dove la tastiera lo alza. Vedi sopra. */
+  tastiera?: boolean
+  children: ReactNode
+}
 
 /**
  * Un foglio che sale dal basso, con la maniglia, un titolo e la X per chiudere.
  * `scorrimento` e `onScorri` danno a chi lo usa il controllo dello scorrimento;
  * `flottante` e' un comando che resta fermo sopra il testo, in basso, mentre si scorre.
  *
- * `livello` (14/11/2026): non una finestra a parte (`Modal`) ma un livello a tutto schermo nella finestra in cui e' montato, come l'assistente su
- * Android (`FoglioAssistente`). Serve in due casi. **Dentro un altro `Modal`** (la chat dell'assistente): su iOS un secondo `Modal` non si apre sopra
- * uno gia' aperto, e il foglio non compariva. **Su Android nativo**: da Android 16 (`targetSdk` 36) la finestra di un `Modal` non si ridimensiona piu'
- * con la tastiera, che copriva il campo; un livello nella finestra dell'attivita' riceve l'altezza della tastiera e si alza (`useSollevamentoTastiera`).
- * Senza `livello` il foglio e' quello di sempre.
+ * **La tastiera su Android** (14/11/2026). Da Android 16 (`targetSdk` 36) la finestra di un `Modal` non si ridimensiona piu' con la tastiera, e
+ * l'altezza della tastiera (`Keyboard`) arriva solo alla finestra dell'attivita', non a quella di un `Modal` (note 182 e 236): un campo in fondo a un
+ * foglio restava coperto. Due strade, una per caso:
+ * - `tastiera`: il foglio ha un campo di testo. **Su Android** lo disegna `FoglioHost` (`lib/portaleFogli`), alla radice del layout del portale, nella
+ *   finestra dell'attivita' e sopra a tutto: li' la tastiera si sente e il foglio si alza (`useSollevamentoTastiera`). Altrove (iOS, web, o senza un host
+ *   montato, cioe' fuori dal layout del portale) e' il `Modal` di sempre. **Non si mette su un foglio che si apre da dentro un `Modal`** (la scheda di una
+ *   lezione): in cima alla radice starebbe sotto quella finestra, e non si vedrebbe.
+ * - `livello`: il foglio e' montato gia' dove serve (alla radice, o dentro un `Modal` aperto come la chat dell'assistente, dove su iOS un secondo `Modal`
+ *   non si apre) e si disegna li', a tutto schermo, senza `Modal`. Su Android si alza con la tastiera e il tasto «indietro» lo chiude.
+ * Senza nessuno dei due il foglio e' quello di sempre.
  */
-export function Foglio({
+export function Foglio(props: PropsFoglio) {
+  const { aperto, livello = false, tastiera = false } = props
+  const id = useId()
+  const hostPronto = useHostFogliMontato()
+  const viaHost = tastiera && !livello && Platform.OS === 'android' && hostPronto
+  // Il foglio manda all'host quello che deve disegnare a ogni giro, e lo toglie quando si chiude: dentro l'host lo stato dei figli resta (stesso `key`).
+  useEffect(() => {
+    if (viaHost && aperto) mettiInHost(id, <CorpoFoglio {...props} livello tastiera={false} />)
+    else togliDalHost(id)
+  })
+  useEffect(() => () => togliDalHost(id), [id])
+  return viaHost ? null : <CorpoFoglio {...props} />
+}
+
+function CorpoFoglio({
   aperto,
   titolo,
   sottotitolo,
@@ -32,17 +68,7 @@ export function Foglio({
   flottante,
   livello = false,
   children,
-}: {
-  aperto: boolean
-  titolo: string
-  sottotitolo?: string
-  onChiudi: () => void
-  scorrimento?: Ref<ScrollView>
-  onScorri?: (e: NativeSyntheticEvent<NativeScrollEvent>) => void
-  flottante?: ReactNode
-  livello?: boolean
-  children: ReactNode
-}) {
+}: PropsFoglio) {
   const p = usePalette()
   const ins = useSafeAreaInsets()
   const android = Platform.OS === 'android'
