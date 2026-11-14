@@ -7,7 +7,11 @@ import type { PersonaDati } from '@/api/abbonamento'
 // foglio `FoglioCodiceFiscale`, montato una volta sola nel layout del portale, si apre da solo con «Correggi i dati». Stanno in un posto solo
 // perche' le prenotazioni partono da piu' schermate (Calendario, sezione Junior, Percorso, Consigli) e un foglio per ognuna divergerebbe.
 
-export type RichiestaCodiceFiscale = { persona: PersonaDati; mancanti: string[] }
+/**
+ * `motivo` (14/11/2026): `prenotazione` (di partenza) quando lo chiede il server al momento di prenotare; `modifica` quando il genitore apre lui il
+ * foglio dalla carta «I dati di …» della sezione Junior, per scriverlo prima o correggerlo. `onSalvato`: chi l'ha chiesto rilegge i dati.
+ */
+export type RichiestaCodiceFiscale = { persona: PersonaDati; mancanti: string[]; motivo?: 'prenotazione' | 'modifica'; onSalvato?: () => void }
 type Ascoltatore = (r: RichiestaCodiceFiscale) => void
 
 // Due elenchi (14/11/2026). Il foglio del layout e' un `Modal`, e su iOS un secondo `Modal` non si apre sopra uno gia' aperto: la richiesta partita
