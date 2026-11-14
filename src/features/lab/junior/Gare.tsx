@@ -45,7 +45,7 @@ import { nomeCompleto } from "./comune";
 //   - se puo' iscriversi: si **conferma il sesso** (le classifiche sono separate per maschi e femmine; se e' diverso dalla scheda la aggiorna la funzione), poi si paga
 //     (8 euro, Adyen diretto, fuori da PerfectGym) nel browser integrato. **L'iscrizione e' confermata quando Adyen avvisa il database, non al ritorno**: per questo dopo il
 //     pagamento la schermata rilegge finche' non vede «confermata»;
-//   - se e' iscritto: la prova e, a gara fatta, il tempo, la posizione e i punti.
+//   - se e' iscritto: la prova e, a gara fatta, il tempo appena inserito, i tempi della categoria senza nomi, e posizione e punti a classifica confermata.
 // Il gruppo e il livello li dice il database; qui non si deduce niente. In vista cliente (staff che guarda) i comandi sono chiusi.
 //
 // **L'ora del turno e' la cosa piu' importante della carta** (04/11/2026, dallo screenshot di Maurizio: «il testo e' troppo piatto, e nel caso di cambio sesso devi
@@ -321,7 +321,7 @@ function CartaGara({
 
       {pg.ammesso && prova ? <Prova gruppo={pg.gruppo ?? ""} testo={prova} /> : null}
 
-      {mia && mia.esito ? <Risultato mia={mia} /> : null}
+      {mia && (mia.esito || (mia.categoria?.length ?? 0) > 0) ? <Risultato mia={mia} /> : null}
 
       {!pg.ammesso ? (
         <Text style={[stili.corpo, { color: p.testoSecondario }]}>{motivoBreve(pg)}</Text>
@@ -457,19 +457,76 @@ function Prova({ gruppo, testo }: { gruppo: string; testo: string }) {
   );
 }
 
+// Il risultato (14/11/2026, richiesta di Maurizio): il tempo appena il club lo inserisce; posizione e punti solo quando la classifica della categoria e' confermata
+// dal CRM (`classifica_confermata`); sotto, i tempi della categoria senza i nomi degli altri bambini (il server non li manda).
 function Risultato({ mia }: { mia: IscrizioneMia }) {
   const p = usePalette();
-  if (mia.esito === "assente") return <Etichetta testo={t("Assente", "Absent")} />;
-  if (mia.esito === "squalificato") return <Etichetta tono="attenzione" testo={t("Squalificato", "Disqualified")} />;
+  const confermata = mia.classifica_confermata === true;
+  const categoria = mia.categoria ?? [];
+  const nome = mia.nome || t("Il tuo bambino", "Your child");
   return (
-    <View style={[stili.risultato, { backgroundColor: velo(p, "accento", p.scuro ? 0.18 : 0.1), borderColor: p.accento }]}>
-      <Text style={[stili.titolo, { color: p.testo }]}>
-        {mia.posizione ? `${mia.posizione}° ` : ""}
-        {tempo(mia.tempo_cent)}
-      </Text>
-      <Text style={[stili.corpo, { color: p.testoSecondario }]}>{t(`${mia.punti} punti per il Trofeo`, `${mia.punti} points for the Trophy`)}</Text>
+    <View style={{ gap: spazio.tre }}>
+      {mia.esito === "assente" ? (
+        <Etichetta testo={t("Assente", "Absent")} />
+      ) : mia.esito === "squalificato" ? (
+        <Etichetta tono="attenzione" testo={t("Squalificato", "Disqualified")} />
+      ) : mia.esito === "presente" ? (
+        <View style={[stili.risultato, { backgroundColor: velo(p, "accento", p.scuro ? 0.18 : 0.1), borderColor: p.accento }]}>
+          <Text style={[stili.sopra, { color: p.testoSecondario }]}>{t(`IL TEMPO DI ${nome.toUpperCase()}`, `${nome.toUpperCase()}’S TIME`)}</Text>
+          <Text style={[stili.tempoGrande, { color: p.testo }]}>{tempo(mia.tempo_cent)}</Text>
+          {confermata && mia.posizione ? (
+            <Text style={[stili.titolo, { color: p.testo }]}>
+              {t(`${mia.posizione}° posto · ${mia.punti} punti per il Trofeo`, `${ordinale(mia.posizione)} place · ${mia.punti} points for the Trophy`)}
+            </Text>
+          ) : (
+            <Text style={[stili.corpo, { color: p.testoSecondario }]}>
+              {t("Posizione e punti arrivano quando il club conferma la classifica della categoria.", "Position and points will appear once the club confirms the category ranking.")}
+            </Text>
+          )}
+        </View>
+      ) : (
+        <Text style={[stili.corpo, { color: p.testoSecondario }]}>{t("Il tempo comparirà qui appena il club lo inserisce.", "The time will appear here as soon as the club enters it.")}</Text>
+      )}
+
+      {categoria.length > 0 ? (
+        <View style={{ gap: spazio.due }}>
+          <Text style={[stili.sopra, { color: p.testoSecondario }]}>
+            {confermata ? t("CLASSIFICA DELLA CATEGORIA", "CATEGORY RANKING") : t("I TEMPI DELLA CATEGORIA", "CATEGORY TIMES")}
+          </Text>
+          {categoria.map((c, i) => (
+            <View
+              key={i}
+              style={[
+                stili.rigaTempo,
+                c.tu ? { backgroundColor: velo(p, "accento", p.scuro ? 0.18 : 0.1), borderColor: p.accento } : { borderColor: "transparent" },
+              ]}
+            >
+              <Text style={[stili.rigaPos, { color: p.testoSecondario }]}>{confermata && c.posizione ? `${c.posizione}°` : "·"}</Text>
+              <Text style={[stili.corpo, { flex: 1, color: c.tu ? p.testo : p.testoSecondario, fontFamily: c.tu ? F.extra : F.medio }]} numberOfLines={1}>
+                {c.tu ? nome : t("Atleta", "Swimmer")}
+              </Text>
+              <Text style={[stili.rigaTempoValore, { color: p.testo }]}>
+                {c.tu && c.esito === "squalificato" ? t("Squal.", "DQ") : c.tu && c.esito === "assente" ? t("Assente", "Absent") : tempo(c.tempo_cent)}
+              </Text>
+              {confermata && c.punti != null && c.tempo_cent ? <Text style={[stili.rigaPunti, { color: p.testoSecondario }]}>{t(`${c.punti} pt`, `${c.punti} pts`)}</Text> : null}
+            </View>
+          ))}
+          <Text style={[stili.nota, { color: p.testoSecondario }]}>
+            {t("Degli altri bambini mostriamo solo il tempo, senza nome.", "For the other children we only show the time, without their name.")}
+          </Text>
+        </View>
+      ) : null}
     </View>
   );
+}
+
+function ordinale(n: number): string {
+  const r10 = n % 10;
+  const r100 = n % 100;
+  if (r10 === 1 && r100 !== 11) return `${n}st`;
+  if (r10 === 2 && r100 !== 12) return `${n}nd`;
+  if (r10 === 3 && r100 !== 13) return `${n}rd`;
+  return `${n}th`;
 }
 
 /**
@@ -1095,6 +1152,11 @@ const stili = StyleSheet.create({
   turnoSotto: { fontFamily: F.medio, fontSize: 13, lineHeight: 19, color: "rgba(255,255,255,0.72)" },
   prova: { flexDirection: "row", alignItems: "center", gap: spazio.tre, padding: spazio.tre, borderRadius: 16 },
   risultato: { padding: spazio.tre, borderRadius: 14, borderWidth: 1.5, gap: 2 },
+  tempoGrande: { fontFamily: F.extra, fontSize: 30, lineHeight: 36, fontVariant: ["tabular-nums"] },
+  rigaTempo: { flexDirection: "row", alignItems: "center", gap: spazio.due, paddingVertical: 6, paddingHorizontal: spazio.due, borderRadius: 10, borderWidth: 1.5 },
+  rigaPos: { width: 30, fontFamily: F.bold, fontSize: 13, lineHeight: 18, fontVariant: ["tabular-nums"] },
+  rigaTempoValore: { fontFamily: F.extra, fontSize: 15, lineHeight: 20, fontVariant: ["tabular-nums"] },
+  rigaPunti: { width: 48, textAlign: "right", fontFamily: F.medio, fontSize: 12.5, lineHeight: 18, fontVariant: ["tabular-nums"] },
 
   // I pulsanti del sesso, ciascuno con la sua ora.
   sceltaOra: { flexDirection: "row", alignItems: "center", gap: 4 },
