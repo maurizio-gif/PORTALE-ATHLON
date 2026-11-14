@@ -82,14 +82,29 @@ export type IscrizioneMia = {
   esito: "presente" | "assente" | "squalificato" | null;
   /** Centesimi di secondo. */
   tempo_cent: number | null;
+  /** Posizione e punti: solo a classifica confermata dal CRM (prima `null` e 0). */
   posizione: number | null;
   punti: number;
+  /** La classifica della sua categoria e' confermata dal CRM (14/11/2026): solo allora l'app mostra posizione e punti. Assente con una funzione di prima. */
+  classifica_confermata?: boolean;
+  /** I tempi di chi e' in gara nella sua categoria, in ordine, senza nomi: `tu` e' il bambino. Posizione e punti solo a classifica confermata. */
+  categoria?: TempoCategoria[];
   /** Come si e' pagato: `carta` o `sepa` (il conto gia' salvato su PerfectGym), `omaggio` o `credito` (niente incasso); `null` per le iscrizioni pagate prima del SEPA, con la carta. */
   pagamento?: "carta" | "sepa" | "omaggio" | "credito" | null;
   quota_cent?: number;
   credito_cent?: number;
   /** L'addebito SEPA: in corso (l'iscrizione e' gia' confermata), incassato, fallito o contestato (la quota si paga con la carta). */
   sepa_stato?: "in_corso" | "incassato" | "fallito" | "contestato" | null;
+};
+
+/** Un tempo della categoria, anonimo: degli altri bambini non arrivano nome, id ne' esito. */
+export type TempoCategoria = {
+  tempo_cent: number | null;
+  posizione: number | null;
+  punti: number | null;
+  /** Solo per il proprio bambino: in gara, assente o squalificato. */
+  esito: "presente" | "assente" | "squalificato" | null;
+  tu: boolean;
 };
 
 export type DatiGare = {
