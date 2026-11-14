@@ -45,7 +45,10 @@ export function AvvisoPenalita({ penalita }: { penalita?: PenalitaPrenotazioni |
       icona="orologio"
       titolo={t(`Prenotazioni in anticipo bloccate fino a ${fine.giorno} alle ${fine.ora}`, `Advance bookings are blocked until ${fine.giorno} at ${fine.ora}`)}
     >
-      {t(`Puoi prenotare una lezione da ${anticipo(penalita.apre_minuti)} prima dell’inizio.`, `You can book a class from ${anticipo(penalita.apre_minuti)} before it starts.`)}
+      {t(
+        `Puoi prenotare una lezione da ${anticipo(penalita.apre_minuti)} prima dell’inizio, solo se c’è un posto libero.`,
+        `You can book a class from ${anticipo(penalita.apre_minuti)} before it starts, only if a place is free.`,
+      )}
     </Messaggio>
   )
 }
