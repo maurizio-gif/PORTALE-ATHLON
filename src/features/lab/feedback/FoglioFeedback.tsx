@@ -69,6 +69,7 @@ export function FoglioFeedback({ aperto, f, schermata, onChiudi }: { aperto: boo
 
   return (
     <Foglio
+      tastiera
       aperto={aperto}
       titolo={f.fatto ? t('Grazie!', 'Thank you!') : t('Come sta andando?', 'How’s it going?')}
       sottotitolo={f.fatto ? undefined : t('Sei fra i tester dell’app: il tuo parere ci aiuta a migliorarla.', 'You’re one of the app’s testers: your feedback helps us improve it.')}

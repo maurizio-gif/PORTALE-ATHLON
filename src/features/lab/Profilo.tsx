@@ -69,7 +69,7 @@ function FoglioTelefono({ attuale, onChiudi, onSalvato }: { attuale: string | nu
     onSalvato(r.anagrafica)
   }
   return (
-    <Foglio aperto titolo={t('Telefono', 'Phone')} sottotitolo={t('Il numero su cui il club ti cerca per le lezioni e gli avvisi.', 'The number the club uses to reach you about classes and notices.')} onChiudi={onChiudi}>
+    <Foglio tastiera aperto titolo={t('Telefono', 'Phone')} sottotitolo={t('Il numero su cui il club ti cerca per le lezioni e gli avvisi.', 'The number the club uses to reach you about classes and notices.')} onChiudi={onChiudi}>
       <CampoTesto
         etichetta={t('Cellulare', 'Mobile')}
         icona="telefono"
@@ -109,7 +109,7 @@ function FoglioIndirizzo({ attuale, onChiudi, onSalvato }: { attuale: Anagrafica
     onSalvato(r.anagrafica)
   }
   return (
-    <Foglio aperto titolo={t('Indirizzo', 'Address')} sottotitolo={t('Dove abiti: è quello che il club usa per le ricevute e i documenti.', 'Where you live: the club uses it for receipts and documents.')} onChiudi={onChiudi}>
+    <Foglio tastiera aperto titolo={t('Indirizzo', 'Address')} sottotitolo={t('Dove abiti: è quello che il club usa per le ricevute e i documenti.', 'Where you live: the club uses it for receipts and documents.')} onChiudi={onChiudi}>
       <CampoTesto etichetta={t('Via e numero civico', 'Street and number')} icona="luogo" value={via} onChangeText={setVia} autoComplete="street-address" textContentType="fullStreetAddress" placeholder="Via Ugo Ojetti 134" autoFocus />
       <CampoPaese variante="lab" conItalia value={paese} onChange={setPaese} />
       <View style={{ flexDirection: 'row', gap: spazio.due }}>
@@ -164,6 +164,7 @@ function FoglioEmail({ attuale, onChiudi, onSalvato }: { attuale: string | null;
 
   return (
     <Foglio
+      tastiera
       aperto
       titolo={fase === 'nuova' ? t('Email', 'Email') : t('Conferma la nuova email', 'Confirm your new email')}
       sottotitolo={fase === 'nuova' ? t('È l’email con cui entri e ricevi le comunicazioni del club.', 'It’s the email you sign in with and where you get club updates.') : t(`Ti abbiamo mandato un codice di sei cifre a ${nuova}.`, `We sent a six-digit code to ${nuova}.`)}

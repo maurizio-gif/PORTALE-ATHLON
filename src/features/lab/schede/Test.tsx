@@ -241,7 +241,7 @@ function FoglioTest({ e, minimoGiaFatto, gambe, onChiudi, onSalvato }: { e: Eser
   }
 
   return (
-    <Foglio aperto={!!e} titolo={e.nome} sottotitolo={carico ? t('Test a carico: peso e ripetizioni', 'Weighted test: weight and reps') : tempo ? t('Test a tempo: secondi di tenuta', 'Timed test: seconds held') : t('Test a corpo libero: ripetizioni massime', 'Bodyweight test: max reps')} onChiudi={onChiudi}>
+    <Foglio tastiera aperto={!!e} titolo={e.nome} sottotitolo={carico ? t('Test a carico: peso e ripetizioni', 'Weighted test: weight and reps') : tempo ? t('Test a tempo: secondi di tenuta', 'Timed test: seconds held') : t('Test a corpo libero: ripetizioni massime', 'Bodyweight test: max reps')} onChiudi={onChiudi}>
       <View style={{ gap: spazio.tre }}>
         <MediaEsercizio immagini={e.immagini} video={e.video} style={stili.media} />
         <View style={[stili.istruzioni, { backgroundColor: p.incavo }]}>

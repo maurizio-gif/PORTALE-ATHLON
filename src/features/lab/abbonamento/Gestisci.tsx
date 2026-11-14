@@ -817,7 +817,7 @@ export function FoglioGestisci({ contratto: c, aperto, onChiudi, onCambiato, sen
   const titolo = passo.startsWith('u') ? t('Upgrade', 'Upgrade') : passo.startsWith('s') ? t('Sospendi', 'Suspend') : passo.startsWith('d') ? t('Disdici', 'Cancel') : t('Gestisci abbonamento', 'Manage membership')
 
   return (
-    <Foglio aperto={aperto} titolo={titolo} sottotitolo={passo === 'menu' ? undefined : etichettaPiano(c)} onChiudi={onChiudi}>
+    <Foglio tastiera aperto={aperto} titolo={titolo} sottotitolo={passo === 'menu' ? undefined : etichettaPiano(c)} onChiudi={onChiudi}>
       {passo === 'menu' ? riepilogo : null}
       {passo === 's1' ? passo1Sospensione : null}
       {passo === 's2' ? passo2Sospensione : null}

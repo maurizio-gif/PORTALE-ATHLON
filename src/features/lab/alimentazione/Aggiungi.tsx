@@ -93,7 +93,7 @@ export function AggiungiAlimento({
   }
 
   return (
-    <Foglio aperto={aperto} titolo={scelto ? scelto.nome : t('Aggiungi un alimento', 'Add a food')} sottotitolo={scelto ? t('Quanto ne hai mangiato?', 'How much did you eat?') : t('Cerca per nome: «pasta», «yogurt», «pollo»…', 'Search by name: “pasta”, “yogurt”, “pollo”…')} onChiudi={onChiudi}>
+    <Foglio tastiera aperto={aperto} titolo={scelto ? scelto.nome : t('Aggiungi un alimento', 'Add a food')} sottotitolo={scelto ? t('Quanto ne hai mangiato?', 'How much did you eat?') : t('Cerca per nome: «pasta», «yogurt», «pollo»…', 'Search by name: “pasta”, “yogurt”, “pollo”…')} onChiudi={onChiudi}>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: spazio.due }}>
         {PASTI.map((x) => (
           <Tocco key={x.id} onPress={() => setPasto(x.id)} vibra="scelta" stato={{ selected: pasto === x.id }} etichetta={x.nome}>

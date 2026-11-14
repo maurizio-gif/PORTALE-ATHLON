@@ -378,7 +378,14 @@ export type ContrattoElenco = {
   firmato: { numero: string; firmato_il: string; pdf: boolean } | null
   /** Firmato al desk: l'id del PDF che PerfectGym conserva fra i file della persona (si apre con `apriFilePgm`). Assente con una funzione di prima. */
   documento_pgm?: string | null
+  /**
+   * Le sospensioni in corso o future (14/11/2026), dalla tabella `sospensioni` (quelle chieste dall'app e quelle importate da PerfectGym;
+   * fuori le chiusure del club). `in_corso`: oggi e' dentro il periodo. Assente con una funzione di prima.
+   */
+  sospensioni?: SospensioneContratto[]
 }
+
+export type SospensioneContratto = { dal: string; al: string; tipo: string; in_corso: boolean }
 
 export async function contrattiAbbonamento(): Promise<{ ok: true; contratti: ContrattoElenco[] } | { ok: false; errore: string }> {
   const { ok, dati } = await abbonamento({ azione: 'contratti' })

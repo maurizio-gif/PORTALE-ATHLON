@@ -27,6 +27,7 @@ import { BrevettiChiusi } from "./BrevettiChiusi";
 import { CambioOrario } from "./CambioOrario";
 import { CorsiPersona, type ParteCorsi } from "./Corsi";
 import { concludiInCorso, iscrizioniInCorso, type InCorso } from "./inCorso";
+import { DatiFiglio } from "./DatiFiglio";
 import { DirettoreTecnico } from "./DirettoreTecnico";
 import { Gare } from "./Gare";
 import { InvitoAbbonamentoAdulti } from "./InvitoAbbonamentoAdulti";
@@ -345,6 +346,8 @@ export function Junior() {
             persona={persona}
             iscritto={personaIscritta ? true : eBaby(persona.data_nascita) ? (babyAbbonato?.id === persona.member_id ? babyAbbonato.si : null) : false}
           />
+          {/* Il codice fiscale del bambino, da vedere e da scrivere o correggere (14/11/2026): non solo dal foglio che si apre quando il server blocca. */}
+          <DatiFiglio key={`dati-${persona.member_id}`} persona={persona} vista={vista} />
           {/* Un figlio da 13 a 17 anni, iscritto o no ai corsi: l'invito ad attivare l'abbonamento adulti a suo nome (03/11/2026). */}
           <InvitoAbbonamentoAdulti persona={persona} vista={vista} />
           {!personaIscritta && eBaby(persona.data_nascita) ? (
