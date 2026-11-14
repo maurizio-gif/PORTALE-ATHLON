@@ -79,6 +79,11 @@ export type NotificaApp = {
   creata_il: string
   /** Il club vuole che compaia come finestra, appena arriva. */
   finestra: boolean
+  /**
+   * La finestra non si puo' chiudere senza premere «Ok, ho letto» (o il pulsante), e torna a ogni apertura dell'app finche' non lo si fa
+   * (14/11/2026, richiesta di Maurizio: la push non basta a sapere che un avviso e' arrivato). La usano gli avvisi delle mancate disdette.
+   */
+  richiedeConferma: boolean
   letta: boolean
   aperta: boolean
   /** Se e' rivolta a un'altra persona del nucleo (un figlio): per chi. */
@@ -110,6 +115,7 @@ function leggi(x: unknown): NotificaApp | null {
     etichetta: typeof n.etichetta === 'string' && n.etichetta.trim() ? n.etichetta.trim() : null,
     creata_il: typeof n.creata_il === 'string' ? n.creata_il : new Date().toISOString(),
     finestra: n.finestra === true,
+    richiedeConferma: n.richiede_conferma === true,
     letta: n.letta === true,
     aperta: n.aperta === true,
     per: per && typeof per.member_id === 'number' ? { member_id: per.member_id, nome: typeof per.nome === 'string' ? per.nome : null } : null,

@@ -21,6 +21,12 @@ import { chiudiFinestra, finestraComparsa } from './store'
 // `azione` e `aperta`; «Ok, letto» su una notifica senza pulsante e' `aperta`; chiudere con la X la lascia solo `vista`:
 // resta fra le non lette del centro notifiche, perche' chi chiude non ha letto per forza. Il testo non e' mai tagliato.
 //
+// **La conferma di lettura** (14/11/2026, richiesta di Maurizio: «le push ancora danno problemi: una finestra che compare quando apri, e la
+// persona dice "ok, ho letto"»). Una notifica che `richiedeConferma` (gli avvisi delle mancate disdette) **non si chiude**: niente X, niente
+// «Chiudi», un tocco fuori o il tasto indietro non fanno niente. Si esce con «Ok, ho letto» (`aperta`, e il club sa che e' arrivata) o con il
+// pulsante della notifica, che porta alla schermata (`azione`, che e' anche `aperta`). Se l'app si chiude prima, la finestra torna alla prossima
+// apertura (il server la ridà finche' non e' `aperta`, per 72 ore). Il tocco su «Ok, ho letto» non apre nessuna schermata.
+//
 // **Sotto, se la push e' spenta, una riga per attivarla** (25/10/2026, richiesta di Maurizio: «promuovi di piu l'attivazione delle
 // push»): e' il momento giusto, la persona ha appena visto una notifica del club arrivare. Vale lo stesso rimando di tre giorni
 // della carta in Home (`invitoPush`): chi ha detto «non ora» non se la ritrova qui.
@@ -46,7 +52,11 @@ export function FinestraNotifica({ notifica: n }: { notifica: NotificaApp }) {
     finestraComparsa(n)
   }, [n])
 
+  const conferma = n.richiedeConferma
+
   function chiudi() {
+    // Una finestra che chiede la conferma non si chiude con la X, con un tocco fuori o con «indietro»: si legge.
+    if (conferma) return
     chiudiFinestra(n.id)
   }
 
@@ -78,9 +88,11 @@ export function FinestraNotifica({ notifica: n }: { notifica: NotificaApp }) {
             <Text style={[stili.sopra, { color: p.accento }]} numberOfLines={1}>
               {n.per?.nome ? t(`ATHLON CLUB · PER ${n.per.nome.toUpperCase()}`, `ATHLON CLUB · FOR ${n.per.nome.toUpperCase()}`) : 'ATHLON CLUB'}
             </Text>
-            <Tocco onPress={chiudi} etichetta={t('Chiudi', 'Close')} style={[stili.chiudi, { backgroundColor: p.incavo }]}>
-              <Icona nome="chiudi" size={16} colore={p.testo} />
-            </Tocco>
+            {conferma ? null : (
+              <Tocco onPress={chiudi} etichetta={t('Chiudi', 'Close')} style={[stili.chiudi, { backgroundColor: p.incavo }]}>
+                <Icona nome="chiudi" size={16} colore={p.testo} />
+              </Tocco>
+            )}
           </View>
           <Text style={[stili.titolo, { color: p.testo }]} accessibilityRole="header">
             {n.titolo}
@@ -91,7 +103,12 @@ export function FinestraNotifica({ notifica: n }: { notifica: NotificaApp }) {
           <OffertaPush senzaInvito={attivaQui} />
           {attivaQui && push.errore ? <Messaggio tono="errore">{push.errore}</Messaggio> : null}
           <View style={{ gap: spazio.due, marginTop: spazio.due }}>
-            {pulsante ? (
+            {conferma ? (
+              <>
+                <Pulsante testo={t('Ok, ho letto', 'OK, I’ve read it')} icona="spunta" onPress={letto} />
+                {pulsante ? <Pulsante testo={n.etichetta ?? t('Apri', 'Open')} variante="secondario" icona="avanti" onPress={premi} /> : null}
+              </>
+            ) : pulsante ? (
               <>
                 <Pulsante testo={n.etichetta ?? t('Apri', 'Open')} icona={attivaQui ? 'campanello' : 'avanti'} inCorso={attivaQui && (push.occupato || inVerifica)} onPress={premi} />
                 <Pulsante testo={t('Chiudi', 'Close')} variante="fantasma" onPress={chiudi} />
