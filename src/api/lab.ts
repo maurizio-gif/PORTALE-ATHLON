@@ -244,6 +244,26 @@ export type PersonaCalendario = { member_id: number; nome: string | null; cognom
  */
 export type Prenotata = { class_id: number; nome: string; categoria: string; inizio: string; attesa: boolean; sala?: string | null; posizione?: number | null }
 
+/**
+ * La penalita' per le mancate disdette (14/11/2026): chi accumula 3 assenze in 30 giorni non ha il blocco totale delle prenotazioni, ma per 72 ore
+ * quelle **in anticipo** sono bloccate, e una lezione si prenota solo da `apre_minuti` (60) prima dell'inizio. La regola e' del server
+ * (`portale-lab-calendario`, che cambia gia' `prenotabile_dal` di ogni lezione): qui serve solo a dirlo alla persona.
+ * `fino_a` e' un ISO 8601, la fine della penalita'.
+ */
+export type PenalitaPrenotazioni = { fino_a: string; apre_minuti: number }
+
+/**
+ * Legge `penalita` da una risposta di `portale-lab-calendario`. Manca (funzione di prima, nessuna penalita') o e' null: null. Un valore
+ * che non ha la forma giusta (data illeggibile) si scarta, e non si indovina: un avviso con una data sbagliata e' peggio di nessun avviso.
+ * Il numero di minuti, se manca o non e' sensato, e' 60 come da contratto.
+ */
+function penalitaDa(x: unknown): PenalitaPrenotazioni | null {
+  if (!x || typeof x !== 'object') return null
+  const { fino_a, apre_minuti } = x as { fino_a?: unknown; apre_minuti?: unknown }
+  if (typeof fino_a !== 'string' || !Number.isFinite(Date.parse(fino_a))) return null
+  return { fino_a, apre_minuti: typeof apre_minuti === 'number' && Number.isFinite(apre_minuti) && apre_minuti > 0 ? apre_minuti : 60 }
+}
+
 export type Giorno = {
   persone: PersonaCalendario[]
   giorni: string[]
@@ -254,6 +274,8 @@ export type Giorno = {
   /** Tutte le prenotazioni in programma della persona, a prescindere dal giorno. Manca finche' la funzione non e' aggiornata: allora si usano quelle del giorno. */
   prenotate?: Prenotata[]
   schede: Record<string, SchedaLezione>
+  /** La penalita' in corso per la persona (14/11/2026). Assente o null: nessuna penalita'. */
+  penalita?: PenalitaPrenotazioni | null
 }
 
 /**
@@ -286,7 +308,8 @@ const calendario = (corpo: Record<string, unknown>) => funzione('portale-lab-cal
 
 export async function leggiGiorno(data?: string, memberId?: number): Promise<{ ok: true; giorno: Giorno } | { ok: false; errore: string }> {
   const { ok, dati } = await calendario({ azione: 'giorno', data, member_id: memberId })
-  if (ok) return { ok: true, giorno: dati as unknown as Giorno }
+  // `penalita` si rilegge a ogni risposta (null se manca): la copia in memoria non si porta dietro un avviso di prima.
+  if (ok) return { ok: true, giorno: { ...(dati as unknown as Giorno), penalita: penalitaDa(dati.penalita) } }
   return { ok: false, errore: dati.errore ?? t('Non riusciamo a leggere il calendario adesso.', 'We can’t load the calendar right now.') }
 }
 
@@ -345,6 +368,8 @@ export type StoricoPrenotazioni = {
   /** Le pillole «Presente» e «Assente» di `voci`: le presenze includono gli eventi con la presenza segnata, le assenze mai un evento. */
   presenze: number
   assenze: number
+  /** La penalita' per le mancate disdette in corso (14/11/2026): la funzione la manda anche qui, per l'avviso in cima alla sezione. Assente o null: nessuna. */
+  penalita?: PenalitaPrenotazioni | null
 }
 
 /**
@@ -361,6 +386,7 @@ export async function storicoPrenotazioni(): Promise<Esito<StoricoPrenotazioni>>
       personal: Array.isArray(dati.personal) ? (dati.personal as PrenotazionePassata[]) : [],
       presenze: Number(dati.presenze) || 0,
       assenze: Number(dati.assenze) || 0,
+      penalita: penalitaDa(dati.penalita),
     }
   }
   // 400 e' «Azione sconosciuta»: la funzione non e' ancora quella nuova. Il testo del server non e' per la persona.
