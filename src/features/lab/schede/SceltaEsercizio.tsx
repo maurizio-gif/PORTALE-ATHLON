@@ -33,6 +33,15 @@ const norma = (x: string) => x.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerC
 
 type Dati = { esercizi: EsercizioLibreria[] }
 
+/**
+ * La categoria di un esercizio della libreria (forza, cardio, stretching, mobilita, …), dalla libreria gia' letta da questo foglio;
+ * null se non e' ancora in memoria o se l'id non c'e'. Serve all'editor per mettere un esercizio aggiunto prima del defaticamento (12/11/2026).
+ */
+export function categoriaInLibreria(id: string | null | undefined): string | null {
+  if (!id) return null
+  return inMemoria<Dati>(CHIAVE_LIBRERIA)?.esercizi?.find((e) => e.id === id)?.categoria ?? null
+}
+
 export function SceltaEsercizio({ aperto, titolo = t('Scegli un esercizio', 'Choose an exercise'), onChiudi, onScegli, ambiente = 'sala' }: { aperto: boolean; titolo?: string; onChiudi: () => void; onScegli: (s: Scelta) => void; ambiente?: 'sala' | 'vasca' }) {
   const p = usePalette()
   const [dati, setDati] = useState<Dati | null>(() => inMemoria<Dati>(CHIAVE_LIBRERIA) ?? null)

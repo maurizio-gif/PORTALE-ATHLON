@@ -18,7 +18,7 @@ import { origineDellaCopia } from './copia'
 import { eDiVasca, inMetri, metriDelGiorno, metriDi, nomeIntensita } from './nuoto'
 import { eDellaLibreria, seminaAnteprime, useAnteprime } from './anteprime'
 import { MediaEsercizio } from './MediaEsercizio'
-import { SceltaEsercizio, type Scelta } from './SceltaEsercizio'
+import { categoriaInLibreria, SceltaEsercizio, type Scelta } from './SceltaEsercizio'
 
 // Il piano del socio (19/10/2026), da quattro strade che finiscono qui: scritto a mano (`/nuova`), letto da un file
 // (`Importa.tsx`) o scritto dall'agente AI (`Agente.tsx`), che passano la bozza da `bozza.ts` (`?da=bozza`), o
@@ -64,6 +64,22 @@ type EsercizioForm = {
 }
 type GiornoForm = { chiave: string; nome: string; note: string; esercizi: EsercizioForm[] }
 type Form = { titolo: string; descrizione: string; obiettivo: string; livello: string; giorni: GiornoForm[] }
+
+/**
+ * Dove entra un esercizio aggiunto con «Aggiungi esercizio» (12/11/2026, segnalazione dei trainer sui piani di due soci): **prima del
+ * defaticamento**, non in fondo. Il piano dell'agente finisce con il cardio finale e gli allungamenti (`completaSedute`, APP-ATHLON), e un
+ * esercizio di forza messo dopo lo stretching «di defaticamento» era una seduta al contrario. Quindi: uno stretching va in fondo; un cardio
+ * prima degli allungamenti finali; tutto il resto (forza, mobilita', un esercizio scritto col suo nome) prima della coda di cardio e
+ * allungamenti. La coda conta solo se non e' l'intero giorno (un giorno di soli allungamenti si allunga in fondo, come prima).
+ * Si sposta comunque con le frecce.
+ */
+function doveInserire(lista: EsercizioForm[], categoria: string | null): number {
+  if (categoria === 'stretching') return lista.length
+  const inCoda = categoria === 'cardio' ? ['stretching'] : ['stretching', 'cardio']
+  let i = lista.length
+  while (i > 0 && inCoda.includes(categoriaInLibreria(lista[i - 1].esercizio_id) ?? '')) i--
+  return i === 0 ? lista.length : i
+}
 
 let contatore = 0
 const nuovaChiave = () => `k${++contatore}`
@@ -325,7 +341,11 @@ export function EditorScheda() {
       return
     }
     const nuovo = esercizioVuoto(s, vasca)
-    sulGiorno(giorno, (y) => ({ ...y, esercizi: [...y.esercizi, nuovo] }))
+    const categoria = 'esercizio_id' in s ? categoriaInLibreria(s.esercizio_id) : null
+    sulGiorno(giorno, (y) => {
+      const k = vasca ? y.esercizi.length : doveInserire(y.esercizi, categoria)
+      return { ...y, esercizi: [...y.esercizi.slice(0, k), nuovo, ...y.esercizi.slice(k)] }
+    })
     setAperto(nuovo.chiave)
   }
 

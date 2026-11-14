@@ -1,0 +1,10 @@
+## Un esercizio aggiunto nell'editor entra prima del defaticamento, non in fondo (12/11/2026)
+
+**La segnalazione** (trainer, piani di Giuseppe Loccisano e Noemi Viselli, entrambi dell'agente): esercizi di forza in fondo alla seduta, dopo il cardio finale e gli allungamenti con la nota «Defaticamento».
+
+**Non li ha messi l'agente.** `completaSedute` (APP-ATHLON, `_shared/schede/completamento.ts`) compone la seduta nell'ordine giusto: riscaldamento, mobilità, forza, cardio finale, allungamenti. Le righe in fondo le hanno aggiunte i due soci con «Aggiungi esercizio» nell'editor (`EditorScheda.tsx`), che le metteva sempre **in coda al giorno**. Lo si riconosce da come sono fatte: 3 serie da 10, 1'30" e 2' di recupero e nessuna nota, cioè i valori predefiniti di `esercizioVuoto`. Il registro lo conferma: il piano di Viselli è stato salvato una volta sola, alla conferma della bozza (`portale_lab.scheda_socio`, `nuova: true`), e quindi le righe sono state aggiunte nella revisione della bozza; quello di Loccisano è stato modificato dopo (`nuova: false`, origine «creata»).
+
+**Adesso** (`doveInserire` in `EditorScheda.tsx`): un esercizio nuovo entra **prima della coda di cardio e allungamenti** del giorno; un cardio entra prima degli allungamenti finali; uno stretching va in fondo. La categoria viene dalla libreria che il foglio «Scegli un esercizio» ha appena letto (`categoriaInLibreria` in `SceltaEsercizio.tsx`); un esercizio scritto col suo nome conta come forza. Se la coda è l'intero giorno (solo allungamenti) si aggiunge in fondo, come prima. Nei piani di nuoto non cambia niente. L'esercizio si sposta comunque con le frecce.
+
+- **I piani già salvati sono stati riordinati nel database** (12/11/2026, col via di Maurizio): Loccisano, Viselli e un terzo piano dell'AI con lo stesso difetto. **E l'ordine resta fisso**: per i piani dell'AI lo rimette a posto anche il server a ogni salvataggio (APP-ATHLON, nota 307, `_shared/schede/ordine.ts`), quindi anche le frecce non possono più lasciare la forza dopo il defaticamento.
+- `tsc` pulito in `src/`; **non provato in un browser né su un telefono**. Ci vuole un'OTA perché arrivi all'app nativa.
