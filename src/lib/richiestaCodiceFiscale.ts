@@ -10,18 +10,27 @@ import type { PersonaDati } from '@/api/abbonamento'
 export type RichiestaCodiceFiscale = { persona: PersonaDati; mancanti: string[] }
 type Ascoltatore = (r: RichiestaCodiceFiscale) => void
 
+// Due elenchi (14/11/2026). Il foglio del layout e' un `Modal`, e su iOS un secondo `Modal` non si apre sopra uno gia' aperto: la richiesta partita
+// dalla chat dell'assistente (`PrenotaDaChat`, che sta in un `Modal`) restava senza foglio, e il genitore leggeva «scrivilo» senza un campo dove
+// scriverlo. Quando una finestra aperta ha un suo foglio **dentro** di se' (`dentro: true`), la richiesta va a quello e solo a quello; altrimenti
+// al foglio del layout, come prima.
 const ascoltatori = new Set<Ascoltatore>()
+const interni = new Set<Ascoltatore>()
 
 /** Chiede il codice fiscale del bambino: apre il foglio, se e' montato. Non solleva. */
 export function chiediCodiceFiscale(r: RichiestaCodiceFiscale): void {
-  for (const a of ascoltatori) a(r)
+  for (const a of interni.size ? interni : ascoltatori) a(r)
 }
 
-/** Chi disegna il foglio si iscrive qui; la funzione che ritorna toglie l'iscrizione. */
-export function ascoltaRichiestaCodiceFiscale(a: Ascoltatore): () => void {
-  ascoltatori.add(a)
+/**
+ * Chi disegna il foglio si iscrive qui; la funzione che ritorna toglie l'iscrizione. `dentro`: il foglio sta dentro una finestra aperta (un `Modal`),
+ * e finche' e' iscritto la richiesta va a lui invece che al foglio del layout. Si iscrive solo mentre la finestra e' aperta.
+ */
+export function ascoltaRichiestaCodiceFiscale(a: Ascoltatore, opzioni?: { dentro?: boolean }): () => void {
+  const elenco = opzioni?.dentro ? interni : ascoltatori
+  elenco.add(a)
   return () => {
-    ascoltatori.delete(a)
+    elenco.delete(a)
   }
 }
 

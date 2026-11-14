@@ -40,4 +40,40 @@ prova('senza nessun foglio montato la richiesta non solleva', () => {
   chiediCodiceFiscale({ persona: persona as never, mancanti: ['codice fiscale'] })
 })
 
+// 14/11/2026: su iOS un `Modal` non si apre sopra un altro (la chat dell'assistente prenota dentro un `Modal`). Il foglio dentro la chat prende la richiesta
+// al posto di quello del layout, e solo finche' la chat e' aperta.
+const richiesta = { persona: persona as never, mancanti: ['codice fiscale'] }
+
+prova('con un foglio dentro una finestra aperta, la richiesta va a lui e non a quello del layout', () => {
+  const layout: RichiestaCodiceFiscale[] = []
+  const dentro: RichiestaCodiceFiscale[] = []
+  const smettiLayout = ascoltaRichiestaCodiceFiscale((r) => layout.push(r))
+  const smettiDentro = ascoltaRichiestaCodiceFiscale((r) => dentro.push(r), { dentro: true })
+  chiediCodiceFiscale(richiesta)
+  assert.equal(dentro.length, 1)
+  assert.equal(layout.length, 0)
+  smettiDentro()
+  smettiLayout()
+})
+
+prova('chiusa la finestra (il foglio dentro si disiscrive) la richiesta torna al foglio del layout', () => {
+  const layout: RichiestaCodiceFiscale[] = []
+  const smettiLayout = ascoltaRichiestaCodiceFiscale((r) => layout.push(r))
+  const smettiDentro = ascoltaRichiestaCodiceFiscale(() => undefined, { dentro: true })
+  smettiDentro()
+  chiediCodiceFiscale(richiesta)
+  assert.equal(layout.length, 1)
+  smettiLayout()
+})
+
+prova('un foglio dentro da solo riceve la richiesta, e disiscritto non la riceve piu\'', () => {
+  const dentro: RichiestaCodiceFiscale[] = []
+  const smetti = ascoltaRichiestaCodiceFiscale((r) => dentro.push(r), { dentro: true })
+  chiediCodiceFiscale(richiesta)
+  assert.equal(dentro.length, 1)
+  smetti()
+  chiediCodiceFiscale(richiesta)
+  assert.equal(dentro.length, 1)
+})
+
 console.log(`\n${n} prove passate`)
