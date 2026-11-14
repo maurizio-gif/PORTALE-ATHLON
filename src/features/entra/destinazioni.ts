@@ -73,6 +73,7 @@ export function arrivoDa(
   f?: string | null,
   turno?: string | null,
   baby?: string | null,
+  pt?: string | null,
 ): Arrivo | null {
   const attivita = a && (CATEGORIE as readonly string[]).includes(a) ? a : null
   switch (d) {
@@ -132,6 +133,21 @@ export function arrivoDa(
           'We’ll open the enrolment you prepared with the club desk for you directly, no password needed: read the contract, sign it and choose how to pay.',
         ),
         bottone: t('Apri l’iscrizione', 'Open the enrolment'),
+      }
+    }
+    case 'iscrizione_pt': {
+      // L'abbonamento PT preparato dal CRM (14/11/2026, nota 304 di APP-ATHLON): la persona (`f`) e il piano (`k`), solo cifre. La firma e il
+      // pagamento sono quelli delle iscrizioni (`/iscrizione?pt=<piano>&membro=<persona>`). Senza uno dei due si apre la pagina Personal training.
+      const persona = idValido(f)
+      const piano = pianoValido(pt)
+      return {
+        href: persona && piano ? { pathname: '/iscrizione', params: { pt: piano, membro: persona } } : '/personal',
+        titolo: t('Attiva l’abbonamento PT', 'Activate the PT membership'),
+        testo: t(
+          'Ti apriamo direttamente l’abbonamento PT preparato con la segreteria, senza password: leggi il contratto, lo firmi e scegli come pagare.',
+          'We’ll open the PT membership you prepared with the club desk for you directly, no password needed: read the contract, sign it and choose how to pay.',
+        ),
+        bottone: t('Apri l’abbonamento PT', 'Open the PT membership'),
       }
     }
     case 'assistenza':

@@ -188,4 +188,13 @@ const ok = (n: string) => {
   ok('consensi: la pagina «Consensi per i tuoi figli», senza parametri')
 }
 
+{
+  // L'abbonamento PT preparato dal CRM (14/11/2026, nota 304 di APP-ATHLON): persona e piano, solo cifre.
+  assert.deepEqual(arrivoDa('iscrizione_pt', null, null, '2026-11-14', null, '4321', null, null, '226')?.href, { pathname: '/iscrizione', params: { pt: '226', membro: '4321' } })
+  assert.equal(arrivoDa('iscrizione_pt', null, null, '2026-11-14', null, null, null, null, '226')?.href, '/personal', 'senza persona: la pagina Personal training')
+  assert.equal(arrivoDa('iscrizione_pt', null, null, '2026-11-14', null, '4321', null, null, '22x')?.href, '/personal', 'un piano non di sole cifre non passa')
+  assert.equal(JSON.stringify(arrivoDa('iscrizione', null, null, '2026-11-14', null, '1234', '10867', null, '226')?.href).includes('pt'), false, 'il piano PT non entra nell\'iscrizione ai corsi')
+  ok('iscrizione_pt: la firma dell\'abbonamento PT, persona e piano')
+}
+
 console.log(`\n${passi} prove passate`)
