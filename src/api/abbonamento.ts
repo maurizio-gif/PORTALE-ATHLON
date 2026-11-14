@@ -422,9 +422,11 @@ export async function documentoAbbonamento(numero: string): Promise<{ ok: true; 
 
 export type SceltaIscrizione = {
   member_id: number
-  /** Assente per il mensile del Baby Nuoto (`baby`): non ha un gruppo. */
+  /** Assente per il mensile del Baby Nuoto (`baby`) e per l'abbonamento PT (`pt`): non hanno un gruppo. */
   group_id?: string | number
   baby?: boolean
+  /** L'abbonamento PT (14/11/2026, nota 304 di APP-ATHLON): `piano_id` e' il piano PT, il contratto parte oggi. */
+  pt?: boolean
   data_inizio?: string
   /** L'abbonamento scelto, quando il gruppo si vende con piu' di uno (`piani_disponibili`, 12/11/2026). Senza: il primo. */
   piano_id?: number
@@ -459,8 +461,8 @@ export type RispostaIscrizione =
     }
 
 export async function anteprimaIscrizione(s: SceltaIscrizione): Promise<RispostaIscrizione> {
-  const { baby, ...resto } = s
-  const { ok, dati } = await abbonamento({ azione: baby ? 'baby_anteprima' : 'junior_anteprima', ...resto })
+  const { baby, pt, ...resto } = s
+  const { ok, dati } = await abbonamento({ azione: pt ? 'pt_anteprima' : baby ? 'baby_anteprima' : 'junior_anteprima', ...resto })
   if (ok) return { ok: true, anteprima: dati as unknown as AnteprimaIscrizione }
   return {
     ok: false,
@@ -481,8 +483,8 @@ export async function firmaIscrizione(
   consensi: Record<string, boolean>,
   firmaPng: string,
 ): Promise<{ ok: true; esito: EsitoFirma } | { ok: false; errore: string }> {
-  const { baby, ...resto } = s
-  const { ok, dati } = await abbonamento({ azione: baby ? 'baby_firma' : 'junior_firma', ...resto, dati_confermati: true, impronta, consensi, firma_png: firmaPng })
+  const { baby, pt, ...resto } = s
+  const { ok, dati } = await abbonamento({ azione: pt ? 'pt_firma' : baby ? 'baby_firma' : 'junior_firma', ...resto, dati_confermati: true, impronta, consensi, firma_png: firmaPng })
   if (ok && dati.numero) return { ok: true, esito: { numero: String(dati.numero), stato: dati.stato as StatoContratto, totale_oggi: Number(dati.totale_oggi ?? 0), cambio: null } }
   return { ok: false, errore: dati.errore ?? t('Non siamo riusciti a registrare il contratto adesso.', 'We couldn’t record the contract right now.') }
 }

@@ -597,6 +597,11 @@ export type StatoPersonal = {
   pacchetti: PacchettoPersonal[]
   /** Il nome dell'abbonamento PT che la persona ha gia', se ce l'ha. */
   pacchetto_attivo: string | null
+  /**
+   * L'abbonamento PT venduto dal club (14/11/2026, nota 304 di APP-ATHLON): vero, si attiva firmando il contratto
+   * (`/iscrizione?pt=<piano>&membro=<id>`) invece del foglio con i consensi. Assente con una funzione di prima.
+   */
+  abbonamento_firma?: boolean
   /** I consensi del contratto da accettare per attivarlo. */
   consensi_contratto: { id: number; nome: string; allegato: string | null }[]
   /** Il conto (IBAN) salvato su PerfectGym, per attivare l'abbonamento PT con l'addebito SEPA. Solo se ci sono pacchetti in vendita. */

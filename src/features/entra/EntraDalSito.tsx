@@ -27,8 +27,8 @@ import { arrivoDa } from './destinazioni'
 //   - nessun token, nessuna sessione, o token che non vale piu'  ->  «link non valido» e la strada per entrare con l'email.
 // Una destinazione che non e' in lista (`destinazioni.ts`) porta alla Home. I nuovi, dopo l'accesso, passano da «Completa il profilo» del layout.
 
-export function EntraDalSito({ d, attivita, giorno, piano, figlio, turno, baby, frammento }: { d: string; attivita?: string; giorno?: string; piano?: string; figlio?: string; turno?: string; baby?: string; frammento?: string }) {
-  const arrivo = arrivoDa(d, attivita, giorno, undefined, piano, figlio, turno, baby)
+export function EntraDalSito({ d, attivita, giorno, piano, figlio, turno, baby, pt, frammento }: { d: string; attivita?: string; giorno?: string; piano?: string; figlio?: string; turno?: string; baby?: string; pt?: string; frammento?: string }) {
+  const arrivo = arrivoDa(d, attivita, giorno, undefined, piano, figlio, turno, baby, pt)
   const token = useRef<string | null | undefined>(undefined)
   // La lettura parte una volta sola, anche con il doppio montaggio dello sviluppo: sul web la seconda non troverebbe piu' niente (il frammento si
   // toglie alla prima), e senza questa promessa la risposta della seconda cancellerebbe il token trovato dalla prima.

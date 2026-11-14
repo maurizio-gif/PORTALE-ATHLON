@@ -573,6 +573,18 @@ export function Personal() {
   const riquadro = useRef<View>(null)
   const [chiE, setChiE] = useState<TrainerPersonal | null>(null)
   const [daComprare, setDaComprare] = useState<DaComprare | null>(null)
+  /**
+   * Un abbonamento PT scelto. Venduto dal club (14/11/2026, nota 304 di APP-ATHLON, `abbonamento_firma`): si legge e si firma il contratto,
+   * come un'iscrizione (`/iscrizione?pt=<piano>&membro=<id>`), e si paga dopo dalla schermata degli abbonamenti. Con la funzione di prima:
+   * il foglio con i consensi, come sempre.
+   */
+  function scegliPacchetto(k: PacchettoPersonal) {
+    if (stato?.abbonamento_firma) {
+      router.push({ pathname: '/iscrizione', params: { pt: String(k.piano_id), membro: String(stato.member_id) } })
+      return
+    }
+    setDaComprare({ tipo: 'pacchetto', pacchetto: k })
+  }
 
   // Lo stato gia' letto si mostra subito, e intanto si rilegge.
   const chiaveStato = useRef('personal:stato:')
@@ -677,7 +689,8 @@ export function Personal() {
       return
     }
     const k = stato.pacchetti.find((x) => String(x.piano_id) === compra)
-    if (k) setDaComprare({ tipo: 'pacchetto', pacchetto: k })
+    if (k) scegliPacchetto(k)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [compra, stato])
 
   // Il ritorno dall'abbonamento PT (?pacchetto=<id>): come per la seduta, si
@@ -1051,7 +1064,7 @@ export function Personal() {
                 tono="accento"
                 titolo={t(`Abbonamento PT · ${k.sedute ?? ''} sedute al mese`, `PT membership · ${k.sedute ?? ''} sessions a month`)}
                 sotto={t(`${euro(k.prezzo_mese)} al mese, si aggiunge al tuo abbonamento`, `${euro(k.prezzo_mese)} a month, added to your membership`)}
-                onPress={() => setDaComprare({ tipo: 'pacchetto', pacchetto: k })}
+                onPress={() => scegliPacchetto(k)}
                 coda={<Icona nome="avanti" size={18} colore={p.testoTerzo} />}
               />
             ))}

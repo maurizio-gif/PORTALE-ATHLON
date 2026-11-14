@@ -59,13 +59,20 @@ export function Iscrizione() {
     group,
     membro,
     baby: babyParam,
+    pt: ptParam,
   } = useLocalSearchParams<{
     group?: string;
     membro?: string;
     baby?: string;
+    pt?: string;
   }>();
+  // L'abbonamento PT (14/11/2026, nota 304 di APP-ATHLON): stessa procedura, senza gruppo, con il piano scelto (`?pt=<piano>`); parte oggi e si
+  // firma qui, il pagamento e' quello degli abbonamenti. Da qui si torna alla pagina Personal training, non alla sezione Junior.
+  const pt = /^\d{1,6}$/.test(String(ptParam ?? "")) ? Number(ptParam) : null;
   // Il mensile del Baby Nuoto (22/10/2026): stessa procedura, ma senza gruppo (`?baby=1`).
-  const baby = babyParam === "1";
+  const baby = !pt && babyParam === "1";
+  const senzaGruppo = baby || !!pt;
+  const ritorno = pt ? ("/personal" as const) : ("/junior" as const);
   const memberId = Number(membro);
   const vista = !!vistaCorrente();
   const [passo, setPasso] = useState<1 | 2>(1);
@@ -99,7 +106,7 @@ export function Iscrizione() {
       setErrore(null);
       const r = await anteprimaIscrizione({
         member_id: memberId,
-        ...(baby ? { baby: true } : { group_id: String(group) }),
+        ...(pt ? { pt: true, piano_id: pt } : baby ? { baby: true } : { group_id: String(group) }),
         data_inizio: data ?? undefined,
         ...(pianoRef.current ? { piano_id: pianoRef.current } : {}),
       });
@@ -146,12 +153,12 @@ export function Iscrizione() {
       // Senza costi non c'e' niente da scegliere: un gruppo pieno o un'iscrizione non permessa chiude la strada.
       if (!r.importi) setFermo(true);
     },
-    [memberId, group, baby],
+    [memberId, group, baby, pt],
   );
   useEffect(() => {
-    if (!Number.isFinite(memberId) || (!group && !baby)) return setFermo(true);
+    if (!Number.isFinite(memberId) || (!group && !senzaGruppo)) return setFermo(true);
     carica();
-  }, [carica, memberId, group, baby]);
+  }, [carica, memberId, group, senzaGruppo]);
 
   const scorrimentoFoglio = useRef<ScrollView>(null);
   const posti = useRef({ corpo: 0, firma: 0 });
@@ -195,7 +202,7 @@ export function Iscrizione() {
     const r = await firmaIscrizione(
       {
         member_id: memberId,
-        ...(baby ? { baby: true } : { group_id: String(group) }),
+        ...(pt ? { pt: true, piano_id: pt } : baby ? { baby: true } : { group_id: String(group) }),
         data_inizio: inizio,
         ...(pianoScelto ? { piano_id: pianoScelto } : {}),
       },
@@ -213,7 +220,7 @@ export function Iscrizione() {
     setFirmando(false);
     // Il contratto e' firmato e non pagato: `/abbonamento` lo trova e riparte dal pagamento. La sezione Junior non aspetta il
     // mirror di PerfectGym: lo dice subito («iscrizione in corso, da pagare») e butta le letture di prima.
-    if (!baby) {
+    if (!senzaGruppo) {
       registraInCorso({
         member_id: memberId,
         group_id: Number(group),
@@ -225,15 +232,18 @@ export function Iscrizione() {
     scordaPrefisso("junior:corsi");
     scorda("abbonamenti:contratti");
     scorda("area");
+    if (pt) scordaPrefisso("personal:");
     router.replace("/abbonamento" as const);
   }
 
   const intestazione = {
-    titolo: t("Iscrizione", "Enrollment"),
-    sopratitolo: baby
-      ? "Baby Nuoto"
-      : t("Corsi per bambini e ragazzi", "Courses for children and teens"),
-    indietro: "/junior" as const,
+    titolo: pt ? t("Abbonamento PT", "PT membership") : t("Iscrizione", "Enrollment"),
+    sopratitolo: pt
+      ? "Personal training"
+      : baby
+        ? "Baby Nuoto"
+        : t("Corsi per bambini e ragazzi", "Courses for children and teens"),
+    indietro: ritorno,
     barra: false,
   };
 
@@ -243,12 +253,14 @@ export function Iscrizione() {
         <Messaggio>{errore}</Messaggio>
         <Pulsante
           testo={
-            baby
-              ? t("Torna alla sezione Junior", "Back to the Junior section")
-              : t("Torna ai gruppi", "Back to groups")
+            pt
+              ? t("Torna al personal training", "Back to personal training")
+              : baby
+                ? t("Torna alla sezione Junior", "Back to the Junior section")
+                : t("Torna ai gruppi", "Back to groups")
           }
           variante="secondario"
-          onPress={() => router.navigate("/junior" as const)}
+          onPress={() => router.navigate(ritorno)}
         />
       </Schermata>
     );
@@ -256,7 +268,7 @@ export function Iscrizione() {
     return (
       <Schermata {...intestazione}>
         <Messaggio>
-          {baby
+          {senzaGruppo
             ? t(
                 "Non troviamo questo abbonamento.",
                 "We can’t find this membership.",
@@ -302,7 +314,7 @@ export function Iscrizione() {
                 fontSize: 12,
               }}
             >
-              {baby ? t("Abbonamento", "Membership") : t("Gruppo", "Group")}
+              {senzaGruppo ? t("Abbonamento", "Membership") : t("Gruppo", "Group")}
             </Text>
             <Text
               style={{
@@ -388,7 +400,7 @@ export function Iscrizione() {
                 <RiepilogoCosti
                   importi={costi}
                   primaLezione={anteprima?.inizi?.[0]?.data ?? null}
-                  fineStagione={baby ? undefined : FINE_STAGIONE}
+                  fineStagione={senzaGruppo ? undefined : FINE_STAGIONE}
                   senzaTotale
                 />
               ) : (
@@ -411,14 +423,16 @@ export function Iscrizione() {
             />
             <Pulsante
               testo={
-                baby
-                  ? t("Torna alla sezione Junior", "Back to the Junior section")
-                  : t("Torna ai gruppi", "Back to groups")
+                pt
+                  ? t("Torna al personal training", "Back to personal training")
+                  : baby
+                    ? t("Torna alla sezione Junior", "Back to the Junior section")
+                    : t("Torna ai gruppi", "Back to groups")
               }
               variante="fantasma"
               piccolo
               pieno={false}
-              onPress={() => router.navigate("/junior" as const)}
+              onPress={() => router.navigate(ritorno)}
             />
           </>
         ) : null}
@@ -665,7 +679,7 @@ export function Iscrizione() {
             <RiepilogoCosti
               importi={anteprima.importi}
               primaLezione={anteprima.inizi?.[0]?.data ?? null}
-              fineStagione={baby ? undefined : FINE_STAGIONE}
+              fineStagione={senzaGruppo ? undefined : FINE_STAGIONE}
               senzaTotale
             />
             <DocumentoContratto blocchi={anteprima.documento.blocchi} />

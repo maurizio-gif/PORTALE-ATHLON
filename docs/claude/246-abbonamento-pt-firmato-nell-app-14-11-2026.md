@@ -1,0 +1,9 @@
+## L'abbonamento PT si attiva firmando il contratto nell'app: «Abbonamento PT» apre `/iscrizione?pt=<piano>&membro=<id>`, e `/entra` conosce `iscrizione_pt` (14/11/2026)
+
+Decisione di Maurizio (14/11/2026): l'Abbonamento PT (2, 4 o 8 sedute al mese) si vende dal club e non piu' su PerfectGym. Il lato server e' la sezione 304 di APP-ATHLON (`personal_abbonamento_crea` nel motore, `portale-abbonamento` azioni `pt_anteprima` e `pt_firma`, `portale-lab-personal` che dice `abbonamento_firma`).
+
+- **Personal training › Acquista › Abbonamento PT**: se `statoPersonal` dice `abbonamento_firma: true` il tocco apre la schermata delle iscrizioni (`features/lab/junior/Iscrizione.tsx`) con `?pt=<piano>&membro=<id>`, invece del foglio con «Accetto le condizioni» (`FoglioCompra`). Senza (la funzione di prima, o l'interruttore spento) resta il foglio di sempre. Anche `?compra=<piano>` passa da li' (`scegliPacchetto`).
+- **La schermata delle iscrizioni** sa fare il PT: nessun gruppo (come il Baby Nuoto), titolo «Abbonamento PT», sopratitolo «Personal training», indietro e «Torna al personal training» portano a `/personal`. Chiede `pt_anteprima` e `pt_firma` (`api/abbonamento.ts`, `pt: true` con `piano_id`). Dopo la firma si va a `/abbonamento`, che trova il contratto firmato e non pagato e chiede il metodo (carta col Drop-in o conto su GoCardless), come per i corsi. Le letture del personal in memoria (`personal:`) si buttano.
+- **`/entra`**: la destinazione `iscrizione_pt` (il link che il desk manda dal CRM): `f` la persona, `k` il piano, solo cifre; senza uno dei due si apre `/personal` (`features/entra/destinazioni.ts`, `app/entra.tsx`).
+- **Da sapere**: un'app senza questa OTA, a interruttore acceso, tocca «Attiva e paga» e riceve «aggiorna l'app» (409 `firma_nell_app`): **l'interruttore si accende dopo l'OTA**.
+- Provato: `tsc` pulito su `src/`, `scripts/prova-entra.ts` (24). Non guardato su un telefono.

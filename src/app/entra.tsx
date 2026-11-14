@@ -7,9 +7,10 @@ import { EntraDalSito } from '@/features/entra/EntraDalSito'
 // token nel frammento va aperto dal browser: dal 08/11/2026 lo legge anche l'app nativa, dal link che l'ha aperta o dal parametro `'#'` del router,
 // quindi il link universale di `/entra` si puo' dare all'app). La destinazione e' una lista chiusa (`features/entra/destinazioni.ts`): `a` e' una categoria
 // del Calendario, `g` un giorno (`AAAA-MM-GG`, per gli eventi), `p` un piano (per «Iscriviti» dal listino), `f` un bambino (per la sezione Junior e per l'iscrizione
-// preparata dal CRM), `t` il turno e `b=1` il Baby Nuoto (solo per `d=iscrizione`, 07/11/2026).
+// preparata dal CRM), `t` il turno e `b=1` il Baby Nuoto (solo per `d=iscrizione`, 07/11/2026). `k` il piano dell'abbonamento PT (solo per
+// `d=iscrizione_pt`, 14/11/2026: `f` e' la persona che lo avra').
 export default function PaginaEntra() {
-  const { d, a, g, p, f, t, b, '#': frammento } = useLocalSearchParams<{ d?: string; a?: string; g?: string; p?: string; f?: string; t?: string; b?: string; '#'?: string }>()
+  const { d, a, g, p, f, t, b, k, '#': frammento } = useLocalSearchParams<{ d?: string; a?: string; g?: string; p?: string; f?: string; t?: string; b?: string; k?: string; '#'?: string }>()
   return (
     <EntraDalSito
       d={String(d ?? '')}
@@ -19,6 +20,7 @@ export default function PaginaEntra() {
       figlio={typeof f === 'string' ? f : undefined}
       turno={typeof t === 'string' ? t : undefined}
       baby={typeof b === 'string' ? b : undefined}
+      pt={typeof k === 'string' ? k : undefined}
       frammento={typeof frammento === 'string' ? frammento : undefined}
     />
   )
