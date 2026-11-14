@@ -19,8 +19,12 @@ import { t } from '@/lib/lingua'
  * **`attiva-notifiche` non e' una schermata ma un'azione** (11/11/2026, richiesta di Maurizio: «il pulsante proprio nella
  * notifica, attiva push qui»): il tocco attiva la push di questo dispositivo senza cambiare schermata (`FinestraNotifica`,
  * `Centro`). Una versione dell'app che non la conosce la scarta come ogni chiave sconosciuta: resta «Ok, letto».
+ *
+ * **`prenotazioni`** (14/11/2026, richiesta di Maurizio) apre la sezione «Prenotazioni» della Home (`/?sezione=prenotazioni`): le lezioni degli
+ * ultimi 30 giorni con la presenza. La usa la notifica di una mancata disdetta. Una versione dell'app che non la conosce la scarta, e la
+ * notifica resta senza pulsante («Ok, letto»).
  */
-export const DESTINAZIONI = ['home', 'calendario', 'abbonamenti', 'pagamenti', 'certificato', 'profilo', 'allenamento', 'shop', 'club-life', 'personal', 'tv', 'assistenza', 'attiva-notifiche'] as const
+export const DESTINAZIONI = ['home', 'calendario', 'abbonamenti', 'pagamenti', 'certificato', 'profilo', 'allenamento', 'shop', 'club-life', 'personal', 'tv', 'assistenza', 'attiva-notifiche', 'prenotazioni'] as const
 export type DestinazioneNotifica = (typeof DESTINAZIONI)[number]
 
 function eDestinazione(v: unknown): v is DestinazioneNotifica {
@@ -36,6 +40,7 @@ export function hrefDestinazione(d: DestinazioneNotifica): Href {
       return '/calendario'
     case 'abbonamenti':
     case 'pagamenti':
+    case 'prenotazioni':
     case 'certificato':
     case 'profilo':
       // Le sezioni stanno nella Home (`/?sezione=…`).
