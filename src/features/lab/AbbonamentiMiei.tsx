@@ -2,7 +2,7 @@ import { router } from 'expo-router'
 import { useCallback, useEffect, useState } from 'react'
 import { StyleSheet, Text, View } from 'react-native'
 
-import { contrattiAbbonamento, documentoAbbonamento, type AddebitoContratto, type ContrattoElenco } from '@/api/abbonamento'
+import { contrattiAbbonamento, documentoAbbonamento, type AddebitoContratto, type ContrattoElenco, type SospensioneContratto } from '@/api/abbonamento'
 import { pagaAnnuale, statoGestione, type ContrattoGestione } from '@/api/gestioneAbbonamento'
 import type { Area } from '@/api/lab'
 import { euro } from '@/lib/eventi'
@@ -56,10 +56,57 @@ function nomeAddebito(a: AddebitoContratto): string {
   return TIPO_ADDEBITO[a.tipo] ?? a.tipo
 }
 
+const TIPO_SOSPENSIONE: Record<string, [string, string]> = {
+  a_pagamento: ['a pagamento', 'paid'],
+  gratuita: ['gratuita', 'free'],
+  malattia: ['per malattia', 'for illness'],
+  estate: ['estiva', 'summer'],
+}
+
+/** «dicembre 2026» se e' un mese intero, se no «dal 3 dic 2026 al 2 gen 2027». */
+function periodoSospensione(s: SospensioneContratto): string {
+  const [a, m, g] = s.dal.slice(0, 10).split('-').map(Number)
+  const fineMese = new Date(Date.UTC(a, m, 0)).toISOString().slice(0, 10)
+  if (g === 1 && s.al.slice(0, 10) === fineMese) {
+    return new Intl.DateTimeFormat(locale(), { month: 'long', year: 'numeric', timeZone: 'UTC' }).format(new Date(Date.UTC(a, m - 1, 1)))
+  }
+  return t(`dal ${data(s.dal)} al ${data(s.al)}`, `from ${data(s.dal)} to ${data(s.al)}`)
+}
+
+/**
+ * La sospensione in corso o programmata (14/11/2026, Maurizio: «indicami se c'e' una sospensione in corso o futura e dimmi quando e'»):
+ * un riquadro sotto le etichette, con il periodo, il tipo e quando riprende. Le date le dice il server (`sospensioni` di `contratti`).
+ */
+function Sospensioni({ elenco }: { elenco: SospensioneContratto[] }) {
+  if (!elenco.length) return null
+  return (
+    <>
+      {elenco.map((s, i) => {
+        const tipo = TIPO_SOSPENSIONE[s.tipo]
+        const riprende = data(new Date(Date.UTC(...(s.al.slice(0, 10).split('-').map(Number) as [number, number, number])) + 864e5).toISOString())
+        return (
+          <Messaggio
+            key={`${s.dal}-${i}`}
+            tono="attenzione"
+            icona="pausa"
+            titolo={s.in_corso ? t('Sospensione in corso', 'Suspension in progress') : t('Sospensione programmata', 'Scheduled suspension')}
+          >
+            {(s.in_corso
+              ? t(`Abbonamento sospeso fino al ${data(s.al)}`, `Membership suspended until ${data(s.al)}`)
+              : t(`Abbonamento sospeso ${periodoSospensione(s)}`, `Membership suspended ${periodoSospensione(s)}`)) +
+              (tipo ? t(` (sospensione ${tipo[0]})`, ` (${tipo[1]} suspension)`) : '') +
+              t(`. Riprende il ${riprende}.`, `. It resumes on ${riprende}.`)}
+          </Messaggio>
+        )
+      })}
+    </>
+  )
+}
+
 function statoContratto(c: ContrattoElenco): { testo: string; tono: 'ok' | 'attenzione' | 'neutro' } {
   if (c.in_vigore && !c.si_rinnova && c.data_fine) return { testo: t(`Termina il ${data(c.data_fine)}`, `Ends on ${data(c.data_fine)}`), tono: 'attenzione' }
   if (c.stato === 'NotStarted') return { testo: t('Non ancora iniziato', 'Not started'), tono: 'attenzione' }
-  if (c.stato === 'Freezed') return { testo: t('Sospeso', 'Frozen'), tono: 'attenzione' }
+  if (c.stato === 'Freezed' || c.sospensioni?.some((s) => s.in_corso)) return { testo: t('Sospeso', 'Frozen'), tono: 'attenzione' }
   if (c.in_vigore) return { testo: t('In corso', 'Current'), tono: 'ok' }
   return { testo: t('Terminato', 'Ended'), tono: 'neutro' }
 }
@@ -155,6 +202,7 @@ function SchedaContratto({ c, conPersona, regolarita, onSezione, gestione, onCam
           </View>
         ) : null}
         {irregolare && regolarita ? <DaSistemare regolarita={regolarita} onSezione={onSezione} /> : null}
+        {c.in_vigore && c.sospensioni?.length ? <Sospensioni elenco={c.sospensioni} /> : null}
 
         <View style={[stili.box, { backgroundColor: p.incavo, borderColor: p.testo + '1F' }]}>
           <Riga nome={t('Sottoscritto il', 'Signed on')} valore={data(c.data_firma)} />
