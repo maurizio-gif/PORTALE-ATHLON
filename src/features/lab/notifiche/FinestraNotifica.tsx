@@ -21,11 +21,13 @@ import { chiudiFinestra, finestraComparsa } from './store'
 // `azione` e `aperta`; «Ok, letto» su una notifica senza pulsante e' `aperta`; chiudere con la X la lascia solo `vista`:
 // resta fra le non lette del centro notifiche, perche' chi chiude non ha letto per forza. Il testo non e' mai tagliato.
 //
-// **La conferma di lettura** (14/11/2026, richiesta di Maurizio: «le push ancora danno problemi: una finestra che compare quando apri, e la
-// persona dice "ok, ho letto"»). Una notifica che `richiedeConferma` (gli avvisi delle mancate disdette) **non si chiude**: niente X, niente
-// «Chiudi», un tocco fuori o il tasto indietro non fanno niente. Si esce con «Ok, ho letto» (`aperta`, e il club sa che e' arrivata) o con il
-// pulsante della notifica, che porta alla schermata (`azione`, che e' anche `aperta`). Se l'app si chiude prima, la finestra torna alla prossima
-// apertura (il server la ridà finche' non e' `aperta`, per 72 ore). Il tocco su «Ok, ho letto» non apre nessuna schermata.
+// **La conferma di lettura, blanda** (14/11/2026, richiesta di Maurizio: «le push ancora danno problemi: una finestra che compare quando apri, e la
+// persona dice "ok, ho letto"»; resa blanda lo stesso giorno: «falla blanda per il cliente. Non deve essere troppo…»). Una notifica che
+// `richiedeConferma` (gli avvisi delle mancate disdette) ha come primo pulsante «Ok, ho letto» (`aperta`, e il club sa che e' arrivata) e sotto
+// quello della sua destinazione (`azione`, che e' anche `aperta`); **si chiude come ogni altra finestra** (X, un tocco fuori, il tasto indietro), e
+// chiuderla la lascia solo `vista`, che al club basta per sapere che e' arrivata. Non si impone: se la persona l'ha vista e non ha confermato, il
+// server la ripropone **una volta sola**, il giorno dopo (entro 72 ore dall'avviso), e poi non torna piu'. Il tocco su «Ok, ho letto» non apre
+// nessuna schermata.
 //
 // **Sotto, se la push e' spenta, una riga per attivarla** (25/10/2026, richiesta di Maurizio: «promuovi di piu l'attivazione delle
 // push»): e' il momento giusto, la persona ha appena visto una notifica del club arrivare. Vale lo stesso rimando di tre giorni
@@ -55,8 +57,6 @@ export function FinestraNotifica({ notifica: n }: { notifica: NotificaApp }) {
   const conferma = n.richiedeConferma
 
   function chiudi() {
-    // Una finestra che chiede la conferma non si chiude con la X, con un tocco fuori o con «indietro»: si legge.
-    if (conferma) return
     chiudiFinestra(n.id)
   }
 
@@ -88,11 +88,9 @@ export function FinestraNotifica({ notifica: n }: { notifica: NotificaApp }) {
             <Text style={[stili.sopra, { color: p.accento }]} numberOfLines={1}>
               {n.per?.nome ? t(`ATHLON CLUB · PER ${n.per.nome.toUpperCase()}`, `ATHLON CLUB · FOR ${n.per.nome.toUpperCase()}`) : 'ATHLON CLUB'}
             </Text>
-            {conferma ? null : (
-              <Tocco onPress={chiudi} etichetta={t('Chiudi', 'Close')} style={[stili.chiudi, { backgroundColor: p.incavo }]}>
-                <Icona nome="chiudi" size={16} colore={p.testo} />
-              </Tocco>
-            )}
+            <Tocco onPress={chiudi} etichetta={t('Chiudi', 'Close')} style={[stili.chiudi, { backgroundColor: p.incavo }]}>
+              <Icona nome="chiudi" size={16} colore={p.testo} />
+            </Tocco>
           </View>
           <Text style={[stili.titolo, { color: p.testo }]} accessibilityRole="header">
             {n.titolo}
