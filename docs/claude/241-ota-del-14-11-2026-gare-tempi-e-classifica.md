@@ -1,0 +1,16 @@
+## L'OTA del 14/11/2026, pomeriggio: tre runtime (3.0.0, 3.1.0, 3.1.1), con i tempi e la classifica delle gare (240) e la sospensione in vista nell'abbonamento (239); il 3.0.0 differisce ancora da `main` negli stessi 18 file (14/11/2026)
+
+Richiesta di Maurizio, con il via esplicito («Sì, procedi con l'OTA»), per avere i tempi delle gare nell'app installata il giorno della 1ª gara (15/11). Procedura della 227, 234 e 238. **Pubblicata il 14/11/2026 intorno alle 16:40 UTC** sul canale `production`, iOS e Android insieme, un gruppo per runtime.
+
+- **Cosa porta.** Rispetto all'OTA della 238 (`main` `fc9aee5`): sezione 239 (sospensione in vista nella scheda dell'abbonamento, #396) e 240 (gare: tempo del bambino, tempi della categoria senza nomi, posizione e punti a classifica confermata, #397). **Nessun modulo nativo nuovo**: `git diff fc9aee5 09349d3 -- package.json package-lock.json app.json plugins assets eas.json` vuoto.
+- **`eas update:list --branch production`** prima di costruire e subito prima di pubblicare: l'ultimo gruppo di ogni runtime era quello della 238 (`9faa9105…` 3.0.0, `fc082fc1…` 3.1.0, `ceb07350…` 3.1.1). Note e produzione coincidevano.
+- **Runtime 3.1.1**, gruppo `791d37ff-8030-4809-b89a-abde6274cef0` (iOS `01a1dae8-1931-7073-a4ed-e4d36b7bf40c`, Android `01a1dae8-1931-7c3b-a905-d9da376291fa`): `main` (`09349d3`) com'è.
+- **Runtime 3.1.0**, gruppo `8c9e018c-4f85-4a64-bf6b-6eeae5d9f071` (iOS `01a1dae8-7223-73f2-84d1-38c4f2f3249a`, Android `01a1dae8-7223-7e8b-94d1-ffa3e38c07d1`): lo stesso albero con `version` di `app.json` a `3.1.0`, worktree a parte, `node_modules` con `cp -al`.
+- **Runtime 3.0.0**, gruppo `2570085d-f833-41a1-8bc7-0aad24eaad07` (iOS `01a1dae7-bb2b-7455-bd38-340ad04fd078`, Android `01a1dae7-bb2b-79a8-a531-c1a57dd878c2`), «senza Adyen»: ricostruito da capo con la ricetta della 238, con i riscontri a ogni passo:
+  - base `74279d4`, i commit e la #347 della 227: **17 file** contro `02e7d1d`;
+  - `02e7d1d..121f9d3`, conflitto di `lab.ts` risolto senza `drop_in` (tenuti `credito` e il codice fiscale in `acquistaLezione`): **17 file** contro `121f9d3`;
+  - `121f9d3..44a15a0`, conflitto di `lab.ts` (`DaPagare`, commento nuovo di `credito`) e le due correzioni a mano (`api/abbonamento.ts` senza `@/lib/adyenNativo`, `conModulo` solo sul web, niente `canale` né `ritornoNativo`; `Calendario.tsx` senza `drop_in: r.drop_in`): **18 file** contro `44a15a0`;
+  - `44a15a0..fc9aee5` e `fc9aee5..09349d3`: **nessun conflitto**, anche se `Gare.tsx`, `api/gare.ts` e `api/abbonamento.ts` sono fra i 18. Elenco dei file diversi da `09349d3` **identico** a quello della 234 e della 238. `npm ci` suo, senza `node_modules/@adyen`.
+- **Verifica fatta**: `tsc --noEmit` con **zero errori in `src/`** nei tre alberi; `expo export` delle tre cartelle, sei bundle `.hbc`: `classifica_confermata` e «CATEGORY TIMES» in tutti e sei, `AdyenDropIn` e `sessione_acquisto` assenti nei due del 3.0.0 e presenti nei quattro 3.1.x; **`u.expo.dev`** per le sei combinazioni (runtime × piattaforma) risponde con i gruppi qui sopra.
+- **Ordine con il server**: la migrazione `20261114v` (APP-ATHLON, sezione 300) era già applicata; l'app la legge con campi facoltativi.
+- **Non provato su un telefono.**
