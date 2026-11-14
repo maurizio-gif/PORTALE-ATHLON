@@ -22,6 +22,7 @@ import { ChiamataDaChat } from './ChiamataDaChat'
 import { PagaDaChat } from './PagaDaChat'
 import { pagaDaAzione } from './pagaDaChat'
 import { PrenotaDaChat } from './PrenotaDaChat'
+import { FoglioCodiceFiscale } from '../abbonamento/FoglioCodiceFiscale'
 import { prenotaDaAzione } from './prenotaDaChat'
 import { ScriviAlTeam } from './ScriviAlTeam'
 import { teamDaAzione } from './teamDaChat'
@@ -355,6 +356,9 @@ export function FoglioAssistente({ aperto, schermata, onChiudi }: { aperto: bool
           </Text>
         </View>
       </View>
+      {/* Il codice fiscale del figlio, se la prenotazione proposta in chat lo chiede (14/11/2026): dentro la chat e non nel foglio del layout, perche' su iOS (e
+          sul web) un `Modal` non si apre sopra un altro. Su Android il foglio del layout e' un livello sopra a questo (zIndex 200 contro 100). */}
+      {aperto && !android ? <FoglioCodiceFiscale dentro /> : null}
     </>
   )
 

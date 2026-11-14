@@ -75,6 +75,7 @@ export function FoglioProfiloClassifica({ aperto, stato, primoIngresso = false, 
 
   return (
     <Foglio
+      tastiera
       aperto={aperto}
       titolo={primoIngresso ? t('Sei in classifica!', 'You’re on the leaderboard!') : t('Il tuo profilo in classifica', 'Your leaderboard profile')}
       sottotitolo={t('Metti la tua foto e una frase che ti motiva: sono facoltativi, e li cambi quando vuoi.', 'Add your photo and a phrase that motivates you: both are optional, and you can change them whenever you like.')}

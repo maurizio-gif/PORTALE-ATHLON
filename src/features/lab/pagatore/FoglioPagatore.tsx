@@ -191,7 +191,7 @@ export function FoglioPagatore({ aperto, onChiudi, onFatto }: { aperto: boolean;
   }
 
   return (
-    <Foglio aperto={aperto} titolo={titolo} sottotitolo={t('Intesta le ricevute a chi ha pagato davvero, per la detrazione.', 'Put the receipts in the name of whoever actually paid, for the tax deduction.')} onChiudi={onChiudi}>
+    <Foglio tastiera aperto={aperto} titolo={titolo} sottotitolo={t('Intesta le ricevute a chi ha pagato davvero, per la detrazione.', 'Put the receipts in the name of whoever actually paid, for the tax deduction.')} onChiudi={onChiudi}>
       {carica === 'attesa' ? <SchedeInArrivo quante={2} /> : null}
       {carica === 'errore' ? (
         <>

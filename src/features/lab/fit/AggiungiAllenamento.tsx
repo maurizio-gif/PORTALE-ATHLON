@@ -167,7 +167,7 @@ export function AggiungiAllenamento({ disp, compatto = false }: { disp: Disposit
         {!consenso ? <Text style={[stili.piccola, { color: p.testoSecondario }]}>{t('Prima serve il consenso ai dati dei dispositivi (il battito e le calorie sono dati sulla salute).', 'First we need your consent to device data (heart rate and calories are health data).')}</Text> : null}
       </Carta>
 
-      <Foglio aperto={aperto} titolo={t('Aggiungi un allenamento', 'Add a workout')} onChiudi={() => setAperto(false)}>
+      <Foglio tastiera aperto={aperto} titolo={t('Aggiungi un allenamento', 'Add a workout')} onChiudi={() => setAperto(false)}>
         <View style={{ gap: spazio.tre }}>
           <Text style={[stili.etichetta, { color: p.testoSecondario }]}>{t('Che sport?', 'Which sport?')}</Text>
           <SceltaSport valore={sport} onScegli={setSport} />

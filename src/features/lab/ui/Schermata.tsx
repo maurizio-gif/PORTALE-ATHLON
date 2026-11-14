@@ -10,6 +10,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { LARGO } from '@/components/Pagina'
 import { spazio } from '@/theme'
 import { t } from '@/lib/lingua'
+import { useSollevamentoTastiera } from '@/lib/tastiera'
 
 import { LARGHEZZA_CON_SCRITTA, LARGHEZZA_PILLOLA, LARGHEZZA_PILLOLA_COMPATTA, SPOSTA_SE_OCCUPATO } from '../feedback/comune'
 import { useAzioneInAltoPresente, useSegnaAzioneInAlto } from '../feedback/posizione'
@@ -95,7 +96,13 @@ export function Schermata({
   const maxWidth = width < LARGO ? 640 : LARGHEZZA_APP
   // Il pulsante «Assistente virtuale» sta in alto a destra, nel posto di `destra`: se qui c'e' un comando, gli si fa posto
   // (solo finche' la schermata e' quella che si vede, vedi feedback/posizione.ts).
-  useSegnaAzioneInAlto(!!destra, useIsFocused())
+  const inPrimoPiano = useIsFocused()
+  useSegnaAzioneInAlto(!!destra, inPrimoPiano)
+  // La tastiera su Android (14/11/2026): da Android 16 (`targetSdk` 36) il sistema non ridimensiona piu' la finestra, e un campo nella parte bassa di una
+  // schermata restava sotto la tastiera, senza modo di scorrere fin li'. Si fa a mano quello che faceva `adjustResize`: l'area che scorre si accorcia
+  // di quanto la tastiera sale, e Android tiene in vista il campo che ha il fuoco (`ScrollView.onSizeChanged`). Solo la schermata in primo piano ascolta
+  // (le altre restano montate sotto), e solo su Android; se il sistema ha gia' ridimensionato la finestra non si alza due volte (`quantoAlzare`).
+  const { sollevamento, alLayout } = useSollevamentoTastiera(Platform.OS === 'android' && inPrimoPiano, ins.bottom)
   // Lo spazio che la pillola «Richiedi assistenza» prende a destra della testata sottile: il titolo piccolo sta fra il marchio e lei (non sotto di lei). In vista cliente la pillola non c'e'.
   const occupato = useAzioneInAltoPresente()
   const colonnaPillola = width < LARGO ? 640 : LARGHEZZA_APP
@@ -136,7 +143,7 @@ export function Schermata({
   ) : null
 
   return (
-    <View style={[stili.fondo, { backgroundColor: p.fondo }]}>
+    <View onLayout={alLayout} style={[stili.fondo, { backgroundColor: p.fondo, paddingBottom: sollevamento }]}>
       <Animated.ScrollView
         ref={scorrimento}
         onScroll={onScroll}

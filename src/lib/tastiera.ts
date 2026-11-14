@@ -1,5 +1,7 @@
-import { useEffect, useState } from 'react'
-import { Keyboard, Platform } from 'react-native'
+import { useCallback, useEffect, useState } from 'react'
+import { Keyboard, Platform, type LayoutChangeEvent } from 'react-native'
+
+import { quantoAlzare } from './alzaPerTastiera'
 
 /**
  * Quanto sale la tastiera dal bordo di sotto dello schermo, in punti, solo su Android nativo; 0 con la tastiera chiusa, su iOS e sul web.
@@ -28,4 +30,24 @@ export function useAltezzaTastiera(attivo: boolean): number {
     }
   }, [attivo])
   return altezza
+}
+
+/**
+ * Di quanto alzare un livello a tutto schermo perche' la tastiera non lo copra (14/11/2026): la stessa logica di `FoglioAssistente`, per chi altro
+ * sta in basso su Android 16 (`ui/Foglio` quando e' un livello). `alLayout` va sul livello stesso: misura l'altezza a tastiera chiusa e quella di
+ * adesso, e se il sistema ha gia' ridimensionato la finestra si alza solo di quello che manca (`quantoAlzare`). `barra` e' la barra di navigazione
+ * (`useSafeAreaInsets().bottom`). Con `attivo` false, su iOS e sul web `sollevamento` e' sempre 0.
+ */
+export function useSollevamentoTastiera(attivo: boolean, barra: number): { sollevamento: number; alLayout: (e: LayoutChangeEvent) => void } {
+  const tastiera = useAltezzaTastiera(attivo)
+  const [livello, setLivello] = useState({ massima: 0, adesso: 0 })
+  const alLayout = useCallback((e: LayoutChangeEvent) => {
+    const h = e.nativeEvent.layout.height
+    setLivello((l) => ({ massima: Math.max(l.massima, h), adesso: h }))
+  }, [])
+  // A tastiera chiusa la misura buona e' quella di adesso: se la finestra e' cambiata (schermo diviso) la massima vecchia non vale piu'.
+  useEffect(() => {
+    if (tastiera === 0) setLivello((l) => ({ massima: l.adesso, adesso: l.adesso }))
+  }, [tastiera])
+  return { sollevamento: quantoAlzare(tastiera, barra, livello.massima, livello.adesso), alLayout }
 }

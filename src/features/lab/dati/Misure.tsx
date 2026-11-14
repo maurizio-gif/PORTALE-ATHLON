@@ -162,6 +162,7 @@ function FoglioMisura({
 
   return (
     <Foglio
+      tastiera
       aperto
       titolo={esiste ? t('Modifica la misurazione', 'Edit the measurement') : altezza ? t('Nuovo peso', 'New weight') : t('Le tue misure', 'Your measurements')}
       sottotitolo={

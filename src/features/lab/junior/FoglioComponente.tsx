@@ -97,6 +97,7 @@ export function FoglioComponente({
 
   return (
     <Foglio
+      tastiera
       aperto={aperto}
       onChiudi={chiudi}
       titolo={t("Aggiungi un componente", "Add a family member")}

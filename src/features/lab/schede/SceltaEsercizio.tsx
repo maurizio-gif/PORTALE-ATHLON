@@ -67,7 +67,7 @@ export function SceltaEsercizio({ aperto, titolo = t('Scegli un esercizio', 'Cho
   const nomeLibero = libero.trim() || q.trim()
 
   return (
-    <Foglio aperto={aperto} titolo={titolo} sottotitolo={
+    <Foglio tastiera aperto={aperto} titolo={titolo} sottotitolo={
         ambiente === 'vasca'
           ? t('Gli esercizi di nuoto della libreria del club.', 'The swimming exercises in the club’s library.')
           : t('Cerca nella libreria del club, oppure scrivi il nome del tuo esercizio.', 'Search the club’s library, or write the name of your exercise.')
